@@ -15,7 +15,11 @@ class filedownload(BaseModule):
     watched_events = ["URL_UNVERIFIED", "HTTP_RESPONSE"]
     produced_events = []
     flags = ["active", "safe", "web-basic"]
-    meta = {"description": "Download common filetypes such as PDF, DOCX, PPTX, etc."}
+    meta = {
+        "description": "Download common filetypes such as PDF, DOCX, PPTX, etc.",
+        "created_date": "2023-10-11",
+        "author": "@TheTechromancer",
+    }
     options = {
         "extensions": [
             "bak",  #  Backup File

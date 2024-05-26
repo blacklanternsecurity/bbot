@@ -10,7 +10,11 @@ class portscan(BaseModule):
     flags = ["active", "portscan", "safe"]
     watched_events = ["IP_ADDRESS", "IP_RANGE", "DNS_NAME"]
     produced_events = ["OPEN_TCP_PORT"]
-    meta = {"description": "Port scan with masscan. By default, scans top 100 ports."}
+    meta = {
+        "description": "Port scan with masscan. By default, scans top 100 ports.",
+        "created_date": "2024-05-15",
+        "author": "@TheTechromancer",
+    }
     options = {
         "top_ports": 100,
         "ports": "",

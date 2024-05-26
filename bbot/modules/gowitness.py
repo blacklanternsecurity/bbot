@@ -1,4 +1,6 @@
+import asyncio
 import sqlite3
+import multiprocessing
 from pathlib import Path
 from contextlib import suppress
 from shutil import copyfile, copymode
@@ -10,24 +12,26 @@ class gowitness(BaseModule):
     watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["active", "safe", "web-screenshots"]
-    meta = {"description": "Take screenshots of webpages"}
+    meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
     options = {
         "version": "2.4.2",
-        "threads": 4,
+        "threads": 0,
         "timeout": 10,
         "resolution_x": 1440,
         "resolution_y": 900,
         "output_path": "",
         "social": True,
+        "idle_timeout": 1800,
     }
     options_desc = {
-        "version": "gowitness version",
-        "threads": "threads used to run",
-        "timeout": "preflight check timeout",
-        "resolution_x": "screenshot resolution x",
-        "resolution_y": "screenshot resolution y",
-        "output_path": "where to save screenshots",
+        "version": "Gowitness version",
+        "threads": "How many gowitness threads to spawn (default is number of CPUs x 2)",
+        "timeout": "Preflight check timeout",
+        "resolution_x": "Screenshot resolution x",
+        "resolution_y": "Screenshot resolution y",
+        "output_path": "Where to save screenshots",
         "social": "Whether to screenshot social media webpages",
+        "idle_timeout": "Skip the current gowitness batch if it stalls for longer than this many seconds",
     }
     deps_common = ["chromium"]
     deps_ansible = [
@@ -45,8 +49,13 @@ class gowitness(BaseModule):
     scope_distance_modifier = 2
 
     async def setup(self):
+        num_cpus = multiprocessing.cpu_count()
+        default_thread_count = min(20, num_cpus * 2)
         self.timeout = self.config.get("timeout", 10)
-        self.threads = self.config.get("threads", 4)
+        self.idle_timeout = self.config.get("idle_timeout", 1800)
+        self.threads = self.config.get("threads", 0)
+        if not self.threads:
+            self.threads = default_thread_count
         self.proxy = self.scan.config.get("http_proxy", "")
         self.resolution_x = self.config.get("resolution_x")
         self.resolution_y = self.config.get("resolution_y")
@@ -118,8 +127,13 @@ class gowitness(BaseModule):
             event_dict[key] = e
         stdin = "\n".join(list(event_dict))
 
-        async for line in self.run_process_live(self.command, input=stdin):
-            self.debug(line)
+        try:
+            async for line in self.run_process_live(self.command, input=stdin, idle_timeout=self.idle_timeout):
+                self.debug(line)
+        except asyncio.exceptions.TimeoutError:
+            urls_str = ",".join(event_dict)
+            self.warning(f"Gowitness timed out while visiting the following URLs: {urls_str}", trace=False)
+            return
 
         # emit web screenshots
         for filename, screenshot in self.new_screenshots.items():
@@ -175,6 +189,8 @@ class gowitness(BaseModule):
         command += ["file", "-f", "-"]
         # threads
         command += ["--threads", str(self.threads)]
+        # timeout
+        command += ["--timeout", str(self.timeout)]
         return command
 
     @property

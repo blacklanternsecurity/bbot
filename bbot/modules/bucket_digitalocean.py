@@ -5,7 +5,11 @@ class bucket_digitalocean(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "slow", "cloud-enum", "web-thorough"]
-    meta = {"description": "Check for DigitalOcean spaces related to target"}
+    meta = {
+        "description": "Check for DigitalOcean spaces related to target",
+        "created_date": "2022-11-08",
+        "author": "@TheTechromancer",
+    }
     options = {"permutations": False}
     options_desc = {
         "permutations": "Whether to try permutations",

@@ -1,11 +1,14 @@
-from httpx import RequestError
-
+from bbot.errors import WebError
 from bbot.modules.output.base import BaseOutputModule
 
 
 class HTTP(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Send every event to a custom URL via a web request"}
+    meta = {
+        "description": "Send every event to a custom URL via a web request",
+        "created_date": "2022-04-13",
+        "author": "@TheTechromancer",
+    }
     options = {
         "url": "",
         "method": "POST",
@@ -59,6 +62,6 @@ class HTTP(BaseOutputModule):
                     raise_error=True,
                 )
                 break
-            except RequestError as e:
+            except WebError as e:
                 self.warning(f"Error sending {event}: {e}, retrying...")
                 await self.helpers.sleep(1)

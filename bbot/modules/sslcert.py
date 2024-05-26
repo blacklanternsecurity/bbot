@@ -5,6 +5,7 @@ from contextlib import suppress
 from bbot.errors import ValidationError
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.async_helpers import NamedLock
+from bbot.core.helpers.web.ssl_context import ssl_context_noverify
 
 
 class sslcert(BaseModule):
@@ -13,6 +14,8 @@ class sslcert(BaseModule):
     flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic"]
     meta = {
         "description": "Visit open ports and retrieve SSL certificates",
+        "created_date": "2022-03-30",
+        "author": "@TheTechromancer",
     }
     options = {"timeout": 5.0, "skip_non_ssl": True}
     options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
@@ -109,17 +112,12 @@ class sslcert(BaseModule):
 
             host = str(host)
 
-            # Create an SSL context
-            try:
-                ssl_context = self.helpers.ssl_context_noverify()
-            except Exception as e:
-                self.warning(f"Error creating SSL context: {e}")
-                return [], [], (host, port)
-
             # Connect to the host
             try:
                 transport, _ = await asyncio.wait_for(
-                    self.helpers.loop.create_connection(lambda: asyncio.Protocol(), host, port, ssl=ssl_context),
+                    self.helpers.loop.create_connection(
+                        lambda: asyncio.Protocol(), host, port, ssl=ssl_context_noverify
+                    ),
                     timeout=self.timeout,
                 )
             except asyncio.TimeoutError:

@@ -5,7 +5,11 @@ class rapiddns(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query rapiddns.io for subdomains"}
+    meta = {
+        "description": "Query rapiddns.io for subdomains",
+        "created_date": "2022-08-24",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://rapiddns.io"
 

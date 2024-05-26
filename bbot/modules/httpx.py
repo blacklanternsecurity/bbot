@@ -4,14 +4,17 @@ import tempfile
 import subprocess
 from pathlib import Path
 from bbot.modules.base import BaseModule
-from bbot.core.helpers.web import is_login_page
 
 
 class httpx(BaseModule):
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active", "safe", "web-basic", "social-enum", "subdomain-enum", "cloud-enum"]
-    meta = {"description": "Visit webpages. Many other modules rely on httpx"}
+    meta = {
+        "description": "Visit webpages. Many other modules rely on httpx",
+        "created_date": "2022-07-08",
+        "author": "@TheTechromancer",
+    }
 
     options = {
         "threads": 50,
@@ -163,7 +166,7 @@ class httpx(BaseModule):
             if httpx_ip:
                 tags.append(f"ip-{httpx_ip}")
             # detect login pages
-            if is_login_page(j.get("body", "")):
+            if self.helpers.web.is_login_page(j.get("body", "")):
                 tags.append("login-page")
             # grab title
             title = self.helpers.tagify(j.get("title", ""), maxlen=30)

@@ -173,7 +173,7 @@ class BBOTArgs:
             "-w",
             "--whitelist",
             nargs="+",
-            default=[],
+            default=None,
             help="What's considered in-scope (by default it's the same as --targets)",
         )
         target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
@@ -320,9 +320,10 @@ class BBOTArgs:
         self.parsed.targets = chain_lists(
             self.parsed.targets, try_files=True, msg="Reading targets from file: {filename}"
         )
-        self.parsed.whitelist = chain_lists(
-            self.parsed.whitelist, try_files=True, msg="Reading whitelist from file: {filename}"
-        )
+        if self.parsed.whitelist is not None:
+            self.parsed.whitelist = chain_lists(
+                self.parsed.whitelist, try_files=True, msg="Reading whitelist from file: {filename}"
+            )
         self.parsed.blacklist = chain_lists(
             self.parsed.blacklist, try_files=True, msg="Reading blacklist from file: {filename}"
         )

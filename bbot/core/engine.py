@@ -7,10 +7,12 @@ import logging
 import tempfile
 import traceback
 import zmq.asyncio
+import multiprocessing
 from pathlib import Path
 from contextlib import asynccontextmanager, suppress
 
 from bbot.core import CORE
+from bbot.errors import BBOTEngineError
 from bbot.core.helpers.misc import rand_string
 
 CMD_EXIT = 1000
@@ -20,6 +22,9 @@ error_sentinel = object()
 
 
 class EngineBase:
+
+    ERROR_CLASS = BBOTEngineError
+
     def __init__(self):
         self.log = logging.getLogger(f"bbot.core.{self.__class__.__name__.lower()}")
 
@@ -40,16 +45,6 @@ class EngineBase:
             self.log.trace(traceback.format_exc())
         return error_sentinel
 
-    def check_error(self, message):
-        if message is error_sentinel:
-            return True
-        if isinstance(message, dict) and len(message) == 1 and "_e" in message:
-            error, trace = message["_e"]
-            self.log.error(error)
-            self.log.trace(trace)
-            return True
-        return False
-
 
 class EngineClient(EngineBase):
 
@@ -58,6 +53,8 @@ class EngineClient(EngineBase):
     def __init__(self, **kwargs):
         super().__init__()
         self.name = f"EngineClient {self.__class__.__name__}"
+        self.process = None
+        self.process_name = multiprocessing.current_process().name
         if self.SERVER_CLASS is None:
             raise ValueError(f"Must set EngineClient SERVER_CLASS, {self.SERVER_CLASS}")
         self.CMDS = dict(self.SERVER_CLASS.CMDS)
@@ -70,13 +67,27 @@ class EngineClient(EngineBase):
         self.context = zmq.asyncio.Context()
         atexit.register(self.cleanup)
 
-    async def run_and_return(self, command, **kwargs):
+    def check_error(self, message):
+        if isinstance(message, dict) and len(message) == 1 and "_e" in message:
+            error, trace = message["_e"]
+            error = self.ERROR_CLASS(error)
+            error.engine_traceback = trace
+            raise error
+        return False
+
+    async def run_and_return(self, command, *args, **kwargs):
         async with self.new_socket() as socket:
-            message = self.make_message(command, args=kwargs)
-            if message is error_sentinel:
-                return
-            await socket.send(message)
-            binary = await socket.recv()
+            try:
+                message = self.make_message(command, args=args, kwargs=kwargs)
+                if message is error_sentinel:
+                    return
+                await socket.send(message)
+                binary = await socket.recv()
+            except BaseException:
+                # -1 == special "cancel" signal
+                cancel_message = pickle.dumps({"c": -1})
+                await socket.send(cancel_message)
+                raise
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = self.unpickle(binary)
         self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
@@ -85,50 +96,64 @@ class EngineClient(EngineBase):
             return
         return message
 
-    async def run_and_yield(self, command, **kwargs):
-        message = self.make_message(command, args=kwargs)
+    async def run_and_yield(self, command, *args, **kwargs):
+        message = self.make_message(command, args=args, kwargs=kwargs)
         if message is error_sentinel:
             return
         async with self.new_socket() as socket:
             await socket.send(message)
             while 1:
-                binary = await socket.recv()
-                # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
-                message = self.unpickle(binary)
-                self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
-                # error handling
-                if self.check_error(message) or self.check_stop(message):
-                    break
-                yield message
+                try:
+                    binary = await socket.recv()
+                    # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
+                    message = self.unpickle(binary)
+                    self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
+                    # error handling
+                    if self.check_error(message) or self.check_stop(message):
+                        break
+                    yield message
+                except GeneratorExit:
+                    # -1 == special "cancel" signal
+                    cancel_message = pickle.dumps({"c": -1})
+                    await socket.send(cancel_message)
+                    raise
 
     def check_stop(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_s" in message:
             return True
         return False
 
-    def make_message(self, command, args):
+    def make_message(self, command, args=None, kwargs=None):
         try:
             cmd_id = self.CMDS[command]
         except KeyError:
             raise KeyError(f'Command "{command}" not found. Available commands: {",".join(self.available_commands)}')
-        return pickle.dumps(dict(c=cmd_id, a=args))
+        message = {"c": cmd_id}
+        if args:
+            message["a"] = args
+        if kwargs:
+            message["k"] = kwargs
+        return pickle.dumps(message)
 
     @property
     def available_commands(self):
         return [s for s in self.CMDS if isinstance(s, str)]
 
     def start_server(self):
-        process = CORE.create_process(
-            target=self.server_process,
-            args=(
-                self.SERVER_CLASS,
-                self.socket_path,
-            ),
-            kwargs=self.server_kwargs,
-            custom_name="bbot dnshelper",
-        )
-        process.start()
-        return process
+        if self.process_name == "MainProcess":
+            self.process = CORE.create_process(
+                target=self.server_process,
+                args=(
+                    self.SERVER_CLASS,
+                    self.socket_path,
+                ),
+                kwargs=self.server_kwargs,
+                custom_name="bbot dnshelper",
+            )
+            self.process.start()
+            return self.process
+        else:
+            raise BBOTEngineError(f"Tried to start server from process {self.process_name}")
 
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
@@ -176,35 +201,66 @@ class EngineServer(EngineBase):
             self.socket = self.context.socket(zmq.ROUTER)
             # create socket file
             self.socket.bind(f"ipc://{socket_path}")
+            # task <--> client id mapping
+            self.tasks = dict()
 
-    async def run_and_return(self, client_id, command_fn, **kwargs):
-        self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({kwargs})")
+    async def run_and_return(self, client_id, command_fn, *args, **kwargs):
         try:
-            result = await command_fn(**kwargs)
-        except Exception as e:
-            error = f"Unhandled error in {self.name}.{command_fn.__name__}({kwargs}): {e}"
-            trace = traceback.format_exc()
-            result = {"_e": (error, trace)}
-        await self.send_socket_multipart([client_id, pickle.dumps(result)])
+            self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
+            try:
+                result = await command_fn(*args, **kwargs)
+            except (asyncio.CancelledError, KeyboardInterrupt):
+                return
+            except BaseException as e:
+                error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                trace = traceback.format_exc()
+                self.log.error(error)
+                self.log.trace(trace)
+                result = {"_e": (error, trace)}
+            finally:
+                self.tasks.pop(client_id, None)
+            await self.send_socket_multipart(client_id, result)
+        except BaseException as e:
+            self.log.critical(
+                f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
+            )
+            self.log.critical(traceback.format_exc())
 
-    async def run_and_yield(self, client_id, command_fn, **kwargs):
-        self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({kwargs})")
+    async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
         try:
-            async for _ in command_fn(**kwargs):
-                await self.send_socket_multipart([client_id, pickle.dumps(_)])
-            await self.send_socket_multipart([client_id, pickle.dumps({"_s": None})])
-        except Exception as e:
-            error = f"Unhandled error in {self.name}.{command_fn.__name__}({kwargs}): {e}"
-            trace = traceback.format_exc()
-            result = {"_e": (error, trace)}
-            await self.send_socket_multipart([client_id, pickle.dumps(result)])
+            self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({args}, {kwargs})")
+            try:
+                async for _ in command_fn(*args, **kwargs):
+                    await self.send_socket_multipart(client_id, _)
+                await self.send_socket_multipart(client_id, {"_s": None})
+            except (asyncio.CancelledError, KeyboardInterrupt):
+                return
+            except BaseException as e:
+                error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                trace = traceback.format_exc()
+                self.log.error(error)
+                self.log.trace(trace)
+                result = {"_e": (error, trace)}
+                await self.send_socket_multipart(client_id, result)
+            finally:
+                self.tasks.pop(client_id, None)
+        except BaseException as e:
+            self.log.critical(
+                f"Unhandled exception in {self.name}.run_and_yield({client_id}, {command_fn}, {args}, {kwargs}): {e}"
+            )
+            self.log.critical(traceback.format_exc())
 
-    async def send_socket_multipart(self, *args, **kwargs):
+    async def send_socket_multipart(self, client_id, message):
         try:
-            await self.socket.send_multipart(*args, **kwargs)
+            message = pickle.dumps(message)
+            await self.socket.send_multipart([client_id, message])
         except Exception as e:
             self.log.warning(f"Error sending ZMQ message: {e}")
             self.log.trace(traceback.format_exc())
+
+    def check_error(self, message):
+        if message is error_sentinel:
+            return True
 
     async def worker(self):
         try:
@@ -220,9 +276,30 @@ class EngineServer(EngineBase):
                     self.log.warning(f"No command sent in message: {message}")
                     continue
 
-                kwargs = message.get("a", {})
+                if cmd == -1:
+                    task = self.tasks.get(client_id, None)
+                    if task is None:
+                        continue
+                    task, _cmd, _args, _kwargs = task
+                    self.log.debug(f"Cancelling client id {client_id} (task: {task})")
+                    task.cancel()
+                    try:
+                        await task
+                    except (KeyboardInterrupt, asyncio.CancelledError):
+                        pass
+                    except BaseException as e:
+                        self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
+                        self.log.trace(traceback.format_exc())
+                    self.tasks.pop(client_id, None)
+                    continue
+
+                args = message.get("a", ())
+                if not isinstance(args, tuple):
+                    self.log.warning(f"{self.name}: received invalid args of type {type(args)}, should be tuple")
+                    continue
+                kwargs = message.get("k", {})
                 if not isinstance(kwargs, dict):
-                    self.log.warning(f"{self.name}: received invalid message of type {type(kwargs)}, should be dict")
+                    self.log.warning(f"{self.name}: received invalid kwargs of type {type(kwargs)}, should be dict")
                     continue
 
                 command_name = self.CMDS[cmd]
@@ -233,11 +310,12 @@ class EngineServer(EngineBase):
                     continue
 
                 if inspect.isasyncgenfunction(command_fn):
-                    coroutine = self.run_and_yield(client_id, command_fn, **kwargs)
+                    coroutine = self.run_and_yield(client_id, command_fn, *args, **kwargs)
                 else:
-                    coroutine = self.run_and_return(client_id, command_fn, **kwargs)
+                    coroutine = self.run_and_return(client_id, command_fn, *args, **kwargs)
 
-                asyncio.create_task(coroutine)
+                task = asyncio.create_task(coroutine)
+                self.tasks[client_id] = task, command_fn, args, kwargs
         except Exception as e:
             self.log.error(f"Error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
