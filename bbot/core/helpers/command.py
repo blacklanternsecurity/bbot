@@ -38,6 +38,7 @@ async def run(self, *command, check=False, text=True, idle_timeout=None, **kwarg
     # proc_tracker optionally keeps track of which processes are running under which modules
     # this allows for graceful SIGINTing of a module's processes in the case when it's killed
     proc_tracker = kwargs.pop("_proc_tracker", set())
+    log_stderr = kwargs.pop("_log_stderr", True)
     proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         proc_tracker.add(proc)
@@ -66,7 +67,7 @@ async def run(self, *command, check=False, text=True, idle_timeout=None, **kwarg
             if proc.returncode:
                 if check:
                     raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
-                if stderr:
+                if stderr and log_stderr:
                     command_str = " ".join(command)
                     log.warning(f"Stderr for run({command_str}):\n\t{stderr}")
 
@@ -103,6 +104,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
     # proc_tracker optionally keeps track of which processes are running under which modules
     # this allows for graceful SIGINTing of a module's processes in the case when it's killed
     proc_tracker = kwargs.pop("_proc_tracker", set())
+    log_stderr = kwargs.pop("_log_stderr", True)
     proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         proc_tracker.add(proc)
@@ -151,7 +153,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                 if check:
                     raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
                 # surface stderr
-                if stderr:
+                if stderr and log_stderr:
                     command_str = " ".join(command)
                     log.warning(f"Stderr for run_live({command_str}):\n\t{stderr}")
         finally:

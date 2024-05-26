@@ -26,11 +26,11 @@ class Scanner:
 
     Examples:
         Create scan with multiple targets:
-        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["nmap", "sslcert", "httpx"])
+        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["portscan", "sslcert", "httpx"])
 
         Create scan with custom config:
-        >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"nmap": {"top_ports": 2000}}}
-        >>> my_scan = Scanner("www.evilcorp.com", modules=["nmap", "httpx"], config=config)
+        >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"portscan": {"top_ports": 2000}}}
+        >>> my_scan = Scanner("www.evilcorp.com", modules=["portscan", "httpx"], config=config)
 
         Start the scan, iterating over events as they're discovered (synchronous):
         >>> for event in my_scan.start():
