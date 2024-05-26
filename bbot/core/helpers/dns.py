@@ -81,7 +81,7 @@ class DNSHelper:
         >>> resolved_host = dns_helper.resolver.resolve("example.com")
     """
 
-    all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
+    all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT", "CAA"]
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
@@ -691,6 +691,12 @@ class DNSHelper:
                     start, end = match.span()
                     host = s[start:end]
                     results.add((rdtype, host))
+        elif rdtype == "CAA":
+            s = self.parent_helper.smart_decode(record)
+            for match in dns_name_regex.finditer(s):
+                start, end = match.span()
+                host = s[start:end]
+                results.add((rdtype, host))
         elif rdtype == "NSEC":
             results.add((rdtype, self._clean_dns_record(record.next)))
         else:
