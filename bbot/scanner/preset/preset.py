@@ -299,15 +299,15 @@ class Preset:
             other (Preset): The preset to merge into this one.
 
         Examples:
-            >>> preset1 = Preset(modules=["nmap"])
+            >>> preset1 = Preset(modules=["portscan"])
             >>> preset1.scan_modules
-            ['nmap']
+            ['portscan']
             >>> preset2 = Preset(modules=["sslcert"])
             >>> preset2.scan_modules
             ['sslcert']
             >>> preset1.merge(preset2)
             >>> preset1.scan_modules
-            ['nmap', 'sslcert']
+            ['portscan', 'sslcert']
         """
         self.log_debug(f'Merging preset "{other.name}" into "{self.name}"')
         # config
@@ -588,7 +588,7 @@ class Preset:
             Preset: The loaded preset
 
         Examples:
-            >>> preset = Preset.from_dict({"target": "evilcorp.com", "modules": ["nmap}]})
+            >>> preset = Preset.from_dict({"target": "evilcorp.com", "modules": ["portscan}]})
         """
         new_preset = cls(
             *preset_dict.get("target", []),
@@ -671,9 +671,9 @@ class Preset:
             dict: The preset in dictionary form
 
         Examples:
-            >>> preset = Preset(flags=["subdomain-enum"], modules=["nmap"])
+            >>> preset = Preset(flags=["subdomain-enum"], modules=["portscan"])
             >>> preset.to_dict()
-            {"flags": ["subdomain-enum"], "modules": ["nmap"]}
+            {"flags": ["subdomain-enum"], "modules": ["portscan"]}
         """
         preset_dict = {}
 
@@ -749,12 +749,12 @@ class Preset:
             str: The preset in the form of a YAML string
 
         Examples:
-            >>> preset = Preset(flags=["subdomain-enum"], modules=["nmap"])
+            >>> preset = Preset(flags=["subdomain-enum"], modules=["portscan"])
             >>> print(preset.to_yaml())
             flags:
             - subdomain-enum
             modules:
-            - nmap
+            - portscan
         """
         preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
         return yaml.dump(preset_dict, sort_keys=sort_keys)

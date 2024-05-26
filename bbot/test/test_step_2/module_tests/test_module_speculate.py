@@ -71,7 +71,7 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
 
 class TestSpeculate_OpenPorts_Portscanner(TestSpeculate_OpenPorts):
     targets = ["evilcorp.com"]
-    modules_overrides = ["speculate", "certspotter", "nmap"]
+    modules_overrides = ["speculate", "certspotter", "portscan"]
     config_overrides = {"speculate": True}
 
     def check(self, module_test, events):
