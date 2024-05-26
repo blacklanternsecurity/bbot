@@ -157,6 +157,7 @@ class nuclei(BaseModule):
                     {"technology": str(name).lower(), "url": url, "host": str(parent_event.host)},
                     "TECHNOLOGY",
                     parent_event,
+                    context=f"{{module}} scanned {url} and identified {{event.type}}: {str(name).lower()}",
                 )
                 continue
 
@@ -173,6 +174,7 @@ class nuclei(BaseModule):
                     },
                     "FINDING",
                     parent_event,
+                    context=f"{{module}} scanned {url} and identified {{event.type}}: {description_string}",
                 )
             else:
                 await self.emit_event(
@@ -184,6 +186,7 @@ class nuclei(BaseModule):
                     },
                     "VULNERABILITY",
                     parent_event,
+                    context=f"{{module}} scanned {url} and identified {severity.lower()} {{event.type}}: {description_string}",
                 )
 
     def correlate_event(self, events, host):

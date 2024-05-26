@@ -180,14 +180,16 @@ class DNS(InterceptModule):
                 "DNS_NAME",
                 module=self.host_module,
                 parent=event,
-                context="{event.parent.type} has host {event.type}: {event.host}",
             )
             # only emit the event if it's not already in the parent chain
             if parent_event is not None and (parent_event.always_emit or parent_event not in event.get_parents()):
                 parent_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     parent_event.add_tag("target")
-                await self.emit_event(parent_event)
+                await self.emit_event(
+                    parent_event,
+                    context="{event.parent.type} has host {event.type}: {event.host}",
+                )
 
         # emit DNS children
         if emit_children:

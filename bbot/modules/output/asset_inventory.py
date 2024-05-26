@@ -185,23 +185,33 @@ class asset_inventory(CSV):
                             host_event = self.make_event(
                                 asset.host, "DNS_NAME", parent=self.scan.root_event, raise_error=True
                             )
-                            await self.emit_event(host_event)
+                            await self.emit_event(
+                                host_event, context="{module} emitted previous result: {event.type}: {event.data}"
+                            )
                             for port in asset.ports:
                                 netloc = self.helpers.make_netloc(asset.host, port)
                                 open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", parent=host_event)
                                 if open_port_event:
-                                    await self.emit_event(open_port_event)
+                                    await self.emit_event(
+                                        open_port_event,
+                                        context="{module} emitted previous result: {event.type}: {event.data}",
+                                    )
                         else:
                             for ip in asset.ip_addresses:
                                 ip_event = self.make_event(
                                     ip, "IP_ADDRESS", parent=self.scan.root_event, raise_error=True
                                 )
-                                await self.emit_event(ip_event)
+                                await self.emit_event(
+                                    ip_event, context="{module} emitted previous result: {event.type}: {event.data}"
+                                )
                                 for port in asset.ports:
                                     netloc = self.helpers.make_netloc(ip, port)
                                     open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", parent=ip_event)
                                     if open_port_event:
-                                        await self.emit_event(open_port_event)
+                                        await self.emit_event(
+                                            open_port_event,
+                                            context="{module} emitted previous result: {event.type}: {event.data}",
+                                        )
             else:
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"

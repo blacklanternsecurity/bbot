@@ -52,6 +52,7 @@ class dastardly(BaseModule):
                             },
                             "FINDING",
                             event,
+                            context=f"{{module}} executed web scan against {host} and identified {{event.type}}: {failure.instance}",
                         )
                     else:
                         await self.emit_event(
@@ -63,6 +64,7 @@ class dastardly(BaseModule):
                             },
                             "VULNERABILITY",
                             event,
+                            context=f"{{module}} executed web scan against {host} and identified {failure.severity.lower()} {{event.type}}: {failure.instance}",
                         )
 
     def construct_command(self, target):

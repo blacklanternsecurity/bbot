@@ -38,7 +38,7 @@ class asn(BaseReportModule):
     async def handle_event(self, event):
         host = event.host
         if self.cache_get(host) == False:
-            asns = await self.get_asn(host)
+            asns, source = await self.get_asn(host)
             if not asns:
                 self.cache_put(self.unknown_asn)
             else:
@@ -46,11 +46,23 @@ class asn(BaseReportModule):
                     emails = asn.pop("emails", [])
                     self.cache_put(asn)
                     asn_event = self.make_event(asn, "ASN", parent=event)
+                    asn_number = asn.get("asn", "")
+                    asn_desc = asn.get("description", "")
+                    asn_name = asn.get("name", "")
+                    asn_subnet = asn.get("subnet", "")
                     if not asn_event:
                         continue
-                    await self.emit_event(asn_event)
+                    await self.emit_event(
+                        asn_event,
+                        context=f"{{module}} checked {event.data} against {source} API and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_desc}, {asn_subnet})",
+                    )
                     for email in emails:
-                        await self.emit_event(email, "EMAIL_ADDRESS", parent=asn_event)
+                        await self.emit_event(
+                            email,
+                            "EMAIL_ADDRESS",
+                            parent=asn_event,
+                            context=f"{{module}} retrieved details for AS{asn_number} and found {{event.type}}: {{event.data}}",
+                        )
 
     async def report(self):
         asn_data = sorted(self.asn_cache.items(), key=lambda x: self.asn_counts[x[0]], reverse=True)
@@ -104,7 +116,7 @@ class asn(BaseReportModule):
                     self.sources.append(self.sources.pop(i))
                     self.verbose(f"Failed to contact {source}, retrying")
                     continue
-                return res
+                return res, source
         self.warning(f"Error retrieving ASN for {ip}")
         return []
 

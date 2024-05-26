@@ -27,17 +27,29 @@ class urlscan(subdomain_enum):
                 domain_event = self.make_event(domain, "DNS_NAME", parent=event)
                 if domain_event:
                     if str(domain_event.host).endswith(query) and not str(domain_event.host) == str(event.host):
-                        await self.emit_event(domain_event, abort_if=self.abort_if)
+                        await self.emit_event(
+                            domain_event,
+                            abort_if=self.abort_if,
+                            context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.data}}',
+                        )
                         parent_event = domain_event
             if url:
                 url_event = self.make_event(url, "URL_UNVERIFIED", parent=parent_event)
                 if url_event:
                     if str(url_event.host).endswith(query):
                         if self.urls:
-                            await self.emit_event(url_event, abort_if=self.abort_if)
+                            await self.emit_event(
+                                url_event,
+                                abort_if=self.abort_if,
+                                context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.data}}',
+                            )
                         else:
                             await self.emit_event(
-                                str(url_event.host), "DNS_NAME", parent=event, abort_if=self.abort_if
+                                str(url_event.host),
+                                "DNS_NAME",
+                                parent=event,
+                                abort_if=self.abort_if,
+                                context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.data}}',
                             )
                     else:
                         self.debug(f"{url_event.host} does not match {query}")

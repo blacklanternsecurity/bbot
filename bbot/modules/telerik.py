@@ -218,6 +218,7 @@ class telerik(BaseModule):
                         {"host": str(event.host), "url": f"{event.data}{webresource}", "description": description},
                         "FINDING",
                         event,
+                        context=f"{{module}} scanned {event.data} and identified {{event.type}}: Telerik RAU AXD Handler",
                     )
                     if self.config.get("exploit_RAU_crypto") == True:
                         hostname = urlparse(event.data).netloc
@@ -249,6 +250,7 @@ class telerik(BaseModule):
                                         },
                                         "VULNERABILITY",
                                         event,
+                                        context=f"{{module}} scanned {event.data} and identified critical {{event.type}}: description",
                                     )
                                     break
 
@@ -301,6 +303,7 @@ class telerik(BaseModule):
                         },
                         "FINDING",
                         event,
+                        context=f"{{module}} scanned {event.data} and identified {{event.type}}: Telerik SpellCheckHandler",
                     )
 
             chartimagehandler = "ChartImage.axd?ImageName=bqYXJAqm315eEd6b%2bY4%2bGqZpe7a1kY0e89gfXli%2bjFw%3d"
@@ -319,30 +322,34 @@ class telerik(BaseModule):
                         },
                         "FINDING",
                         event,
+                        context=f"{{module}} scanned {event.data} and identified {{event.type}}: Telerik ChartImage AXD Handler",
                     )
 
         elif event.type == "HTTP_RESPONSE":
             resp_body = event.data.get("body", None)
+            url = event.data["url"]
             if resp_body:
                 if '":{"SerializedParameters":"' in resp_body:
                     await self.emit_event(
                         {
                             "host": str(event.host),
-                            "url": event.data["url"],
+                            "url": url,
                             "description": "Telerik DialogHandler [SerializedParameters] Detected in HTTP Response",
                         },
                         "FINDING",
                         event,
+                        context=f"{{module}} searched HTTP_RESPONSE and identified {{event.type}}: Telerik ChartImage AXD Handler",
                     )
                 elif '"_serializedConfiguration":"' in resp_body:
                     await self.emit_event(
                         {
                             "host": str(event.host),
-                            "url": event.data["url"],
+                            "url": url,
                             "description": "Telerik AsyncUpload [serializedConfiguration] Detected in HTTP Response",
                         },
                         "FINDING",
                         event,
+                        context=f"{{module}} searched HTTP_RESPONSE and identified {{event.type}}: Telerik AsyncUpload",
                     )
 
         # Check for RAD Controls in URL

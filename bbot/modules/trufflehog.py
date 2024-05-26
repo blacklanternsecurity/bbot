@@ -78,7 +78,7 @@ class trufflehog(BaseModule):
                     data,
                     "FINDING",
                     event,
-                    context=f'{{module}} searched {event.type} using "{module}" method and found verified secret ({{event.type}}): {raw_result}',
+                    context=f'{{module}} searched {event.type} using "{module}" method and found possible secret ({{event.type}}): {raw_result}',
                 )
 
     async def execute_trufflehog(self, module, path):

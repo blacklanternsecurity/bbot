@@ -30,6 +30,10 @@ class subdomain_enum(BaseModule):
     #   "lowest_parent": dedupe by lowest parent (lowest parent of www.api.test.evilcorp.com is api.test.evilcorp.com)
     dedup_strategy = "highest_parent"
 
+    @property
+    def source_pretty_name(self):
+        return f"{self.__class__.__name__} API"
+
     def _incoming_dedup_hash(self, event):
         """
         Determines the criteria for what is considered to be a duplicate event if `accept_dupes` is False.
@@ -48,7 +52,13 @@ class subdomain_enum(BaseModule):
                         self.verbose(e)
                         continue
                     if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
-                        await self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
+                        await self.emit_event(
+                            hostname,
+                            "DNS_NAME",
+                            event,
+                            abort_if=self.abort_if,
+                            context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
+                        )
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"

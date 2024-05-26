@@ -82,6 +82,7 @@ class url_manipulation(BaseModule):
                                     {"description": description, "host": str(event.host), "url": event.data},
                                     "FINDING",
                                     parent=event,
+                                    context=f"{{module}} probed {event.data} and identified {{event.type}}: {description}",
                                 )
                         else:
                             self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")

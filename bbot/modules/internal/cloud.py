@@ -67,9 +67,11 @@ class cloud(InterceptModule):
 
                             if event_type == "STORAGE_BUCKET":
                                 bucket_name, bucket_domain = match
+                                bucket_url = f"https://{bucket_name}.{bucket_domain}"
                                 _kwargs["data"] = {
                                     "name": bucket_name,
-                                    "url": f"https://{bucket_name}.{bucket_domain}",
+                                    "url": bucket_url,
+                                    "context": f"{{module}} analyzed {event.type} and found {{event.type}}: {bucket_url}",
                                 }
                                 await self.emit_event(**_kwargs)
 

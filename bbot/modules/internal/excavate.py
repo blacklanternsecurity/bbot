@@ -129,9 +129,7 @@ class URLExtractor(BaseExtractor):
                     url_event.add_tag("spider-danger")
 
                 self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
-                await self.excavate.emit_event(
-                    url_event,
-                )
+                await self.excavate.emit_event(url_event)
                 if url_in_scope:
                     urls_found += 1
 
