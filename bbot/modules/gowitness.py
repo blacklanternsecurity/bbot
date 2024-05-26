@@ -142,7 +142,12 @@ class gowitness(BaseModule):
             filename = screenshot["filename"]
             webscreenshot_data = {"filename": filename, "url": final_url}
             parent_event = event_dict[url]
-            await self.emit_event(webscreenshot_data, "WEBSCREENSHOT", parent=parent_event)
+            await self.emit_event(
+                webscreenshot_data,
+                "WEBSCREENSHOT",
+                parent=parent_event,
+                context=f"{{module}} visited {final_url} and saved {{event.type}} to {filename}",
+            )
 
         # emit URLs
         for url, row in self.new_network_logs.items():
@@ -156,7 +161,13 @@ class gowitness(BaseModule):
             if self.helpers.is_spider_danger(parent_event, url):
                 tags.append("spider-danger")
             if url and url.startswith("http"):
-                await self.emit_event(url, "URL_UNVERIFIED", parent=parent_event, tags=tags)
+                await self.emit_event(
+                    url,
+                    "URL_UNVERIFIED",
+                    parent=parent_event,
+                    tags=tags,
+                    context=f"{{module}} visited {{event.type}}: {url}",
+                )
 
         # emit technologies
         for _, row in self.new_technologies.items():
@@ -165,7 +176,12 @@ class gowitness(BaseModule):
             parent_event = event_dict[parent_url]
             technology = row["value"]
             tech_data = {"technology": technology, "url": parent_url, "host": str(parent_event.host)}
-            await self.emit_event(tech_data, "TECHNOLOGY", parent=parent_event)
+            await self.emit_event(
+                tech_data,
+                "TECHNOLOGY",
+                parent=parent_event,
+                context=f"{{module}} visited {parent_url} and found {{event.type}}: {technology}",
+            )
 
     def construct_command(self):
         # base executable

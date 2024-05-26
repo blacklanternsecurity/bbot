@@ -35,5 +35,5 @@ class git(BaseModule):
                         {"host": str(event.host), "url": url, "description": description},
                         "FINDING",
                         event,
-                        context="git detected {event.type}: {description}",
+                        context="{module} detected {event.type}: {description}",
                     )

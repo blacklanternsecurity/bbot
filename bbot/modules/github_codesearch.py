@@ -36,7 +36,9 @@ class github_codesearch(github, subdomain_enum):
                 if not url_event:
                     continue
                 url_event.scope_distance = repo_event.scope_distance
-                await self.emit_event(url_event, f'file matching query "{query}" is at {{event.type}}: {raw_url}')
+                await self.emit_event(
+                    url_event, context=f'file matching query "{query}" is at {{event.type}}: {raw_url}'
+                )
 
     async def query(self, query):
         repos = {}

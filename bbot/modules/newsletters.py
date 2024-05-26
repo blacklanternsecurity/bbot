@@ -52,4 +52,9 @@ class newsletters(BaseModule):
                 if result:
                     description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
                     data = {"host": str(_event.host), "description": description, "url": _event.data["url"]}
-                    await self.emit_event(data, "FINDING", _event)
+                    await self.emit_event(
+                        data,
+                        "FINDING",
+                        _event,
+                        context="{module} searched HTTP_RESPONSE and identified {event.type}: a Newsletter Submission Form that could be used for email bombing attacks",
+                    )

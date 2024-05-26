@@ -128,17 +128,22 @@ class speculate(BaseInternalModule):
         # speculate URL_UNVERIFIED from URL or any event with "url" attribute
         event_is_url = event.type == "URL"
         event_has_url = isinstance(event.data, dict) and "url" in event.data
+        event_tags = ["httpx-safe"] if event.type("CODE_REPOSITORY", "SOCIAL") else []
         if event_is_url or event_has_url:
             if event_is_url:
                 url = event.data
             else:
                 url = event.data["url"]
+            # only emit the url if it's not already in the event's history
             if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_parents()):
-                tags = None
                 if self.helpers.is_spider_danger(event.parent, url):
-                    tags = ["spider-danger"]
+                    event_tags.append("spider-danger")
                 await self.emit_event(
-                    url, "URL_UNVERIFIED", tags=tags, parent=event, context="speculated {event.type}: {event.data}"
+                    url,
+                    "URL_UNVERIFIED",
+                    tags=event_tags,
+                    parent=event,
+                    context="speculated {event.type}: {event.data}",
                 )
 
         # IP_ADDRESS / DNS_NAME --> OPEN_TCP_PORT

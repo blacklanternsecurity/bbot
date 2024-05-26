@@ -34,13 +34,23 @@ class bevigil(subdomain_enum_apikey):
         subdomains = await self.query(query, request_fn=self.request_subdomains, parse_fn=self.parse_subdomains)
         if subdomains:
             for subdomain in subdomains:
-                await self.emit_event(subdomain, "DNS_NAME", parent=event)
+                await self.emit_event(
+                    subdomain,
+                    "DNS_NAME",
+                    parent=event,
+                    context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.data}}',
+                )
 
         if self.urls:
             urls = await self.query(query, request_fn=self.request_urls, parse_fn=self.parse_urls)
             if urls:
                 for parsed_url in await self.helpers.run_in_executor_mp(self.helpers.validators.collapse_urls, urls):
-                    await self.emit_event(parsed_url.geturl(), "URL_UNVERIFIED", parent=event)
+                    await self.emit_event(
+                        parsed_url.geturl(),
+                        "URL_UNVERIFIED",
+                        parent=event,
+                        context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.data}}',
+                    )
 
     async def request_subdomains(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}/subdomains/"

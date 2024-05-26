@@ -38,7 +38,13 @@ class azure_tenant(BaseModule):
             self.verbose(f'Found {len(domains):,} domains under tenant for "{query}": {", ".join(sorted(domains))}')
             for domain in domains:
                 if domain != query:
-                    await self.emit_event(domain, "DNS_NAME", parent=event, tags=["affiliate", "azure-tenant"])
+                    await self.emit_event(
+                        domain,
+                        "DNS_NAME",
+                        parent=event,
+                        tags=["affiliate", "azure-tenant"],
+                        context=f'{{module}} queried Outlook autodiscover for "{query}" and found {{event.type}}: {{event.data}}',
+                    )
                     # tenant names
                     if domain.lower().endswith(".onmicrosoft.com"):
                         tenantname = domain.split(".")[0].lower()
@@ -48,7 +54,12 @@ class azure_tenant(BaseModule):
             event_data = {"tenant-names": sorted(tenant_names), "domains": sorted(domains)}
             if tenant_id is not None:
                 event_data["tenant-id"] = tenant_id
-            await self.emit_event(event_data, "AZURE_TENANT", parent=event)
+            await self.emit_event(
+                event_data,
+                "AZURE_TENANT",
+                parent=event,
+                context=f'{{module}} queried Outlook autodiscover for "{query}" and found {{event.type}}: {{event.data}}',
+            )
 
     async def query(self, domain):
         url = f"{self.base_url}/autodiscover/autodiscover.svc"

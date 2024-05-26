@@ -48,15 +48,18 @@ class dotnetnuke(BaseModule):
                 event = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
                 if not event:
                     return
+                url = event.data["url"]
+                description = "DotNetNuke Blind-SSRF (CVE 2017-0929)"
                 await self.emit_event(
                     {
                         "severity": "MEDIUM",
                         "host": str(event.host),
-                        "url": event.data["url"],
-                        "description": f"DotNetNuke Blind-SSRF (CVE 2017-0929)",
+                        "url": url,
+                        "description": description,
                     },
                     "VULNERABILITY",
                     event,
+                    context=f"{{module}} scanned {url} and found medium {{event.type}}: {description}",
                 )
             else:
                 # this is likely caused by something trying to resolve the base domain first and can be ignored
@@ -69,10 +72,12 @@ class dotnetnuke(BaseModule):
         if raw_headers:
             for header_signature in self.DNN_signatures_header:
                 if header_signature in raw_headers:
+                    url = event.data["url"]
                     await self.emit_event(
-                        {"technology": "DotNetNuke", "url": event.data["url"], "host": str(event.host)},
+                        {"technology": "DotNetNuke", "url": url, "host": str(event.host)},
                         "TECHNOLOGY",
                         event,
+                        context=f"{{module}} scanned {url} and found {{event.type}}: DotNetNuke",
                     )
                     detected = True
                     break
@@ -84,6 +89,7 @@ class dotnetnuke(BaseModule):
                         {"technology": "DotNetNuke", "url": event.data["url"], "host": str(event.host)},
                         "TECHNOLOGY",
                         event,
+                        context=f"{{module}} scanned {url} and found {{event.type}}: DotNetNuke",
                     )
                     detected = True
                     break
@@ -94,15 +100,17 @@ class dotnetnuke(BaseModule):
                 result = await self.helpers.request(probe_url, cookies=self.exploit_probe)
                 if result:
                     if "for 16-bit app support" in result.text and "[extensions]" in result.text:
+                        description = "DotNetNuke Personalization Cookie Deserialization"
                         await self.emit_event(
                             {
                                 "severity": "CRITICAL",
-                                "description": "DotNetNuke Personalization Cookie Deserialization",
+                                "description": description,
                                 "host": str(event.host),
                                 "url": probe_url,
                             },
                             "VULNERABILITY",
                             event,
+                            context=f"{{module}} scanned {probe_url} and found critical {{event.type}}: {description}",
                         )
 
             if "endpoint" not in event.tags:
@@ -113,15 +121,17 @@ class dotnetnuke(BaseModule):
                 )
                 if result:
                     if "<configuration>" in result.text:
+                        description = "DotNetNuke dnnUI_NewsArticlesSlider Module Arbitrary File Read"
                         await self.emit_event(
                             {
                                 "severity": "CRITICAL",
-                                "description": "DotNetNuke dnnUI_NewsArticlesSlider Module Arbitrary File Read",
+                                "description": description,
                                 "host": str(event.host),
                                 "url": f'{event.data["url"]}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx',
                             },
                             "VULNERABILITY",
                             event,
+                            context=f'{{module}} scanned {event.data["url"]} and found critical {{event.type}}: {description}',
                         )
 
                 # DNNArticle GetCSS.ashx File Read
@@ -130,15 +140,17 @@ class dotnetnuke(BaseModule):
                 )
                 if result:
                     if "<configuration>" in result.text:
+                        description = "DotNetNuke DNNArticle Module GetCSS.ashx Arbitrary File Read"
                         await self.emit_event(
                             {
                                 "severity": "CRITICAL",
-                                "description": "DotNetNuke DNNArticle Module GetCSS.ashx Arbitrary File Read",
+                                "description": description,
                                 "host": str(event.host),
                                 "url": f'{event.data["url"]}/Desktopmodules/DNNArticle/GetCSS.ashx/?CP=%2fweb.config',
                             },
                             "VULNERABILITY",
                             event,
+                            context=f'{{module}} scanned {event.data["url"]} and found critical {{event.type}}: {description}',
                         )
 
                 # InstallWizard SuperUser Privilege Escalation
@@ -148,15 +160,17 @@ class dotnetnuke(BaseModule):
                         f'{event.data["url"]}/Install/InstallWizard.aspx?__viewstate=1'
                     )
                     if result_confirm.status_code == 500:
+                        description = "DotNetNuke InstallWizard SuperUser Privilege Escalation"
                         await self.emit_event(
                             {
                                 "severity": "CRITICAL",
-                                "description": "DotNetNuke InstallWizard SuperUser Privilege Escalation",
+                                "description": description,
                                 "host": str(event.host),
                                 "url": f'{event.data["url"]}/Install/InstallWizard.aspx',
                             },
                             "VULNERABILITY",
                             event,
+                            context=f'{{module}} scanned {event.data["url"]} and found critical {{event.type}}: {description}',
                         )
                         return
 

@@ -23,6 +23,7 @@ class dnsbrute(subdomain_enum):
         self.max_depth = max(1, self.config.get("max_depth", 5))
         self.subdomain_file = await self.helpers.wordlist(self.config.get("wordlist"))
         self.subdomain_list = set(self.helpers.read_file(self.subdomain_file))
+        self.wordlist_size = len(self.subdomain_list)
         return await super().setup()
 
     async def filter_event(self, event):
@@ -44,6 +45,11 @@ class dnsbrute(subdomain_enum):
 
     async def handle_event(self, event):
         query = self.make_query(event)
-        self.info(f"Brute-forcing subdomains for {query} (source: {event.data})")
+        self.info(f"Brute-forcing {self.wordlist_size:,} subdomains for {query} (source: {event.data})")
         for hostname in await self.helpers.dns.brute(self, query, self.subdomain_list):
-            await self.emit_event(hostname, "DNS_NAME", parent=event)
+            await self.emit_event(
+                hostname,
+                "DNS_NAME",
+                parent=event,
+                context=f'{{module}} tried {self.wordlist_size:,} subdomains against "{query}" and found {{event.type}}: {{event.data}}',
+            )

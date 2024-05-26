@@ -152,12 +152,24 @@ class ffuf_shortnames(ffuf):
             if "shortname-file" in event.tags:
                 for ext in used_extensions:
                     async for r in self.execute_ffuf(tempfile, root_url, suffix=f".{ext}"):
-                        await self.emit_event(r["url"], "URL_UNVERIFIED", parent=event, tags=[f"status-{r['status']}"])
+                        await self.emit_event(
+                            r["url"],
+                            "URL_UNVERIFIED",
+                            parent=event,
+                            tags=[f"status-{r['status']}"],
+                            context=f"{{module}} brute-forced {ext.upper()} files at {root_url} and found {{event.type}}: {{event.data}}",
+                        )
 
             elif "shortname-directory" in event.tags:
                 async for r in self.execute_ffuf(tempfile, root_url, exts=["/"]):
                     r_url = f"{r['url'].rstrip('/')}/"
-                    await self.emit_event(r_url, "URL_UNVERIFIED", parent=event, tags=[f"status-{r['status']}"])
+                    await self.emit_event(
+                        r_url,
+                        "URL_UNVERIFIED",
+                        parent=event,
+                        tags=[f"status-{r['status']}"],
+                        context=f"{{module}} brute-forced directories at {r_url} and found {{event.type}}: {{event.data}}",
+                    )
 
         if self.config.get("find_delimiters"):
             if "shortname-directory" in event.tags:
@@ -166,8 +178,15 @@ class ffuf_shortnames(ffuf):
                     delimiter, prefix, partial_hint = delimiter_r
                     self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                     tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
-                    async for r in self.execute_ffuf(tempfile, root_url, prefix=f"{prefix}{delimiter}", exts=["/"]):
-                        await self.emit_event(r["url"], "URL_UNVERIFIED", parent=event, tags=[f"status-{r['status']}"])
+                    ffuf_prefix = f"{prefix}{delimiter}"
+                    async for r in self.execute_ffuf(tempfile, root_url, prefix=ffuf_prefix, exts=["/"]):
+                        await self.emit_event(
+                            r["url"],
+                            "URL_UNVERIFIED",
+                            parent=event,
+                            tags=[f"status-{r['status']}"],
+                            context=f'{{module}} brute-forced directories with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.data}}',
+                        )
 
             elif "shortname-file" in event.tags:
                 for ext in used_extensions:
@@ -176,11 +195,14 @@ class ffuf_shortnames(ffuf):
                         delimiter, prefix, partial_hint = delimiter_r
                         self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                         tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
-                        async for r in self.execute_ffuf(
-                            tempfile, root_url, prefix=f"{prefix}{delimiter}", suffix=f".{ext}"
-                        ):
+                        ffuf_prefix = f"{prefix}{delimiter}"
+                        async for r in self.execute_ffuf(tempfile, root_url, prefix=ffuf_prefix, suffix=f".{ext}"):
                             await self.emit_event(
-                                r["url"], "URL_UNVERIFIED", parent=event, tags=[f"status-{r['status']}"]
+                                r["url"],
+                                "URL_UNVERIFIED",
+                                parent=event,
+                                tags=[f"status-{r['status']}"],
+                                context=f'{{module}} brute-forced {ext.upper()} files with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.data}}',
                             )
 
     async def finish(self):
@@ -214,6 +236,7 @@ class ffuf_shortnames(ffuf):
                                             "URL_UNVERIFIED",
                                             parent=self.shortname_to_event[hint],
                                             tags=[f"status-{r['status']}"],
+                                            context=f'{{module}} brute-forced directories with common prefix "{prefix}" and found {{event.type}}: {{event.data}}',
                                         )
                                 elif "shortname-file" in self.shortname_to_event[hint].tags:
                                     used_extensions = self.build_extension_list(self.shortname_to_event[hint])
@@ -230,4 +253,5 @@ class ffuf_shortnames(ffuf):
                                                 "URL_UNVERIFIED",
                                                 parent=self.shortname_to_event[hint],
                                                 tags=[f"status-{r['status']}"],
+                                                context=f'{{module}} brute-forced {ext.upper()} files with common prefix "{prefix}" and found {{event.type}}: {{event.data}}',
                                             )

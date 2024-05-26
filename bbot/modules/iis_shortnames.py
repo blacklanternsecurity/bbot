@@ -234,6 +234,7 @@ class iis_shortnames(BaseModule):
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
                 event,
+                context=f"{{module}} detected low {{event.type}}: IIS shortname enumeration",
             )
             if not self.config.get("detect_only"):
                 for detection in detections:
@@ -323,7 +324,13 @@ class iis_shortnames(BaseModule):
                             hint_type = "shortname-file"
                         else:
                             hint_type = "shortname-directory"
-                        await self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
+                        await self.emit_event(
+                            f"{normalized_url}/{url_hint}",
+                            "URL_HINT",
+                            event,
+                            tags=[hint_type],
+                            context=f"{{module}} enumerated shortnames at {normalized_url} and found {{event.type}}: {url_hint}",
+                        )
 
     async def filter_event(self, event):
         if "dir" in event.tags:

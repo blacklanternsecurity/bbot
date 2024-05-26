@@ -21,7 +21,7 @@ class dnsbrute_mutations(BaseModule):
         self.max_mutations = self.config.get("max_mutations", 500)
         # 800M bits == 100MB bloom filter == 10M entries before false positives start emerging
         self.mutations_tried = self.helpers.bloom_filter(800000000)
-        self._mutation_run = 1
+        self._mutation_run_counter = {}
         return True
 
     async def handle_event(self, event):
@@ -55,7 +55,6 @@ class dnsbrute_mutations(BaseModule):
                     )
 
         base_mutations = set()
-        found_mutations = False
         try:
             for i, (domain, subdomains) in enumerate(trimmed_found):
                 self.verbose(f"{domain} has {len(subdomains):,} subdomains")
@@ -103,6 +102,11 @@ class dnsbrute_mutations(BaseModule):
                     if mutations:
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(trimmed_found)})")
                         results = await self.helpers.dns.brute(self, query, mutations)
+                        try:
+                            mutation_run = self._mutation_run_counter[domain]
+                        except KeyError:
+                            self._mutation_run_counter[domain] = mutation_run = 1
+                        self._mutation_run_counter[domain] += 1
                         for hostname in results:
                             parent_event = self.parent_events.get_host(hostname)
                             if parent_event is None:
@@ -113,22 +117,20 @@ class dnsbrute_mutations(BaseModule):
                                     self.parent_events._radix.dns_tree.root.children["com"].children["tesla"].children
                                 )
                                 parent_event = self.scan.root_event
+                            mutation_run_ordinal = self.helpers.integer_to_ordinal(mutation_run)
                             await self.emit_event(
                                 hostname,
                                 "DNS_NAME",
                                 parent=parent_event,
-                                tags=[f"mutation-{self._mutation_run}"],
+                                tags=[f"mutation-{mutation_run}"],
                                 abort_if=self.abort_if,
+                                context=f'{{module}} found a mutated subdomain of "{domain}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.data}}',
                             )
                         if results:
-                            found_mutations = True
                             continue
                     break
         except AssertionError as e:
             self.warning(e)
-
-        if found_mutations:
-            self._mutation_run += 1
 
     def abort_if(self, event):
         if not event.scope_distance == 0:

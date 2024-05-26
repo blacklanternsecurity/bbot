@@ -50,15 +50,6 @@ class dockerhub(BaseModule):
         username = event.data.get("profile_name", "")
         if not username:
             return
-        # emit API endpoint to be visited by httpx (for url/email extraction, etc.)
-        profile_url = f"{self.api_url}/users/{username}"
-        await self.emit_event(
-            profile_url,
-            "URL_UNVERIFIED",
-            parent=event,
-            tags="httpx-safe",
-            context=f"{{module}} produced {{event.type}}: {profile_url}",
-        )
         self.verbose(f"Searching for docker images belonging to {username}")
         repos = await self.get_repos(username)
         for repo in repos:

@@ -86,9 +86,13 @@ class ntlm(BaseModule):
 
     async def handle_event(self, event):
         found_hash = hash(f"{event.host}:{event.port}")
-        agen = self.handle_url(event)
+        if event.type == "URL":
+            url = event.data
+        else:
+            url = event.data["url"]
+        agen = self.handle_url(url, event)
         if found_hash not in self.found:
-            async for result, request_url in agen:
+            async for result, request_url, num_urls in agen:
                 if result and request_url:
                     self.found.add(found_hash)
                     await self.emit_event(
@@ -99,6 +103,7 @@ class ntlm(BaseModule):
                         },
                         "FINDING",
                         parent=event,
+                        context=f"{{module}} tried {num_urls:,} NTLM endpoints against {url} and identified NTLM auth ({{event.type}}): {result}",
                     )
                     fqdn = result.get("FQDN", "")
                     if fqdn:
@@ -116,19 +121,13 @@ class ntlm(BaseModule):
                     return True
         return False
 
-    async def handle_url(self, event):
-        if event.type == "URL":
-            urls = {
-                event.data,
-            }
-        else:
-            urls = {
-                event.data["url"],
-            }
+    async def handle_url(self, url, event):
+        urls = {url}
         if self.try_all:
             for endpoint in ntlm_discovery_endpoints:
                 urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
 
+        num_urls = len(urls)
         async for url, response in self.helpers.request_batch(
             urls, headers=NTLM_test_header, allow_redirects=False, timeout=self.http_timeout
         ):
@@ -138,6 +137,6 @@ class ntlm(BaseModule):
                 try:
                     ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
                     if ntlm_resp_decoded:
-                        yield ntlm_resp_decoded, url
+                        yield ntlm_resp_decoded, url, num_urls
                 except NTLMError as e:
                     self.verbose(str(e))

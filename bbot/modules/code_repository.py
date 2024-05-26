@@ -50,4 +50,8 @@ class code_repository(BaseModule):
                         parent=event,
                     )
                     repo_event.scope_distance = event.scope_distance
-                    await self.emit_event(repo_event, context=f"detected {{event.type}}: {url}")
+                    await self.emit_event(
+                        repo_event,
+                        context=f"detected {{event.type}}: {url}",
+                        context=f"{{module}} detected {platform} {{event.type}} at {url}",
+                    )

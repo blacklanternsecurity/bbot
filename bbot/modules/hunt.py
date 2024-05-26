@@ -292,4 +292,9 @@ class hunt(BaseModule):
                     url = event.data.get("url", "")
                     if url:
                         data["url"] = url
-                    await self.emit_event(data, "FINDING", event)
+                    await self.emit_event(
+                        data,
+                        "FINDING",
+                        event,
+                        context=f'{{module}} analyzed HTTP_RESPONSE from {url} and identified {{event.type}}: potential {k.upper()} parameter "{p}"',
+                    )
