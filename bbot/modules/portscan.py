@@ -82,12 +82,12 @@ class portscan(BaseModule):
         if self.ping_first or self.ping_only:
             new_targets = []
             async for alive_host, _ in self.masscan(targets, ping=True):
-                source_event = self.scanned_tracker.search(alive_host)
+                parent_event = self.scanned_tracker.search(alive_host)
                 await self.emit_event(
                     alive_host,
                     "DNS_NAME",
-                    source=source_event,
-                    context=f"{{module}} pinged {source_event.data} and got a response: {{event.type}}: {{event.data}}",
+                    source=parent_event,
+                    context=f"{{module}} pinged {parent_event.data} and got a response: {{event.type}}: {{event.data}}",
                 )
                 new_targets.append(ipaddress.ip_network(alive_host, strict=False))
             targets = new_targets
@@ -95,15 +95,15 @@ class portscan(BaseModule):
         # TCP SYN scan
         if not self.ping_only:
             async for host, port in self.masscan(targets):
-                source_event = self.scanned_tracker.search(host)
-                if source_event.type == "DNS_NAME":
-                    host = source_event.host
+                parent_event = self.scanned_tracker.search(host)
+                if parent_event.type == "DNS_NAME":
+                    host = parent_event.host
                 netloc = self.helpers.make_netloc(host, port)
                 await self.emit_event(
                     netloc,
                     "OPEN_TCP_PORT",
-                    source=source_event,
-                    context=f"{{module}} executed a TCP SYN scan against {source_event.data} and found: {{event.type}}: {{event.data}}",
+                    parent=parent_event,
+                    context=f"{{module}} executed a TCP SYN scan against {parent_event.data} and found: {{event.type}}: {{event.data}}",
                 )
         else:
             self.verbose("Only ping sweep was requested, skipping TCP SYN scan")
