@@ -429,7 +429,8 @@ class BaseModule:
         raise_error = kwargs.pop("raise_error", False)
         module = kwargs.pop("module", None)
         if module is None:
-            kwargs["module"] = self
+            if (not args) or getattr(args[0], "module", None) is None:
+                kwargs["module"] = self
         try:
             event = self.scan.make_event(*args, **kwargs)
         except ValidationError as e:
