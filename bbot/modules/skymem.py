@@ -31,20 +31,19 @@ class skymem(emailformat):
 
         # iterate through other pages
         domain_ids = await self.helpers.re.findall(self.next_page_regex, r.text)
-        if not domain_ids:
-            return
-        domain_id = domain_ids[0]
-        for page in range(2, 22):
-            r2 = await self.request_with_fail_count(f"{self.base_url}/domain/{domain_id}?p={page}")
-            if not r2:
-                continue
-            responses.append(r2)
-            pages = re.findall(r"/domain/" + domain_id + r"\?p=(\d+)", r2.text)
-            if not pages:
-                break
-            last_page = max([int(p) for p in pages])
-            if page >= last_page:
-                break
+        if domain_ids:
+            domain_id = domain_ids[0]
+            for page in range(2, 22):
+                r2 = await self.request_with_fail_count(f"{self.base_url}/domain/{domain_id}?p={page}")
+                if not r2:
+                    continue
+                responses.append(r2)
+                pages = re.findall(r"/domain/" + domain_id + r"\?p=(\d+)", r2.text)
+                if not pages:
+                    break
+                last_page = max([int(p) for p in pages])
+                if page >= last_page:
+                    break
 
         for i, r in enumerate(responses):
             for email in await self.helpers.re.extract_emails(r.text):
