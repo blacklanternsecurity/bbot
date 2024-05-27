@@ -83,6 +83,12 @@ class portscan(BaseModule):
             new_targets = []
             async for alive_host, _ in self.masscan(targets, ping=True):
                 parent_event = self.scanned_tracker.search(alive_host)
+                # masscan gets the occasional junk result
+                # this seems to be a side effect of it having its own TCP stack
+                # see https://github.com/robertdavidgraham/masscan/issues/397
+                if parent_event is None:
+                    self.debug(f"Failed to correlate {alive_host} to targets")
+                    continue
                 await self.emit_event(
                     alive_host,
                     "DNS_NAME",
@@ -96,6 +102,9 @@ class portscan(BaseModule):
         if not self.ping_only:
             async for host, port in self.masscan(targets):
                 parent_event = self.scanned_tracker.search(host)
+                if parent_event is None:
+                    self.debug(f"Failed to correlate {host} to targets")
+                    continue
                 if parent_event.type == "DNS_NAME":
                     host = parent_event.host
                 netloc = self.helpers.make_netloc(host, port)
