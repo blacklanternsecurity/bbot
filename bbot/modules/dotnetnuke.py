@@ -89,7 +89,7 @@ class dotnetnuke(BaseModule):
                         {"technology": "DotNetNuke", "url": event.data["url"], "host": str(event.host)},
                         "TECHNOLOGY",
                         event,
-                        context=f"{{module}} scanned {url} and found {{event.type}}: DotNetNuke",
+                        context=f"{{module}} scanned {event.data['url']} and found {{event.type}}: DotNetNuke",
                     )
                     detected = True
                     break
