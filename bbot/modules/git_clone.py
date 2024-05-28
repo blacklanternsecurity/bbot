@@ -1,4 +1,5 @@
 from pathlib import Path
+from subprocess import CalledProcessError
 from bbot.modules.templates.github import github
 
 
@@ -50,9 +51,11 @@ class git_clone(github):
         else:
             url = repository_url
         command = ["git", "-C", self.output_dir, "clone", url]
-        output = await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"})
-        if output.returncode == 0:
-            folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
-            return self.output_dir / folder_name
-        else:
-            return None
+        try:
+            output = await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, check=True)
+        except CalledProcessError as e:
+            self.debug(f"Error cloning {url}. STDERR: {repr(e.stderr)}")
+            return
+
+        folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
+        return self.output_dir / folder_name
