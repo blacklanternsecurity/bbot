@@ -1426,6 +1426,7 @@ def event_from_json(j, siem_friendly=False):
             "scans": j.get("scans", []),
             "tags": j.get("tags", []),
             "confidence": j.get("confidence", 5),
+            "context": j.get("discovery_context", None),
             "dummy": True,
         }
         if siem_friendly:
