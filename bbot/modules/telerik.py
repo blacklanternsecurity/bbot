@@ -250,7 +250,7 @@ class telerik(BaseModule):
                                         },
                                         "VULNERABILITY",
                                         event,
-                                        context=f"{{module}} scanned {event.data} and identified critical {{event.type}}: description",
+                                        context=f"{{module}} scanned {event.data} and identified critical {{event.type}}: {description}",
                                     )
                                     break
 
