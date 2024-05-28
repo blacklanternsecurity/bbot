@@ -112,7 +112,7 @@ async def test_cli_scan(monkeypatch):
 
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
-        assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
+        assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags,Discovery Path\n"
         assert len(lines) > 1, "output.csv is not long enough"
 
     ip_success = False
