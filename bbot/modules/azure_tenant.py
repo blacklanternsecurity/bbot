@@ -51,7 +51,7 @@ class azure_tenant(BaseModule):
                         if tenantname:
                             tenant_names.add(tenantname)
 
-            tenant_names.sort()
+            tenant_names = sorted(tenant_names)
             event_data = {"tenant-names": tenant_names, "domains": sorted(domains)}
             tenant_names_str = ",".join(tenant_names)
             if tenant_id is not None:
