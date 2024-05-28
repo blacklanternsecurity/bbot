@@ -111,11 +111,6 @@ class dnsbrute_mutations(BaseModule):
                             parent_event = self.parent_events.get_host(hostname)
                             if parent_event is None:
                                 self.warning(f"Could not correlate parent event from: {hostname}")
-                                self.warning(self.parent_events._radix.dns_tree.root.children)
-                                self.warning(self.parent_events._radix.dns_tree.root.children["com"].children)
-                                self.warning(
-                                    self.parent_events._radix.dns_tree.root.children["com"].children["tesla"].children
-                                )
                                 parent_event = self.scan.root_event
                             mutation_run_ordinal = self.helpers.integer_to_ordinal(mutation_run)
                             await self.emit_event(

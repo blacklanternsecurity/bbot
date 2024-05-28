@@ -404,9 +404,11 @@ async def test_events(events, helpers):
     # test event serialization
     from bbot.core.event import event_from_json
 
-    db_event = scan.make_event("evilcorp.com:80", dummy=True)
+    db_event = scan.make_event("evilcorp.com:80", parent=scan.root_event, context="test context")
     db_event._resolved_hosts = {"127.0.0.1"}
     db_event.scope_distance = 1
+    assert db_event.discovery_context == "test context"
+    assert db_event.discovery_path == ["test context"]
     timestamp = db_event.timestamp.timestamp()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
@@ -414,12 +416,16 @@ async def test_events(events, helpers):
     assert json_event["type"] == "OPEN_TCP_PORT"
     assert json_event["host"] == "evilcorp.com"
     assert json_event["timestamp"] == timestamp
+    assert json_event["discovery_context"] == "test context"
+    assert json_event["discovery_path"] == ["test context"]
     reconstituted_event = event_from_json(json_event)
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.timestamp() == timestamp
     assert reconstituted_event.data == "evilcorp.com:80"
     assert reconstituted_event.type == "OPEN_TCP_PORT"
     assert reconstituted_event.host == "evilcorp.com"
+    assert reconstituted_event.discovery_context == "test context"
+    assert reconstituted_event.discovery_path == ["test context"]
     assert "127.0.0.1" in reconstituted_event.resolved_hosts
     hostless_event = scan.make_event("asdf", "ASDF", dummy=True)
     hostless_event_json = hostless_event.json()
