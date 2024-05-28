@@ -6,10 +6,9 @@ class TestGithub_Org(ModuleTestBase):
     modules_overrides = ["github_org", "speculate"]
 
     async def setup_before_prep(self, module_test):
-        await module_test.mock_dns({
-            "blacklanternsecurity.com": {"A": ["127.0.0.99"]},
-            "github.com": {"A": ["127.0.0.99"]}
-        })
+        await module_test.mock_dns(
+            {"blacklanternsecurity.com": {"A": ["127.0.0.99"]}, "github.com": {"A": ["127.0.0.99"]}}
+        )
 
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
         module_test.httpx_mock.add_response(
