@@ -51,14 +51,16 @@ class azure_tenant(BaseModule):
                         if tenantname:
                             tenant_names.add(tenantname)
 
-            event_data = {"tenant-names": sorted(tenant_names), "domains": sorted(domains)}
+            tenant_names.sort()
+            event_data = {"tenant-names": tenant_names, "domains": sorted(domains)}
+            tenant_names_str = ",".join(tenant_names)
             if tenant_id is not None:
                 event_data["tenant-id"] = tenant_id
             await self.emit_event(
                 event_data,
                 "AZURE_TENANT",
                 parent=event,
-                context=f'{{module}} queried Outlook autodiscover for "{query}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} queried Outlook autodiscover for "{query}" and found {{event.type}}: {tenant_names_str}',
             )
 
     async def query(self, domain):

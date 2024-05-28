@@ -20,7 +20,7 @@ class gowitness(BaseModule):
         "resolution_x": 1440,
         "resolution_y": 900,
         "output_path": "",
-        "social": True,
+        "social": False,
         "idle_timeout": 1800,
     }
     options_desc = {
