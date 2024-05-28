@@ -106,7 +106,7 @@ class asn(BaseReportModule):
                     continue
                 return res
         self.warning(f"Error retrieving ASN for {ip}")
-        return []
+        return [], ""
 
     async def get_asn_ripe(self, ip):
         url = f"https://stat.ripe.net/data/network-info/data.json?resource={ip}"
