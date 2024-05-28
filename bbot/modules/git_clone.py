@@ -50,7 +50,7 @@ class git_clone(github):
         else:
             url = repository_url
         command = ["git", "-C", self.output_dir, "clone", url]
-        output = await self.run_process(command)
+        output = await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"})
         if output.returncode == 0:
             folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
             return self.output_dir / folder_name
