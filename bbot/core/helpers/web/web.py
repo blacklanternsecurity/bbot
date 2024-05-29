@@ -6,6 +6,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 from bbot.core.engine import EngineClient
+from bbot.core.helpers.misc import truncate_filename
 from bbot.errors import WordlistError, CurlError, WebError
 
 from bs4 import MarkupResemblesLocatorWarning
@@ -173,7 +174,7 @@ class WebHelper(EngineClient):
         """
         success = False
         filename = kwargs.pop("filename", self.parent_helper.cache_filename(url))
-        filename = Path(filename).resolve()
+        filename = truncate_filename(Path(filename).resolve())
         kwargs["filename"] = filename
         max_size = kwargs.pop("max_size", None)
         if max_size is not None:
