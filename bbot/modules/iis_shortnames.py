@@ -67,11 +67,10 @@ class iis_shortnames(BaseModule):
         directory_confirm_result = await self.helpers.request(
             method=method, url=url, allow_redirects=False, retries=2, timeout=10
         )
-
-        if directory_confirm_result.status_code == affirmative_status_code:
-            return True
-        else:
-            return False
+        if directory_confirm_result is not None:
+            if directory_confirm_result.status_code == affirmative_status_code:
+                return True
+        return False
 
     async def duplicate_check(self, target, method, url_hint, affirmative_status_code):
         duplicates = []
