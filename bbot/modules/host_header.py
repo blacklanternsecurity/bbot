@@ -6,7 +6,11 @@ class host_header(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "web-thorough"]
-    meta = {"description": "Try common HTTP Host header spoofing techniques"}
+    meta = {
+        "description": "Try common HTTP Host header spoofing techniques",
+        "created_date": "2022-07-27",
+        "author": "@liquidsec",
+    }
 
     in_scope_only = True
     per_hostport_only = True

@@ -5,7 +5,11 @@ class otx(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query otx.alienvault.com for subdomains"}
+    meta = {
+        "description": "Query otx.alienvault.com for subdomains",
+        "created_date": "2022-08-24",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://otx.alienvault.com"
 

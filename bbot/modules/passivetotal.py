@@ -5,7 +5,12 @@ class passivetotal(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query the PassiveTotal API for subdomains", "auth_required": True}
+    meta = {
+        "description": "Query the PassiveTotal API for subdomains",
+        "created_date": "2022-08-08",
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"username": "", "api_key": ""}
     options_desc = {"username": "RiskIQ Username", "api_key": "RiskIQ API Key"}
 

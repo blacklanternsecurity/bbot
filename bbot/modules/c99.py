@@ -5,7 +5,12 @@ class c99(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query the C99 API for subdomains", "auth_required": True}
+    meta = {
+        "description": "Query the C99 API for subdomains",
+        "created_date": "2022-07-08",
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "c99.nl API key"}
 
