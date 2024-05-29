@@ -431,7 +431,7 @@ class excavate(BaseInternalModule):
                             url_event.web_spider_distance = parent_web_spider_distance
                             await self.emit_event(
                                 url_event,
-                                context="{module} extracted {event.type}: {event.data} from redirect destination (Location header)",
+                                context="{module} looked in \"Location\" header and found {event.type}: {event.data}",
                             )
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
