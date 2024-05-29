@@ -469,6 +469,16 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         await helpers.wordlist("/tmp/a9pseoysadf/asdkgjaosidf")
     test_file.unlink()
 
+    # filename truncation
+    super_long_filename = "/tmp/" + ("a" * 1024) + ".txt"
+    with pytest.raises(OSError):
+        with open(super_long_filename, "w") as f:
+            f.write("wat")
+    truncated_filename = helpers.truncate_filename(super_long_filename)
+    with open(truncated_filename, "w") as f:
+        f.write("wat")
+    truncated_filename.unlink()
+
     # misc DNS helpers
     assert helpers.is_ptr("wsc-11-22-33-44-wat.evilcorp.com") == True
     assert helpers.is_ptr("wsc-11-22-33-wat.evilcorp.com") == False
