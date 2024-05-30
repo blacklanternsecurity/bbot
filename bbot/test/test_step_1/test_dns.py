@@ -269,7 +269,7 @@ async def test_wildcards(bbot_scanner):
     scan2 = Scanner(
         "asdfl.gashdgkjsadgsdf.github.io",
         whitelist=["github.io"],
-        config={"dns_wildcard_ignore": ["github.io"], "dns_resolution": True},
+        config={"dns": {"wildcard_ignore": ["github.io"]}},
         exclude_modules=["cloud"],
     )
     await scan2._prep()

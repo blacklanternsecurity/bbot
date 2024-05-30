@@ -16,7 +16,7 @@ class baddns_zone(baddns_module):
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "only_high_confidence": "Do not emit low-confidence or generic detections",
     }
-    max_event_handlers = 8
+    module_threads = 8
     deps_pip = ["baddns~=1.1.789"]
 
     def select_modules(self):

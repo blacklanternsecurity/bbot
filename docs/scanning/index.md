@@ -211,16 +211,18 @@ Wildcard hosts are collapsed into a single host beginning with `_wildcard`:
 If you don't want this, you can disable wildcard detection on a domain-to-domain basis in the [config](configuration.md):
 
 ```yaml title="~/.bbot/config/bbot.yml"
-dns_wildcard_ignore:
-  - evilcorp.com
-  - evilcorp.co.uk
+dns:
+  wildcard_ignore:
+    - evilcorp.com
+    - evilcorp.co.uk
 ```
 
 There are certain edge cases (such as with dynamic DNS rules) where BBOT's wildcard detection fails. In these cases, you can try increasing the number of wildcard checks in the config:
 
 ```yaml title="~/.bbot/config/bbot.yml"
 # default == 10
-dns_wildcard_tests: 20
+dns:
+  wildcard_tests: 20
 ```
 
 If that doesn't work you can consider [blacklisting](#whitelists-and-blacklists) the offending domain.

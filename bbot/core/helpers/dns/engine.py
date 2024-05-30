@@ -41,11 +41,11 @@ class DNSEngine(EngineServer):
         super().__init__(socket_path)
 
         self.config = config
+        self.dns_config = self.config.get("dns", {})
         # config values
-        self.timeout = self.config.get("dns_timeout", 5)
-        self.retries = self.config.get("dns_retries", 1)
-        self.abort_threshold = self.config.get("dns_abort_threshold", 50)
-        self.max_dns_resolve_distance = self.config.get("max_dns_resolve_distance", 5)
+        self.timeout = self.dns_config.get("timeout", 5)
+        self.retries = self.dns_config.get("retries", 1)
+        self.abort_threshold = self.dns_config.get("abort_threshold", 50)
 
         # resolver
         self.resolver = dns.asyncresolver.Resolver()
@@ -54,7 +54,7 @@ class DNSEngine(EngineServer):
         self.resolver.lifetime = self.timeout
 
         # skip certain queries
-        dns_omit_queries = self.config.get("dns_omit_queries", None)
+        dns_omit_queries = self.dns_config.get("omit_queries", None)
         if not dns_omit_queries:
             dns_omit_queries = []
         self.dns_omit_queries = dict()
@@ -70,11 +70,11 @@ class DNSEngine(EngineServer):
                     self.dns_omit_queries[rdtype] = {query}
 
         # wildcard handling
-        self.wildcard_ignore = self.config.get("dns_wildcard_ignore", None)
+        self.wildcard_ignore = self.dns_config.get("wildcard_ignore", None)
         if not self.wildcard_ignore:
             self.wildcard_ignore = []
         self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
-        self.wildcard_tests = self.config.get("dns_wildcard_tests", 5)
+        self.wildcard_tests = self.dns_config.get("wildcard_tests", 5)
         self._wildcard_cache = dict()
         # since wildcard detection takes some time, This is to prevent multiple
         # modules from kicking off wildcard detection for the same domain at the same time
@@ -86,10 +86,10 @@ class DNSEngine(EngineServer):
         # keeps track of warnings issued for wildcard detection to prevent duplicate warnings
         self._dns_warnings = set()
         self._errors = dict()
-        self._debug = self.config.get("dns_debug", False)
+        self._debug = self.dns_config.get("debug", False)
         self._dns_cache = LRUCache(maxsize=10000)
 
-        self.filter_bad_ptrs = self.config.get("dns_filter_ptrs", True)
+        self.filter_bad_ptrs = self.dns_config.get("filter_ptrs", True)
 
     async def resolve(self, query, **kwargs):
         """Resolve DNS names and IP addresses to their corresponding results.

@@ -10,10 +10,7 @@ from bbot.modules.base import InterceptModule, BaseModule
 
 class DNS(InterceptModule):
     watched_events = ["*"]
-    options = {"max_event_handlers": 25}
-    options_desc = {"max_event_handlers": "Number of concurrent DNS workers"}
     _priority = 1
-    _max_event_handlers = 25
     scope_distance_modifier = None
 
     class HostModule(BaseModule):
@@ -23,14 +20,19 @@ class DNS(InterceptModule):
         def _outgoing_dedup_hash(self, event):
             return hash((event, self.name, event.always_emit))
 
+    @property
+    def module_threads(self):
+        return self.dns_config.get("threads", 25)
+
     async def setup(self):
-        self.dns_resolution = True
-        # you can disable DNS resolution with either the "dns" or "dns_resolution" config options
-        for key in ("dns", "dns_resolution"):
-            if self.scan.config.get(key, None) is False:
-                self.dns_resolution = False
-        self.scope_search_distance = max(0, int(self.scan.config.get("scope_search_distance", 0)))
-        self.scope_dns_search_distance = max(0, int(self.scan.config.get("scope_dns_search_distance", 1)))
+        self.dns_config = self.scan.config.get("dns", {})
+        self.dns_disable = self.dns_config.get("disable", False)
+        if self.dns_disable:
+            return None, "DNS resolution is disabled in the config"
+
+        self.minimal = self.dns_config.get("minimal", False)
+        self.scope_search_distance = max(0, int(self.scan.config.get("scope", {}).get("search_distance", 0)))
+        self.scope_dns_search_distance = max(0, int(self.dns_config.get("search_distance", 1)))
 
         # event resolution cache
         self._event_cache = LRUCache(maxsize=10000)
@@ -68,12 +70,14 @@ class DNS(InterceptModule):
                 dns_tags, dns_children, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
             except KeyError:
                 if event_is_ip:
+                    if self.minimal:
+                        return
                     rdtypes_to_resolve = ["PTR"]
                 else:
-                    if self.dns_resolution:
-                        rdtypes_to_resolve = all_rdtypes
-                    else:
+                    if self.minimal:
                         rdtypes_to_resolve = ("A", "AAAA", "CNAME")
+                    else:
+                        rdtypes_to_resolve = all_rdtypes
 
                 # if missing from cache, do DNS resolution
                 queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
@@ -122,7 +126,7 @@ class DNS(InterceptModule):
                             continue
 
                 # only emit DNS children if we haven't seen this host before
-                emit_children = self.dns_resolution and event_host_hash not in self._event_cache
+                emit_children = (not self.minimal) and (event_host_hash not in self._event_cache)
 
                 # store results in cache
                 self._event_cache[event_host_hash] = dns_tags, dns_children, event_whitelisted, event_blacklisted
@@ -153,9 +157,9 @@ class DNS(InterceptModule):
 
         # kill runaway DNS chains
         dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
-        if dns_resolve_distance >= self.helpers.dns.max_dns_resolve_distance:
+        if dns_resolve_distance >= self.helpers.dns.runaway_limit:
             self.debug(
-                f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.max_dns_resolve_distance})"
+                f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.runaway_limit})"
             )
             dns_children = {}
 

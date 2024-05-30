@@ -22,7 +22,7 @@ class wappalyzer(BaseModule):
     deps_pip = ["python-Wappalyzer~=0.3.1", "aiohttp~=3.9.0b0"]
     # accept all events regardless of scope distance
     scope_distance_modifier = None
-    _max_event_handlers = 5
+    _module_threads = 5
 
     async def setup(self):
         self.wappalyzer = await self.helpers.run_in_executor(Wappalyzer.latest)

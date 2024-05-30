@@ -6,10 +6,6 @@ home: ~/.bbot
 # 1 == 1 hope away from main scope
 # 0 == in scope only
 scope_report_distance: 0
-# Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
-dns_resolution: true
-# Rate-limit DNS
-dns_queries_per_second: 1000
 # Rate-limit HTTP
 web_requests_per_second: 100
 # Interval for displaying status messages
@@ -19,14 +15,51 @@ http_proxy:
 # Web user-agent
 user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
 
+### DNS ###
+
+dns:
+  # Set this to true to completely disable DNS resolution (careful if you have IP whitelists/blacklists, consider minimal=true instead)
+  disable: false
+  # Speed up the scan by not creating any new DNS revents, and only resolving A and AAAA records
+  minimal: false
+  # How many instances of the dns module to run concurrently
+  threads: 25
+  # How many concurrent DNS resolvers to use when brute-forcing
+  # (under the hood this is passed through directly to massdns -s)
+  brute_threads: 1000
+  # How far away from the main target to explore (independent of the global scan setting)
+  search_distance: 1
+  # Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)
+  runaway_limit: 5
+  # DNS query timeout
+  timeout: 5
+  # How many times to retry DNS queries
+  retries: 1
+  # Completely disable BBOT's DNS wildcard detection
+  wildcard_disable: False
+  # Disable BBOT's DNS wildcard detection for select domains
+  wildcard_ignore: []
+  # How many sanity checks to make when verifying wildcard DNS
+  # Increase this value if BBOT's wildcard detection isn't working
+  wildcard_tests: 10
+  # Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
+  # This helps prevent faulty DNS servers from hanging up the scan
+  abort_threshold: 50
+  # Don't show PTR records containing IP addresses
+  filter_ptrs: true
+  # Enable/disable debug messages for DNS queries
+  debug: false
+  # For performance reasons, always skip these DNS queries
+  # Microsoft's DNS infrastructure is misconfigured so that certain queries to mail.protection.outlook.com always time out
+  omit_queries:
+    - SRV:mail.protection.outlook.com
+    - CNAME:mail.protection.outlook.com
+    - TXT:mail.protection.outlook.com
+
 # Tool dependencies
 deps:
   ffuf:
     version: "2.1.0"
-
-dns:
-  # Number of concurrent massdns lookups (-s)
-  brute_threads: 1000
 
 ### WEB SPIDER ###
 
@@ -44,10 +77,6 @@ module_paths: []
 
 # How far out from the main scope to search
 scope_search_distance: 0
-# How far out from the main scope to resolve DNS names / IPs
-scope_dns_search_distance: 1
-# Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)
-dns_resolve_distance: 5
 
 # Limit the number of scan manager workers
 manager_tasks: 5
@@ -88,25 +117,6 @@ httpx_retries: 1
 http_debug: false
 # Maximum number of HTTP redirects to follow
 http_max_redirects: 5
-
-# DNS query timeout
-dns_timeout: 5
-# How many times to retry DNS queries
-dns_retries: 1
-# Completely disable BBOT's DNS wildcard detection
-dns_wildcard_disable: False
-# Disable BBOT's DNS wildcard detection for select domains
-dns_wildcard_ignore: []
-# How many sanity checks to make when verifying wildcard DNS
-# Increase this value if BBOT's wildcard detection isn't working
-dns_wildcard_tests: 10
-# Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
-# This helps prevent faulty DNS servers from hanging up the scan
-dns_abort_threshold: 50
-# Don't show PTR records containing IP addresses
-dns_filter_ptrs: true
-# Enable/disable debug messages for dns queries
-dns_debug: false
 
 # Whether to verify SSL certificates
 ssl_verify: false
@@ -158,10 +168,3 @@ omit_event_types:
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
-
-# For performance reasons, always skip these DNS queries
-# Microsoft's DNS infrastructure is misconfigured so that certain queries to mail.protection.outlook.com always time out
-dns_omit_queries:
-  - SRV:mail.protection.outlook.com
-  - CNAME:mail.protection.outlook.com
-  - TXT:mail.protection.outlook.com

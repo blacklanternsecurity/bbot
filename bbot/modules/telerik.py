@@ -160,7 +160,7 @@ class telerik(BaseModule):
         },
     ]
 
-    _max_event_handlers = 5
+    _module_threads = 5
 
     def _incoming_dedup_hash(self, event):
         if event.type == "URL":

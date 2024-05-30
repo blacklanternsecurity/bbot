@@ -15,7 +15,7 @@ class fingerprintx(BaseModule):
     options = {"version": "1.1.4"}
     options_desc = {"version": "fingerprintx version"}
     _batch_size = 10
-    _max_event_handlers = 2
+    _module_threads = 2
     _priority = 2
 
     deps_ansible = [

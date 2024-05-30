@@ -20,14 +20,14 @@ BBOT modules can be parallelized so that more than one instance runs at a time. 
 
 ```python
 class baddns(BaseModule):
-    max_event_handlers = 8
+    module_threads = 8
 ```
 
-To change the number of instances, you can set a module's `max_event_handlers` in the config:
+To override this, you can set a module's `module_threads` in the config:
 
 ```bash
-# increase the "baddns" module to 20 concurrent instances
-bbot -t evilcorp.com -m baddns -c modules.baddns.max_event_handlers=20
+# increase baddns threads to 20
+bbot -t evilcorp.com -m baddns -c modules.baddns.module_threads=20
 ```
 
 ### Boost DNS Brute-force Speed
@@ -114,10 +114,19 @@ bbot -f subdomain-enum -t evilcorp.com -c scope_report_distance=2
 ~~~
 
 ### Speed Up Scans By Disabling DNS Resolution
-If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting `dns_resolution` to `false`.
+
+If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting `dns.disable` to `true`:
+
 ~~~bash
-# disable the creation of new events from DNS resoluion
-bbot -m httpx gowitness wappalyzer -t urls.txt -c dns_resolution=false
+# completely disable DNS resolution
+bbot -m httpx gowitness wappalyzer -t urls.txt -c dns.disable=true
+~~~
+
+Note that the above setting _completely_ disables DNS resolution, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use `dns.minimal` instead:
+
+~~~bash
+# only resolve A and AAAA records
+bbot -m httpx gowitness wappalyzer -t urls.txt -c dns.minimal=true
 ~~~
 
 ## FAQ

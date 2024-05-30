@@ -86,7 +86,7 @@ class speculate(BaseInternalModule):
                     "IP_ADDRESS",
                     parent=event,
                     internal=True,
-                    context=f"speculate converted range into indivudal IP_ADDRESS: {ip}",
+                    context=f"speculate converted range into individual IP_ADDRESS: {ip}",
                 )
 
         # parent domains

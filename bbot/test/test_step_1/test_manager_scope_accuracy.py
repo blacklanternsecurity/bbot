@@ -134,7 +134,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     # dns search distance = 1, report distance = 0
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "test.notreal",
-        _config={"dns_resolution": True, "scope_dns_search_distance": 1, "scope_report_distance": 0},
+        _config={"dns": {"minimal": False, "search_distance": 1}, "scope_report_distance": 0},
         _dns_mock=dns_mock_chain,
     )
 
@@ -163,7 +163,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     # dns search distance = 2, report distance = 0
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "test.notreal",
-        _config={"dns_resolution": True, "scope_dns_search_distance": 2, "scope_report_distance": 0},
+        _config={"dns": {"minimal": False, "search_distance": 2}, "scope_report_distance": 0},
         _dns_mock=dns_mock_chain,
     )
 
@@ -207,7 +207,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     # dns search distance = 2, report distance = 1
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "test.notreal",
-        _config={"dns_resolution": True, "scope_dns_search_distance": 2, "scope_report_distance": 1},
+        _config={"dns": {"minimal": False, "search_distance": 2}, "scope_report_distance": 1},
         _dns_mock=dns_mock_chain,
     )
 
@@ -278,7 +278,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "test.notreal",
         scan_callback=custom_setup,
-        _config={"dns_resolution": True, "scope_dns_search_distance": 3, "scope_report_distance": 1},
+        _config={"dns": {"minimal": False, "search_distance": 3}, "scope_report_distance": 1},
         _dns_mock=dns_mock_chain,
     )
 
@@ -317,7 +317,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         modules=["httpx"],
         _config={
             "scope_search_distance": 0,
-            "scope_dns_search_distance": 2,
+            "dns": {"minimal": False, "search_distance": 2},
             "scope_report_distance": 1,
             "speculate": True,
             "excavate": True,
@@ -385,8 +385,8 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         "127.0.0.1/31",
         modules=["httpx"],
         _config={
+            "dns": {"minimal": False, "search_distance": 2},
             "scope_search_distance": 0,
-            "scope_dns_search_distance": 2,
             "scope_report_distance": 1,
             "excavate": True,
             "speculate": True,
@@ -469,8 +469,8 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         "127.0.0.1/31",
         modules=["httpx"],
         _config={
+            "dns": {"minimal": False, "search_distance": 2},
             "scope_search_distance": 1,
-            "scope_dns_search_distance": 2,
             "scope_report_distance": 1,
             "excavate": True,
             "speculate": True,
@@ -565,9 +565,8 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         modules=["httpx"],
         output_modules=["python"],
         _config={
-            "dns_resolution": True,
+            "dns": {"minimal": False, "search_distance": 2},
             "scope_search_distance": 0,
-            "scope_dns_search_distance": 2,
             "scope_report_distance": 0,
             "excavate": True,
             "speculate": True,
@@ -693,7 +692,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.0/31",
         modules=["sslcert"],
-        _config={"dns_resolution": False, "scope_report_distance": 0, "speculate": True, "modules": {"speculate": {"ports": "9999"}}},
+        _config={"scope_report_distance": 0, "speculate": True, "modules": {"speculate": {"ports": "9999"}}},
         _dns_mock={"www.bbottest.notreal": {"A": ["127.0.1.0"]}, "test.notreal": {"A": ["127.0.0.1"]}},
     )
 
@@ -750,7 +749,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         "127.0.0.0/31",
         modules=["sslcert"],
         whitelist=["127.0.1.0"],
-        _config={"dns_resolution": False, "scope_report_distance": 0, "scope_search_distance": 1, "speculate": True, "modules": {"speculate": {"ports": "9999"}}},
+        _config={"scope_report_distance": 0, "scope_search_distance": 1, "speculate": True, "modules": {"speculate": {"ports": "9999"}}},
         _dns_mock={"www.bbottest.notreal": {"A": ["127.0.0.1"]}, "test.notreal": {"A": ["127.0.1.0"]}},
     )
 
@@ -805,7 +804,7 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog):
     scan = bbot_scanner(
         "http://127.0.0.1:8888",
         modules=["httpx"],
-        config={"excavate": True, "dns_resolution": True, "scope_dns_search_distance": 1, "scope_report_distance": 0},
+        config={"excavate": True, "dns": {"minimal": False, "search_distance": 1}, "scope_report_distance": 0},
         whitelist=["127.0.0.0/29", "test.notreal"],
         blacklist=["127.0.0.64/29"],
     )

@@ -57,7 +57,7 @@ class BaseModule:
 
         options_desc (Dict): Descriptions for options, e.g., {"api_key": "API Key"}. Empty dict by default.
 
-        max_event_handlers (int): Maximum concurrent instances of handle_event() or handle_batch(). Default is 1.
+        module_threads (int): Maximum concurrent instances of handle_event() or handle_batch(). Default is 1.
 
         batch_size (int): Size of batches processed by handle_batch(). Default is 1.
 
@@ -100,7 +100,7 @@ class BaseModule:
     target_only = False
     in_scope_only = False
 
-    _max_event_handlers = 1
+    _module_threads = 1
     _batch_size = 1
     batch_wait = 10
     failed_request_abort_threshold = 5
@@ -340,11 +340,11 @@ class BaseModule:
         return batch_size
 
     @property
-    def max_event_handlers(self):
-        max_event_handlers = self.config.get("max_event_handlers", None)
-        if max_event_handlers is None:
-            max_event_handlers = self._max_event_handlers
-        return max_event_handlers
+    def module_threads(self):
+        module_threads = self.config.get("module_threads", None)
+        if module_threads is None:
+            module_threads = self._module_threads
+        return module_threads
 
     @property
     def auth_secret(self):
@@ -529,7 +529,7 @@ class BaseModule:
 
     def start(self):
         self._tasks = [
-            asyncio.create_task(self._worker(), name=f"{self.name}._worker()") for _ in range(self.max_event_handlers)
+            asyncio.create_task(self._worker(), name=f"{self.name}._worker()") for _ in range(self.module_threads)
         ]
 
     async def _setup(self):
@@ -577,7 +577,7 @@ class BaseModule:
         The core worker loop for the module, responsible for handling events from the incoming event queue.
 
         This method is a coroutine and is run asynchronously. Multiple instances can run simultaneously based on
-        the 'max_event_handlers' configuration. The worker dequeues events from 'incoming_event_queue', performs
+        the 'module_threads' configuration. The worker dequeues events from 'incoming_event_queue', performs
         necessary prechecks, and passes the event to the appropriate handler function.
 
         Args:
