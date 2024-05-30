@@ -159,7 +159,7 @@ class TestExcavate2(TestExcavate):
 
 class TestExcavateRedirect(TestExcavate):
     targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/relative/", "http://127.0.0.1:8888/nonhttpredirect/"]
-    config_overrides = {"scope_report_distance": 1}
+    config_overrides = {"scope": {"report_distance": 1}}
 
     async def setup_before_prep(self, module_test):
         # absolute redirect

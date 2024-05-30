@@ -13,7 +13,7 @@ async def test_cli_scope(monkeypatch, capsys):
     # basic target without whitelist
     monkeypatch.setattr(
         "sys.argv",
-        ["bbot", "-t", "one.one.one.one", "-c", "scope_report_distance=10", "dns.minimal=false", "--json"],
+        ["bbot", "-t", "one.one.one.one", "-c", "scope.report_distance=10", "dns.minimal=false", "--json"],
     )
     result = await cli._main()
     out, err = capsys.readouterr()
@@ -49,7 +49,7 @@ async def test_cli_scope(monkeypatch, capsys):
             "-w",
             "192.168.0.1",
             "-c",
-            "scope_report_distance=10",
+            "scope.report_distance=10",
             "dns.minimal=false",
             "dns.search_distance=2",
             "--json",

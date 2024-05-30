@@ -107,10 +107,10 @@ omit_event_types:
 ```
 
 ### Display Out-of-scope Events
-By default, BBOT only shows in-scope events (with a few exceptions for things like storage buckets). If you want to see events that BBOT is emitting internally (such as for DNS resolution, etc.), you can increase `scope_report_distance` in the config or on the command line like so:
+By default, BBOT only shows in-scope events (with a few exceptions for things like storage buckets). If you want to see events that BBOT is emitting internally (such as for DNS resolution, etc.), you can increase `scope.report_distance` in the config or on the command line like so:
 ~~~bash
 # display events up to scope distance 2 (default == 0)
-bbot -f subdomain-enum -t evilcorp.com -c scope_report_distance=2
+bbot -f subdomain-enum -t evilcorp.com -c scope.report_distance=2
 ~~~
 
 ### Speed Up Scans By Disabling DNS Resolution
@@ -137,9 +137,9 @@ bbot -m httpx gowitness wappalyzer -t urls.txt -c dns.minimal=true
 
 For example, when [`excavate`](index.md/#types-of-modules) gets an `HTTP_RESPONSE` event, it extracts links from the raw HTTP response as `URL_UNVERIFIED`s and then passes them back to `httpx` to be visited.
 
-By default, `URL_UNVERIFIED`s are hidden from output. If you want to see all of them including the out-of-scope ones, you can do it by changing `omit_event_types` and `scope_report_distance` in the config like so:
+By default, `URL_UNVERIFIED`s are hidden from output. If you want to see all of them including the out-of-scope ones, you can do it by changing `omit_event_types` and `scope.report_distance` in the config like so:
 
 ```bash
 # visit www.evilcorp.com and extract all the links
-bbot -t www.evilcorp.com -m httpx -c omit_event_types=[] scope_report_distance=2
+bbot -t www.evilcorp.com -m httpx -c omit_event_types=[] scope.report_distance=2
 ```

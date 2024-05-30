@@ -179,8 +179,9 @@ class Scanner:
         self.stats = ScanStats(self)
 
         # scope distance
-        self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 0)))
-        self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
+        self.scope_config = self.config.get("scope", {})
+        self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
+        self.scope_report_distance = int(self.scope_config.get("report_distance", 1))
 
         # url file extensions
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))

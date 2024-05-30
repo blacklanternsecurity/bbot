@@ -5,7 +5,7 @@ class TestGithub_Codesearch(ModuleTestBase):
     config_overrides = {
         "modules": {"github_codesearch": {"api_key": "asdf", "limit": 1}},
         "omit_event_types": [],
-        "scope_report_distance": 1,
+        "scope": {"report_distance": 1},
     }
     modules_overrides = ["github_codesearch", "httpx", "secretsdb"]
 

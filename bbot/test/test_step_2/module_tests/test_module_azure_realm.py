@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestAzure_Realm(ModuleTestBase):
     targets = ["evilcorp.com"]
-    config_overrides = {"scope_report_distance": 1}
+    config_overrides = {"scope": {"report_distance": 1}}
 
     response_json = {
         "State": 3,

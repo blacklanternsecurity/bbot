@@ -161,11 +161,11 @@ Scope distance continues to increase the further out you get. Most modules (e.g.
 
 #### Displaying Out-of-scope Events
 
-By default, BBOT only displays in-scope events (with a few exceptions such as `STORAGE_BUCKET`s). If you want to see more, you must increase the [config](configuration.md) value of `scope_report_distance`:
+By default, BBOT only displays in-scope events (with a few exceptions such as `STORAGE_BUCKET`s). If you want to see more, you must increase the [config](configuration.md) value of `scope.report_distance`:
 
 ```bash
 # display out-of-scope events up to one hop away from the main scope
-bbot -t evilcorp.com -f subdomain-enum -c scope_report_distance=1
+bbot -t evilcorp.com -f subdomain-enum -c scope.report_distance=1
 ```
 
 ### Strict Scope

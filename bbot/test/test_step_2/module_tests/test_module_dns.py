@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestDNS(ModuleTestBase):
     modules_overrides = ["dns"]
-    config_overrides = {"dns": {"minimal": False}, "scope_report_distance": 1}
+    config_overrides = {"dns": {"minimal": False}, "scope": {"report_distance": 1}}
 
     async def setup_after_prep(self, module_test):
         await module_test.mock_dns(

@@ -31,8 +31,7 @@ class DNS(InterceptModule):
             return None, "DNS resolution is disabled in the config"
 
         self.minimal = self.dns_config.get("minimal", False)
-        self.scope_search_distance = max(0, int(self.scan.config.get("scope", {}).get("search_distance", 0)))
-        self.scope_dns_search_distance = max(0, int(self.dns_config.get("search_distance", 1)))
+        self.dns_search_distance = max(0, int(self.dns_config.get("search_distance", 1)))
 
         # event resolution cache
         self._event_cache = LRUCache(maxsize=10000)
@@ -44,7 +43,7 @@ class DNS(InterceptModule):
 
     @property
     def _dns_search_distance(self):
-        return max(self.scope_search_distance, self.scope_dns_search_distance)
+        return max(self.scan.scope_search_distance, self.dns_search_distance)
 
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):

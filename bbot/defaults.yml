@@ -2,10 +2,6 @@
 
 # BBOT working directory
 home: ~/.bbot
-# Don't output events that are further than this from the main scope
-# 1 == 1 hope away from main scope
-# 0 == in scope only
-scope_report_distance: 0
 # Rate-limit HTTP
 web_requests_per_second: 100
 # Interval for displaying status messages
@@ -14,6 +10,17 @@ status_frequency: 15
 http_proxy: 
 # Web user-agent
 user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
+
+### SCOPE ###
+
+scope:
+  # Filter by scope distance which events are displayed in the output
+  # 0 == show only in-scope events (affiliates are always shown)
+  # 1 == show all events up to distance-1 (1 hop from target)
+  report_distance: 0
+  # How far out from the main scope to search
+  # Do not change this setting unless you know what you're doing
+  search_distance: 0
 
 ### DNS ###
 
@@ -27,7 +34,8 @@ dns:
   # How many concurrent DNS resolvers to use when brute-forcing
   # (under the hood this is passed through directly to massdns -s)
   brute_threads: 1000
-  # How far away from the main target to explore (independent of the global scan setting)
+  # How far away from the main target to explore via DNS resolution (independent of scope.search_distance)
+  # This is safe to change
   search_distance: 1
   # Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)
   runaway_limit: 5
@@ -75,9 +83,6 @@ web_spider_links_per_page: 25
 
 module_paths: []
 
-# How far out from the main scope to search
-scope_search_distance: 0
-
 # Limit the number of scan manager workers
 manager_tasks: 5
 
@@ -97,7 +102,7 @@ cloudcheck: True
 #  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
 #  - retry_failed - try again to install failed dependencies
 #  - ignore_failed - run the scan regardless of what happens with dependency installation
-#  - disable - completely disable BBOT's dependency system (you are responsible for install tools, pip packages, etc.)
+#  - disable - completely disable BBOT's dependency system (you are responsible for installing tools, pip packages, etc.)
 deps_behavior: abort_on_failure
 
 # HTTP timeout (for Python requests; API calls, etc.)
