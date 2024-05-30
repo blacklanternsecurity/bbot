@@ -306,7 +306,7 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, 
     per_domain_scan = bbot_scanner(
         "evilcorp.com",
         modules=list(available_modules),
-        config={i: True for i in available_internal_modules},
+        config={i: True for i in available_internal_modules if i != "dns"},
         force_start=True,
     )
 
