@@ -148,12 +148,14 @@ class EngineClient(EngineBase):
                     self.socket_path,
                 ),
                 kwargs=self.server_kwargs,
-                custom_name="bbot dnshelper",
+                custom_name=f"BBOT {self.__class__.__name__}",
             )
             self.process.start()
             return self.process
         else:
-            raise BBOTEngineError(f"Tried to start server from process {self.process_name}")
+            raise BBOTEngineError(
+                f"Tried to start server from process {self.process_name}. Did you forget \"if __name__ == '__main__'?\""
+            )
 
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
@@ -185,6 +187,8 @@ class EngineClient(EngineBase):
     def cleanup(self):
         # delete socket file on exit
         self.socket_path.unlink(missing_ok=True)
+        with suppress(Exception):
+            self._server_process.terminate()
 
 
 class EngineServer(EngineBase):
