@@ -39,7 +39,7 @@ class cloud(InterceptModule):
         for provider in self.helpers.cloud.providers.values():
             provider_name = provider.name.lower()
             base_kwargs = dict(
-                source=event, tags=[f"{provider.provider_type}-{provider_name}"], _provider=provider_name
+                parent=event, tags=[f"{provider.provider_type}-{provider_name}"], _provider=provider_name
             )
             # loop through the provider's regex signatures, if any
             for event_type, sigs in provider.signatures.items():
@@ -67,9 +67,11 @@ class cloud(InterceptModule):
 
                             if event_type == "STORAGE_BUCKET":
                                 bucket_name, bucket_domain = match
+                                bucket_url = f"https://{bucket_name}.{bucket_domain}"
                                 _kwargs["data"] = {
                                     "name": bucket_name,
-                                    "url": f"https://{bucket_name}.{bucket_domain}",
+                                    "url": bucket_url,
+                                    "context": f"{{module}} analyzed {event.type} and found {{event.type}}: {bucket_url}",
                                 }
                                 await self.emit_event(**_kwargs)
 

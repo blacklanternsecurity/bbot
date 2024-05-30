@@ -218,7 +218,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.get_file_extension("/etc/passwd") == ""
 
     assert helpers.tagify("HttP  -_Web  Title--  ") == "http-web-title"
-    tagged_event = scan.make_event("127.0.0.1", source=scan.root_event, tags=["HttP  web -__- title  "])
+    tagged_event = scan.make_event("127.0.0.1", parent=scan.root_event, tags=["HttP  web -__- title  "])
     assert "http-web-title" in tagged_event.tags
     tagged_event.remove_tag("http-web-title")
     assert "http-web-title" not in tagged_event.tags
@@ -444,6 +444,23 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
 
     assert helpers.bytes_to_human(459819198709) == "428.24GB"
     assert helpers.human_to_bytes("428.24GB") == 459819198709
+
+    # ordinals
+    assert helpers.integer_to_ordinal(1) == "1st"
+    assert helpers.integer_to_ordinal(2) == "2nd"
+    assert helpers.integer_to_ordinal(3) == "3rd"
+    assert helpers.integer_to_ordinal(4) == "4th"
+    assert helpers.integer_to_ordinal(11) == "11th"
+    assert helpers.integer_to_ordinal(12) == "12th"
+    assert helpers.integer_to_ordinal(13) == "13th"
+    assert helpers.integer_to_ordinal(21) == "21st"
+    assert helpers.integer_to_ordinal(22) == "22nd"
+    assert helpers.integer_to_ordinal(23) == "23rd"
+    assert helpers.integer_to_ordinal(101) == "101st"
+    assert helpers.integer_to_ordinal(111) == "111th"
+    assert helpers.integer_to_ordinal(112) == "112th"
+    assert helpers.integer_to_ordinal(113) == "113th"
+    assert helpers.integer_to_ordinal(0) == "0th"
 
     scan1 = bbot_scanner(modules="ipneighbor")
     await scan1.load_modules()

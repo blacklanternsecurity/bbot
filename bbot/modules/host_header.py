@@ -44,14 +44,16 @@ class host_header(BaseModule):
                 matched_event = match[0]
                 matched_technique = match[1]
 
+                protocol = r.get("protocol").upper()
                 await self.emit_event(
                     {
                         "host": str(matched_event.host),
                         "url": matched_event.data["url"],
-                        "description": f"Spoofed Host header ({matched_technique}) [{r.get('protocol').upper()}] interaction",
+                        "description": f"Spoofed Host header ({matched_technique}) [{protocol}] interaction",
                     },
                     "FINDING",
                     matched_event,
+                    context=f"{{module}} spoofed host header and induced {{event.type}}: {protocol} interaction",
                 )
             else:
                 # this is likely caused by something trying to resolve the base domain first and can be ignored
@@ -78,6 +80,7 @@ class host_header(BaseModule):
 
     async def handle_event(self, event):
         # get any set-cookie responses from the response and add them to the request
+        url = event.data["url"]
 
         added_cookies = {}
 
@@ -97,7 +100,7 @@ class host_header(BaseModule):
         subdomain_tag = self.rand_string(4, digits=False)
         self.subdomain_tags[subdomain_tag] = (event, technique_description)
         output = await self.helpers.curl(
-            url=event.data["url"],
+            url=url,
             headers={"Host": f"{subdomain_tag}.{self.domain}"},
             ignore_bbot_global_settings=True,
             cookies=added_cookies,
@@ -111,8 +114,8 @@ class host_header(BaseModule):
         subdomain_tag = self.rand_string(4, digits=False)
         self.subdomain_tags[subdomain_tag] = (event, technique_description)
         output = await self.helpers.curl(
-            url=event.data["url"],
-            path_override=event.data["url"],
+            url=url,
+            path_override=url,
             cookies=added_cookies,
         )
 
@@ -122,7 +125,7 @@ class host_header(BaseModule):
         # duplicate host header tolerance
         technique_description = "duplicate host header tolerance"
         output = await self.helpers.curl(
-            url=event.data["url"],
+            url=url,
             # Sending a blank HOST first as a hack to trick curl. This makes it no longer an "internal header", thereby allowing for duplicates
             # The fact that it's accepting two host headers is rare enough to note on its own, and not too noisy. Having the 3rd header be an interactsh would result in false negatives for the slightly less interesting cases.
             headers={"Host": ["", str(event.host), str(event.host)]},
@@ -132,14 +135,16 @@ class host_header(BaseModule):
 
         split_output = output.split("\n")
         if " 4" in split_output:
+            description = f"Duplicate Host Header Tolerated"
             await self.emit_event(
                 {
                     "host": str(event.host),
-                    "url": event.data["url"],
-                    "description": f"Duplicate Host Header Tolerated",
+                    "url": url,
+                    "description": description,
                 },
                 "FINDING",
                 event,
+                context=f"{{module}} scanned {event.data['url']} and identified {{event.type}}: {description}",
             )
 
         # host header overrides
@@ -163,7 +168,7 @@ class host_header(BaseModule):
             override_headers[oh] = f"{subdomain_tag}.{self.domain}"
 
         output = await self.helpers.curl(
-            url=event.data["url"],
+            url=url,
             headers=override_headers,
             cookies=added_cookies,
         )
@@ -172,12 +177,14 @@ class host_header(BaseModule):
 
         # emit all the domain reflections we found
         for dr in domain_reflections:
+            description = f"Possible Host header injection. Injection technique: {dr}"
             await self.emit_event(
                 {
                     "host": str(event.host),
-                    "url": event.data["url"],
-                    "description": f"Possible Host header injection. Injection technique: {dr}",
+                    "url": url,
+                    "description": description,
                 },
                 "FINDING",
                 event,
+                context=f"{{module}} scanned {url} and identified {{event.type}}: {description}",
             )

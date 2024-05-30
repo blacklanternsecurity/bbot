@@ -12,7 +12,7 @@ In addition to the obvious data (e.g. `www.evilcorp.com`), an event also contain
 
 - a `.timestamp` of when the data was discovered
 - the `.module` that discovered it
-- the `.source` event that led to its discovery
+- the `.parent` event that led to its discovery
 - its `.scope_distance` (how many hops it is from the main scope, 0 == in-scope)
 - a list of `.tags` that describe the data (`mx-record`, `http-title`, etc.)
 
@@ -28,7 +28,7 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
   "scan": "SCAN:4d786912dbc97be199da13074699c318e2067a7f",
   "timestamp": 1688526222.723366,
   "resolved_hosts": ["185.199.108.153"],
-  "source": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
+  "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
   "tags": [
     "in-scope",
     "distance-0",

@@ -30,8 +30,12 @@ class wappalyzer(BaseModule):
 
     async def handle_event(self, event):
         for res in await self.helpers.run_in_executor(self.wappalyze, event.data):
+            res = res.lower()
             await self.emit_event(
-                {"technology": res.lower(), "url": event.data["url"], "host": str(event.host)}, "TECHNOLOGY", event
+                {"technology": res, "url": event.data["url"], "host": str(event.host)},
+                "TECHNOLOGY",
+                event,
+                context=f"{{module}} analyzed HTTP_RESPONSE and identified {{event.type}}: {res}",
             )
 
     def wappalyze(self, data):

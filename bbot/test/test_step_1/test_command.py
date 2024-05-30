@@ -78,10 +78,10 @@ async def test_command(bbot_scanner):
 
     # test check=True
     with pytest.raises(CalledProcessError) as excinfo:
-        lines = [l async for line in scan1.helpers.run_live(["ls", "/aslkdjflasdkfsd"], check=True)]
+        lines = [line async for line in scan1.helpers.run_live(["ls", "/aslkdjflasdkfsd"], check=True)]
     assert "No such file or directory" in excinfo.value.stderr
     with pytest.raises(CalledProcessError) as excinfo:
-        lines = [l async for line in scan1.helpers.run_live(["ls", "/aslkdjflasdkfsd"], check=True, text=False)]
+        lines = [line async for line in scan1.helpers.run_live(["ls", "/aslkdjflasdkfsd"], check=True, text=False)]
     assert b"No such file or directory" in excinfo.value.stderr
     with pytest.raises(CalledProcessError) as excinfo:
         await scan1.helpers.run(["ls", "/aslkdjflasdkfsd"], check=True)

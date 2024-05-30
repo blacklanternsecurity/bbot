@@ -36,15 +36,15 @@ class TestCloud(ModuleTestBase):
         amazon_range = next(iter(amazon_ranges))
         amazon_address = amazon_range.broadcast_address
 
-        ip_event = scan.make_event(amazon_address, source=scan.root_event)
-        aws_event1 = scan.make_event("amazonaws.com", source=scan.root_event)
-        aws_event2 = scan.make_event("asdf.amazonaws.com", source=scan.root_event)
-        aws_event3 = scan.make_event("asdfamazonaws.com", source=scan.root_event)
-        aws_event4 = scan.make_event("test.asdf.aws", source=scan.root_event)
+        ip_event = scan.make_event(amazon_address, parent=scan.root_event)
+        aws_event1 = scan.make_event("amazonaws.com", parent=scan.root_event)
+        aws_event2 = scan.make_event("asdf.amazonaws.com", parent=scan.root_event)
+        aws_event3 = scan.make_event("asdfamazonaws.com", parent=scan.root_event)
+        aws_event4 = scan.make_event("test.asdf.aws", parent=scan.root_event)
 
-        other_event1 = scan.make_event("cname.evilcorp.com", source=scan.root_event)
-        other_event2 = scan.make_event("cname2.evilcorp.com", source=scan.root_event)
-        other_event3 = scan.make_event("cname3.evilcorp.com", source=scan.root_event)
+        other_event1 = scan.make_event("cname.evilcorp.com", parent=scan.root_event)
+        other_event2 = scan.make_event("cname2.evilcorp.com", parent=scan.root_event)
+        other_event3 = scan.make_event("cname3.evilcorp.com", parent=scan.root_event)
         other_event2._resolved_hosts = {amazon_address}
         other_event3._resolved_hosts = {"asdf.amazonaws.com"}
 
@@ -59,9 +59,9 @@ class TestCloud(ModuleTestBase):
                 t for t in event.tags if t.startswith("cloud-") or t.startswith("cdn-")
             ), f"{event} was improperly cloud-tagged"
 
-        google_event1 = scan.make_event("asdf.googleapis.com", source=scan.root_event)
-        google_event2 = scan.make_event("asdf.google", source=scan.root_event)
-        google_event3 = scan.make_event("asdf.evilcorp.com", source=scan.root_event)
+        google_event1 = scan.make_event("asdf.googleapis.com", parent=scan.root_event)
+        google_event2 = scan.make_event("asdf.google", parent=scan.root_event)
+        google_event3 = scan.make_event("asdf.evilcorp.com", parent=scan.root_event)
         google_event3._resolved_hosts = {"asdf.storage.googleapis.com"}
 
         for event in (google_event1, google_event2, google_event3):

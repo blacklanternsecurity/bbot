@@ -419,7 +419,7 @@ class WebHelper(EngineClient):
         output = (await self.parent_helper.run(curl_command)).stdout
         return output
 
-    def is_spider_danger(self, source_event, url):
+    def is_spider_danger(self, parent_event, url):
         """
         Determines whether visiting a URL could potentially trigger a web-spider-like happening.
 
@@ -428,7 +428,7 @@ class WebHelper(EngineClient):
         the function returns True, indicating a possible web-spider risk.
 
         Args:
-            source_event: The source event object that discovered the URL.
+            parent_event: The parent event object that discovered the URL.
             url (str): The URL to evaluate for web-spider risk.
 
         Returns:
@@ -438,15 +438,15 @@ class WebHelper(EngineClient):
             - Write tests for this function
 
         Examples:
-            >>> is_spider_danger(source_event_obj, "https://example.com/subpage")
+            >>> is_spider_danger(parent_event_obj, "https://example.com/subpage")
             True
 
-            >>> is_spider_danger(source_event_obj, "https://example.com/")
+            >>> is_spider_danger(parent_event_obj, "https://example.com/")
             False
         """
         url_depth = self.parent_helper.url_depth(url)
         web_spider_depth = self.parent_helper.config.get("web_spider_depth", 1)
-        spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
+        spider_distance = getattr(parent_event, "web_spider_distance", 0) + 1
         web_spider_distance = self.parent_helper.config.get("web_spider_distance", 0)
         if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
             return True

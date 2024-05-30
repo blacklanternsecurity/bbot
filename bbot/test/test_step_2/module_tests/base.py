@@ -118,6 +118,7 @@ class ModuleTestBase:
             self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
         )
         module_test.log.info(f"Starting {self.name} module test")
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
         await self.setup_before_prep(module_test)
         await module_test.scan._prep()
         await self.setup_after_prep(module_test)

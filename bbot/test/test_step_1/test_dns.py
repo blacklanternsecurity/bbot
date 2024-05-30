@@ -123,8 +123,8 @@ async def test_dns_resolution(bbot_scanner):
 
     # Ensure events with hosts have resolved_hosts attribute populated
     await scan._prep()
-    resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", source=scan.root_event)
-    resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", source=scan.root_event)
+    resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", parent=scan.root_event)
+    resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", parent=scan.root_event)
     dnsresolve = scan.modules["dns"]
     assert hash(resolved_hosts_event1.host) not in dnsresolve._event_cache
     assert hash(resolved_hosts_event2.host) not in dnsresolve._event_cache
@@ -209,16 +209,16 @@ async def test_wildcards(bbot_scanner):
     assert wildcard_event3.data == "github.io"
 
     # dns resolve distance
-    event_distance_0 = scan.make_event("8.8.8.8", module=scan._make_dummy_module_dns("PTR"), source=scan.root_event)
+    event_distance_0 = scan.make_event("8.8.8.8", module=scan._make_dummy_module_dns("PTR"), parent=scan.root_event)
     assert event_distance_0.dns_resolve_distance == 0
     event_distance_1 = scan.make_event(
-        "evilcorp.com", module=scan._make_dummy_module_dns("A"), source=event_distance_0
+        "evilcorp.com", module=scan._make_dummy_module_dns("A"), parent=event_distance_0
     )
     assert event_distance_1.dns_resolve_distance == 1
-    event_distance_2 = scan.make_event("1.2.3.4", module=scan._make_dummy_module_dns("PTR"), source=event_distance_1)
+    event_distance_2 = scan.make_event("1.2.3.4", module=scan._make_dummy_module_dns("PTR"), parent=event_distance_1)
     assert event_distance_2.dns_resolve_distance == 1
     event_distance_3 = scan.make_event(
-        "evilcorp.org", module=scan._make_dummy_module_dns("A"), source=event_distance_2
+        "evilcorp.org", module=scan._make_dummy_module_dns("A"), parent=event_distance_2
     )
     assert event_distance_3.dns_resolve_distance == 2
 
@@ -228,7 +228,7 @@ async def test_wildcards(bbot_scanner):
     scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", whitelist=["github.io"], config={"dns_resolution": True})
     await scan2._prep()
     other_event = scan2.make_event(
-        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], source=scan2.root_event
+        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], parent=scan2.root_event
     )
     await scan2.ingress_module.queue_event(other_event, {})
     events = [e async for e in scan2.async_start()]
@@ -274,7 +274,7 @@ async def test_wildcards(bbot_scanner):
     )
     await scan2._prep()
     other_event = scan2.make_event(
-        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], source=scan2.root_event
+        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], parent=scan2.root_event
     )
     await scan2.ingress_module.queue_event(other_event, {})
     events = [e async for e in scan2.async_start()]

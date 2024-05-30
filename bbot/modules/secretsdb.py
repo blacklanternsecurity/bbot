@@ -61,7 +61,8 @@ class secretsdb(BaseModule):
             await self.emit_event(
                 event_data,
                 "FINDING",
-                source=event,
+                parent=event,
+                context=f"{{module}} searched HTTP response and found {{event.type}}: {description}",
             )
 
     def search_data(self, resp_body, resp_headers):

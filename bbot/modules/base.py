@@ -105,6 +105,8 @@ class BaseModule:
     batch_wait = 10
     failed_request_abort_threshold = 5
 
+    default_discovery_context = "{module} discovered {event.type}: {event.data}"
+
     _preserve_graph = False
     _stats_exclude = False
     _qsize = 1000
@@ -415,7 +417,7 @@ class BaseModule:
             raise_error (bool, optional): Whether to raise a validation error if the event could not be created. Defaults to False.
 
         Examples:
-            >>> new_event = self.make_event("1.2.3.4", source=event)
+            >>> new_event = self.make_event("1.2.3.4", parent=event)
             >>> await self.emit_event(new_event)
 
         Returns:
@@ -425,6 +427,10 @@ class BaseModule:
             ValidationError: If the event could not be validated and raise_error is True.
         """
         raise_error = kwargs.pop("raise_error", False)
+        module = kwargs.pop("module", None)
+        if module is None:
+            if (not args) or getattr(args[0], "module", None) is None:
+                kwargs["module"] = self
         try:
             event = self.scan.make_event(*args, **kwargs)
         except ValidationError as e:
@@ -432,8 +438,6 @@ class BaseModule:
                 raise
             self.warning(f"{e}")
             return
-        if not event.module:
-            event.module = self
         return event
 
     async def emit_event(self, *args, **kwargs):
@@ -454,9 +458,9 @@ class BaseModule:
                 ```
 
         Examples:
-            >>> await self.emit_event("www.evilcorp.com", source=event, tags=["affiliate"])
+            >>> await self.emit_event("www.evilcorp.com", parent=event, tags=["affiliate"])
 
-            >>> new_event = self.make_event("1.2.3.4", source=event)
+            >>> new_event = self.make_event("1.2.3.4", parent=event)
             >>> await self.emit_event(new_event)
 
         Returns:
@@ -633,7 +637,8 @@ class BaseModule:
                         else:
                             self.debug(f"Not accepting {event} because {reason}")
             except asyncio.CancelledError:
-                self.log.trace("Worker cancelled")
+                # this trace was used for debugging leaked CancelledErrors from inside httpx
+                # self.log.trace("Worker cancelled")
                 raise
         self.log.trace(f"Worker stopped")
 
@@ -1473,7 +1478,8 @@ class InterceptModule(BaseModule):
                     await self.forward_event(event, kwargs)
 
             except asyncio.CancelledError:
-                self.log.trace("Worker cancelled")
+                # this trace was used for debugging leaked CancelledErrors from inside httpx
+                # self.log.trace("Worker cancelled")
                 raise
             except BaseException as e:
                 self.critical(f"Critical failure in intercept module {self.name}: {e}")

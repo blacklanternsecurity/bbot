@@ -80,11 +80,23 @@ class vhost(ffuf):
             wordlist, host, exts=[""], suffix=basehost, filters=filters, mode="hostheader"
         ):
             found_vhost_b64 = r["input"]["FUZZ"]
-            vhost_dict = {"host": str(event.host), "url": host, "vhost": base64.b64decode(found_vhost_b64).decode()}
+            vhost_str = base64.b64decode(found_vhost_b64).decode()
+            vhost_dict = {"host": str(event.host), "url": host, "vhost": vhost_str}
             if f"{vhost_dict['vhost']}{basehost}" != event.parsed_url.netloc:
-                await self.emit_event(vhost_dict, "VHOST", source=event)
+                await self.emit_event(
+                    vhost_dict,
+                    "VHOST",
+                    parent=event,
+                    context=f"{{module}} brute-forced virtual hosts for {event.data} and found {{event.type}}: {vhost_str}",
+                )
                 if skip_dns_host == False:
-                    await self.emit_event(f"{vhost_dict['vhost']}{basehost}", "DNS_NAME", source=event, tags=["vhost"])
+                    await self.emit_event(
+                        f"{vhost_dict['vhost']}{basehost}",
+                        "DNS_NAME",
+                        parent=event,
+                        tags=["vhost"],
+                        context=f"{{module}} brute-forced virtual hosts for {event.data} and found {{event.type}}: {{event.data}}",
+                    )
 
                 yield vhost_dict["vhost"]
 

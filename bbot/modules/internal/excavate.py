@@ -52,7 +52,13 @@ class CSPExtractor(BaseExtractor):
                 await self.report(domain, event, **kwargs)
 
     async def report(self, domain, event, **kwargs):
-        await self.excavate.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
+        await self.excavate.emit_event(
+            domain,
+            "DNS_NAME",
+            parent=event,
+            tags=["affiliate"],
+            context=f"{{module}}'s CSP extractor found {{event.type}}: {{event.data}} in CSP header",
+        )
 
 
 class HostnameExtractor(BaseExtractor):
@@ -64,7 +70,13 @@ class HostnameExtractor(BaseExtractor):
         super().__init__(excavate)
 
     async def report(self, result, name, event, **kwargs):
-        await self.excavate.emit_event(result, "DNS_NAME", source=event)
+        context = kwargs.get("discovery_context", "")
+        await self.excavate.emit_event(
+            result,
+            "DNS_NAME",
+            parent=event,
+            context=f"{{module}}'s hostname extractor found {{event.type}}: {{event.data}} from {context} using regex derived from target domain",
+        )
 
 
 class URLExtractor(BaseExtractor):
@@ -153,6 +165,7 @@ class URLExtractor(BaseExtractor):
                 yield result, name
 
     async def report(self, result, name, event, **kwargs):
+        context = kwargs.get("discovery_context", "")
         parsed_uri = None
         try:
             parsed_uri = self.excavate.helpers.urlparse(result)
@@ -173,8 +186,9 @@ class URLExtractor(BaseExtractor):
             await self.excavate.emit_event(
                 event_data,
                 "FINDING",
-                source=event,
+                parent=event,
                 abort_if=abort_if,
+                context=f"{{module}}'s URL extractor found {{event.type}}: Non-HTTP URI {{event.data}} in {context}",
             )
             protocol_data = {"protocol": parsed_uri.scheme, "host": str(host)}
             if port:
@@ -182,12 +196,18 @@ class URLExtractor(BaseExtractor):
             await self.excavate.emit_event(
                 protocol_data,
                 "PROTOCOL",
-                source=event,
+                parent=event,
                 abort_if=abort_if,
+                context=f"{{module}}'s URL extractor found {{event.type}}: {{event.data}} in {result} while searching {context}",
             )
             return
 
-        return self.excavate.make_event(result, "URL_UNVERIFIED", source=event)
+        return self.excavate.make_event(
+            result,
+            "URL_UNVERIFIED",
+            parent=event,
+            context=f"{{module}}'s URL extractor ({name} regex) found {{event.type}}: {{event.data}} in {context}",
+        )
 
 
 class EmailExtractor(BaseExtractor):
@@ -195,11 +215,17 @@ class EmailExtractor(BaseExtractor):
     tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
 
     async def report(self, result, name, event, **kwargs):
+        context = kwargs.get("discovery_context", "")
         result = result.lower()
         tld = result.split(".")[-1]
         if tld not in self.tld_blacklist:
             self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
-            await self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
+            await self.excavate.emit_event(
+                result,
+                "EMAIL_ADDRESS",
+                parent=event,
+                context=f"{{module}}'s email extractor found {{event.type}}: {{event.data}} in {context}",
+            )
 
 
 class ErrorExtractor(BaseExtractor):
@@ -221,12 +247,14 @@ class ErrorExtractor(BaseExtractor):
     }
 
     async def report(self, result, name, event, **kwargs):
+        context = kwargs.get("discovery_context", "")
         self.excavate.debug(f"Found error message from parsing [{event.data.get('url')}] with regex [{name}]")
         description = f"Error message Detected at Error Type: {name}"
         await self.excavate.emit_event(
             {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
             "FINDING",
-            source=event,
+            parent=event,
+            context=f"{{module}}'s error message extractor detected {{event.type}}: {name} error message in {context}",
         )
 
 
@@ -234,6 +262,7 @@ class JWTExtractor(BaseExtractor):
     regexes = {"JWT": r"eyJ(?:[\w-]*\.)(?:[\w-]*\.)[\w-]*"}
 
     async def report(self, result, name, event, **kwargs):
+        context = kwargs.get("discovery_context", "")
         self.excavate.debug(f"Found JWT candidate [{result}]")
         try:
             j.decode(result, options={"verify_signature": False})
@@ -247,6 +276,7 @@ class JWTExtractor(BaseExtractor):
                 "FINDING",
                 event,
                 tags=tags,
+                context=f"{{module}}'s JWT extractor found {{event.type}}: {name} in {context}",
             )
 
         except j.exceptions.DecodeError:
@@ -264,9 +294,13 @@ class SerializationExtractor(BaseExtractor):
     }
 
     async def report(self, result, name, event, **kwargs):
+        context = kwargs.get("discovery_context", "")
         description = f"{name} serialized object found: [{self.excavate.helpers.truncate_string(result,2000)}]"
         await self.excavate.emit_event(
-            {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
+            {"host": str(event.host), "url": event.data.get("url"), "description": description},
+            "FINDING",
+            event,
+            context=f"{{module}}'s serialization extractor found {{event.type}}: {name} serialized object in {context}",
         )
 
 
@@ -277,9 +311,13 @@ class FunctionalityExtractor(BaseExtractor):
     }
 
     async def report(self, result, name, event, **kwargs):
+        context = kwargs.get("discovery_context", "")
         description = f"{name} found"
         await self.excavate.emit_event(
-            {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
+            {"host": str(event.host), "url": event.data.get("url"), "description": description},
+            "FINDING",
+            event,
+            context=f"{{module}}'s functionality extractor discovered {{event.type}}: {name} in {context}",
         )
 
 
@@ -319,6 +357,7 @@ class JavascriptExtractor(BaseExtractor):
     }
 
     async def report(self, result, name, event, **kwargs):
+        context = kwargs.get("discovery_context", "")
         # ensure that basic auth matches aren't false positives
         if name == "authorization_basic":
             try:
@@ -331,7 +370,10 @@ class JavascriptExtractor(BaseExtractor):
         self.excavate.debug(f"Found Possible Secret in Javascript [{result}]")
         description = f"Possible secret in JS [{result}] Signature [{name}]"
         await self.excavate.emit_event(
-            {"host": str(event.host), "url": event.data.get("url", ""), "description": description}, "FINDING", event
+            {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
+            "FINDING",
+            event,
+            context=f"{{module}}'s Javascript extractor discovered {{event.type}}: {description} in {context}",
         )
 
 
@@ -385,9 +427,12 @@ class excavate(BaseInternalModule):
                         url_event = self.make_event(location, "URL_UNVERIFIED", event, tags="affiliate")
                         if url_event is not None:
                             # inherit web spider distance from parent (don't increment)
-                            source_web_spider_distance = getattr(event, "web_spider_distance", 0)
-                            url_event.web_spider_distance = source_web_spider_distance
-                            await self.emit_event(url_event)
+                            parent_web_spider_distance = getattr(event, "web_spider_distance", 0)
+                            url_event.web_spider_distance = parent_web_spider_distance
+                            await self.emit_event(
+                                url_event,
+                                context='{module} looked in "Location" header and found {event.type}: {event.data}',
+                            )
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
 
@@ -407,6 +452,7 @@ class excavate(BaseInternalModule):
                 ],
                 event,
                 consider_spider_danger=True,
+                discovery_context="HTTP response body",
             )
 
             headers = await self.helpers.re.recursive_decode(event.data.get("raw_header", ""))
@@ -415,6 +461,7 @@ class excavate(BaseInternalModule):
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization, self.csp],
                 event,
                 consider_spider_danger=False,
+                discovery_context="HTTP response headers",
             )
 
         else:

@@ -41,7 +41,13 @@ class zoomeye(subdomain_enum_apikey):
                 tags = []
                 if not hostname.endswith(f".{query}"):
                     tags = ["affiliate"]
-                await self.emit_event(hostname, "DNS_NAME", event, tags=tags)
+                await self.emit_event(
+                    hostname,
+                    "DNS_NAME",
+                    event,
+                    tags=tags,
+                    context=f'{{module}} searched ZoomEye API for "{query}" and found {{event.type}}: {{event.data}}',
+                )
 
     async def query(self, query):
         results = set()

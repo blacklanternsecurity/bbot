@@ -209,6 +209,7 @@ class generic_ssrf(BaseModule):
                     },
                     "VULNERABILITY",
                     matched_event,
+                    context=f"{{module}} scanned {matched_event.data} and detected {{event.type}}: {matched_technique}",
                 )
             else:
                 # this is likely caused by something trying to resolve the base domain first and can be ignored

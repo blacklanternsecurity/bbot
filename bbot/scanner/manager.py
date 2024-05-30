@@ -50,10 +50,11 @@ class ScanIngress(InterceptModule):
                 event._dummy = False
                 event.web_spider_distance = 0
                 event.scan = self.scan
-                if event.source is None:
-                    event.source = self.scan.root_event
+                if event.parent is None:
+                    event.parent = self.scan.root_event
                 if event.module is None:
                     event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
+                event.discovery_context = f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}"
                 self.verbose(f"Target: {event}")
                 await self.queue_event(event, {})
             await asyncio.sleep(0.1)
@@ -64,9 +65,12 @@ class ScanIngress(InterceptModule):
         if event._dummy:
             return False, "cannot emit dummy event"
 
-        # don't accept events with self as source
-        if (not event.type == "SCAN") and (event == event.get_source()):
-            return False, "event's source is itself"
+        # don't accept events with self as parent
+        if not event.type == "SCAN":
+            if event == event.get_parent():
+                return False, "event's parent is itself"
+            if not event.discovery_context:
+                self.warning(f"Event {event} has no discovery context")
 
         # don't accept duplicates
         if self.is_incoming_duplicate(event, add=True):
@@ -78,7 +82,7 @@ class ScanIngress(InterceptModule):
                 )
 
         # update event's scope distance based on its parent
-        event.scope_distance = event.source.scope_distance + 1
+        event.scope_distance = event.parent.scope_distance + 1
 
         # special handling of URL extensions
         url_extension = getattr(event, "url_extension", None)
@@ -195,15 +199,15 @@ class ScanEgress(InterceptModule):
 
         # if we discovered something interesting from an internal event,
         # make sure we preserve its chain of parents
-        source = event.source
-        if source.internal and ((not event.internal) or event._graph_important):
-            source_in_report_distance = source.scope_distance <= self.scan.scope_report_distance
-            if source_in_report_distance:
-                source.internal = False
-            if not source._graph_important:
-                source._graph_important = True
-                log.debug(f"Re-queuing internal event {source} with parent {event}")
-                await self.emit_event(source)
+        parent = event.parent
+        if parent.internal and ((not event.internal) or event._graph_important):
+            parent_in_report_distance = parent.scope_distance <= self.scan.scope_report_distance
+            if parent_in_report_distance:
+                parent.internal = False
+            if not parent._graph_important:
+                parent._graph_important = True
+                log.debug(f"Re-queuing internal event {parent} with parent {event}")
+                await self.emit_event(parent)
 
         abort_result = False
         if callable(abort_if):

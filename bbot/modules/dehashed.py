@@ -1,9 +1,9 @@
 from contextlib import suppress
 
-from bbot.modules.base import BaseModule
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class dehashed(BaseModule):
+class dehashed(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME"]
     flags = ["passive", "safe", "email-enum"]
@@ -34,7 +34,8 @@ class dehashed(BaseModule):
         return await super().setup()
 
     async def handle_event(self, event):
-        async for entries in self.query(event):
+        query = self.make_query(event)
+        async for entries in self.query(query):
             for entry in entries:
                 # we have to clean up the email field because dehashed does a poor job of it
                 email_str = entry.get("email", "").replace("\\", "")
@@ -53,18 +54,39 @@ class dehashed(BaseModule):
                 if db_name:
                     tags = [f"db-{db_name}"]
                 if email:
-                    email_event = self.make_event(email, "EMAIL_ADDRESS", source=event, tags=tags)
+                    email_event = self.make_event(email, "EMAIL_ADDRESS", parent=event, tags=tags)
                     if email_event is not None:
-                        await self.emit_event(email_event)
+                        await self.emit_event(
+                            email_event,
+                            context=f'{{module}} searched API for "{query}" and found {{event.type}}: {{event.data}}',
+                        )
                         if user:
-                            await self.emit_event(f"{email}:{user}", "USERNAME", source=email_event, tags=tags)
+                            await self.emit_event(
+                                f"{email}:{user}",
+                                "USERNAME",
+                                parent=email_event,
+                                tags=tags,
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                            )
                         if pw:
-                            await self.emit_event(f"{email}:{pw}", "PASSWORD", source=email_event, tags=tags)
+                            await self.emit_event(
+                                f"{email}:{pw}",
+                                "PASSWORD",
+                                parent=email_event,
+                                tags=tags,
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                            )
                         if h_pw:
-                            await self.emit_event(f"{email}:{h_pw}", "HASHED_PASSWORD", source=email_event, tags=tags)
+                            await self.emit_event(
+                                f"{email}:{h_pw}",
+                                "HASHED_PASSWORD",
+                                parent=email_event,
+                                tags=tags,
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                            )
 
-    async def query(self, event):
-        query = f"domain:{event.data}"
+    async def query(self, domain):
+        query = f"domain:{domain}"
         url = f"{self.base_url}?query={query}&size=10000&page=" + "{page}"
         page = 0
         num_entries = 0
@@ -86,7 +108,7 @@ class dehashed(BaseModule):
                     )
                 elif (page >= 3) and (total > num_entries):
                     self.info(
-                        f"{event.data} has {total:,} results in Dehashed. The API can only process the first 30,000 results. Please check dehashed.com to get the remaining results."
+                        f"{domain} has {total:,} results in Dehashed. The API can only process the first 30,000 results. Please check dehashed.com to get the remaining results."
                     )
                 agen.aclose()
                 break

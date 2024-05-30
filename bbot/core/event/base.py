@@ -1,11 +1,11 @@
 import re
 import json
 import logging
+import datetime
 import ipaddress
 import traceback
 from copy import copy
 from typing import Optional
-from datetime import datetime
 from contextlib import suppress
 from urllib.parse import urljoin
 from radixtarget import RadixTarget
@@ -65,8 +65,8 @@ class BaseEvent:
         scan (Scanner): The scan object that generated the event.
         timestamp (datetime.datetime): The time at which the data was discovered.
         resolved_hosts (list of str): List of hosts to which the event data resolves, applicable for URLs and DNS names.
-        source (BaseEvent): The source event that led to the discovery of this event.
-        source_id (str): The `id` attribute of the source event.
+        parent (BaseEvent): The parent event that led to the discovery of this event.
+        parent_id (str): The `id` attribute of the parent event.
         tags (set of str): Descriptive tags for the event, e.g., `mx-record`, `in-scope`.
         module (BaseModule): The module that discovered the event.
         module_sequence (str): The sequence of modules that participated in the discovery.
@@ -82,7 +82,7 @@ class BaseEvent:
             "scan": "SCAN:4d786912dbc97be199da13074699c318e2067a7f",
             "timestamp": 1688526222.723366,
             "resolved_hosts": ["185.199.108.153"],
-            "source": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
+            "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
             "tags": ["in-scope", "distance-0", "dir", "ip-185-199-108-153", "status-301", "http-title-301-moved-permanently"],
             "module": "httpx",
             "module_sequence": "httpx"
@@ -110,7 +110,8 @@ class BaseEvent:
         self,
         data,
         event_type,
-        source=None,
+        parent=None,
+        context=None,
         module=None,
         scan=None,
         scans=None,
@@ -129,7 +130,7 @@ class BaseEvent:
         Attributes:
             data (str, dict): The primary data for the event.
             event_type (str, optional): Type of the event, e.g., 'IP_ADDRESS'.
-            source (BaseEvent, optional): Source event that led to this event's discovery. Defaults to None.
+            parent (BaseEvent, optional): Parent event that led to this event's discovery. Defaults to None.
             module (str, optional): Module that discovered the event. Defaults to None.
             scan (Scan, optional): BBOT Scan object. Required unless _dummy is True. Defaults to None.
             scans (list of Scan, optional): BBOT Scan objects, used primarily when unserializing an Event from the database. Defaults to None.
@@ -140,7 +141,7 @@ class BaseEvent:
             _internal (Any, optional): If specified, makes the event internal. Defaults to None.
 
         Raises:
-            ValidationError: If either `scan` or `source` are not specified and `_dummy` is False.
+            ValidationError: If either `scan` or `parent` are not specified and `_dummy` is False.
         """
 
         self._id = None
@@ -158,7 +159,13 @@ class BaseEvent:
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
 
-        self.timestamp = datetime.utcnow()
+        if timestamp is not None:
+            self.timestamp = timestamp
+        else:
+            try:
+                self.timestamp = datetime.datetime.now(datetime.UTC)
+            except AttributeError:
+                self.timestamp = datetime.datetime.utcnow()
 
         self._tags = set()
         if tags is not None:
@@ -168,7 +175,7 @@ class BaseEvent:
         self._type = event_type
         self.confidence = int(confidence)
 
-        # for creating one-off events without enforcing source requirement
+        # for creating one-off events without enforcing parent requirement
         self._dummy = _dummy
         self._internal = False
 
@@ -195,20 +202,26 @@ class BaseEvent:
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
 
-        self._source = None
-        self._source_id = None
-        self.source = source
-        if (not self.source) and (not self._dummy):
-            raise ValidationError(f"Must specify event source")
+        self._parent = None
+        self._parent_id = None
+        self.parent = parent
+        if (not self.parent) and (not self._dummy):
+            raise ValidationError(f"Must specify event parent")
 
         # internal events are not ingested by output modules
         if not self._dummy:
             # removed this second part because it was making certain sslcert events internal
-            if _internal:  # or source._internal:
+            if _internal:  # or parent._internal:
                 self.internal = True
 
         # inherit web spider distance from parent
-        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
+        self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
+
+        if not context:
+            context = getattr(self.module, "default_discovery_context", "")
+        self._discovery_context = ""
+        if context:
+            self.discovery_context = context
 
     @property
     def data(self):
@@ -314,6 +327,26 @@ class BaseEvent:
             return f"{self.host}"
 
     @property
+    def discovery_context(self):
+        return self._discovery_context
+
+    @discovery_context.setter
+    def discovery_context(self, context):
+        try:
+            self._discovery_context = context.format(module=self.module, event=self)
+        except Exception as e:
+            log.warning(f"Error formatting discovery context for {self}: {e}")
+            self._discovery_context = context
+
+    @property
+    def discovery_path(self):
+        """
+        This event's full discovery context, including those of all its parents
+        """
+        full_event_chain = list(reversed(self.get_parents())) + [self]
+        return [e.discovery_context for e in full_event_chain if e.type != "SCAN"]
+
+    @property
     def words(self):
         if self.__words is None:
             self.__words = set(self._words())
@@ -398,9 +431,9 @@ class BaseEvent:
                     self.add_tag(f"distance-{new_scope_distance}")
                 self._scope_distance = new_scope_distance
             # apply recursively to parent events
-            source_scope_distance = getattr(self.source, "scope_distance", -1)
-            if source_scope_distance >= 0 and self != self.source:
-                self.source.scope_distance = scope_distance + 1
+            parent_scope_distance = getattr(self.parent, "scope_distance", -1)
+            if parent_scope_distance >= 0 and self != self.parent:
+                self.parent.scope_distance = scope_distance + 1
 
     @property
     def scope_description(self):
@@ -416,71 +449,73 @@ class BaseEvent:
         return f"distance-{self.scope_distance}"
 
     @property
-    def source(self):
-        return self._source
+    def parent(self):
+        return self._parent
 
-    @source.setter
-    def source(self, source):
+    @parent.setter
+    def parent(self, parent):
         """
-        Setter for the source attribute, ensuring it's a valid event and updating scope distance.
+        Setter for the parent attribute, ensuring it's a valid event and updating scope distance.
 
-        Sets the source of the event and automatically adjusts the scope distance based on the source event's
-        scope distance. The scope distance is incremented by 1 if the host of the source event is different
+        Sets the parent of the event and automatically adjusts the scope distance based on the parent event's
+        scope distance. The scope distance is incremented by 1 if the host of the parent event is different
         from the current event's host.
 
         Parameters:
-            source (BaseEvent): The new source event to set. Must be a valid event object.
+            parent (BaseEvent): The new parent event to set. Must be a valid event object.
 
         Note:
-            If an invalid source is provided and the event is not a dummy, a warning will be logged.
+            If an invalid parent is provided and the event is not a dummy, a warning will be logged.
         """
-        if is_event(source):
-            self._source = source
-            hosts_are_same = self.host and (self.host == source.host)
-            if source.scope_distance >= 0:
-                new_scope_distance = int(source.scope_distance)
+        if is_event(parent):
+            self._parent = parent
+            hosts_are_same = self.host and (self.host == parent.host)
+            if parent.scope_distance >= 0:
+                new_scope_distance = int(parent.scope_distance)
                 # only increment the scope distance if the host changes
                 if self._scope_distance_increment_same_host or not hosts_are_same:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
             # inherit certain tags
             if hosts_are_same:
-                for t in source.tags:
+                for t in parent.tags:
                     if t == "affiliate":
                         self.add_tag("affiliate")
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
         elif not self._dummy:
-            log.warning(f"Tried to set invalid source on {self}: (got: {source})")
+            log.warning(f"Tried to set invalid parent on {self}: (got: {parent})")
 
     @property
-    def source_id(self):
-        source_id = getattr(self.get_source(), "id", None)
-        if source_id is not None:
-            return source_id
-        return self._source_id
+    def parent_id(self):
+        parent_id = getattr(self.get_parent(), "id", None)
+        if parent_id is not None:
+            return parent_id
+        return self._parent_id
 
-    def get_source(self):
+    def get_parent(self):
         """
         Takes into account events with the _omit flag
         """
-        if getattr(self.source, "_omit", False):
-            return self.source.get_source()
-        return self.source
+        if getattr(self.parent, "_omit", False):
+            return self.parent.get_parent()
+        return self.parent
 
-    def get_sources(self, omit=False):
-        sources = []
+    def get_parents(self, omit=False):
+        parents = []
         e = self
         while 1:
             if omit:
-                source = e.get_source()
+                parent = e.get_parent()
             else:
-                source = e.source
-            if e == source:
+                parent = e.parent
+            if parent is None:
                 break
-            sources.append(source)
-            e = source
-        return sources
+            if e == parent:
+                break
+            parents.append(parent)
+            e = parent
+        return parents
 
     def _host(self):
         return ""
@@ -641,18 +676,21 @@ class BaseEvent:
         # timestamp
         j["timestamp"] = self.timestamp.timestamp()
         # parent event
-        source_id = self.source_id
-        if source_id:
-            j["source"] = source_id
+        parent_id = self.parent_id
+        if parent_id:
+            j["parent"] = parent_id
         # tags
         if self.tags:
             j.update({"tags": list(self.tags)})
-        # source module
+        # parent module
         if self.module:
             j.update({"module": str(self.module)})
         # sequence of modules that led to discovery
         if self.module_sequence:
             j.update({"module_sequence": str(self.module_sequence)})
+        # discovery context
+        j["discovery_context"] = self.discovery_context
+        j["discovery_path"] = self.discovery_path
 
         # normalize non-primitive python objects
         for k, v in list(j.items()):
@@ -685,14 +723,14 @@ class BaseEvent:
         """
         Get a human-friendly string that represents the sequence of modules responsible for generating this event.
 
-        Includes the names of omitted source events to provide a complete view of the module sequence leading to this event.
+        Includes the names of omitted parent events to provide a complete view of the module sequence leading to this event.
 
         Returns:
             str: The module sequence in human-friendly format.
         """
         module_name = getattr(self.module, "name", "")
-        if getattr(self.source, "_omit", False):
-            module_name = f"{self.source.module_sequence}->{module_name}"
+        if getattr(self.parent, "_omit", False):
+            module_name = f"{self.parent.module_sequence}->{module_name}"
         return module_name
 
     @property
@@ -710,10 +748,10 @@ class BaseEvent:
     def priority(self):
         if self._priority is None:
             timestamp = self.timestamp.timestamp()
-            if self.source.timestamp == self.timestamp:
+            if self.parent.timestamp == self.timestamp:
                 self._priority = (timestamp,)
             else:
-                self._priority = getattr(self.source, "priority", ()) + (timestamp,)
+                self._priority = getattr(self.parent, "priority", ()) + (timestamp,)
 
         return self._priority
 
@@ -827,7 +865,7 @@ class IP_ADDRESS(BaseEvent):
         self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
             self.add_tag("private-ip")
-        self.dns_resolve_distance = getattr(self.source, "dns_resolve_distance", 0)
+        self.dns_resolve_distance = getattr(self.parent, "dns_resolve_distance", 0)
 
     def sanitize_data(self, data):
         return validators.validate_host(data)
@@ -841,14 +879,14 @@ class DnsEvent(BaseEvent):
         super().__init__(*args, **kwargs)
         # prevent runaway DNS entries
         self.dns_resolve_distance = 0
-        source = getattr(self, "source", None)
+        parent = getattr(self, "parent", None)
         module = getattr(self, "module", None)
         module_type = getattr(module, "_type", "")
-        source_module = getattr(source, "module", None)
-        source_module_type = getattr(source_module, "_type", "")
+        parent_module = getattr(parent, "module", None)
+        parent_module_type = getattr(parent_module, "_type", "")
         if module_type == "DNS":
-            self.dns_resolve_distance = getattr(source, "dns_resolve_distance", 0)
-            if source_module_type == "DNS":
+            self.dns_resolve_distance = getattr(parent, "dns_resolve_distance", 0)
+            if parent_module_type == "DNS":
                 self.dns_resolve_distance += 1
         # self.add_tag(f"resolve-distance-{self.dns_resolve_distance}")
 
@@ -915,7 +953,7 @@ class URL_UNVERIFIED(BaseEvent):
         # increment the web spider distance
         if self.type == "URL_UNVERIFIED":
             self.web_spider_distance += 1
-        self.num_redirects = getattr(self.source, "num_redirects", 0)
+        self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
     def sanitize_data(self, data):
         self.parsed_url = validators.validate_url_parsed(data)
@@ -1024,7 +1062,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # count number of consecutive redirects
-        self.num_redirects = getattr(self.source, "num_redirects", 0)
+        self.num_redirects = getattr(self.parent, "num_redirects", 0)
         if str(self.http_status).startswith("3"):
             self.num_redirects += 1
 
@@ -1232,7 +1270,8 @@ class WAF(DictHostEvent):
 def make_event(
     data,
     event_type=None,
-    source=None,
+    parent=None,
+    context=None,
     module=None,
     scan=None,
     scans=None,
@@ -1251,7 +1290,8 @@ def make_event(
     Parameters:
         data (Union[str, dict, BaseEvent]): The primary data for the event or an existing event object.
         event_type (str, optional): Type of the event, e.g., 'IP_ADDRESS'. Auto-detected if not provided.
-        source (BaseEvent, optional): Source event leading to this event's discovery.
+        parent (BaseEvent, optional): Parent event leading to this event's discovery.
+        context (str, optional): Description of circumstances leading to event's discovery.
         module (str, optional): Module that discovered the event.
         scan (Scan, optional): BBOT Scan object associated with the event.
         scans (List[Scan], optional): Multiple BBOT Scan objects, primarily used for unserialization.
@@ -1268,11 +1308,11 @@ def make_event(
 
     Examples:
         If inside a module, e.g. from within its `handle_event()`:
-        >>> self.make_event("1.2.3.4", source=event)
+        >>> self.make_event("1.2.3.4", parent=event)
         IP_ADDRESS("1.2.3.4", module=portscan, tags={'ipv4', 'distance-1'})
 
         If you're outside a module but you have a scan object:
-        >>> scan.make_event("1.2.3.4", source=scan.root_event)
+        >>> scan.make_event("1.2.3.4", parent=scan.root_event)
         IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4', 'distance-1'})
 
         If you're outside a scan and just messing around:
@@ -1300,8 +1340,10 @@ def make_event(
             data.scans = scans
         if module is not None:
             data.module = module
-        if source is not None:
-            data.source = source
+        if parent is not None:
+            data.parent = parent
+        if context is not None:
+            data.discovery_context = context
         if internal == True:
             data.internal = True
         if tags:
@@ -1343,7 +1385,8 @@ def make_event(
         return event_class(
             data,
             event_type=event_type,
-            source=source,
+            parent=parent,
+            context=context,
             module=module,
             scan=scan,
             scans=scans,
@@ -1383,6 +1426,7 @@ def event_from_json(j, siem_friendly=False):
             "scans": j.get("scans", []),
             "tags": j.get("tags", []),
             "confidence": j.get("confidence", 5),
+            "context": j.get("discovery_context", None),
             "dummy": True,
         }
         if siem_friendly:
@@ -1395,11 +1439,11 @@ def event_from_json(j, siem_friendly=False):
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
 
-        event.timestamp = datetime.fromtimestamp(j["timestamp"])
+        event.timestamp = datetime.datetime.fromtimestamp(j["timestamp"])
         event.scope_distance = j["scope_distance"]
-        source_id = j.get("source", None)
-        if source_id is not None:
-            event._source_id = source_id
+        parent_id = j.get("parent", None)
+        if parent_id is not None:
+            event._parent_id = parent_id
         return event
     except KeyError as e:
         raise ValidationError(f"Event missing required field: {e}")

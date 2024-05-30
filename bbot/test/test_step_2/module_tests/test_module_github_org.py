@@ -6,6 +6,10 @@ class TestGithub_Org(ModuleTestBase):
     modules_overrides = ["github_org", "speculate"]
 
     async def setup_before_prep(self, module_test):
+        await module_test.mock_dns(
+            {"blacklanternsecurity.com": {"A": ["127.0.0.99"]}, "github.com": {"A": ["127.0.0.99"]}}
+        )
+
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
         module_test.httpx_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
@@ -412,7 +416,7 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
                 and e.data["profile_name"] == "blacklanternsecurity"
                 and e.scope_distance == 1
                 and str(e.module) == "social"
-                and e.source.type == "URL_UNVERIFIED"
+                and e.parent.type == "URL_UNVERIFIED"
             ]
         )
         assert 1 == len(
@@ -424,7 +428,7 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
                 and e.data["profile_name"] == "blacklanternsecurity"
                 and e.scope_distance == 1
                 and str(e.module) == "github_org"
-                and e.source.type == "ORG_STUB"
+                and e.parent.type == "ORG_STUB"
             ]
         )
         assert 1 == len(

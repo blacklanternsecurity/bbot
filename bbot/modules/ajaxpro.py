@@ -37,6 +37,7 @@ class ajaxpro(BaseModule):
                                     },
                                     "FINDING",
                                     event,
+                                    context="{module} discovered Ajaxpro instance ({event.type}) at {event.data}",
                                 )
 
         elif event.type == "HTTP_RESPONSE":
@@ -53,4 +54,5 @@ class ajaxpro(BaseModule):
                         },
                         "FINDING",
                         event,
+                        context="{module} discovered Ajaxpro instance ({event.type}) at {event.data}",
                     )

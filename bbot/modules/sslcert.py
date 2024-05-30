@@ -32,7 +32,7 @@ class sslcert(BaseModule):
 
         # sometimes we run into a server with A LOT of SANs
         # these are usually stupid and useless, so we abort based on a different threshold
-        # depending on whether the source event is in scope
+        # depending on whether the parent event is in scope
         self.in_scope_abort_threshold = 50
         self.out_of_scope_abort_threshold = 10
 
@@ -80,21 +80,25 @@ class sslcert(BaseModule):
                     if event_data is not None and event_data != event:
                         self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
                         try:
-                            ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
-                            source_event = ssl_event.get_source()
-                            if source_event.scope_distance == 0:
+                            ssl_event = self.make_event(event_data, event_type, parent=event, raise_error=True)
+                            parent_event = ssl_event.get_parent()
+                            if parent_event.scope_distance == 0:
                                 tags = ["affiliate"]
                             else:
                                 tags = None
                             if ssl_event:
-                                await self.emit_event(ssl_event, tags=tags)
+                                await self.emit_event(
+                                    ssl_event,
+                                    tags=tags,
+                                    context=f"{{module}} parsed SSL certificate at {event.data} and found {{event.type}}: {{event.data}}",
+                                )
                         except ValidationError as e:
                             self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")
 
     def on_success_callback(self, event):
-        source_scope_distance = event.get_source().scope_distance
-        if source_scope_distance == 0 and event.scope_distance > 0:
+        parent_scope_distance = event.get_parent().scope_distance
+        if parent_scope_distance == 0 and event.scope_distance > 0:
             event.add_tag("affiliate")
 
     async def visit_host(self, host, port):

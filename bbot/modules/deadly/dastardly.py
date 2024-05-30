@@ -16,6 +16,8 @@ class dastardly(BaseModule):
     deps_common = ["docker"]
     per_hostport_only = True
 
+    default_discovery_context = "{module} performed a light web scan against {event.parent.data['url']} and discovered {event.data['description']} at {event.data['url']}"
+
     async def setup(self):
         await self.run_process("systemctl", "start", "docker", sudo=True)
         await self.run_process("docker", "pull", "public.ecr.aws/portswigger/dastardly:latest", sudo=True)
@@ -50,6 +52,7 @@ class dastardly(BaseModule):
                             },
                             "FINDING",
                             event,
+                            context=f"{{module}} executed web scan against {host} and identified {{event.type}}: {failure.instance}",
                         )
                     else:
                         await self.emit_event(
@@ -61,6 +64,7 @@ class dastardly(BaseModule):
                             },
                             "VULNERABILITY",
                             event,
+                            context=f"{{module}} executed web scan against {host} and identified {failure.severity.lower()} {{event.type}}: {failure.instance}",
                         )
 
     def construct_command(self, target):

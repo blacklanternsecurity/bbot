@@ -214,8 +214,8 @@ class EngineServer(EngineBase):
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
                 trace = traceback.format_exc()
-                self.log.error(error)
-                self.log.trace(trace)
+                self.log.debug(error)
+                self.log.debug(trace)
                 result = {"_e": (error, trace)}
             finally:
                 self.tasks.pop(client_id, None)
@@ -238,8 +238,8 @@ class EngineServer(EngineBase):
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
                 trace = traceback.format_exc()
-                self.log.error(error)
-                self.log.trace(trace)
+                self.log.debug(error)
+                self.log.debug(trace)
                 result = {"_e": (error, trace)}
                 await self.send_socket_multipart(client_id, result)
             finally:

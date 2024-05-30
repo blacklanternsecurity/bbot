@@ -67,7 +67,7 @@ You will then see [events](events.md) like this:
   "scan": "SCAN:64c0e076516ae7aa6502fd99489693d0d5ec26cc",
   "timestamp": 1688518967.740472,
   "resolved_hosts": ["1.2.3.4"],
-  "source": "DNS_NAME:2da045542abbf86723f22383d04eb453e573723c",
+  "parent": "DNS_NAME:2da045542abbf86723f22383d04eb453e573723c",
   "tags": ["distance-1", "ipv4", "internal"],
   "module": "A",
   "module_sequence": "A"

@@ -21,7 +21,7 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
     # output module specific event filtering tests
     base_output_module_1 = BaseOutputModule(scan)
     base_output_module_1.watched_events = ["IP_ADDRESS", "URL_UNVERIFIED"]
-    localhost = scan.make_event("127.0.0.1", source=scan.root_event)
+    localhost = scan.make_event("127.0.0.1", parent=scan.root_event)
     # ip addresses should be accepted
     result, reason = base_output_module_1._event_precheck(localhost)
     assert result == True
@@ -41,12 +41,12 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
     assert result == False
     assert reason == "_omit is True"
     # unwatched event types should be rejected
-    dns_name = scan.make_event("evilcorp.com", "DNS_NAME", source=scan.root_event)
+    dns_name = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
     result, reason = base_output_module_1._event_precheck(dns_name)
     assert result == False
     assert reason == "its type is not in watched_events"
     # omitted event types matching watched events should be accepted
-    url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", source=scan.root_event)
+    url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
     result, reason = base_output_module_1._event_precheck(url_unverified)
     assert result == True
     assert reason == "precheck succeeded"
@@ -54,7 +54,7 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
     base_output_module_2 = BaseOutputModule(scan)
     base_output_module_2.watched_events = ["*"]
     # normal events should be accepted
-    localhost = scan.make_event("127.0.0.1", source=scan.root_event)
+    localhost = scan.make_event("127.0.0.1", parent=scan.root_event)
     result, reason = base_output_module_2._event_precheck(localhost)
     assert result == True
     assert reason == "precheck succeeded"
@@ -73,7 +73,7 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
     assert result == False
     assert reason == "_omit is True"
     # omitted event types should be rejected
-    url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", source=scan.root_event)
+    url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
     result, reason = base_output_module_2._event_precheck(url_unverified)
     assert result == False
     assert reason == "its type is omitted in the config"
@@ -81,7 +81,7 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
         base_module = module_class(scan)
-        localhost2 = scan.make_event("127.0.0.2", source=events.subdomain)
+        localhost2 = scan.make_event("127.0.0.2", parent=events.subdomain)
         localhost2.scope_distance = 0
         # base cases
         base_module._watched_events = None
@@ -102,7 +102,7 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
 
         # in scope only
         base_module.in_scope_only = True
-        localhost3 = scan.make_event("127.0.0.2", source=events.subdomain)
+        localhost3 = scan.make_event("127.0.0.2", parent=events.subdomain)
         valid, reason = await base_module._event_postcheck(localhost3)
         if base_module._type == "output":
             assert valid
@@ -248,11 +248,11 @@ async def test_modules_basic_perhostonly(helpers, events, bbot_scanner, httpx_mo
     scan.modules["mod_domain_only"] = mod_domain_only(scan)
     scan.status = "RUNNING"
 
-    url_1 = scan.make_event("http://evilcorp.com/1", event_type="URL", source=scan.root_event, tags=["status-200"])
-    url_2 = scan.make_event("http://evilcorp.com/2", event_type="URL", source=scan.root_event, tags=["status-200"])
-    url_3 = scan.make_event("http://evilcorp.com:888/3", event_type="URL", source=scan.root_event, tags=["status-200"])
-    url_4 = scan.make_event("http://www.evilcorp.com/", event_type="URL", source=scan.root_event, tags=["status-200"])
-    url_5 = scan.make_event("http://www.evilcorp.net/", event_type="URL", source=scan.root_event, tags=["status-200"])
+    url_1 = scan.make_event("http://evilcorp.com/1", event_type="URL", parent=scan.root_event, tags=["status-200"])
+    url_2 = scan.make_event("http://evilcorp.com/2", event_type="URL", parent=scan.root_event, tags=["status-200"])
+    url_3 = scan.make_event("http://evilcorp.com:888/3", event_type="URL", parent=scan.root_event, tags=["status-200"])
+    url_4 = scan.make_event("http://www.evilcorp.com/", event_type="URL", parent=scan.root_event, tags=["status-200"])
+    url_5 = scan.make_event("http://www.evilcorp.net/", event_type="URL", parent=scan.root_event, tags=["status-200"])
 
     url_1.scope_distance = 0
     url_2.scope_distance = 0
@@ -321,11 +321,11 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, 
 
         if "URL" in module.watched_events:
             url_1 = per_domain_scan.make_event(
-                "http://www.evilcorp.com/1", event_type="URL", source=per_domain_scan.root_event, tags=["status-200"]
+                "http://www.evilcorp.com/1", event_type="URL", parent=per_domain_scan.root_event, tags=["status-200"]
             )
             url_1.scope_distance = 0
             url_2 = per_domain_scan.make_event(
-                "http://mail.evilcorp.com/2", event_type="URL", source=per_domain_scan.root_event, tags=["status-200"]
+                "http://mail.evilcorp.com/2", event_type="URL", parent=per_domain_scan.root_event, tags=["status-200"]
             )
             url_2.scope_distance = 0
             valid_1, reason_1 = await module._event_postcheck(url_1)

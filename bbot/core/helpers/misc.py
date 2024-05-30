@@ -2052,6 +2052,50 @@ def human_to_bytes(filesize):
     raise ValueError(f'Unable to convert filesize "{filesize}" to bytes')
 
 
+def integer_to_ordinal(n):
+    """
+    Convert an integer to its ordinal representation.
+
+    Args:
+        n (int): The integer to convert.
+
+    Returns:
+        str: The ordinal representation of the integer.
+
+    Examples:
+        >>> integer_to_ordinal(1)
+        '1st'
+        >>> integer_to_ordinal(2)
+        '2nd'
+        >>> integer_to_ordinal(3)
+        '3rd'
+        >>> integer_to_ordinal(11)
+        '11th'
+        >>> integer_to_ordinal(21)
+        '21st'
+        >>> integer_to_ordinal(101)
+        '101st'
+    """
+    # Check the last digit
+    last_digit = n % 10
+    # Check the last two digits for special cases (11th, 12th, 13th)
+    last_two_digits = n % 100
+
+    if 10 <= last_two_digits <= 20:
+        suffix = "th"
+    else:
+        if last_digit == 1:
+            suffix = "st"
+        elif last_digit == 2:
+            suffix = "nd"
+        elif last_digit == 3:
+            suffix = "rd"
+        else:
+            suffix = "th"
+
+    return f"{n}{suffix}"
+
+
 def cpu_architecture():
     """Return the CPU architecture of the current system.
 

@@ -146,14 +146,16 @@ class bypass403(BaseModule):
                     "url": event.data,
                 },
                 "FINDING",
-                source=event,
+                parent=event,
+                context=f"{{module}} discovered multiple potential 403 bypasses ({{event.type}}) for {event.data}",
             )
         else:
             for description in results:
                 await self.emit_event(
                     {"description": description, "host": str(event.host), "url": event.data},
                     "FINDING",
-                    source=event,
+                    parent=event,
+                    context=f"{{module}} discovered potential 403 bypass ({{event.type}}) for {event.data}",
                 )
 
     # When a WAF-check helper is available in the future, we will convert to HTTP_RESPONSE and check for the WAF string here.

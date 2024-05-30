@@ -119,9 +119,9 @@ class Interactsh_mock:
         self.poll_task = None
 
     def mock_interaction(self, subdomain_tag, msg=None):
-        self.log.critical(f"Mocking interaction to subdomain tag: {subdomain_tag}")
+        self.log.info(f"Mocking interaction to subdomain tag: {subdomain_tag}")
         if msg is not None:
-            self.log.critical(msg)
+            self.log.info(msg)
         self.interactions.append(subdomain_tag)
 
     async def register(self, callback=None):

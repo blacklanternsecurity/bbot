@@ -147,6 +147,7 @@ common_srvs = [
     "_imap",  # 1
     "_iax",  # 1
 ]
+num_srvs = len(common_srvs)
 
 
 class dnscommonsrv(subdomain_enum):
@@ -158,6 +159,11 @@ class dnscommonsrv(subdomain_enum):
 
     async def handle_event(self, event):
         query = self.make_query(event)
-        self.verbose(f'Brute-forcing SRV records for "{query}"')
+        self.verbose(f'Brute-forcing {num_srvs:,} SRV records for "{query}"')
         for hostname in await self.helpers.dns.brute(self, query, common_srvs, type="SRV"):
-            await self.emit_event(hostname, "DNS_NAME", source=event)
+            await self.emit_event(
+                hostname,
+                "DNS_NAME",
+                parent=event,
+                context=f'{{module}} tried {num_srvs:,} common SRV records against "{query}" and found {{event.type}}: {{event.data}}',
+            )

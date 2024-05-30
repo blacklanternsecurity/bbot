@@ -72,14 +72,21 @@ class badsecrets(BaseModule):
                             "url": event.data["url"],
                             "host": str(event.host),
                         }
-                        await self.emit_event(data, "VULNERABILITY", event)
+                        await self.emit_event(
+                            data,
+                            "VULNERABILITY",
+                            event,
+                            context=f'{{module}}\'s "{r["detecting_module"]}" module found known {r["description"]["product"]} secret ({{event.type}}): "{r["secret"]}"',
+                        )
                     elif r["type"] == "IdentifyOnly":
                         # There is little value to presenting a non-vulnerable asp.net viewstate, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
                         if r["detecting_module"] == "ASPNET_Viewstate":
+                            technology = "microsoft asp.net"
                             await self.emit_event(
-                                {"technology": "microsoft asp.net", "url": event.data["url"], "host": str(event.host)},
+                                {"technology": technology, "url": event.data["url"], "host": str(event.host)},
                                 "TECHNOLOGY",
                                 event,
+                                context=f"{{module}} identified {{event.type}}: {technology}",
                             )
                         else:
                             data = {
@@ -87,4 +94,9 @@ class badsecrets(BaseModule):
                                 "url": event.data["url"],
                                 "host": str(event.host),
                             }
-                            await self.emit_event(data, "FINDING", event)
+                            await self.emit_event(
+                                data,
+                                "FINDING",
+                                event,
+                                context=f'{{module}} identified cryptographic product ({{event.type}}): "{r["description"]["product"]}"',
+                            )

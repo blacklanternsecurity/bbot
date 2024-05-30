@@ -854,13 +854,13 @@ class TestTrufflehog(ModuleTestBase):
             and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
         ]
         assert 3 == len(vuln_events), "Failed to find secret in events"
-        github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].source
+        github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-        filesystem_events = [e.source for e in vuln_events if "bbot" in e.data["description"]]
+        filesystem_events = [e.parent for e in vuln_events if "bbot" in e.data["description"]]
         assert len(filesystem_events) == 3
         assert all([e.type == "FILESYSTEM" for e in filesystem_events])
         assert 1 == len(
@@ -901,13 +901,13 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
         ]
         assert 3 == len(finding_events), "Failed to find secret in events"
-        github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].source
+        github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-        filesystem_events = [e.source for e in finding_events if "bbot" in e.data["description"]]
+        filesystem_events = [e.parent for e in finding_events if "bbot" in e.data["description"]]
         assert len(filesystem_events) == 3
         assert all([e.type == "FILESYSTEM" for e in filesystem_events])
         assert 1 == len(

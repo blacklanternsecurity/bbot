@@ -79,7 +79,7 @@ class internetdb(BaseModule):
             return
         if data:
             if r.status_code == 200:
-                await self._parse_response(data=data, event=event)
+                await self._parse_response(data=data, event=event, ip=ip)
             elif r.status_code == 404:
                 detail = data.get("detail", "")
                 if detail:
@@ -89,25 +89,44 @@ class internetdb(BaseModule):
                 err_msg = data.get("msg", "")
                 self.verbose(f"Shodan error for {ip}: {err_data}: {err_msg}")
 
-    async def _parse_response(self, data: dict, event):
+    async def _parse_response(self, data: dict, event, ip):
         """Handles emitting events from returned JSON"""
         data: dict  # has keys: cpes, hostnames, ip, ports, tags, vulns
+        ip = str(ip)
+        query_host = ip if event.data == ip else f"{event.data} ({ip})"
         # ip is a string, ports is a list of ports, the rest is a list of strings
         for hostname in data.get("hostnames", []):
-            await self.emit_event(hostname, "DNS_NAME", source=event)
+            if hostname != event.data:
+                await self.emit_event(
+                    hostname,
+                    "DNS_NAME",
+                    parent=event,
+                    context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
+                )
         for cpe in data.get("cpes", []):
-            await self.emit_event({"technology": cpe, "host": str(event.host)}, "TECHNOLOGY", source=event)
+            await self.emit_event(
+                {"technology": cpe, "host": str(event.host)},
+                "TECHNOLOGY",
+                parent=event,
+                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
+            )
         for port in data.get("ports", []):
             await self.emit_event(
-                self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True, quick=True
+                self.helpers.make_netloc(event.data, port),
+                "OPEN_TCP_PORT",
+                parent=event,
+                internal=True,
+                quick=True,
+                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
             )
         vulns = data.get("vulns", [])
         if vulns:
             vulns_str = ", ".join([str(v) for v in vulns])
             await self.emit_event(
-                {"description": f"Shodan reported verified vulnerabilities: {vulns_str}", "host": str(event.host)},
+                {"description": f"Shodan reported possible vulnerabilities: {vulns_str}", "host": str(event.host)},
                 "FINDING",
-                source=event,
+                parent=event,
+                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found potential {{event.type}}: {vulns_str}',
             )
 
     def get_ip(self, event):

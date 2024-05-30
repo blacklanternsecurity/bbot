@@ -42,5 +42,6 @@ class smuggler(BaseModule):
                     await self.emit_event(
                         {"host": str(event.host), "url": event.data, "description": description},
                         "FINDING",
-                        source=event,
+                        parent=event,
+                        context=f"{{module}} scanned {event.data} and found HTTP smuggling ({{event.type}}): {text}",
                     )
