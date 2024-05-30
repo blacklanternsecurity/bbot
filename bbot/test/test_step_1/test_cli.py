@@ -108,7 +108,7 @@ async def test_cli_scan(monkeypatch):
 
     with open(scan_home / "preset.yml") as f:
         text = f.read()
-        assert "  dns_resolution: false" in text
+        assert "  dns:\n    disable: true" in text
 
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
