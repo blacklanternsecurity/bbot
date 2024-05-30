@@ -50,7 +50,7 @@ async def test_cli_scope(monkeypatch, capsys):
             "192.168.0.1",
             "-c",
             "scope_report_distance=10",
-            "dns.disable=false",
+            "dns.minimal=false",
             "dns.search_distance=2",
             "--json",
         ],
