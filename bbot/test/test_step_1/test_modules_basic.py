@@ -120,7 +120,7 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
     scan2 = bbot_scanner(
         modules=list(available_modules),
         output_modules=list(available_output_modules),
-        config={i: True for i in available_internal_modules},
+        config={i: True for i in available_internal_modules if i != "dns"},
         force_start=True,
     )
     await scan2.load_modules()

@@ -388,7 +388,7 @@ class Preset:
         # enable output modules
         output_modules_to_enable = baked_preset.explicit_output_modules
         output_module_override = any(m in self.default_output_modules for m in output_modules_to_enable)
-        # enable the default  if none of the default output modules have been explicitly specified, enable them
+        # if none of the default output modules have been explicitly specified, enable them all
         if not output_module_override:
             output_modules_to_enable.update(self.default_output_modules)
         for module in output_modules_to_enable:
