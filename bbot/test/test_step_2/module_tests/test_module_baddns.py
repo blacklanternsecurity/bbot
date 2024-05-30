@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class BaseTestBaddns(ModuleTestBase):
     modules_overrides = ["baddns"]
     targets = ["bad.dns"]
-    config_overrides = {"dns_resolution": True}
+    config_overrides = {"dns": {"minimal": False}}
 
     async def dispatchWHOIS(x):
         return None

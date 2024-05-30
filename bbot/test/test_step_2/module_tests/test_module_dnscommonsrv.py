@@ -5,7 +5,7 @@ class TestDNSCommonSRV(ModuleTestBase):
     targets = ["test.api.blacklanternsecurity.com"]
     whitelist = ["blacklanternsecurity.com"]
     modules_overrides = ["dnscommonsrv", "speculate"]
-    config_overrides = {"dns_resolution": True}
+    config_overrides = {"dns": {"minimal": False}}
 
     async def setup_after_prep(self, module_test):
 

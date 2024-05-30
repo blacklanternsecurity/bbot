@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestAsset_Inventory(ModuleTestBase):
     targets = ["127.0.0.1", "bbottest.notreal"]
     scan_name = "asset_inventory_test"
-    config_overrides = {"dns_resolution": True, "modules": {"portscan": {"ports": "9999"}}}
+    config_overrides = {"dns": {"minimal": False}, "modules": {"portscan": {"ports": "9999"}}}
     modules_overrides = ["asset_inventory", "portscan", "sslcert"]
 
     masscan_output = """{   "ip": "127.0.0.1",   "timestamp": "1680197558", "ports": [ {"port": 9999, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
@@ -49,7 +49,7 @@ class TestAsset_Inventory(ModuleTestBase):
 
 
 class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
-    config_overrides = {"dns_resolution": True, "modules": {"asset_inventory": {"use_previous": True}}}
+    config_overrides = {"dns": {"minimal": False}, "modules": {"asset_inventory": {"use_previous": True}}}
     modules_overrides = ["asset_inventory"]
 
     def check(self, module_test, events):
@@ -70,7 +70,7 @@ class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
 
 class TestAsset_InventoryRecheck(TestAsset_Inventory):
     config_overrides = {
-        "dns_resolution": True,
+        "dns": {"minimal": False},
         "modules": {"asset_inventory": {"use_previous": True, "recheck": True}},
     }
     modules_overrides = ["asset_inventory"]
