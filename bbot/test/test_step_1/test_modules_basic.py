@@ -396,7 +396,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "ORG_STUB": 1,
     }
 
-    assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "cloud", "dns"}
+    assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "dns"}
 
     target_stats = scan.stats.module_stats["TARGET"]
     assert target_stats.produced == {"SCAN": 1, "DNS_NAME": 1}
