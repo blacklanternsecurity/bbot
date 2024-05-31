@@ -103,7 +103,7 @@ class TestHTTPX_Redirect(ModuleTestBase):
 class TestHTTPX_URLBlacklist(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "speculate", "excavate"]
-    config_overrides = {"web_spider_distance": 10, "web_spider_depth": 10}
+    config_overrides = {"web": {"spider_distance": 10, "spider_depth": 10}}
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(

@@ -83,7 +83,7 @@ bbot -t evilcorp.com -p subdomain-enum web-basic
 
 ```bash
 # Crawl www.evilcorp.com up to a max depth of 2, automatically extracting emails, secrets, etc.
-bbot -t www.evilcorp.com -p spider -c web_spider_distance=2 web_spider_depth=2
+bbot -t www.evilcorp.com -p spider -c web.spider_distance=2 web.spider_depth=2
 ```
 
 **Everything everywhere all at once:**

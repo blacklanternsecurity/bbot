@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestExcavate(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/", "test.notreal", "http://127.0.0.1:8888/subdir/links.html"]
     modules_overrides = ["excavate", "httpx"]
-    config_overrides = {"web_spider_distance": 1, "web_spider_depth": 1}
+    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
 
     async def setup_before_prep(self, module_test):
         response_data = """
@@ -226,7 +226,7 @@ class TestExcavateRedirect(TestExcavate):
 
 class TestExcavateMaxLinksPerPage(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
-    config_overrides = {"web_spider_links_per_page": 10, "web_spider_distance": 1}
+    config_overrides = {"web": {"spider_links_per_page": 10, "spider_distance": 1}}
 
     lots_of_links = """
     <a href="http://127.0.0.1:8888/1"/>

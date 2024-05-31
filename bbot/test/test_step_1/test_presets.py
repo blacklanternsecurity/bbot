@@ -620,7 +620,7 @@ include:
             """
 conditions:
   - |
-    {% if config.web_spider_distance == 3 and config.web_spider_depth == 4 %}
+    {% if config.web.spider_distance == 3 and config.web.spider_depth == 4 %}
       {{ abort("web spider is too aggressive") }}
     {% endif %}
 """
@@ -632,7 +632,7 @@ conditions:
     scan = Scanner(preset=preset)
     assert scan.preset.conditions
 
-    preset2 = Preset(config={"web_spider_distance": 3, "web_spider_depth": 4})
+    preset2 = Preset(config={"web": {"spider_distance": 3, "spider_depth": 4}})
     preset.merge(preset2)
 
     with pytest.raises(PresetAbortError):

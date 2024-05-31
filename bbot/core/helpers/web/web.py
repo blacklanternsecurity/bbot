@@ -52,6 +52,9 @@ class WebHelper(EngineClient):
         self.parent_helper = parent_helper
         self.preset = self.parent_helper.preset
         self.config = self.preset.config
+        self.web_config = self.config.get("web", {})
+        self.web_spider_depth = self.web_config.get("spider_depth", 1)
+        self.web_spider_distance = self.web_config.get("spider_distance", 0)
         self.target = self.preset.target
         self.ssl_verify = self.config.get("ssl_verify", False)
         super().__init__(server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.radix_only})
@@ -445,10 +448,8 @@ class WebHelper(EngineClient):
             False
         """
         url_depth = self.parent_helper.url_depth(url)
-        web_spider_depth = self.parent_helper.config.get("web_spider_depth", 1)
         spider_distance = getattr(parent_event, "web_spider_distance", 0) + 1
-        web_spider_distance = self.parent_helper.config.get("web_spider_distance", 0)
-        if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
+        if (url_depth > self.web_spider_depth) or (spider_distance > self.web_spider_distance):
             return True
         return False
 

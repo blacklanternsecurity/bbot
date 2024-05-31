@@ -25,9 +25,9 @@ scope:
 ### DNS ###
 
 dns:
-  # Set this to true to completely disable DNS resolution (careful if you have IP whitelists/blacklists, consider minimal=true instead)
+  # Completely disable DNS resolution (careful if you have IP whitelists/blacklists, consider using minimal=true instead)
   disable: false
-  # Speed up the scan by not creating any new DNS revents, and only resolving A and AAAA records
+  # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
   # How many instances of the dns module to run concurrently
   threads: 25
@@ -64,20 +64,20 @@ dns:
     - CNAME:mail.protection.outlook.com
     - TXT:mail.protection.outlook.com
 
+### WEB ###
+
+web:
+  # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
+  spider_distance: 0
+  # Set the maximum directory depth for the web spider
+  spider_depth: 1
+  # Set the maximum number of links that can be followed per page
+  spider_links_per_page: 25
+
 # Tool dependencies
 deps:
   ffuf:
     version: "2.1.0"
-
-### WEB SPIDER ###
-
-# Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
-web_spider_distance: 0
-# Set the maximum directory depth for the web spider
-web_spider_depth: 1
-# Set the maximum number of links that can be followed per page
-web_spider_links_per_page: 25
-
 
 ### ADVANCED OPTIONS ###
 

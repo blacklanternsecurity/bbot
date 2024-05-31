@@ -41,20 +41,22 @@ bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 
 ### Web Spider
 
-The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of `web_spider_distance`.
+The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of `web.spider_distance`.
 
 The web spider is controlled with three config values:
 
-- `web_spider_depth` (default: `1`: the maximum directory depth allowed. This is to prevent the spider from delving too deep into a website.
-- `web_spider_distance` (`0` == all spidering disabled, default: `0`): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where `web_spider_depth` fails (e.g. for an ecommerce website with thousands of base-level URLs).
-- `web_spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed. This is designed to save you in cases where a single page has hundreds or thousands of links.
+- `web.spider_depth` (default: `1`: the maximum directory depth allowed. This is to prevent the spider from delving too deep into a website.
+- `web.spider_distance` (`0` == all spidering disabled, default: `0`): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where `web.spider_depth` fails (e.g. for an ecommerce website with thousands of base-level URLs).
+- `web.spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed. This is designed to save you in cases where a single page has hundreds or thousands of links.
 
 Here is a typical example:
 
 ```yaml title="spider.yml"
-web_spider_depth: 2
-web_spider_distance: 2
-web_spider_links_per_page: 25
+config:
+  web:
+    spider_depth: 2
+    spider_distance: 2
+    spider_links_per_page: 25
 ```
 
 ```bash

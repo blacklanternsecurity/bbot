@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestFileDownload(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["filedownload", "httpx", "excavate", "speculate"]
-    config_overrides = {"web_spider_distance": 2, "web_spider_depth": 2}
+    config_overrides = {"web": {"spider_distance": 2, "spider_depth": 2}}
 
     pdf_data = """%PDF-1.
 1 0 obj<</Pages 2 0 R>>endobj

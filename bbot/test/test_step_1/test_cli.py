@@ -447,7 +447,7 @@ def test_cli_config_validation(monkeypatch, caplog):
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "web_spier_distance=4"])
     cli.main()
     assert 'Could not find config option "web_spier_distance"' in caplog.text
-    assert 'Did you mean "web_spider_distance"?' in caplog.text
+    assert 'Did you mean "web.spider_distance"?' in caplog.text
 
 
 def test_cli_module_validation(monkeypatch, caplog):

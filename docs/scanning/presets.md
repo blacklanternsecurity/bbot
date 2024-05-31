@@ -57,7 +57,7 @@ bbot -t evilcorp.com -p subdomain-enum spider
 bbot -t evilcorp.com -p subdomain-enum -rf passive
 
 # preset + manual config override
-bbot -t www.evilcorp.com -p spider -c web_spider_distance=10
+bbot -t www.evilcorp.com -p spider -c web.spider_distance=10
 ```
 
 You can also build on the default presets, or create your own. Here's an example of a custom preset that builds on `subdomain-enum`:
@@ -97,10 +97,12 @@ bbot -p ./my_subdomains.yml
 
 ## Preset Load Order
 
-When you enable multiple presets, the order matters. In the case of a conflict, the last preset will always win. This means, for example, if you have a custom preset called `my_spider` that sets `web_spider_distance` to 1:
+When you enable multiple presets, the order matters. In the case of a conflict, the last preset will always win. This means, for example, if you have a custom preset called `my_spider` that sets `web.spider_distance` to 1:
 
 ```yaml title="my_spider.yml"
-web_spider_distance: 1
+config:
+  web:
+    spider_distance: 1
 ```
 
 ...and you enable it alongside the default `spider` preset in this order:
@@ -109,7 +111,7 @@ web_spider_distance: 1
 bbot -t evilcorp.com -p ./my_spider.yml spider
 ```
 
-...the value of `web_spider_distance` will be overridden by `spider`. To ensure this doesn't happen, you would want to switch the order of the presets:
+...the value of `web.spider_distance` will be overridden by `spider`. To ensure this doesn't happen, you would want to switch the order of the presets:
 
 ```bash
 bbot -t evilcorp.com -p spider ./my_spider.yml
@@ -177,7 +179,7 @@ modules:
 
 conditions:
   - |
-    {% if config.web_spider_distance > 0 and config.web_spider_depth > 0 %}
+    {% if config.web.spider_distance > 0 and config.web.spider_depth > 0 %}
       {{ warn("Disabling ffuf because the web spider is enabled") }}
       {{ preset.exclude_module("ffuf") }}
     {% endif %}
