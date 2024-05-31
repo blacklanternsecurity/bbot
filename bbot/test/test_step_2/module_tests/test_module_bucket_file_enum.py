@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestBucket_File_Enum(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["bucket_file_enum", "filedownload", "httpx", "excavate"]
+    modules_overrides = ["bucket_file_enum", "filedownload", "httpx", "excavate", "cloud"]
     config_overrides = {"scope": {"report_distance": 5}}
 
     open_bucket_url = "https://testbucket.s3.amazonaws.com/"
