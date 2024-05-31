@@ -68,10 +68,10 @@ class DNS(InterceptModule):
                 # try to get from cache
                 dns_tags, dns_children, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
             except KeyError:
+                rdtypes_to_resolve = ()
                 if event_is_ip:
-                    if self.minimal:
-                        return
-                    rdtypes_to_resolve = ["PTR"]
+                    if not self.minimal:
+                        rdtypes_to_resolve = ("PTR",)
                 else:
                     if self.minimal:
                         rdtypes_to_resolve = ("A", "AAAA", "CNAME")
