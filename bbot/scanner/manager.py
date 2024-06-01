@@ -457,17 +457,11 @@ class ScanManager:
         raise asyncio.queues.QueueEmpty()
 
     @property
-    def queued_event_types(self):
-        event_types = {}
+    def num_queued_events(self):
+        total = 0
         for q in self.incoming_queues:
-            for event, _ in q._queue:
-                event_type = getattr(event, "type", None)
-                if event_type is not None:
-                    try:
-                        event_types[event_type] += 1
-                    except KeyError:
-                        event_types[event_type] = 1
-        return event_types
+            total += len(q._queue)
+        return total
 
     def queue_event(self, event, **kwargs):
         if event:
@@ -559,14 +553,9 @@ class ScanManager:
                     f'{self.scan.name}: Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
                 )
 
-            queued_events_by_type = [(k, v) for k, v in self.queued_event_types.items() if v > 0]
-            if queued_events_by_type:
-                queued_events_by_type.sort(key=lambda x: x[-1], reverse=True)
-                queued_events_by_type_str = ", ".join(f"{m}: {t:,}" for m, t in queued_events_by_type)
-                num_queued_events = sum(v for k, v in queued_events_by_type)
-                self.scan.info(
-                    f"{self.scan.name}: {num_queued_events:,} events in queue ({queued_events_by_type_str})"
-                )
+            num_queued_events = self.num_queued_events
+            if num_queued_events:
+                self.scan.info(f"{self.scan.name}: {num_queued_events:,} events in queue")
             else:
                 self.scan.info(f"{self.scan.name}: No events in queue")
 
