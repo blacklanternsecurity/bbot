@@ -1,5 +1,4 @@
 import zmq
-import atexit
 import pickle
 import asyncio
 import inspect
