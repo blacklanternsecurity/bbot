@@ -4,7 +4,7 @@ import argparse
 from omegaconf import OmegaConf
 
 from bbot.errors import *
-from bbot.core.helpers.misc import chain_lists, get_closest_match
+from bbot.core.helpers.misc import chain_lists, get_closest_match, get_keys_in_dot_syntax
 
 log = logging.getLogger("bbot.presets.args")
 
@@ -351,9 +351,7 @@ class BBOTArgs:
     def validate(self):
         # validate config options
         sentinel = object()
-        all_options = set(self.preset.core.default_config.keys()) - {"modules"}
-        for module_options in self.preset.module_loader.modules_options().values():
-            all_options.update(set(o[0] for o in module_options))
+        all_options = set(get_keys_in_dot_syntax(self.preset.core.default_config))
         for c in self.parsed.config:
             c = c.split("=")[0].strip()
             v = OmegaConf.select(self.preset.core.default_config, c, default=sentinel)
