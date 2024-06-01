@@ -184,11 +184,11 @@ class EngineClient(EngineBase):
             with suppress(Exception):
                 socket.close()
 
-    def cleanup(self):
-        # delete socket file on exit
-        self.socket_path.unlink(missing_ok=True)
-        with suppress(Exception):
-            self._server_process.terminate()
+    async def cleanup(self):
+        # -1 == special "cancel" signal
+        shutdown_message = pickle.dumps({"c": -2})
+        async with self.new_socket() as socket:
+            await socket.send(shutdown_message)
 
 
 class EngineServer(EngineBase):
@@ -198,13 +198,14 @@ class EngineServer(EngineBase):
     def __init__(self, socket_path):
         super().__init__()
         self.name = f"EngineServer {self.__class__.__name__}"
-        if socket_path is not None:
+        self.socket_path = socket_path
+        if self.socket_path is not None:
             # create ZeroMQ context
             self.context = zmq.asyncio.Context()
             # ROUTER socket can handle multiple concurrent requests
             self.socket = self.context.socket(zmq.ROUTER)
             # create socket file
-            self.socket.bind(f"ipc://{socket_path}")
+            self.socket.bind(f"ipc://{self.socket_path}")
             # task <--> client id mapping
             self.tasks = dict()
 
@@ -280,6 +281,7 @@ class EngineServer(EngineBase):
                     self.log.warning(f"No command sent in message: {message}")
                     continue
 
+                # -1 == special signal to cancel a task
                 if cmd == -1:
                     task = self.tasks.get(client_id, None)
                     if task is None:
@@ -296,6 +298,11 @@ class EngineServer(EngineBase):
                         self.log.trace(traceback.format_exc())
                     self.tasks.pop(client_id, None)
                     continue
+
+                # -2 == special signal to shut down the engine
+                if cmd == -2:
+                    self.log.debug(f"Shutting down {self.name}")
+                    break
 
                 args = message.get("a", ())
                 if not isinstance(args, tuple):
@@ -326,3 +333,5 @@ class EngineServer(EngineBase):
         finally:
             with suppress(Exception):
                 self.socket.close()
+            # delete socket file on exit
+            self.socket_path.unlink(missing_ok=True)

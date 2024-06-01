@@ -793,9 +793,9 @@ class Scanner:
         """
         self.status = "CLEANING_UP"
         # clean up dns engine
-        self.helpers.dns.cleanup()
+        await self.helpers.dns.cleanup()
         # clean up web engine
-        self.helpers.web.cleanup()
+        await self.helpers.web.cleanup()
         # clean up modules
         for mod in self.modules.values():
             await mod._cleanup()
