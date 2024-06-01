@@ -2761,10 +2761,11 @@ def get_keys_in_dot_syntax(config):
         ['web.test', 'db.host', 'db.port']
     """
     from omegaconf import OmegaConf
+
     container = OmegaConf.to_container(config, resolve=True)
     keys = []
 
-    def recursive_keys(d, parent_key=''):
+    def recursive_keys(d, parent_key=""):
         for k, v in d.items():
             full_key = f"{parent_key}.{k}" if parent_key else k
             if isinstance(v, dict):
