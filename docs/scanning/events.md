@@ -10,6 +10,7 @@ event type      event data          source module    tags
 
 In addition to the obvious data (e.g. `www.evilcorp.com`), an event also contains other useful information such as:
 
+- a `.discovery_path` showing exactly how the event was discovered, starting from the first scan target
 - a `.timestamp` of when the data was discovered
 - the `.module` that discovered it
 - the `.parent` event that led to its discovery
@@ -21,24 +22,41 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
 ```json
 {
   "type": "URL",
-  "id": "URL:017ec8e5dc158c0fd46f07169f8577fb4b45e89a",
-  "data": "http://www.blacklanternsecurity.com/",
+  "id": "URL:c9962277277393f8895d2a4fa9b7f70b15f3af3e",
+  "scope_description": "in-scope",
+  "data": "https://blog.blacklanternsecurity.com/",
+  "host": "blog.blacklanternsecurity.com",
+  "resolved_hosts": [
+    "104.18.40.87"
+  ],
+  "dns_children": {
+    "A": [
+      "104.18.40.87",
+      "172.64.147.169"
+    ]
+  },
   "web_spider_distance": 0,
   "scope_distance": 0,
-  "scan": "SCAN:4d786912dbc97be199da13074699c318e2067a7f",
-  "timestamp": 1688526222.723366,
-  "resolved_hosts": ["185.199.108.153"],
-  "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
+  "scan": "SCAN:9224b49405e6d1607fd615243577d9ca86c7d206",
+  "timestamp": 1717260760.157012,
+  "parent": "OPEN_TCP_PORT:ebe3d6c10b41f60e3590ce6436ab62510b91c758",
   "tags": [
     "in-scope",
-    "distance-0",
+    "http-title-black-lantern-security-blsops",
     "dir",
-    "ip-185-199-108-153",
-    "status-301",
-    "http-title-301-moved-permanently"
+    "ip-104-18-40-87",
+    "cdn-cloudflare",
+    "status-200"
   ],
   "module": "httpx",
-  "module_sequence": "httpx"
+  "module_sequence": "httpx",
+  "discovery_context": "httpx visited blog.blacklanternsecurity.com:443 and got status code 200 at https://blog.blacklanternsecurity.com/",
+  "discovery_path": [
+    "Scan difficult_arthur seeded with DNS_NAME: blacklanternsecurity.com",
+    "certspotter searched certspotter API for \"blacklanternsecurity.com\" and found DNS_NAME: blog.blacklanternsecurity.com",
+    "speculated OPEN_TCP_PORT: blog.blacklanternsecurity.com:443",
+    "httpx visited blog.blacklanternsecurity.com:443 and got status code 200 at https://blog.blacklanternsecurity.com/"
+  ]
 }
 ```
 

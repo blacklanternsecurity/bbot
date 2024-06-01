@@ -65,7 +65,6 @@ class EngineClient(EngineBase):
         self.server_kwargs = kwargs.pop("server_kwargs", {})
         self._server_process = None
         self.context = zmq.asyncio.Context()
-        atexit.register(self.cleanup)
 
     def check_error(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_e" in message:
@@ -185,7 +184,7 @@ class EngineClient(EngineBase):
                 socket.close()
 
     async def cleanup(self):
-        # -1 == special "cancel" signal
+        # -2 == special "shutdown" signal
         shutdown_message = pickle.dumps({"c": -2})
         async with self.new_socket() as socket:
             await socket.send(shutdown_message)
@@ -283,25 +282,13 @@ class EngineServer(EngineBase):
 
                 # -1 == special signal to cancel a task
                 if cmd == -1:
-                    task = self.tasks.get(client_id, None)
-                    if task is None:
-                        continue
-                    task, _cmd, _args, _kwargs = task
-                    self.log.debug(f"Cancelling client id {client_id} (task: {task})")
-                    task.cancel()
-                    try:
-                        await task
-                    except (KeyboardInterrupt, asyncio.CancelledError):
-                        pass
-                    except BaseException as e:
-                        self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
-                        self.log.trace(traceback.format_exc())
-                    self.tasks.pop(client_id, None)
+                    await self.cancel_task(client_id)
                     continue
 
                 # -2 == special signal to shut down the engine
                 if cmd == -2:
                     self.log.debug(f"Shutting down {self.name}")
+                    await self.cancel_all_tasks()
                     break
 
                 args = message.get("a", ())
@@ -335,3 +322,24 @@ class EngineServer(EngineBase):
                 self.socket.close()
             # delete socket file on exit
             self.socket_path.unlink(missing_ok=True)
+
+    async def cancel_task(self, client_id):
+        task = self.tasks.get(client_id, None)
+        if task is None:
+            return
+        task, _cmd, _args, _kwargs = task
+        self.log.debug(f"Cancelling client id {client_id} (task: {task})")
+        task.cancel()
+        try:
+            await task
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            pass
+        except BaseException as e:
+            self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
+            self.log.trace(traceback.format_exc())
+        finally:
+            self.tasks.pop(client_id, None)
+
+    async def cancel_all_tasks(self):
+        for client_id in self.tasks:
+            await self.cancel_task(client_id)
