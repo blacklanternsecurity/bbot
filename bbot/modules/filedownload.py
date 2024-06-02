@@ -105,7 +105,7 @@ class filedownload(BaseModule):
         if "filedownload" in event.tags:
             return True
         else:
-            if event.scope_distance > 1:
+            if event.scope_distance > 0:
                 return False, f"{event} not within scope distance"
             elif self.hash_event(event) in self.urls_downloaded:
                 return False, f"Already processed {event}"
