@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          ref: dev
           fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -43,7 +44,7 @@ jobs:
           commit-message: "Update nuclei"
           title: "Update nuclei to ${{ env.latest_version }}"
           body: "This PR uses https://api.github.com/repos/projectdiscovery/nuclei/releases/latest to obtain the latest version of nuclei and update the version in bbot/modules/deadly/nuclei.py."
-          branch: "dev"
+          branch: "update-nuclei"
           committer: GitHub <noreply@github.com>
           author: GitHub <noreply@github.com>
           assignees: "TheTechromancer"
@@ -52,6 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          ref: dev
           fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -86,7 +88,7 @@ jobs:
           commit-message: "Update trufflehog"
           title: "Update trufflehog to ${{ env.latest_version }}"
           body: "This PR uses https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest to obtain the latest version of trufflehog and update the version in bbot/modules/trufflehog.py."
-          branch: "dev"
+          branch: "update-trufflehog"
           committer: GitHub <noreply@github.com>
           author: GitHub <noreply@github.com>
           assignees: "TheTechromancer"
