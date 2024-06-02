@@ -4,12 +4,16 @@ import asyncio
 import logging
 import ipaddress
 import traceback
+import base64
+import tarfile
+
 from copy import copy
 from typing import Optional
 from datetime import datetime
 from contextlib import suppress
 from urllib.parse import urljoin
 from pydantic import BaseModel, field_validator
+from pathlib import Path
 
 from .helpers import *
 from bbot.core.errors import *
@@ -1202,6 +1206,30 @@ class WAF(DictHostEvent):
     def _pretty_string(self):
         return self.data["waf"]
 
+
+class FILESYSTEM(DictEvent):
+    def sanitize_data(self, data):
+        new_data = dict(data)
+        if self.scan is not None:
+            include_base64 = self.scan.config.get("include_base64_blob", False)
+            
+            if include_base64:
+                data_path = Path(data["path"])
+                if data_path.is_file():
+                    with open(data_path, "rb") as file:
+                        blob = base64.b64encode(file.read()).decode('utf-8')
+                elif data_path.is_dir():
+                    blob = self._tar_directory(data_path)
+                new_data["blob"] = blob
+
+        return new_data
+
+    def _tar_directory(self, dir_path):
+        tar_path = dir_path.with_suffix('.tar')
+        with tarfile.open(tar_path, "w") as tar:
+            tar.add(dir_path, arcname=dir_path.name)
+        with open(tar_path, "rb") as file:
+            return base64.b64encode(file.read()).decode('utf-8')
 
 def make_event(
     data,
