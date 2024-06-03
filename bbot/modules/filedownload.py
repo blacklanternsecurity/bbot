@@ -74,7 +74,7 @@ class filedownload(BaseModule):
             "yaml",  #  YAML Ain't Markup Language
         ],
         "max_filesize": "10MB",
-        "base_64_encoded_file" : "false"
+        "base_64_encoded_file": "false",
     }
     options_desc = {
         "extensions": "File extensions to download",

@@ -1212,12 +1212,12 @@ class FILESYSTEM(DictEvent):
         new_data = dict(data)
         if self.scan is not None:
             include_base64 = self.scan.config.get("include_base64_blob", False)
-            
+
             if include_base64:
                 data_path = Path(data["path"])
                 if data_path.is_file():
                     with open(data_path, "rb") as file:
-                        blob = base64.b64encode(file.read()).decode('utf-8')
+                        blob = base64.b64encode(file.read()).decode("utf-8")
                 elif data_path.is_dir():
                     blob = self._tar_directory(data_path)
                 new_data["blob"] = blob
@@ -1225,11 +1225,12 @@ class FILESYSTEM(DictEvent):
         return new_data
 
     def _tar_directory(self, dir_path):
-        tar_path = dir_path.with_suffix('.tar')
+        tar_path = dir_path.with_suffix(".tar")
         with tarfile.open(tar_path, "w") as tar:
             tar.add(dir_path, arcname=dir_path.name)
         with open(tar_path, "rb") as file:
-            return base64.b64encode(file.read()).decode('utf-8')
+            return base64.b64encode(file.read()).decode("utf-8")
+
 
 def make_event(
     data,
