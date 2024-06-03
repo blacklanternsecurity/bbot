@@ -49,7 +49,6 @@ class wpscan(BaseModule):
         {
             "name": "Install wpscan gem",
             "gem": {"name": "wpscan", "state": "latest"},
-            "become": True,
         },
     ]
 
