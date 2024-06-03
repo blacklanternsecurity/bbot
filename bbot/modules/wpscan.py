@@ -3,7 +3,7 @@ from bbot.modules.base import BaseModule
 
 
 class wpscan(BaseModule):
-    watched_events = ["HTTP_RESPONSE"]
+    watched_events = ["HTTP_RESPONSE", "TECHNOLOGY"]
     produced_events = ["URL_UNVERIFIED", "FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "aggressive"]
     meta = {
@@ -30,13 +30,27 @@ class wpscan(BaseModule):
         "disable_tls_checks": "Disables the SSL/TLS certificate verification (Default True)",
         "force": "Do not check if the target is running WordPress or returns a 403",
     }
-    deps_apt = ["ruby-rubygems"]
     deps_ansible = [
+        {
+            "name": "Install Rubygems (Non-Debian)",
+            "package": {"name": "rubygems", "state": "present"},
+            "become": True,
+            "when": "ansible_facts['os_family'] != 'Debian'",
+        },
+        {
+            "name": "Install Rubygems (Debian)",
+            "package": {
+                "name": "ruby-rubygems",
+                "state": "present",
+            },
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Debian'",
+        },
         {
             "name": "Install wpscan gem",
             "gem": {"name": "wpscan", "state": "latest"},
             "become": True,
-        }
+        },
     ]
 
     async def setup(self):
