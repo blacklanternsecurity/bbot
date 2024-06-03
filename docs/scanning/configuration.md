@@ -199,6 +199,10 @@ dns_omit_queries:
   - CNAME:mail.protection.outlook.com
   - TXT:mail.protection.outlook.com
 
+# temporary fix to boost scan performance
+# TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
+target_dns_regex_disable: false
+
 ```
 <!-- END BBOT DEFAULT CONFIG -->
 
