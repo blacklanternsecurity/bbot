@@ -66,7 +66,7 @@ class unstructured(BaseModule):
         "ignore_folders": "Subfolders to ignore when crawling downloaded folders",
     }
 
-    # deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
+    deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
     deps_python = ["unstructured[all-docs]"]
 
     async def setup(self):
