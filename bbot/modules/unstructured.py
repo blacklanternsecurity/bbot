@@ -26,17 +26,14 @@ class unstructured(BaseModule):
             "sqlite",  #  SQLite Database File
             "doc",  #  Microsoft Word Document (Old Format)
             "docx",  #  Microsoft Word Document
-            "exe",  #  Windows PE executable
             "ica",  #  Citrix Independent Computing Architecture File
             "indd",  #  Adobe InDesign Document
             "ini",  #  Initialization File
-            "jar",  #  Java Archive
             "key",  #  Private Key File
             "pub",  #  Public Key File
             "log",  #  Log File
             "markdown",  #  Markdown File
             "md",  #  Markdown File
-            "msi",  # Windows setup file
             "odg",  #  OpenDocument Graphics (LibreOffice, OpenOffice)
             "odp",  #  OpenDocument Presentation (LibreOffice, OpenOffice)
             "ods",  #  OpenDocument Spreadsheet (LibreOffice, OpenOffice)
@@ -48,15 +45,11 @@ class unstructured(BaseModule):
             "ppt",  #  Microsoft PowerPoint Presentation (Old Format)
             "pptx",  #  Microsoft PowerPoint Presentation
             "ps1",  #  PowerShell Script
-            "raw",  #  Raw Image File Format
             "rdp",  #  Remote Desktop Protocol File
             "sh",  #  Shell Script
             "sql",  #  SQL Database Dump
             "swp",  #  Swap File (temporary file, often Vim)
             "sxw",  #  OpenOffice.org Writer document
-            "tar",  #  Tar Archive
-            "tar.gz",  # Gzip-Compressed Tar Archive
-            "zip",  #  Zip Archive
             "txt",  #  Plain Text Document
             "vbs",  #  Visual Basic Script
             "wpd",  #  WordPerfect Document
@@ -66,15 +59,19 @@ class unstructured(BaseModule):
             "yml",  #  YAML Ain't Markup Language
             "yaml",  #  YAML Ain't Markup Language
         ],
+        "ignore_folders": ["."],
     }
     options_desc = {
         "extensions": "File extensions to parse",
+        "ignore_folders": "Subfolders to ignore when crawling downloaded folders",
     }
 
+    deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
     deps_python = ["unstructured[all-docs]"]
 
     async def setup(self):
         self.extensions = list(set([e.lower().strip(".") for e in self.config.get("extensions", [])]))
+        self.ignored_folders = self.config.get("ignore_folders", [])
         return True
 
     async def filter_event(self, event):
@@ -89,12 +86,14 @@ class unstructured(BaseModule):
         if "folder" in event.tags:
             folder_path = Path(event.data["path"])
             for file_path in folder_path.rglob("*"):
-                if any(file_path.name.endswith(f".{ext}") for ext in self.extensions):
-                    file_event = self.make_event(
-                        {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], source=event
-                    )
-                    file_event.scope_distance = event.scope_distance
-                    await self.emit_event(file_event)
+                # If the file is not in an ignored folder and if it has an allowed extension raise it as a FILESYSTEM event
+                if not any(ignored_folder in file_path for ignored_folder in self.ignored_folders):
+                    if any(file_path.name.endswith(f".{ext}") for ext in self.extensions):
+                        file_event = self.make_event(
+                            {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], source=event
+                        )
+                        file_event.scope_distance = event.scope_distance
+                        await self.emit_event(file_event)
         elif "file" in event.tags:
             file_path = event.data["path"]
             content = await self.extract_text(file_path)
@@ -108,11 +107,41 @@ class unstructured(BaseModule):
 
     async def extract_text(self, file_path):
         """
-        extract_text Extracts plaintext from a document path using Tika.
+        extract_text Extracts plaintext from a document path using unstructured.
 
         :param file_path: The path of the file to extract text from.
         :return: ASCII-encoded plaintext extracted from the document.
         """
+        unstructured_file_types = [
+            ".csv",
+            ".eml",
+            ".msg",
+            ".epub",
+            ".xlsx",
+            ".xls",
+            ".html",
+            ".htm",
+            ".md",
+            ".org",
+            ".odt",
+            ".pdf",
+            ".txt",
+            ".text",
+            ".log",
+            ".ppt",
+            ".pptx",
+            ".rst",
+            ".rtf",
+            ".tsv",
+            ".doc",
+            ".docx",
+            ".xml",
+        ]
 
-        elements = partition(filename=file_path)
-        return "\n\n".join(element.text for element in elements)
+        # If the file can be extracted with unstructured use its partition function or try and read it
+        if any(file_path.lower().endswith(file_type) for file_type in unstructured_file_types):
+            elements = partition(filename=file_path)
+            return "\n\n".join(element.text for element in elements)
+        else:
+            with open(file_path, "rb") as file:
+                return file.read().decode("utf-8", errors="ignore")
