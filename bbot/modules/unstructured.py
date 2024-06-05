@@ -98,7 +98,7 @@ class unstructured(BaseModule):
                         await self.emit_event(file_event)
         elif "file" in event.tags:
             file_path = event.data["path"]
-            content = await self.extract_text(file_path)
+            content = await self.scan.run_in_executor_mp(extract_text, file_path)
             if content:
                 raw_data_event = self.make_event(
                     content,
@@ -107,54 +107,51 @@ class unstructured(BaseModule):
                 )
                 await self.emit_event(raw_data_event)
 
-    async def extract_text(self, file_path):
-        """
-        extract_text Extracts plaintext from a document path using unstructured.
-
-        :param file_path: The path of the file to extract text from.
-        :return: ASCII-encoded plaintext extracted from the document.
-        """
-        unstructured_file_types = [
-            ".csv",
-            ".eml",
-            ".msg",
-            ".epub",
-            ".xlsx",
-            ".xls",
-            ".html",
-            ".htm",
-            ".md",
-            ".org",
-            ".odt",
-            ".pdf",
-            ".txt",
-            ".text",
-            ".log",
-            ".ppt",
-            ".pptx",
-            ".rst",
-            ".rtf",
-            ".tsv",
-            ".doc",
-            ".docx",
-            ".xml",
-        ]
-
-        # If the file can be extracted with unstructured use its partition function or try and read it
-        if any(file_path.lower().endswith(file_type) for file_type in unstructured_file_types):
-            elements = await self.scan.run_in_executor_mp(auto_partition, file_path)
-            return "\n\n".join(element.text for element in elements)
-        else:
-            with open(file_path, "rb") as file:
-                return file.read().decode("utf-8", errors="ignore")
-
     async def finish(self):
         del os.environ["SCARF_NO_ANALYTICS"]
         return
 
 
-def auto_partition(filename):
+def extract_text(file_path):
+    """
+    extract_text Extracts plaintext from a document path using unstructured.
+
+    :param file_path: The path of the file to extract text from.
+    :return: ASCII-encoded plaintext extracted from the document.
+    """
+
     from unstructured.partition.auto import partition
 
-    elements = partition(filename=filename)
-    return elements
+    unstructured_file_types = [
+        ".csv",
+        ".eml",
+        ".msg",
+        ".epub",
+        ".xlsx",
+        ".xls",
+        ".html",
+        ".htm",
+        ".md",
+        ".org",
+        ".odt",
+        ".pdf",
+        ".txt",
+        ".text",
+        ".log",
+        ".ppt",
+        ".pptx",
+        ".rst",
+        ".rtf",
+        ".tsv",
+        ".doc",
+        ".docx",
+        ".xml",
+    ]
+
+    # If the file can be extracted with unstructured use its partition function or try and read it
+    if any(file_path.lower().endswith(file_type) for file_type in unstructured_file_types):
+        elements = partition(filename=file_path)
+        return "\n\n".join(element.text for element in elements)
+    else:
+        with open(file_path, "rb") as file:
+            return file.read().decode("utf-8", errors="ignore")
