@@ -59,14 +59,14 @@ class unstructured(BaseModule):
             "yml",  #  YAML Ain't Markup Language
             "yaml",  #  YAML Ain't Markup Language
         ],
-        "ignore_folders": ["."],
+        "ignore_folders": [".git"],
     }
     options_desc = {
         "extensions": "File extensions to parse",
         "ignore_folders": "Subfolders to ignore when crawling downloaded folders",
     }
 
-    deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
+    # deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
     deps_python = ["unstructured[all-docs]"]
 
     async def setup(self):
@@ -87,7 +87,7 @@ class unstructured(BaseModule):
             folder_path = Path(event.data["path"])
             for file_path in folder_path.rglob("*"):
                 # If the file is not in an ignored folder and if it has an allowed extension raise it as a FILESYSTEM event
-                if not any(ignored_folder in file_path for ignored_folder in self.ignored_folders):
+                if not any(ignored_folder in str(file_path) for ignored_folder in self.ignored_folders):
                     if any(file_path.name.endswith(f".{ext}") for ext in self.extensions):
                         file_event = self.make_event(
                             {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], source=event
