@@ -74,7 +74,7 @@ class unstructured(BaseModule):
         self.extensions = list(set([e.lower().strip(".") for e in self.config.get("extensions", [])]))
         self.ignored_folders = self.config.get("ignore_folders", [])
         # Do not send user statistics to the unstructured library
-        os.environ['SCARF_NO_ANALYTICS'] = 'true'
+        os.environ["SCARF_NO_ANALYTICS"] = "true"
         return True
 
     async def filter_event(self, event):
@@ -148,7 +148,7 @@ class unstructured(BaseModule):
         else:
             with open(file_path, "rb") as file:
                 return file.read().decode("utf-8", errors="ignore")
-    
+
     async def finish(self):
-        del os.environ['SCARF_NO_ANALYTICS']
+        del os.environ["SCARF_NO_ANALYTICS"]
         return
