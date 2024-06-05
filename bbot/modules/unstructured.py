@@ -8,7 +8,7 @@ from bbot.modules.base import BaseModule
 class unstructured(BaseModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["FILESYSTEM", "RAW_DATA"]
-    flags = ["passive"]
+    flags = ["passive", "safe"]
     meta = {
         "description": "Module to extract data from files",
         "created_date": "2024-06-03",
