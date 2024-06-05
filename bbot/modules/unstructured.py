@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from unstructured.partition.auto import partition
 
 from bbot.modules.base import BaseModule
 
@@ -143,7 +142,7 @@ class unstructured(BaseModule):
 
         # If the file can be extracted with unstructured use its partition function or try and read it
         if any(file_path.lower().endswith(file_type) for file_type in unstructured_file_types):
-            elements = partition(filename=file_path)
+            elements = await self.scan.run_in_executor_mp(auto_partition, file_path)
             return "\n\n".join(element.text for element in elements)
         else:
             with open(file_path, "rb") as file:
@@ -152,3 +151,10 @@ class unstructured(BaseModule):
     async def finish(self):
         del os.environ["SCARF_NO_ANALYTICS"]
         return
+
+
+def auto_partition(filename):
+    from unstructured.partition.auto import partition
+
+    elements = partition(filename=filename)
+    return elements
