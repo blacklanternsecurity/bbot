@@ -37,6 +37,12 @@ class TestGowitness(ModuleTestBase):
         module_test.monkeypatch.setattr(module_test.scan.modules["social"], "emit_event", new_emit_event)
 
     def check(self, module_test, events):
+        webscreenshots = [e for e in events if e.type == "WEBSCREENSHOT"]
+        assert webscreenshots, "failed to raise WEBSCREENSHOT events"
+        assert not any(
+            ["blob" in e.data for e in webscreenshots]
+        ), "blob was included in WEBSCREENSHOT data when it shouldn't have been"
+
         screenshots_path = self.home_dir / "scans" / module_test.scan.name / "gowitness" / "screenshots"
         screenshots = list(screenshots_path.glob("*.png"))
         assert (
@@ -69,3 +75,14 @@ class TestGowitness(ModuleTestBase):
                 and e.source.type == "SOCIAL"
             ]
         )
+
+
+class TestGoWitnessWithBlob(TestGowitness):
+    config_overrides = {"file_blobs": True}
+
+    def check(self, module_test, events):
+        webscreenshots = [e for e in events if e.type == "WEBSCREENSHOT"]
+        assert webscreenshots, "failed to raise WEBSCREENSHOT events"
+        assert all(
+            ["blob" in e.data and e.data["blob"] for e in webscreenshots]
+        ), "blob not found in WEBSCREENSHOT data"

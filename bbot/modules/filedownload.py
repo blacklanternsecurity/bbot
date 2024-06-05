@@ -87,7 +87,6 @@ class filedownload(BaseModule):
     async def setup(self):
         self.extensions = list(set([e.lower().strip(".") for e in self.config.get("extensions", [])]))
         self.max_filesize = self.config.get("max_filesize", "10MB")
-        self.base_64_encoded_file = self.config.get("base_64_encoded_file", "false")
         self.download_dir = self.scan.home / "filedownload"
         self.helpers.mkdir(self.download_dir)
         self.urls_downloaded = set()
