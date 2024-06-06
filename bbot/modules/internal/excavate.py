@@ -29,10 +29,11 @@ class ExcavateRule:
         await self.process(r)
 
     async def process(self, r):
+        self.excavate.hugewarning(r)
         event_data = {
             "host": str(self.event.host),
             "url": self.event.data.get("url", ""),
-            "description": r["meta"]["description"],
+            "description": r.meta["description"],
         }
         context = f"Found {self.context_description} in {self.discovery_context}"
         await self.report(event_data, context)
@@ -74,34 +75,43 @@ class excavate(BaseInternalModule):
             "SearchForText2": 'rule SearchForText2 { meta: description = "Contains the text DDDDEEEEFFFF" strings: $text = "DDDDEEEEFFFF" condition: $text }',
         }
 
+    class URLExtractor(ExcavateRule):
+        yaraRules = {
+            "fullURL": r'rule fullURL { meta: description = "Contains Full URL" strings: $url_regex = /https?:\/\/([\w\.-]+)([\/\w \.-]*)/ condition: $url_regex }',
+        }
+
+        async def process(self, r):
+            for h in r.strings:
+                results = set(h.instances)
+                for result in results:
+                    context = f"excavate's URL extractor found URL_UNVERIFIED: {result} using regex search"
+                    await self.report(result, context, event_type="URL_UNVERIFIED")
+
     class HostnameExtractor(ExcavateRule):
         yaraRules = {}
 
         def __init__(self, excavate):
             regexes_component_list = []
-            for i, r in enumerate(excavate.scan.dns_regexes):
-                regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
-            regexes_component = " ".join(regexes_component_list)
-            self.yaraRules[f"hostname_extraction"] = (
-                rf'rule hostname_extraction {{meta: description = "Matches DNS hostname pattern" strings: {regexes_component} condition: any of them}}'
-            )
+            if excavate.scan.dns_regexes:
+                for i, r in enumerate(excavate.scan.dns_regexes):
+                    regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
+                regexes_component = " ".join(regexes_component_list)
+                self.yaraRules[f"hostname_extraction"] = (
+                    rf'rule hostname_extraction {{meta: description = "Matches DNS hostname pattern" strings: {regexes_component} condition: any of them}}'
+                )
             super().__init__(excavate)
             excavate.critical(self.yaraRules)
 
         async def process(self, r):
-
-            if r["matches"]:
-                for h in r["strings"]:
-                    self.excavate.critical(h)
-                    self.excavate.critical(h.identifier)
-                    self.excavate.critical(h.instances)
-                    hostname_regex = re.compile(
-                        self.excavate.scan.dns_regexes[int(h.identifier.split("_")[-1])].pattern
-                    )
-                    results = set(h.instances)
-                    for result in results:
-                        context = f"excavate's hostname extractor found DNS_NAME: {result} from  using regex derived from target domain"
-                        await self.report(result, context, event_type="DNS_NAME")
+            for h in r.strings:
+                self.excavate.critical(h)
+                self.excavate.critical(h.identifier)
+                self.excavate.critical(h.instances)
+                hostname_regex = re.compile(self.excavate.scan.dns_regexes[int(h.identifier.split("_")[-1])].pattern)
+                results = set(h.instances)
+                for result in results:
+                    context = f"excavate's hostname extractor found DNS_NAME: {result} from  using regex derived from target domain"
+                    await self.report(result, context, event_type="DNS_NAME")
 
     async def setup(self):
         self.recursive_decode = self.config.get("recursive_decode", False)
@@ -115,25 +125,24 @@ class excavate(BaseInternalModule):
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
+                    self.critical(e)
                     excavateRule = e(self)
                     for ruleName, ruleContent in excavateRule.yaraRules.items():
+                        self.hugeinfo(ruleName)
                         self.yaraRulesDict[ruleName] = ruleContent
                         self.yaraCallbackDict[ruleName] = excavateRule._callback
 
+        self.hugewarning(self.yaraRulesDict)
         self.yaraRules = yara.compile(source="\n".join(self.yaraRulesDict.values()))
         return True
 
-    async def match_callback(self, result, data, event, discovery_context):
-        if result["matches"]:
-            rule_name = result["rule"]
+    async def search(self, data, event, discovery_context="HTTP response"):
+        for result in self.yaraRules.match(data=data):
+            rule_name = result.rule
             if rule_name in self.yaraCallbackDict.keys():
                 await self.yaraCallbackDict[rule_name](result, data, event, discovery_context)
-
-    async def search(self, data, event, discovery_context="HTTP response"):
-        self.yaraRules.match(
-            data=data,
-            callback=lambda result: asyncio.create_task(self.match_callback(result, data, event, discovery_context)),
-        )
+            else:
+                self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
     async def handle_event(self, event):
         data = event.data
