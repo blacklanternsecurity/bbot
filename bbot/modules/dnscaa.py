@@ -14,71 +14,121 @@
 #
 # We simply extract any URL's as URL_UNVERIFIED, no further activity against URL's is performed by this module in order to remain passive.
 #
+# Other modules which respond to URL_UNVERIFIED events may do so if you have configured bbot appropriately.
+#
+# The domain/IP portion of any URL_UNVERIFIED's should be extracted by the various internal modules.
+#
 
 from bbot.modules.base import BaseModule
 
 import logging
+import re
 
-from bbot.core.helpers.regexes import email_regex, url_regexes
+from bbot.core.helpers.regexes import dns_name_regex, email_regex, url_regexes
 
 log = logging.getLogger("bbot.core.helpers.dns")
+
+# Handle '0 iodef "mailto:support@hcaptcha.com"'
+# Handle '1 iodef "https://some.host.tld/caa;"'
+# Handle '0 issue "pki.goog; cansignhttpexchanges=yes; somethingelse=1"'
+# Handle '1 issue ";"' == explicit denial for any wildcard issuance.
+# Handle '128 issuewild "comodoca.com"'
+# Handle '128 issuewild ";"' == explicit denial for any wildcard issuance.
+_caa_regex = r"^(?P<flags>[0-9]+) +(?P<property>\w+) +\"(?P<text>[^;\"]*);* *(?P<extensions>[^\"]*)\"$"
+caa_regex = re.compile(_caa_regex)
+
+_caa_extensions_kvp_regex = r"(?P<k>\w+)=(?P<v>[^;]+)"
+caa_extensions_kvp_regex = re.compile(_caa_extensions_kvp_regex)
 
 
 class dnscaa(BaseModule):
     watched_events = ["DNS_NAME"]
-    produced_events = ["EMAIL_ADDRESS", "URL_UNVERIFIED"]
+    produced_events = ["DNS_CAA", "DNS_NAME", "EMAIL_ADDRESS", "URL_UNVERIFIED"]
     flags = ["subdomain-enum", "email-enum", "passive", "safe"]
-    meta = {"description": "Check for CAA iodef records"}
+    meta = {"description": "Check for CAA records"}
     options = {
-        "max_event_handlers": 10,
+        "in_scope_only": True,
+        "dns_names": True,
+        "emails": True,
+        "urls": True,
     }
     options_desc = {
-        "max_event_handlers": "How many instances of the module to run concurrently",
+        "in_scope_only": "Only check in-scope domains",
+        "dns_names": "emit DNS_NAME events",
+        "emails": "emit EMAIL_ADDRESS events",
+        "urls": "emit URL_UNVERIFIED events",
     }
-    _max_event_handlers = 10
+    in_scope_only = True
+
+    _dns_names = True
+    _emails = True
+    _urls = True
 
     async def setup(self):
-        self._max_event_handlers = self.config.get("max_event_handlers", 10)
+        self.in_scope_only = self.config.get("in_scope_only", True)
+        self._dns_names = self.config.get("dns_names", True)
+        self._emails = self.config.get("emails", True)
+        self._urls = self.config.get("urls", True)
         return await super().setup()
 
-    def _incoming_dedup_hash(self, event):
-        # dedupe by parent
-        parent_domain = self.helpers.parent_domain(event.data)
-        return hash(parent_domain), "already processed parent domain"
-
     async def filter_event(self, event):
+        if "_wildcard" in str(event.host).split("."):
+            return False, "event is wildcard"
+
+        if event.module == self:
+            return False, "event is from self"
+
+        # scope filtering
+        if self.in_scope_only and not self.scan.in_scope(event):
+            return False, "event is not in scope"
+
         return True
 
     async def handle_event(self, event):
-        parent_domain = self.helpers.parent_domain(event.data)
-        query = f"{parent_domain}"
-        try:
-            r = await self.helpers.resolve_raw(query, type="caa")
+        tags = ["caa-record"]
 
-            if r:
-                raw_results, errors = r
+        r = await self.helpers.resolve_raw(event.host, type="caa")
 
-                for rdtype, answers in raw_results:
-                    for answer in answers:
-                        s = self.helpers.smart_decode(f"{answer}")
+        if r:
+            raw_results, errors = r
 
-                        if "iodef" in s:
-                            for match in email_regex.finditer(s):
-                                start, end = match.span()
-                                email = s[start:end]
+            for rdtype, answers in raw_results:
+                for answer in answers:
+                    s = self.helpers.smart_decode(f"{answer}").strip().replace('" "', "")
 
-                                await self.emit_event(email, "EMAIL_ADDRESS", tags=["caa-record"], source=event)
+                    # validate CAA record vi regex so that we can determine what to do with it.
+                    caa_match = caa_regex.search(s)
 
-                            for url_regex in url_regexes:
-                                for match in url_regex.finditer(s):
+                    if (
+                        caa_match
+                        and caa_match.group("flags")
+                        and caa_match.group("property")
+                        and caa_match.group("text")
+                    ):
+                        # it's legit.
+                        if caa_match.group("property").lower() == "iodef":
+                            if self._emails:
+                                for match in email_regex.finditer(caa_match.group("text")):
                                     start, end = match.span()
-                                    url = s[start:end].strip('"').strip()
+                                    email = caa_match.group("text")[start:end]
 
-                                    await self.emit_event(url, "URL_UNVERIFIED", source=event, tags="caa-record")
+                                    await self.emit_event(email, "EMAIL_ADDRESS", tags=tags, source=event)
 
-        except BaseException:
-            log.trace(f"Caught exception in dnscaa module:")
-            raise
+                            if self._urls:
+                                for url_regex in url_regexes:
+                                    for match in url_regex.finditer(caa_match.group("text")):
+                                        start, end = match.span()
+                                        url = caa_match.group("text")[start:end].strip('"').strip()
+
+                                        await self.emit_event(url, "URL_UNVERIFIED", tags=tags, source=event)
+
+                        elif caa_match.group("property").lower().startswith("issue"):
+                            if self._dns_names:
+                                for match in dns_name_regex.finditer(caa_match.group("text")):
+                                    start, end = match.span()
+                                    name = caa_match.group("text")[start:end]
+
+                                    await self.emit_event(name, "DNS_NAME", tags=tags, source=event)
 
 
 # EOF
