@@ -210,6 +210,7 @@ class Scanner:
 
         self._stopping = False
 
+        self._dns_strings = None
         self._dns_regexes = None
         self.__log_handlers = None
         self._log_handler_backup = []
@@ -925,6 +926,24 @@ class Scanner:
         return root_event
 
     @property
+    def dns_strings(self):
+        """
+        A list of DNS hostname strings generated from the scan target
+        """
+        if self._dns_strings is None:
+            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
+            dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
+            dns_targets.update(dns_whitelist)
+            dns_targets = sorted(dns_targets, key=len)
+            dns_targets_set = set()
+            dns_strings = []
+            for t in dns_targets:
+                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
+                    dns_strings.append(t)
+            self._dns_strings = dns_strings
+        return self._dns_strings
+
+    @property
     def dns_regexes(self):
         """
         A list of DNS hostname regexes generated from the scan target
@@ -937,18 +956,11 @@ class Scanner:
             ...         hostname = match.group().lower()
         """
         if self._dns_regexes is None:
-            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
-            dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
-            dns_targets.update(dns_whitelist)
-            dns_targets = sorted(dns_targets, key=len)
-            dns_targets_set = set()
             dns_regexes = []
-            for t in dns_targets:
-                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
-                    dns_targets_set.add(t)
-                    dns_regexes.append(re.compile(r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")", re.I))
+            for t in self.dns_strings:
+                # dns_regexes.append(re.compile(r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")", re.I))
+                dns_regexes.append(re.compile(r"([a-z0-9-]+\.)+" + re.escape(t), re.I))
             self._dns_regexes = dns_regexes
-
         return self._dns_regexes
 
     @property
