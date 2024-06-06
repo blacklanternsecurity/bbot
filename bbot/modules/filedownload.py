@@ -13,7 +13,7 @@ class filedownload(BaseModule):
     """
 
     watched_events = ["URL_UNVERIFIED", "HTTP_RESPONSE"]
-    produced_events = []
+    produced_events = ["FILESYSTEM"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {
         "description": "Download common filetypes such as PDF, DOCX, PPTX, etc.",
@@ -105,7 +105,7 @@ class filedownload(BaseModule):
         if "filedownload" in event.tags:
             return True
         else:
-            if event.scope_distance > 1:
+            if event.scope_distance > 0:
                 return False, f"{event} not within scope distance"
             elif self.hash_event(event) in self.urls_downloaded:
                 return False, f"Already processed {event}"
@@ -122,15 +122,15 @@ class filedownload(BaseModule):
             extension_matches = any(url_lower.endswith(f".{e}") for e in self.extensions)
             filedownload_requested = "filedownload" in event.tags
             if extension_matches or filedownload_requested:
-                await self.download_file(event.data)
+                await self.download_file(event.data, source_event=event)
         elif event.type == "HTTP_RESPONSE":
             headers = event.data.get("header", {})
             content_type = headers.get("content_type", "")
             if content_type:
                 url = event.data["url"]
-                await self.download_file(url, content_type=content_type)
+                await self.download_file(url, content_type=content_type, source_event=event)
 
-    async def download_file(self, url, content_type=None):
+    async def download_file(self, url, content_type=None, source_event=None):
         orig_filename, file_destination, base_url = self.make_filename(url, content_type=content_type)
         if orig_filename is None:
             return
@@ -138,6 +138,12 @@ class filedownload(BaseModule):
         if result:
             self.info(f'Found "{orig_filename}" at "{base_url}", downloaded to {file_destination}')
             self.files_downloaded += 1
+            if source_event:
+                file_event = self.make_event(
+                    {"path": str(file_destination)}, "FILESYSTEM", tags=["filedownload", "file"], source=source_event
+                )
+                file_event.scope_distance = source_event.scope_distance
+                await self.emit_event(file_event)
         self.urls_downloaded.add(hash(url))
 
     def make_filename(self, url, content_type=None):

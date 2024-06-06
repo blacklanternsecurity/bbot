@@ -269,6 +269,10 @@ class Scanner:
         self._stopping = False
 
         self._dns_regexes = None
+        # temporary fix to boost scan performance
+        # TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
+        self._target_dns_regex_disable = self.config.get("target_dns_regex_disable", False)
+
         self.__log_handlers = None
         self._log_handler_backup = []
 
@@ -849,6 +853,8 @@ class Scanner:
             ...     for match in regex.finditer(response.text):
             ...         hostname = match.group().lower()
         """
+        if self._target_dns_regex_disable:
+            return []
         if self._dns_regexes is None:
             dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
             dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
