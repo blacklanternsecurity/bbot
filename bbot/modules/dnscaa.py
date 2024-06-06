@@ -58,11 +58,8 @@ class dnscaa(BaseModule):
         "emails": "emit EMAIL_ADDRESS events",
         "urls": "emit URL_UNVERIFIED events",
     }
-    in_scope_only = True
-
-    _dns_names = True
-    _emails = True
-    _urls = True
+    # accept DNS_NAMEs out to 2 hops if in_scope_only is False
+    scope_distance_modifier = 2
 
     async def setup(self):
         self.in_scope_only = self.config.get("in_scope_only", True)
@@ -75,11 +72,8 @@ class dnscaa(BaseModule):
         if "_wildcard" in str(event.host).split("."):
             return False, "event is wildcard"
 
-        if event.module == self:
-            return False, "event is from self"
-
         # scope filtering
-        if self.in_scope_only and not self.scan.in_scope(event):
+        if event.scope_distance > 0 and self.in_scope_only:
             return False, "event is not in scope"
 
         return True
@@ -94,7 +88,7 @@ class dnscaa(BaseModule):
 
             for rdtype, answers in raw_results:
                 for answer in answers:
-                    s = self.helpers.smart_decode(f"{answer}").strip().replace('" "', "")
+                    s = answer.to_text().strip().replace('" "', "")
 
                     # validate CAA record vi regex so that we can determine what to do with it.
                     caa_match = caa_regex.search(s)

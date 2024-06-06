@@ -1,53 +1,40 @@
 from .base import ModuleTestBase
 
-import dns.rrset
-
 
 class TestDNSCAA(ModuleTestBase):
     targets = ["blacklanternsecurity.notreal"]
+    modules_overrides = ["dnscaa", "speculate"]
     config_overrides = {
         "scope_report_distance": 1,
     }
 
     async def setup_after_prep(self, module_test):
-        old_resolve_fn = module_test.scan.helpers.dns.resolve_raw
-
-        async def resolve_raw(query, **kwargs):
-            if query == "blacklanternsecurity.notreal" and kwargs.get("type", "").upper() == "CAA":
-                return (
-                    (
-                        (
-                            "CAA",
-                            dns.rrset.from_text_list(
-                                query, 1, "IN", "CAA", ['0 iodef "https://caa.blacklanternsecurity.notreal"']
-                            ),
-                        ),
-                        (
-                            "CAA",
-                            dns.rrset.from_text_list(
-                                query, 1, "IN", "CAA", ['128 iodef "mailto:caa@blacklanternsecurity.notreal"']
-                            ),
-                        ),
-                        ("CAA", dns.rrset.from_text_list(query, 1, "IN", "CAA", ['0 issue "comodoca.com"'])),
-                        (
-                            "CAA",
-                            dns.rrset.from_text_list(
-                                query, 1, "IN", "CAA", ['1 issue "digicert.com; cansignhttpexchanges=yes"']
-                            ),
-                        ),
-                        ("CAA", dns.rrset.from_text_list(query, 1, "IN", "CAA", ['0 issuewild "letsencrypt.org"'])),
-                        (
-                            "CAA",
-                            dns.rrset.from_text_list(
-                                query, 1, "IN", "CAA", ['128 issuewild "pki.goog; cansignhttpexchanges=yes"']
-                            ),
-                        ),
-                    ),
-                    (),
-                )
-            return await old_resolve_fn(query, **kwargs)
-
-        module_test.monkeypatch.setattr(module_test.scan.helpers.dns, "resolve_raw", resolve_raw)
+        module_test.mock_dns(
+            {
+                "blacklanternsecurity.notreal": {
+                    "A": ["127.0.0.11"],
+                    "CAA": [
+                        '0 iodef "https://caa.blacklanternsecurity.notreal"',
+                        '128 iodef "mailto:caa@blacklanternsecurity.notreal"',
+                        '0 issue "comodoca.com"',
+                        '1 issue "digicert.com; cansignhttpexchanges=yes"',
+                        '0 issuewild "letsencrypt.org"',
+                        '128 issuewild "pki.goog; cansignhttpexchanges=yes"',
+                    ],
+                },
+                "caa.blacklanternsecurity.notreal": {"A": ["127.0.0.22"]},
+                "comodoca.com": {
+                    "A": ["127.0.0.33"],
+                    "CAA": [
+                        '0 iodef "https://caa.comodoca.com"',
+                    ],
+                },
+                "caa.comodoca.com": {"A": ["127.0.0.33"]},
+                "digicert.com": {"A": ["127.0.0.44"]},
+                "letsencrypt.org": {"A": ["127.0.0.55"]},
+                "pki.goog": {"A": ["127.0.0.66"]},
+            }
+        )
 
     def check(self, module_test, events):
         assert any(e.type == "DNS_NAME" and e.data == "comodoca.com" for e in events), "Failed to detect CA DNS name"
@@ -62,3 +49,12 @@ class TestDNSCAA(ModuleTestBase):
         assert any(
             e.type == "EMAIL_ADDRESS" and e.data == "caa@blacklanternsecurity.notreal" for e in events
         ), "Failed to detect email address"
+        # make sure we're not checking CAA records for out-of-scope hosts
+        assert not any(str(e.host) == "caa.comodoca.com" for e in events)
+
+
+class TestDNSCAAInScopeFalse(TestDNSCAA):
+    config_overrides = {"scope_report_distance": 3, "modules": {"dnscaa": {"in_scope_only": False}}}
+
+    def check(self, module_test, events):
+        assert any(str(e.host) == "caa.comodoca.com" for e in events)
