@@ -70,7 +70,7 @@ mkdocs = "^1.5.2"
 mkdocs-extra-sass-plugin = "^0.1.0"
 mkdocs-material = "^9.2.5"
 mkdocs-material-extensions = "^1.1.1"
-mkdocstrings = ">=0.22,<0.25"
+mkdocstrings = ">=0.22,<0.26"
 mkdocstrings-python = "^1.6.0"
 livereload = "^2.6.3"
 
@@ -91,7 +91,7 @@ extend-exclude = "(test_step_1/test_manager_*)"
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v1.1.7{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v1.1.8{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]

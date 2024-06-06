@@ -6,6 +6,141 @@ from bbot.core.helpers import regexes
 from bbot.core.errors import ValidationError
 
 
+# NOTE: :2001:db8:: will currently cause an exception...
+# e.g. raised unknown error: split_port() failed to parse netloc ":2001:db8::"
+
+
+def test_ip_regexes():
+    bad_ip = [
+        "203.0..113.0",  # double dot typeo
+        ".0.113.0",  # Partial match
+        "203.0.113.",  # Partial match
+        "203.0.113.0:80",  # correctly formatted with :port appended
+        "255.255.255.256",  # octet greater than 255
+        "256.255.255.255",  # octet greater than 255
+        "2001:db8:::80",  # incorrectly formatted with :port appended
+        "[2001:db8::]:80",  # correctly formatted with :port appended
+        "2001:db8:g::",  # includes non-hex character,
+        "2001.db8.80",  # weird dot separated thing that might actually resolve as a DNS_NAME
+        "9e:3e:53:29:43:64",  # MAC address, poor regex patterning will often detect these.
+    ]
+
+    good_ip = [
+        "0.0.0.0",
+        "10.0.0.0",
+        "10.255.255.255",
+        "127.0.0.0",
+        "127.0.0.1",
+        "172.16.0.0",
+        "172.31.255.255",
+        "192.168.0.0",
+        "192.168.255.255",
+        "203.0.113.0",
+        "203.0.113.0/24",
+        "255.255.255.255",
+        "::1",
+        "2001:db8::",
+        "2001:db8::1",
+        "2001:db8::1/128",
+        "1:1:1:1:1:1:1:1",
+        "1::1",
+        "ffff::ffff",
+        "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+    ]
+
+    ip_address_regexes = regexes.event_type_regexes["IP_ADDRESS"]
+
+    for ip in bad_ip:
+        for r in ip_address_regexes:
+            assert not r.match(ip), f"BAD IP ADDRESS: {ip} matched regex: {r}"
+
+        try:
+            event_type, _ = get_event_type(ip)
+            if event_type == "OPEN_TCP_PORT":
+                if ip.startswith("["):
+                    assert ip == "[2001:db8::]:80"
+                else:
+                    assert ip == "203.0.113.0:80"
+                continue
+            if event_type == "DNS_NAME":
+                if ip.startswith("2001"):
+                    assert ip == "2001.db8.80"
+                elif ip.startswith("255"):
+                    assert ip == "255.255.255.256"
+                elif ip.startswith("256"):
+                    assert ip == "256.255.255.255"
+                else:
+                    assert ip == "203.0.113."
+                continue
+            pytest.fail(f"BAD IP ADDRESS: {ip} matched returned event type: {event_type}")
+        except ValidationError:
+            continue
+        except Exception as e:
+            pytest.fail(f"BAD IP ADDRESS: {ip} raised unknown error: {e}")
+
+    for ip in good_ip:
+        event_type, _ = get_event_type(ip)
+        if not event_type == "IP_ADDRESS":
+            if ip.endswith("/24"):
+                assert (
+                    ip == "203.0.113.0/24" and event_type == "IP_RANGE"
+                ), f"Event type for IP_ADDRESS {ip} was not properly detected"
+            else:
+                assert (
+                    ip == "2001:db8::1/128" and event_type == "IP_RANGE"
+                ), f"Event type for IP_ADDRESS {ip} was not properly detected"
+        else:
+            matches = list(r.match(ip) for r in ip_address_regexes)
+            assert any(matches), f"Good IP ADDRESS {ip} did not match regexes"
+
+
+def test_ip_range_regexes():
+    bad_ip_ranges = [
+        "203.0.113.0",
+        "203.0.113.0/",
+        "203.0.113.0/a",
+        "2001:db8::/",
+        "2001:db8::/a",
+        "evilcorp.com",
+        "[2001:db8::]:80",
+    ]
+
+    good_ip_ranges = [
+        "203.0.113.0/8",
+        "203.0.113.255/32",
+        "2001:db8::/128",
+        "2001:db8::/4",
+    ]
+
+    ip_range_regexes = regexes.event_type_regexes["IP_RANGE"]
+
+    for bad_ip_range in bad_ip_ranges:
+        for r in ip_range_regexes:
+            assert not r.match(bad_ip_range), f"BAD IP_RANGE: {bad_ip_range} matched regex: {r}"
+
+        event_type = ""
+        try:
+            event_type, _ = get_event_type(bad_ip_range)
+            if event_type == "DNS_NAME":
+                assert bad_ip_range == "evilcorp.com"
+                continue
+            if event_type == "IP_ADDRESS":
+                assert bad_ip_range == "203.0.113.0"
+                continue
+            if event_type == "OPEN_TCP_PORT":
+                assert bad_ip_range == "[2001:db8::]:80"
+                continue
+            pytest.fail(f"BAD IP_RANGE: {bad_ip_range} matched returned event type: {event_type}")
+        except ValidationError:
+            continue
+        except Exception as e:
+            pytest.fail(f"BAD IP_RANGE: {bad_ip_range} raised unknown error: {e}: {traceback.format_exc()}")
+
+    for good_ip_range in good_ip_ranges:
+        matches = list(r.match(good_ip_range) for r in ip_range_regexes)
+        assert any(matches), f"Good IP_RANGE {good_ip_range} did not match regexes"
+
+
 def test_dns_name_regexes():
     bad_dns = [
         "-evilcorp.com",  # DNS names cannot begin with a dash

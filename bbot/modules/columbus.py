@@ -5,7 +5,11 @@ class columbus(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query the Columbus Project API for subdomains"}
+    meta = {
+        "description": "Query the Columbus Project API for subdomains",
+        "created_date": "2023-06-01",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://columbus.elmasy.com/api/lookup"
 

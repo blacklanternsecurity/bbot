@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from httpx._models import Cookies
 from socksio.exceptions import SOCKSError
 
+from bbot.core.helpers.misc import truncate_filename
 from bbot.core.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
 
@@ -258,6 +259,7 @@ class WebHelper:
         """
         success = False
         filename = kwargs.pop("filename", self.parent_helper.cache_filename(url))
+        filename = truncate_filename(filename)
         follow_redirects = kwargs.pop("follow_redirects", True)
         max_size = kwargs.pop("max_size", None)
         warn = kwargs.pop("warn", True)

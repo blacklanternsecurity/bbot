@@ -6,7 +6,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class CSV(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Output to CSV"}
+    meta = {"description": "Output to CSV", "created_date": "2022-04-07", "author": "@TheTechromancer"}
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to CSV file"}
 
