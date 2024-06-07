@@ -30,6 +30,7 @@ class wpscan(BaseModule):
         "disable_tls_checks": "Disables the SSL/TLS certificate verification (Default True)",
         "force": "Do not check if the target is running WordPress or returns a 403",
     }
+    deps_apt = ["curl", "build-essential"]
     deps_ansible = [
         {
             "name": "Install Rubygems (Non-Debian)",
