@@ -38,11 +38,23 @@ class wpscan(BaseModule):
             "when": "ansible_facts['os_family'] != 'Debian'",
         },
         {
+            "name": "Install Ruby Development Environment (Non-Debian)",
+            "package": {"name": "ruby-devel", "state": "present"},
+            "become": True,
+            "when": "ansible_facts['os_family'] != 'Debian'",
+        },
+        {
             "name": "Install Rubygems (Debian)",
             "package": {
                 "name": "ruby-rubygems",
                 "state": "present",
             },
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Debian'",
+        },
+        {
+            "name": "Install Ruby Development Environment (Debian)",
+            "package": {"name": "ruby-dev", "state": "present"},
             "become": True,
             "when": "ansible_facts['os_family'] == 'Debian'",
         },
