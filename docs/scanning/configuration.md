@@ -179,8 +179,10 @@ url_extension_httpx_only:
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:
     - HTTP_RESPONSE
+    - RAW_TEXT
     - URL_UNVERIFIED
     - DNS_NAME_UNRESOLVED
+    - FILESYSTEM
     # - IP_ADDRESS
 # URL of BBOT server
 agent_url: ''
