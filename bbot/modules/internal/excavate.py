@@ -344,7 +344,7 @@ class JavascriptExtractor(BaseExtractor):
 
 
 class excavate(BaseInternalModule):
-    watched_events = ["HTTP_RESPONSE", "RAW_DATA"]
+    watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive"]
     meta = {

@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 
 class unstructured(BaseModule):
     watched_events = ["FILESYSTEM"]
-    produced_events = ["FILESYSTEM", "RAW_DATA"]
+    produced_events = ["FILESYSTEM", "RAW_TEXT"]
     flags = ["passive", "safe"]
     meta = {
         "description": "Module to extract data from files",
@@ -100,12 +100,12 @@ class unstructured(BaseModule):
             file_path = event.data["path"]
             content = await self.scan.run_in_executor_mp(extract_text, file_path)
             if content:
-                raw_data_event = self.make_event(
+                raw_text_event = self.make_event(
                     content,
-                    "RAW_DATA",
+                    "RAW_TEXT",
                     source=event,
                 )
-                await self.emit_event(raw_data_event)
+                await self.emit_event(raw_text_event)
 
     async def finish(self):
         del os.environ["SCARF_NO_ANALYTICS"]
