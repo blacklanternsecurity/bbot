@@ -21,12 +21,9 @@
 
 from bbot.modules.base import BaseModule
 
-import logging
 import re
 
 from bbot.core.helpers.regexes import dns_name_regex, email_regex, url_regexes
-
-log = logging.getLogger("bbot.core.helpers.dns")
 
 # Handle '0 iodef "mailto:support@hcaptcha.com"'
 # Handle '1 iodef "https://some.host.tld/caa;"'
