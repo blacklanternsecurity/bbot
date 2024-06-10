@@ -588,7 +588,7 @@ class Preset:
             Preset: The loaded preset
 
         Examples:
-            >>> preset = Preset.from_dict({"target": "evilcorp.com", "modules": ["portscan}]})
+            >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
         new_preset = cls(
             *preset_dict.get("target", []),
@@ -623,6 +623,9 @@ class Preset:
 
         Args:
             filename (Path): The preset YAML file to merge
+
+        Examples:
+            >>> preset.include_preset("/home/user/my_preset.yml")
         """
         self.log_debug(f'Including preset "{filename}"')
         preset_filename = PRESET_PATH.find(filename)
@@ -637,6 +640,9 @@ class Preset:
         Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
 
         The file extension is optional.
+
+        Examples:
+            >>> preset = Preset.from_yaml_file("/home/user/my_preset.yml")
         """
         filename = Path(filename).resolve()
         if _exclude is None:
@@ -657,6 +663,19 @@ class Preset:
 
     @classmethod
     def from_yaml_string(cls, yaml_preset):
+        """
+        Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
+
+        The file extension is optional.
+
+        Examples:
+            >>> yaml_string = '''
+            >>> target:
+            >>> - evilcorp.com
+            >>> modules:
+            >>> - portscan'''
+            >>> preset = Preset.from_yaml_string(yaml_string)
+        """
         return cls.from_dict(omegaconf.OmegaConf.create(yaml_preset))
 
     def to_dict(self, include_target=False, full_config=False):

@@ -61,6 +61,7 @@ class Scanner:
             ```
         _status_code (int): The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in `_status_codes`.
         target (Target): Target of scan (alias to `self.preset.target`).
+        preset (Preset): The main scan Preset in its baked form.
         config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `self.preset.config`).
         whitelist (Target): Scan whitelist (by default this is the same as `target`) (alias to `self.preset.whitelist`).
         blacklist (Target): Scan blacklist (this takes ultimate precedence) (alias to `self.preset.blacklist`).
@@ -112,7 +113,7 @@ class Scanner:
             preset (Preset, optional): Preset to use for the scan.
             scan_id (str, optional): Unique identifier for the scan. Auto-generates if None.
             dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.
-            *kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
+            **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
         """
         if scan_id is not None:
             self.id = str(id)
