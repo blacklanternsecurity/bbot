@@ -3,7 +3,10 @@ from .base import ModuleTestBase
 
 class TestHunt(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "hunt"]
+    modules_overrides = ["httpx", "hunt", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+    }
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
