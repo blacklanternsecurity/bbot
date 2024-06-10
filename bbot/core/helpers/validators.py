@@ -180,7 +180,14 @@ def clean_url(url: str):
         ParseResult(scheme='http', netloc='evilcorp.com', path='/api', params='', query='', fragment='')
     """
     parsed = parse_url(url)
-    parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
+
+    # REMOVE THIS. Manually setting for now since we're not config-aware here yet.
+    url_querystring_remove = False
+
+    if url_querystring_remove:
+        parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
+    else:
+        parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="")
     try:
         scheme = parsed.scheme
     except ValueError:

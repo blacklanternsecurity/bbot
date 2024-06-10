@@ -917,6 +917,15 @@ def _validate_param(param, compare_mode):
     return set(param).issubset(allowed_chars)
 
 
+def headers_string2dict(headers_str):
+    from http.client import HTTPMessage
+    from io import StringIO
+
+    headers_file = StringIO(headers_str)
+    headers = HTTPMessage(headers_file)
+    return dict(headers)
+
+
 def extract_params_html(html_data, compare_mode="getparam"):
     """
     Extracts parameters from an HTML object, yielding them one at a time. This function filters
