@@ -1,45 +1,69 @@
-# What is BBOT?
+## BBOT's Recursive Philosophy
 
-BBOT is a system of individual modules that interchange data **recursively**. Every module (e.g. `portscan`) _consumes_ a type of data (e.g. a `DNS_NAME`) and _emits_ another kind, (an `OPEN_TCP_PORT`). These bits of data, called [events](scanning/events.md), become the output of the tool, but are also redistributed to all the other modules, prompting them to dig deeper, and feeding the recursive cycle of discovery.
+The most important thing to understand about BBOT is that its philosophy is fundamentally different from other tools.
+
+### Example: Subdomain Enumeration
+
+Let's take subdomain enumeration as an example, since this is a task most of us are pretty familiar with.
+
+Check out this subdomain enum workflow from [Trickest](https://trickest.com/):
+
+![trickest](https://github.com/blacklanternsecurity/bbot/assets/20261699/4ea0c60c-35f7-4ead-943a-a7f524af474b)
+
+This workflow stitches together a bunch of different recon tools. It starts at the left and works forward:
+
+1. Passive enumeration (Scraping/APIs)
+2. DNS Brute Force
+3. DNS Brute Force (Permutations)
+4. Port Scan
+5. HTTP
+
+If you ever had a bash script that did something similar to this, Trickest lets you to automate it in a visual, drag-and-drop kind of way. Pretty neat!
+
+But there's a flaw with this approach. The flaw isn't specific to Trickest, and it's not easy to spot at first. But it causes quite a few subdomains to be missed. Let's run BBOT and compare its output to Trickest.
+
+```bash
+bbot -t ebay.com -p subdomain-enum
+```
+
+### Recursive vs. Non-Recursive - Real-World Comparison
+
+<insert subdomain comparison>
+
+What happened here? How is BBOT -- a single tool -- able to find more subdomains than this entire Trickest workflow? The two have more or less the same features -- passive enumeration, DNS brute force, subdomain permutations, port scanner, and web client. Individually, these features are pretty comparable.
+
+The difference is in the underlying philosophy. Trickest (and the tools it's leveraging) use a one-time, one-way enumeration. This approach produces results that are shallow and incomplete. There's also a fair amount of wastefulness ub running five separate tools, each of which under the hood are calling the same APIs -- but we won't get into that.
+
+Alternatively, BBOT runs in a perpetual cycle, feeding each result back into itself to continually fuel its discovery. It finds subdomains of subdomains of subdomains, permutations of permutations of permutations. It portscans hosts, visits their websites, extracts new subdomains, generates permutations of them, portscans those permutations, visits their websites, and so on infinitely until there is nothing left to be discovered:
 
 ![recursion](https://github.com/blacklanternsecurity/bbot/assets/20261699/7b2edfca-2692-463b-939b-ab9d52d2fe00)
 
-## What It **_Isn't_**
+This recursive philosophy is what makes BBOT so powerful, and it's what enables it to find far-out goodies that are ten or even twenty hops away from the starting point. Below is a real subdomain, `secureaccess-dev.corp.ebay.com`, which was discovered by BBOT, but is mysteriously missing from Trickest's output:
 
-It's important to understand that BBOT has a fundamentally different philosophy from most tools. Its discovery process does not have "phases", or "stages"; i.e. it does not work like this:
-
-![how_it_doesnt_work](https://github.com/blacklanternsecurity/bbot/assets/20261699/67c4e332-f181-47e7-b884-2112bda347a4)
-
-This is a traditional OSINT process, where you start with a target and you work in stages. Each stage gets you a little more data and requires more cleaning/deduplication, until finally you reach the end. The problem with this approach is that it **misses things**. 
-
-Imagine if on the last step of this process, you discovered a new subdomain. Awesome! But shouldn't you go back and check that one the same way you did the others? Shouldn't you port-scan it and SSL-mine it, extract its web contents, and so on? Let's assume you do that, and maybe during that process you even discover another subdomain! What about this time? Should you start over again for that one? You see the dilemma.
-
-![traditional-workflow](https://github.com/blacklanternsecurity/bbot/assets/20261699/aa7cb6ac-6f88-464a-8069-0d534cecfd2b)
-
-## Recursion
-
-Recursion is at the heart of BBOT's design. Each newly-discovered piece of data is fed it back into the machine, fueling the discovery process. This continues until there is no new data to discover.
-
-![bbot-workflow](https://github.com/blacklanternsecurity/bbot/assets/20261699/1b56c472-c2c4-41b5-b711-4b7296ec7b20)
-
-## Module Example
-
-In a simple example, we run a BBOT scan with **three modules**: `portscan`, `sslcert`, and `httpx`. Each of these modules "consume" a certain type of data:
-
-- **`portscan`** consumes `DNS_NAME`s, port-scans them, and outputs `OPEN_TCP_PORT`s
-- **`sslcert`** consumes `OPEN_TCP_PORT`s, grabs certs, and extracts `DNS_NAME`s
-- **`httpx`** consumes `OPEN_TCP_PORT`s and visits any web services, ultimately producing new `DNS_NAME`s
-
-```mermaid
-graph TD
-  portscan -->|OPEN_TCP_PORT| sslcert;
-  portscan -->|OPEN_TCP_PORT| httpx;
-  sslcert --> |DNS_NAME| portscan;
-  httpx --> |DNS_NAME| portscan;
+```json
+{
+  "type": "DNS_NAME",
+  "data": "secureaccess-dev.corp.ebay.com",
+  "discovery_path": [
+    "Scan heightened_sean seeded with DNS_NAME: ebay.com",
+    "rapiddns searched rapiddns API for \"ebay.com\" and found DNS_NAME: mxphxpool2044.ebay.com",
+    "A record for mxphxpool2044.ebay.com contains IP_ADDRESS: 66.211.185.207",
+    "ipneighbor produced IP_ADDRESS: 66.211.185.204",
+    "PTR record for 66.211.185.204 contains DNS_NAME: mxphxpool2041.ebay.com",
+    "dnsbrute_mutations found a mutated subdomain of \"listings.in.paradise.qa.ebay.com\" on its 1st run: DNS_NAME: crafts.listings.in.paradise.qa.ebay.com",
+    "dnsbrute_mutations found a mutated subdomain of \"corp.ebay.com\" on its 4th run: DNS_NAME: secureaccess-dev.corp.ebay.com",
+    "speculated OPEN_TCP_PORT: secureaccess-dev.corp.ebay.com:443",
+    "httpx visited secureaccess-dev.corp.ebay.com:443 and got status code 302 at https://secureaccess-dev.corp.ebay.com/",
+    "HTTP_RESPONSE was 0B with unspecified content type",
+    "excavate's hostname extractor found DNS_NAME: secureaccess-dev.corp.ebay.com from HTTP response headers using regex derived from target domain"
+  ]
+}
 ```
 
-This allows for some interesting chains of events. Given a single target such as `evilcorp.com`, `portscan` may start by discovering an `OPEN_TCP_PORT` `evilcorp.com:443`. `sslcert` and `httpx` will then visit that port and extract more hostnames, which are in turn scanned by `portscan` to produce more open ports which are visited by `sslcert` and `httpx`, which discover more hostnames, which are again passed to `portscan`, and so on...
+## BBOT Modules Work Together
 
-This is a simple example with only a few modules, but you can being to see how if 30 or 40 modules were enabled, they could feed each other exponentially to produce an immense amount of data. This recursion is exactly how BBOT is able to outperform other tools.
+BBOT's recursive design is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot). This means that each of BBOT's 100+ modules ***consume*** one type of data and ***produce*** another.
 
-For a full list of event types and which modules consume/produce them, see [List of Event Types](scanning/events.md#list-of-event-types).
+For example, the `portscan` module consumes `DNS_NAME`, and produces `OPEN_TCP_PORT`. The `sslcert` module consumes `OPEN_TCP_PORT` and produces `DNS_NAME`. You can see how even these two modules, when enabled together, will feed each other recursively.
+
+As you can see, every BBOT module is designed to interwork with all the others in this recursive system. Enabling even one module has the potential to increase the yield exponentially. This is exactly how BBOT is able to outperform other tools.
