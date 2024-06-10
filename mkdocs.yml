@@ -111,5 +111,7 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 extra_javascript:
-  - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
   - javascripts/tablesort.js
+  - javascripts/vega@5.js
+  - javascripts/vega-lite@5.js
+  - javascripts/vega-embed@6.js

@@ -205,5 +205,8 @@ Modules: [{num_modules:,}]("{modules}")"""
     # assert len(bbot_docs_toc.splitlines()) == 2
     update_md_files("BBOT DOCS TOC", bbot_docs_toc)
 
+    # generate data for chord graph
+    from gen_chord_data import gen_chord_data
+    gen_chord_data()
 
 update_docs()

@@ -14,22 +14,6 @@ flags:
 output_modules:
   - subdomains
 
-config_exclusive:
-  custom_stdout:
-    modules:
-      stdout:
-        format: text
-        # only output DNS_NAMEs to the console
-        event_types:
-          - DNS_NAME
-        # only show in-scope subdomains
-        in_scope_only: True
-        # display the raw subdomains, nothing else
-        event_fields:
-          - data
-        # automatically dedupe
-        accept_dups: False
-
 ```
 <!-- END BBOT SUBDOMAIN ENUM PRESET -->
 

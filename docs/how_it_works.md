@@ -1,8 +1,38 @@
+# How it Works
+
+<!-- BBOT CHORD GRAPH -->
+<div id="vis"></div>
+<script type="text/javascript">
+  window.addEventListener(
+    'load',
+    function() {
+      vegaEmbed(
+        '#vis',
+        '/bbot/data/chord_graph/vega.json',
+        {renderer: 'svg'}
+      );
+    }
+  );
+</script>
+<!-- END BBOT CHORD GRAPH -->
+
 ## BBOT's Recursive Philosophy
 
-The most important thing to understand about BBOT is that its philosophy is fundamentally different from other tools.
+The most important thing to understand is that BBOT's philosophy is fundamentally different from other tools. It does not have **"phases"** or **"stages"**. Instead, each of its 100+ modules continually exchange data with each other.
 
-### Example: Subdomain Enumeration
+Each module consumes a one of data, and emits another. 
+
+The above graph shows the relationships between modules and the event types they consume and produce.
+
+## BBOT Modules Work Together
+
+BBOT's recursive design is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot). This means that each of BBOT's 100+ modules ***consume*** one type of data and ***produce*** another. This enables them to work together in an efficient and very effective way.
+
+For example, the `portscan` module consumes `DNS_NAME`, and produces `OPEN_TCP_PORT`. The `sslcert` module consumes `OPEN_TCP_PORT` and produces `DNS_NAME`. You can see how even these two modules, when enabled together, will feed each other recursively.
+
+Every BBOT module is designed to interwork with all the others in this recursive system. Because of this, enabling even one module has the potential to increase your results exponentially. This is exactly how BBOT is able to outperform other tools.
+
+## Example: Subdomain Enumeration
 
 Let's take subdomain enumeration as an example, since this is a task most of us are pretty familiar with.
 
@@ -26,7 +56,7 @@ But there's a flaw with this approach. The flaw isn't specific to Trickest, and 
 bbot -t ebay.com -p subdomain-enum
 ```
 
-### Recursive vs. Non-Recursive - Real-World Comparison
+## Recursive vs. Non-Recursive - Real-World Comparison
 
 <insert subdomain comparison>
 
@@ -59,11 +89,3 @@ This recursive philosophy is what makes BBOT so powerful, and it's what enables 
   ]
 }
 ```
-
-## BBOT Modules Work Together
-
-BBOT's recursive design is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot). This means that each of BBOT's 100+ modules ***consume*** one type of data and ***produce*** another.
-
-For example, the `portscan` module consumes `DNS_NAME`, and produces `OPEN_TCP_PORT`. The `sslcert` module consumes `OPEN_TCP_PORT` and produces `DNS_NAME`. You can see how even these two modules, when enabled together, will feed each other recursively.
-
-As you can see, every BBOT module is designed to interwork with all the others in this recursive system. Enabling even one module has the potential to increase the yield exponentially. This is exactly how BBOT is able to outperform other tools.
