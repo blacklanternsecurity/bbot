@@ -47,6 +47,7 @@ nav:
     - Target: dev/target.md
     - BaseModule: dev/basemodule.md
     - BBOTCore: dev/core.md
+    - Engine: dev/engine.md
     - Helpers:
       - Overview: dev/helpers/index.md
       - Command: dev/helpers/command.md

@@ -21,6 +21,19 @@ error_sentinel = object()
 
 
 class EngineBase:
+    """
+    Base Engine class for Server and Client.
+
+    An Engine is a simple and lightweight RPC implementation that allows offloading async tasks
+    to a separate process. It leverages ZeroMQ in a ROUTER-DEALER configuration.
+
+    BBOT makes use of this by spawning a dedicated engine for DNS and HTTP tasks.
+    This offloads I/O and helps free up the main event loop for other tasks.
+
+    To use of Engine, you must subclass both EngineClient and EngineServer.
+
+    See the respective EngineClient and EngineServer classes for usage examples.
+    """
 
     ERROR_CLASS = BBOTEngineError
 
@@ -46,6 +59,37 @@ class EngineBase:
 
 
 class EngineClient(EngineBase):
+    """
+    The client portion of BBOT's RPC Engine.
+
+    To create an engine, you must create a subclass of this class and also
+    define methods for each of your desired functions.
+
+    Note that this only supports async functions. If you need to offload a synchronous function to another CPU, use BBOT's multiprocessing pool instead.
+
+    Any CPU or I/O intense logic should be implemented in the EngineServer.
+
+    These functions are typically stubs whose only job is to forward the arguments to the server.
+
+    Functions with the same names should be defined on the EngineServer.
+
+    The EngineClient must specify its associated server class via the `SERVER_CLASS` variable.
+
+    Depending on whether your function is a generator, you will use either `run_and_return()`, or `run_and_yield`.
+
+    Examples:
+        >>> from bbot.core.engine import EngineClient
+        >>>
+        >>> class MyClient(EngineClient):
+        >>>     SERVER_CLASS = MyServer
+        >>>
+        >>>     async def my_function(self, **kwargs)
+        >>>         return await self.run_and_return("my_function", **kwargs)
+        >>>
+        >>>     async def my_generator(self, **kwargs):
+        >>>         async for _ in self.run_and_yield("my_generator", **kwargs):
+        >>>             yield _
+    """
 
     SERVER_CLASS = None
 
@@ -190,6 +234,31 @@ class EngineClient(EngineBase):
 
 
 class EngineServer(EngineBase):
+    """
+    The server portion of BBOT's RPC Engine.
+
+    Methods defined here must match the methods in your EngineClient.
+
+    To use the functions, you must create mappings for them in the CMDS attribute, as shown below.
+
+    Examples:
+        >>> from bbot.core.engine import EngineServer
+        >>>
+        >>> class MyServer(EngineServer):
+        >>>     CMDS = {
+        >>>         0: "my_function",
+        >>>         1: "my_generator",
+        >>>     }
+        >>>
+        >>>     def my_function(self, arg1=None):
+        >>>         await asyncio.sleep(1)
+        >>>         return str(arg1)
+        >>>
+        >>>     def my_generator(self):
+        >>>         for i in range(10):
+        >>>             await asyncio.sleep(1)
+        >>>             yield i
+    """
 
     CMDS = {}
 
