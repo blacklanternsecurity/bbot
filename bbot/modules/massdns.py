@@ -18,7 +18,7 @@ class massdns(subdomain_enum):
     the mutation was found. I.e. the first mutation will be tagged "mutation-1". The second one (a mutation of a
     mutation) will be "mutation-2". Mutations of mutations of mutations will be "mutation-3", etc.
 
-    This is especially use for bug bounties because it enables you to recognize distant/rare subdomains at a glance.
+    This is especially useful for bug bounties because it enables you to recognize distant/rare subdomains at a glance.
     Subdomains with higher mutation levels are more likely to be distant/rare or never-before-seen.
     """
 
