@@ -361,7 +361,7 @@ class Scanner:
             tasks = self._cancel_tasks()
             self.debug(f"Awaiting {len(tasks):,} tasks")
             for task in tasks:
-                self.debug(f"Awaiting {task}")
+                # self.debug(f"Awaiting {task}")
                 with contextlib.suppress(BaseException):
                     await task
             self.debug(f"Awaited {len(tasks):,} tasks")
