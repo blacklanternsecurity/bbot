@@ -78,12 +78,13 @@ class ExcavateRule:
         context = f"Found {self.context_description} in {self.discovery_context}"
         await self.report(event_data, context)
 
-    async def report(self, event_data, context, event_type="FINDING"):
+    async def report(self, event_data, context, event_type="FINDING", tags=[]):
         await self.excavate.emit_event(
             event_data,
             event_type,
             parent=self.event,
             context=context,
+            tags=tags,
         )
 
     async def regex_search(self, content, regex):
@@ -272,18 +273,36 @@ class excavate(BaseInternalModule):
                                 "original_value": original_value,
                                 "url": self.url_unparse(parameter_type, parsed_url),
                                 "additional_params": additional_params,
-                                "assigned_cookies": self.assigned_cookies,
+                                "assigned_cookies": self.excavate.assigned_cookies,
                                 "description": description,
                             }
-                            context = f"excavate's Parameter extractor found WEB_PARAMETER: {parameter_name} using technique [{parameterExtractorSubModule.name}]"
+                            context = f"excavate's parameter extractor found WEB_PARAMETER: {parameter_name} using technique [{parameterExtractorSubModule.name}]"
                             await self.report(data, context, event_type="WEB_PARAMETER")
                         else:
                             self.debug(f"blocked parameter [{parameter_name}] due to BL match")
 
+    class CSPExtractor(ExcavateRule):
+        yaraRules = {
+            "csp": r'rule csp { meta: description = "Contains CSP Header" strings: $csp = /Content-Security-Policy:[^\r\n]+/ nocase condition: $csp }',
+        }
+
+        async def process(self, r):
+            for h in r.strings:
+                results = set(h.instances)
+                for csp in results:
+                    csp_bytes = csp.matched_data
+                    csp_str = csp_bytes.decode("utf-8")
+                    domains = await self.helpers.re.findall(bbot_regexes.dns_name_regex, csp_str)
+                    unique_domains = set(domains)
+                    for domain in unique_domains:
+                        self.excavate.hugewarning(domain)
+                        context = f"excavate's CSP extractor found DNS_NAME: {domain} by searching CSP rules"
+                        await self.report(domain, context, event_type="DNS_NAME", tags=["affiliate"])
+
     class URLExtractor(ExcavateRule):
         yaraRules = {
-            "urlfull": r'rule urlfull { meta: description = "Contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([\/\w \.-]*)/ condition: $url_full }',
-            "urltag": r'rule urltag { meta: description = "Contains tag with src or href attribute" strings: $url_attr = /https?:\/\/([\w\.-]+)([\/\w \.-]*)/ condition: $url_attr }',
+            "urlfull": r'rule urlfull { meta: description = "Contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_full }',
+            "urltag": r'rule urltag { meta: description = "Contains tag with src or href attribute" strings: $url_attr = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_attr }',
         }
 
         async def process(self, r):
@@ -312,7 +331,7 @@ class excavate(BaseInternalModule):
                 hostname_regex = re.compile(self.excavate.scan.dns_regexes[int(h.identifier.split("_")[-1])].pattern)
                 results = set(h.instances)
                 for result in results:
-                    context = f"excavate's hostname extractor found DNS_NAME: {result} from  using regex derived from target domain"
+                    context = f"excavate's hostname extractor found DNS_NAME: {result} using regex derived from target domain"
                     await self.report(result, context, event_type="DNS_NAME")
 
     async def setup(self):
@@ -339,6 +358,7 @@ class excavate(BaseInternalModule):
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
+                    self.critical(f"Including Submodule {e}")
                     if e.__name__ == "ParameterExtractor":
                         message = (
                             "Parameter Extraction disabled because no modules consume WEB_PARAMETER events"
