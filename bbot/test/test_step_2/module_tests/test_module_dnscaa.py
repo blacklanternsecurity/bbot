@@ -9,7 +9,7 @@ class TestDNSCAA(ModuleTestBase):
     }
 
     async def setup_after_prep(self, module_test):
-        module_test.mock_dns(
+        await module_test.mock_dns(
             {
                 "blacklanternsecurity.notreal": {
                     "A": ["127.0.0.11"],
