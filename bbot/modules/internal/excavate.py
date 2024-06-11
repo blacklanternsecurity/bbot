@@ -67,7 +67,13 @@ class ExcavateRule:
         self.data = data
         self.event = event
         self.discovery_context = discovery_context
-        await self.process(r)
+        await self.process(self.preprocess(r))
+
+    def preprocess(self, r):
+        results = []
+        for h in r.strings:
+            results += list(set(h.instances))
+        return results
 
     async def process(self, r):
         event_data = {
@@ -170,8 +176,6 @@ class excavate(BaseInternalModule):
             def extract(self):
                 forms = self.discovery_regex.findall(str(self.result))
                 for form_action, form_content in forms:
-                    self.excavate.critical(form_action)
-                    self.excavate.hugewarning(form_content)
                     form_parameters = {}
                     for form_content_regex in self.form_content_regexes:
                         input_tags = form_content_regex.findall(form_content)
@@ -198,7 +202,7 @@ class excavate(BaseInternalModule):
             regexes_component_list = []
             parameterExtractorRules = find_subclasses(self, self.ParameterExtractorRule)
             for r in parameterExtractorRules:
-                self.excavate.critical(r)
+                self.excavate.critical(f"Including ParameterExtractor Submodule: {r.__name__}")
                 self.parameterExtractorCallbackDict[r.__name__] = r
                 regexes_component_list.append(f"${r.__name__} = {r.extraction_regex}")
             regexes_component = " ".join(regexes_component_list)
@@ -228,6 +232,9 @@ class excavate(BaseInternalModule):
                     "",
                 )
             )
+
+        def preprocess(self, r):
+            return r
 
         async def process(self, r):
             for h in r.strings:
@@ -286,18 +293,39 @@ class excavate(BaseInternalModule):
             "csp": r'rule csp { meta: description = "Contains CSP Header" strings: $csp = /Content-Security-Policy:[^\r\n]+/ nocase condition: $csp }',
         }
 
-        async def process(self, r):
-            for h in r.strings:
-                results = set(h.instances)
-                for csp in results:
-                    csp_bytes = csp.matched_data
-                    csp_str = csp_bytes.decode("utf-8")
-                    domains = await self.helpers.re.findall(bbot_regexes.dns_name_regex, csp_str)
-                    unique_domains = set(domains)
-                    for domain in unique_domains:
-                        self.excavate.hugewarning(domain)
-                        context = f"excavate's CSP extractor found DNS_NAME: {domain} by searching CSP rules"
-                        await self.report(domain, context, event_type="DNS_NAME", tags=["affiliate"])
+        async def process(self, results):
+            for csp in results:
+                csp_bytes = csp.matched_data
+                csp_str = csp_bytes.decode("utf-8")
+                domains = await self.helpers.re.findall(bbot_regexes.dns_name_regex, csp_str)
+                unique_domains = set(domains)
+                for domain in unique_domains:
+                    context = f"excavate's CSP extractor found DNS_NAME: {domain} by searching CSP rules"
+                    await self.report(domain, context, event_type="DNS_NAME", tags=["affiliate"])
+
+    class EmailExtractor(ExcavateRule):
+
+        yaraRules = {
+            "email": 'rule email { meta: description = "Contains email address" strings: $email = /[^\\W_][\\w\\-\\.\\+\']{0,100}@[a-zA-Z0-9\\-]{1,100}(\\.[a-zA-Z0-9\\-]{1,100})*\\.[a-zA-Z]{2,63}/ nocase fullword condition: $email }',
+        }
+
+        async def process(self, results):
+            for email in results:
+                email_bytes = email.matched_data
+                email_str = email_bytes.decode("utf-8")
+                context = f"excavate's Email extractor found EMAIL_ADDRESS: {email_str} with an email regex"
+                await self.report(email_str, context, event_type="EMAIL_ADDRESS")
+
+    # class EmailExtractor(BaseExtractor):
+    #     regexes = {"email": _email_regex}
+    #     tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
+
+    #     async def report(self, result, name, event, **kwargs):
+    #         result = result.lower()
+    #         tld = result.split(".")[-1]
+    #         if tld not in self.tld_blacklist:
+    #             self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
+    #             await self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
 
     class URLExtractor(ExcavateRule):
         yaraRules = {
@@ -305,12 +333,10 @@ class excavate(BaseInternalModule):
             "urltag": r'rule urltag { meta: description = "Contains tag with src or href attribute" strings: $url_attr = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_attr }',
         }
 
-        async def process(self, r):
-            for h in r.strings:
-                results = set(h.instances)
-                for result in results:
-                    context = f"excavate's URL extractor found URL_UNVERIFIED: {result} using regex search"
-                    await self.report(result, context, event_type="URL_UNVERIFIED")
+        async def process(self, results):
+            for result in results:
+                context = f"excavate's URL extractor found URL_UNVERIFIED: {result} using regex search"
+                await self.report(result, context, event_type="URL_UNVERIFIED")
 
     class HostnameExtractor(ExcavateRule):
         yaraRules = {}
@@ -326,13 +352,13 @@ class excavate(BaseInternalModule):
                     rf'rule hostname_extraction {{meta: description = "Matches DNS hostname pattern" strings: {regexes_component} condition: any of them}}'
                 )
 
-        async def process(self, r):
-            for h in r.strings:
-                hostname_regex = re.compile(self.excavate.scan.dns_regexes[int(h.identifier.split("_")[-1])].pattern)
-                results = set(h.instances)
-                for result in results:
-                    context = f"excavate's hostname extractor found DNS_NAME: {result} using regex derived from target domain"
-                    await self.report(result, context, event_type="DNS_NAME")
+        async def process(self, results):
+            #       hostname_regex = re.compile(self.excavate.scan.dns_regexes[int(h.identifier.split("_")[-1])].pattern)
+            for result in results:
+                context = (
+                    f"excavate's hostname extractor found DNS_NAME: {result} using regex derived from target domain"
+                )
+                await self.report(result, context, event_type="DNS_NAME")
 
     async def setup(self):
         self.recursive_decode = self.config.get("recursive_decode", False)
@@ -358,7 +384,7 @@ class excavate(BaseInternalModule):
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
-                    self.critical(f"Including Submodule {e}")
+                    self.critical(f"Including Submodule {e.__name__}")
                     if e.__name__ == "ParameterExtractor":
                         message = (
                             "Parameter Extraction disabled because no modules consume WEB_PARAMETER events"
@@ -376,7 +402,6 @@ class excavate(BaseInternalModule):
         return True
 
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
-        self.hugewarning(content_type)
         if not data:
             return None
 
@@ -435,7 +460,7 @@ class excavate(BaseInternalModule):
                         url_event.web_spider_distance = parent_web_spider_distance
                         await self.emit_event(
                             url_event,
-                            context='{module} looked in "Location" header and found {event.type}: {event.data}',
+                            context=f'evcavate looked in "Location" header and found {event.type}: {event.data}',
                         )
                 else:
                     self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
@@ -450,7 +475,6 @@ class excavate(BaseInternalModule):
             body = await self.helpers.re.recursive_decode(body)
             headers_str = await self.helpers.re.recursive_decode(headers_str)
 
-        self.hugewarning(headers)
         self.assigned_cookies = {}
         content_type = None
         for k, v in headers.items():
@@ -499,7 +523,6 @@ class excavate(BaseInternalModule):
                         await self.emit_event(data, "WEB_PARAMETER", event)
             if k.lower() == "content-type":
                 content_type = headers["content-type"]
-        self.critical(content_type)
         await self.search(
             body,
             event,
