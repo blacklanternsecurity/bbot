@@ -160,7 +160,7 @@ class wpscan(BaseModule):
                         source_event,
                     )
             else:
-                url_event = self.make_event(url, "URL_UNVERIFIED", source=source_event, tags=["httpx-safe"])
+                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["httpx-safe"])
                 if url_event:
                     url_event.scope_distance = source_event.scope_distance
                     yield url_event
@@ -222,7 +222,7 @@ class wpscan(BaseModule):
         for name, plugin in plugins_json.items():
             url = plugin.get("location", base_url)
             if url != base_url:
-                url_event = self.make_event(url, "URL_UNVERIFIED", source=source_event, tags=["httpx-safe"])
+                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["httpx-safe"])
                 if url_event:
                     url_event.scope_distance = source_event.scope_distance
                     yield url_event

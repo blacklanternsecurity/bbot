@@ -140,7 +140,7 @@ class filedownload(BaseModule):
             self.files_downloaded += 1
             if source_event:
                 file_event = self.make_event(
-                    {"path": str(file_destination)}, "FILESYSTEM", tags=["filedownload", "file"], source=source_event
+                    {"path": str(file_destination)}, "FILESYSTEM", tags=["filedownload", "file"], parent=source_event
                 )
                 file_event.scope_distance = source_event.scope_distance
                 await self.emit_event(file_event)

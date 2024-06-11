@@ -131,7 +131,7 @@ class URLExtractor(BaseExtractor):
                     message = f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]"
                 else:
                     message = (
-                        f"Found URL [{result}] from parsing [{event.source.data.get('path')}] with regex [{name}]"
+                        f"Found URL [{result}] from parsing [{event.parent.data.get('path')}] with regex [{name}]"
                     )
                 self.excavate.debug(message)
                 await self.excavate.emit_event(url_event)
