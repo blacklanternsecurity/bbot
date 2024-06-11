@@ -63,10 +63,9 @@ class ExcavateRule:
         self.excavate = excavate
         self.helpers = excavate.helpers
 
-    async def _callback(self, r, data, event, assigned_cookies, discovery_context):
+    async def _callback(self, r, data, event, discovery_context):
         self.data = data
         self.event = event
-        self.assigned_cookies = assigned_cookies
         self.discovery_context = discovery_context
         await self.process(r)
 
@@ -157,24 +156,40 @@ class excavate(BaseInternalModule):
 
         class GetForm(ParameterExtractorRule):
 
-            name = "get_form"
+            name = "GET Form"
             extraction_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase'
+            form_content_regexes = [
+                bbot_regexes.input_tag_regex,
+                bbot_regexes.select_tag_regex,
+                bbot_regexes.textarea_tag_regex,
+            ]
+            discovery_regex = bbot_regexes.get_form_regex
+            output_type = "GETPARAM"
 
             def extract(self):
-                get_forms = bbot_regexes.get_form_regex.findall(str(self.result))
-                for form_action, form_content in get_forms:
+                forms = self.discovery_regex.findall(str(self.result))
+                for form_action, form_content in forms:
+                    self.excavate.critical(form_action)
+                    self.excavate.hugewarning(form_content)
                     form_parameters = {}
-                    input_tags = bbot_regexes.input_tag_regex.findall(form_content)
+                    for form_content_regex in self.form_content_regexes:
+                        input_tags = form_content_regex.findall(form_content)
 
-                    for tag in input_tags:
-                        parameter_name = tag[0]
-                        original_value = tag[1] if len(tag) > 1 and tag[1] else "1"
-                        form_parameters[parameter_name] = original_value
+                        for tag in input_tags:
+                            parameter_name = tag[0]
+                            original_value = tag[1] if len(tag) > 1 and tag[1] else "1"
+                            form_parameters[parameter_name] = original_value
 
-                    for parameter_name, original_value in form_parameters.items():
-                        yield "GETPARAM", parameter_name, original_value, form_action, _exclude_key(
-                            form_parameters, parameter_name
-                        )
+                        for parameter_name, original_value in form_parameters.items():
+                            yield self.output_type, parameter_name, original_value, form_action, _exclude_key(
+                                form_parameters, parameter_name
+                            )
+
+        class PostForm(GetForm):
+            name = "POST Form"
+            extraction_regex = r'/<form[^>]*\bmethod=["\']?post["\']?[^>]*>.*<\/form>/s nocase'
+            discovery_regex = bbot_regexes.post_form_regex
+            output_type = "POSTPARAM"
 
         def __init__(self, excavate):
             super().__init__(excavate)
@@ -182,6 +197,7 @@ class excavate(BaseInternalModule):
             regexes_component_list = []
             parameterExtractorRules = find_subclasses(self, self.ParameterExtractorRule)
             for r in parameterExtractorRules:
+                self.excavate.critical(r)
                 self.parameterExtractorCallbackDict[r.__name__] = r
                 regexes_component_list.append(f"${r.__name__} = {r.extraction_regex}")
             regexes_component = " ".join(regexes_component_list)
@@ -216,6 +232,10 @@ class excavate(BaseInternalModule):
             for h in r.strings:
                 results = set(h.instances)
                 for result in results:
+                    self.excavate.hugeinfo(str(type(result)))
+                    self.excavate.hugeinfo(result)
+                    self.excavate.hugeinfo(result.matched_data)
+                    self.excavate.hugeinfo(result.plaintext())
                     ParameterExtractorSubmoduleName = h.identifier.lstrip("$")
                     if ParameterExtractorSubmoduleName not in self.parameterExtractorCallbackDict.keys():
                         raise excavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
@@ -244,7 +264,7 @@ class excavate(BaseInternalModule):
 
                         if self.in_bl(parameter_name) == False:
                             parsed_url = urlparse(url)
-                            description = f"HTTP Extracted Parameter [{parameter_name}]"
+                            description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
                             data = {
                                 "host": parsed_url.hostname,
                                 "type": parameter_type,
@@ -253,7 +273,7 @@ class excavate(BaseInternalModule):
                                 "url": self.url_unparse(parameter_type, parsed_url),
                                 "additional_params": additional_params,
                                 "assigned_cookies": self.assigned_cookies,
-                                "regex_name": parameterExtractorSubModule.name,
+                                "description": description,
                             }
                             context = f"excavate's Parameter extractor found WEB_PARAMETER: {parameter_name} using technique [{parameterExtractorSubModule.name}]"
                             await self.report(data, context, event_type="WEB_PARAMETER")
@@ -330,15 +350,48 @@ class excavate(BaseInternalModule):
                     for ruleName, ruleContent in excavateRule.yaraRules.items():
                         self.yaraRulesDict[ruleName] = ruleContent
                         self.yaraCallbackDict[ruleName] = excavateRule._callback
-        # self.hugewarning(self.yaraRulesDict)
+
+        yara.set_config(max_match_data=1500)
         self.yaraRules = yara.compile(source="\n".join(self.yaraRulesDict.values()))
         return True
 
-    async def search(self, data, event, assigned_cookies, discovery_context="HTTP response"):
+    async def search(self, data, event, content_type, discovery_context="HTTP response"):
+        self.hugewarning(content_type)
+        if not data:
+            return None
+
+        content_type_lower = content_type.lower() if content_type else ""
+        extraction_map = {
+            "json": self.helpers.extract_params_json,
+            "xml": self.helpers.extract_params_xml,
+        }
+
+        for source_type, extract_func in extraction_map.items():
+            if source_type in content_type_lower:
+                results = extract_func(data)
+                if results:
+                    for parameter_name, original_value in results:
+                        description = (
+                            f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]"
+                        )
+                        data = {
+                            "host": str(event.host),
+                            "type": "SPECULATIVE",
+                            "name": parameter_name,
+                            "original_value": original_value,
+                            "url": str(event.data["url"]),
+                            "additional_params": {},
+                            "assigned_cookies": self.assigned_cookies,
+                            "description": description,
+                        }
+                        context = f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}"
+                        await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+                return
+
         for result in self.yaraRules.match(data=data):
             rule_name = result.rule
-            if rule_name in self.yaraCallbackDict.keys():
-                await self.yaraCallbackDict[rule_name](result, data, event, assigned_cookies, discovery_context)
+            if rule_name in self.yaraCallbackDict:
+                await self.yaraCallbackDict[rule_name](result, data, event, discovery_context)
             else:
                 self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
@@ -369,16 +422,18 @@ class excavate(BaseInternalModule):
 
         # process response data
         body = event.data.get("body", "")
-        headers = event.data.get("raw_header", "")
+        headers = event.data.get("header-dict", "")
+        headers_str = event.data.get("raw_header", "")
         if body == "" and headers == "":
             return
         if self.recursive_decode:
             body = await self.helpers.re.recursive_decode(body)
-            headers = await self.helpers.re.recursive_decode(headers)
+            headers_str = await self.helpers.re.recursive_decode(headers_str)
 
-        headers_dict = self.helpers.headers_string2dict(headers)
-        assigned_cookies = {}
-        for k, v in headers_dict.items():
+        self.hugewarning(headers)
+        self.assigned_cookies = {}
+        content_type = None
+        for k, v in headers.items():
             if k.lower() == "set_cookie":
                 if "=" not in v:
                     self.debug(f"Cookie found without '=': {v}")
@@ -388,7 +443,7 @@ class excavate(BaseInternalModule):
                     cookie_value = v.split("=")[1].split(";")[0]
 
                     if self.in_bl(cookie_value) == False:
-                        assigned_cookies[cookie_name] = cookie_value
+                        self.assigned_cookies[cookie_name] = cookie_value
                         description = f"Set-Cookie Assigned Cookie [{cookie_name}]"
                         data = {
                             "host": str(event.host),
@@ -411,7 +466,7 @@ class excavate(BaseInternalModule):
                     additional_params,
                 ) in extract_params_location(v, event.parsed_url):
                     if self.in_bl(parameter_name) == False:
-                        description = f"HTTP Extracted Parameter [{parameter_name}]"
+                        description = f"HTTP Extracted Parameter [{parameter_name}] (Location Header)"
                         data = {
                             "host": parsed_url.hostname,
                             "type": "GETPARAM",
@@ -422,19 +477,21 @@ class excavate(BaseInternalModule):
                             "additional_params": additional_params,
                         }
                         await self.emit_event(data, "WEB_PARAMETER", event)
-
+            if k.lower() == "content-type":
+                content_type = headers["content-type"]
+        self.critical(content_type)
         await self.search(
             body,
             event,
-            assigned_cookies,
+            content_type,
             #  consider_spider_danger=True,
             discovery_context="HTTP response (body)",
         )
 
         await self.search(
-            headers,
+            headers_str,
             event,
-            assigned_cookies,
+            content_type,
             #  consider_spider_danger=True,
             discovery_context="HTTP response (headers)",
         )

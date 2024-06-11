@@ -822,30 +822,34 @@ def truncate_string(s, n):
         return s
 
 
+import json
+
+import json
+
+
 def extract_params_json(json_data, compare_mode="getparam"):
     """
-    Extracts keys from a JSON object and returns them as a set. Used by the `paramminer_headers` module.
+    Extracts key-value pairs from a JSON object and returns them as a set of tuples. Used by the `paramminer_headers` module.
 
     Args:
         json_data (str): JSON-formatted string containing key-value pairs.
 
     Returns:
-        set: A set containing the keys present in the JSON object.
+        set: A set of tuples containing the keys and their corresponding values present in the JSON object.
 
     Raises:
-        Logs a message if JSONDecodeError occurs.
+        Returns an empty set if JSONDecodeError occurs.
 
     Examples:
         >>> extract_params_json('{"a": 1, "b": {"c": 2}}')
-        {'a', 'b', 'c'}
+        {('a', 1), ('b', {'c': 2}), ('c', 2)}
     """
     try:
         data = json.loads(json_data)
     except json.JSONDecodeError:
-        log.debug("Invalid JSON supplied. Returning empty list.")
         return set()
 
-    keys = set()
+    key_value_pairs = set()
     stack = [data]
 
     while stack:
@@ -853,51 +857,50 @@ def extract_params_json(json_data, compare_mode="getparam"):
         if isinstance(current_data, dict):
             for key, value in current_data.items():
                 if _validate_param(key, compare_mode):
-                    keys.add(key)
+                    key_value_pairs.add((key, value))
                 if isinstance(value, (dict, list)):
                     stack.append(value)
         elif isinstance(current_data, list):
             for item in current_data:
                 if isinstance(item, (dict, list)):
                     stack.append(item)
-    return keys
+    return key_value_pairs
 
 
 def extract_params_xml(xml_data, compare_mode="getparam"):
     """
-    Extracts tags from an XML object and returns them as a set.
+    Extracts tags and their text values from an XML object and returns them as a set of tuples.
 
     Args:
         xml_data (str): XML-formatted string containing elements.
 
     Returns:
-        set: A set containing the tags present in the XML object.
+        set: A set of tuples containing the tags and their corresponding text values present in the XML object.
 
     Raises:
-        Logs a message if ParseError occurs.
+        Returns an empty set if ParseError occurs.
 
     Examples:
-        >>> extract_params_xml('<root><child1><child2/></child1></root>')
-        {'child1', 'child2', 'root'}
+        >>> extract_params_xml('<root><child1><child2>value</child2></child1></root>')
+        {('root', None), ('child1', None), ('child2', 'value')}
     """
     import xml.etree.ElementTree as ET
 
     try:
         root = ET.fromstring(xml_data)
     except ET.ParseError:
-        log.debug("Invalid XML supplied. Returning empty list.")
         return set()
 
-    tags = set()
+    tag_value_pairs = set()
     stack = [root]
 
     while stack:
         current_element = stack.pop()
         if _validate_param(current_element.tag, compare_mode):
-            tags.add(current_element.tag)
+            tag_value_pairs.add((current_element.tag, current_element.text))
         for child in current_element:
             stack.append(child)
-    return tags
+    return tag_value_pairs
 
 
 # Define valid characters for each mode based on RFCs
@@ -917,88 +920,79 @@ def _validate_param(param, compare_mode):
     return set(param).issubset(allowed_chars)
 
 
-def headers_string2dict(headers_str):
-    from http.client import HTTPMessage
-    from io import StringIO
+# def extract_params_html(html_data, compare_mode="getparam"):
+#     """
+#     Extracts parameters from an HTML object, yielding them one at a time. This function filters
+#     these parameters based on a specified mode that determines the type of validation
+#     or comparison against rules for headers, GET parameters, or cookies. If no mode is specified,
+#     it defaults to 'getparam', which is the least restrictive.
 
-    headers_file = StringIO(headers_str)
-    headers = HTTPMessage(headers_file)
-    return dict(headers)
+#     Args:
+#         html_data (str): HTML-formatted string.
+#         compare_mode (str, optional): The mode to compare extracted parameter names against.
+#             Defaults to 'getparam'. Valid modes are 'header', 'getparam', 'cookie'.
 
+#     Yields:
+#         str: A string containing the parameter found in the HTML object that meets the
+#         criteria of the specified mode.
 
-def extract_params_html(html_data, compare_mode="getparam"):
-    """
-    Extracts parameters from an HTML object, yielding them one at a time. This function filters
-    these parameters based on a specified mode that determines the type of validation
-    or comparison against rules for headers, GET parameters, or cookies. If no mode is specified,
-    it defaults to 'getparam', which is the least restrictive.
+#     Examples:
+#         >>> html_data = '''
+#         ... <html>
+#         ...     <body>
+#         ...         <input name="user">
+#         ...         <a href="/page?param3=value3">Click Me</a>
+#         ...         <script>
+#         ...             $.get("/test", {param1: "value1"});
+#         ...             $.post("/test", {param2: "value2"});
+#         ...         </script>
+#         ...     </body>
+#         ... </html>
+#         ... '''
+#         >>> list(extract_params_html(html_data))
+#         ['user', 'param1', 'param2', 'param3']
+#     """
 
-    Args:
-        html_data (str): HTML-formatted string.
-        compare_mode (str, optional): The mode to compare extracted parameter names against.
-            Defaults to 'getparam'. Valid modes are 'header', 'getparam', 'cookie'.
+#     found_params = []
 
-    Yields:
-        str: A string containing the parameter found in the HTML object that meets the
-        criteria of the specified mode.
+#     input_tag = bbot_regexes.input_tag_regex.findall(html_data)
 
-    Examples:
-        >>> html_data = '''
-        ... <html>
-        ...     <body>
-        ...         <input name="user">
-        ...         <a href="/page?param3=value3">Click Me</a>
-        ...         <script>
-        ...             $.get("/test", {param1: "value1"});
-        ...             $.post("/test", {param2: "value2"});
-        ...         </script>
-        ...     </body>
-        ... </html>
-        ... '''
-        >>> list(extract_params_html(html_data))
-        ['user', 'param1', 'param2', 'param3']
-    """
+#     for i in input_tag:
+#         if _validate_param(i, compare_mode):
+#             log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
+#             found_params.append(i)
 
-    found_params = []
+#     # check for jquery get parameters
+#     jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
+#     if jquery_get:
+#         for i in jquery_get:
+#             for x in i.split(","):
+#                 s = x.split(":")[0].rstrip()
+#                 if _validate_param(s, compare_mode):
+#                     log.debug(f"FOUND PARAM ({s}) IN A JQUERY GET PARAMS")
+#                     found_params.append(s)
 
-    input_tag = bbot_regexes.input_tag_regex.findall(html_data)
+#     # check for jquery post parameters
+#     jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
+#     if jquery_post:
+#         for i in jquery_post:
+#             for x in i.split(","):
+#                 s = x.split(":")[0].rstrip()
+#                 if _validate_param(s, compare_mode):
+#                     log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
+#                     found_params.append(s)
 
-    for i in input_tag:
-        if _validate_param(i, compare_mode):
-            log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
-            found_params.append(i)
+#     a_tag = bbot_regexes.a_tag_regex.findall(html_data)
+#     for tag in a_tag:
+#         a_tag_querystring = tag.split("&") if tag else []
+#         for s in a_tag_querystring:
+#             if "=" in s:
+#                 s0 = s.split("=")[0]
+#                 if _validate_param(s0, compare_mode):
+#                     log.debug(f"FOUND PARAM ({s0}) IN A TAG GET PARAMS")
+#                     found_params.append(s0)
 
-    # check for jquery get parameters
-    jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
-    if jquery_get:
-        for i in jquery_get:
-            for x in i.split(","):
-                s = x.split(":")[0].rstrip()
-                if _validate_param(s, compare_mode):
-                    log.debug(f"FOUND PARAM ({s}) IN A JQUERY GET PARAMS")
-                    found_params.append(s)
-
-    # check for jquery post parameters
-    jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
-    if jquery_post:
-        for i in jquery_post:
-            for x in i.split(","):
-                s = x.split(":")[0].rstrip()
-                if _validate_param(s, compare_mode):
-                    log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
-                    found_params.append(s)
-
-    a_tag = bbot_regexes.a_tag_regex.findall(html_data)
-    for tag in a_tag:
-        a_tag_querystring = tag.split("&") if tag else []
-        for s in a_tag_querystring:
-            if "=" in s:
-                s0 = s.split("=")[0]
-                if _validate_param(s0, compare_mode):
-                    log.debug(f"FOUND PARAM ({s0}) IN A TAG GET PARAMS")
-                    found_params.append(s0)
-
-    return found_params
+#     return found_params
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
