@@ -32,6 +32,8 @@ BBOT inherits its recursive philosophy from [Spiderfoot](https://github.com/smic
 
 For example, the `portscan` module consumes `DNS_NAME`, and produces `OPEN_TCP_PORT`. The `sslcert` module consumes `OPEN_TCP_PORT` and produces `DNS_NAME`. You can see how even these two modules, when enabled together, will feed each other recursively.
 
+![bbot-modules-work-together](https://github.com/blacklanternsecurity/bbot/assets/20261699/a4c4965b-428b-40aa-afa2-a0f371dc2cb7)
+
 Every BBOT module is designed to interwork with all the others in this recursive system. Because of this, enabling even one module has the potential to increase your results exponentially. This is exactly how BBOT is able to outperform other tools.
 
 ## Example: Subdomain Enumeration
@@ -40,7 +42,7 @@ Let's take subdomain enumeration as an example, since this is a task most of us 
 
 Check out this subdomain enum workflow from [Trickest](https://trickest.com/):
 
-![trickest](https://github.com/blacklanternsecurity/bbot/assets/20261699/4ea0c60c-35f7-4ead-943a-a7f524af474b)
+![trickest-subdomain-workflow](https://github.com/blacklanternsecurity/bbot/assets/20261699/4ea0c60c-35f7-4ead-943a-a7f524af474b)
 
 This workflow stitches together a bunch of different recon tools. It starts at the left and works forward:
 
