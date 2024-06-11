@@ -1,6 +1,8 @@
 [![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)](https://github.com/blacklanternsecurity/bbot)
 
-#### /ˈBEE·bot/ (noun): A recursive internet scanner for hackers.
+### BEE·bot: A recursive internet scanner for hackers.
+
+BBOT automates Recon and Vulnerability Scanning. Designed for Pentesters, Bug Bounty Hunters, and OSINTers. Developer-friendly!
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
@@ -20,9 +22,7 @@ pipx install --pip-args '\--pre' bbot
 
 _For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/)_
 
-## What is BBOT?
-
-### BBOT is...
+## BBOT is...
 
 ## 1) A Subdomain Finder
 
@@ -63,15 +63,9 @@ config:
 
 </details>
 
-<details>
-<summary><b>SEE: Comparison to Other Subdomain Enumeration Tools</b></summary>
-
 BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
 
-![subdomain-stats-ebay](https://github.com/blacklanternsecurity/bbot/assets/20261699/53e07e9f-50b6-4b70-9e83-297dbfbcb436)
-
-</details>
-
+![subdomain-stats-ebay](https://github.com/blacklanternsecurity/bbot/assets/20261699/de3e7f21-6f52-4ac4-8eab-367296cd385f)
 
 ## 2) A Web Spider
 
@@ -97,7 +91,7 @@ bbot -t www.evilcorp.com -p web-basic
 bbot -t www.evilcorp.com -p web-thorough
 ```
 
-## 5) ...And Much More
+## 5) Everything Everywhere All at Once
 
 ```bash
 # everything everywhere all at once
@@ -107,7 +101,13 @@ bbot -t evilcorp.com -p kitchen-sink
 bbot -t evilcorp.com -p subdomain-enum cloud-enum code-enum email-enum spider web-basic paramminer dirbust-light web-screenshots
 ```
 
-## 6) It's Also a Python Library
+## How it Works
+
+Click the graph below to explore the [inner workings](https://www.blacklanternsecurity.com/bbot/how_it_works/) of BBOT.
+
+[![image](https://github.com/blacklanternsecurity/bbot/assets/20261699/e55ba6bd-6d97-48a6-96f0-e122acc23513)](https://www.blacklanternsecurity.com/bbot/how_it_works/)
+
+## BBOT as a Python Library
 
 #### Synchronous
 ```python

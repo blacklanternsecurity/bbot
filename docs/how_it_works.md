@@ -1,5 +1,15 @@
 # How it Works
 
+## BBOT's Recursive Philosophy
+
+The most important thing to understand about BBOT is that its philosophy is fundamentally different from other tools. At Black Lantern Security, we believe that the only correct way to do discovery is through ***Recursion***.
+
+The vast majority of offensive tools are not recursive. Some may leverage recursion in a small isolated way, such as a dirbuster that finds subdirectories of subdirectories. What makes BBOT special is its 100+ custom modules, which have been carefully designed to work together in a ***truly recursive*** system. 
+
+Each module ***consumes*** a certain type of data, uses it to discover something new, and ***produces*** another type, which it distributes to all the other modules. This happens again and again -- thousands of times during a scan -- spidering outwards in a recursive web of discovery.
+
+The interactive graph below shows the relationships between modules and the data types they consume and produce.
+
 <!-- BBOT CHORD GRAPH -->
 <div id="vis"></div>
 <script type="text/javascript">
@@ -16,17 +26,9 @@
 </script>
 <!-- END BBOT CHORD GRAPH -->
 
-## BBOT's Recursive Philosophy
+## How BBOT Modules Work Together
 
-The most important thing to understand is that BBOT's philosophy is fundamentally different from other tools. It does not have **"phases"** or **"stages"**. Instead, each of its 100+ modules continually exchange data with each other.
-
-Each module consumes a one of data, and emits another. 
-
-The above graph shows the relationships between modules and the event types they consume and produce.
-
-## BBOT Modules Work Together
-
-BBOT's recursive design is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot). This means that each of BBOT's 100+ modules ***consume*** one type of data and ***produce*** another. This enables them to work together in an efficient and very effective way.
+BBOT inherits its recursive philosophy from [Spiderfoot](https://github.com/smicallef/spiderfoot). This enables its modules to work together in an efficient and very effective way.
 
 For example, the `portscan` module consumes `DNS_NAME`, and produces `OPEN_TCP_PORT`. The `sslcert` module consumes `OPEN_TCP_PORT` and produces `DNS_NAME`. You can see how even these two modules, when enabled together, will feed each other recursively.
 
