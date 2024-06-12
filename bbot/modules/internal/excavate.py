@@ -65,9 +65,10 @@ class ExcavateRule:
         self.tags = []
         self.description = "contained it"
 
-    async def _callback(self, r, data, event, discovery_context):
+    async def _callback(self, r, data, event, consider_spider_danger, discovery_context):
         self.data = data
         self.event = event
+        self.consider_spider_danger = consider_spider_danger
         self.discovery_context = discovery_context
         self.emit_match = False
         self.preprocess(r)
@@ -106,7 +107,7 @@ class ExcavateRule:
             subject = f" event_data"
 
         context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {self.description}"
-  #      self.excavate.critical(context)
+        #      self.excavate.critical(context)
         await self.excavate.emit_event(
             event_data,
             event_type,
@@ -150,6 +151,8 @@ class excavate(BaseInternalModule):
         "retain_querystring": "Keep the querystring intact on emitted WEB_PARAMETERS",
     }
     scope_distance_modifier = None
+
+    _max_event_handlers = 8
 
     class ParameterExtractor(ExcavateRule):
 
@@ -307,7 +310,7 @@ class excavate(BaseInternalModule):
 
         async def process(self):
             for identifier in self.results.keys():
-                for csp in results[identifier]:
+                for csp in self.results[identifier]:
                     csp_bytes = csp.matched_data
                     csp_str = csp_bytes.decode("utf-8")
                     domains = await self.helpers.re.findall(bbot_regexes.dns_name_regex, csp_str)
@@ -419,10 +422,72 @@ class excavate(BaseInternalModule):
             "urltag": r'rule urltag { meta: description = "Contains tag with src or href attribute" strings: $url_attr = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_attr }',
         }
 
+        urls_found = 0
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
+
         async def process(self):
             for identifier, results in self.results.items():
-                for result in results:
-                    await self.report(result, event_type="URL_UNVERIFIED")
+                self.excavate.hugewarning(identifier)
+                for url in results:
+                    url_bytes = url.matched_data
+                    url_str = url_bytes.decode("utf-8")
+
+                    #              self.excavate.hugeinfo(url_str)
+
+                    parsed_uri = None
+                    try:
+                        parsed_uri = self.excavate.helpers.urlparse(url_str)
+                    except Exception as e:
+                        # CHANGE BACK TO DEBUG
+                        self.excavate.critical(f"Error parsing URI {url_str}: {e}")
+                        continue
+                    netloc = getattr(parsed_uri, "netloc", None)
+                    if netloc is None:
+                        continue
+                    #  host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
+                    if not "http" in parsed_uri.scheme.lower():
+                        continue
+                    await self.report(url_str)
+
+        async def report(self, event_data):
+
+            #      self.excavate.hugeinfo("IN REPORT")
+
+            temp_event = self.excavate.make_event(event_data, "URL_UNVERIFIED", parent=self.event)
+            if temp_event is not None:
+                url_in_scope = self.excavate.scan.in_scope(temp_event)
+                is_spider_danger = self.excavate.helpers.is_spider_danger(self.event, event_data)
+                exceeds_max_links = self.urls_found >= self.web_spider_links_per_page and url_in_scope
+                exceeds_redirect_distance = (not self.consider_spider_danger) and (
+                    self.excavate.web_spider_distance > self.excavate.max_redirects
+                )
+                if is_spider_danger or exceeds_max_links or exceeds_redirect_distance:
+                    #                    self.excavate.critical("ITS SPIDER DANGER!")
+                    reason = "its spider depth or distance exceeds the scan's limits"
+                    if exceeds_max_links:
+                        reason = f"it exceeds the max number of links per page ({self.web_spider_links_per_page})"
+                    elif exceeds_redirect_distance:
+                        reason = (
+                            f"its spider distance exceeds the max number of redirects ({self.excavate.max_redirects})"
+                        )
+                    self.excavate.debug(f"Tagging {temp_event} as spider-danger because {reason}")
+                    temp_event.add_tag("spider-danger")
+            await self.excavate.emit_event(temp_event)
+            if url_in_scope:
+                self.urls_found += 1
+
+    #       context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {self.description}"
+    # #      self.excavate.critical(context)
+    #       await self.excavate.emit_event(
+    #           event_data,
+    #           event_type,
+    #           parent=self.event,
+    #           context=context,
+    #           tags=self.tags,
+    #       )
 
     class HostnameExtractor(ExcavateRule):
         yaraRules = {}
@@ -483,7 +548,7 @@ class excavate(BaseInternalModule):
                         self.yaraCallbackDict[ruleName] = excavateRule._callback
 
         yara.set_config(max_match_data=2000)
- #       self.hugewarning(self.yaraRulesDict)
+        #       self.hugewarning(self.yaraRulesDict)
         try:
             self.yaraRules = yara.compile(source="\n".join(self.yaraRulesDict.values()))
         except yara.SyntaxError as e:
@@ -491,7 +556,7 @@ class excavate(BaseInternalModule):
             return False
         return True
 
-    async def search(self, data, event, content_type, discovery_context="HTTP response"):
+    async def search(self, data, event, content_type, consider_spider_danger=True, discovery_context="HTTP response"):
         if not data:
             return None
 
@@ -526,7 +591,7 @@ class excavate(BaseInternalModule):
         for result in self.yaraRules.match(data=data):
             rule_name = result.rule
             if rule_name in self.yaraCallbackDict:
-                await self.yaraCallbackDict[rule_name](result, data, event, discovery_context)
+                await self.yaraCallbackDict[rule_name](result, data, event, consider_spider_danger, discovery_context)
             else:
                 self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
@@ -617,7 +682,7 @@ class excavate(BaseInternalModule):
             body,
             event,
             content_type,
-            #  consider_spider_danger=True,
+            consider_spider_danger=True,
             discovery_context="HTTP response (body)",
         )
 
@@ -625,7 +690,7 @@ class excavate(BaseInternalModule):
             headers_str,
             event,
             content_type,
-            #  consider_spider_danger=True,
+            consider_spider_danger=False,
             discovery_context="HTTP response (headers)",
         )
 
