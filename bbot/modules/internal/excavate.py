@@ -106,7 +106,7 @@ class ExcavateRule:
             subject = f" event_data"
 
         context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {self.description}"
-        self.excavate.critical(context)
+  #      self.excavate.critical(context)
         await self.excavate.emit_event(
             event_data,
             event_type,
@@ -360,7 +360,6 @@ class excavate(BaseInternalModule):
             for signature_name, signature in self.signatures.items():
                 signature_component_list.append(rf"${signature_name} = {signature}")
             signature_component = " ".join(signature_component_list)
-            self.excavate.critical(signature_component)
             self.yaraRules[f"error_detection"] = (
                 f'rule error_detection {{meta: description = "contains a verbose error message" strings: {signature_component} condition: any of them}}'
             )
@@ -484,7 +483,7 @@ class excavate(BaseInternalModule):
                         self.yaraCallbackDict[ruleName] = excavateRule._callback
 
         yara.set_config(max_match_data=2000)
-        self.hugewarning(self.yaraRulesDict)
+ #       self.hugewarning(self.yaraRulesDict)
         try:
             self.yaraRules = yara.compile(source="\n".join(self.yaraRulesDict.values()))
         except yara.SyntaxError as e:
