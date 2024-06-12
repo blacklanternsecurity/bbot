@@ -69,6 +69,7 @@ class ExcavateRule:
         self.data = data
         self.event = event
         self.discovery_context = discovery_context
+        self.emit_match = False
         self.preprocess(r)
         await self.process()
 
@@ -77,18 +78,29 @@ class ExcavateRule:
             self.description = r.meta["description"]
         if "tags" in r.meta.keys():
             self.tags = parse_list_string(r.meta["tags"])
+        if "emit_match" in r.meta.keys():
+            self.emit_match = True
+
         self.results = {}
         for h in r.strings:
             self.results[h.identifier.lstrip("$")] = list(set(h.instances))
 
     async def process(self):
-        event_data = {"host": str(self.event.host), "url": self.event.data.get("url", "")}
-        await self.report(event_data)
+
+        for identifier, results in self.results.items():
+            for result in results:
+                event_data = {"host": str(self.event.host), "url": self.event.data.get("url", "")}
+                event_data["description"] = f"{self.discovery_context} {self.description}"
+                if self.emit_match:
+                    event_data["description"] += f" [{result}]"
+                await self.report(event_data)
 
     async def report(self, event_data, event_type="FINDING"):
 
+        # If a description is not set and is needed, provide a basic one
         if event_type == "FINDING" and "description" not in event_data.keys():
             event_data["description"] = f"{self.discovery_context} {self.description}"
+
         subject = ""
         if isinstance(event_data, str):
             subject = f" event_data"
@@ -316,15 +328,62 @@ class excavate(BaseInternalModule):
                     email_str = email_bytes.decode("utf-8")
                     await self.report(email_str, event_type="EMAIL_ADDRESS")
 
+    # Future Work: Emit a JWT Object, and make a new Module to ingest it.
+    class JWTExtractor(ExcavateRule):
+        yaraRules = {
+            "jwt": r'rule jwt { meta: emit_match = "True" description = "contains JSON Web Token (JWT)" strings: $jwt = /\beyJ[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*/ nocase condition: $jwt }',
+        }
+
+    class ErrorExtractor(ExcavateRule):
+
+        signatures = {
+            "PHP_1": r"/\.php on line [0-9]+/",
+            "PHP_2": r"/\.php<\/b> on line <b>[0-9]+/",
+            "PHP_3": '"Fatal error:"',
+            "Microsoft_SQL_Server_1": r"/\[(ODBC SQL Server Driver|SQL Server|ODBC Driver Manager)\]/",
+            "Microsoft_SQL_Server_2": '"You have an error in your SQL syntax; check the manual"',
+            "Java_1": r"/\.java:[0-9]+/",
+            "Java_2": r"/\.java\((Inlined )?Compiled Code\)/",
+            "Perl": r"/at (\/[A-Za-z0-9\._]+)*\.pm line [0-9]+/",
+            "Python": r"/File \"[A-Za-z0-9\-_\.\/]*\", line [0-9]+, in/",
+            "Ruby": r"/\.rb:[0-9]+:in/",
+            "ASPNET_1": '"Exception of type"',
+            "ASPNET_2": '"--- End of inner exception stack trace ---"',
+            "ASPNET_3": '"Microsoft OLE DB Provider"',
+            "ASPNET_4": r"/Error ([\d-]+) \([\dA-F]+\)/",
+        }
+        yaraRules = {}
+
+        def __init__(self, excavate):
+            super().__init__(excavate)
+            signature_component_list = []
+            for signature_name, signature in self.signatures.items():
+                signature_component_list.append(rf"${signature_name} = {signature}")
+            signature_component = " ".join(signature_component_list)
+            self.excavate.critical(signature_component)
+            self.yaraRules[f"error_detection"] = (
+                f'rule error_detection {{meta: description = "contains a verbose error message" strings: {signature_component} condition: any of them}}'
+            )
+
+        async def process(self):
+            for identifier in self.results.keys():
+                for findings in self.results[identifier]:
+                    event_data = {
+                        "host": str(self.event.host),
+                        "url": self.event.data.get("url", ""),
+                        "description": f"{self.discovery_context} {self.description} ({identifier})",
+                    }
+                    await self.report(event_data, event_type="FINDING")
+
     class SerializationExtractor(ExcavateRule):
 
         regexes = {
-            #     "Java": r"(?:[^a-zA-Z0-9+/]|^)rO0[a-zA-Z0-9+/]+={0,2}",
+            "Java": re.compile(r"[^a-zA-Z0-9\/+]rO0[a-zA-Z0-9+\/]+={0,2}"),
             "DOTNET": re.compile(r"[^a-zA-Z0-9\/+]AAEAAAD\/\/[a-zA-Z0-9\/+]+={0,2}"),
-            #       "PHP - Array": r"(?:[^a-zA-Z0-9+/]|^)YTo[xyz0123456][a-zA-Z0-9+/]+={0,2}",
-            #       "PHP - String": r"(?:[^a-zA-Z0-9+/]|^)czo[xyz0123456][a-zA-Z0-9+/]+={0,2}",
-            #       "PHP - Object": r"(?:[^a-zA-Z0-9+/]|^)Tzo[xyz0123456][a-zA-Z0-9+/]+={0,2}",
-            #           "Possible Compressed": r"(?:[^a-zA-Z0-9+/]|^)H4sIAAAAAAAA[a-zA-Z0-9+/]+={0,2}",
+            "PHP_Array": re.compile(r"[^a-zA-Z0-9\/+]YTo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "PHP_String": re.compile(r"[^a-zA-Z0-9\/+]czo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "PHP_Object": re.compile(r"[^a-zA-Z0-9\/+]Tzo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "Possible_Compressed": re.compile(r"[^a-zA-Z0-9\/+]H4sIAAAAAAAA[a-zA-Z0-9+\/]+={0,2}"),
         }
         yaraRules = {}
 
@@ -341,14 +400,19 @@ class excavate(BaseInternalModule):
         async def process(self):
             for identifier in self.results.keys():
                 for findings in self.results[identifier]:
-                    self.excavate.hugewarning(identifier)
-                    self.excavate.hugewarning(findings)
                     event_data = {
                         "host": str(self.event.host),
                         "url": self.event.data.get("url", ""),
                         "description": f"{self.discovery_context} {self.description} ({identifier})",
                     }
                     await self.report(event_data, event_type="FINDING")
+
+    class FunctionalityExtractor(ExcavateRule):
+
+        yaraRules = {
+            "File_Upload_Functionality": r'rule File_Upload_Functionality { meta: description = "contains file upload functionality" strings: $fileuploadfunc = /<input[^>]+type=["\']?file["\']?[^>]+>/ nocase condition: $fileuploadfunc }',
+            "Web_Service_WSDL": r'rule Web_Service_WSDL { meta: emit_match = "True" description = "contains a web service WSDL URL" strings: $wsdl = /https?:\/\/[^\s]*\.(wsdl)/ nocase condition: $wsdl }',
+        }
 
     class URLExtractor(ExcavateRule):
         yaraRules = {
@@ -358,8 +422,6 @@ class excavate(BaseInternalModule):
 
         async def process(self):
             for identifier, results in self.results.items():
-                self.excavate.hugewarning(identifier)
-                self.excavate.critical(results)
                 for result in results:
                     await self.report(result, event_type="URL_UNVERIFIED")
 
@@ -567,3 +629,8 @@ class excavate(BaseInternalModule):
             #  consider_spider_danger=True,
             discovery_context="HTTP response (headers)",
         )
+
+
+# REMAINING SUBMODULES
+# SPIDER DANGER
+# TESTS :/
