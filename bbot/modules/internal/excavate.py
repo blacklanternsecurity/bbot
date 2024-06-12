@@ -6,6 +6,7 @@ from bbot.errors import ExcavateError
 import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.internal.base import BaseInternalModule
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
+from bbot.core.helpers.misc import parse_list_string
 
 
 def find_subclasses(obj, base_class):
@@ -57,40 +58,49 @@ class ExcavateRule:
     """
 
     yaraRules = {}
-    context_description = "matching strings"
 
     def __init__(self, excavate):
         self.excavate = excavate
         self.helpers = excavate.helpers
+        self.tags = []
+        self.description = "contained it"
 
     async def _callback(self, r, data, event, discovery_context):
         self.data = data
         self.event = event
         self.discovery_context = discovery_context
-        await self.process(self.preprocess(r))
+        self.preprocess(r)
+        await self.process()
 
     def preprocess(self, r):
-        results = []
+        if "description" in r.meta.keys():
+            self.description = r.meta["description"]
+        if "tags" in r.meta.keys():
+            self.tags = parse_list_string(r.meta["tags"])
+        self.results = {}
         for h in r.strings:
-            results += list(set(h.instances))
-        return results
+            self.results[h.identifier.lstrip("$")] = list(set(h.instances))
 
-    async def process(self, r):
-        event_data = {
-            "host": str(self.event.host),
-            "url": self.event.data.get("url", ""),
-            "description": r.meta["description"],
-        }
-        context = f"Found {self.context_description} in {self.discovery_context}"
-        await self.report(event_data, context)
+    async def process(self):
+        event_data = {"host": str(self.event.host), "url": self.event.data.get("url", "")}
+        await self.report(event_data)
 
-    async def report(self, event_data, context, event_type="FINDING", tags=[]):
+    async def report(self, event_data, event_type="FINDING"):
+
+        if event_type == "FINDING" and "description" not in event_data.keys():
+            event_data["description"] = f"{self.discovery_context} {self.description}"
+        subject = ""
+        if isinstance(event_data, str):
+            subject = f" event_data"
+
+        context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {self.description}"
+        self.excavate.critical(context)
         await self.excavate.emit_event(
             event_data,
             event_type,
             parent=self.event,
             context=context,
-            tags=tags,
+            tags=self.tags,
         )
 
     async def regex_search(self, content, regex):
@@ -132,7 +142,7 @@ class excavate(BaseInternalModule):
     class ParameterExtractor(ExcavateRule):
 
         yaraRules = {
-            "params_getform": r'rule params_getform { meta: description = "Contains an GET form" strings: $getform_regex = /<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase condition: $getform_regex}'
+            "params_getform": r'rule params_getform { meta: description = "contains a GET form" strings: $getform_regex = /<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase condition: $getform_regex}'
         }
         yaraRules = {}
 
@@ -207,7 +217,7 @@ class excavate(BaseInternalModule):
                 regexes_component_list.append(f"${r.__name__} = {r.extraction_regex}")
             regexes_component = " ".join(regexes_component_list)
             self.yaraRules[f"parameter_extraction"] = (
-                rf'rule parameter_extraction {{meta: description = "Extract Parameters from Web Content" strings: {regexes_component} condition: any of them}}'
+                rf'rule parameter_extraction {{meta: description = "contains POST form" strings: {regexes_component} condition: any of them}}'
             )
 
         def in_bl(self, value):
@@ -233,21 +243,12 @@ class excavate(BaseInternalModule):
                 )
             )
 
-        def preprocess(self, r):
-            return r
-
-        async def process(self, r):
-            for h in r.strings:
-                results = set(h.instances)
+        async def process(self):
+            for identifier, results in self.results.items():
                 for result in results:
-                    self.excavate.hugeinfo(str(type(result)))
-                    self.excavate.hugeinfo(result)
-                    self.excavate.hugeinfo(result.matched_data)
-                    self.excavate.hugeinfo(result.plaintext())
-                    ParameterExtractorSubmoduleName = h.identifier.lstrip("$")
-                    if ParameterExtractorSubmoduleName not in self.parameterExtractorCallbackDict.keys():
+                    if identifier not in self.parameterExtractorCallbackDict.keys():
                         raise excavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
-                    parameterExtractorSubModule = self.parameterExtractorCallbackDict[ParameterExtractorSubmoduleName](
+                    parameterExtractorSubModule = self.parameterExtractorCallbackDict[identifier](
                         self.excavate, result
                     )
                     for (
@@ -283,49 +284,71 @@ class excavate(BaseInternalModule):
                                 "assigned_cookies": self.excavate.assigned_cookies,
                                 "description": description,
                             }
-                            context = f"excavate's parameter extractor found WEB_PARAMETER: {parameter_name} using technique [{parameterExtractorSubModule.name}]"
-                            await self.report(data, context, event_type="WEB_PARAMETER")
+                            await self.report(data, event_type="WEB_PARAMETER")
                         else:
                             self.debug(f"blocked parameter [{parameter_name}] due to BL match")
 
     class CSPExtractor(ExcavateRule):
         yaraRules = {
-            "csp": r'rule csp { meta: description = "Contains CSP Header" strings: $csp = /Content-Security-Policy:[^\r\n]+/ nocase condition: $csp }',
+            "csp": r'rule csp { meta: tags = "affiliate" description = "contains CSP Header" strings: $csp = /Content-Security-Policy:[^\r\n]+/ nocase condition: $csp }',
         }
 
-        async def process(self, results):
-            for csp in results:
-                csp_bytes = csp.matched_data
-                csp_str = csp_bytes.decode("utf-8")
-                domains = await self.helpers.re.findall(bbot_regexes.dns_name_regex, csp_str)
-                unique_domains = set(domains)
-                for domain in unique_domains:
-                    context = f"excavate's CSP extractor found DNS_NAME: {domain} by searching CSP rules"
-                    await self.report(domain, context, event_type="DNS_NAME", tags=["affiliate"])
+        async def process(self):
+            for identifier in self.results.keys():
+                for csp in results[identifier]:
+                    csp_bytes = csp.matched_data
+                    csp_str = csp_bytes.decode("utf-8")
+                    domains = await self.helpers.re.findall(bbot_regexes.dns_name_regex, csp_str)
+                    unique_domains = set(domains)
+                    for domain in unique_domains:
+                        await self.report(domain, event_type="DNS_NAME")
 
     class EmailExtractor(ExcavateRule):
 
         yaraRules = {
-            "email": 'rule email { meta: description = "Contains email address" strings: $email = /[^\\W_][\\w\\-\\.\\+\']{0,100}@[a-zA-Z0-9\\-]{1,100}(\\.[a-zA-Z0-9\\-]{1,100})*\\.[a-zA-Z]{2,63}/ nocase fullword condition: $email }',
+            "email": 'rule email { meta: description = "contains email address" strings: $email = /[^\\W_][\\w\\-\\.\\+\']{0,100}@[a-zA-Z0-9\\-]{1,100}(\\.[a-zA-Z0-9\\-]{1,100})*\\.[a-zA-Z]{2,63}/ nocase fullword condition: $email }',
         }
 
-        async def process(self, results):
-            for email in results:
-                email_bytes = email.matched_data
-                email_str = email_bytes.decode("utf-8")
-                context = f"excavate's Email extractor found EMAIL_ADDRESS: {email_str} with an email regex"
-                await self.report(email_str, context, event_type="EMAIL_ADDRESS")
+        async def process(self):
+            for identifier in self.results.keys():
+                for email in self.results[identifier]:
+                    email_bytes = email.matched_data
+                    email_str = email_bytes.decode("utf-8")
+                    await self.report(email_str, event_type="EMAIL_ADDRESS")
 
-    # class EmailExtractor(BaseExtractor):
-    #     regexes = {"email": _email_regex}
-    #     tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
+    class SerializationExtractor(ExcavateRule):
 
-    #     async def report(self, result, name, event, **kwargs):
-    #         result = result.lower()
-    #         tld = result.split(".")[-1]
-    #         if tld not in self.tld_blacklist:
-    #             self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
-    #             await self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
+        regexes = {
+            #     "Java": r"(?:[^a-zA-Z0-9+/]|^)rO0[a-zA-Z0-9+/]+={0,2}",
+            "DOTNET": re.compile(r"[^a-zA-Z0-9\/+]AAEAAAD\/\/[a-zA-Z0-9\/+]+={0,2}"),
+            #       "PHP - Array": r"(?:[^a-zA-Z0-9+/]|^)YTo[xyz0123456][a-zA-Z0-9+/]+={0,2}",
+            #       "PHP - String": r"(?:[^a-zA-Z0-9+/]|^)czo[xyz0123456][a-zA-Z0-9+/]+={0,2}",
+            #       "PHP - Object": r"(?:[^a-zA-Z0-9+/]|^)Tzo[xyz0123456][a-zA-Z0-9+/]+={0,2}",
+            #           "Possible Compressed": r"(?:[^a-zA-Z0-9+/]|^)H4sIAAAAAAAA[a-zA-Z0-9+/]+={0,2}",
+        }
+        yaraRules = {}
+
+        def __init__(self, excavate):
+            super().__init__(excavate)
+            regexes_component_list = []
+            for regex_name, regex in self.regexes.items():
+                regexes_component_list.append(rf"${regex_name} = /\b{regex.pattern}/ nocase")
+            regexes_component = " ".join(regexes_component_list)
+            self.yaraRules[f"serialization_detection"] = (
+                f'rule serialization_detection {{meta: description = "contains a possible serialized object" strings: {regexes_component} condition: any of them}}'
+            )
+
+        async def process(self):
+            for identifier in self.results.keys():
+                for findings in self.results[identifier]:
+                    self.excavate.hugewarning(identifier)
+                    self.excavate.hugewarning(findings)
+                    event_data = {
+                        "host": str(self.event.host),
+                        "url": self.event.data.get("url", ""),
+                        "description": f"{self.discovery_context} {self.description} ({identifier})",
+                    }
+                    await self.report(event_data, event_type="FINDING")
 
     class URLExtractor(ExcavateRule):
         yaraRules = {
@@ -333,10 +356,12 @@ class excavate(BaseInternalModule):
             "urltag": r'rule urltag { meta: description = "Contains tag with src or href attribute" strings: $url_attr = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_attr }',
         }
 
-        async def process(self, results):
-            for result in results:
-                context = f"excavate's URL extractor found URL_UNVERIFIED: {result} using regex search"
-                await self.report(result, context, event_type="URL_UNVERIFIED")
+        async def process(self):
+            for identifier, results in self.results.items():
+                self.excavate.hugewarning(identifier)
+                self.excavate.critical(results)
+                for result in results:
+                    await self.report(result, event_type="URL_UNVERIFIED")
 
     class HostnameExtractor(ExcavateRule):
         yaraRules = {}
@@ -349,16 +374,15 @@ class excavate(BaseInternalModule):
                     regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
                 regexes_component = " ".join(regexes_component_list)
                 self.yaraRules[f"hostname_extraction"] = (
-                    rf'rule hostname_extraction {{meta: description = "Matches DNS hostname pattern" strings: {regexes_component} condition: any of them}}'
+                    f'rule hostname_extraction {{meta: description = "matches DNS hostname pattern derived from target(s)" strings: {regexes_component} condition: any of them}}'
                 )
 
-        async def process(self, results):
-            #       hostname_regex = re.compile(self.excavate.scan.dns_regexes[int(h.identifier.split("_")[-1])].pattern)
-            for result in results:
-                context = (
-                    f"excavate's hostname extractor found DNS_NAME: {result} using regex derived from target domain"
-                )
-                await self.report(result, context, event_type="DNS_NAME")
+        async def process(self):
+            for identifier in self.results.keys():
+                for domain in self.results[identifier]:
+                    domain_bytes = domain.matched_data
+                    domain_str = domain_bytes.decode("utf-8")
+                    await self.report(domain_str, event_type="DNS_NAME")
 
     async def setup(self):
         self.recursive_decode = self.config.get("recursive_decode", False)
@@ -397,8 +421,13 @@ class excavate(BaseInternalModule):
                         self.yaraRulesDict[ruleName] = ruleContent
                         self.yaraCallbackDict[ruleName] = excavateRule._callback
 
-        yara.set_config(max_match_data=1500)
-        self.yaraRules = yara.compile(source="\n".join(self.yaraRulesDict.values()))
+        yara.set_config(max_match_data=2000)
+        self.hugewarning(self.yaraRulesDict)
+        try:
+            self.yaraRules = yara.compile(source="\n".join(self.yaraRulesDict.values()))
+        except yara.SyntaxError as e:
+            self.critical(f"Yara Rules failed to compile with error: [{e}]")
+            return False
         return True
 
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
