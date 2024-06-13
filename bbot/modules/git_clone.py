@@ -39,9 +39,7 @@ class git_clone(github):
         repo_path = await self.clone_git_repository(repo_url)
         if repo_path:
             self.verbose(f"Cloned {repo_url} to {repo_path}")
-            codebase_event = self.make_event(
-                {"path": str(repo_path)}, "FILESYSTEM", tags=["git", "folder"], source=event
-            )
+            codebase_event = self.make_event({"path": str(repo_path)}, "FILESYSTEM", tags=["git"], source=event)
             codebase_event.scope_distance = event.scope_distance
             await self.emit_event(codebase_event)
 

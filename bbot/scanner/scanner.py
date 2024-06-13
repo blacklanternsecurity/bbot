@@ -236,6 +236,10 @@ class Scanner:
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
         self.url_extension_httpx_only = set(e.lower() for e in self.config.get("url_extension_httpx_only", []))
 
+        # blob inclusion
+        self._file_blobs = self.config.get("file_blobs", False)
+        self._folder_blobs = self.config.get("folder_blobs", False)
+
         # custom HTTP headers warning
         self.custom_http_headers = self.config.get("http_headers", {})
         if self.custom_http_headers:
