@@ -335,7 +335,7 @@ class BaseEvent:
         try:
             self._discovery_context = context.format(module=self.module, event=self)
         except Exception as e:
-            log.warning(f"Error formatting discovery context for {self}: {e}")
+            log.warning(f"Error formatting discovery context for {self}: {e} (context: '{context}')")
             self._discovery_context = context
 
     @property

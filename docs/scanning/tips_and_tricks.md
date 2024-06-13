@@ -76,7 +76,7 @@ bbot -t evilcorp.com -f subdomain-enum -c spider.yml
 If your goal is to feed BBOT data into a SIEM such as Elastic, be sure to enable this option when scanning:
 
 ```bash
-bbot -t evilcorp.com -c output_modules.json.siem_friendly=true
+bbot -t evilcorp.com -c modules.json.siem_friendly=true
 ```
 
 This nests the event's `.data` beneath its event type like so:
