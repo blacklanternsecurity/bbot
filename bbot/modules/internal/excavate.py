@@ -1,6 +1,7 @@
 import inspect
 import asyncio
 import yara
+import html
 import regex as re
 from bbot.errors import ExcavateError
 import bbot.core.helpers.regexes as bbot_regexes
@@ -32,7 +33,6 @@ def extract_params_location(location_header_value, original_parsed_url):
     Yields:
         method(str), parsed_url(urllib.parse.ParseResult), parameter_name(str), original_value(str), regex_name(str), additional_params(dict): The HTTP method associated with the parameter (GET, POST, None), A urllib.parse.ParseResult object representing the endpoint associated with the parameter, the parameter found in the location header, its original value (if available), the name of the detecting regex, a dict of additional params if any
     """
-
     if location_header_value.startswith("http://") or location_header_value.startswith("https://"):
         parsed_url = urlparse(location_header_value)
     else:
@@ -42,7 +42,6 @@ def extract_params_location(location_header_value, original_parsed_url):
     flat_params = {k: v[0] for k, v in params.items()}
 
     for p, p_value in flat_params.items():
-        log.debug(f"FOUND PARAM ({p}) IN LOCATION HEADER")
         yield "GET", parsed_url, p, p_value, "location_header", _exclude_key(flat_params, p)
 
 
@@ -65,10 +64,9 @@ class ExcavateRule:
         self.tags = []
         self.description = "contained it"
 
-    async def _callback(self, r, data, event, consider_spider_danger, discovery_context):
+    async def _callback(self, r, data, event, discovery_context):
         self.data = data
         self.event = event
-        self.consider_spider_danger = consider_spider_danger
         self.discovery_context = discovery_context
         self.emit_match = False
         self.preprocess(r)
@@ -107,7 +105,6 @@ class ExcavateRule:
             subject = f" event_data"
 
         context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {self.description}"
-        #      self.excavate.critical(context)
         await self.excavate.emit_event(
             event_data,
             event_type,
@@ -154,26 +151,49 @@ class excavate(BaseInternalModule):
 
     _max_event_handlers = 8
 
+    parameter_blacklist = [
+        "__VIEWSTATE",
+        "__EVENTARGUMENT",
+        "__EVENTVALIDATION",
+        "__EVENTTARGET",
+        "__EVENTARGUMENT",
+        "__VIEWSTATEGENERATOR",
+        "__SCROLLPOSITIONY",
+        "__SCROLLPOSITIONX",
+        "ASP.NET_SessionId",
+        "JSESSIONID",
+        "PHPSESSID",
+    ]
+
+    def in_bl(self, value):
+        in_bl = False
+        for bl_param in self.parameter_blacklist:
+            if bl_param.lower() == value.lower():
+                in_bl = True
+        return in_bl
+
+    def url_unparse(self, param_type, parsed_url):
+        if param_type == "GETPARAM":
+            querystring = ""
+        else:
+            querystring = parsed_url.query
+        return urlunparse(
+            (
+                parsed_url.scheme,
+                parsed_url.netloc,
+                parsed_url.path,
+                "",
+                querystring if self.retain_querystring else "",
+                "",
+            )
+        )
+
     class ParameterExtractor(ExcavateRule):
 
         yaraRules = {
             "params_getform": r'rule params_getform { meta: description = "contains a GET form" strings: $getform_regex = /<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase condition: $getform_regex}'
         }
         yaraRules = {}
-
-        parameter_blacklist = [
-            "__VIEWSTATE",
-            "__EVENTARGUMENT",
-            "__EVENTVALIDATION",
-            "__EVENTTARGET",
-            "__EVENTARGUMENT",
-            "__VIEWSTATEGENERATOR",
-            "__SCROLLPOSITIONY",
-            "__SCROLLPOSITIONX",
-            "ASP.NET_SessionId",
-            "JSESSIONID",
-            "PHPSESSID",
-        ]
 
         class ParameterExtractorRule:
             name = ""
@@ -235,29 +255,6 @@ class excavate(BaseInternalModule):
                 rf'rule parameter_extraction {{meta: description = "contains POST form" strings: {regexes_component} condition: any of them}}'
             )
 
-        def in_bl(self, value):
-            in_bl = False
-            for bl_param in self.parameter_blacklist:
-                if bl_param.lower() == value.lower():
-                    in_bl = True
-            return in_bl
-
-        def url_unparse(self, param_type, parsed_url):
-            if param_type == "GETPARAM":
-                querystring = ""
-            else:
-                querystring = parsed_url.query
-            return urlunparse(
-                (
-                    parsed_url.scheme,
-                    parsed_url.netloc,
-                    parsed_url.path,
-                    "",
-                    querystring if self.excavate.retain_querystring else "",
-                    "",
-                )
-            )
-
         async def process(self):
             for identifier, results in self.results.items():
                 for result in results:
@@ -286,7 +283,7 @@ class excavate(BaseInternalModule):
                             else f"{self.event.parsed_url.scheme}://{self.event.parsed_url.netloc}{endpoint}"
                         )
 
-                        if self.in_bl(parameter_name) == False:
+                        if self.excavate.in_bl(parameter_name) == False:
                             parsed_url = urlparse(url)
                             description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
                             data = {
@@ -294,7 +291,7 @@ class excavate(BaseInternalModule):
                                 "type": parameter_type,
                                 "name": parameter_name,
                                 "original_value": original_value,
-                                "url": self.url_unparse(parameter_type, parsed_url),
+                                "url": self.excavate.url_unparse(parameter_type, parsed_url),
                                 "additional_params": additional_params,
                                 "assigned_cookies": self.excavate.assigned_cookies,
                                 "description": description,
@@ -418,10 +415,13 @@ class excavate(BaseInternalModule):
 
     class URLExtractor(ExcavateRule):
         yaraRules = {
-            "urlfull": r'rule urlfull { meta: description = "Contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_full }',
-            "urltag": r'rule urltag { meta: description = "Contains tag with src or href attribute" strings: $url_attr = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_attr }',
+            "url_full": r'rule url_full { meta: tags = "spider-danger" description = "Contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_full }',
+            "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "Contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
         }
 
+        full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
+        full_url_regex_strict = re.compile(re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?$"))
+        tag_attribute_regex = re.compile(r"<[^>]*(?:href|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
         urls_found = 0
 
         def __init__(self, *args, **kwargs):
@@ -430,64 +430,43 @@ class excavate(BaseInternalModule):
 
         async def process(self):
             for identifier, results in self.results.items():
-                self.excavate.hugewarning(identifier)
+
+                self.excavate.hugewarning(f"Identifier: [{identifier}]")
                 for url in results:
                     url_bytes = url.matched_data
                     url_str = url_bytes.decode("utf-8")
+                    if identifier == "url_full":
+                        self.excavate.critical(f"FULL URL {url_str}")
+                        if not await self.helpers.re.search(self.full_url_regex, url_str):
+                            self.excavate.critical(
+                                f"Rejecting potential full URL [{url_str}] as did not match full_url_regex"
+                            )
+                            continue
+                        final_url = url_str
 
-                    #              self.excavate.hugeinfo(url_str)
-
-                    parsed_uri = None
-                    try:
-                        parsed_uri = self.excavate.helpers.urlparse(url_str)
-                    except Exception as e:
-                        # CHANGE BACK TO DEBUG
-                        self.excavate.critical(f"Error parsing URI {url_str}: {e}")
-                        continue
-                    netloc = getattr(parsed_uri, "netloc", None)
-                    if netloc is None:
-                        continue
-                    #  host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
-                    if not "http" in parsed_uri.scheme.lower():
-                        continue
-                    await self.report(url_str)
-
-        async def report(self, event_data):
-
-            #      self.excavate.hugeinfo("IN REPORT")
-
-            temp_event = self.excavate.make_event(event_data, "URL_UNVERIFIED", parent=self.event)
-            if temp_event is not None:
-                url_in_scope = self.excavate.scan.in_scope(temp_event)
-                is_spider_danger = self.excavate.helpers.is_spider_danger(self.event, event_data)
-                exceeds_max_links = self.urls_found >= self.web_spider_links_per_page and url_in_scope
-                exceeds_redirect_distance = (not self.consider_spider_danger) and (
-                    self.excavate.web_spider_distance > self.excavate.max_redirects
-                )
-                if is_spider_danger or exceeds_max_links or exceeds_redirect_distance:
-                    #                    self.excavate.critical("ITS SPIDER DANGER!")
-                    reason = "its spider depth or distance exceeds the scan's limits"
-                    if exceeds_max_links:
-                        reason = f"it exceeds the max number of links per page ({self.web_spider_links_per_page})"
-                    elif exceeds_redirect_distance:
-                        reason = (
-                            f"its spider distance exceeds the max number of redirects ({self.excavate.max_redirects})"
+                        self.excavate.critical(f"Discovered Full URL [{final_url}]")
+                    elif identifier == "url_attr":
+                        m = await self.helpers.re.search(self.tag_attribute_regex, url_str)
+                        if not m:
+                            self.excavate.critical(
+                                f"Rejecting potential attribute URL [{url_str}] as did not match tag_attribute_regex"
+                            )
+                            continue
+                        unescaped_url = html.unescape(m.group(1))
+                        # path = f"/{unescaped_url.lstrip('/')}"
+                        source_url = self.event.parsed_url.geturl()
+                        self.excavate.hugewarning(f"SOURCE URL: {source_url}")
+                        joined_url = urljoin(source_url, unescaped_url)
+                        if not await self.helpers.re.search(self.full_url_regex_strict, joined_url):
+                            self.excavate.critical(
+                                f"Rejecting reconstructed URL [{joined_url}] as did not match full_url_regex_strict"
+                            )
+                            continue
+                        final_url = joined_url
+                        self.excavate.critical(
+                            f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )
-                    self.excavate.debug(f"Tagging {temp_event} as spider-danger because {reason}")
-                    temp_event.add_tag("spider-danger")
-            await self.excavate.emit_event(temp_event)
-            if url_in_scope:
-                self.urls_found += 1
-
-    #       context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {self.description}"
-    # #      self.excavate.critical(context)
-    #       await self.excavate.emit_event(
-    #           event_data,
-    #           event_type,
-    #           parent=self.event,
-    #           context=context,
-    #           tags=self.tags,
-    #       )
+                    await self.report(final_url, event_type="URL_UNVERIFIED")
 
     class HostnameExtractor(ExcavateRule):
         yaraRules = {}
@@ -556,7 +535,7 @@ class excavate(BaseInternalModule):
             return False
         return True
 
-    async def search(self, data, event, content_type, consider_spider_danger=True, discovery_context="HTTP response"):
+    async def search(self, data, event, content_type, discovery_context="HTTP response"):
         if not data:
             return None
 
@@ -591,7 +570,7 @@ class excavate(BaseInternalModule):
         for result in self.yaraRules.match(data=data):
             rule_name = result.rule
             if rule_name in self.yaraCallbackDict:
-                await self.yaraCallbackDict[rule_name](result, data, event, consider_spider_danger, discovery_context)
+                await self.yaraCallbackDict[rule_name](result, data, event, discovery_context)
             else:
                 self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
@@ -615,7 +594,7 @@ class excavate(BaseInternalModule):
                         url_event.web_spider_distance = parent_web_spider_distance
                         await self.emit_event(
                             url_event,
-                            context=f'evcavate looked in "Location" header and found {event.type}: {event.data}',
+                            context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
                         )
                 else:
                     self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
@@ -682,7 +661,6 @@ class excavate(BaseInternalModule):
             body,
             event,
             content_type,
-            consider_spider_danger=True,
             discovery_context="HTTP response (body)",
         )
 
@@ -690,11 +668,9 @@ class excavate(BaseInternalModule):
             headers_str,
             event,
             content_type,
-            consider_spider_danger=False,
             discovery_context="HTTP response (headers)",
         )
 
 
-# REMAINING SUBMODULES
 # SPIDER DANGER
 # TESTS :/

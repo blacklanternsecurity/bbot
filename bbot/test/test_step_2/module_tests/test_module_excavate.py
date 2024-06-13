@@ -325,7 +325,7 @@ class TestExcavateSerializationPositive(TestExcavate):
         )
 
     def check(self, module_test, events):
-        for serialize_type in ["Java", ".NET", "PHP (Array)", "PHP (String)", "PHP (Object)", "Possible Compressed"]:
+        for serialize_type in ["Java", "DOTNET", "PHP_Array", "PHP_String", "PHP_Object", "Possible_Compressed"]:
             assert any(
                 e.type == "FINDING" and serialize_type in e.data["description"] for e in events
             ), f"Did not find {serialize_type} Serialized Object"
