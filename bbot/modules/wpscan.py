@@ -30,21 +30,25 @@ class wpscan(BaseModule):
         "disable_tls_checks": "Disables the SSL/TLS certificate verification (Default True)",
         "force": "Do not check if the target is running WordPress or returns a 403",
     }
+    deps_apt = ["curl", "make", "gcc"]
     deps_ansible = [
         {
-            "name": "Install Rubygems (Non-Debian)",
-            "package": {"name": "rubygems", "state": "present"},
-            "become": True,
-            "when": "ansible_facts['os_family'] != 'Debian'",
-        },
-        {
-            "name": "Install Rubygems (Debian)",
-            "package": {
-                "name": "ruby-rubygems",
-                "state": "present",
-            },
+            "name": "Install Ruby Deps (Debian/Ubuntu)",
+            "package": {"name": ["ruby-rubygems", "ruby-dev"], "state": "present"},
             "become": True,
             "when": "ansible_facts['os_family'] == 'Debian'",
+        },
+        {
+            "name": "Install Ruby Deps (Arch)",
+            "package": {"name": ["rubygems"], "state": "present"},
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Archlinux'",
+        },
+        {
+            "name": "Install Ruby Deps (Fedora)",
+            "package": {"name": ["rubygems", "ruby-devel"], "state": "present"},
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Fedora'",
         },
         {
             "name": "Install wpscan gem",

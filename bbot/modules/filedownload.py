@@ -74,10 +74,12 @@ class filedownload(BaseModule):
             "yaml",  #  YAML Ain't Markup Language
         ],
         "max_filesize": "10MB",
+        "base_64_encoded_file": "false",
     }
     options_desc = {
         "extensions": "File extensions to download",
         "max_filesize": "Cancel download if filesize is greater than this size",
+        "base_64_encoded_file": "Stream the bytes of a file and encode them in base 64 for event data.",
     }
 
     scope_distance_modifier = 3

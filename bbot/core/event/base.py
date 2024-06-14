@@ -1,15 +1,21 @@
+import io
 import re
 import json
 import logging
 import datetime
+import base64
+import logging
+import tarfile
 import ipaddress
 import traceback
+
 from copy import copy
 from typing import Optional
 from contextlib import suppress
 from urllib.parse import urljoin
 from radixtarget import RadixTarget
 from pydantic import BaseModel, field_validator
+from pathlib import Path
 
 from .helpers import *
 from bbot.errors import *
@@ -842,6 +848,43 @@ class DictHostEvent(DictEvent):
                 return make_ip_type(parsed.hostname)
 
 
+class DictPathEvent(DictEvent):
+    _path_keywords = ["path", "filename"]
+
+    def sanitize_data(self, data):
+        new_data = dict(data)
+        file_blobs = getattr(self.scan, "_file_blobs", False)
+        folder_blobs = getattr(self.scan, "_folder_blobs", False)
+        for path_keyword in self._path_keywords:
+            blob = None
+            try:
+                data_path = Path(data[path_keyword])
+            except KeyError:
+                continue
+            if data_path.is_file():
+                self.add_tag("file")
+                if file_blobs:
+                    with open(data_path, "rb") as file:
+                        blob = file.read()
+            elif data_path.is_dir():
+                self.add_tag("folder")
+                if folder_blobs:
+                    blob = self._tar_directory(data_path)
+            else:
+                continue
+            if blob:
+                new_data["blob"] = base64.b64encode(blob).decode("utf-8")
+
+        return new_data
+
+    def _tar_directory(self, dir_path):
+        tar_buffer = io.BytesIO()
+        with tarfile.open(fileobj=tar_buffer, mode="w:gz") as tar:
+            # Add the entire directory to the tar archive
+            tar.add(dir_path, arcname=dir_path.name)
+        return tar_buffer.getvalue()
+
+
 class ASN(DictEvent):
     _always_emit = True
     _quick_emit = True
@@ -1241,7 +1284,7 @@ class SOCIAL(DictHostEvent):
     _scope_distance_increment_same_host = True
 
 
-class WEBSCREENSHOT(DictHostEvent):
+class WEBSCREENSHOT(DictPathEvent, DictHostEvent):
     _always_emit = True
     _quick_emit = True
 
@@ -1265,6 +1308,10 @@ class WAF(DictHostEvent):
 
     def _pretty_string(self):
         return self.data["waf"]
+
+
+class FILESYSTEM(DictPathEvent):
+    pass
 
 
 def make_event(

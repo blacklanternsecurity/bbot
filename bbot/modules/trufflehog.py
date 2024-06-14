@@ -85,9 +85,10 @@ class trufflehog(BaseModule):
         command = [
             "trufflehog",
             "--json",
+            "--no-update",
         ]
         if self.verified:
-            command.append("--only_verified")
+            command.append("--only-verified")
         command.append("--concurrency=" + str(self.concurrency))
         if module == "git":
             command.append("git")
