@@ -303,6 +303,15 @@ async def _main():
                     # if we're on the terminal, enable keyboard interaction
                     if sys.stdin.isatty():
 
+                        # warn if any targets belong directly to a cloud provider
+                        for event in scanner.target.events:
+                            if event.type == "DNS_NAME":
+                                provider, _, _ = scanner.helpers.cloudcheck(event.host)
+                                if provider:
+                                    scanner.hugewarning(
+                                        f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
+                                    )
+
                         import fcntl
                         from bbot.core.helpers.misc import smart_decode
 
