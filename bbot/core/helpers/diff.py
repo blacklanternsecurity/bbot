@@ -190,11 +190,11 @@ class HttpCompare:
             diff_reasons.append("body")
 
         if not diff_reasons:
-            return (True, [], False, None)
+            return (True, [], reflection, None)
         else:
             return (False, diff_reasons, reflection, subject_response)
 
-    async def canary_check(self, url, mode, rounds=6):
+    async def canary_check(self, url, mode, rounds=3):
         """
         test detection using a canary to find hosts giving bad results
         """
@@ -202,7 +202,7 @@ class HttpCompare:
         headers = None
         cookies = None
         for i in range(0, rounds):
-            random_params = {self.parent_helper.rand_string(7): self.parent_helper.rand_string(6)}
+            random_params = {self.parent_helper.rand_string(7): self.parent_helper.rand_string(7)}
             new_url = str(url)
             if mode == "getparam":
                 new_url = self.parent_helper.add_get_params(url, random_params).geturl()
@@ -214,10 +214,10 @@ class HttpCompare:
                 raise ValueError(f'Invalid mode: "{mode}", choose from: getparam, header, cookie')
 
             match, reasons, reflection, subject_response = await self.compare(
-                new_url, headers=headers, cookies=cookies
+                new_url, headers=headers, cookies=cookies, check_reflection=True
             )
 
-            # a nonsense header "caused" a difference, we need to abort
-            if match == False:
+            # if a nonsense header "caused" a difference, we need to abort. We also need to abort if our canary was reflected
+            if match == False or reflection == True:
                 return False
         return True
