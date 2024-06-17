@@ -168,6 +168,15 @@ async def _main():
             log.trace(f"Command: {' '.join(sys.argv)}")
 
             if sys.stdin.isatty():
+
+                # warn if any targets belong directly to a cloud provider
+                for event in scan.target.events:
+                    if event.type == "DNS_NAME":
+                        if scan.helpers.cloudcheck(event.host):
+                            scan.hugewarning(
+                                f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
+                            )
+
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                     input()
