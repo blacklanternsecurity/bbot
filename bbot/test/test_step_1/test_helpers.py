@@ -742,40 +742,10 @@ def test_liststring_invalidfnchars(helpers):
     assert str(e.value) == "Invalid character in string: bbot|test"
 
 
-# test extract_params_html
+# test parameter validation
 @pytest.mark.asyncio
-async def test_extract_params_html(helpers):
+async def test_parameter_validation(helpers):
 
-    html_tests = """
-    <html>
-    <head>
-        <title>Get extract</title>
-        <script>
-            $.get("/test", {jqueryget: "value1"});
-            $.post("/test", {jquerypost: "value2"});
-        </script>
-    </head>
-    <body>
-        <!-- Universal Valid: All parameter names should pass -->
-        <a href="/validPath?name=123&age=456">Universal Valid</a>
-
-        <!-- Mixed Validity: Different rules for headers, GET parameters, and cookies -->
-        <a href="/test?valid_name=1&valid-name=2&invalid,name=3">Mixed Validity</a>
-        <a href="/test?session_token=1&user.id=2&auth-token=3">Token Examples</a>
-
-        <!-- Valid for GET and Cookies, not valid for headers -->
-        <a href="/details?user-name=1&parens()=2">Common Web Names</a>
-        <a href="/info?client.id=1&access_token=2">API Style Names</a>
-
-        <!-- Bad examples that should fail all validations -->
-        <a href="/badPath?this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow=foo">Invalid</a>
-        <a href="/badPath?###$$$=test">Invalid</a>
-        <a href="/badPath?<script>=test">Invalid</a>
-        <input name="abcd" value="zxyz>MixedaValidity</input>
-    </body>
-    </html>
-    """
-    getparam_extract_results = set(await helpers.re.extract_params_html(html_tests, "getparam"))
     getparam_valid_params = {
         "name",
         "age",
@@ -789,25 +759,23 @@ async def test_extract_params_html(helpers):
         "access_token",
         "abcd",
         "jqueryget",
+        "<script>",
     }
     getparam_invalid_params = {
         "invalid,name",
-        "<script>",
         "###$$$",
         "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
         "parens()",
+        "cookie$name",
     }
-    getparam_extracted_params = set(getparam_extract_results)
 
-    # Check that all valid parameters are present
-    for expected_param in getparam_valid_params:
-        assert expected_param in getparam_extracted_params, f"Missing expected parameter: {expected_param}"
+    getparam_params = getparam_valid_params | getparam_invalid_params
+    for p in getparam_params:
+        if helpers.validate_parameter(p, "getparam"):
+            assert p in getparam_valid_params and p not in getparam_invalid_params
+        else:
+            assert p in getparam_invalid_params and not p in getparam_valid_params
 
-    # Check that no invalid parameters are present
-    for bad_param in getparam_invalid_params:
-        assert bad_param not in getparam_extracted_params, f"Invalid parameter found: {bad_param}"
-
-    header_extract_results = set(await helpers.re.extract_params_html(html_tests, "header"))
     header_valid_params = {
         "name",
         "age",
@@ -821,25 +789,24 @@ async def test_extract_params_html(helpers):
         "jqueryget",
     }
     header_invalid_params = {
-        "user.id",
-        "client.id",
         "invalid,name",
         "<script>",
-        "###$$$",
         "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
         "parens()",
+        "cookie$name",
+        "carrot^",
+        "###$$$",
+        "user.id",
+        "client.id",
     }
-    header_extracted_params = set(header_extract_results)
 
-    # Check that all valid parameters are present
-    for expected_param in header_valid_params:
-        assert expected_param in header_extracted_params, f"Missing expected parameter: {expected_param}"
+    header_params = header_valid_params | header_invalid_params
+    for p in header_params:
+        if helpers.validate_parameter(p, "header"):
+            assert p in header_valid_params and p not in header_invalid_params
+        else:
+            assert p in header_invalid_params and not p in header_valid_params
 
-    # Check that no invalid parameters are present
-    for bad_param in header_invalid_params:
-        assert bad_param not in header_extracted_params, f"Invalid parameter found: {bad_param}"
-
-    cookie_extract_results = set(await helpers.re.extract_params_html(html_tests, "cookie"))
     cookie_valid_params = {
         "name",
         "age",
@@ -849,24 +816,23 @@ async def test_extract_params_html(helpers):
         "user-name",
         "auth-token",
         "access_token",
-        "parens()",
         "user.id",
         "client.id",
         "abcd",
         "jqueryget",
+        "###$$$",
+        "cookie$name",
     }
     cookie_invalid_params = {
         "invalid,name",
         "<script>",
-        "###$$$",
+        "parens()",
         "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
     }
-    cookie_extracted_params = set(cookie_extract_results)
 
-    # Check that all valid parameters are present
-    for expected_param in cookie_valid_params:
-        assert expected_param in cookie_extracted_params, f"Missing expected parameter: {expected_param}"
-
-    # Check that no invalid parameters are present
-    for bad_param in cookie_invalid_params:
-        assert bad_param not in cookie_extracted_params, f"Invalid parameter found: {bad_param}"
+    cookie_params = cookie_valid_params | cookie_invalid_params
+    for p in cookie_params:
+        if helpers.validate_parameter(p, "cookie"):
+            assert p in cookie_valid_params and p not in cookie_invalid_params
+        else:
+            assert p in cookie_invalid_params and not p in cookie_valid_params

@@ -856,7 +856,7 @@ def extract_params_json(json_data, compare_mode="getparam"):
         current_data = stack.pop()
         if isinstance(current_data, dict):
             for key, value in current_data.items():
-                if _validate_param(key, compare_mode):
+                if validate_parameter(key, compare_mode):
                     key_value_pairs.add((key, value))
                 if isinstance(value, (dict, list)):
                     stack.append(value)
@@ -896,7 +896,7 @@ def extract_params_xml(xml_data, compare_mode="getparam"):
 
     while stack:
         current_element = stack.pop()
-        if _validate_param(current_element.tag, compare_mode):
+        if validate_parameter(current_element.tag, compare_mode):
             tag_value_pairs.add((current_element.tag, current_element.text))
         for child in current_element:
             stack.append(child)
@@ -904,95 +904,24 @@ def extract_params_xml(xml_data, compare_mode="getparam"):
 
 
 # Define valid characters for each mode based on RFCs
-valid_chars = {
-    "header": set(chr(c) for c in range(33, 127) if chr(c) not in '."(),;:\\'),
+valid_chars_dict = {
+    "header": set(
+        chr(c) for c in range(33, 127) if chr(c) in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+    ),
     "getparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
-    "cookie": set(chr(c) for c in range(33, 127) if chr(c) not in ' ",;=\\'),
+    "postparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
+    "cookie": set(chr(c) for c in range(33, 127) if chr(c) not in '()<>@,;:"/[]?={} \t'),
 }
 
 
-def _validate_param(param, compare_mode):
+def validate_parameter(param, compare_mode):
+    compare_mode = compare_mode.lower()
     if len(param) > 100:
         return False
-    if compare_mode not in valid_chars:
+    if compare_mode not in valid_chars_dict:
         raise ValueError(f"Invalid compare_mode: {compare_mode}")
-    allowed_chars = valid_chars[compare_mode]
+    allowed_chars = valid_chars_dict[compare_mode]
     return set(param).issubset(allowed_chars)
-
-
-# def extract_params_html(html_data, compare_mode="getparam"):
-#     """
-#     Extracts parameters from an HTML object, yielding them one at a time. This function filters
-#     these parameters based on a specified mode that determines the type of validation
-#     or comparison against rules for headers, GET parameters, or cookies. If no mode is specified,
-#     it defaults to 'getparam', which is the least restrictive.
-
-#     Args:
-#         html_data (str): HTML-formatted string.
-#         compare_mode (str, optional): The mode to compare extracted parameter names against.
-#             Defaults to 'getparam'. Valid modes are 'header', 'getparam', 'cookie'.
-
-#     Yields:
-#         str: A string containing the parameter found in the HTML object that meets the
-#         criteria of the specified mode.
-
-#     Examples:
-#         >>> html_data = '''
-#         ... <html>
-#         ...     <body>
-#         ...         <input name="user">
-#         ...         <a href="/page?param3=value3">Click Me</a>
-#         ...         <script>
-#         ...             $.get("/test", {param1: "value1"});
-#         ...             $.post("/test", {param2: "value2"});
-#         ...         </script>
-#         ...     </body>
-#         ... </html>
-#         ... '''
-#         >>> list(extract_params_html(html_data))
-#         ['user', 'param1', 'param2', 'param3']
-#     """
-
-#     found_params = []
-
-#     input_tag = bbot_regexes.input_tag_regex.findall(html_data)
-
-#     for i in input_tag:
-#         if _validate_param(i, compare_mode):
-#             log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
-#             found_params.append(i)
-
-#     # check for jquery get parameters
-#     jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
-#     if jquery_get:
-#         for i in jquery_get:
-#             for x in i.split(","):
-#                 s = x.split(":")[0].rstrip()
-#                 if _validate_param(s, compare_mode):
-#                     log.debug(f"FOUND PARAM ({s}) IN A JQUERY GET PARAMS")
-#                     found_params.append(s)
-
-#     # check for jquery post parameters
-#     jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
-#     if jquery_post:
-#         for i in jquery_post:
-#             for x in i.split(","):
-#                 s = x.split(":")[0].rstrip()
-#                 if _validate_param(s, compare_mode):
-#                     log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
-#                     found_params.append(s)
-
-#     a_tag = bbot_regexes.a_tag_regex.findall(html_data)
-#     for tag in a_tag:
-#         a_tag_querystring = tag.split("&") if tag else []
-#         for s in a_tag_querystring:
-#             if "=" in s:
-#                 s0 = s.split("=")[0]
-#                 if _validate_param(s0, compare_mode):
-#                     log.debug(f"FOUND PARAM ({s0}) IN A TAG GET PARAMS")
-#                     found_params.append(s0)
-
-#     return found_params
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):

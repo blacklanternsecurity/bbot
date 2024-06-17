@@ -329,3 +329,103 @@ class TestExcavateSerializationPositive(TestExcavate):
             assert any(
                 e.type == "FINDING" and serialize_type in e.data["description"] for e in events
             ), f"Did not find {serialize_type} Serialized Object"
+
+
+class TestExcavateParameterExtraction(TestExcavate):
+
+    targets = ["http://127.0.0.1:8888/"]
+
+    parameter_extraction_html = """
+    <html>
+    <head>
+        <title>Get extract</title>
+        <script>
+            $.get("/test", {jqueryget: "value1"});
+            $.post("/test", {jquerypost: "value2"});
+        </script>
+    </head>
+    <body>
+    <body>
+        <h1>Simple GET Form</h1>
+        <p>Use the form below to submit a GET request:</p>
+        <form action="/search" method="get">
+            <label for="searchQuery">Search Query:</label>
+            <input type="text" id="searchQuery" name="q" value="flowers"><br><br>
+            <input type="submit" value="Search">
+        </form>
+        <h1>Simple POST Form</h1>
+        <p>Use the form below to submit a POST request:</p>
+        <form action="/search" method="post">
+            <label for="searchQuery">Search Query:</label>
+            <input type="text" id="searchQuery" name="q" value="boats"><br><br>
+            <input type="submit" value="Search">
+        </form>
+        <p>Links</p>
+        <a href="/validPath?id=123&age=456">href</a>
+        <img src="http://127.0.0.1:8888/validPath?size=m&fit=slim">img</a>
+    </body>
+    </body>
+    </html>
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(self.parameter_extraction_html)
+
+    def check(self, module_test, events):
+        found_jquery_get = False
+        found_jquery_post = False
+        found_form_get = False
+        found_form_post = False
+        found_jquery_get_original_value = False
+        found_jquery_post_original_value = False
+        found_form_get_original_value = False
+        found_form_post_original_value = False
+        found_htmltags_a = False
+        found_htmltags_img = False
+
+        for e in events:
+
+            if e.type == "WEB_PARAMETER":
+                if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
+                    found_jquery_get = True
+                    if e.data["original_value"] == "value1":
+                        found_jquery_get_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [jquerypost] (POST jquery Submodule)":
+                    found_jquery_post = True
+                    if e.data["original_value"] == "value2":
+                        found_jquery_post_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [q] (GET Form Submodule)":
+                    found_form_get = True
+                    if e.data["original_value"] == "flowers":
+                        found_form_get_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [q] (POST Form Submodule)":
+                    found_form_post = True
+                    if e.data["original_value"] == "boats":
+                        found_form_post_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [age] (HTML Tags Submodule)":
+                    print("?????")
+                    if e.data["original_value"] == "456":
+                        if "id" in e.data["additional_params"].keys():
+                            found_htmltags_a = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [size] (HTML Tags Submodule)":
+                    if e.data["original_value"] == "m":
+                        if "fit" in e.data["additional_params"].keys():
+                            found_htmltags_img = True
+
+            #    HTTP Extracted Parameter [fit] (HTML Tags Submodule)
+
+        assert found_jquery_get, "Did not extract Jquery GET parameters"
+        assert found_jquery_post, "Did not extract Jquery POST parameters"
+        assert found_form_get, "Did not extract Form GET parameters"
+        assert found_form_post, "Did not extract Form POST parameters"
+        assert found_jquery_get_original_value, "Did not extract Jquery GET parameter original_value"
+        assert found_jquery_post_original_value, "Did not extract Jquery POST parameter original_value"
+        assert found_form_get_original_value, "Did not extract Form GET parameter original_value"
+        assert found_form_post_original_value, "Did not extract Form POST parameter original_value"
+        assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
+        assert found_htmltags_img, "Did not extract parameter(s) from img-tag"

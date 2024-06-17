@@ -265,6 +265,29 @@ class excavate(BaseInternalModule):
             extraction_regex = re.compile(r"\$.post\([\'\"](.+)[\'\"].+(\{.+\})\)")
             output_type = "POSTPARAM"
 
+        class HtmlTags(ParameterExtractorRule):
+            name = "HTML Tags"
+            discovery_regex = r'/<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ nocase'
+            extraction_regex = bbot_regexes.tag_attribute_regex
+            output_type = "GETPARAM"
+
+            def extract(self):
+                urls = self.extraction_regex.findall(str(self.result))
+                for url in urls:
+                    self.excavate.critical(url)
+                    parsed_url = urlparse(url)
+
+                    query_strings = parse_qs(parsed_url.query)
+                    query_strings_dict = {
+                        k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in query_strings.items()
+                    }
+                    for parameter_name, original_value in query_strings_dict.items():
+                        if original_value == None or original_value == "":
+                            original_value = 1
+                        yield self.output_type, parameter_name, original_value, parsed_url.path, _exclude_key(
+                            query_strings_dict, parameter_name
+                        )
+
         class GetForm(ParameterExtractorRule):
 
             name = "GET Form"
@@ -284,9 +307,9 @@ class excavate(BaseInternalModule):
                     for form_content_regex in self.form_content_regexes:
                         input_tags = form_content_regex.findall(form_content)
 
-                        for tag in input_tags:
-                            parameter_name = tag[0]
-                            original_value = tag[1] if len(tag) > 1 and tag[1] else "1"
+                        for parameter_name, original_value in input_tags:
+                            original_value
+                            self.excavate.hugeinfo(original_value)
                             form_parameters[parameter_name] = original_value
 
                         for parameter_name, original_value in form_parameters.items():
@@ -344,22 +367,26 @@ class excavate(BaseInternalModule):
                                 else f"{self.event.parsed_url.scheme}://{self.event.parsed_url.netloc}{endpoint}"
                             )
 
-                            if self.excavate.in_bl(parameter_name) == False:
-                                parsed_url = urlparse(url)
-                                description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
-                                data = {
-                                    "host": parsed_url.hostname,
-                                    "type": parameter_type,
-                                    "name": parameter_name,
-                                    "original_value": original_value,
-                                    "url": self.excavate.url_unparse(parameter_type, parsed_url),
-                                    "additional_params": additional_params,
-                                    "assigned_cookies": self.excavate.assigned_cookies,
-                                    "description": description,
-                                }
-                                await self.report(data, event_type="WEB_PARAMETER")
+                            if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
+
+                                if self.excavate.in_bl(parameter_name) == False:
+                                    parsed_url = urlparse(url)
+                                    description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
+                                    data = {
+                                        "host": parsed_url.hostname,
+                                        "type": parameter_type,
+                                        "name": parameter_name,
+                                        "original_value": original_value,
+                                        "url": self.excavate.url_unparse(parameter_type, parsed_url),
+                                        "additional_params": additional_params,
+                                        "assigned_cookies": self.excavate.assigned_cookies,
+                                        "description": description,
+                                    }
+                                    await self.report(data, event_type="WEB_PARAMETER")
+                                else:
+                                    self.debug(f"blocked parameter [{parameter_name}] due to BL match")
                             else:
-                                self.debug(f"blocked parameter [{parameter_name}] due to BL match")
+                                self.debug(f"blocked parameter [{parameter_name}] due to validation failure")
 
     class CSPExtractor(ExcavateRule):
         yara_rules = {
@@ -482,7 +509,7 @@ class excavate(BaseInternalModule):
 
         full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
         full_url_regex_strict = re.compile(re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?$"))
-        tag_attribute_regex = re.compile(r"<[^>]*(?:href|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
+        tag_attribute_regex = bbot_regexes.tag_attribute_regex
         urls_found = 0
 
         def __init__(self, *args, **kwargs):
