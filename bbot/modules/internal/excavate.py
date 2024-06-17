@@ -1,6 +1,7 @@
 import inspect
 import asyncio
 import yara
+import json
 import html
 import regex as re
 from pathlib import Path
@@ -218,14 +219,10 @@ class excavate(BaseInternalModule):
 
     class ParameterExtractor(ExcavateRule):
 
-        yara_rules = {
-            "params_getform": r'rule params_getform { meta: description = "contains a GET form" strings: $getform_regex = /<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase condition: $getform_regex}'
-        }
         yara_rules = {}
 
         class ParameterExtractorRule:
             name = ""
-            yara_rules = {}
 
             def extract(self):
                 pass
@@ -234,20 +231,54 @@ class excavate(BaseInternalModule):
                 self.excavate = excavate
                 self.result = result
 
+        class GetJquery(ParameterExtractorRule):
+
+            name = "GET jquery"
+            discovery_regex = r"/\$.get\([^\)].+\)/ nocase"
+            extraction_regex = re.compile(r"\$.get\([\'\"](.+)[\'\"].+(\{.+\})\)")
+            output_type = "GETPARAM"
+
+            def convert_to_dict(self, extracted_str):
+                extracted_str = extracted_str.replace("'", '"')
+                extracted_str = re.sub(r"(\w+):", r'"\1":', extracted_str)
+                try:
+                    return json.loads(extracted_str)
+                except json.JSONDecodeError as e:
+                    self.excavate.critical(f"Failed to decode JSON: {e}")
+                    return None
+
+            def extract(self):
+                extracted_results = self.extraction_regex.findall(str(self.result))
+                if extracted_results:
+                    for action, extracted_parameters in extracted_results:
+                        self.excavate.hugewarning(extracted_parameters)
+                        extracted_parameters_dict = self.convert_to_dict(extracted_parameters)
+                        self.excavate.critical(extracted_parameters_dict)
+                        for parameter_name, original_value in extracted_parameters_dict.items():
+                            yield self.output_type, parameter_name, original_value, action, _exclude_key(
+                                extracted_parameters_dict, parameter_name
+                            )
+
+        class PostJquery(GetJquery):
+            name = "POST jquery"
+            discovery_regex = r"/\$.post\([^\)].+\)/ nocase"
+            extraction_regex = re.compile(r"\$.post\([\'\"](.+)[\'\"].+(\{.+\})\)")
+            output_type = "POSTPARAM"
+
         class GetForm(ParameterExtractorRule):
 
             name = "GET Form"
-            extraction_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase'
+            discovery_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase'
             form_content_regexes = [
                 bbot_regexes.input_tag_regex,
                 bbot_regexes.select_tag_regex,
                 bbot_regexes.textarea_tag_regex,
             ]
-            discovery_regex = bbot_regexes.get_form_regex
+            extraction_regex = bbot_regexes.get_form_regex
             output_type = "GETPARAM"
 
             def extract(self):
-                forms = self.discovery_regex.findall(str(self.result))
+                forms = self.extraction_regex.findall(str(self.result))
                 for form_action, form_content in forms:
                     form_parameters = {}
                     for form_content_regex in self.form_content_regexes:
@@ -265,8 +296,8 @@ class excavate(BaseInternalModule):
 
         class PostForm(GetForm):
             name = "POST Form"
-            extraction_regex = r'/<form[^>]*\bmethod=["\']?post["\']?[^>]*>.*<\/form>/s nocase'
-            discovery_regex = bbot_regexes.post_form_regex
+            discovery_regex = r'/<form[^>]*\bmethod=["\']?post["\']?[^>]*>.*<\/form>/s nocase'
+            extraction_regex = bbot_regexes.post_form_regex
             output_type = "POSTPARAM"
 
         def __init__(self, excavate):
@@ -277,7 +308,7 @@ class excavate(BaseInternalModule):
             for r in parameterExtractorRules:
                 self.excavate.critical(f"Including ParameterExtractor Submodule: {r.__name__}")
                 self.parameterExtractorCallbackDict[r.__name__] = r
-                regexes_component_list.append(f"${r.__name__} = {r.extraction_regex}")
+                regexes_component_list.append(f"${r.__name__} = {r.discovery_regex}")
             regexes_component = " ".join(regexes_component_list)
             self.yara_rules[f"parameter_extraction"] = (
                 rf'rule parameter_extraction {{meta: description = "contains POST form" strings: {regexes_component} condition: any of them}}'
@@ -291,42 +322,44 @@ class excavate(BaseInternalModule):
                     parameterExtractorSubModule = self.parameterExtractorCallbackDict[identifier](
                         self.excavate, result
                     )
-                    for (
-                        parameter_type,
-                        parameter_name,
-                        original_value,
-                        endpoint,
-                        additional_params,
-                    ) in parameterExtractorSubModule.extract():
+                    extracted_params = parameterExtractorSubModule.extract()
+                    if extracted_params:
+                        for (
+                            parameter_type,
+                            parameter_name,
+                            original_value,
+                            endpoint,
+                            additional_params,
+                        ) in extracted_params:
 
-                        self.excavate.debug(
-                            f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
-                        )
+                            self.excavate.debug(
+                                f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
+                            )
 
-                        in_bl = False
-                        endpoint = self.event.data["url"] if not endpoint else endpoint
-                        url = (
-                            endpoint
-                            if endpoint.startswith(("http://", "https://"))
-                            else f"{self.event.parsed_url.scheme}://{self.event.parsed_url.netloc}{endpoint}"
-                        )
+                            in_bl = False
+                            endpoint = self.event.data["url"] if not endpoint else endpoint
+                            url = (
+                                endpoint
+                                if endpoint.startswith(("http://", "https://"))
+                                else f"{self.event.parsed_url.scheme}://{self.event.parsed_url.netloc}{endpoint}"
+                            )
 
-                        if self.excavate.in_bl(parameter_name) == False:
-                            parsed_url = urlparse(url)
-                            description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
-                            data = {
-                                "host": parsed_url.hostname,
-                                "type": parameter_type,
-                                "name": parameter_name,
-                                "original_value": original_value,
-                                "url": self.excavate.url_unparse(parameter_type, parsed_url),
-                                "additional_params": additional_params,
-                                "assigned_cookies": self.excavate.assigned_cookies,
-                                "description": description,
-                            }
-                            await self.report(data, event_type="WEB_PARAMETER")
-                        else:
-                            self.debug(f"blocked parameter [{parameter_name}] due to BL match")
+                            if self.excavate.in_bl(parameter_name) == False:
+                                parsed_url = urlparse(url)
+                                description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
+                                data = {
+                                    "host": parsed_url.hostname,
+                                    "type": parameter_type,
+                                    "name": parameter_name,
+                                    "original_value": original_value,
+                                    "url": self.excavate.url_unparse(parameter_type, parsed_url),
+                                    "additional_params": additional_params,
+                                    "assigned_cookies": self.excavate.assigned_cookies,
+                                    "description": description,
+                                }
+                                await self.report(data, event_type="WEB_PARAMETER")
+                            else:
+                                self.debug(f"blocked parameter [{parameter_name}] due to BL match")
 
     class CSPExtractor(ExcavateRule):
         yara_rules = {
@@ -564,7 +597,7 @@ class excavate(BaseInternalModule):
 
         self.custom_yara_rules = str(self.config.get("custom_yara_rules", ""))
         if self.custom_yara_rules:
-            rules_count = 0
+            custom_rules_count = 0
             if Path(self.custom_yara_rules).is_file():
                 with open(self.custom_yara_rules) as f:
                     rules_content = f.read()
@@ -590,9 +623,9 @@ class excavate(BaseInternalModule):
                 rule_name = rule_match.groups(1)[0]
                 c = CustomExtractor(self)
                 self.add_yara_rule(rule_name, rule_content, c)
-                rules_count += 1
-
-            self.hugeinfo(f"Successfully added {str(rules_count)} custom Yara rule(s)")
+                custom_rules_count += 1
+            if custom_rules_count > 0:
+                self.hugeinfo(f"Successfully added {str(custom_rules_count)} custom Yara rule(s)")
 
         yara_max_match_data = self.config.get("yara_max_match_data", 2000)
 

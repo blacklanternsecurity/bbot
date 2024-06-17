@@ -308,7 +308,7 @@ class BBOTArgs:
             default=[],
             help="List of custom headers as key value pairs (header=value).",
         )
-        misc.add_argument("--custom-yara-rules","-cy", help="Add custom yara rules to excavate")
+        misc.add_argument("--custom-yara-rules", "-cy", help="Add custom yara rules to excavate")
         return p
 
     def sanitize_args(self):
