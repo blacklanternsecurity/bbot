@@ -69,7 +69,10 @@ class unstructured(BaseModule):
     deps_ansible = [
         {
             "name": "Install Deps (Debian/Ubuntu)",
-            "package": {"name": ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"], "state": "present"},
+            "package": {
+                "name": ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"],
+                "state": "present",
+            },
             "become": True,
             "when": "ansible_facts['os_family'] == 'Debian'",
         },
@@ -81,7 +84,10 @@ class unstructured(BaseModule):
         },
         {
             "name": "Install Deps (Fedora)",
-            "package": {"name": ["file-devel", "poppler-utils", "tesseract", "libreoffice", "pandoc"], "state": "present"},
+            "package": {
+                "name": ["file-devel", "poppler-utils", "tesseract", "libreoffice", "pandoc"],
+                "state": "present",
+            },
             "become": True,
             "when": "ansible_facts['os_family'] == 'Fedora'",
         },
