@@ -113,22 +113,14 @@ class ExcavateRule:
         # If a description is not set and is needed, provide a basic one
         if event_type == "FINDING" and "description" not in event_data.keys():
             event_data["description"] = f"{self.discovery_context} {yara_rule_settings['self.description']}"
-
         subject = ""
         if isinstance(event_data, str):
             subject = f" event_data"
-
         context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {yara_rule_settings.description}"
-
         tags = yara_rule_settings.tags
         event_draft = await self.report_prep(event_data, event_type, event, tags, **kwargs)
-
-
         await self.excavate.emit_event(event_draft, context=context, abort_if=abort_if)
 
-
-
-        
 
     async def regex_search(self, content, regex):
         await self.excavate.helpers.sleep(0)
@@ -554,44 +546,6 @@ class excavate(BaseInternalModule):
                         protocol_data, event, yara_rule_settings, event_type="PROTOCOL", abort_if=abort_if
                     )
 
-    # async def search(self, content, event, **kwargs):
-    #     consider_spider_danger = kwargs.get("consider_spider_danger", True)
-    #     web_spider_distance = getattr(event, "web_spider_distance", 0)
-
-    #     result_hashes = set()
-    #     results = []
-    #     async for result in self._search(content, event, **kwargs):
-    #         result_hash = hash(result[0])
-    #         if result_hash not in result_hashes:
-    #             result_hashes.add(result_hash)
-    #             results.append(result)
-
-    #     urls_found = 0
-    #     for result, name in results:
-    #         url_event = await self.report(result, name, event, **kwargs)
-    #         if url_event is not None:
-    #             url_in_scope = self.excavate.scan.in_scope(url_event)
-    #             is_spider_danger = self.excavate.helpers.is_spider_danger(event, result)
-    #             exceeds_max_links = urls_found >= self.web_spider_links_per_page and url_in_scope
-    #             exceeds_redirect_distance = (not consider_spider_danger) and (
-    #                 web_spider_distance > self.excavate.max_redirects
-    #             )
-    #             if is_spider_danger or exceeds_max_links or exceeds_redirect_distance:
-    #                 reason = "its spider depth or distance exceeds the scan's limits"
-    #                 if exceeds_max_links:
-    #                     reason = f"it exceeds the max number of links per page ({self.web_spider_links_per_page})"
-    #                 elif exceeds_redirect_distance:
-    #                     reason = (
-    #                         f"its spider distance exceeds the max number of redirects ({self.excavate.max_redirects})"
-    #                     )
-    #                 self.excavate.debug(f"Tagging {url_event} as spider-danger because {reason}")
-    #                 url_event.add_tag("spider-danger")
-
-    #             self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
-    #             await self.excavate.emit_event(url_event)
-    #             if url_in_scope:
-    #                 urls_found += 1
-
     class URLExtractor(ExcavateRule):
         yara_rules = {
             "url_full": r'rule url_full { meta: tags = "spider-danger" description = "contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_full }',
@@ -649,9 +603,6 @@ class excavate(BaseInternalModule):
         async def report_prep(self, event_data, event_type, event, tags, **kwargs):
             event_draft = self.excavate.make_event(event_data, event_type, parent=event)
             url_in_scope = self.excavate.scan.in_scope(event_draft)
-
-            self.excavate.critical("IS THE URL IN SCOPE????")
-            self.excavate.critical(url_in_scope)
             urls_found = kwargs.get('urls_found', None)
             if urls_found:
                 self.excavate.hugewarning(urls_found)
