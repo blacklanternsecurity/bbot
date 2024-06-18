@@ -951,7 +951,7 @@ class URL_UNVERIFIED(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # increment the web spider distance
-        if self.type == "URL_UNVERIFIED":
+        if self.type == "URL_UNVERIFIED" and "spider-danger" in self.tags:
             self.web_spider_distance += 1
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 

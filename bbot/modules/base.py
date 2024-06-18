@@ -478,6 +478,7 @@ class BaseModule:
         event = self.make_event(*args, **event_kwargs)
         if event:
             await self.queue_outgoing_event(event, **emit_kwargs)
+        return event
 
     async def _events_waiting(self, batch_size=None):
         """
