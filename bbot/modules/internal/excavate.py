@@ -102,7 +102,13 @@ class ExcavateRule:
                     event_data["description"] += f" [{result}]"
                 await self.report(event_data, event, yara_rule_settings)
 
-    async def report(self, event_data, event, yara_rule_settings, event_type="FINDING", abort_if=None):
+
+    async def report_prep(self, event_data, event_type, event, tags):
+        event_draft = self.excavate.make_event(event_data, event_type, parent=event)
+        event_draft.tags = tags
+        return event_draft
+
+    async def report(self, event_data, event, yara_rule_settings, event_type="FINDING", abort_if=None, **kwargs):
 
         # If a description is not set and is needed, provide a basic one
         if event_type == "FINDING" and "description" not in event_data.keys():
@@ -114,11 +120,15 @@ class ExcavateRule:
 
         context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {yara_rule_settings.description}"
 
-        await self.excavate.emit_event(
-            event_data, event_type, parent=event, context=context, tags=yara_rule_settings.tags, abort_if=abort_if
-        )
-        if event != None:
-            return event
+        tags = yara_rule_settings.tags
+        event_draft = await self.report_prep(event_data, event_type, event, tags, **kwargs)
+
+
+        await self.excavate.emit_event(event_draft, context=context, abort_if=abort_if)
+
+
+
+        
 
     async def regex_search(self, content, regex):
         await self.excavate.helpers.sleep(0)
@@ -598,7 +608,6 @@ class excavate(BaseInternalModule):
         async def process(self, yara_results, event, yara_rule_settings):
             urls_found = 0
             for identifier, results in yara_results.items():
-
                 self.excavate.hugewarning(f"Identifier: [{identifier}]")
                 for url in results:
                     url_bytes = url.matched_data
@@ -633,14 +642,25 @@ class excavate(BaseInternalModule):
                         self.excavate.critical(
                             f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )
-
-                    url_event = await self.report(final_url, event, yara_rule_settings, event_type="URL_UNVERIFIED")
                     urls_found += 1
-                    if url_event is not None:
-                        url_in_scope = self.excavate.scan.in_scope(url_event)
-                        self.excavate.critical("IS THE URL IN SCOPE????")
-                        self.excavate.critical(url_in_scope)
-                        exceeds_max_links = urls_found >= self.web_spider_links_per_page and url_in_scope
+                    await self.report(final_url, event, yara_rule_settings, event_type="URL_UNVERIFIED", urls_found=urls_found)
+                    
+    
+        async def report_prep(self, event_data, event_type, event, tags, **kwargs):
+            event_draft = self.excavate.make_event(event_data, event_type, parent=event)
+            url_in_scope = self.excavate.scan.in_scope(event_draft)
+
+            self.excavate.critical("IS THE URL IN SCOPE????")
+            self.excavate.critical(url_in_scope)
+            urls_found = kwargs.get('urls_found', None)
+            if urls_found:
+                self.excavate.hugewarning(urls_found)
+                exceeds_max_links = urls_found >= self.web_spider_links_per_page and url_in_scope
+                self.excavate.hugewarning(f"Exceeds max links? {str(exceeds_max_links)}")
+                if exceeds_max_links:
+                    tags.append("spider-max")
+            event_draft.tags = tags
+            return event_draft
 
     class HostnameExtractor(ExcavateRule):
         yara_rules = {}
