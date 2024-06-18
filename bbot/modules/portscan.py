@@ -42,6 +42,7 @@ class portscan(BaseModule):
     }
     deps_shared = ["masscan"]
     batch_size = 1000000
+    _shuffle_incoming_queue = False
 
     async def setup(self):
         self.top_ports = self.config.get("top_ports", 100)
