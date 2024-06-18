@@ -371,6 +371,7 @@ class TestExcavateNonHttpScheme(TestExcavate):
         assert found_ftp_url
         assert not found_nonsense_url
 
+
 class TestExcavateParameterExtraction(TestExcavate):
 
     targets = ["http://127.0.0.1:8888/"]

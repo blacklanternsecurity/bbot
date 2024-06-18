@@ -1,8 +1,7 @@
-import inspect
-import asyncio
 import yara
 import json
 import html
+import inspect
 import regex as re
 from pathlib import Path
 from bbot.errors import ExcavateError
@@ -109,12 +108,7 @@ class ExcavateRule:
 
         context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {self.description}"
         await self.excavate.emit_event(
-            event_data,
-            event_type,
-            parent=self.event,
-            context=context,
-            tags=self.tags,
-            abort_if=abort_if
+            event_data, event_type, parent=self.event, context=context, tags=self.tags, abort_if=abort_if
         )
 
     async def regex_search(self, content, regex):
@@ -339,7 +333,7 @@ class excavate(BaseInternalModule):
             for identifier, results in self.results.items():
                 for result in results:
                     if identifier not in self.parameterExtractorCallbackDict.keys():
-                        raise excavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
+                        raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
                     parameterExtractorSubModule = self.parameterExtractorCallbackDict[identifier](
                         self.excavate, result
                     )
@@ -356,8 +350,6 @@ class excavate(BaseInternalModule):
                             self.excavate.debug(
                                 f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
                             )
-
-                            in_bl = False
                             endpoint = self.event.data["url"] if not endpoint else endpoint
                             url = (
                                 endpoint
@@ -498,7 +490,6 @@ class excavate(BaseInternalModule):
             "File_Upload_Functionality": r'rule File_Upload_Functionality { meta: description = "contains file upload functionality" strings: $fileuploadfunc = /<input[^>]+type=["\']?file["\']?[^>]+>/ nocase condition: $fileuploadfunc }',
             "Web_Service_WSDL": r'rule Web_Service_WSDL { meta: emit_match = "True" description = "contains a web service WSDL URL" strings: $wsdl = /https?:\/\/[^\s]*\.(wsdl)/ nocase condition: $wsdl }',
         }
-
 
     class NonHttpSchemeExtractor(ExcavateRule):
         yara_rules = {
