@@ -451,7 +451,7 @@ class Mutator(dict):
 
 class DNSMutator(Mutator):
     """
-    DNS-specific mutator used by the `massdns` module to generate target-specific subdomain mutations.
+    DNS-specific mutator used by the `dnsbrute_mutations` module to generate target-specific subdomain mutations.
 
     This class extends the Mutator base class to add DNS-specific logic for generating
     subdomain mutations based on input words. It utilizes custom word extraction patterns

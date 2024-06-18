@@ -487,7 +487,7 @@ class ModuleLoader:
         """
         resolve_choices = {}
         # step 1: build a dictionary containing event types and their associated modules
-        # {"IP_ADDRESS": set("nmap", "ipneighbor", ...)}
+        # {"IP_ADDRESS": set("masscan", "ipneighbor", ...)}
         watched = {}
         produced = {}
         for modname in modules:
@@ -560,11 +560,11 @@ class ModuleLoader:
             str: A formatted table string.
 
         Examples:
-            >>> print(modules_table(["nmap"]))
+            >>> print(modules_table(["portscan"]))
             +----------+--------+-----------------+------------------------------+-------------------------------+----------------------+-------------------+
             | Module   | Type   | Needs API Key   | Description                  | Flags                         | Consumed Events      | Produced Events   |
             +==========+========+=================+==============================+===============================+======================+===================+
-            | nmap     | scan   | No              | Execute port scans with nmap | active, aggressive, portscan, | DNS_NAME, IP_ADDRESS | OPEN_TCP_PORT     |
+            | portscan | scan   | No              | Execute port scans           | active, aggressive, portscan, | DNS_NAME, IP_ADDRESS | OPEN_TCP_PORT     |
             |          |        |                 |                              | web-thorough                  |                      |                   |
             +----------+--------+-----------------+------------------------------+-------------------------------+----------------------+-------------------+
         """

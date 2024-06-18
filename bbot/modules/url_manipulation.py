@@ -6,7 +6,11 @@ class url_manipulation(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "web-thorough"]
-    meta = {"description": "Attempt to identify URL parsing/routing based vulnerabilities"}
+    meta = {
+        "description": "Attempt to identify URL parsing/routing based vulnerabilities",
+        "created_date": "2022-09-27",
+        "author": "@liquidsec",
+    }
     in_scope_only = True
 
     options = {"allow_redirects": True}
@@ -77,7 +81,8 @@ class url_manipulation(BaseModule):
                                 await self.emit_event(
                                     {"description": description, "host": str(event.host), "url": event.data},
                                     "FINDING",
-                                    source=event,
+                                    parent=event,
+                                    context=f"{{module}} probed {event.data} and identified {{event.type}}: {description}",
                                 )
                         else:
                             self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")
@@ -94,10 +99,10 @@ class url_manipulation(BaseModule):
 
     def format_signature(self, sig, event):
         if sig[2] == True:
-            cleaned_path = event.parsed.path.strip("/")
+            cleaned_path = event.parsed_url.path.strip("/")
         else:
-            cleaned_path = event.parsed.path.lstrip("/")
+            cleaned_path = event.parsed_url.path.lstrip("/")
 
-        kwargs = {"scheme": event.parsed.scheme, "netloc": event.parsed.netloc, "path": cleaned_path}
+        kwargs = {"scheme": event.parsed_url.scheme, "netloc": event.parsed_url.netloc, "path": cleaned_path}
         formatted_url = sig[1].format(**kwargs)
         return (sig[0], formatted_url)

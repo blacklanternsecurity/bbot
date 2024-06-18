@@ -33,7 +33,11 @@ class ffuf_shortnames(ffuf):
     watched_events = ["URL_HINT"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["aggressive", "active", "iis-shortnames", "web-thorough"]
-    meta = {"description": "Use ffuf in combination IIS shortnames"}
+    meta = {
+        "description": "Use ffuf in combination IIS shortnames",
+        "created_date": "2022-07-05",
+        "author": "@liquidsec",
+    }
 
     options = {
         "wordlist": "",  # default is defined within setup function
@@ -92,7 +96,7 @@ class ffuf_shortnames(ffuf):
 
     def build_extension_list(self, event):
         used_extensions = []
-        extension_hint = event.parsed.path.rsplit(".", 1)[1].lower().strip()
+        extension_hint = event.parsed_url.path.rsplit(".", 1)[1].lower().strip()
         if len(extension_hint) == 3:
             with open(self.wordlist_extensions) as f:
                 for l in f:
@@ -112,24 +116,24 @@ class ffuf_shortnames(ffuf):
         return None
 
     async def filter_event(self, event):
-        if event.source.type != "URL":
-            return False, "its source event is not of type URL"
+        if event.parent.type != "URL":
+            return False, "its parent event is not of type URL"
         return True
 
     async def handle_event(self, event):
-        filename_hint = re.sub(r"~\d", "", event.parsed.path.rsplit(".", 1)[0].split("/")[-1]).lower()
+        filename_hint = re.sub(r"~\d", "", event.parsed_url.path.rsplit(".", 1)[0].split("/")[-1]).lower()
 
-        host = f"{event.source.parsed.scheme}://{event.source.parsed.netloc}/"
+        host = f"{event.parent.parsed_url.scheme}://{event.parent.parsed_url.netloc}/"
         if host not in self.per_host_collection.keys():
-            self.per_host_collection[host] = [(filename_hint, event.source.data)]
+            self.per_host_collection[host] = [(filename_hint, event.parent.data)]
 
         else:
-            self.per_host_collection[host].append((filename_hint, event.source.data))
+            self.per_host_collection[host].append((filename_hint, event.parent.data))
 
         self.shortname_to_event[filename_hint] = event
 
-        root_stub = "/".join(event.parsed.path.split("/")[:-1])
-        root_url = f"{event.parsed.scheme}://{event.parsed.netloc}{root_stub}/"
+        root_stub = "/".join(event.parsed_url.path.split("/")[:-1])
+        root_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{root_stub}/"
 
         if "shortname-file" in event.tags:
             used_extensions = self.build_extension_list(event)
@@ -148,12 +152,24 @@ class ffuf_shortnames(ffuf):
             if "shortname-file" in event.tags:
                 for ext in used_extensions:
                     async for r in self.execute_ffuf(tempfile, root_url, suffix=f".{ext}"):
-                        await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                        await self.emit_event(
+                            r["url"],
+                            "URL_UNVERIFIED",
+                            parent=event,
+                            tags=[f"status-{r['status']}"],
+                            context=f"{{module}} brute-forced {ext.upper()} files at {root_url} and found {{event.type}}: {{event.data}}",
+                        )
 
             elif "shortname-directory" in event.tags:
                 async for r in self.execute_ffuf(tempfile, root_url, exts=["/"]):
                     r_url = f"{r['url'].rstrip('/')}/"
-                    await self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                    await self.emit_event(
+                        r_url,
+                        "URL_UNVERIFIED",
+                        parent=event,
+                        tags=[f"status-{r['status']}"],
+                        context=f"{{module}} brute-forced directories at {r_url} and found {{event.type}}: {{event.data}}",
+                    )
 
         if self.config.get("find_delimiters"):
             if "shortname-directory" in event.tags:
@@ -162,8 +178,15 @@ class ffuf_shortnames(ffuf):
                     delimiter, prefix, partial_hint = delimiter_r
                     self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                     tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
-                    async for r in self.execute_ffuf(tempfile, root_url, prefix=f"{prefix}{delimiter}", exts=["/"]):
-                        await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                    ffuf_prefix = f"{prefix}{delimiter}"
+                    async for r in self.execute_ffuf(tempfile, root_url, prefix=ffuf_prefix, exts=["/"]):
+                        await self.emit_event(
+                            r["url"],
+                            "URL_UNVERIFIED",
+                            parent=event,
+                            tags=[f"status-{r['status']}"],
+                            context=f'{{module}} brute-forced directories with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.data}}',
+                        )
 
             elif "shortname-file" in event.tags:
                 for ext in used_extensions:
@@ -172,11 +195,14 @@ class ffuf_shortnames(ffuf):
                         delimiter, prefix, partial_hint = delimiter_r
                         self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                         tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
-                        async for r in self.execute_ffuf(
-                            tempfile, root_url, prefix=f"{prefix}{delimiter}", suffix=f".{ext}"
-                        ):
+                        ffuf_prefix = f"{prefix}{delimiter}"
+                        async for r in self.execute_ffuf(tempfile, root_url, prefix=ffuf_prefix, suffix=f".{ext}"):
                             await self.emit_event(
-                                r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
+                                r["url"],
+                                "URL_UNVERIFIED",
+                                parent=event,
+                                tags=[f"status-{r['status']}"],
+                                context=f'{{module}} brute-forced {ext.upper()} files with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.data}}',
                             )
 
     async def finish(self):
@@ -208,8 +234,9 @@ class ffuf_shortnames(ffuf):
                                         await self.emit_event(
                                             r["url"],
                                             "URL_UNVERIFIED",
-                                            source=self.shortname_to_event[hint],
+                                            parent=self.shortname_to_event[hint],
                                             tags=[f"status-{r['status']}"],
+                                            context=f'{{module}} brute-forced directories with common prefix "{prefix}" and found {{event.type}}: {{event.data}}',
                                         )
                                 elif "shortname-file" in self.shortname_to_event[hint].tags:
                                     used_extensions = self.build_extension_list(self.shortname_to_event[hint])
@@ -224,6 +251,7 @@ class ffuf_shortnames(ffuf):
                                             await self.emit_event(
                                                 r["url"],
                                                 "URL_UNVERIFIED",
-                                                source=self.shortname_to_event[hint],
+                                                parent=self.shortname_to_event[hint],
                                                 tags=[f"status-{r['status']}"],
+                                                context=f'{{module}} brute-forced {ext.upper()} files with common prefix "{prefix}" and found {{event.type}}: {{event.data}}',
                                             )

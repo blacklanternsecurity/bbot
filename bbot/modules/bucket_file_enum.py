@@ -10,7 +10,9 @@ class bucket_file_enum(BaseModule):
     watched_events = ["STORAGE_BUCKET"]
     produced_events = ["URL_UNVERIFIED"]
     meta = {
-        "description": "Works in conjunction with the filedownload module to download files from open storage buckets. Currently supported cloud providers: AWS"
+        "description": "Works in conjunction with the filedownload module to download files from open storage buckets. Currently supported cloud providers: AWS",
+        "created_date": "2023-11-14",
+        "author": "@TheTechromancer",
     }
     flags = ["passive", "safe", "cloud-enum"]
     options = {
@@ -42,7 +44,14 @@ class bucket_file_enum(BaseModule):
                 bucket_file = url + "/" + key
                 file_extension = self.helpers.get_file_extension(key)
                 if file_extension not in self.scan.url_extension_blacklist:
-                    await self.emit_event(bucket_file, "URL_UNVERIFIED", source=event, tags="filedownload")
+                    extension_upper = file_extension.upper()
+                    await self.emit_event(
+                        bucket_file,
+                        "URL_UNVERIFIED",
+                        parent=event,
+                        tags="filedownload",
+                        context=f"{{module}} enumerate files in bucket and discovered {extension_upper} file at {{event.type}}: {{event.data}}",
+                    )
                     urls_emitted += 1
                     if urls_emitted >= self.file_limit:
                         return

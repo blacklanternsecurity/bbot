@@ -69,3 +69,45 @@ class TestParamminer_Headers_noreflection(Paramminer_Headers):
             and "[Paramminer] Header: [tracestate] Reasons: [body] Reflection: [False]" in e.data["description"]
             for e in events
         )
+
+
+class TestParamminer_Headers_extract(Paramminer_Headers):
+    headers_body = """
+    <html>
+    <title>the title</title>
+    <body>
+    <a href="/page?foo=AAAAAAAAAAAAAA">Click Me</a>
+    </body>
+    </html>
+    """
+
+    headers_body_match = """
+    <html>
+    <title>the title</title>
+    <body>
+    <a href="/page?foo=AAAAAAAAAAAAAA">Click Me</a>
+    <a href="/page?foo=http://thisisjunk.com?whatever=value">Click Me</a>
+    <p>Secret param "foo" found with value: AAAAAAAAAAAAAA</p>
+    </body>
+    </html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["paramminer_headers"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.monkeypatch.setattr(
+            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
+        )
+        expect_args = dict(headers={"foo": "AAAAAAAAAAAAAA"})
+        respond_args = {"response_data": self.headers_body_match}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        respond_args = {"response_data": self.headers_body}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+
+        assert any(
+            e.type == "FINDING"
+            and "[Paramminer] Header: [foo] Reasons: [body] Reflection: [True]" in e.data["description"]
+            for e in events
+        )

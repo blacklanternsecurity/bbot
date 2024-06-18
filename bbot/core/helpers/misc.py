@@ -236,6 +236,7 @@ def split_host_port(d):
 
     port = match.group(3)
     if port is None and scheme is not None:
+        scheme = scheme.lower()
         if scheme in ("https", "wss"):
             port = 443
         elif scheme in ("http", "ws"):
@@ -821,7 +822,7 @@ def truncate_string(s, n):
         return s
 
 
-def extract_params_json(json_data):
+def extract_params_json(json_data, compare_mode="getparam"):
     """
     Extracts keys from a JSON object and returns them as a set. Used by the `paramminer_headers` module.
 
@@ -851,18 +852,18 @@ def extract_params_json(json_data):
         current_data = stack.pop()
         if isinstance(current_data, dict):
             for key, value in current_data.items():
-                keys.add(key)
+                if _validate_param(key, compare_mode):
+                    keys.add(key)
                 if isinstance(value, (dict, list)):
                     stack.append(value)
         elif isinstance(current_data, list):
             for item in current_data:
                 if isinstance(item, (dict, list)):
                     stack.append(item)
-
     return keys
 
 
-def extract_params_xml(xml_data):
+def extract_params_xml(xml_data, compare_mode="getparam"):
     """
     Extracts tags from an XML object and returns them as a set.
 
@@ -892,21 +893,45 @@ def extract_params_xml(xml_data):
 
     while stack:
         current_element = stack.pop()
-        tags.add(current_element.tag)
+        if _validate_param(current_element.tag, compare_mode):
+            tags.add(current_element.tag)
         for child in current_element:
             stack.append(child)
     return tags
 
 
-def extract_params_html(html_data):
+# Define valid characters for each mode based on RFCs
+valid_chars = {
+    "header": set(chr(c) for c in range(33, 127) if chr(c) not in '."(),;:\\'),
+    "getparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
+    "cookie": set(chr(c) for c in range(33, 127) if chr(c) not in ' ",;=\\'),
+}
+
+
+def _validate_param(param, compare_mode):
+    if len(param) > 100:
+        return False
+    if compare_mode not in valid_chars:
+        raise ValueError(f"Invalid compare_mode: {compare_mode}")
+    allowed_chars = valid_chars[compare_mode]
+    return set(param).issubset(allowed_chars)
+
+
+def extract_params_html(html_data, compare_mode="getparam"):
     """
-    Extracts parameters from an HTML object, yielding them one at a time.
+    Extracts parameters from an HTML object, yielding them one at a time. This function filters
+    these parameters based on a specified mode that determines the type of validation
+    or comparison against rules for headers, GET parameters, or cookies. If no mode is specified,
+    it defaults to 'getparam', which is the least restrictive.
 
     Args:
         html_data (str): HTML-formatted string.
+        compare_mode (str, optional): The mode to compare extracted parameter names against.
+            Defaults to 'getparam'. Valid modes are 'header', 'getparam', 'cookie'.
 
     Yields:
-        str: A string containing the parameter found in HTML object.
+        str: A string containing the parameter found in the HTML object that meets the
+        criteria of the specified mode.
 
     Examples:
         >>> html_data = '''
@@ -922,20 +947,27 @@ def extract_params_html(html_data):
         ... </html>
         ... '''
         >>> list(extract_params_html(html_data))
-        ['user', 'param2', 'param3']
+        ['user', 'param1', 'param2', 'param3']
     """
+
+    found_params = []
+
     input_tag = bbot_regexes.input_tag_regex.findall(html_data)
 
     for i in input_tag:
-        log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
-        yield i
+        if _validate_param(i, compare_mode):
+            log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
+            found_params.append(i)
 
     # check for jquery get parameters
     jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
-
-    for i in jquery_get:
-        log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
-        yield i
+    if jquery_get:
+        for i in jquery_get:
+            for x in i.split(","):
+                s = x.split(":")[0].rstrip()
+                if _validate_param(s, compare_mode):
+                    log.debug(f"FOUND PARAM ({s}) IN A JQUERY GET PARAMS")
+                    found_params.append(s)
 
     # check for jquery post parameters
     jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
@@ -943,13 +975,21 @@ def extract_params_html(html_data):
         for i in jquery_post:
             for x in i.split(","):
                 s = x.split(":")[0].rstrip()
-                log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
-                yield s
+                if _validate_param(s, compare_mode):
+                    log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
+                    found_params.append(s)
 
     a_tag = bbot_regexes.a_tag_regex.findall(html_data)
-    for s in a_tag:
-        log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
-        yield s
+    for tag in a_tag:
+        a_tag_querystring = tag.split("&") if tag else []
+        for s in a_tag_querystring:
+            if "=" in s:
+                s0 = s.split("=")[0]
+                if _validate_param(s0, compare_mode):
+                    log.debug(f"FOUND PARAM ({s0}) IN A TAG GET PARAMS")
+                    found_params.append(s0)
+
+    return found_params
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
@@ -1391,7 +1431,7 @@ def search_dict_values(d, *regexes):
         ...         ]
         ...     }
         ... }
-        >>> url_regexes = re.compile(r'https?://[^\\s<>"]+|www\.[^\\s<>"]+')
+        >>> url_regexes = re.compile(r'https?://[^\\s<>"]+|www\\.[^\\s<>"]+')
         >>> list(search_dict_values(dict_to_search, url_regexes))
         ["https://www.evilcorp.com"]
     """
@@ -2012,6 +2052,50 @@ def human_to_bytes(filesize):
     raise ValueError(f'Unable to convert filesize "{filesize}" to bytes')
 
 
+def integer_to_ordinal(n):
+    """
+    Convert an integer to its ordinal representation.
+
+    Args:
+        n (int): The integer to convert.
+
+    Returns:
+        str: The ordinal representation of the integer.
+
+    Examples:
+        >>> integer_to_ordinal(1)
+        '1st'
+        >>> integer_to_ordinal(2)
+        '2nd'
+        >>> integer_to_ordinal(3)
+        '3rd'
+        >>> integer_to_ordinal(11)
+        '11th'
+        >>> integer_to_ordinal(21)
+        '21st'
+        >>> integer_to_ordinal(101)
+        '101st'
+    """
+    # Check the last digit
+    last_digit = n % 10
+    # Check the last two digits for special cases (11th, 12th, 13th)
+    last_two_digits = n % 100
+
+    if 10 <= last_two_digits <= 20:
+        suffix = "th"
+    else:
+        if last_digit == 1:
+            suffix = "st"
+        elif last_digit == 2:
+            suffix = "nd"
+        elif last_digit == 3:
+            suffix = "rd"
+        else:
+            suffix = "th"
+
+    return f"{n}{suffix}"
+
+
 def cpu_architecture():
     """Return the CPU architecture of the current system.
 
@@ -2076,7 +2160,7 @@ def os_platform_friendly():
 tag_filter_regex = re.compile(r"[^a-z0-9]+")
 
 
-def tagify(s, maxlen=None):
+def tagify(s, delimiter=None, maxlen=None):
     """Sanitize a string into a tag-friendly format.
 
     Converts a given string to lowercase and replaces all characters not matching
@@ -2095,8 +2179,10 @@ def tagify(s, maxlen=None):
         >>> tagify("HTTP Web Title", maxlen=8)
         'http-web'
     """
+    if delimiter is None:
+        delimiter = "-"
     ret = str(s).lower()
-    return tag_filter_regex.sub("-", ret)[:maxlen].strip("-")
+    return tag_filter_regex.sub(delimiter, ret)[:maxlen].strip(delimiter)
 
 
 def memory_status():
@@ -2325,6 +2411,27 @@ def get_exception_chain(e):
         exception_chain.append(current_exception)
         current_exception = getattr(current_exception, "__context__", None)
     return exception_chain
+
+
+def in_exception_chain(e, exc_types):
+    """
+    Given an Exception and a list of Exception types, returns whether any of the specified types are contained anywhere in the Exception chain.
+
+    Args:
+        e (BaseException): The exception to check
+        exc_types (list[Exception]): Exception types to consider intentional cancellations. Default is KeyboardInterrupt
+
+    Returns:
+        bool: Whether the error is the result of an intentional cancellaion
+
+    Examples:
+        >>> try:
+        ...     raise ValueError("This is a value error")
+        ... except Exception as e:
+        ...     if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+        ...         raise
+    """
+    return any([isinstance(_, exc_types) for _ in get_exception_chain(e)])
 
 
 def get_traceback_details(e):
@@ -2591,3 +2698,38 @@ def clean_dns_record(record):
     if not isinstance(record, str):
         record = str(record.to_text())
     return str(record).rstrip(".").lower()
+
+
+def truncate_filename(file_path, max_length=255):
+    """
+    Truncate the filename while preserving the file extension to ensure the total path length does not exceed the maximum length.
+
+    Args:
+        file_path (str): The original file path.
+        max_length (int): The maximum allowed length for the total path. Default is 255.
+
+    Returns:
+        pathlib.Path: A new Path object with the truncated filename.
+
+    Raises:
+        ValueError: If the directory path is too long to accommodate any filename within the limit.
+
+    Example:
+        >>> truncate_filename('/path/to/example_long_filename.txt', 20)
+        PosixPath('/path/to/example.txt')
+    """
+    p = Path(file_path)
+    directory, stem, suffix = p.parent, p.stem, p.suffix
+
+    max_filename_length = max_length - len(str(directory)) - len(suffix) - 1  # 1 for the '/' separator
+
+    if max_filename_length <= 0:
+        raise ValueError("The directory path is too long to accommodate any filename within the limit.")
+
+    if len(stem) > max_filename_length:
+        truncated_stem = stem[:max_filename_length]
+    else:
+        truncated_stem = stem
+
+    new_path = directory / (truncated_stem + suffix)
+    return new_path

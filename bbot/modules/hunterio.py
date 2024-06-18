@@ -5,7 +5,12 @@ class hunterio(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL_UNVERIFIED"]
     flags = ["passive", "email-enum", "subdomain-enum", "safe"]
-    meta = {"description": "Query hunter.io for emails", "auth_required": True}
+    meta = {
+        "description": "Query hunter.io for emails",
+        "created_date": "2022-04-25",
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "Hunter.IO API key"}
 
@@ -26,14 +31,27 @@ class hunterio(subdomain_enum_apikey):
             if email:
                 email_event = self.make_event(email, "EMAIL_ADDRESS", event)
                 if email_event:
-                    await self.emit_event(email_event)
+                    await self.emit_event(
+                        email_event,
+                        context=f'{{module}} queried Hunter.IO API for "{query}" and found {{event.type}}: {{event.data}}',
+                    )
                     for source in sources:
                         domain = source.get("domain", "")
                         if domain:
-                            await self.emit_event(domain, "DNS_NAME", email_event)
+                            await self.emit_event(
+                                domain,
+                                "DNS_NAME",
+                                email_event,
+                                context=f"{{module}} originally found {email} at {{event.type}}: {{event.data}}",
+                            )
                         url = source.get("uri", "")
                         if url:
-                            await self.emit_event(url, "URL_UNVERIFIED", email_event)
+                            await self.emit_event(
+                                url,
+                                "URL_UNVERIFIED",
+                                email_event,
+                                context=f"{{module}} originally found {email} at {{event.type}}: {{event.data}}",
+                            )
 
     async def query(self, query):
         emails = []

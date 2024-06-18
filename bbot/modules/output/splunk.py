@@ -1,11 +1,14 @@
-from httpx import RequestError
-
+from bbot.errors import WebError
 from bbot.modules.output.base import BaseOutputModule
 
 
 class Splunk(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Send every event to a splunk instance through HTTP Event Collector"}
+    meta = {
+        "description": "Send every event to a splunk instance through HTTP Event Collector",
+        "created_date": "2024-02-17",
+        "author": "@w0Tx",
+    }
     options = {
         "url": "",
         "hectoken": "",
@@ -54,6 +57,6 @@ class Splunk(BaseOutputModule):
                     raise_error=True,
                 )
                 break
-            except RequestError as e:
+            except WebError as e:
                 self.warning(f"Error sending {event}: {e}, retrying...")
                 await self.helpers.sleep(1)

@@ -5,7 +5,12 @@ class binaryedge(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query the BinaryEdge API", "auth_required": True}
+    meta = {
+        "description": "Query the BinaryEdge API",
+        "created_date": "2024-08-18",
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"api_key": "", "max_records": 1000}
     options_desc = {
         "api_key": "BinaryEdge API key",

@@ -17,7 +17,12 @@ class builtwith(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query Builtwith.com for subdomains", "auth_required": True}
+    meta = {
+        "description": "Query Builtwith.com for subdomains",
+        "created_date": "2022-08-23",
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"api_key": "", "redirects": True}
     options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
     base_url = "https://api.builtwith.com"
@@ -33,14 +38,25 @@ class builtwith(subdomain_enum_apikey):
         if subdomains:
             for s in subdomains:
                 if s != event:
-                    await self.emit_event(s, "DNS_NAME", source=event)
+                    await self.emit_event(
+                        s,
+                        "DNS_NAME",
+                        parent=event,
+                        context=f'{{module}} queried the BuiltWith API for "{query}" and found {{event.type}}: {{event.data}}',
+                    )
         # redirects
         if self.config.get("redirects", True):
             redirects = await self.query(query, parse_fn=self.parse_redirects, request_fn=self.request_redirects)
             if redirects:
                 for r in redirects:
                     if r != event:
-                        await self.emit_event(r, "DNS_NAME", source=event, tags=["affiliate"])
+                        await self.emit_event(
+                            r,
+                            "DNS_NAME",
+                            parent=event,
+                            tags=["affiliate"],
+                            context=f'{{module}} queried the BuiltWith redirect API for "{query}" and found redirect to {{event.type}}: {{event.data}}',
+                        )
 
     async def request_domains(self, query):
         url = f"{self.base_url}/v20/api.json?KEY={self.api_key}&LOOKUP={query}&NOMETA=yes&NOATTR=yes&HIDETEXT=yes&HIDEDL=yes"

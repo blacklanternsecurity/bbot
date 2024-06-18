@@ -79,7 +79,7 @@ class bypass403(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "web-thorough"]
-    meta = {"description": "Check 403 pages for common bypasses"}
+    meta = {"description": "Check 403 pages for common bypasses", "created_date": "2022-07-05", "author": "@liquidsec"}
     in_scope_only = True
 
     async def do_checks(self, compare_helper, event, collapse_threshold):
@@ -146,14 +146,16 @@ class bypass403(BaseModule):
                     "url": event.data,
                 },
                 "FINDING",
-                source=event,
+                parent=event,
+                context=f"{{module}} discovered multiple potential 403 bypasses ({{event.type}}) for {event.data}",
             )
         else:
             for description in results:
                 await self.emit_event(
                     {"description": description, "host": str(event.host), "url": event.data},
                     "FINDING",
-                    source=event,
+                    parent=event,
+                    context=f"{{module}} discovered potential 403 bypass ({{event.type}}) for {event.data}",
                 )
 
     # When a WAF-check helper is available in the future, we will convert to HTTP_RESPONSE and check for the WAF string here.
@@ -164,10 +166,10 @@ class bypass403(BaseModule):
 
     def format_signature(self, sig, event):
         if sig[3] == True:
-            cleaned_path = event.parsed.path.strip("/")
+            cleaned_path = event.parsed_url.path.strip("/")
         else:
-            cleaned_path = event.parsed.path.lstrip("/")
-        kwargs = {"scheme": event.parsed.scheme, "netloc": event.parsed.netloc, "path": cleaned_path}
+            cleaned_path = event.parsed_url.path.lstrip("/")
+        kwargs = {"scheme": event.parsed_url.scheme, "netloc": event.parsed_url.netloc, "path": cleaned_path}
         formatted_url = sig[1].format(**kwargs)
         if sig[2] != None:
             formatted_headers = {k: v.format(**kwargs) for k, v in sig[2].items()}

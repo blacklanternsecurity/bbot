@@ -7,7 +7,11 @@ class fingerprintx(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["PROTOCOL"]
     flags = ["active", "safe", "service-enum", "slow"]
-    meta = {"description": "Fingerprint exposed services like RDP, SSH, MySQL, etc."}
+    meta = {
+        "description": "Fingerprint exposed services like RDP, SSH, MySQL, etc.",
+        "created_date": "2023-01-30",
+        "author": "@TheTechromancer",
+    }
     options = {"version": "1.1.4"}
     options_desc = {"version": "fingerprintx version"}
     _batch_size = 10
@@ -38,18 +42,24 @@ class fingerprintx(BaseModule):
             ip = j.get("ip", "")
             host = j.get("host", ip)
             port = str(j.get("port", ""))
+            protocol = j.get("protocol", "").upper()
+            if not host and port and protocol:
+                continue
             banner = j.get("metadata", {}).get("banner", "").strip()
-            if port:
-                port_data = f"{host}:{port}"
-            protocol = j.get("protocol", "")
+            port_data = f"{host}:{port}"
             tags = set()
             if host and ip:
                 tags.add(f"ip-{ip}")
-            if host and port and protocol:
-                source_event = _input.get(port_data)
-                protocol_data = {"host": host, "protocol": protocol.upper()}
-                if port:
-                    protocol_data["port"] = port
-                if banner:
-                    protocol_data["banner"] = banner
-                await self.emit_event(protocol_data, "PROTOCOL", source=source_event, tags=tags)
+            parent_event = _input.get(port_data)
+            protocol_data = {"host": host, "protocol": protocol}
+            if port:
+                protocol_data["port"] = port
+            if banner:
+                protocol_data["banner"] = banner
+            await self.emit_event(
+                protocol_data,
+                "PROTOCOL",
+                parent=parent_event,
+                tags=tags,
+                context=f"{{module}} probed {port_data} and detected {{event.type}}: {protocol}",
+            )

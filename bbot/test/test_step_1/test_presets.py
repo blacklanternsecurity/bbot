@@ -212,6 +212,96 @@ def test_preset_scope():
     preset1.merge(preset4)
     set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout", "neo4j"}
 
+    # test preset merging + whitelist
+
+    preset_nowhitelist = Preset("evilcorp.com", name="nowhitelist")
+    preset_whitelist = Preset("evilcorp.org", name="whitelist", whitelist=["1.2.3.4/24"])
+
+    assert preset_nowhitelist.to_dict(include_target=True) == {"target": ["evilcorp.com"]}
+    assert preset_whitelist.to_dict(include_target=True) == {"target": ["evilcorp.org"], "whitelist": ["1.2.3.0/24"]}
+
+    assert preset_nowhitelist.in_scope("www.evilcorp.com")
+    assert not preset_nowhitelist.in_scope("www.evilcorp.de")
+    assert not preset_nowhitelist.in_scope("1.2.3.4/24")
+
+    assert "www.evilcorp.org" in preset_whitelist.target
+    assert "1.2.3.4" in preset_whitelist.whitelist
+    assert not preset_whitelist.in_scope("www.evilcorp.org")
+    assert not preset_whitelist.in_scope("www.evilcorp.de")
+    assert not preset_whitelist.whitelisted("www.evilcorp.org")
+    assert not preset_whitelist.whitelisted("www.evilcorp.de")
+    assert preset_whitelist.in_scope("1.2.3.4")
+    assert preset_whitelist.in_scope("1.2.3.4/28")
+    assert preset_whitelist.in_scope("1.2.3.4/24")
+    assert preset_whitelist.whitelisted("1.2.3.4")
+    assert preset_whitelist.whitelisted("1.2.3.4/28")
+    assert preset_whitelist.whitelisted("1.2.3.4/24")
+
+    assert set([e.data for e in preset_nowhitelist.target]) == {"evilcorp.com"}
+    assert preset_nowhitelist.whitelist is None
+    assert set([e.data for e in preset_whitelist.target]) == {"evilcorp.org"}
+    baked_nowhitelist = preset_nowhitelist.bake()
+    assert set([e.data for e in baked_nowhitelist.whitelist]) == {"evilcorp.com"}
+    baked_whitelist = preset_whitelist.bake()
+    assert set([e.data for e in baked_whitelist.whitelist]) == {"1.2.3.0/24"}
+
+    preset_nowhitelist.merge(preset_whitelist)
+    assert set([e.data for e in preset_nowhitelist.target]) == {"evilcorp.com", "evilcorp.org"}
+    assert set([e.data for e in preset_nowhitelist.whitelist]) == {"1.2.3.0/24"}
+    assert "www.evilcorp.org" in preset_nowhitelist.target
+    assert "www.evilcorp.com" in preset_nowhitelist.target
+    assert "1.2.3.4" in preset_nowhitelist.whitelist
+    assert not preset_nowhitelist.in_scope("www.evilcorp.org")
+    assert not preset_nowhitelist.in_scope("www.evilcorp.com")
+    assert not preset_nowhitelist.whitelisted("www.evilcorp.org")
+    assert not preset_nowhitelist.whitelisted("www.evilcorp.com")
+    assert preset_nowhitelist.in_scope("1.2.3.4")
+
+    preset_nowhitelist = Preset("evilcorp.com")
+    preset_whitelist = Preset("evilcorp.org", whitelist=["1.2.3.4/24"])
+    preset_whitelist.merge(preset_nowhitelist)
+    assert set([e.data for e in preset_whitelist.target]) == {"evilcorp.com", "evilcorp.org"}
+    assert set([e.data for e in preset_whitelist.whitelist]) == {"1.2.3.0/24"}
+    assert "www.evilcorp.org" in preset_whitelist.target
+    assert "www.evilcorp.com" in preset_whitelist.target
+    assert "1.2.3.4" in preset_whitelist.whitelist
+    assert not preset_whitelist.in_scope("www.evilcorp.org")
+    assert not preset_whitelist.in_scope("www.evilcorp.com")
+    assert not preset_whitelist.whitelisted("www.evilcorp.org")
+    assert not preset_whitelist.whitelisted("www.evilcorp.com")
+    assert preset_whitelist.in_scope("1.2.3.4")
+
+    preset_nowhitelist1 = Preset("evilcorp.com")
+    preset_nowhitelist2 = Preset("evilcorp.de")
+    assert set([e.data for e in preset_nowhitelist1.target]) == {"evilcorp.com"}
+    assert set([e.data for e in preset_nowhitelist2.target]) == {"evilcorp.de"}
+    assert preset_nowhitelist1.whitelist is None
+    assert preset_nowhitelist2.whitelist is None
+    preset_nowhitelist1.merge(preset_nowhitelist2)
+    assert set([e.data for e in preset_nowhitelist1.target]) == {"evilcorp.com", "evilcorp.de"}
+    assert set([e.data for e in preset_nowhitelist2.target]) == {"evilcorp.de"}
+    assert preset_nowhitelist1.whitelist is None
+    assert preset_nowhitelist2.whitelist is None
+    assert "www.evilcorp.com" in preset_nowhitelist1.target
+    assert "www.evilcorp.de" in preset_nowhitelist1.target
+    assert preset_nowhitelist1.whitelisted("www.evilcorp.com")
+    assert preset_nowhitelist1.whitelisted("www.evilcorp.de")
+    assert not preset_nowhitelist1.whitelisted("1.2.3.4")
+    assert preset_nowhitelist1.in_scope("www.evilcorp.com")
+    assert preset_nowhitelist1.in_scope("www.evilcorp.de")
+    assert not preset_nowhitelist1.in_scope("1.2.3.4")
+
+    preset_nowhitelist1 = Preset("evilcorp.com")
+    preset_nowhitelist2 = Preset("evilcorp.de")
+    preset_nowhitelist2.merge(preset_nowhitelist1)
+    assert set([e.data for e in preset_nowhitelist1.target]) == {"evilcorp.com"}
+    assert set([e.data for e in preset_nowhitelist2.target]) == {"evilcorp.com", "evilcorp.de"}
+    assert preset_nowhitelist1.whitelist is None
+    assert preset_nowhitelist2.whitelist is None
+    baked_nowhitelist2 = preset_nowhitelist2.bake()
+    assert set([e.data for e in baked_nowhitelist2.target]) == {"evilcorp.com", "evilcorp.de"}
+    assert set([e.data for e in baked_nowhitelist2.whitelist]) == {"evilcorp.com", "evilcorp.de"}
+
 
 def test_preset_logging():
     # test verbosity levels (conflicting verbose/debug/silent)
@@ -584,13 +674,13 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    massdns_flags = preset.preloaded_module("massdns").get("flags", [])
-    assert "subdomain-enum" in massdns_flags
-    assert "passive" in massdns_flags
-    assert not "active" in massdns_flags
-    assert "aggressive" in massdns_flags
-    assert not "safe" in massdns_flags
-    assert "massdns" in [x[0] for x in module_flags]
+    dnsbrute_flags = preset.preloaded_module("dnsbrute").get("flags", [])
+    assert "subdomain-enum" in dnsbrute_flags
+    assert "passive" in dnsbrute_flags
+    assert not "active" in dnsbrute_flags
+    assert "aggressive" in dnsbrute_flags
+    assert not "safe" in dnsbrute_flags
+    assert "dnsbrute" in [x[0] for x in module_flags]
     assert "certspotter" in [x[0] for x in module_flags]
     assert "c99" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
@@ -602,7 +692,7 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert "massdns" in [x[0] for x in module_flags]
+    assert "dnsbrute" in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -612,17 +702,17 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert "massdns" in [x[0] for x in module_flags]
+    assert "dnsbrute" in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded module
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert not "massdns" in [x[0] for x in module_flags]
+    assert not "dnsbrute" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -632,7 +722,7 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert not "massdns" in [x[0] for x in module_flags]
+    assert not "dnsbrute" in [x[0] for x in module_flags]
     assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
     assert all("active" not in flags and "aggressive" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
@@ -642,17 +732,17 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], exclude_flags=["aggressive", "active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert not "massdns" in [x[0] for x in module_flags]
+    assert not "dnsbrute" in [x[0] for x in module_flags]
     assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
     assert all("active" not in flags and "aggressive" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert not any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded modules
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns", "c99"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute", "c99"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert not "massdns" in [x[0] for x in module_flags]
+    assert not "dnsbrute" in [x[0] for x in module_flags]
     assert "certspotter" in [x[0] for x in module_flags]
     assert not "c99" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)

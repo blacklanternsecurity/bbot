@@ -1,4 +1,5 @@
 from pathlib import Path
+from subprocess import CalledProcessError
 from bbot.modules.templates.github import github
 
 
@@ -6,7 +7,11 @@ class git_clone(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
     flags = ["passive", "safe", "slow"]
-    meta = {"description": "Clone code github repositories"}
+    meta = {
+        "description": "Clone code github repositories",
+        "created_date": "2024-03-08",
+        "author": "@domwhewell-sage",
+    }
     options = {"api_key": "", "output_folder": ""}
     options_desc = {"api_key": "Github token", "output_folder": "Folder to clone repositories to"}
 
@@ -35,10 +40,13 @@ class git_clone(github):
         if repo_path:
             self.verbose(f"Cloned {repo_url} to {repo_path}")
             codebase_event = self.make_event(
-                {"path": str(repo_path)}, "FILESYSTEM", tags=["git", "folder"], source=event
+                {"path": str(repo_path)}, "FILESYSTEM", tags=["git", "folder"], parent=event
             )
             codebase_event.scope_distance = event.scope_distance
-            await self.emit_event(codebase_event)
+            await self.emit_event(
+                codebase_event,
+                context=f"{{module}} downloaded git repo at {repo_url} to {{event.type}}: {repo_path}",
+            )
 
     async def clone_git_repository(self, repository_url):
         if self.api_key:
@@ -46,9 +54,11 @@ class git_clone(github):
         else:
             url = repository_url
         command = ["git", "-C", self.output_dir, "clone", url]
-        output = await self.run_process(command)
-        if output.returncode == 0:
-            folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
-            return self.output_dir / folder_name
-        else:
-            return None
+        try:
+            output = await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, check=True)
+        except CalledProcessError as e:
+            self.debug(f"Error cloning {url}. STDERR: {repr(e.stderr)}")
+            return
+
+        folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
+        return self.output_dir / folder_name

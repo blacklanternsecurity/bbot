@@ -5,7 +5,11 @@ class dockerhub(BaseModule):
     watched_events = ["SOCIAL", "ORG_STUB"]
     produced_events = ["SOCIAL", "CODE_REPOSITORY", "URL_UNVERIFIED"]
     flags = ["passive", "safe", "code-enum"]
-    meta = {"description": "Search for docker repositories of discovered orgs/usernames"}
+    meta = {
+        "description": "Search for docker repositories of discovered orgs/usernames",
+        "created_date": "2024-03-12",
+        "author": "@domwhewell-sage",
+    }
 
     site_url = "https://hub.docker.com"
     api_url = f"{site_url}/v2"
@@ -36,19 +40,26 @@ class dockerhub(BaseModule):
                 site_url = f"{self.site_url}/u/{p}"
                 # emit social event
                 await self.emit_event(
-                    {"platform": "docker", "url": site_url, "profile_name": p}, "SOCIAL", source=event
+                    {"platform": "docker", "url": site_url, "profile_name": p},
+                    "SOCIAL",
+                    parent=event,
+                    context=f"{{module}} tried {event.type} {event.data} and found docker profile ({{event.type}}) at {p}",
                 )
 
     async def handle_social(self, event):
         username = event.data.get("profile_name", "")
         if not username:
             return
-        # emit API endpoint to be visited by httpx (for url/email extraction, etc.)
-        await self.emit_event(f"{self.api_url}/users/{username}", "URL_UNVERIFIED", source=event, tags="httpx-safe")
         self.verbose(f"Searching for docker images belonging to {username}")
         repos = await self.get_repos(username)
         for repo in repos:
-            await self.emit_event({"url": repo}, "CODE_REPOSITORY", tags="docker", source=event)
+            await self.emit_event(
+                {"url": repo},
+                "CODE_REPOSITORY",
+                tags="docker",
+                parent=event,
+                context=f"{{module}} found docker image {{event.type}}: {repo}",
+            )
 
     async def get_repos(self, username):
         repos = []

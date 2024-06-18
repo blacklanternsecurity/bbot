@@ -1,10 +1,90 @@
 from ..bbot_fixtures import *
 
+from bbot import cli
+
+
+@pytest.mark.asyncio
+async def test_cli_scope(monkeypatch, capsys):
+    import json
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+
+    # basic target without whitelist
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bbot", "-t", "one.one.one.one", "-c", "scope_report_distance=10", "dns_resolution=true", "--json"],
+    )
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == True
+    lines = [json.loads(l) for l in out.splitlines()]
+    dns_events = [l for l in lines if l["type"] == "DNS_NAME" and l["data"] == "one.one.one.one"]
+    assert dns_events
+    assert all([l["scope_distance"] == 0 and "in-scope" in l["tags"] for l in dns_events])
+    assert 1 == len(
+        [
+            l
+            for l in dns_events
+            if l["module"] == "TARGET"
+            and l["scope_distance"] == 0
+            and "in-scope" in l["tags"]
+            and "target" in l["tags"]
+        ]
+    )
+    ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.1.1.1"]
+    assert ip_events
+    assert all([l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in ip_events])
+    ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.0.0.1"]
+    assert ip_events
+    assert all([l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in ip_events])
+
+    # with whitelist
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "bbot",
+            "-t",
+            "one.one.one.one",
+            "-w",
+            "192.168.0.1",
+            "-c",
+            "scope_report_distance=10",
+            "dns_resolution=true",
+            "scope_dns_search_distance=2",
+            "--json",
+        ],
+    )
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == True
+    lines = [json.loads(l) for l in out.splitlines()]
+    lines = [l for l in lines if l["type"] != "SCAN"]
+    assert lines
+    assert not any([l["scope_distance"] == 0 for l in lines])
+    dns_events = [l for l in lines if l["type"] == "DNS_NAME" and l["data"] == "one.one.one.one"]
+    assert dns_events
+    assert all([l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in dns_events])
+    assert 1 == len(
+        [
+            l
+            for l in dns_events
+            if l["module"] == "TARGET"
+            and l["scope_distance"] == 1
+            and "distance-1" in l["tags"]
+            and "target" in l["tags"]
+        ]
+    )
+    ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.1.1.1"]
+    assert ip_events
+    assert all([l["scope_distance"] == 2 and "distance-2" in l["tags"] for l in ip_events])
+    ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.0.0.1"]
+    assert ip_events
+    assert all([l["scope_distance"] == 2 and "distance-2" in l["tags"] for l in ip_events])
+
 
 @pytest.mark.asyncio
 async def test_cli_scan(monkeypatch):
-    from bbot import cli
-
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
@@ -32,7 +112,7 @@ async def test_cli_scan(monkeypatch):
 
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
-        assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
+        assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags,Discovery Path\n"
         assert len(lines) > 1, "output.csv is not long enough"
 
     ip_success = False
@@ -50,8 +130,6 @@ async def test_cli_scan(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
-    from bbot import cli
-
     caplog.set_level(logging.INFO)
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
@@ -99,7 +177,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert "| bool" in out
     assert "| emit URLs in addition to DNS_NAMEs" in out
     assert "| False" in out
-    assert "| modules.massdns.wordlist" in out
+    assert "| modules.dnsbrute.wordlist" in out
     assert "| modules.robots.include_allow" in out
 
     # list module options by flag
@@ -111,17 +189,17 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert "| bool" in out
     assert "| emit URLs in addition to DNS_NAMEs" in out
     assert "| False" in out
-    assert "| modules.massdns.wordlist" in out
+    assert "| modules.dnsbrute.wordlist" in out
     assert not "| modules.robots.include_allow" in out
 
     # list module options by module
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdns", "-lmo"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "dnsbrute", "-lmo"])
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert out.count("modules.") == out.count("modules.massdns.")
+    assert out.count("modules.") == out.count("modules.dnsbrute.")
     assert not "| modules.wayback.urls" in out
-    assert "| modules.massdns.wordlist" in out
+    assert "| modules.dnsbrute.wordlist" in out
     assert not "| modules.robots.include_allow" in out
 
     # list output module options by module
@@ -171,7 +249,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "| massdns" in out
+    assert "| dnsbrute " in out
     assert "| httpx" in out
     assert "| robots" in out
 
@@ -180,7 +258,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "| massdns" in out
+    assert "| dnsbrute " in out
     assert "| httpx" in out
     assert not "| robots" in out
 
@@ -189,7 +267,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "| massdns" in out
+    assert "| dnsbrute " in out
     assert not "| httpx" in out
 
     # list modules by flag + excluded flag
@@ -197,15 +275,15 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "| massdns" in out
+    assert "| dnsbrute " in out
     assert not "| httpx" in out
 
     # list modules by flag + excluded module
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "massdns", "-l"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "-l"])
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert not "| massdns" in out
+    assert not "| dnsbrute " in out
     assert "| httpx" in out
 
     # output modules override
@@ -309,14 +387,49 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert result == True, "-m nuclei failed to run with --allow-deadly"
 
     # install all deps
-    # monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
-    # success = await cli._main()
-    # assert success, "--install-all-deps failed for at least one module"
+    monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
+    success = await cli._main()
+    assert success == True, "--install-all-deps failed for at least one module"
+
+
+@pytest.mark.asyncio
+async def test_cli_customheaders(monkeypatch, caplog, capsys):
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    import yaml
+
+    # test custom headers
+    monkeypatch.setattr(
+        "sys.argv", ["bbot", "--custom-headers", "foo=bar", "foo2=bar2", "foo3=bar=3", "--current-preset"]
+    )
+    success = await cli._main()
+    assert success == None, "setting custom headers on command line failed"
+    captured = capsys.readouterr()
+    stdout_preset = yaml.safe_load(captured.out)
+    assert stdout_preset["config"]["http_headers"] == {"foo": "bar", "foo2": "bar2", "foo3": "bar=3"}
+
+    # test custom headers invalid (no "=")
+    monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "justastring", "--current-preset"])
+    result = await cli._main()
+    assert result == None
+    assert "Custom headers not formatted correctly (missing '=')" in caplog.text
+    caplog.clear()
+
+    # test custom headers invalid (missing key)
+    monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "=nokey", "--current-preset"])
+    result = await cli._main()
+    assert result == None
+    assert "Custom headers not formatted correctly (missing header name or value)" in caplog.text
+    caplog.clear()
+
+    # test custom headers invalid (missing value)
+    monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "missingvalue=", "--current-preset"])
+    result = await cli._main()
+    assert result == None
+    assert "Custom headers not formatted correctly (missing header name or value)" in caplog.text
 
 
 def test_cli_config_validation(monkeypatch, caplog):
-    from bbot import cli
-
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
@@ -325,7 +438,7 @@ def test_cli_config_validation(monkeypatch, caplog):
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "modules.ipnegibhor.num_bits=4"])
     cli.main()
-    assert 'Could not find module option "modules.ipnegibhor.num_bits"' in caplog.text
+    assert 'Could not find config option "modules.ipnegibhor.num_bits"' in caplog.text
     assert 'Did you mean "modules.ipneighbor.num_bits"?' in caplog.text
 
     # incorrect global option
@@ -333,31 +446,29 @@ def test_cli_config_validation(monkeypatch, caplog):
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "web_spier_distance=4"])
     cli.main()
-    assert 'Could not find module option "web_spier_distance"' in caplog.text
+    assert 'Could not find config option "web_spier_distance"' in caplog.text
     assert 'Did you mean "web_spider_distance"?' in caplog.text
 
 
 def test_cli_module_validation(monkeypatch, caplog):
-    from bbot import cli
-
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
     # incorrect module
     caplog.clear()
     assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdnss"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "dnsbrutes"])
     cli.main()
-    assert 'Could not find scan module "massdnss"' in caplog.text
-    assert 'Did you mean "massdns"?' in caplog.text
+    assert 'Could not find scan module "dnsbrutes"' in caplog.text
+    assert 'Did you mean "dnsbrute"?' in caplog.text
 
     # incorrect excluded module
     caplog.clear()
     assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-em", "massdnss"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-em", "dnsbrutes"])
     cli.main()
-    assert 'Could not find module "massdnss"' in caplog.text
-    assert 'Did you mean "massdns"?' in caplog.text
+    assert 'Could not find module "dnsbrutes"' in caplog.text
+    assert 'Did you mean "dnsbrute"?' in caplog.text
 
     # incorrect output module
     caplog.clear()
@@ -458,7 +569,6 @@ def test_cli_module_validation(monkeypatch, caplog):
 
 def test_cli_presets(monkeypatch, capsys, caplog):
     import yaml
-    from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
@@ -545,3 +655,6 @@ config:
     monkeypatch.setattr("sys.argv", ["bbot", "-p", "asdfasdfasdf", "-y"])
     cli.main()
     assert "file does not exist. Use -lp to list available presets" in caplog.text
+
+    preset1_file.unlink()
+    preset2_file.unlink()

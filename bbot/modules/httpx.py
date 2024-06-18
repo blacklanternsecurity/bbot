@@ -4,14 +4,17 @@ import tempfile
 import subprocess
 from pathlib import Path
 from bbot.modules.base import BaseModule
-from bbot.core.helpers.web import is_login_page
 
 
 class httpx(BaseModule):
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active", "safe", "web-basic", "social-enum", "subdomain-enum", "cloud-enum"]
-    meta = {"description": "Visit webpages. Many other modules rely on httpx"}
+    meta = {
+        "description": "Visit webpages. Many other modules rely on httpx",
+        "created_date": "2022-07-08",
+        "author": "@TheTechromancer",
+    }
 
     options = {
         "threads": 50,
@@ -23,7 +26,7 @@ class httpx(BaseModule):
     }
     options_desc = {
         "threads": "Number of httpx threads to use",
-        "in_scope_only": "Only visit web resources that are in scope.",
+        "in_scope_only": "Only visit web reparents that are in scope.",
         "version": "httpx version",
         "max_response_size": "Max response size in bytes",
         "store_responses": "Save raw HTTP responses to scan folder",
@@ -84,7 +87,7 @@ class httpx(BaseModule):
             if e.type.startswith("URL"):
                 # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
                 url = e.with_port().geturl()
-                if e.parsed.path == "/":
+                if e.parsed_url.path == "/":
                     url_hash = hash((e.host, e.port))
             else:
                 url = str(e.data)
@@ -145,15 +148,15 @@ class httpx(BaseModule):
                 self.debug(f'No HTTP status code for "{url}"')
                 continue
 
-            source_event = stdin.get(j.get("input", ""), None)
+            parent_event = stdin.get(j.get("input", ""), None)
 
-            if source_event is None:
-                self.warning(f"Unable to correlate source event from: {line}")
+            if parent_event is None:
+                self.warning(f"Unable to correlate parent event from: {line}")
                 continue
 
             # discard 404s from unverified URLs
             path = j.get("path", "/")
-            if source_event.type == "URL_UNVERIFIED" and status_code in (404,) and path != "/":
+            if parent_event.type == "URL_UNVERIFIED" and status_code in (404,) and path != "/":
                 self.debug(f'Discarding 404 from "{url}"')
                 continue
 
@@ -163,18 +166,38 @@ class httpx(BaseModule):
             if httpx_ip:
                 tags.append(f"ip-{httpx_ip}")
             # detect login pages
-            if is_login_page(j.get("body", "")):
+            if self.helpers.web.is_login_page(j.get("body", "")):
                 tags.append("login-page")
             # grab title
             title = self.helpers.tagify(j.get("title", ""), maxlen=30)
             if title:
                 tags.append(f"http-title-{title}")
-            url_event = self.make_event(url, "URL", source_event, tags=tags)
+
+            url_context = "{module} visited {event.parent.data} and got status code {event.http_status}"
+            if parent_event.type == "OPEN_TCP_PORT":
+                url_context += " at {event.data}"
+
+            url_event = self.make_event(
+                url,
+                "URL",
+                parent_event,
+                tags=tags,
+                context=url_context,
+            )
             if url_event:
-                if url_event != source_event:
+                if url_event != parent_event:
                     await self.emit_event(url_event)
                 # HTTP response
-                await self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags)
+                content_type = j.get("header", {}).get("content_type", "unspecified").split(";")[0]
+                content_length = j.get("content_length", 0)
+                content_length = self.helpers.bytes_to_human(content_length)
+                await self.emit_event(
+                    j,
+                    "HTTP_RESPONSE",
+                    url_event,
+                    tags=url_event.tags,
+                    context=f"HTTP_RESPONSE was {content_length} with {content_type} content type",
+                )
 
         for tempdir in Path(tempfile.gettempdir()).iterdir():
             if tempdir.is_dir() and self.httpx_tempdir_regex.match(tempdir.name):

@@ -7,7 +7,11 @@ class OAUTH(BaseModule):
     watched_events = ["DNS_NAME", "URL_UNVERIFIED"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "active", "safe"]
-    meta = {"description": "Enumerate OAUTH and OpenID Connect services"}
+    meta = {
+        "description": "Enumerate OAUTH and OpenID Connect services",
+        "created_date": "2023-07-12",
+        "author": "@TheTechromancer",
+    }
     options = {"try_all": False}
     options_desc = {"try_all": "Check for OAUTH/IODC on every subdomain and URL."}
 
@@ -63,37 +67,53 @@ class OAUTH(BaseModule):
                         "url": url,
                     },
                     "FINDING",
-                    source=event,
+                    parent=event,
                 )
                 if finding_event:
                     finding_event.source_domain = source_domain
-                    await self.emit_event(finding_event)
+                    await self.emit_event(
+                        finding_event,
+                        context=f'{{module}} identified {{event.type}}: OpenID Connect Endpoint for "{source_domain}" at {url}',
+                    )
                 url_event = self.make_event(
-                    token_endpoint, "URL_UNVERIFIED", source=event, tags=["affiliate", "oauth-token-endpoint"]
+                    token_endpoint, "URL_UNVERIFIED", parent=event, tags=["affiliate", "oauth-token-endpoint"]
                 )
                 if url_event:
                     url_event.source_domain = source_domain
-                    await self.emit_event(url_event)
+                    await self.emit_event(
+                        url_event,
+                        context=f'{{module}} identified OpenID Connect Endpoint for "{source_domain}" at {{event.type}}: {url}',
+                    )
             for result in oidc_results:
                 if result not in (domain, event.data):
                     event_type = "URL_UNVERIFIED" if self.helpers.is_url(result) else "DNS_NAME"
-                    await self.emit_event(result, event_type, source=event, tags=["affiliate"])
+                    await self.emit_event(
+                        result,
+                        event_type,
+                        parent=event,
+                        tags=["affiliate"],
+                        context=f'{{module}} analyzed OpenID configuration for "{source_domain}" and found {{event.type}}: {{event.data}}',
+                    )
 
         for oauth_task in oauth_tasks:
             url = await oauth_task
             if url:
+                description = f"Potentially Sprayable OAUTH Endpoint (domain: {source_domain}) at {url}"
                 oauth_finding = self.make_event(
                     {
-                        "description": f"Potentially Sprayable OAUTH Endpoint (domain: {source_domain}) at {url}",
+                        "description": description,
                         "host": event.host,
                         "url": url,
                     },
                     "FINDING",
-                    source=event,
+                    parent=event,
                 )
                 if oauth_finding:
                     oauth_finding.source_domain = source_domain
-                    await self.emit_event(oauth_finding)
+                    await self.emit_event(
+                        oauth_finding,
+                        context=f"{{module}} identified {{event.type}}: {description}",
+                    )
 
     def url_and_base(self, url):
         yield url

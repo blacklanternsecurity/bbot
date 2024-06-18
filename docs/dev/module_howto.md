@@ -40,7 +40,7 @@ class whois(BaseModule):
         self.hugeinfo(f"Visiting {url}")
         response = await self.helpers.request(url)
         if response is not None:
-            await self.emit_event(response.json(), "WHOIS", source=event)
+            await self.emit_event(response.json(), "WHOIS", parent=event)
 ```
 
 After saving the module, you can run it with `-m`:

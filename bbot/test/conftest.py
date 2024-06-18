@@ -5,6 +5,7 @@ import pytest
 import asyncio
 import logging
 from pathlib import Path
+from contextlib import suppress
 from omegaconf import OmegaConf
 from pytest_httpserver import HTTPServer
 
@@ -41,11 +42,6 @@ def pytest_sessionfinish(session, exitstatus):
     shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
 
     yield
-
-
-@pytest.fixture
-def non_mocked_hosts() -> list:
-    return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
 
 
 @pytest.fixture
@@ -95,6 +91,11 @@ def bbot_httpserver_ssl():
 
 
 @pytest.fixture
+def non_mocked_hosts() -> list:
+    return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
+
+
+@pytest.fixture
 def bbot_httpserver_allinterfaces():
     server = HTTPServer(host="0.0.0.0", port=5556)
     server.start()
@@ -108,28 +109,32 @@ def bbot_httpserver_allinterfaces():
     server.clear()
 
 
-@pytest.fixture
-def interactsh_mock_instance():
-    interactsh_mock = Interactsh_mock()
-    return interactsh_mock
-
-
 class Interactsh_mock:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
+        self.log = logging.getLogger(f"bbot.interactsh.{self.name}")
         self.interactions = []
         self.correlation_id = "deadbeef-dead-beef-dead-beefdeadbeef"
         self.stop = False
+        self.poll_task = None
 
-    def mock_interaction(self, subdomain_tag):
+    def mock_interaction(self, subdomain_tag, msg=None):
+        self.log.info(f"Mocking interaction to subdomain tag: {subdomain_tag}")
+        if msg is not None:
+            self.log.info(msg)
         self.interactions.append(subdomain_tag)
 
     async def register(self, callback=None):
         if callable(callback):
-            asyncio.create_task(self.poll_loop(callback))
+            self.poll_task = asyncio.create_task(self.poll_loop(callback))
         return "fakedomain.fakeinteractsh.com"
 
     async def deregister(self, callback=None):
         self.stop = True
+        if self.poll_task is not None:
+            self.poll_task.cancel()
+            with suppress(BaseException):
+                await self.poll_task
 
     async def poll_loop(self, callback=None):
         while not self.stop:

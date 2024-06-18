@@ -72,3 +72,15 @@ class PresetConditionError(BBOTError):
 
 class PresetAbortError(PresetConditionError):
     pass
+
+
+class BBOTEngineError(BBOTError):
+    pass
+
+
+class WebError(BBOTEngineError):
+    pass
+
+
+class DNSError(BBOTEngineError):
+    pass

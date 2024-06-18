@@ -11,7 +11,6 @@ from .path import PRESET_PATH
 
 from bbot.errors import *
 from bbot.core import CORE
-from bbot.core.event.base import make_event
 from bbot.core.helpers.misc import make_table, mkdir, get_closest_match
 
 
@@ -234,19 +233,11 @@ class Preset:
         self._module_dirs = set()
         self.module_dirs = module_dirs
 
-        self.strict_scope = strict_scope
-
         # target / whitelist / blacklist
-        from bbot.scanner.target import Target
+        from bbot.scanner.target import BBOTTarget
 
-        self.target = Target(*targets, strict_scope=self.strict_scope)
-        if not whitelist:
-            self.whitelist = self.target.copy()
-        else:
-            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
-        if not blacklist:
-            blacklist = []
-        self.blacklist = Target(*blacklist)
+        self.strict_scope = strict_scope
+        self.target = BBOTTarget(targets, whitelist=whitelist, blacklist=blacklist, strict_scope=self.strict_scope)
 
         # include other presets
         if include and not isinstance(include, (list, tuple, set)):
@@ -266,6 +257,14 @@ class Preset:
     @property
     def bbot_home(self):
         return Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
+
+    @property
+    def whitelist(self):
+        return self.target.whitelist
+
+    @property
+    def blacklist(self):
+        return self.target.blacklist
 
     @property
     def preset_dir(self):
@@ -300,15 +299,15 @@ class Preset:
             other (Preset): The preset to merge into this one.
 
         Examples:
-            >>> preset1 = Preset(modules=["nmap"])
+            >>> preset1 = Preset(modules=["portscan"])
             >>> preset1.scan_modules
-            ['nmap']
+            ['portscan']
             >>> preset2 = Preset(modules=["sslcert"])
             >>> preset2.scan_modules
             ['sslcert']
             >>> preset1.merge(preset2)
             >>> preset1.scan_modules
-            ['nmap', 'sslcert']
+            ['portscan', 'sslcert']
         """
         self.log_debug(f'Merging preset "{other.name}" into "{self.name}"')
         # config
@@ -324,13 +323,8 @@ class Preset:
         self.explicit_scan_modules.update(other.explicit_scan_modules)
         self.explicit_output_modules.update(other.explicit_output_modules)
         self.flags.update(other.flags)
-        # scope
-        self.target.add_target(other.target)
-        self.whitelist.add_target(other.whitelist)
-        self.blacklist.add_target(other.blacklist)
-        self.strict_scope = self.strict_scope or other.strict_scope
-        for t in (self.target, self.whitelist):
-            t.strict_scope = self.strict_scope
+        # target / scope
+        self.target.merge(other.target)
         # log verbosity
         if other.silent:
             self.silent = other.silent
@@ -365,6 +359,8 @@ class Preset:
         baked_preset = copy(self)
         # copy core
         baked_preset.core = self.core.copy()
+        # copy target
+        baked_preset.target = self.target.copy()
         # copy module loader
         baked_preset._module_loader = self.module_loader.copy()
         # prepare os environment
@@ -376,6 +372,10 @@ class Preset:
         # update os environ
         os.environ.clear()
         os.environ.update(os_environ)
+
+        # ensure whitelist
+        if baked_preset.target.whitelist is None:
+            baked_preset.target.whitelist = baked_preset.target.seeds.copy()
 
         # validate flags, config options
         baked_preset.validate()
@@ -565,58 +565,13 @@ class Preset:
         return self._args
 
     def in_scope(self, host):
-        """
-        Check whether a hostname, url, IP, etc. is in scope.
-        Accepts either events or string data.
-
-        Checks whitelist and blacklist.
-        If `host` is an event and its scope distance is zero, it will automatically be considered in-scope.
-
-        Examples:
-            Check if a URL is in scope:
-            >>> preset.in_scope("http://www.evilcorp.com")
-            True
-        """
-        try:
-            e = make_event(host, dummy=True)
-        except ValidationError:
-            return False
-        in_scope = e.scope_distance == 0 or self.whitelisted(e)
-        return in_scope and not self.blacklisted(e)
+        return self.target.in_scope(host)
 
     def blacklisted(self, host):
-        """
-        Check whether a hostname, url, IP, etc. is blacklisted.
-
-        Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
-
-        Args:
-            host (str or IPAddress or Event): The host to check against the blacklist
-
-        Examples:
-            Check if a URL's host is blacklisted:
-            >>> preset.blacklisted("http://www.evilcorp.com")
-            True
-        """
-        e = make_event(host, dummy=True)
-        return e in self.blacklist
+        return self.target.blacklisted(host)
 
     def whitelisted(self, host):
-        """
-        Check whether a hostname, url, IP, etc. is whitelisted.
-
-        Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
-
-        Args:
-            host (str or IPAddress or Event): The host to check against the whitelist
-
-        Examples:
-            Check if a URL's host is whitelisted:
-            >>> preset.whitelisted("http://www.evilcorp.com")
-            True
-        """
-        e = make_event(host, dummy=True)
-        return e in self.whitelist
+        return self.target.whitelisted(host)
 
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
@@ -633,7 +588,7 @@ class Preset:
             Preset: The loaded preset
 
         Examples:
-            >>> preset = Preset.from_dict({"target": "evilcorp.com", "modules": ["nmap}]})
+            >>> preset = Preset.from_dict({"target": "evilcorp.com", "modules": ["portscan}]})
         """
         new_preset = cls(
             *preset_dict.get("target", []),
@@ -716,9 +671,9 @@ class Preset:
             dict: The preset in dictionary form
 
         Examples:
-            >>> preset = Preset(flags=["subdomain-enum"], modules=["nmap"])
+            >>> preset = Preset(flags=["subdomain-enum"], modules=["portscan"])
             >>> preset.to_dict()
-            {"flags": ["subdomain-enum"], "modules": ["nmap"]}
+            {"flags": ["subdomain-enum"], "modules": ["portscan"]}
         """
         preset_dict = {}
 
@@ -733,9 +688,11 @@ class Preset:
 
         # scope
         if include_target:
-            target = sorted(str(t.data) for t in self.target)
-            whitelist = sorted(str(t.data) for t in self.whitelist)
-            blacklist = sorted(str(t.data) for t in self.blacklist)
+            target = sorted(str(t.data) for t in self.target.seeds)
+            whitelist = set()
+            if self.target.whitelist is not None:
+                whitelist = sorted(str(t.data) for t in self.target.whitelist)
+            blacklist = sorted(str(t.data) for t in self.target.blacklist)
             if target:
                 preset_dict["target"] = target
             if whitelist and whitelist != target:
@@ -792,12 +749,12 @@ class Preset:
             str: The preset in the form of a YAML string
 
         Examples:
-            >>> preset = Preset(flags=["subdomain-enum"], modules=["nmap"])
+            >>> preset = Preset(flags=["subdomain-enum"], modules=["portscan"])
             >>> print(preset.to_yaml())
             flags:
             - subdomain-enum
             modules:
-            - nmap
+            - portscan
         """
         preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
         return yaml.dump(preset_dict, sort_keys=sort_keys)

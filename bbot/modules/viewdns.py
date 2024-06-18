@@ -13,6 +13,8 @@ class viewdns(BaseModule):
     flags = ["affiliates", "passive", "safe"]
     meta = {
         "description": "Query viewdns.info's reverse whois for related domains",
+        "created_date": "2022-07-04",
+        "author": "@TheTechromancer",
     }
     base_url = "https://viewdns.info"
     in_scope_only = True
@@ -26,7 +28,13 @@ class viewdns(BaseModule):
     async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
         for domain, _ in await self.query(query):
-            await self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
+            await self.emit_event(
+                domain,
+                "DNS_NAME",
+                parent=event,
+                tags=["affiliate"],
+                context=f'{{module}} searched viewdns.info for "{query}" and found {{event.type}}: {{event.data}}',
+            )
 
     async def query(self, query):
         results = set()

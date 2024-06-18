@@ -5,7 +5,11 @@ import html
 
 class web_report(BaseOutputModule):
     watched_events = ["URL", "TECHNOLOGY", "FINDING", "VULNERABILITY", "VHOST"]
-    meta = {"description": "Create a markdown report with web assets"}
+    meta = {
+        "description": "Create a markdown report with web assets",
+        "created_date": "2023-02-08",
+        "author": "@liquidsec",
+    }
     options = {
         "output_file": "",
         "css_theme_file": "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css",
@@ -34,36 +38,36 @@ class web_report(BaseOutputModule):
 
     async def handle_event(self, event):
         if event.type == "URL":
-            parsed = event.parsed
+            parsed = event.parsed_url
             host = f"{parsed.scheme}://{parsed.netloc}/"
             if host not in self.web_assets.keys():
                 self.web_assets[host] = {"URL": []}
-            source_chain = []
+            parent_chain = []
 
-            current_parent = event.source
+            current_parent = event.parent
             while not current_parent.type == "SCAN":
-                source_chain.append(
+                parent_chain.append(
                     f" ({current_parent.module})---> [{current_parent.type}]:{html.escape(current_parent.pretty_string)}"
                 )
-                current_parent = current_parent.source
+                current_parent = current_parent.parent
 
-            source_chain.reverse()
-            source_chain_text = (
-                "".join(source_chain)
+            parent_chain.reverse()
+            parent_chain_text = (
+                "".join(parent_chain)
                 + f" ({event.module})---> "
                 + f"[{event.type}]:{html.escape(event.pretty_string)}"
             )
-            self.web_assets[host]["URL"].append(f"**{html.escape(event.data)}**: {source_chain_text}")
+            self.web_assets[host]["URL"].append(f"**{html.escape(event.data)}**: {parent_chain_text}")
 
         else:
-            current_parent = event.source
+            current_parent = event.parent
             parsed = None
             while 1:
                 if current_parent.type == "URL":
-                    parsed = current_parent.parsed
+                    parsed = current_parent.parsed_url
                     break
-                current_parent = current_parent.source
-                if current_parent.source.type == "SCAN":
+                current_parent = current_parent.parent
+                if current_parent.parent.type == "SCAN":
                     break
             if parsed:
                 host = f"{parsed.scheme}://{parsed.netloc}/"

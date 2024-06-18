@@ -7,9 +7,152 @@ from radixtarget import RadixTarget
 
 from bbot.errors import *
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.misc import make_ip_type
 from bbot.core.event import make_event, is_event
 
 log = logging.getLogger("bbot.core.target")
+
+
+class BBOTTarget:
+    """
+    A convenient abstraction of a scan target that includes whitelisting and blacklisting
+
+    Provides high-level functions like in_scope(), which includes both whitelist and blacklist checks.
+    """
+
+    def __init__(self, targets, whitelist=None, blacklist=None, strict_scope=False):
+        self.strict_scope = strict_scope
+        self.seeds = Target(*targets, strict_scope=self.strict_scope)
+        if whitelist is None:
+            self.whitelist = None
+        else:
+            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
+        if blacklist is None:
+            blacklist = []
+        self.blacklist = Target(*blacklist)
+
+    def add(self, *args, **kwargs):
+        self.seeds.add(*args, **kwargs)
+
+    def merge(self, other):
+        self.seeds.add(other.seeds)
+        if other.whitelist is not None:
+            if self.whitelist is None:
+                self.whitelist = other.whitelist.copy()
+            else:
+                self.whitelist.add(other.whitelist)
+        self.blacklist.add(other.blacklist)
+        self.strict_scope = self.strict_scope or other.strict_scope
+        for t in (self.seeds, self.whitelist):
+            if t is not None:
+                t.strict_scope = self.strict_scope
+
+    def get(self, host):
+        return self.seeds.get(host)
+
+    def get_host(self, host):
+        return self.seeds.get(host)
+
+    def __iter__(self):
+        return iter(self.seeds)
+
+    def __len__(self):
+        return len(self.seeds)
+
+    def __contains__(self, other):
+        if isinstance(other, self.__class__):
+            other = other.seeds
+        return other in self.seeds
+
+    def __bool__(self):
+        return bool(self.seeds)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(self.seeds)
+
+    def copy(self):
+        self_copy = copy.copy(self)
+        self_copy.seeds = self.seeds.copy()
+        if self.whitelist is not None:
+            self_copy.whitelist = self.whitelist.copy()
+        self_copy.blacklist = self.blacklist.copy()
+        return self_copy
+
+    @property
+    def events(self):
+        return self.seeds.events
+
+    def in_scope(self, host):
+        """
+        Check whether a hostname, url, IP, etc. is in scope.
+        Accepts either events or string data.
+
+        Checks whitelist and blacklist.
+        If `host` is an event and its scope distance is zero, it will automatically be considered in-scope.
+
+        Examples:
+            Check if a URL is in scope:
+            >>> preset.in_scope("http://www.evilcorp.com")
+            True
+        """
+        try:
+            e = make_event(host, dummy=True)
+        except ValidationError:
+            return False
+        in_scope = e.scope_distance == 0 or self.whitelisted(e)
+        return in_scope and not self.blacklisted(e)
+
+    def blacklisted(self, host):
+        """
+        Check whether a hostname, url, IP, etc. is blacklisted.
+
+        Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
+
+        Args:
+            host (str or IPAddress or Event): The host to check against the blacklist
+
+        Examples:
+            Check if a URL's host is blacklisted:
+            >>> preset.blacklisted("http://www.evilcorp.com")
+            True
+        """
+        e = make_event(host, dummy=True)
+        return e in self.blacklist
+
+    def whitelisted(self, host):
+        """
+        Check whether a hostname, url, IP, etc. is whitelisted.
+
+        Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
+
+        Args:
+            host (str or IPAddress or Event): The host to check against the whitelist
+
+        Examples:
+            Check if a URL's host is whitelisted:
+            >>> preset.whitelisted("http://www.evilcorp.com")
+            True
+        """
+        e = make_event(host, dummy=True)
+        whitelist = self.whitelist
+        if whitelist is None:
+            whitelist = self.seeds
+        return e in whitelist
+
+    @property
+    def radix_only(self):
+        """
+        A slimmer, serializable version of the target designed for simple scope checks
+        """
+        return self.__class__(
+            targets=[e.host for e in self.seeds if e.host],
+            whitelist=[e.host for e in self.whitelist if e.host],
+            blacklist=[e.host for e in self.blacklist if e.host],
+            strict_scope=self.strict_scope,
+        )
 
 
 class Target:
@@ -93,11 +236,11 @@ class Target:
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
-            self.add_target(t)
+            self.add(t)
 
         self._hash = None
 
-    def add_target(self, t, event_type=None):
+    def add(self, t, event_type=None):
         """
         Add a target or merge events from another Target object into this Target.
 
@@ -108,7 +251,7 @@ class Target:
             _events (dict): The dictionary is updated to include the new target's events.
 
         Examples:
-            >>> target.add_target('example.com')
+            >>> target.add('example.com')
 
         Notes:
             - If `t` is of the same class as this Target, all its events are merged.
@@ -117,13 +260,14 @@ class Target:
         if not isinstance(t, (list, tuple, set)):
             t = [t]
         for single_target in t:
-            if type(single_target) == self.__class__:
+            if isinstance(single_target, self.__class__):
                 for event in single_target.events:
                     self._add_event(event)
             else:
                 if is_event(single_target):
                     event = single_target
                 else:
+                    single_target = str(single_target)
                     for eventtype, regex in self.special_event_types.items():
                         match = regex.match(single_target)
                         if match:
@@ -212,20 +356,27 @@ class Target:
         """
 
         try:
-            other = make_event(host, dummy=True)
+            event = make_event(host, dummy=True)
         except ValidationError:
             return
-        if other.host:
-            with suppress(KeyError, StopIteration):
-                result = self._radix.search(other.host)
-                if result is not None:
-                    for event in result:
-                        # if the result is a dns name and strict scope is enabled
-                        if isinstance(event.host, str) and self.strict_scope:
-                            # if the result doesn't exactly equal the host, abort
-                            if event.host != other.host:
-                                return
-                        return event
+        if event.host:
+            return self.get_host(event.host)
+
+    def get_host(self, host):
+        """
+        A more efficient version of .get() that only accepts hostnames and IP addresses
+        """
+        host = make_ip_type(host)
+        with suppress(KeyError, StopIteration):
+            result = self._radix.search(host)
+            if result is not None:
+                for event in result:
+                    # if the result is a dns name and strict scope is enabled
+                    if isinstance(event.host, str) and self.strict_scope:
+                        # if the result doesn't exactly equal the host, abort
+                        if event.host != host:
+                            return
+                    return event
 
     def _add_event(self, event):
         radix_data = self._radix.search(event.host)
@@ -249,7 +400,7 @@ class Target:
 
     def __contains__(self, other):
         # if "other" is a Target
-        if type(other) == self.__class__:
+        if isinstance(other, self.__class__):
             contained_in_self = [self._contains(e) for e in other.events]
             return all(contained_in_self)
         else:

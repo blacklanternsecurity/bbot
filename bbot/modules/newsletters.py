@@ -19,7 +19,11 @@ class newsletters(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "safe"]
-    meta = {"description": "Searches for Newsletter Submission Entry Fields on Websites"}
+    meta = {
+        "description": "Searches for Newsletter Submission Entry Fields on Websites",
+        "created_date": "2024-02-02",
+        "author": "@stryker2k2",
+    }
 
     # Parse through Website to find a Text Entry Box of 'type = email'
     # and ensure that there is placeholder text within it.
@@ -48,4 +52,9 @@ class newsletters(BaseModule):
                 if result:
                     description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
                     data = {"host": str(_event.host), "description": description, "url": _event.data["url"]}
-                    await self.emit_event(data, "FINDING", _event)
+                    await self.emit_event(
+                        data,
+                        "FINDING",
+                        _event,
+                        context="{module} searched HTTP_RESPONSE and identified {event.type}: a Newsletter Submission Form that could be used for email bombing attacks",
+                    )

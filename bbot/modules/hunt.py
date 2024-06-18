@@ -274,7 +274,11 @@ class hunt(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "safe", "web-thorough"]
-    meta = {"description": "Watch for commonly-exploitable HTTP parameters"}
+    meta = {
+        "description": "Watch for commonly-exploitable HTTP parameters",
+        "created_date": "2022-07-20",
+        "author": "@liquidsec",
+    }
     # accept all events regardless of scope distance
     scope_distance_modifier = None
 
@@ -288,4 +292,9 @@ class hunt(BaseModule):
                     url = event.data.get("url", "")
                     if url:
                         data["url"] = url
-                    await self.emit_event(data, "FINDING", event)
+                    await self.emit_event(
+                        data,
+                        "FINDING",
+                        event,
+                        context=f'{{module}} analyzed HTTP_RESPONSE from {url} and identified {{event.type}}: potential {k.upper()} parameter "{p}"',
+                    )

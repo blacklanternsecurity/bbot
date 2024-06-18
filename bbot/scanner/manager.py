@@ -50,10 +50,11 @@ class ScanIngress(InterceptModule):
                 event._dummy = False
                 event.web_spider_distance = 0
                 event.scan = self.scan
-                if event.source is None:
-                    event.source = self.scan.root_event
+                if event.parent is None:
+                    event.parent = self.scan.root_event
                 if event.module is None:
                     event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
+                event.discovery_context = f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}"
                 self.verbose(f"Target: {event}")
                 await self.queue_event(event, {})
             await asyncio.sleep(0.1)
@@ -64,21 +65,45 @@ class ScanIngress(InterceptModule):
         if event._dummy:
             return False, "cannot emit dummy event"
 
-        # don't accept events with self as source
-        if (not event.type == "SCAN") and (event == event.get_source()):
-            return False, "event's source is itself"
+        # don't accept events with self as parent
+        if not event.type == "SCAN":
+            if event == event.get_parent():
+                return False, "event's parent is itself"
+            if not event.discovery_context:
+                self.warning(f"Event {event} has no discovery context")
 
         # don't accept duplicates
-        if (not event._graph_important) and self.is_incoming_duplicate(event, add=True):
-            return False, "event was already emitted by its module"
+        if self.is_incoming_duplicate(event, add=True):
+            if not event._graph_important:
+                return False, "event was already emitted by its module"
+            else:
+                self.debug(
+                    f"Event {event} was already emitted by its module, but it's graph-important so it gets a pass"
+                )
 
         # update event's scope distance based on its parent
-        event.scope_distance = event.source.scope_distance + 1
+        event.scope_distance = event.parent.scope_distance + 1
 
-        # blacklist rejections
+        # special handling of URL extensions
+        url_extension = getattr(event, "url_extension", None)
+        if url_extension is not None:
+            if url_extension in self.scan.url_extension_httpx_only:
+                event.add_tag("httpx-only")
+                event._omit = True
+
+            # blacklist by extension
+            if url_extension in self.scan.url_extension_blacklist:
+                self.debug(
+                    f"Blacklisting {event} because its extension (.{url_extension}) is blacklisted in the config"
+                )
+                event.add_tag("blacklisted")
+
+        # main scan blacklist
         event_blacklisted = self.scan.blacklisted(event)
+
+        # reject all blacklisted events
         if event_blacklisted or "blacklisted" in event.tags:
-            return False, f"Omitting blacklisted event: {event}"
+            return False, "event is blacklisted"
 
         # Scope shepherding
         # here is where we make sure in-scope events are set to their proper scope distance
@@ -159,11 +184,6 @@ class ScanEgress(InterceptModule):
         # we are the lowest priority
         return 99
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # track outgoing duplicates (for `accept_dupes` attribute of modules)
-        self.outgoing_dup_tracker = set()
-
     async def handle_event(self, event, kwargs):
         abort_if = kwargs.pop("abort_if", None)
         on_success_callback = kwargs.pop("on_success_callback", None)
@@ -179,15 +199,15 @@ class ScanEgress(InterceptModule):
 
         # if we discovered something interesting from an internal event,
         # make sure we preserve its chain of parents
-        source = event.source
-        if source.internal and ((not event.internal) or event._graph_important):
-            source_in_report_distance = source.scope_distance <= self.scan.scope_report_distance
-            if source_in_report_distance:
-                source.internal = False
-            if not source._graph_important:
-                source._graph_important = True
-                log.debug(f"Re-queuing internal event {source} with parent {event}")
-                await self.emit_event(source)
+        parent = event.parent
+        if parent.internal and ((not event.internal) or event._graph_important):
+            parent_in_report_distance = parent.scope_distance <= self.scan.scope_report_distance
+            if parent_in_report_distance:
+                parent.internal = False
+            if not parent._graph_important:
+                parent._graph_important = True
+                log.debug(f"Re-queuing internal event {parent} with parent {event}")
+                await self.emit_event(parent)
 
         abort_result = False
         if callable(abort_if):
@@ -209,31 +229,11 @@ class ScanEgress(InterceptModule):
         """
         Queue event with modules
         """
-        is_outgoing_duplicate = self.is_outgoing_duplicate(event)
-        if is_outgoing_duplicate:
-            self.verbose(f"{event.module}: Duplicate event: {event}")
         # absorb event into the word cloud if it's in scope
-        if not is_outgoing_duplicate and -1 < event.scope_distance < 1:
+        if -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
 
         for mod in self.scan.modules.values():
             # don't distribute events to intercept modules
-            if mod._intercept:
-                continue
-            acceptable_dup = (not is_outgoing_duplicate) or mod.accept_dupes
-            graph_important = mod._is_graph_important(event)
-            if acceptable_dup or graph_important:
+            if not mod._intercept:
                 await mod.queue_event(event)
-
-    def is_outgoing_duplicate(self, event, add=False):
-        """
-        Calculate whether an event is a duplicate in the context of the whole scan,
-        This will return True if the same event (irregardless of its source module) has been emitted before.
-
-        TODO: Allow modules to use this for custom deduplication such as on a per-host or per-domain basis.
-        """
-        event_hash = hash(event)
-        is_dup = event_hash in self.outgoing_dup_tracker
-        if add:
-            self.outgoing_dup_tracker.add(event_hash)
-        return is_dup

@@ -5,7 +5,11 @@ from bbot.modules.base import BaseModule
 class social(BaseModule):
     watched_events = ["URL_UNVERIFIED"]
     produced_events = ["SOCIAL"]
-    meta = {"description": "Look for social media links in webpages"}
+    meta = {
+        "description": "Look for social media links in webpages",
+        "created_date": "2023-03-28",
+        "author": "@TheTechromancer",
+    }
     flags = ["passive", "safe", "social-enum"]
 
     # platform name : (regex, case_sensitive)
@@ -37,10 +41,14 @@ class social(BaseModule):
                 if not case_sensitive:
                     url = url.lower()
                     profile_name = profile_name.lower()
+                url = f"https://{url}"
                 social_event = self.make_event(
-                    {"platform": platform, "url": f"https://{url}", "profile_name": profile_name},
+                    {"platform": platform, "url": url, "profile_name": profile_name},
                     "SOCIAL",
-                    source=event,
+                    parent=event,
                 )
                 social_event.scope_distance = event.scope_distance
-                await self.emit_event(social_event)
+                await self.emit_event(
+                    social_event,
+                    context=f"{{module}} detected {platform} {{event.type}} at {url}",
+                )

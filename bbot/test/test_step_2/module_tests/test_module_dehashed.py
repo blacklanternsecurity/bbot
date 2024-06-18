@@ -83,7 +83,7 @@ class TestDehashed(ModuleTestBase):
                 for e in events
                 if e.type == "USERNAME"
                 and e.data == "bob@blacklanternsecurity.com:bob@bob.com"
-                and e.source.data == "bob@blacklanternsecurity.com"
+                and e.parent.data == "bob@blacklanternsecurity.com"
             ]
         )
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "tim@blacklanternsecurity.com"])

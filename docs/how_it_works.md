@@ -1,6 +1,6 @@
 # What is BBOT?
 
-BBOT is a system of individual modules that interchange data **recursively**. Every module (e.g. `nmap`) _consumes_ a type of data (e.g. a `DNS_NAME`) and _emits_ another kind, (an `OPEN_TCP_PORT`). These bits of data, called [events](scanning/events.md), become the output of the tool, but are also redistributed to all the other modules, prompting them to dig deeper, and feeding the recursive cycle of discovery.
+BBOT is a system of individual modules that interchange data **recursively**. Every module (e.g. `portscan`) _consumes_ a type of data (e.g. a `DNS_NAME`) and _emits_ another kind, (an `OPEN_TCP_PORT`). These bits of data, called [events](scanning/events.md), become the output of the tool, but are also redistributed to all the other modules, prompting them to dig deeper, and feeding the recursive cycle of discovery.
 
 ![recursion](https://github.com/blacklanternsecurity/bbot/assets/20261699/7b2edfca-2692-463b-939b-ab9d52d2fe00)
 
@@ -24,21 +24,21 @@ Recursion is at the heart of BBOT's design. Each newly-discovered piece of data 
 
 ## Module Example
 
-In a simple example, we run a BBOT scan with **three modules**: `nmap`, `sslcert`, and `httpx`. Each of these modules "consume" a certain type of data:
+In a simple example, we run a BBOT scan with **three modules**: `portscan`, `sslcert`, and `httpx`. Each of these modules "consume" a certain type of data:
 
-- **`nmap`** consumes `DNS_NAME`s, port-scans them, and outputs `OPEN_TCP_PORT`s
+- **`portscan`** consumes `DNS_NAME`s, port-scans them, and outputs `OPEN_TCP_PORT`s
 - **`sslcert`** consumes `OPEN_TCP_PORT`s, grabs certs, and extracts `DNS_NAME`s
 - **`httpx`** consumes `OPEN_TCP_PORT`s and visits any web services, ultimately producing new `DNS_NAME`s
 
 ```mermaid
 graph TD
-  nmap -->|OPEN_TCP_PORT| sslcert;
-  nmap -->|OPEN_TCP_PORT| httpx;
-  sslcert --> |DNS_NAME| nmap;
-  httpx --> |DNS_NAME| nmap;
+  portscan -->|OPEN_TCP_PORT| sslcert;
+  portscan -->|OPEN_TCP_PORT| httpx;
+  sslcert --> |DNS_NAME| portscan;
+  httpx --> |DNS_NAME| portscan;
 ```
 
-This allows for some interesting chains of events. Given a single target such as `evilcorp.com`, `nmap` may start by discovering an `OPEN_TCP_PORT` `evilcorp.com:443`. `sslcert` and `httpx` will then visit that port and extract more hostnames, which are in turn scanned by `nmap` to produce more open ports which are visited by `sslcert` and `httpx`, which discover more hostnames, which are again passed to `nmap`, and so on...
+This allows for some interesting chains of events. Given a single target such as `evilcorp.com`, `portscan` may start by discovering an `OPEN_TCP_PORT` `evilcorp.com:443`. `sslcert` and `httpx` will then visit that port and extract more hostnames, which are in turn scanned by `portscan` to produce more open ports which are visited by `sslcert` and `httpx`, which discover more hostnames, which are again passed to `portscan`, and so on...
 
 This is a simple example with only a few modules, but you can being to see how if 30 or 40 modules were enabled, they could feed each other exponentially to produce an immense amount of data. This recursion is exactly how BBOT is able to outperform other tools.
 

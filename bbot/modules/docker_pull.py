@@ -9,7 +9,11 @@ class docker_pull(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
     flags = ["passive", "safe", "slow"]
-    meta = {"description": "Download images from a docker repository"}
+    meta = {
+        "description": "Download images from a docker repository",
+        "created_date": "2024-03-24",
+        "author": "@domwhewell-sage",
+    }
     options = {"all_tags": False, "output_folder": ""}
     options_desc = {
         "all_tags": "Download all tags from each registry (Default False)",
@@ -50,10 +54,15 @@ class docker_pull(BaseModule):
         if repo_path:
             self.verbose(f"Downloaded docker repository {repo_url} to {repo_path}")
             codebase_event = self.make_event(
-                {"path": str(repo_path)}, "FILESYSTEM", tags=["docker", "tarball"], source=event
+                {"path": str(repo_path), "description": f"Docker image repository: {repo_url}"},
+                "FILESYSTEM",
+                tags=["docker", "tarball"],
+                parent=event,
             )
             codebase_event.scope_distance = event.scope_distance
-            await self.emit_event(codebase_event)
+            await self.emit_event(
+                codebase_event, context=f"{{module}} downloaded Docker image to {{event.type}}: {repo_path}"
+            )
 
     def get_registry_and_repository(self, repository_url):
         """Function to get the registry and repository from a html repository URL."""

@@ -105,6 +105,8 @@ class BaseModule:
     batch_wait = 10
     failed_request_abort_threshold = 5
 
+    default_discovery_context = "{module} discovered {event.type}: {event.data}"
+
     _preserve_graph = False
     _stats_exclude = False
     _qsize = 1000
@@ -112,6 +114,7 @@ class BaseModule:
     _name = "base"
     _type = "scan"
     _intercept = False
+    _shuffle_incoming_queue = True
 
     def __init__(self, scan):
         """Initializes a module instance.
@@ -414,7 +417,7 @@ class BaseModule:
             raise_error (bool, optional): Whether to raise a validation error if the event could not be created. Defaults to False.
 
         Examples:
-            >>> new_event = self.make_event("1.2.3.4", source=event)
+            >>> new_event = self.make_event("1.2.3.4", parent=event)
             >>> await self.emit_event(new_event)
 
         Returns:
@@ -424,6 +427,10 @@ class BaseModule:
             ValidationError: If the event could not be validated and raise_error is True.
         """
         raise_error = kwargs.pop("raise_error", False)
+        module = kwargs.pop("module", None)
+        if module is None:
+            if (not args) or getattr(args[0], "module", None) is None:
+                kwargs["module"] = self
         try:
             event = self.scan.make_event(*args, **kwargs)
         except ValidationError as e:
@@ -431,8 +438,6 @@ class BaseModule:
                 raise
             self.warning(f"{e}")
             return
-        if not event.module:
-            event.module = self
         return event
 
     async def emit_event(self, *args, **kwargs):
@@ -453,9 +458,9 @@ class BaseModule:
                 ```
 
         Examples:
-            >>> await self.emit_event("www.evilcorp.com", source=event, tags=["affiliate"])
+            >>> await self.emit_event("www.evilcorp.com", parent=event, tags=["affiliate"])
 
-            >>> new_event = self.make_event("1.2.3.4", source=event)
+            >>> new_event = self.make_event("1.2.3.4", parent=event)
             >>> await self.emit_event(new_event)
 
         Returns:
@@ -632,7 +637,8 @@ class BaseModule:
                         else:
                             self.debug(f"Not accepting {event} because {reason}")
             except asyncio.CancelledError:
-                self.log.trace("Worker cancelled")
+                # this trace was used for debugging leaked CancelledErrors from inside httpx
+                # self.log.trace("Worker cancelled")
                 raise
         self.log.trace(f"Worker stopped")
 
@@ -684,6 +690,7 @@ class BaseModule:
         if self.target_only:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
+
         # exclude certain URLs (e.g. javascript):
         # TODO: revisit this after httpx rework
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
@@ -703,7 +710,7 @@ class BaseModule:
             # check duplicates
             is_incoming_duplicate, reason = self.is_incoming_duplicate(event, add=True)
             if is_incoming_duplicate and not self.accept_dupes:
-                return False, f"module has already seen {event}" + (f" ({reason})" if reason else "")
+                return False, f"module has already seen it" + (f" ({reason})" if reason else "")
 
         return acceptable, reason
 
@@ -729,13 +736,6 @@ class BaseModule:
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
 
-        # don't send out-of-scope targets to active modules (excluding portscanners, because they can handle it)
-        # this only takes effect if your target and whitelist are different
-        # TODO: the logic here seems incomplete, it could probably use some work.
-        if "active" in self.flags and "portscan" not in self.flags:
-            if "target" in event.tags and event not in self.scan.whitelist:
-                return False, "it is not in whitelist and module has active flag"
-
         # check scope distance
         filter_result, reason = self._scope_distance_check(event)
         if not filter_result:
@@ -743,7 +743,12 @@ class BaseModule:
 
         # custom filtering
         async with self.scan._acatch(context=self.filter_event):
-            filter_result = await self.filter_event(event)
+            try:
+                filter_result = await self.filter_event(event)
+            except Exception as e:
+                msg = f"Unhandled exception in {self.name}.filter_event({event}): {e}"
+                self.error(msg)
+                return False, msg
             msg = str(self._custom_filter_criteria_msg)
             with suppress(ValueError, TypeError):
                 filter_result, reason = filter_result
@@ -891,7 +896,12 @@ class BaseModule:
         if event.type in ("FINISHED",):
             return False, ""
         reason = ""
-        event_hash = self._incoming_dedup_hash(event)
+        try:
+            event_hash = self._incoming_dedup_hash(event)
+        except Exception as e:
+            msg = f"Unhandled exception in {self.name}._incoming_dedup_hash({event}): {e}"
+            self.error(msg)
+            return True, msg
         with suppress(TypeError, ValueError):
             event_hash, reason = event_hash
         is_dup = event_hash in self._incoming_dup_tracker
@@ -952,7 +962,7 @@ class BaseModule:
             >>> event = self.make_event("https://example.com:8443")
             >>> self.get_per_hostport_hash(event)
         """
-        parsed = getattr(event, "parsed", None)
+        parsed = getattr(event, "parsed_url", None)
         if parsed is None:
             to_hash = self.helpers.make_netloc(event.host, event.port)
         else:
@@ -1095,7 +1105,10 @@ class BaseModule:
     @property
     def incoming_event_queue(self):
         if self._incoming_event_queue is None:
-            self._incoming_event_queue = ShuffleQueue()
+            if self._shuffle_incoming_queue:
+                self._incoming_event_queue = ShuffleQueue()
+            else:
+                self._incoming_event_queue = asyncio.Queue()
         return self._incoming_event_queue
 
     @property
@@ -1465,8 +1478,13 @@ class InterceptModule(BaseModule):
                     await self.forward_event(event, kwargs)
 
             except asyncio.CancelledError:
-                self.log.trace("Worker cancelled")
+                # this trace was used for debugging leaked CancelledErrors from inside httpx
+                # self.log.trace("Worker cancelled")
                 raise
+            except BaseException as e:
+                self.critical(f"Critical failure in intercept module {self.name}: {e}")
+                self.critical(traceback.format_exc())
+                self.scan.stop()
         self.log.trace(f"Worker stopped")
 
     async def get_incoming_event(self):
@@ -1486,7 +1504,7 @@ class InterceptModule(BaseModule):
         Used by emit_event() to raise new events to the scan
         """
         # if this was a normal module, we'd put it in the outgoing queue
-        # but because it's a intercept module, we need to queue it with the first intercept module
+        # but because it's an intercept module, we need to queue it at the scan's ingress
         await self.scan.ingress_module.queue_event(event, kwargs)
 
     async def queue_event(self, event, kwargs=None):

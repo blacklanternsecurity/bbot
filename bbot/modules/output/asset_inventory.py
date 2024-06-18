@@ -33,7 +33,11 @@ class asset_inventory(CSV):
         "HTTP_RESPONSE",
     ]
     produced_events = ["IP_ADDRESS", "OPEN_TCP_PORT"]
-    meta = {"description": "Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV"}
+    meta = {
+        "description": "Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV",
+        "created_date": "2022-09-30",
+        "author": "@liquidsec",
+    }
     options = {"output_file": "", "use_previous": False, "recheck": False, "summary_netmask": 16}
     options_desc = {
         "output_file": "Set a custom output file",
@@ -179,25 +183,35 @@ class asset_inventory(CSV):
                         self.add_custom_headers(list(asset.custom_fields))
                         if not is_ip(asset.host):
                             host_event = self.make_event(
-                                asset.host, "DNS_NAME", source=self.scan.root_event, raise_error=True
+                                asset.host, "DNS_NAME", parent=self.scan.root_event, raise_error=True
                             )
-                            await self.emit_event(host_event)
+                            await self.emit_event(
+                                host_event, context="{module} emitted previous result: {event.type}: {event.data}"
+                            )
                             for port in asset.ports:
                                 netloc = self.helpers.make_netloc(asset.host, port)
-                                open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=host_event)
+                                open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", parent=host_event)
                                 if open_port_event:
-                                    await self.emit_event(open_port_event)
+                                    await self.emit_event(
+                                        open_port_event,
+                                        context="{module} emitted previous result: {event.type}: {event.data}",
+                                    )
                         else:
                             for ip in asset.ip_addresses:
                                 ip_event = self.make_event(
-                                    ip, "IP_ADDRESS", source=self.scan.root_event, raise_error=True
+                                    ip, "IP_ADDRESS", parent=self.scan.root_event, raise_error=True
                                 )
-                                await self.emit_event(ip_event)
+                                await self.emit_event(
+                                    ip_event, context="{module} emitted previous result: {event.type}: {event.data}"
+                                )
                                 for port in asset.ports:
                                     netloc = self.helpers.make_netloc(ip, port)
-                                    open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=ip_event)
+                                    open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", parent=ip_event)
                                     if open_port_event:
-                                        await self.emit_event(open_port_event)
+                                        await self.emit_event(
+                                            open_port_event,
+                                            context="{module} emitted previous result: {event.type}: {event.data}",
+                                        )
             else:
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"

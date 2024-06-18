@@ -6,11 +6,19 @@ from bbot.modules.output.base import BaseOutputModule
 
 class CSV(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Output to CSV"}
+    meta = {"description": "Output to CSV", "created_date": "2022-04-07", "author": "@TheTechromancer"}
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to CSV file"}
 
-    header_row = ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
+    header_row = [
+        "Event type",
+        "Event data",
+        "IP Address",
+        "Source Module",
+        "Scope Distance",
+        "Event Tags",
+        "Discovery Path",
+    ]
     filename = "output.csv"
     accept_dupes = False
 
@@ -56,6 +64,7 @@ class CSV(BaseOutputModule):
                 "Source Module": str(getattr(event, "module_sequence", "")),
                 "Scope Distance": str(getattr(event, "scope_distance", "")),
                 "Event Tags": ",".join(sorted(list(getattr(event, "tags", [])))),
+                "Discovery Path": " --> ".join(getattr(event, "discovery_path", [])),
             }
         )
 

@@ -5,7 +5,11 @@ class riddler(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query riddler.io for subdomains"}
+    meta = {
+        "description": "Query riddler.io for subdomains",
+        "created_date": "2022-08-25",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://riddler.io"
 
