@@ -822,11 +822,6 @@ def truncate_string(s, n):
         return s
 
 
-import json
-
-import json
-
-
 def extract_params_json(json_data, compare_mode="getparam"):
     """
     Extracts key-value pairs from a JSON object and returns them as a set of tuples. Used by the `paramminer_headers` module.

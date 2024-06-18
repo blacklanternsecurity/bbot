@@ -7,6 +7,7 @@ class TestExcavate(ModuleTestBase):
     config_overrides = {"web_spider_distance": 1, "web_spider_depth": 1}
 
     async def setup_before_prep(self, module_test):
+
         response_data = """
         ftp://ftp.test.notreal
         \\nhttps://www1.test.notreal
@@ -272,7 +273,8 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
 
 
 class TestExcavateCSP(TestExcavate):
-    csp_test_header = "default-src 'self'; script-src test.asdf.fakedomain; object-src 'none';"
+
+    csp_test_header = "default-src 'self'; script-src asdf.test.notreal; object-src 'none';"
 
     async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
@@ -280,7 +282,7 @@ class TestExcavateCSP(TestExcavate):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.data == "test.asdf.fakedomain" for e in events)
+        assert any(e.data == "asdf.test.notreal" for e in events)
 
 
 class TestExcavateURL(TestExcavate):
