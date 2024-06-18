@@ -97,7 +97,7 @@ class ExcavateRule:
                     event_data["description"] += f" [{result}]"
                 await self.report(event_data)
 
-    async def report(self, event_data, event_type="FINDING"):
+    async def report(self, event_data, event_type="FINDING", abort_if=None):
 
         # If a description is not set and is needed, provide a basic one
         if event_type == "FINDING" and "description" not in event_data.keys():
@@ -114,6 +114,7 @@ class ExcavateRule:
             parent=self.event,
             context=context,
             tags=self.tags,
+            abort_if=abort_if
         )
 
     async def regex_search(self, content, regex):
@@ -162,7 +163,7 @@ class excavate(BaseInternalModule):
     }
 
     options = {
-        "recursive_decode": False,
+        "recursive_decode": True,
         "retain_querystring": False,
         "yara_max_match_data": 2000,
         "custom_yara_rules": "",
@@ -274,9 +275,7 @@ class excavate(BaseInternalModule):
             def extract(self):
                 urls = self.extraction_regex.findall(str(self.result))
                 for url in urls:
-                    self.excavate.critical(url)
                     parsed_url = urlparse(url)
-
                     query_strings = parse_qs(parsed_url.query)
                     query_strings_dict = {
                         k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in query_strings.items()
@@ -289,7 +288,6 @@ class excavate(BaseInternalModule):
                         )
 
         class GetForm(ParameterExtractorRule):
-
             name = "GET Form"
             discovery_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase'
             form_content_regexes = [
@@ -501,12 +499,47 @@ class excavate(BaseInternalModule):
             "Web_Service_WSDL": r'rule Web_Service_WSDL { meta: emit_match = "True" description = "contains a web service WSDL URL" strings: $wsdl = /https?:\/\/[^\s]*\.(wsdl)/ nocase condition: $wsdl }',
         }
 
-    class URLExtractor(ExcavateRule):
+
+    class NonHttpSchemeExtractor(ExcavateRule):
         yara_rules = {
-            "url_full": r'rule url_full { meta: tags = "spider-danger" description = "Contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_full }',
-            "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "Contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
+            "Non_HTTP_Scheme": r'rule Non_HTTP_Scheme { meta: description = "contains non-http scheme URL" strings: $nonhttpscheme = /\w{2,36}:\/\/[\w.-]+(:\d+)?\b/ nocase fullword condition: $nonhttpscheme }'
         }
 
+        prefix_blacklist = ["javascript", "mailto", "tel", "data", "vbscript", "about", "file"]
+
+        async def process(self):
+            for identifier, results in self.results.items():
+                for url in results:
+
+                    url_bytes = url.matched_data
+                    url_str = url_bytes.decode("utf-8")
+                    prefix = url_str.split("://")[0]
+                    if prefix in self.prefix_blacklist:
+                        continue
+                    try:
+                        parsed_url = urlparse(url_str)
+                    except Exception as e:
+                        self.excavate.debug(f"Error parsing URI {url_str}: {e}")
+                        continue
+                    netloc = getattr(parsed_url, "netloc", None)
+                    if netloc is None:
+                        continue
+                    host, port = self.excavate.helpers.split_host_port(parsed_url.netloc)
+                    if parsed_url.scheme in ["http", "https"]:
+                        continue
+                    abort_if = lambda e: e.scope_distance > 0
+                    finding_data = {"host": str(host), "description": f"Non-HTTP URI: {parsed_url.geturl()}"}
+                    await self.report(finding_data, abort_if=abort_if)
+                    protocol_data = {"protocol": parsed_url.scheme, "host": str(host)}
+                    if port:
+                        protocol_data["port"] = port
+                    await self.report(protocol_data, event_type="PROTOCOL", abort_if=abort_if)
+
+    class URLExtractor(ExcavateRule):
+        yara_rules = {
+            "url_full": r'rule url_full { meta: tags = "spider-danger" description = "contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([\/\w\.-]*)/ condition: $url_full }',
+            "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
+        }
         full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
         full_url_regex_strict = re.compile(re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?$"))
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
@@ -524,7 +557,6 @@ class excavate(BaseInternalModule):
                     url_bytes = url.matched_data
                     url_str = url_bytes.decode("utf-8")
                     if identifier == "url_full":
-                        self.excavate.critical(f"FULL URL {url_str}")
                         if not await self.helpers.re.search(self.full_url_regex, url_str):
                             self.excavate.critical(
                                 f"Rejecting potential full URL [{url_str}] as did not match full_url_regex"
@@ -588,6 +620,11 @@ class excavate(BaseInternalModule):
 
     async def setup(self):
         self.recursive_decode = self.config.get("recursive_decode", False)
+
+        # REVISIT THIS
+        if self.scan.config.get("url_querystring_remove", True) == False:
+            self.recursive_decode = False
+
         max_redirects = self.scan.config.get("http_max_redirects", 5)
         self.web_spider_distance = self.scan.config.get("web_spider_distance", 0)
         self.max_redirects = max(max_redirects, self.web_spider_distance)
@@ -659,8 +696,6 @@ class excavate(BaseInternalModule):
         yara.set_config(max_match_data=yara_max_match_data)
         try:
             self.yara_rules = yara.compile(source="\n".join(self.yara_rules_dict.values()))
-
-        #     self.yara_rules = yara.compile(source=rule_content)
         except yara.SyntaxError as e:
             self.critical(f"Yara Rules failed to compile with error: [{e}]")
             return False
@@ -736,6 +771,7 @@ class excavate(BaseInternalModule):
         headers_str = event.data.get("raw_header", "")
         if body == "" and headers == "":
             return
+
         if self.recursive_decode:
             body = await self.helpers.re.recursive_decode(body)
             headers_str = await self.helpers.re.recursive_decode(headers_str)
@@ -788,13 +824,13 @@ class excavate(BaseInternalModule):
                         await self.emit_event(data, "WEB_PARAMETER", event)
             if k.lower() == "content-type":
                 content_type = headers["content-type"]
+
         await self.search(
             body,
             event,
             content_type,
             discovery_context="HTTP response (body)",
         )
-
         await self.search(
             headers_str,
             event,
