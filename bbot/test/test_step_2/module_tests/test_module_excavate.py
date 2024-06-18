@@ -331,6 +331,44 @@ class TestExcavateSerializationPositive(TestExcavate):
             ), f"Did not find {serialize_type} Serialized Object"
 
 
+class TestExcavateNonHttpScheme(TestExcavate):
+
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
+
+    non_http_scheme_html = """
+
+    <html>
+    <head>
+    </head>
+    <body>
+    <p>hxxp://test.notreal</p>
+    <p>ftp://test.notreal</p>
+    <p>nonsense://test.notreal</p>
+    </body>
+    </html>
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(self.non_http_scheme_html)
+
+    def check(self, module_test, events):
+
+        found_hxxp_url = False
+        found_ftp_url = False
+        found_nonsense_url = False
+
+        for e in events:
+            if e.type == "FINDING":
+                if e.data["description"] == "Non-HTTP URI: hxxp://test.notreal":
+                    found_hxxp_url = True
+                if e.data["description"] == "Non-HTTP URI: ftp://test.notreal":
+                    found_ftp_url = True
+                if "nonsense" in e.data["description"]:
+                    found_nonsense_url = True
+        assert found_hxxp_url
+        assert found_ftp_url
+        assert not found_nonsense_url
+
 class TestExcavateParameterExtraction(TestExcavate):
 
     targets = ["http://127.0.0.1:8888/"]

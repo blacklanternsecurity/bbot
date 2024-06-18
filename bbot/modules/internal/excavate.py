@@ -382,9 +382,9 @@ class excavate(BaseInternalModule):
                                     }
                                     await self.report(data, event_type="WEB_PARAMETER")
                                 else:
-                                    self.debug(f"blocked parameter [{parameter_name}] due to BL match")
+                                    self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
                             else:
-                                self.debug(f"blocked parameter [{parameter_name}] due to validation failure")
+                                self.excavate.debug(f"blocked parameter [{parameter_name}] due to validation failure")
 
     class CSPExtractor(ExcavateRule):
         yara_rules = {
@@ -502,10 +502,10 @@ class excavate(BaseInternalModule):
 
     class NonHttpSchemeExtractor(ExcavateRule):
         yara_rules = {
-            "Non_HTTP_Scheme": r'rule Non_HTTP_Scheme { meta: description = "contains non-http scheme URL" strings: $nonhttpscheme = /\w{2,36}:\/\/[\w.-]+(:\d+)?\b/ nocase fullword condition: $nonhttpscheme }'
+            "Non_HTTP_Scheme": r'rule Non_HTTP_Scheme { meta: description = "contains non-http scheme URL" strings: $nonhttpscheme = /\b\w{2,35}:\/\/[\w.-]+(:\d+)?\b/ nocase fullword condition: $nonhttpscheme }'
         }
 
-        prefix_blacklist = ["javascript", "mailto", "tel", "data", "vbscript", "about", "file"]
+        scheme_blacklist = ["javascript", "mailto", "tel", "data", "vbscript", "about", "file"]
 
         async def process(self):
             for identifier, results in self.results.items():
@@ -513,8 +513,10 @@ class excavate(BaseInternalModule):
 
                     url_bytes = url.matched_data
                     url_str = url_bytes.decode("utf-8")
-                    prefix = url_str.split("://")[0]
-                    if prefix in self.prefix_blacklist:
+                    scheme = url_str.split("://")[0]
+                    if scheme in self.scheme_blacklist:
+                        continue
+                    if scheme not in self.excavate.valid_schemes:
                         continue
                     try:
                         parsed_url = urlparse(url_str)
@@ -524,7 +526,11 @@ class excavate(BaseInternalModule):
                     netloc = getattr(parsed_url, "netloc", None)
                     if netloc is None:
                         continue
-                    host, port = self.excavate.helpers.split_host_port(parsed_url.netloc)
+                    try:
+                        host, port = self.excavate.helpers.split_host_port(parsed_url.netloc)
+                    except ValueError as e:
+                        self.excavate.debug(f"Failed to parse netloc: {e}")
+                        continue
                     if parsed_url.scheme in ["http", "https"]:
                         continue
                     abort_if = lambda e: e.scope_distance > 0
@@ -699,6 +705,11 @@ class excavate(BaseInternalModule):
         except yara.SyntaxError as e:
             self.critical(f"Yara Rules failed to compile with error: [{e}]")
             return False
+
+        # pre-load valid URL schemes
+        valid_schemes_filename = self.helpers.wordlist_dir / "valid_url_schemes.txt"
+        self.valid_schemes = set(self.helpers.read_file(valid_schemes_filename))
+
         return True
 
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
