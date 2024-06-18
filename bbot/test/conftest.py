@@ -180,6 +180,7 @@ def proxy_server():
     server.shutdown()
     server_thread.join()
 
+
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     RED = "\033[1;31m"
     GREEN = "\033[1;32m"
@@ -189,14 +190,16 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     RESET = "\033[0m"
     stats = terminalreporter.stats
     total_tests = len(terminalreporter._session.items)
-    passed = len(stats.get('passed', []))
-    skipped = len(stats.get('skipped', []))
-    errors = len(stats.get('error', []))
-    failed = stats.get('failed', [])
+    passed = len(stats.get("passed", []))
+    skipped = len(stats.get("skipped", []))
+    errors = len(stats.get("error", []))
+    failed = stats.get("failed", [])
 
     print("\nTest Session Summary:")
     print(f"Total tests run: {total_tests}")
-    print(f"{GREEN}Passed: {passed}{RESET}, {RED}Failed: {len(failed)}{RESET}, {YELLOW}Skipped: {skipped}{RESET}, Errors: {errors}")
+    print(
+        f"{GREEN}Passed: {passed}{RESET}, {RED}Failed: {len(failed)}{RESET}, {YELLOW}Skipped: {skipped}{RESET}, Errors: {errors}"
+    )
 
     if failed:
         print(f"\n{RED}Detailed failed test report:{RESET}")
