@@ -6,6 +6,7 @@ include:
 
 modules:
   - httpx
+  - badsecrets
   - ffuf_shortnames
   - ffuf
   - telerik
@@ -15,7 +16,7 @@ modules:
 config:
   modules:
     ffuf:
-      extensions: asp,aspx,ashx,asmx
+      extensions: asp,aspx,ashx,asmx,ascx
     telerik:
       exploit_RAU_crypto: True
 
