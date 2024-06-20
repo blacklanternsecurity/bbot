@@ -102,13 +102,17 @@ class BBOTCore:
         # we temporarily clear out the config so it can be refreshed if/when custom_config changes
         self._config = None
         if self._custom_config is None:
-            self._custom_config = self.files_config.get_custom_config()
+            self.custom_config = self.files_config.get_custom_config()
         return self._custom_config
 
     @custom_config.setter
     def custom_config(self, value):
         # we temporarily clear out the config so it can be refreshed if/when custom_config changes
         self._config = None
+        # ensure the modules key is always a dictionary
+        modules_entry = value.get("modules", None)
+        if modules_entry is not None and not OmegaConf.is_dict(modules_entry):
+            value["modules"] = {}
         self._custom_config = value
 
     def merge_custom(self, config):

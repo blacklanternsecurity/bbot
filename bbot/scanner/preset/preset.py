@@ -545,6 +545,7 @@ class Preset:
             from bbot.core.modules import MODULE_LOADER
 
             self._module_loader = MODULE_LOADER
+            self._module_loader.ensure_config_files()
 
         return self._module_loader
 
