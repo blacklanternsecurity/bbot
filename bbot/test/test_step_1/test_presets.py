@@ -143,6 +143,30 @@ config:
     assert yaml_string_2 == yaml_string_1
 
 
+def test_preset_cache():
+    preset_file = bbot_test_dir / "test_preset.yml"
+    yaml_string = """
+flags:
+  - subdomain-enum
+
+exclude_flags:
+  - aggressive
+  - slow
+"""
+    with open(preset_file, "w") as f:
+        f.write(yaml_string)
+
+    preset = Preset.from_yaml_file(preset_file)
+    assert "subdomain-enum" in preset.flags
+    assert "aggressive" in preset.exclude_flags
+    assert "slow" in preset.exclude_flags
+    from bbot.scanner.preset.preset import _preset_cache
+
+    assert preset_file in _preset_cache
+
+    preset_file.unlink()
+
+
 def test_preset_scope():
 
     blank_preset = Preset()
@@ -605,16 +629,16 @@ def test_preset_conditions():
     mkdir(custom_preset_dir_1)
     mkdir(custom_preset_dir_2)
 
-    preset_file_1 = custom_preset_dir_1 / "preset1.yml"
+    preset_file_1 = custom_preset_dir_1 / "preset_condition_1.yml"
     with open(preset_file_1, "w") as f:
         f.write(
             """
 include:
-  - preset2
+  - preset_condition_2
 """
         )
 
-    preset_file_2 = custom_preset_dir_2 / "preset2.yml"
+    preset_file_2 = custom_preset_dir_2 / "preset_condition_2.yml"
     with open(preset_file_2, "w") as f:
         f.write(
             """
