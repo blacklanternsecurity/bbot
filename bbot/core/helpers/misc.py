@@ -2484,7 +2484,7 @@ async def cancel_tasks(tasks, ignore_errors=True):
     current_task = asyncio.current_task()
     tasks = [t for t in tasks if t != current_task]
     for task in tasks:
-        log.debug(f"Cancelling task: {task}")
+        # log.debug(f"Cancelling task: {task}")
         task.cancel()
     if ignore_errors:
         for task in tasks:
@@ -2516,7 +2516,7 @@ def cancel_tasks_sync(tasks):
     current_task = asyncio.current_task()
     for task in tasks:
         if task != current_task:
-            log.debug(f"Cancelling task: {task}")
+            # log.debug(f"Cancelling task: {task}")
             task.cancel()
 
 

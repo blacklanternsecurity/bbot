@@ -1,3 +1,4 @@
+from pathlib import Path
 from .base import ModuleTestBase
 
 
@@ -39,19 +40,20 @@ trailer <</Root 1 0 R>>"""
         )
 
     def check(self, module_test, events):
+        filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
         download_dir = module_test.scan.home / "filedownload"
 
         # text file
-        text_files = list(download_dir.glob("*test-file.txt"))
-        assert len(text_files) == 1, f"No text file found at {download_dir}"
-        file = text_files[0]
+        text_file_event = [e for e in filesystem_events if "test-file.txt" in e.data["path"]]
+        assert 1 == len(text_file_event), f"No text file found at {download_dir}"
+        file = Path(text_file_event[0].data["path"])
         assert file.is_file(), f"File not found at {file}"
         assert open(file).read() == "juicy stuff", f"File at {file} does not contain the correct content"
 
         # PDF file (no extension)
-        pdf_files = list(download_dir.glob("*test-pdf.pdf"))
-        assert len(pdf_files) == 1, f"No PDF file found at {download_dir}"
-        file = pdf_files[0]
+        pdf_file_event = [e for e in filesystem_events if "test-pdf.pdf" in e.data["path"]]
+        assert 1 == len(pdf_file_event), f"No PDF file found at {download_dir}"
+        file = Path(pdf_file_event[0].data["path"])
         assert file.is_file(), f"File not found at {file}"
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
 
