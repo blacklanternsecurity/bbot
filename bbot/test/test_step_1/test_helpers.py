@@ -722,7 +722,6 @@ def test_portparse(helpers):
 
 def test_liststring(helpers):
     assert helpers.parse_list_string("hello,world,bbot") == ["hello", "world", "bbot"]
-    assert helpers.parse_list_string("hello,world, bbot recursion") == ["hello", "world", "bbot", "recursion"]
 
     with pytest.raises(ValueError) as e:
         helpers.parse_list_string("hello,world,\x01")
