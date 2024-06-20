@@ -34,7 +34,6 @@ class BBOTConfigFiles:
 
     def get_custom_config(self):
         return OmegaConf.merge(
-            default_config,
             self._get_config(self.config_filename, name="config"),
             self._get_config(self.secrets_filename, name="secrets"),
         )
