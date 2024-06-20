@@ -4,6 +4,7 @@ import dns.exception
 import dns.asyncresolver
 from radixtarget import RadixTarget
 
+from bbot.errors import DNSError
 from bbot.core.engine import EngineClient
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name
 
@@ -15,6 +16,7 @@ log = logging.getLogger("bbot.core.helpers.dns")
 class DNSHelper(EngineClient):
 
     SERVER_CLASS = DNSEngine
+    ERROR_CLASS = DNSError
 
     """Helper class for DNS-related operations within BBOT.
 
@@ -73,8 +75,14 @@ class DNSHelper(EngineClient):
         # TODO: DNS server speed test (start in background task)
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
+        # brute force helper
+        self._brute = None
+
     async def resolve(self, query, **kwargs):
         return await self.run_and_return("resolve", query=query, **kwargs)
+
+    async def resolve_raw(self, query, **kwargs):
+        return await self.run_and_return("resolve_raw", query=query, **kwargs)
 
     async def resolve_batch(self, queries, **kwargs):
         async for _ in self.run_and_yield("resolve_batch", queries=queries, **kwargs):
@@ -83,6 +91,14 @@ class DNSHelper(EngineClient):
     async def resolve_raw_batch(self, queries):
         async for _ in self.run_and_yield("resolve_raw_batch", queries=queries):
             yield _
+
+    @property
+    def brute(self):
+        if self._brute is None:
+            from .brute import DNSBrute
+
+            self._brute = DNSBrute(self.parent_helper)
+        return self._brute
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """

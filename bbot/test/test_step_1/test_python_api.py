@@ -3,7 +3,7 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_python_api():
-    from bbot.scanner import Scanner
+    from bbot import Scanner
 
     # make sure events are properly yielded
     scan1 = Scanner("127.0.0.1")

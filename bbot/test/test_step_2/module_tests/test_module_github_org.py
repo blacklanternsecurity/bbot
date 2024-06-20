@@ -6,6 +6,10 @@ class TestGithub_Org(ModuleTestBase):
     modules_overrides = ["github_org", "speculate"]
 
     async def setup_before_prep(self, module_test):
+        await module_test.mock_dns(
+            {"blacklanternsecurity.com": {"A": ["127.0.0.99"]}, "github.com": {"A": ["127.0.0.99"]}}
+        )
+
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
         module_test.httpx_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
@@ -392,3 +396,69 @@ class TestGithub_Org_MemberRepos(TestGithub_Org):
                 and e.scope_distance == 2
             ]
         ), "Failed to find TheTechromancer github repo"
+
+
+class TestGithub_Org_Custom_Target(TestGithub_Org):
+    targets = ["ORG:blacklanternsecurity"]
+    config_overrides = {"scope_report_distance": 10, "omit_event_types": [], "speculate": True}
+
+    def check(self, module_test, events):
+        assert len(events) == 8
+        assert 1 == len(
+            [e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity" and e.scope_distance == 1]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "blacklanternsecurity"
+                and e.scope_distance == 1
+                and str(e.module) == "social"
+                and e.parent.type == "URL_UNVERIFIED"
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "blacklanternsecurity"
+                and e.scope_distance == 1
+                and str(e.module) == "github_org"
+                and e.parent.type == "ORG_STUB"
+            ]
+        )
+        assert 1 == len(
+            [e for e in events if e.type == "DNS_NAME" and e.data == "github.com" and e.scope_distance == 1]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "URL_UNVERIFIED"
+                and e.data == "https://github.com/blacklanternsecurity"
+                and e.scope_distance == 1
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "CODE_REPOSITORY"
+                and e.data["url"] == "https://github.com/blacklanternsecurity/test_keys"
+                and e.scope_distance == 1
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "TheTechromancer"
+                and e.scope_distance == 2
+            ]
+        )

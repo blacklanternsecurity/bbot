@@ -8,7 +8,11 @@ class secretsdb(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "safe", "web-basic"]
-    meta = {"description": "Detect common secrets with secrets-patterns-db"}
+    meta = {
+        "description": "Detect common secrets with secrets-patterns-db",
+        "created_date": "2023-03-17",
+        "author": "@TheTechromancer",
+    }
     options = {
         "min_confidence": 99,
         "signatures": "https://raw.githubusercontent.com/blacklanternsecurity/secrets-patterns-db/master/db/rules-stable.yml",
@@ -51,13 +55,14 @@ class secretsdb(BaseModule):
             matches = [m.string[m.start() : m.end()] for m in matches]
             description = f"Possible secret ({name}): {matches}"
             event_data = {"host": str(event.host), "description": description}
-            parsed_url = getattr(event, "parsed", None)
+            parsed_url = getattr(event, "parsed_url", None)
             if parsed_url:
                 event_data["url"] = parsed_url.geturl()
             await self.emit_event(
                 event_data,
                 "FINDING",
-                source=event,
+                parent=event,
+                context=f"{{module}} searched HTTP response and found {{event.type}}: {description}",
             )
 
     def search_data(self, resp_body, resp_headers):

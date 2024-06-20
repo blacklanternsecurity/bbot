@@ -10,7 +10,12 @@ class Ipstack(BaseModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
     flags = ["passive", "safe"]
-    meta = {"description": "Query IPStack's GeoIP API", "auth_required": True}
+    meta = {
+        "description": "Query IPStack's GeoIP API",
+        "created_date": "2022-11-26",
+        "author": "@tycoonslive",
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "IPStack GeoIP API Key"}
     scope_distance_modifier = 1
@@ -47,4 +52,15 @@ class Ipstack(BaseModule):
             if error_msg:
                 self.warning(error_msg)
         elif geo_data:
-            await self.emit_event(geo_data, "GEOLOCATION", event)
+            country = geo_data.get("country_name", "unknown country")
+            region = geo_data.get("region_name", "unknown region")
+            city = geo_data.get("city", "unknown city")
+            lat = geo_data.get("latitude", "")
+            long = geo_data.get("longitude", "")
+            description = f"{city}, {region}, {country} ({lat}, {long})"
+            await self.emit_event(
+                geo_data,
+                "GEOLOCATION",
+                event,
+                context=f'{{module}} queried ipstack.com\'s API for "{event.data}" and found {{event.type}}: {description}',
+            )

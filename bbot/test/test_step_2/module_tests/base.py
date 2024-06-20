@@ -43,7 +43,7 @@ class ModuleTestBase:
     whitelist = None
     module_name = None
     config_overrides = {}
-    modules_overrides = []
+    modules_overrides = None
     log = logging.getLogger("bbot")
 
     class ModuleTest:
@@ -101,6 +101,11 @@ class ModuleTestBase:
                 scan = self.scan
             await scan.helpers.dns._mock_dns(mock_data)
 
+        def mock_interactsh(self, name):
+            from ...conftest import Interactsh_mock
+
+            return Interactsh_mock(name)
+
         @property
         def module(self):
             return self.scan.modules[self.name]
@@ -113,6 +118,7 @@ class ModuleTestBase:
             self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
         )
         module_test.log.info(f"Starting {self.name} module test")
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
         await self.setup_before_prep(module_test)
         await module_test.scan._prep()
         await self.setup_after_prep(module_test)
@@ -147,7 +153,7 @@ class ModuleTestBase:
 
     @property
     def modules(self):
-        if self.modules_overrides:
+        if self.modules_overrides is not None:
             return self.modules_overrides
         return [self.name]
 

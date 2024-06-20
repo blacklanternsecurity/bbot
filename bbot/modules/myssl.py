@@ -5,7 +5,11 @@ class myssl(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query myssl.com's API for subdomains"}
+    meta = {
+        "description": "Query myssl.com's API for subdomains",
+        "created_date": "2023-07-10",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://myssl.com/api/v1/discover_sub_domain"
 

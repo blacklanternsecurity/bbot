@@ -11,7 +11,11 @@ class paramminer_headers(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
-    meta = {"description": "Use smart brute-force to check for common HTTP header parameters"}
+    meta = {
+        "description": "Use smart brute-force to check for common HTTP header parameters",
+        "created_date": "2022-04-15",
+        "author": "@pmueller",
+    }
     options = {
         "wordlist": "",  # default is defined within setup function
         "http_extract": True,
@@ -126,11 +130,13 @@ class paramminer_headers(BaseModule):
             if reflection:
                 tags = ["http_reflection"]
             description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}] Reflection: [{str(reflection)}]"
+            reflected = "reflected " if reflection else ""
             await self.emit_event(
                 {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
                 event,
                 tags=tags,
+                context=f'{{module}} scanned {url} and identified {{event.type}}: {reflected}{self.compare_mode} parameter: "{result}"',
             )
 
     async def handle_event(self, event):
@@ -199,11 +205,11 @@ class paramminer_headers(BaseModule):
         if not body:
             return None
         if content_type and "json" in content_type.lower():
-            return extract_params_json(body)
+            return extract_params_json(body, self.compare_mode)
         elif content_type and "xml" in content_type.lower():
-            return extract_params_xml(body)
+            return extract_params_xml(body, self.compare_mode)
         else:
-            return set(await self.helpers.re.extract_params_html(body))
+            return set(await self.helpers.re.extract_params_html(body, self.compare_mode))
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
@@ -239,7 +245,7 @@ class paramminer_headers(BaseModule):
                 compare_helper = self.helpers.http_compare(url)
             except HttpCompareError as e:
                 self.debug(f"Error initializing compare helper: {e}")
-                return
+                continue
             untested_matches_copy = untested_matches.copy()
             for i in untested_matches:
                 h = hash(i + url)
@@ -249,4 +255,5 @@ class paramminer_headers(BaseModule):
                 results = await self.do_mining(untested_matches_copy, url, batch_size, compare_helper)
             except HttpCompareError as e:
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
+                continue
             await self.process_results(event, results)

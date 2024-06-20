@@ -10,7 +10,7 @@ Below you can find some advanced uses of BBOT.
 from bbot.scanner import Scanner
 
 # any number of targets can be specified
-scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
+scan = Scanner("example.com", "scanme.nmap.org", modules=["portscan", "sslcert"])
 for event in scan.start():
     print(event.json())
 ```
@@ -21,7 +21,7 @@ for event in scan.start():
 from bbot.scanner import Scanner
 
 async def main():
-    scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
+    scan = Scanner("example.com", "scanme.nmap.org", modules=["portscan", "sslcert"])
     async for event in scan.async_start():
         print(event.json())
 

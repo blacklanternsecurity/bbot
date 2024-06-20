@@ -52,8 +52,14 @@ class bucket_template(BaseModule):
             for d in self.delimiters:
                 bucket_name = d.join(split)
                 buckets.add(bucket_name)
-        async for bucket_name, url, tags in self.brute_buckets(buckets, permutations=self.permutations):
-            await self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", source=event, tags=tags)
+        async for bucket_name, url, tags, num_buckets in self.brute_buckets(buckets, permutations=self.permutations):
+            await self.emit_event(
+                {"name": bucket_name, "url": url},
+                "STORAGE_BUCKET",
+                parent=event,
+                tags=tags,
+                context=f"{{module}} tried {num_buckets:,} bucket variations of {event.data} and found {{event.type}} at {url}",
+            )
 
     async def handle_storage_bucket(self, event):
         url = event.data["url"]
@@ -62,12 +68,24 @@ class bucket_template(BaseModule):
             description, tags = await self._check_bucket_open(bucket_name, url)
             if description:
                 event_data = {"host": event.host, "url": url, "description": description}
-                await self.emit_event(event_data, "FINDING", source=event, tags=tags)
+                await self.emit_event(
+                    event_data,
+                    "FINDING",
+                    parent=event,
+                    tags=tags,
+                    context=f"{{module}} scanned {event.type} and identified {{event.type}}: {description}",
+                )
 
-        async for bucket_name, url, tags in self.brute_buckets(
+        async for bucket_name, new_url, tags, num_buckets in self.brute_buckets(
             [bucket_name], permutations=self.permutations, omit_base=True
         ):
-            await self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", source=event, tags=tags)
+            await self.emit_event(
+                {"name": bucket_name, "url": new_url},
+                "STORAGE_BUCKET",
+                parent=event,
+                tags=tags,
+                context=f"{{module}} tried {num_buckets:,} variations of {url} and found {{event.type}} at {new_url}",
+            )
 
     async def brute_buckets(self, buckets, permutations=False, omit_base=False):
         buckets = set(buckets)
@@ -80,6 +98,7 @@ class bucket_template(BaseModule):
         if omit_base:
             new_buckets = new_buckets - buckets
         new_buckets = [b for b in new_buckets if self.valid_bucket_name(b)]
+        num_buckets = len(new_buckets)
         tasks = []
         for base_domain in self.base_domains:
             for region in self.regions:
@@ -89,7 +108,7 @@ class bucket_template(BaseModule):
         async for task in self.helpers.as_completed(tasks):
             existent_bucket, tags, bucket_name, url = await task
             if existent_bucket:
-                yield bucket_name, url, tags
+                yield bucket_name, url, tags, num_buckets
 
     async def _check_bucket_exists(self, bucket_name, url):
         self.debug(f'Checking if bucket exists: "{bucket_name}"')

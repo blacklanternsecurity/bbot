@@ -6,14 +6,18 @@ class baddns_zone(baddns_module):
     watched_events = ["DNS_NAME"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "subdomain-enum", "baddns", "cloud-enum"]
-    meta = {"description": "Check hosts for DNS zone transfers and NSEC walks"}
+    meta = {
+        "description": "Check hosts for DNS zone transfers and NSEC walks",
+        "created_date": "2024-01-29",
+        "author": "@liquidsec",
+    }
     options = {"custom_nameservers": [], "only_high_confidence": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "only_high_confidence": "Do not emit low-confidence or generic detections",
     }
     max_event_handlers = 8
-    deps_pip = ["baddns~=1.1.0"]
+    deps_pip = ["baddns~=1.1.789"]
 
     def select_modules(self):
         selected_modules = []
@@ -24,6 +28,6 @@ class baddns_zone(baddns_module):
 
     # minimize nsec records feeding back into themselves
     async def filter_event(self, event):
-        if "baddns-nsec" in event.tags or "baddns-nsec" in event.source.tags:
+        if "baddns-nsec" in event.tags or "baddns-nsec" in event.parent.tags:
             return False
         return True

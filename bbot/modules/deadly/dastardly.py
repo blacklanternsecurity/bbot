@@ -6,11 +6,17 @@ class dastardly(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "aggressive", "slow", "web-thorough"]
-    meta = {"description": "Lightweight web application security scanner"}
+    meta = {
+        "description": "Lightweight web application security scanner",
+        "created_date": "2023-12-11",
+        "author": "@domwhewell-sage",
+    }
 
     deps_pip = ["lxml~=4.9.2"]
     deps_common = ["docker"]
     per_hostport_only = True
+
+    default_discovery_context = "{module} performed a light web scan against {event.parent.data['url']} and discovered {event.data['description']} at {event.data['url']}"
 
     async def setup(self):
         await self.run_process("systemctl", "start", "docker", sudo=True)
@@ -27,7 +33,7 @@ class dastardly(BaseModule):
         return True
 
     async def handle_event(self, event):
-        host = event.parsed._replace(path="/").geturl()
+        host = event.parsed_url._replace(path="/").geturl()
         self.verbose(f"Running Dastardly scan against {host}")
         command, output_file = self.construct_command(host)
         finished_proc = await self.run_process(command, sudo=True)
@@ -46,6 +52,7 @@ class dastardly(BaseModule):
                             },
                             "FINDING",
                             event,
+                            context=f"{{module}} executed web scan against {host} and identified {{event.type}}: {failure.instance}",
                         )
                     else:
                         await self.emit_event(
@@ -57,6 +64,7 @@ class dastardly(BaseModule):
                             },
                             "VULNERABILITY",
                             event,
+                            context=f"{{module}} executed web scan against {host} and identified {failure.severity.lower()} {{event.type}}: {failure.instance}",
                         )
 
     def construct_command(self, target):
@@ -82,7 +90,7 @@ class dastardly(BaseModule):
     def parse_dastardly_xml(self, xml_file):
         try:
             with open(xml_file, "rb") as f:
-                et = etree.parse(f)
+                et = etree.parse(f, parser=etree.XMLParser(recover=True))
                 for testsuite in et.iter("testsuite"):
                     yield TestSuite(testsuite)
         except FileNotFoundError:

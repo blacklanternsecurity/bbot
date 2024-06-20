@@ -8,6 +8,8 @@ class sublist3r(subdomain_enum):
     flags = ["passive", "safe"]
     meta = {
         "description": "Query sublist3r's API for subdomains",
+        "created_date": "2022-03-29",
+        "author": "@Want-EyeTea",
     }
 
     base_url = "https://api.sublist3r.com/search.php"

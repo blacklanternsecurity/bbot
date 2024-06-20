@@ -11,7 +11,7 @@ class ffuf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["aggressive", "active"]
-    meta = {"description": "A fast web fuzzer written in Go"}
+    meta = {"description": "A fast web fuzzer written in Go", "created_date": "2022-04-10", "author": "@pmueller"}
 
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
@@ -57,7 +57,7 @@ class ffuf(BaseModule):
             return
 
         # only FFUF against a directory
-        if "." in event.parsed.path.split("/")[-1]:
+        if "." in event.parsed_url.path.split("/")[-1]:
             self.debug("Aborting FFUF as period was detected in right-most path segment (likely a file)")
             return
         else:
@@ -71,7 +71,13 @@ class ffuf(BaseModule):
 
         filters = await self.baseline_ffuf(fixed_url, exts=exts)
         async for r in self.execute_ffuf(self.tempfile, fixed_url, exts=exts, filters=filters):
-            await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+            await self.emit_event(
+                r["url"],
+                "URL_UNVERIFIED",
+                parent=event,
+                tags=[f"status-{r['status']}"],
+                context=f"{{module}} brute-forced {event.data} and found {{event.type}}: {{event.data}}",
+            )
 
     async def filter_event(self, event):
         if "endpoint" in event.tags:

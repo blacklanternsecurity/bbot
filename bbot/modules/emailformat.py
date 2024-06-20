@@ -5,7 +5,11 @@ class emailformat(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
     flags = ["passive", "email-enum", "safe"]
-    meta = {"description": "Query email-format.com for email addresses"}
+    meta = {
+        "description": "Query email-format.com for email addresses",
+        "created_date": "2022-07-11",
+        "author": "@TheTechromancer",
+    }
     in_scope_only = False
     per_domain_only = True
 
@@ -19,4 +23,9 @@ class emailformat(BaseModule):
             return
         for email in await self.helpers.re.extract_emails(r.text):
             if email.endswith(query):
-                await self.emit_event(email, "EMAIL_ADDRESS", source=event)
+                await self.emit_event(
+                    email,
+                    "EMAIL_ADDRESS",
+                    parent=event,
+                    context=f'{{module}} searched email-format.com for "{query}" and found {{event.type}}: {{event.data}}',
+                )

@@ -1,23 +1,18 @@
 import re
-import ssl
-import anyio
-import httpx
-import asyncio
 import logging
 import warnings
 import traceback
 from pathlib import Path
 from bs4 import BeautifulSoup
-from contextlib import asynccontextmanager
 
-from httpx._models import Cookies
-from socksio.exceptions import SOCKSError
-
-from bbot.errors import WordlistError, CurlError
-from bbot.core.helpers.ratelimiter import RateLimiter
+from bbot.core.engine import EngineClient
+from bbot.core.helpers.misc import truncate_filename
+from bbot.errors import WordlistError, CurlError, WebError
 
 from bs4 import MarkupResemblesLocatorWarning
 from bs4.builder import XMLParsedAsHTMLWarning
+
+from .engine import HTTPEngine
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
@@ -25,84 +20,11 @@ warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 log = logging.getLogger("bbot.core.helpers.web")
 
 
-class DummyCookies(Cookies):
-    def extract_cookies(self, *args, **kwargs):
-        pass
+class WebHelper(EngineClient):
 
+    SERVER_CLASS = HTTPEngine
+    ERROR_CLASS = WebError
 
-class BBOTAsyncClient(httpx.AsyncClient):
-    """
-    A subclass of httpx.AsyncClient tailored with BBOT-specific configurations and functionalities.
-    This class provides rate limiting, logging, configurable timeouts, user-agent customization, custom
-    headers, and proxy settings. Additionally, it allows the disabling of cookies, making it suitable
-    for use across an entire scan.
-
-    Attributes:
-        _bbot_scan (object): BBOT scan object containing configuration details.
-        _rate_limiter (RateLimiter): A rate limiter object to limit web requests.
-        _persist_cookies (bool): Flag to determine whether cookies should be persisted across requests.
-
-    Examples:
-        >>> async with BBOTAsyncClient(_bbot_scan=bbot_scan_object) as client:
-        >>>     response = await client.request("GET", "https://example.com")
-        >>>     print(response.status_code)
-        200
-    """
-
-    def __init__(self, *args, **kwargs):
-        self._preset = kwargs.pop("_preset")
-        web_requests_per_second = self._preset.config.get("web_requests_per_second", 100)
-        self._rate_limiter = RateLimiter(web_requests_per_second, "Web")
-
-        http_debug = self._preset.config.get("http_debug", None)
-        if http_debug:
-            log.trace(f"Creating AsyncClient: {args}, {kwargs}")
-
-        self._persist_cookies = kwargs.pop("persist_cookies", True)
-
-        # timeout
-        http_timeout = self._preset.config.get("http_timeout", 20)
-        if not "timeout" in kwargs:
-            kwargs["timeout"] = http_timeout
-
-        # headers
-        headers = kwargs.get("headers", None)
-        if headers is None:
-            headers = {}
-        # user agent
-        user_agent = self._preset.config.get("user_agent", "BBOT")
-        if "User-Agent" not in headers:
-            headers["User-Agent"] = user_agent
-        kwargs["headers"] = headers
-        # proxy
-        proxies = self._preset.config.get("http_proxy", None)
-        kwargs["proxies"] = proxies
-
-        super().__init__(*args, **kwargs)
-        if not self._persist_cookies:
-            self._cookies = DummyCookies()
-
-    async def request(self, *args, **kwargs):
-        async with self._rate_limiter:
-            return await super().request(*args, **kwargs)
-
-    def build_request(self, *args, **kwargs):
-        request = super().build_request(*args, **kwargs)
-        # add custom headers if the URL is in-scope
-        if self._preset.in_scope(str(request.url)):
-            for hk, hv in self._preset.config.get("http_headers", {}).items():
-                # don't clobber headers
-                if hk not in request.headers:
-                    request.headers[hk] = hv
-        return request
-
-    def _merge_cookies(self, cookies):
-        if self._persist_cookies:
-            return super()._merge_cookies(cookies)
-        return cookies
-
-
-class WebHelper:
     """
     Main utility class for managing HTTP operations in BBOT. It serves as a wrapper around the BBOTAsyncClient,
     which itself is a subclass of httpx.AsyncClient. The class provides functionalities to make HTTP requests,
@@ -126,26 +48,18 @@ class WebHelper:
         >>> filename = await self.helpers.wordlist("https://www.evilcorp.com/wordlist.txt")
     """
 
-    client_only_options = (
-        "retries",
-        "max_redirects",
-    )
-
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self.http_debug = self.parent_helper.config.get("http_debug", False)
-        self._ssl_context_noverify = None
-        self.ssl_verify = self.parent_helper.config.get("ssl_verify", False)
-        if self.ssl_verify is False:
-            self.ssl_verify = self.ssl_context_noverify()
-        self.web_client = self.AsyncClient(persist_cookies=False)
+        self.preset = self.parent_helper.preset
+        self.config = self.preset.config
+        self.target = self.preset.target
+        self.ssl_verify = self.config.get("ssl_verify", False)
+        super().__init__(server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.radix_only})
 
     def AsyncClient(self, *args, **kwargs):
-        kwargs["_preset"] = self.parent_helper.preset
-        retries = kwargs.pop("retries", self.parent_helper.config.get("http_retries", 1))
-        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=self.ssl_verify)
-        kwargs["verify"] = self.ssl_verify
-        return BBOTAsyncClient(*args, **kwargs)
+        from .client import BBOTAsyncClient
+
+        return BBOTAsyncClient.from_config(self.config, self.target, *args, persist_cookies=False, **kwargs)
 
     async def request(self, *args, **kwargs):
         """
@@ -191,47 +105,49 @@ class WebHelper:
         Note:
             If the web request fails, it will return None unless `raise_error` is `True`.
         """
+        return await self.run_and_return("request", *args, **kwargs)
 
-        raise_error = kwargs.pop("raise_error", False)
-        # TODO: use this
-        cache_for = kwargs.pop("cache_for", None)  # noqa
+    async def request_batch(self, urls, *args, **kwargs):
+        """
+        Given a list of URLs, request them in parallel and yield responses as they come in.
 
-        client = kwargs.get("client", self.web_client)
+        Args:
+            urls (list[str]): List of URLs to visit
+            *args: Positional arguments to pass through to httpx
+            **kwargs: Keyword arguments to pass through to httpx
 
-        # allow vs follow, httpx why??
-        allow_redirects = kwargs.pop("allow_redirects", None)
-        if allow_redirects is not None and "follow_redirects" not in kwargs:
-            kwargs["follow_redirects"] = allow_redirects
+        Examples:
+            >>> async for url, response in self.helpers.request_batch(urls, headers={"X-Test": "Test"}):
+            >>>     if response is not None and response.status_code == 200:
+            >>>         self.hugesuccess(response)
+        """
+        async for _ in self.run_and_yield("request_batch", urls, *args, **kwargs):
+            yield _
 
-        # in case of URL only, assume GET request
-        if len(args) == 1:
-            kwargs["url"] = args[0]
-            args = []
+    async def request_custom_batch(self, urls_and_kwargs):
+        """
+        Make web requests in parallel with custom options for each request. Yield responses as they come in.
 
-        url = kwargs.get("url", "")
+        Similar to `request_batch` except it allows individual arguments for each URL.
 
-        if not args and "method" not in kwargs:
-            kwargs["method"] = "GET"
+        Args:
+            urls_and_kwargs (list[tuple]): List of tuples in the format: (url, kwargs, custom_tracker)
+                where custom_tracker is an optional value for your own internal use. You may use it to
+                help correlate requests, etc.
 
-        client_kwargs = {}
-        for k in list(kwargs):
-            if k in self.client_only_options:
-                v = kwargs.pop(k)
-                client_kwargs[k] = v
-
-        if client_kwargs:
-            client = self.AsyncClient(**client_kwargs)
-
-        async with self._acatch(url, raise_error):
-            if self.http_debug:
-                logstr = f"Web request: {str(args)}, {str(kwargs)}"
-                log.trace(logstr)
-            response = await client.request(*args, **kwargs)
-            if self.http_debug:
-                log.trace(
-                    f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
-                )
-            return response
+        Examples:
+            >>> urls_and_kwargs = [
+            >>>     ("http://evilcorp.com/1", {"method": "GET"}, "request-1"),
+            >>>     ("http://evilcorp.com/2", {"method": "POST"}, "request-2"),
+            >>> ]
+            >>> async for url, kwargs, custom_tracker, response in self.helpers.request_custom_batch(
+            >>>     urls_and_kwargs
+            >>> ):
+            >>>     if response is not None and response.status_code == 200:
+            >>>         self.hugesuccess(response)
+        """
+        async for _ in self.run_and_yield("request_custom_batch", urls_and_kwargs):
+            yield _
 
     async def download(self, url, **kwargs):
         """
@@ -258,56 +174,21 @@ class WebHelper:
         """
         success = False
         filename = kwargs.pop("filename", self.parent_helper.cache_filename(url))
-        follow_redirects = kwargs.pop("follow_redirects", True)
+        filename = truncate_filename(Path(filename).resolve())
+        kwargs["filename"] = filename
         max_size = kwargs.pop("max_size", None)
-        warn = kwargs.pop("warn", True)
-        raise_error = kwargs.pop("raise_error", False)
         if max_size is not None:
             max_size = self.parent_helper.human_to_bytes(max_size)
+            kwargs["max_size"] = max_size
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
-        total_size = 0
-        chunk_size = 8192
-        log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
         if cache_hrs > 0 and self.parent_helper.is_cached(url):
             log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
             success = True
         else:
-            # kwargs["raise_error"] = True
-            # kwargs["stream"] = True
-            kwargs["follow_redirects"] = follow_redirects
-            if not "method" in kwargs:
-                kwargs["method"] = "GET"
-            try:
-                async with self._acatch(url, raise_error=True), self.AsyncClient().stream(
-                    url=url, **kwargs
-                ) as response:
-                    status_code = getattr(response, "status_code", 0)
-                    log.debug(f"Download result: HTTP {status_code}")
-                    if status_code != 0:
-                        response.raise_for_status()
-                        with open(filename, "wb") as f:
-                            agen = response.aiter_bytes(chunk_size=chunk_size)
-                            async for chunk in agen:
-                                if max_size is not None and total_size + chunk_size > max_size:
-                                    log.verbose(
-                                        f"Filesize of {url} exceeds {self.parent_helper.bytes_to_human(max_size)}, file will be truncated"
-                                    )
-                                    agen.aclose()
-                                    break
-                                total_size += chunk_size
-                                f.write(chunk)
-                        success = True
-            except httpx.HTTPError as e:
-                log_fn = log.verbose
-                if warn:
-                    log_fn = log.warning
-                log_fn(f"Failed to download {url}: {e}")
-                if raise_error:
-                    raise
-                return
+            success = await self.run_and_return("download", url, **kwargs)
 
         if success:
-            return filename.resolve()
+            return filename
 
     async def wordlist(self, path, lines=None, **kwargs):
         """
@@ -538,7 +419,7 @@ class WebHelper:
         output = (await self.parent_helper.run(curl_command)).stdout
         return output
 
-    def is_spider_danger(self, source_event, url):
+    def is_spider_danger(self, parent_event, url):
         """
         Determines whether visiting a URL could potentially trigger a web-spider-like happening.
 
@@ -547,7 +428,7 @@ class WebHelper:
         the function returns True, indicating a possible web-spider risk.
 
         Args:
-            source_event: The source event object that discovered the URL.
+            parent_event: The parent event object that discovered the URL.
             url (str): The URL to evaluate for web-spider risk.
 
         Returns:
@@ -557,15 +438,15 @@ class WebHelper:
             - Write tests for this function
 
         Examples:
-            >>> is_spider_danger(source_event_obj, "https://example.com/subpage")
+            >>> is_spider_danger(parent_event_obj, "https://example.com/subpage")
             True
 
-            >>> is_spider_danger(source_event_obj, "https://example.com/")
+            >>> is_spider_danger(parent_event_obj, "https://example.com/")
             False
         """
         url_depth = self.parent_helper.url_depth(url)
         web_spider_depth = self.parent_helper.config.get("web_spider_depth", 1)
-        spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
+        spider_distance = getattr(parent_event, "web_spider_distance", 0) + 1
         web_spider_distance = self.parent_helper.config.get("web_spider_distance", 0)
         if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
             return True
@@ -629,120 +510,102 @@ class WebHelper:
             log.debug(f"Error parsing beautifulsoup: {e}")
             return False
 
-    def ssl_context_noverify(self):
-        if self._ssl_context_noverify is None:
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            ssl_context.options &= ~ssl.OP_NO_SSLv2 & ~ssl.OP_NO_SSLv3
-            ssl_context.set_ciphers("ALL:@SECLEVEL=0")
-            ssl_context.options |= 0x4  # Add the OP_LEGACY_SERVER_CONNECT option
-            self._ssl_context_noverify = ssl_context
-        return self._ssl_context_noverify
+    user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
+    pass_keywords = [re.compile(r, re.I) for r in ["pass"]]
 
-    @asynccontextmanager
-    async def _acatch(self, url, raise_error):
+    def is_login_page(self, html):
         """
-        Asynchronous context manager to handle various httpx errors during a request.
+        Determines if the provided HTML content contains a login page.
 
-        Yields:
-            None
+        This function parses the HTML to search for forms with input fields typically used for
+        authentication. If it identifies password fields or a combination of username and password
+        fields, it returns True.
 
-        Note:
-            This function is internal and should generally not be used directly.
-            `url`, `args`, `kwargs`, and `raise_error` should be in the same context as this function.
+        Args:
+            html (str): The HTML content to analyze.
+
+        Returns:
+            bool: True if the HTML contains a login page, otherwise False.
+
+        Examples:
+            >>> is_login_page('<form><input type="text" name="username"><input type="password" name="password"></form>')
+            True
+
+            >>> is_login_page('<form><input type="text" name="search"></form>')
+            False
         """
         try:
-            yield
-        except httpx.TimeoutException:
-            if raise_error:
-                raise
-            else:
-                log.verbose(f"HTTP timeout to URL: {url}")
-        except httpx.ConnectError:
-            if raise_error:
-                raise
-            else:
-                log.debug(f"HTTP connect failed to URL: {url}")
-        except httpx.HTTPError as e:
-            if raise_error:
-                raise
-            else:
-                log.trace(f"Error with request to URL: {url}: {e}")
-                log.trace(traceback.format_exc())
-        except ssl.SSLError as e:
-            msg = f"SSL error with request to URL: {url}: {e}"
-            if raise_error:
-                raise httpx.RequestError(msg)
-            else:
-                log.trace(msg)
-                log.trace(traceback.format_exc())
-        except anyio.EndOfStream as e:
-            msg = f"AnyIO error with request to URL: {url}: {e}"
-            if raise_error:
-                raise httpx.RequestError(msg)
-            else:
-                log.trace(msg)
-                log.trace(traceback.format_exc())
-        except SOCKSError as e:
-            msg = f"SOCKS error with request to URL: {url}: {e}"
-            if raise_error:
-                raise httpx.RequestError(msg)
-            else:
-                log.trace(msg)
-                log.trace(traceback.format_exc())
-        except BaseException as e:
-            # don't log if the error is the result of an intentional cancellation
-            if not any(
-                isinstance(_e, asyncio.exceptions.CancelledError) for _e in self.parent_helper.get_exception_chain(e)
-            ):
-                log.trace(f"Unhandled exception with request to URL: {url}: {e}")
-                log.trace(traceback.format_exc())
-            raise
+            soup = BeautifulSoup(html, "html.parser")
+        except Exception as e:
+            log.debug(f"Error parsing html: {e}")
+            return False
 
+        forms = soup.find_all("form")
 
-user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
-pass_keywords = [re.compile(r, re.I) for r in ["pass"]]
+        # first, check for obvious password fields
+        for form in forms:
+            if form.find_all("input", {"type": "password"}):
+                return True
 
-
-def is_login_page(html):
-    """
-    Determines if the provided HTML content contains a login page.
-
-    This function parses the HTML to search for forms with input fields typically used for
-    authentication. If it identifies password fields or a combination of username and password
-    fields, it returns True.
-
-    Args:
-        html (str): The HTML content to analyze.
-
-    Returns:
-        bool: True if the HTML contains a login page, otherwise False.
-
-    Examples:
-        >>> is_login_page('<form><input type="text" name="username"><input type="password" name="password"></form>')
-        True
-
-        >>> is_login_page('<form><input type="text" name="search"></form>')
-        False
-    """
-    try:
-        soup = BeautifulSoup(html, "html.parser")
-    except Exception as e:
-        log.debug(f"Error parsing html: {e}")
+        # next, check for forms that have both a user-like and password-like field
+        for form in forms:
+            user_fields = sum(bool(form.find_all("input", {"name": r})) for r in self.user_keywords)
+            pass_fields = sum(bool(form.find_all("input", {"name": r})) for r in self.pass_keywords)
+            if user_fields and pass_fields:
+                return True
         return False
 
-    forms = soup.find_all("form")
+    def response_to_json(self, response):
+        """
+        Convert web response to JSON object, similar to the output of `httpx -irr -json`
+        """
 
-    # first, check for obvious password fields
-    for form in forms:
-        if form.find_all("input", {"type": "password"}):
-            return True
+        if response is None:
+            return
 
-    # next, check for forms that have both a user-like and password-like field
-    for form in forms:
-        user_fields = sum(bool(form.find_all("input", {"name": r})) for r in user_keywords)
-        pass_fields = sum(bool(form.find_all("input", {"name": r})) for r in pass_keywords)
-        if user_fields and pass_fields:
-            return True
-    return False
+        import mmh3
+        from datetime import datetime
+        from hashlib import md5, sha256
+        from bbot.core.helpers.misc import tagify, urlparse, split_host_port, smart_decode
+
+        request = response.request
+        url = str(request.url)
+        parsed_url = urlparse(url)
+        netloc = parsed_url.netloc
+        scheme = parsed_url.scheme.lower()
+        host, port = split_host_port(f"{scheme}://{netloc}")
+
+        raw_headers = "\r\n".join([f"{k}: {v}" for k, v in response.headers.items()])
+        raw_headers_encoded = raw_headers.encode()
+
+        headers = {}
+        for k, v in response.headers.items():
+            k = tagify(k, delimiter="_")
+            headers[k] = v
+
+        j = {
+            "timestamp": datetime.now().isoformat(),
+            "hash": {
+                "body_md5": md5(response.content).hexdigest(),
+                "body_mmh3": mmh3.hash(response.content),
+                "body_sha256": sha256(response.content).hexdigest(),
+                # "body_simhash": "TODO",
+                "header_md5": md5(raw_headers_encoded).hexdigest(),
+                "header_mmh3": mmh3.hash(raw_headers_encoded),
+                "header_sha256": sha256(raw_headers_encoded).hexdigest(),
+                # "header_simhash": "TODO",
+            },
+            "header": headers,
+            "body": smart_decode(response.content),
+            "content_type": headers.get("content_type", "").split(";")[0].strip(),
+            "url": url,
+            "host": str(host),
+            "port": port,
+            "scheme": scheme,
+            "method": response.request.method,
+            "path": parsed_url.path,
+            "raw_header": raw_headers,
+            "status_code": response.status_code,
+        }
+
+        return j

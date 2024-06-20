@@ -111,6 +111,36 @@ DEP_CHROMIUM = [
     },
 ]
 
+MASSCAN = [
+    {
+        "name": "install dev tools",
+        "package": {"name": ["gcc", "git", "make"], "state": "present"},
+        "become": True,
+        "ignore_errors": True,
+    },
+    {
+        "name": "Download masscan source code",
+        "git": {
+            "repo": "https://github.com/robertdavidgraham/masscan.git",
+            "dest": "#{BBOT_TEMP}/masscan",
+            "single_branch": True,
+            "version": "master",
+        },
+    },
+    {
+        "name": "Build masscan",
+        "command": {
+            "chdir": "#{BBOT_TEMP}/masscan",
+            "cmd": "make -j",
+            "creates": "#{BBOT_TEMP}/masscan/bin/masscan",
+        },
+    },
+    {
+        "name": "Install masscan",
+        "copy": {"src": "#{BBOT_TEMP}/masscan/bin/masscan", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
+    },
+]
+
 # shared module dependencies -- ffuf, massdns, chromium, etc.
 SHARED_DEPS = {}
 for var, val in list(locals().items()):

@@ -10,14 +10,18 @@ class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "web-basic", "baddns", "cloud-enum", "subdomain-hijack"]
-    meta = {"description": "Check hosts for domain/subdomain takeovers"}
+    meta = {
+        "description": "Check hosts for domain/subdomain takeovers",
+        "created_date": "2024-01-18",
+        "author": "@liquidsec",
+    }
     options = {"custom_nameservers": [], "only_high_confidence": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "only_high_confidence": "Do not emit low-confidence or generic detections",
     }
     max_event_handlers = 8
-    deps_pip = ["baddns~=1.1.0"]
+    deps_pip = ["baddns~=1.1.789"]
 
     def select_modules(self):
         selected_modules = []
@@ -62,7 +66,11 @@ class baddns(BaseModule):
                                 "host": str(event.host),
                             }
                             await self.emit_event(
-                                data, "VULNERABILITY", event, tags=[f"baddns-{module_instance.name.lower()}"]
+                                data,
+                                "VULNERABILITY",
+                                event,
+                                tags=[f"baddns-{module_instance.name.lower()}"],
+                                context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
                             )
 
                         elif r_dict["confidence"] in ["UNLIKELY", "POSSIBLE"] and not self.only_high_confidence:
@@ -71,7 +79,11 @@ class baddns(BaseModule):
                                 "host": str(event.host),
                             }
                             await self.emit_event(
-                                data, "FINDING", event, tags=[f"baddns-{module_instance.name.lower()}"]
+                                data,
+                                "FINDING",
+                                event,
+                                tags=[f"baddns-{module_instance.name.lower()}"],
+                                context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
                             )
                         else:
                             self.warning(f"Got unrecognized confidence level: {r['confidence']}")
@@ -80,5 +92,9 @@ class baddns(BaseModule):
                         if found_domains:
                             for found_domain in found_domains:
                                 await self.emit_event(
-                                    found_domain, "DNS_NAME", event, tags=[f"baddns-{module_instance.name.lower()}"]
+                                    found_domain,
+                                    "DNS_NAME",
+                                    event,
+                                    tags=[f"baddns-{module_instance.name.lower()}"],
+                                    context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.data}}',
                                 )

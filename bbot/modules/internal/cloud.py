@@ -8,11 +8,13 @@ class cloud(InterceptModule):
     _priority = 3
 
     async def setup(self):
+        self.dummy_modules = None
+        return True
+
+    def make_dummy_modules(self):
         self.dummy_modules = {}
         for provider_name, provider in self.helpers.cloud.providers.items():
             self.dummy_modules[provider_name] = self.scan._make_dummy_module(f"cloud_{provider_name}", _type="scan")
-
-        return True
 
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):
@@ -20,6 +22,9 @@ class cloud(InterceptModule):
         return True
 
     async def handle_event(self, event, kwargs):
+        # don't hold up the event loop loading cloud IPs etc.
+        if self.dummy_modules is None:
+            self.make_dummy_modules()
         # cloud tagging by hosts
         hosts_to_check = set(str(s) for s in event.resolved_hosts)
         hosts_to_check.add(str(event.host_original))
@@ -34,7 +39,7 @@ class cloud(InterceptModule):
         for provider in self.helpers.cloud.providers.values():
             provider_name = provider.name.lower()
             base_kwargs = dict(
-                source=event, tags=[f"{provider.provider_type}-{provider_name}"], _provider=provider_name
+                parent=event, tags=[f"{provider.provider_type}-{provider_name}"], _provider=provider_name
             )
             # loop through the provider's regex signatures, if any
             for event_type, sigs in provider.signatures.items():
@@ -62,9 +67,11 @@ class cloud(InterceptModule):
 
                             if event_type == "STORAGE_BUCKET":
                                 bucket_name, bucket_domain = match
+                                bucket_url = f"https://{bucket_name}.{bucket_domain}"
                                 _kwargs["data"] = {
                                     "name": bucket_name,
-                                    "url": f"https://{bucket_name}.{bucket_domain}",
+                                    "url": bucket_url,
+                                    "context": f"{{module}} analyzed {event.type} and found {{event.type}}: {bucket_url}",
                                 }
                                 await self.emit_event(**_kwargs)
 

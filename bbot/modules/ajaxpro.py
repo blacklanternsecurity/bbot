@@ -11,7 +11,11 @@ class ajaxpro(BaseModule):
     watched_events = ["HTTP_RESPONSE", "URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
     flags = ["active", "safe", "web-thorough"]
-    meta = {"description": "Check for potentially vulnerable Ajaxpro instances"}
+    meta = {
+        "description": "Check for potentially vulnerable Ajaxpro instances",
+        "created_date": "2024-01-18",
+        "author": "@liquidsec",
+    }
 
     async def handle_event(self, event):
         if event.type == "URL":
@@ -33,6 +37,7 @@ class ajaxpro(BaseModule):
                                     },
                                     "FINDING",
                                     event,
+                                    context="{module} discovered Ajaxpro instance ({event.type}) at {event.data}",
                                 )
 
         elif event.type == "HTTP_RESPONSE":
@@ -49,4 +54,5 @@ class ajaxpro(BaseModule):
                         },
                         "FINDING",
                         event,
+                        context="{module} discovered Ajaxpro instance ({event.type}) at {event.data}",
                     )

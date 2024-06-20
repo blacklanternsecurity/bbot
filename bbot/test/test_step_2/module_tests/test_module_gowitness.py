@@ -29,19 +29,25 @@ class TestGowitness(ModuleTestBase):
         # monkeypatch social
         old_emit_event = module_test.scan.modules["social"].emit_event
 
-        async def new_emit_event(event):
+        async def new_emit_event(event, **kwargs):
             if event.data["url"] == "https://github.com/blacklanternsecurity":
                 event.data["url"] = event.data["url"].replace("https://github.com", "http://127.0.0.1:8888")
-            await old_emit_event(event)
+            await old_emit_event(event, **kwargs)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["social"], "emit_event", new_emit_event)
 
     def check(self, module_test, events):
+        webscreenshots = [e for e in events if e.type == "WEBSCREENSHOT"]
+        assert webscreenshots, "failed to raise WEBSCREENSHOT events"
+        assert not any(
+            ["blob" in e.data for e in webscreenshots]
+        ), "blob was included in WEBSCREENSHOT data when it shouldn't have been"
+
         screenshots_path = self.home_dir / "scans" / module_test.scan.name / "gowitness" / "screenshots"
         screenshots = list(screenshots_path.glob("*.png"))
         assert (
-            len(screenshots) == 2
-        ), f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 2"
+            len(screenshots) == 1
+        ), f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 1"
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
         assert 1 == len(
             [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "https://fonts.googleapis.com/"]
@@ -50,8 +56,22 @@ class TestGowitness(ModuleTestBase):
         assert 1 == len(
             [e for e in events if e.type == "SOCIAL" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"]
         )
-        assert 2 == len([e for e in events if e.type == "WEBSCREENSHOT"])
+        assert 1 == len([e for e in events if e.type == "WEBSCREENSHOT"])
         assert 1 == len([e for e in events if e.type == "WEBSCREENSHOT" and e.data["url"] == "http://127.0.0.1:8888/"])
+        assert len([e for e in events if e.type == "TECHNOLOGY"])
+
+
+class TestGowitness_Social(TestGowitness):
+    config_overrides = dict(TestGowitness.config_overrides)
+    config_overrides.update({"modules": {"gowitness": {"social": True}}})
+
+    def check(self, module_test, events):
+        screenshots_path = self.home_dir / "scans" / module_test.scan.name / "gowitness" / "screenshots"
+        screenshots = list(screenshots_path.glob("*.png"))
+        assert (
+            len(screenshots) == 2
+        ), f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 2"
+        assert 2 == len([e for e in events if e.type == "WEBSCREENSHOT"])
         assert 1 == len(
             [
                 e
@@ -59,13 +79,23 @@ class TestGowitness(ModuleTestBase):
                 if e.type == "WEBSCREENSHOT" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
             ]
         )
-        assert len([e for e in events if e.type == "TECHNOLOGY"])
         assert 1 == len(
             [
                 e
                 for e in events
                 if e.type == "TECHNOLOGY"
                 and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
-                and e.source.type == "SOCIAL"
+                and e.parent.type == "SOCIAL"
             ]
         )
+
+
+class TestGoWitnessWithBlob(TestGowitness):
+    config_overrides = {"file_blobs": True}
+
+    def check(self, module_test, events):
+        webscreenshots = [e for e in events if e.type == "WEBSCREENSHOT"]
+        assert webscreenshots, "failed to raise WEBSCREENSHOT events"
+        assert all(
+            ["blob" in e.data and e.data["blob"] for e in webscreenshots]
+        ), "blob not found in WEBSCREENSHOT data"

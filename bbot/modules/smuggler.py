@@ -12,7 +12,7 @@ class smuggler(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-thorough"]
-    meta = {"description": "Check for HTTP smuggling"}
+    meta = {"description": "Check for HTTP smuggling", "created_date": "2022-07-06", "author": "@liquidsec"}
 
     in_scope_only = True
     per_hostport_only = True
@@ -42,5 +42,6 @@ class smuggler(BaseModule):
                     await self.emit_event(
                         {"host": str(event.host), "url": event.data, "description": description},
                         "FINDING",
-                        source=event,
+                        parent=event,
+                        context=f"{{module}} scanned {event.data} and found HTTP smuggling ({{event.type}}): {text}",
                     )

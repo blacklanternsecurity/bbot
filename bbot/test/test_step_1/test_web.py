@@ -4,7 +4,81 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_web_helpers(bbot_scanner, bbot_httpserver):
+async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
+
+    from werkzeug.wrappers import Response
+
+    def server_handler(request):
+        return Response(f"{request.url}: {request.headers}")
+
+    base_url = bbot_httpserver.url_for("/test/")
+    bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
+
+    scan = bbot_scanner()
+
+    # request
+    response = await scan.helpers.request(f"{base_url}1")
+    assert response.status_code == 200
+    assert response.text.startswith(f"{base_url}1: ")
+
+    num_urls = 100
+
+    # request_batch
+    urls = [f"{base_url}{i}" for i in range(num_urls)]
+    responses = [r async for r in scan.helpers.request_batch(urls)]
+    assert len(responses) == 100
+    assert all([r[1].status_code == 200 and r[1].text.startswith(f"{r[0]}: ") for r in responses])
+
+    # request_batch w/ cancellation
+    agen = scan.helpers.request_batch(urls)
+    async for url, response in agen:
+        assert response.text.startswith(base_url)
+        await agen.aclose()
+        break
+
+    # request_custom_batch
+    urls_and_kwargs = [(urls[i], {"headers": {f"h{i}": f"v{i}"}}, i) for i in range(num_urls)]
+    results = [r async for r in scan.helpers.request_custom_batch(urls_and_kwargs)]
+    assert len(responses) == 100
+    for result in results:
+        url, kwargs, custom_tracker, response = result
+        assert "headers" in kwargs
+        assert f"h{custom_tracker}" in kwargs["headers"]
+        assert kwargs["headers"][f"h{custom_tracker}"] == f"v{custom_tracker}"
+        assert response.status_code == 200
+        assert response.text.startswith(f"{url}: ")
+        assert f"H{custom_tracker}: v{custom_tracker}" in response.text
+
+    # download
+    url = f"{base_url}999"
+    filename = await scan.helpers.download(url)
+    file_content = open(filename).read()
+    assert file_content.startswith(f"{url}: ")
+
+    # raise_error=True
+    with pytest.raises(WebError):
+        await scan.helpers.request("http://www.example.com/", raise_error=True)
+
+
+@pytest.mark.asyncio
+async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
+
+    # json conversion
+    scan = bbot_scanner("evilcorp.com")
+    url = "http://www.evilcorp.com/json_test?a=b"
+    httpx_mock.add_response(url=url, text="hello\nworld")
+    response = await scan.helpers.web.request(url)
+    j = scan.helpers.response_to_json(response)
+    assert j["status_code"] == 200
+    assert j["host"] == "www.evilcorp.com"
+    assert j["scheme"] == "http"
+    assert j["method"] == "GET"
+    assert j["port"] == 80
+    assert j["path"] == "/json_test"
+    assert j["body"] == "hello\nworld"
+    assert j["content_type"] == "text/plain"
+    assert j["url"] == "http://www.evilcorp.com/json_test?a=b"
+
     scan1 = bbot_scanner("8.8.8.8")
     scan2 = bbot_scanner("127.0.0.1")
 
@@ -76,6 +150,8 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver):
     filename = await scan1.helpers.download(url)
     assert filename is None
     assert not scan1.helpers.is_cached(url)
+    with pytest.raises(WebError):
+        filename = await scan1.helpers.download(url, raise_error=True)
 
     # wordlist
     path = "/test_http_helpers_wordlist"
@@ -273,11 +349,13 @@ async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
 @pytest.mark.asyncio
 async def test_web_cookies(bbot_scanner, httpx_mock):
     import httpx
+    from bbot.core.helpers.web.client import BBOTAsyncClient
 
     # make sure cookies work when enabled
     httpx_mock.add_response(url="http://www.evilcorp.com/cookies", headers=[("set-cookie", "wat=asdf; path=/")])
     scan = bbot_scanner()
-    client = scan.helpers.AsyncClient(persist_cookies=True)
+
+    client = BBOTAsyncClient(persist_cookies=True, _config=scan.config, _target=scan.target)
     r = await client.get(url="http://www.evilcorp.com/cookies")
     assert r.cookies["wat"] == "asdf"
     httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test", match_headers={"Cookie": "wat=asdf"})
@@ -290,7 +368,7 @@ async def test_web_cookies(bbot_scanner, httpx_mock):
     # make sure they don't when they're not
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies", headers=[("set-cookie", "wats=fdsa; path=/")])
     scan = bbot_scanner()
-    client2 = scan.helpers.AsyncClient(persist_cookies=False)
+    client2 = BBOTAsyncClient(persist_cookies=False, _config=scan.config, _target=scan.target)
     r = await client2.get(url="http://www2.evilcorp.com/cookies")
     # make sure we can access the cookies
     assert "wats" in r.cookies

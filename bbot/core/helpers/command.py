@@ -2,6 +2,7 @@ import os
 import asyncio
 import logging
 import traceback
+from signal import SIGINT
 from subprocess import CompletedProcess, CalledProcessError
 
 from .misc import smart_decode, smart_encode
@@ -9,7 +10,7 @@ from .misc import smart_decode, smart_encode
 log = logging.getLogger("bbot.core.helpers.command")
 
 
-async def run(self, *command, check=False, text=True, **kwargs):
+async def run(self, *command, check=False, text=True, idle_timeout=None, **kwargs):
     """Runs a command asynchronously and gets its output as a string.
 
     This method is a simple helper for executing a command and capturing its output.
@@ -20,6 +21,7 @@ async def run(self, *command, check=False, text=True, **kwargs):
         check (bool, optional): If set to True, raises an error if the subprocess exits with a non-zero status.
                                 Defaults to False.
         text (bool, optional): If set to True, decodes the subprocess output to string. Defaults to True.
+        idle_timeout (int, optional): Sets a limit on the number of seconds the process can run before throwing a TimeoutError
         **kwargs (dict): Additional keyword arguments for the subprocess.
 
     Returns:
@@ -36,6 +38,7 @@ async def run(self, *command, check=False, text=True, **kwargs):
     # proc_tracker optionally keeps track of which processes are running under which modules
     # this allows for graceful SIGINTing of a module's processes in the case when it's killed
     proc_tracker = kwargs.pop("_proc_tracker", set())
+    log_stderr = kwargs.pop("_log_stderr", True)
     proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         proc_tracker.add(proc)
@@ -45,7 +48,15 @@ async def run(self, *command, check=False, text=True, **kwargs):
                     _input = b"\n".join(smart_encode(i) for i in _input) + b"\n"
                 else:
                     _input = smart_encode(_input)
-            stdout, stderr = await proc.communicate(_input)
+
+            try:
+                if idle_timeout is not None:
+                    stdout, stderr = await asyncio.wait_for(proc.communicate(_input), timeout=idle_timeout)
+                else:
+                    stdout, stderr = await proc.communicate(_input)
+            except asyncio.exceptions.TimeoutError:
+                proc.send_signal(SIGINT)
+                raise
 
             # surface stderr
             if text:
@@ -56,7 +67,7 @@ async def run(self, *command, check=False, text=True, **kwargs):
             if proc.returncode:
                 if check:
                     raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
-                if stderr:
+                if stderr and log_stderr:
                     command_str = " ".join(command)
                     log.warning(f"Stderr for run({command_str}):\n\t{stderr}")
 
@@ -65,7 +76,7 @@ async def run(self, *command, check=False, text=True, **kwargs):
             proc_tracker.remove(proc)
 
 
-async def run_live(self, *command, check=False, text=True, **kwargs):
+async def run_live(self, *command, check=False, text=True, idle_timeout=None, **kwargs):
     """Runs a command asynchronously and iterates through its output line by line in realtime.
 
     This method is useful for executing a command and capturing its output on-the-fly, as it is generated.
@@ -76,6 +87,7 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
         check (bool, optional): If set to True, raises an error if the subprocess exits with a non-zero status.
                                 Defaults to False.
         text (bool, optional): If set to True, decodes the subprocess output to string. Defaults to True.
+        idle_timeout (int, optional): Sets a limit on the number of seconds the process can remain idle (no lines sent to stdout) before throwing a TimeoutError
         **kwargs (dict): Additional keyword arguments for the subprocess.
 
     Yields:
@@ -92,6 +104,7 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
     # proc_tracker optionally keeps track of which processes are running under which modules
     # this allows for graceful SIGINTing of a module's processes in the case when it's killed
     proc_tracker = kwargs.pop("_proc_tracker", set())
+    log_stderr = kwargs.pop("_log_stderr", True)
     proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         proc_tracker.add(proc)
@@ -102,7 +115,13 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
 
             while 1:
                 try:
-                    line = await proc.stdout.readline()
+                    if idle_timeout is not None:
+                        line = await asyncio.wait_for(proc.stdout.readline(), timeout=idle_timeout)
+                    else:
+                        line = await proc.stdout.readline()
+                except asyncio.exceptions.TimeoutError:
+                    proc.send_signal(SIGINT)
+                    raise
                 except ValueError as e:
                     command_str = " ".join([str(c) for c in command])
                     log.warning(f"Error executing command {command_str}: {e}")
@@ -134,7 +153,7 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
                 if check:
                     raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
                 # surface stderr
-                if stderr:
+                if stderr and log_stderr:
                     command_str = " ".join(command)
                     log.warning(f"Stderr for run_live({command_str}):\n\t{stderr}")
         finally:

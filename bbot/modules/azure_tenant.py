@@ -8,7 +8,11 @@ class azure_tenant(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "cloud-enum", "passive", "safe"]
-    meta = {"description": "Query Azure for tenant sister domains"}
+    meta = {
+        "description": "Query Azure for tenant sister domains",
+        "created_date": "2024-07-04",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://autodiscover-s.outlook.com"
     in_scope_only = True
@@ -34,17 +38,30 @@ class azure_tenant(BaseModule):
             self.verbose(f'Found {len(domains):,} domains under tenant for "{query}": {", ".join(sorted(domains))}')
             for domain in domains:
                 if domain != query:
-                    await self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate", "azure-tenant"])
+                    await self.emit_event(
+                        domain,
+                        "DNS_NAME",
+                        parent=event,
+                        tags=["affiliate", "azure-tenant"],
+                        context=f'{{module}} queried Outlook autodiscover for "{query}" and found {{event.type}}: {{event.data}}',
+                    )
                     # tenant names
                     if domain.lower().endswith(".onmicrosoft.com"):
                         tenantname = domain.split(".")[0].lower()
                         if tenantname:
                             tenant_names.add(tenantname)
 
-            event_data = {"tenant-names": sorted(tenant_names), "domains": sorted(domains)}
+            tenant_names = sorted(tenant_names)
+            event_data = {"tenant-names": tenant_names, "domains": sorted(domains)}
+            tenant_names_str = ",".join(tenant_names)
             if tenant_id is not None:
                 event_data["tenant-id"] = tenant_id
-            await self.emit_event(event_data, "AZURE_TENANT", source=event)
+            await self.emit_event(
+                event_data,
+                "AZURE_TENANT",
+                parent=event,
+                context=f'{{module}} queried Outlook autodiscover for "{query}" and found {{event.type}}: {tenant_names_str}',
+            )
 
     async def query(self, domain):
         url = f"{self.base_url}/autodiscover/autodiscover.svc"

@@ -11,10 +11,6 @@ from collections import OrderedDict
 
 from bbot import __version__
 
-
-from .preset import Preset
-from .stats import ScanStats
-from .dispatcher import Dispatcher
 from bbot.core.event import make_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
@@ -30,11 +26,11 @@ class Scanner:
 
     Examples:
         Create scan with multiple targets:
-        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["nmap", "sslcert", "httpx"])
+        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["portscan", "sslcert", "httpx"])
 
         Create scan with custom config:
-        >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"nmap": {"top_ports": 2000}}}
-        >>> my_scan = Scanner("www.evilcorp.com", modules=["nmap", "httpx"], config=config)
+        >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"portscan": {"top_ports": 2000}}}
+        >>> my_scan = Scanner("www.evilcorp.com", modules=["portscan", "httpx"], config=config)
 
         Start the scan, iterating over events as they're discovered (synchronous):
         >>> for event in my_scan.start():
@@ -125,6 +121,9 @@ class Scanner:
 
         preset = kwargs.pop("preset", None)
         kwargs["_log"] = True
+
+        from .preset import Preset
+
         if preset is None:
             preset = Preset(*targets, **kwargs)
         else:
@@ -168,10 +167,14 @@ class Scanner:
         self.dummy_modules = {}
 
         if dispatcher is None:
+            from .dispatcher import Dispatcher
+
             self.dispatcher = Dispatcher()
         else:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
+
+        from .stats import ScanStats
 
         self.stats = ScanStats(self)
 
@@ -182,6 +185,10 @@ class Scanner:
         # url file extensions
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
         self.url_extension_httpx_only = set(e.lower() for e in self.config.get("url_extension_httpx_only", []))
+
+        # blob inclusion
+        self._file_blobs = self.config.get("file_blobs", False)
+        self._folder_blobs = self.config.get("folder_blobs", False)
 
         # custom HTTP headers warning
         self.custom_http_headers = self.config.get("http_headers", {})
@@ -197,6 +204,7 @@ class Scanner:
         self._finished_init = False
         self._new_activity = False
         self._cleanedup = False
+        self._omitted_event_types = None
 
         self.__loop = None
         self._manager_worker_loop_tasks = []
@@ -207,6 +215,10 @@ class Scanner:
         self._stopping = False
 
         self._dns_regexes = None
+        # temporary fix to boost scan performance
+        # TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
+        self._target_dns_regex_disable = self.config.get("target_dns_regex_disable", False)
+
         self.__log_handlers = None
         self._log_handler_backup = []
 
@@ -334,8 +346,7 @@ class Scanner:
             failed = False
 
         except BaseException as e:
-            exception_chain = self.helpers.get_exception_chain(e)
-            if any(isinstance(exc, (KeyboardInterrupt, asyncio.CancelledError)) for exc in exception_chain):
+            if self.helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                 self.stop()
                 failed = False
             else:
@@ -354,7 +365,7 @@ class Scanner:
             tasks = self._cancel_tasks()
             self.debug(f"Awaiting {len(tasks):,} tasks")
             for task in tasks:
-                self.debug(f"Awaiting {task}")
+                # self.debug(f"Awaiting {task}")
                 with contextlib.suppress(BaseException):
                     await task
             self.debug(f"Awaited {len(tasks):,} tasks")
@@ -534,28 +545,15 @@ class Scanner:
         self.helpers.cancel_tasks_sync(module._tasks)
 
     @property
-    def queued_event_types(self):
-        event_types = {}
-        queues = set()
+    def incoming_event_queues(self):
+        return self.ingress_module.incoming_queues
 
-        for module in self.modules.values():
-            queues.add(module.incoming_event_queue)
-            queues.add(module.outgoing_event_queue)
-
-        for q in queues:
-            for item in q._queue:
-                try:
-                    event, _ = item
-                except ValueError:
-                    event = item
-                event_type = getattr(event, "type", None)
-                if event_type is not None:
-                    try:
-                        event_types[event_type] += 1
-                    except KeyError:
-                        event_types[event_type] = 1
-
-        return event_types
+    @property
+    def num_queued_events(self):
+        total = 0
+        for q in self.incoming_event_queues:
+            total += len(q._queue)
+        return total
 
     def modules_status(self, _log=False):
         finished = True
@@ -617,12 +615,9 @@ class Scanner:
                     f'{self.name}: Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
                 )
 
-            queued_events_by_type = [(k, v) for k, v in self.queued_event_types.items() if v > 0]
-            if queued_events_by_type:
-                queued_events_by_type.sort(key=lambda x: x[-1], reverse=True)
-                queued_events_by_type_str = ", ".join(f"{m}: {t:,}" for m, t in queued_events_by_type)
-                num_queued_events = sum(v for k, v in queued_events_by_type)
-                self.info(f"{self.name}: {num_queued_events:,} events in queue ({queued_events_by_type_str})")
+            num_queued_events = self.num_queued_events
+            if num_queued_events:
+                self.info(f"{self.name}: {num_queued_events:,} events in queue")
             else:
                 self.info(f"{self.name}: No events in queue")
 
@@ -861,6 +856,12 @@ class Scanner:
     def status(self):
         return self._status
 
+    @property
+    def omitted_event_types(self):
+        if self._omitted_event_types is None:
+            self._omitted_event_types = self.config.get("omit_event_types", [])
+        return self._omitted_event_types
+
     @status.setter
     def status(self, status):
         """
@@ -899,7 +900,7 @@ class Scanner:
               "scope_distance": 0,
               "scan": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
               "timestamp": 1694548779.616255,
-              "source": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
+              "parent": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
               "tags": [
                 "distance-0"
               ],
@@ -911,7 +912,7 @@ class Scanner:
         root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
         root_event._id = self.id
         root_event.scope_distance = 0
-        root_event.source = root_event
+        root_event.parent = root_event
         root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
         return root_event
 
@@ -927,6 +928,8 @@ class Scanner:
             ...     for match in regex.finditer(response.text):
             ...         hostname = match.group().lower()
         """
+        if self._target_dns_regex_disable:
+            return []
         if self._dns_regexes is None:
             dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
             dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
@@ -1121,8 +1124,7 @@ class Scanner:
         if callable(context):
             context = f"{context.__qualname__}()"
         filename, lineno, funcname = self.helpers.get_traceback_details(e)
-        exception_chain = self.helpers.get_exception_chain(e)
-        if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+        if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
             log.debug(f"Interrupted")
             self.stop()
         elif isinstance(e, BrokenPipeError):
@@ -1156,6 +1158,7 @@ class Scanner:
         except KeyError:
             dummy_module = self._make_dummy_module(name=name, _type="DNS")
             dummy_module.suppress_dupes = False
+            dummy_module._priority = 4
             self.dummy_modules[name] = dummy_module
         return dummy_module
 

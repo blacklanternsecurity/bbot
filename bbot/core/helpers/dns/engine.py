@@ -30,10 +30,11 @@ class DNSEngine(EngineServer):
 
     CMDS = {
         0: "resolve",
-        1: "resolve_batch",
-        2: "resolve_raw_batch",
-        3: "is_wildcard",
-        4: "is_wildcard_domain",
+        1: "resolve_raw",
+        2: "resolve_batch",
+        3: "resolve_raw_batch",
+        4: "is_wildcard",
+        5: "is_wildcard_domain",
         99: "_mock_dns",
     }
 
@@ -80,7 +81,7 @@ class DNSEngine(EngineServer):
         # modules from kicking off wildcard detection for the same domain at the same time
         self._wildcard_lock = NamedLock()
 
-        self._dns_connectivity_lock = asyncio.Lock()
+        self._dns_connectivity_lock = None
         self._last_dns_success = None
         self._last_connectivity_warning = time.time()
         # keeps track of warnings issued for wildcard detection to prevent duplicate warnings
@@ -113,7 +114,6 @@ class DNSEngine(EngineServer):
             {"1.2.3.4", "dead::beef"}
         """
         results = set()
-        errors = []
         try:
             answers, errors = await self.resolve_raw(query, **kwargs)
             for answer in answers:
@@ -669,6 +669,12 @@ class DNSEngine(EngineServer):
 
         return wildcard_domain_results
 
+    @property
+    def dns_connectivity_lock(self):
+        if self._dns_connectivity_lock is None:
+            self._dns_connectivity_lock = asyncio.Lock()
+        return self._dns_connectivity_lock
+
     async def _connectivity_check(self, interval=5):
         """
         Periodically checks for an active internet connection by attempting DNS resolution.
@@ -688,7 +694,7 @@ class DNSEngine(EngineServer):
             if time.time() - self._last_dns_success < interval:
                 return True
         dns_server_working = []
-        async with self._dns_connectivity_lock:
+        async with self.dns_connectivity_lock:
             with suppress(Exception):
                 dns_server_working = await self._catch(self.resolver.resolve, "www.google.com", rdtype="A")
                 if dns_server_working:

@@ -16,6 +16,8 @@ class wappalyzer(BaseModule):
     flags = ["active", "safe", "web-basic"]
     meta = {
         "description": "Extract technologies from web responses",
+        "created_date": "2022-04-15",
+        "author": "@liquidsec",
     }
     deps_pip = ["python-Wappalyzer~=0.3.1", "aiohttp~=3.9.0b0"]
     # accept all events regardless of scope distance
@@ -28,8 +30,12 @@ class wappalyzer(BaseModule):
 
     async def handle_event(self, event):
         for res in await self.helpers.run_in_executor(self.wappalyze, event.data):
+            res = res.lower()
             await self.emit_event(
-                {"technology": res.lower(), "url": event.data["url"], "host": str(event.host)}, "TECHNOLOGY", event
+                {"technology": res, "url": event.data["url"], "host": str(event.host)},
+                "TECHNOLOGY",
+                event,
+                context=f"{{module}} analyzed HTTP_RESPONSE and identified {{event.type}}: {res}",
             )
 
     def wappalyze(self, data):

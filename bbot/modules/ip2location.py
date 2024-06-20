@@ -9,7 +9,12 @@ class IP2Location(BaseModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
     flags = ["passive", "safe"]
-    meta = {"description": "Query IP2location.io's API for geolocation information. ", "auth_required": True}
+    meta = {
+        "description": "Query IP2location.io's API for geolocation information. ",
+        "created_date": "2023-09-12",
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"api_key": "", "lang": ""}
     options_desc = {
         "api_key": "IP2location.io API Key",
@@ -57,4 +62,15 @@ class IP2Location(BaseModule):
             if error_msg:
                 self.warning(error_msg)
         elif geo_data:
-            await self.emit_event(geo_data, "GEOLOCATION", event)
+            country = geo_data.get("country_name", "unknown country")
+            region = geo_data.get("region_name", "unknown region")
+            city = geo_data.get("city_name", "unknown city")
+            lat = geo_data.get("latitude", "")
+            long = geo_data.get("longitude", "")
+            description = f"{city}, {region}, {country} ({lat}, {long})"
+            await self.emit_event(
+                geo_data,
+                "GEOLOCATION",
+                event,
+                context=f'{{module}} queried IP2Location API for "{event.data}" and found {{event.type}}: {description}',
+            )

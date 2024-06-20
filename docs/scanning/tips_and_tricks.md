@@ -30,13 +30,13 @@ To change the number of instances, you can set a module's `max_event_handlers` i
 bbot -t evilcorp.com -m baddns -c modules.baddns.max_event_handlers=20
 ```
 
-### Boost Massdns Thread Count
+### Boost DNS Brute-force Speed
 
 If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for `massdns`. The default is `1000`, which is about 1MB/s of DNS traffic:
 
 ```bash
 # massdns with 5000 resolvers, about 5MB/s
-bbot -t evilcorp.com -f subdomain-enum -c modules.massdns.max_resolvers=5000
+bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 ```
 
 ### Web Spider

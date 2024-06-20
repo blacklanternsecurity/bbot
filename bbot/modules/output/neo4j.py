@@ -26,7 +26,7 @@ class neo4j(BaseOutputModule):
     """
 
     watched_events = ["*"]
-    meta = {"description": "Output to Neo4j"}
+    meta = {"description": "Output to Neo4j", "created_date": "2022-04-07", "author": "@TheTechromancer"}
     options = {"uri": "bolt://localhost:7687", "username": "neo4j", "password": "bbotislife"}
     options_desc = {
         "uri": "Neo4j server + port",
@@ -53,7 +53,7 @@ class neo4j(BaseOutputModule):
 
     async def handle_event(self, event):
         # create events
-        src_id = await self.merge_event(event.get_source(), id_only=True)
+        src_id = await self.merge_event(event.get_parent(), id_only=True)
         dst_id = await self.merge_event(event)
         # create relationship
         cypher = f"""

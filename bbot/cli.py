@@ -44,8 +44,6 @@ async def _main():
 
         # start by creating a default scan preset
         preset = Preset(_log=True, name="bbot_cli_main")
-        # populate preset symlinks
-        preset.all_presets
         # parse command line arguments and merge into preset
         try:
             preset.parse_args()
@@ -170,6 +168,16 @@ async def _main():
             log.trace(f"Command: {' '.join(sys.argv)}")
 
             if sys.stdin.isatty():
+
+                # warn if any targets belong directly to a cloud provider
+                for event in scan.target.events:
+                    if event.type == "DNS_NAME":
+                        cloudcheck_result = scan.helpers.cloudcheck(event.host)
+                        if cloudcheck_result:
+                            scan.hugewarning(
+                                f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
+                            )
+
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                     input()

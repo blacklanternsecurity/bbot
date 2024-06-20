@@ -178,7 +178,11 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.subdomain_depth("a.evilcorp.com") == 1
     assert helpers.subdomain_depth("a.s.d.f.evilcorp.notreal") == 4
 
+    assert helpers.split_host_port("http://evilcorp.co.uk") == ("evilcorp.co.uk", 80)
     assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
+    assert helpers.split_host_port("ws://evilcorp.co.uk") == ("evilcorp.co.uk", 80)
+    assert helpers.split_host_port("wss://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
+    assert helpers.split_host_port("WSS://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk") == ("evilcorp.co.uk", None)
@@ -214,7 +218,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.get_file_extension("/etc/passwd") == ""
 
     assert helpers.tagify("HttP  -_Web  Title--  ") == "http-web-title"
-    tagged_event = scan.make_event("127.0.0.1", source=scan.root_event, tags=["HttP  web -__- title  "])
+    tagged_event = scan.make_event("127.0.0.1", parent=scan.root_event, tags=["HttP  web -__- title  "])
     assert "http-web-title" in tagged_event.tags
     tagged_event.remove_tag("http-web-title")
     assert "http-web-title" not in tagged_event.tags
@@ -402,6 +406,16 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         await helpers.wordlist("/tmp/a9pseoysadf/asdkgjaosidf")
     test_file.unlink()
 
+    # filename truncation
+    super_long_filename = "/tmp/" + ("a" * 1024) + ".txt"
+    with pytest.raises(OSError):
+        with open(super_long_filename, "w") as f:
+            f.write("wat")
+    truncated_filename = helpers.truncate_filename(super_long_filename)
+    with open(truncated_filename, "w") as f:
+        f.write("wat")
+    truncated_filename.unlink()
+
     # misc DNS helpers
     assert helpers.is_ptr("wsc-11-22-33-44-wat.evilcorp.com") == True
     assert helpers.is_ptr("wsc-11-22-33-wat.evilcorp.com") == False
@@ -431,6 +445,23 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.bytes_to_human(459819198709) == "428.24GB"
     assert helpers.human_to_bytes("428.24GB") == 459819198709
 
+    # ordinals
+    assert helpers.integer_to_ordinal(1) == "1st"
+    assert helpers.integer_to_ordinal(2) == "2nd"
+    assert helpers.integer_to_ordinal(3) == "3rd"
+    assert helpers.integer_to_ordinal(4) == "4th"
+    assert helpers.integer_to_ordinal(11) == "11th"
+    assert helpers.integer_to_ordinal(12) == "12th"
+    assert helpers.integer_to_ordinal(13) == "13th"
+    assert helpers.integer_to_ordinal(21) == "21st"
+    assert helpers.integer_to_ordinal(22) == "22nd"
+    assert helpers.integer_to_ordinal(23) == "23rd"
+    assert helpers.integer_to_ordinal(101) == "101st"
+    assert helpers.integer_to_ordinal(111) == "111th"
+    assert helpers.integer_to_ordinal(112) == "112th"
+    assert helpers.integer_to_ordinal(113) == "113th"
+    assert helpers.integer_to_ordinal(0) == "0th"
+
     scan1 = bbot_scanner(modules="ipneighbor")
     await scan1.load_modules()
     assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
@@ -450,6 +481,37 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         < first_frequencies["d"]
         < first_frequencies["e"]
     )
+
+    # error handling helpers
+    test_ran = False
+    try:
+        try:
+            raise KeyboardInterrupt("asdf")
+        except KeyboardInterrupt:
+            raise ValueError("asdf")
+    except Exception as e:
+        assert len(helpers.get_exception_chain(e)) == 2
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, KeyboardInterrupt)]) == 1
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, ValueError)]) == 1
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) == True
+        assert helpers.in_exception_chain(e, (TypeError, OSError)) == False
+        test_ran = True
+    assert test_ran
+    test_ran = False
+    try:
+        try:
+            raise AttributeError("asdf")
+        except AttributeError:
+            raise ValueError("asdf")
+    except Exception as e:
+        assert len(helpers.get_exception_chain(e)) == 2
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, AttributeError)]) == 1
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, ValueError)]) == 1
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) == False
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, AttributeError)) == True
+        assert helpers.in_exception_chain(e, (AttributeError,)) == True
+        test_ran = True
+    assert test_ran
 
 
 def test_word_cloud(helpers, bbot_scanner):
@@ -678,3 +740,133 @@ def test_liststring_invalidfnchars(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_list_string("hello,world,bbot|test")
     assert str(e.value) == "Invalid character in string: bbot|test"
+
+
+# test extract_params_html
+@pytest.mark.asyncio
+async def test_extract_params_html(helpers):
+
+    html_tests = """
+    <html>
+    <head>
+        <title>Get extract</title>
+        <script>
+            $.get("/test", {jqueryget: "value1"});
+            $.post("/test", {jquerypost: "value2"});
+        </script>
+    </head>
+    <body>
+        <!-- Universal Valid: All parameter names should pass -->
+        <a href="/validPath?name=123&age=456">Universal Valid</a>
+
+        <!-- Mixed Validity: Different rules for headers, GET parameters, and cookies -->
+        <a href="/test?valid_name=1&valid-name=2&invalid,name=3">Mixed Validity</a>
+        <a href="/test?session_token=1&user.id=2&auth-token=3">Token Examples</a>
+
+        <!-- Valid for GET and Cookies, not valid for headers -->
+        <a href="/details?user-name=1&parens()=2">Common Web Names</a>
+        <a href="/info?client.id=1&access_token=2">API Style Names</a>
+
+        <!-- Bad examples that should fail all validations -->
+        <a href="/badPath?this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow=foo">Invalid</a>
+        <a href="/badPath?###$$$=test">Invalid</a>
+        <a href="/badPath?<script>=test">Invalid</a>
+        <input name="abcd" value="zxyz>MixedaValidity</input>
+    </body>
+    </html>
+    """
+    getparam_extract_results = set(await helpers.re.extract_params_html(html_tests, "getparam"))
+    getparam_valid_params = {
+        "name",
+        "age",
+        "valid_name",
+        "valid-name",
+        "session_token",
+        "user.id",
+        "user-name",
+        "client.id",
+        "auth-token",
+        "access_token",
+        "abcd",
+        "jqueryget",
+    }
+    getparam_invalid_params = {
+        "invalid,name",
+        "<script>",
+        "###$$$",
+        "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
+        "parens()",
+    }
+    getparam_extracted_params = set(getparam_extract_results)
+
+    # Check that all valid parameters are present
+    for expected_param in getparam_valid_params:
+        assert expected_param in getparam_extracted_params, f"Missing expected parameter: {expected_param}"
+
+    # Check that no invalid parameters are present
+    for bad_param in getparam_invalid_params:
+        assert bad_param not in getparam_extracted_params, f"Invalid parameter found: {bad_param}"
+
+    header_extract_results = set(await helpers.re.extract_params_html(html_tests, "header"))
+    header_valid_params = {
+        "name",
+        "age",
+        "valid_name",
+        "valid-name",
+        "session_token",
+        "user-name",
+        "auth-token",
+        "access_token",
+        "abcd",
+        "jqueryget",
+    }
+    header_invalid_params = {
+        "user.id",
+        "client.id",
+        "invalid,name",
+        "<script>",
+        "###$$$",
+        "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
+        "parens()",
+    }
+    header_extracted_params = set(header_extract_results)
+
+    # Check that all valid parameters are present
+    for expected_param in header_valid_params:
+        assert expected_param in header_extracted_params, f"Missing expected parameter: {expected_param}"
+
+    # Check that no invalid parameters are present
+    for bad_param in header_invalid_params:
+        assert bad_param not in header_extracted_params, f"Invalid parameter found: {bad_param}"
+
+    cookie_extract_results = set(await helpers.re.extract_params_html(html_tests, "cookie"))
+    cookie_valid_params = {
+        "name",
+        "age",
+        "valid_name",
+        "valid-name",
+        "session_token",
+        "user-name",
+        "auth-token",
+        "access_token",
+        "parens()",
+        "user.id",
+        "client.id",
+        "abcd",
+        "jqueryget",
+    }
+    cookie_invalid_params = {
+        "invalid,name",
+        "<script>",
+        "###$$$",
+        "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
+    }
+    cookie_extracted_params = set(cookie_extract_results)
+
+    # Check that all valid parameters are present
+    for expected_param in cookie_valid_params:
+        assert expected_param in cookie_extracted_params, f"Missing expected parameter: {expected_param}"
+
+    # Check that no invalid parameters are present
+    for bad_param in cookie_invalid_params:
+        assert bad_param not in cookie_extracted_params, f"Invalid parameter found: {bad_param}"

@@ -5,7 +5,7 @@ class robots(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["active", "safe", "web-basic"]
-    meta = {"description": "Look for and parse robots.txt"}
+    meta = {"description": "Look for and parse robots.txt", "created_date": "2023-02-01", "author": "@liquidsec"}
 
     options = {"include_sitemap": False, "include_allow": True, "include_disallow": True}
     options_desc = {
@@ -21,7 +21,7 @@ class robots(BaseModule):
         return True
 
     async def handle_event(self, event):
-        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        host = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
         result = None
         url = f"{host}robots.txt"
         result = await self.helpers.request(url)
@@ -48,4 +48,10 @@ class robots(BaseModule):
                         tags = []
                         if self.helpers.is_spider_danger(event, unverified_url):
                             tags.append("spider-danger")
-                        await self.emit_event(unverified_url, "URL_UNVERIFIED", source=event, tags=tags)
+                        await self.emit_event(
+                            unverified_url,
+                            "URL_UNVERIFIED",
+                            parent=event,
+                            tags=tags,
+                            context=f"{{module}} found robots.txt at {url} and extracted {{event.type}}: {{event.data}}",
+                        )

@@ -9,37 +9,79 @@ from bbot.modules.internal.base import BaseInternalModule
 
 
 @pytest.mark.asyncio
-async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
+async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
     for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
 
+    from bbot.scanner import Scanner
+
+    scan = Scanner(config={"omit_event_types": ["URL_UNVERIFIED"]})
+    assert "URL_UNVERIFIED" in scan.omitted_event_types
+
     # output module specific event filtering tests
     base_output_module_1 = BaseOutputModule(scan)
-    base_output_module_1.watched_events = ["IP_ADDRESS"]
-    localhost = scan.make_event("127.0.0.1", source=scan.root_event)
-    assert base_output_module_1._event_precheck(localhost)[0] == True
+    base_output_module_1.watched_events = ["IP_ADDRESS", "URL_UNVERIFIED"]
+    localhost = scan.make_event("127.0.0.1", parent=scan.root_event)
+    # ip addresses should be accepted
+    result, reason = base_output_module_1._event_precheck(localhost)
+    assert result == True
+    assert reason == "precheck succeeded"
+    # internal events should be rejected
     localhost._internal = True
-    assert base_output_module_1._event_precheck(localhost)[0] == False
+    result, reason = base_output_module_1._event_precheck(localhost)
+    assert result == False
+    assert reason == "_internal is True"
     localhost._internal = False
-    assert base_output_module_1._event_precheck(localhost)[0] == True
+    result, reason = base_output_module_1._event_precheck(localhost)
+    assert result == True
+    assert reason == "precheck succeeded"
+    # omitted events should be rejected
     localhost._omit = True
-    assert base_output_module_1._event_precheck(localhost)[0] == True
+    result, reason = base_output_module_1._event_precheck(localhost)
+    assert result == False
+    assert reason == "_omit is True"
+    # unwatched event types should be rejected
+    dns_name = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    result, reason = base_output_module_1._event_precheck(dns_name)
+    assert result == False
+    assert reason == "its type is not in watched_events"
+    # omitted event types matching watched events should be accepted
+    url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
+    result, reason = base_output_module_1._event_precheck(url_unverified)
+    assert result == True
+    assert reason == "precheck succeeded"
 
     base_output_module_2 = BaseOutputModule(scan)
     base_output_module_2.watched_events = ["*"]
-    localhost = scan.make_event("127.0.0.1", source=scan.root_event)
-    assert base_output_module_2._event_precheck(localhost)[0] == True
+    # normal events should be accepted
+    localhost = scan.make_event("127.0.0.1", parent=scan.root_event)
+    result, reason = base_output_module_2._event_precheck(localhost)
+    assert result == True
+    assert reason == "precheck succeeded"
+    # internal events should be rejected
     localhost._internal = True
-    assert base_output_module_2._event_precheck(localhost)[0] == False
+    result, reason = base_output_module_2._event_precheck(localhost)
+    assert result == False
+    assert reason == "_internal is True"
     localhost._internal = False
-    assert base_output_module_2._event_precheck(localhost)[0] == True
+    result, reason = base_output_module_2._event_precheck(localhost)
+    assert result == True
+    assert reason == "precheck succeeded"
+    # omitted events should be rejected
     localhost._omit = True
-    assert base_output_module_2._event_precheck(localhost)[0] == False
+    result, reason = base_output_module_2._event_precheck(localhost)
+    assert result == False
+    assert reason == "_omit is True"
+    # omitted event types should be rejected
+    url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
+    result, reason = base_output_module_2._event_precheck(url_unverified)
+    assert result == False
+    assert reason == "its type is omitted in the config"
 
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
         base_module = module_class(scan)
-        localhost2 = scan.make_event("127.0.0.2", source=events.subdomain)
+        localhost2 = scan.make_event("127.0.0.2", parent=events.subdomain)
         localhost2.scope_distance = 0
         # base cases
         base_module._watched_events = None
@@ -60,7 +102,7 @@ async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
 
         # in scope only
         base_module.in_scope_only = True
-        localhost3 = scan.make_event("127.0.0.2", source=events.subdomain)
+        localhost3 = scan.make_event("127.0.0.2", parent=events.subdomain)
         valid, reason = await base_module._event_postcheck(localhost3)
         if base_module._type == "output":
             assert valid
@@ -100,15 +142,15 @@ async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
 
     # module preloading
     all_preloaded = DEFAULT_PRESET.module_loader.preloaded()
-    assert "massdns" in all_preloaded
-    assert "DNS_NAME" in all_preloaded["massdns"]["watched_events"]
-    assert "DNS_NAME" in all_preloaded["massdns"]["produced_events"]
-    assert "subdomain-enum" in all_preloaded["massdns"]["flags"]
-    assert "wordlist" in all_preloaded["massdns"]["config"]
-    assert type(all_preloaded["massdns"]["config"]["max_resolvers"]) == int
+    assert "dnsbrute" in all_preloaded
+    assert "DNS_NAME" in all_preloaded["dnsbrute"]["watched_events"]
+    assert "DNS_NAME" in all_preloaded["dnsbrute"]["produced_events"]
+    assert "subdomain-enum" in all_preloaded["dnsbrute"]["flags"]
+    assert "wordlist" in all_preloaded["dnsbrute"]["config"]
+    assert type(all_preloaded["dnsbrute"]["config"]["max_depth"]) == int
     assert all_preloaded["sslcert"]["deps"]["pip"]
     assert all_preloaded["sslcert"]["deps"]["apt"]
-    assert all_preloaded["massdns"]["deps"]["common"]
+    assert all_preloaded["dnsbrute"]["deps"]["common"]
     assert all_preloaded["gowitness"]["deps"]["ansible"]
 
     all_flags = set()
@@ -206,11 +248,11 @@ async def test_modules_basic_perhostonly(helpers, events, bbot_scanner, httpx_mo
     scan.modules["mod_domain_only"] = mod_domain_only(scan)
     scan.status = "RUNNING"
 
-    url_1 = scan.make_event("http://evilcorp.com/1", event_type="URL", source=scan.root_event, tags=["status-200"])
-    url_2 = scan.make_event("http://evilcorp.com/2", event_type="URL", source=scan.root_event, tags=["status-200"])
-    url_3 = scan.make_event("http://evilcorp.com:888/3", event_type="URL", source=scan.root_event, tags=["status-200"])
-    url_4 = scan.make_event("http://www.evilcorp.com/", event_type="URL", source=scan.root_event, tags=["status-200"])
-    url_5 = scan.make_event("http://www.evilcorp.net/", event_type="URL", source=scan.root_event, tags=["status-200"])
+    url_1 = scan.make_event("http://evilcorp.com/1", event_type="URL", parent=scan.root_event, tags=["status-200"])
+    url_2 = scan.make_event("http://evilcorp.com/2", event_type="URL", parent=scan.root_event, tags=["status-200"])
+    url_3 = scan.make_event("http://evilcorp.com:888/3", event_type="URL", parent=scan.root_event, tags=["status-200"])
+    url_4 = scan.make_event("http://www.evilcorp.com/", event_type="URL", parent=scan.root_event, tags=["status-200"])
+    url_5 = scan.make_event("http://www.evilcorp.net/", event_type="URL", parent=scan.root_event, tags=["status-200"])
 
     url_1.scope_distance = 0
     url_2.scope_distance = 0
@@ -279,11 +321,11 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, 
 
         if "URL" in module.watched_events:
             url_1 = per_domain_scan.make_event(
-                "http://www.evilcorp.com/1", event_type="URL", source=per_domain_scan.root_event, tags=["status-200"]
+                "http://www.evilcorp.com/1", event_type="URL", parent=per_domain_scan.root_event, tags=["status-200"]
             )
             url_1.scope_distance = 0
             url_2 = per_domain_scan.make_event(
-                "http://mail.evilcorp.com/2", event_type="URL", source=per_domain_scan.root_event, tags=["status-200"]
+                "http://mail.evilcorp.com/2", event_type="URL", parent=per_domain_scan.root_event, tags=["status-200"]
             )
             url_2.scope_distance = 0
             valid_1, reason_1 = await module._event_postcheck(url_1)
@@ -333,10 +375,11 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     scan.modules["dummy"] = dummy(scan)
     events = [e async for e in scan.async_start()]
 
-    assert len(events) == 7
+    assert len(events) == 8
     assert 1 == len([e for e in events if e.type == "SCAN"])
-    assert 2 == len([e for e in events if e.type == "DNS_NAME"])
-    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com"])
+    assert 3 == len([e for e in events if e.type == "DNS_NAME"])
+    # one from target and one from speculate
+    assert 2 == len([e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com"])
     # the reason we don't have a DNS_NAME for www.evilcorp.com is because FINDING.quick_emit = True
     assert 0 == len([e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.com"])
@@ -346,7 +389,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
 
     assert scan.stats.events_emitted_by_type == {
         "SCAN": 1,
-        "DNS_NAME": 2,
+        "DNS_NAME": 3,
         "URL": 1,
         "URL_UNVERIFIED": 1,
         "FINDING": 1,
@@ -378,17 +421,17 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     assert python_stats.produced == {}
     assert python_stats.produced_total == 0
     assert python_stats.consumed == {
-        "DNS_NAME": 2,
+        "DNS_NAME": 3,
         "FINDING": 1,
         "ORG_STUB": 1,
         "SCAN": 1,
         "URL": 1,
         "URL_UNVERIFIED": 1,
     }
-    assert python_stats.consumed_total == 7
+    assert python_stats.consumed_total == 8
 
     speculate_stats = scan.stats.module_stats["speculate"]
-    assert speculate_stats.produced == {"URL_UNVERIFIED": 1, "ORG_STUB": 1}
-    assert speculate_stats.produced_total == 2
+    assert speculate_stats.produced == {"DNS_NAME": 1, "URL_UNVERIFIED": 1, "ORG_STUB": 1}
+    assert speculate_stats.produced_total == 3
     assert speculate_stats.consumed == {"URL": 1, "DNS_NAME": 2, "URL_UNVERIFIED": 1}
     assert speculate_stats.consumed_total == 4

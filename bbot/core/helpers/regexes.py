@@ -20,8 +20,23 @@ word_regex = re.compile(r"[^\d\W_]+")
 word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
 
-_ipv6_regex = r"[A-F0-9:]*:[A-F0-9:]*:[A-F0-9:]*"
+_ipv4_regex = r"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}"
+ipv4_regex = re.compile(_ipv4_regex, re.I)
+
+# IPv6 is complicated, so we have accomodate alternative patterns,
+# :(:[A-F0-9]{1,4}){1,7} == ::1, ::ffff:1
+# ([A-F0-9]{1,4}:){1,7}: == 2001::, 2001:db8::, 2001:db8:0:1:2:3::
+# ([A-F0-9]{1,4}:){1,6}:([A-F0-9]{1,4}) == 2001::1, 2001:db8::1, 2001:db8:0:1:2:3::1
+# ([A-F0-9]{1,4}:){7,7}([A-F0-9]{1,4}) == 1:1:1:1:1:1:1:1, ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+
+_ipv6_regex = r"(:(:[A-F0-9]{1,4}){1,7}|([A-F0-9]{1,4}:){1,7}:|([A-F0-9]{1,4}:){1,6}:([A-F0-9]{1,4})|([A-F0-9]{1,4}:){7,7}([A-F0-9]{1,4}))"
 ipv6_regex = re.compile(_ipv6_regex, re.I)
+
+_ip_range_regexes = (
+    _ipv4_regex + r"\/[0-9]{1,2}",
+    _ipv6_regex + r"\/[0-9]{1,3}",
+)
+ip_range_regexes = list(re.compile(r, re.I) for r in _ip_range_regexes)
 
 # dns names with periods
 _dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+(?:[xX][nN]--)?[^\W_]{1,63}\.?"
@@ -74,6 +89,17 @@ event_type_regexes = OrderedDict(
                 (r"^" + _email_regex + r"$",),
             ),
             (
+                "IP_ADDRESS",
+                (
+                    r"^" + _ipv4_regex + r"$",
+                    r"^" + _ipv6_regex + r"$",
+                ),
+            ),
+            (
+                "IP_RANGE",
+                tuple(r"^" + r + r"$" for r in _ip_range_regexes),
+            ),
+            (
                 "OPEN_TCP_PORT",
                 tuple(r"^" + r + r"$" for r in _open_port_regexes),
             ),
@@ -90,9 +116,9 @@ scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
 
 # For use with extract_params_html helper
 input_tag_regex = re.compile(r"<input[^>]+?name=[\"\'](\w+)[\"\']")
-jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
+jquery_get_regex = re.compile(r"\$.get\([\'\"].+[\'\"].+\{(.+)\}")
 jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
-a_tag_regex = re.compile(r"<a[^>]*href=[\"\'][^\"\'?>]*\?([^&\"\'=]+)")
+a_tag_regex = re.compile(r"<a[^>]*href=[\"\'][^\"\'#>]*\?([^\"\'#>]+)[\"\']")
 
 valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
 

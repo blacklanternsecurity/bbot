@@ -1,4 +1,6 @@
+import asyncio
 import sqlite3
+import multiprocessing
 from pathlib import Path
 from contextlib import suppress
 from shutil import copyfile, copymode
@@ -10,24 +12,26 @@ class gowitness(BaseModule):
     watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["active", "safe", "web-screenshots"]
-    meta = {"description": "Take screenshots of webpages"}
+    meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
     options = {
         "version": "2.4.2",
-        "threads": 4,
+        "threads": 0,
         "timeout": 10,
         "resolution_x": 1440,
         "resolution_y": 900,
         "output_path": "",
-        "social": True,
+        "social": False,
+        "idle_timeout": 1800,
     }
     options_desc = {
-        "version": "gowitness version",
-        "threads": "threads used to run",
-        "timeout": "preflight check timeout",
-        "resolution_x": "screenshot resolution x",
-        "resolution_y": "screenshot resolution y",
-        "output_path": "where to save screenshots",
+        "version": "Gowitness version",
+        "threads": "How many gowitness threads to spawn (default is number of CPUs x 2)",
+        "timeout": "Preflight check timeout",
+        "resolution_x": "Screenshot resolution x",
+        "resolution_y": "Screenshot resolution y",
+        "output_path": "Where to save screenshots",
         "social": "Whether to screenshot social media webpages",
+        "idle_timeout": "Skip the current gowitness batch if it stalls for longer than this many seconds",
     }
     deps_common = ["chromium"]
     deps_ansible = [
@@ -45,8 +49,13 @@ class gowitness(BaseModule):
     scope_distance_modifier = 2
 
     async def setup(self):
+        num_cpus = multiprocessing.cpu_count()
+        default_thread_count = min(20, num_cpus * 2)
         self.timeout = self.config.get("timeout", 10)
-        self.threads = self.config.get("threads", 4)
+        self.idle_timeout = self.config.get("idle_timeout", 1800)
+        self.threads = self.config.get("threads", 0)
+        if not self.threads:
+            self.threads = default_thread_count
         self.proxy = self.scan.config.get("http_proxy", "")
         self.resolution_x = self.config.get("resolution_x")
         self.resolution_y = self.config.get("resolution_y")
@@ -118,17 +127,27 @@ class gowitness(BaseModule):
             event_dict[key] = e
         stdin = "\n".join(list(event_dict))
 
-        async for line in self.run_process_live(self.command, input=stdin):
-            self.debug(line)
+        try:
+            async for line in self.run_process_live(self.command, input=stdin, idle_timeout=self.idle_timeout):
+                self.debug(line)
+        except asyncio.exceptions.TimeoutError:
+            urls_str = ",".join(event_dict)
+            self.warning(f"Gowitness timed out while visiting the following URLs: {urls_str}", trace=False)
+            return
 
         # emit web screenshots
         for filename, screenshot in self.new_screenshots.items():
             url = screenshot["url"]
             final_url = screenshot["final_url"]
-            filename = screenshot["filename"]
-            webscreenshot_data = {"filename": filename, "url": final_url}
-            source_event = event_dict[url]
-            await self.emit_event(webscreenshot_data, "WEBSCREENSHOT", source=source_event)
+            filename = self.screenshot_path / screenshot["filename"]
+            webscreenshot_data = {"filename": str(filename), "url": final_url}
+            parent_event = event_dict[url]
+            await self.emit_event(
+                webscreenshot_data,
+                "WEBSCREENSHOT",
+                parent=parent_event,
+                context=f"{{module}} visited {final_url} and saved {{event.type}} to {filename}",
+            )
 
         # emit URLs
         for url, row in self.new_network_logs.items():
@@ -137,21 +156,32 @@ class gowitness(BaseModule):
             tags = [f"status-{status_code}", f"ip-{ip}"]
 
             _id = row["url_id"]
-            source_url = self.screenshots_taken[_id]
-            source_event = event_dict[source_url]
-            if self.helpers.is_spider_danger(source_event, url):
+            parent_url = self.screenshots_taken[_id]
+            parent_event = event_dict[parent_url]
+            if self.helpers.is_spider_danger(parent_event, url):
                 tags.append("spider-danger")
             if url and url.startswith("http"):
-                await self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
+                await self.emit_event(
+                    url,
+                    "URL_UNVERIFIED",
+                    parent=parent_event,
+                    tags=tags,
+                    context=f"{{module}} visited {{event.type}}: {url}",
+                )
 
         # emit technologies
         for _, row in self.new_technologies.items():
-            source_id = row["url_id"]
-            source_url = self.screenshots_taken[source_id]
-            source_event = event_dict[source_url]
+            parent_id = row["url_id"]
+            parent_url = self.screenshots_taken[parent_id]
+            parent_event = event_dict[parent_url]
             technology = row["value"]
-            tech_data = {"technology": technology, "url": source_url, "host": str(source_event.host)}
-            await self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
+            tech_data = {"technology": technology, "url": parent_url, "host": str(parent_event.host)}
+            await self.emit_event(
+                tech_data,
+                "TECHNOLOGY",
+                parent=parent_event,
+                context=f"{{module}} visited {parent_url} and found {{event.type}}: {technology}",
+            )
 
     def construct_command(self):
         # base executable
@@ -175,6 +205,8 @@ class gowitness(BaseModule):
         command += ["file", "-f", "-"]
         # threads
         command += ["--threads", str(self.threads)]
+        # timeout
+        command += ["--timeout", str(self.timeout)]
         return command
 
     @property

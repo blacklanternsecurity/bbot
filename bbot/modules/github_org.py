@@ -5,7 +5,11 @@ class github_org(github):
     watched_events = ["ORG_STUB", "SOCIAL"]
     produced_events = ["CODE_REPOSITORY"]
     flags = ["passive", "subdomain-enum", "safe", "code-enum"]
-    meta = {"description": "Query Github's API for organization and member repositories"}
+    meta = {
+        "description": "Query Github's API for organization and member repositories",
+        "created_date": "2023-12-14",
+        "author": "@domwhewell-sage",
+    }
     options = {"api_key": "", "include_members": True, "include_member_repos": False}
     options_desc = {
         "api_key": "Github token",
@@ -55,21 +59,28 @@ class github_org(github):
                 self.verbose(f"Searching for repos belonging to user {user}")
                 repos = await self.query_user_repos(user)
             for repo_url in repos:
-                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", source=event)
+                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", parent=event)
                 if not repo_event:
                     continue
                 repo_event.scope_distance = event.scope_distance
-                await self.emit_event(repo_event)
+                await self.emit_event(
+                    repo_event,
+                    context=f"{{module}} listed repos for GitHub profile and discovered {{event.type}}: {repo_url}",
+                )
 
             # find members from org (SOCIAL --> SOCIAL)
             if is_org and self.include_members:
                 self.verbose(f"Searching for any members belonging to {user}")
                 org_members = await self.query_org_members(user)
                 for member in org_members:
-                    event_data = {"platform": "github", "profile_name": member, "url": f"https://github.com/{member}"}
-                    member_event = self.make_event(event_data, "SOCIAL", tags="github-org-member", source=event)
+                    member_url = f"https://github.com/{member}"
+                    event_data = {"platform": "github", "profile_name": member, "url": member_url}
+                    member_event = self.make_event(event_data, "SOCIAL", tags="github-org-member", parent=event)
                     if member_event:
-                        await self.emit_event(member_event)
+                        await self.emit_event(
+                            member_event,
+                            context=f"{{module}} listed members of GitHub organization and discovered {{event.type}}: {member_url}",
+                        )
 
         # find valid orgs from stub (ORG_STUB --> SOCIAL)
         elif event.type == "ORG_STUB":
@@ -82,11 +93,15 @@ class github_org(github):
                 self.verbose(f"Unable to validate that {user} is in-scope, skipping...")
                 return
 
-            event_data = {"platform": "github", "profile_name": user, "url": f"https://github.com/{user}"}
-            github_org_event = self.make_event(event_data, "SOCIAL", tags="github-org", source=event)
+            user_url = f"https://github.com/{user}"
+            event_data = {"platform": "github", "profile_name": user, "url": user_url}
+            github_org_event = self.make_event(event_data, "SOCIAL", tags="github-org", parent=event)
             if github_org_event:
                 github_org_event.scope_distance = event.scope_distance
-                await self.emit_event(github_org_event)
+                await self.emit_event(
+                    github_org_event,
+                    context=f'{{module}} tried "{user}" as GitHub profile and discovered {{event.type}}: {user_url}',
+                )
 
     async def query_org_repos(self, query):
         repos = []
