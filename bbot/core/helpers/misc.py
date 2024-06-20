@@ -1186,7 +1186,9 @@ def str_or_file(s):
         yield s
 
 
-split_regex = re.compile(r'[\s,]')
+split_regex = re.compile(r"[\s,]")
+
+
 def chain_lists(l, try_files=False, msg=None, remove_blank=True):
     """Chains together list elements, allowing for entries separated by commas.
 
