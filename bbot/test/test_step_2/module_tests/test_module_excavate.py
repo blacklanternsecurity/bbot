@@ -1,4 +1,7 @@
 from .base import ModuleTestBase
+from bbot.modules.internal.excavate import ExcavateRule
+
+import yara
 
 
 class TestExcavate(ModuleTestBase):
@@ -264,7 +267,7 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
         url_unverified_events = [e for e in events if e.type == "URL_UNVERIFIED"]
         # base URL + 25 links (10 w/o spider-danger) + 10 links (extracted from HTTP_RESPONSES, w/ spider-danger) == 36
         assert len(url_unverified_events) == 36
-        url_data = [e.data for e in url_unverified_events if "spider-danger" not in e.tags]
+        url_data = [e.data for e in url_unverified_events if "spider-max" not in e.tags]
         assert len(url_data) == 11
         assert "http://127.0.0.1:8888/10" in url_data
         assert "http://127.0.0.1:8888/11" not in url_data
@@ -375,7 +378,6 @@ class TestExcavateNonHttpScheme(TestExcavate):
 class TestExcavateParameterExtraction(TestExcavate):
 
     targets = ["http://127.0.0.1:8888/"]
-
     parameter_extraction_html = """
     <html>
     <head>
@@ -470,3 +472,62 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_form_post_original_value, "Did not extract Form POST parameter original_value"
         assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
+
+
+class excavateTestRule(ExcavateRule):
+    yara_rules = {
+        "SearchForText": 'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',
+        "SearchForText2": 'rule SearchForText2 { meta: description = "Contains the text DDDDEEEEFFFF" strings: $text2 = "DDDDEEEEFFFF" condition: $text2 }',
+    }
+
+
+class TestExcavateYara(TestExcavate):
+
+    #  modules_overrides = ["excavate", "httpx"]
+    targets = ["http://127.0.0.1:8888/"]
+    yara_test_html = """
+    <html>
+<head>
+</head>
+<body>
+<p>AAAABBBBCCCC</p>
+<p>filler</p>
+<p>DDDDEEEEFFFF</p>
+</body>
+</html>
+"""
+
+    async def setup_before_prep(self, module_test):
+
+        self.modules_overrides = ["excavate", "httpx"]
+        module_test.httpserver.expect_request("/").respond_with_data(self.yara_test_html)
+
+    async def setup_after_prep(self, module_test):
+
+        excavate_module = module_test.scan.modules["excavate"]
+        excavateruleinstance = excavateTestRule(excavate_module)
+        excavate_module.add_yara_rule(
+            "SearchForText",
+            'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',
+            excavateruleinstance,
+        )
+        excavate_module.add_yara_rule(
+            "SearchForText2",
+            'rule SearchForText2 { meta: description = "Contains the text DDDDEEEEFFFF" strings: $text2 = "DDDDEEEEFFFF" condition: $text2 }',
+            excavateruleinstance,
+        )
+        excavate_module.yara_rules = yara.compile(source="\n".join(excavate_module.yara_rules_dict.values()))
+
+    def check(self, module_test, events):
+        found_yara_string_1 = False
+        found_yara_string_2 = False
+        for e in events:
+
+            if e.type == "FINDING":
+                if e.data["description"] == "HTTP response (body) Contains the text AAAABBBBCCCC":
+                    found_yara_string_1 = True
+                if e.data["description"] == "HTTP response (body) Contains the text DDDDEEEEFFFF":
+                    found_yara_string_2 = True
+
+        assert found_yara_string_1, "Did not extract Match YARA rule (1)"
+        assert found_yara_string_2, "Did not extract Match YARA rule (2)"

@@ -98,10 +98,9 @@ class ExcavateRule:
             for result in results:
                 event_data = {"host": str(event.host), "url": event.data.get("url", "")}
                 event_data["description"] = f"{self.discovery_context} {yara_rule_settings.description}"
-                if yara_rule_settings["emit_match"]:
+                if yara_rule_settings.emit_match:
                     event_data["description"] += f" [{result}]"
                 await self.report(event_data, event, yara_rule_settings)
-
 
     async def report_prep(self, event_data, event_type, event, tags):
         event_draft = self.excavate.make_event(event_data, event_type, parent=event)
@@ -120,7 +119,6 @@ class ExcavateRule:
         tags = yara_rule_settings.tags
         event_draft = await self.report_prep(event_data, event_type, event, tags, **kwargs)
         await self.excavate.emit_event(event_draft, context=context, abort_if=abort_if)
-
 
     async def regex_search(self, content, regex):
         await self.excavate.helpers.sleep(0)
@@ -144,7 +142,7 @@ class CustomExtractor(ExcavateRule):
                 event_data["description"] = (
                     f"Custom Yara Rule [{self.name}]{description_string} Matched via identifier [{identifier}]"
                 )
-                if yara_rule_settings["emit_match"]:
+                if yara_rule_settings.emit_match:
                     event_data["description"] += f" and extracted [{result}]"
                 await self.report(event_data, event, yara_rule_settings)
 
@@ -597,13 +595,14 @@ class excavate(BaseInternalModule):
                             f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )
                     urls_found += 1
-                    await self.report(final_url, event, yara_rule_settings, event_type="URL_UNVERIFIED", urls_found=urls_found)
-                    
-    
+                    await self.report(
+                        final_url, event, yara_rule_settings, event_type="URL_UNVERIFIED", urls_found=urls_found
+                    )
+
         async def report_prep(self, event_data, event_type, event, tags, **kwargs):
             event_draft = self.excavate.make_event(event_data, event_type, parent=event)
             url_in_scope = self.excavate.scan.in_scope(event_draft)
-            urls_found = kwargs.get('urls_found', None)
+            urls_found = kwargs.get("urls_found", None)
             if urls_found:
                 self.excavate.hugewarning(urls_found)
                 exceeds_max_links = urls_found >= self.web_spider_links_per_page and url_in_scope
@@ -854,7 +853,6 @@ class excavate(BaseInternalModule):
                         await self.emit_event(data, "WEB_PARAMETER", event)
             if k.lower() == "content-type":
                 content_type = headers["content-type"]
-
         await self.search(
             body,
             event,
