@@ -43,11 +43,16 @@ class DepsInstaller:
         self.parent_helper.mkdir(self.command_status)
         self.setup_status = self.read_setup_status()
 
+<<<<<<< Updated upstream
         self.no_deps = self.parent_helper.config.get("no_deps", False)
         self.ansible_debug = True
         self.force_deps = self.parent_helper.config.get("force_deps", False)
         self.retry_deps = self.parent_helper.config.get("retry_deps", False)
         self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
+=======
+        self.deps_behavior = self.parent_helper.config.get("deps_behavior", "abort_on_failure").lower()
+        self.ansible_debug = self.core.logger.log_level <= logging.DEBUG
+>>>>>>> Stashed changes
         self.venv = ""
         if sys.prefix != sys.base_prefix:
             self.venv = sys.prefix
