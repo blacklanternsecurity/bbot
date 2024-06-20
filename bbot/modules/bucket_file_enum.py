@@ -4,13 +4,15 @@ import xml.etree.ElementTree as ET
 
 class bucket_file_enum(BaseModule):
     """
-    Enumerate files in a public bucket
+    Enumerate files in public storage buckets
+
+    Currently only supports AWS and DigitalOcean
     """
 
     watched_events = ["STORAGE_BUCKET"]
     produced_events = ["URL_UNVERIFIED"]
     meta = {
-        "description": "Works in conjunction with the filedownload module to download files from open storage buckets. Currently supported cloud providers: AWS",
+        "description": "Works in conjunction with the filedownload module to download files from open storage buckets. Currently supported cloud providers: AWS, DigitalOcean",
         "created_date": "2023-11-14",
         "author": "@TheTechromancer",
     }
