@@ -43,24 +43,21 @@ class internetdb(BaseModule):
         "created_date": "2023-12-22",
         "author": "@TheTechromancer",
     }
+    options = {"show_open_ports": False}
+    options_desc = {
+        "show_open_ports": "Display OPEN_TCP_PORT events in output, even if they didn't lead to an interesting discovery"
+    }
 
     _qsize = 500
 
     base_url = "https://internetdb.shodan.io"
 
     async def setup(self):
-        self.processed = set()
+        self.show_open_ports = self.config.get("show_open_ports", False)
         return True
 
-    async def filter_event(self, event):
-        ip = self.get_ip(event)
-        if ip:
-            ip_hash = hash(ip)
-            if ip_hash in self.processed:
-                return False, "IP was already processed"
-            self.processed.add(ip_hash)
-            return True
-        return False, "event had no valid IP addresses"
+    def _incoming_dedup_hash(self, event):
+        return hash(self.get_ip(event))
 
     async def handle_event(self, event):
         ip = self.get_ip(event)
@@ -115,7 +112,7 @@ class internetdb(BaseModule):
                 self.helpers.make_netloc(event.data, port),
                 "OPEN_TCP_PORT",
                 parent=event,
-                internal=True,
+                internal=(not self.show_open_ports),
                 quick=True,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
             )
