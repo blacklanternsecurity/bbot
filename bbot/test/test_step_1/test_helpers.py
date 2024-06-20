@@ -254,6 +254,73 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert replaced["asdf"][1][500] == True
     assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
 
+    filtered_dict = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
+    )
+    assert "api_key" in filtered_dict["modules"]["c99"]
+    assert "filterme" not in filtered_dict["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict["modules"]
+
+    filtered_dict2 = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
+    )
+    assert "api_key" in filtered_dict2["modules"]["c99"]
+    assert "filterme" in filtered_dict2["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict2["modules"]
+
+    filtered_dict3 = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
+        "key",
+        fuzzy=True,
+    )
+    assert "api_key" in filtered_dict3["modules"]["c99"]
+    assert "filterme" not in filtered_dict3["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict3["modules"]
+
+    filtered_dict4 = helpers.filter_dict(
+        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
+        "secret",
+        fuzzy=True,
+        exclude_keys="modules",
+    )
+    assert not "secrets_db" in filtered_dict4["modules"]
+    assert "ipneighbor" in filtered_dict4["modules"]
+    assert "secret" in filtered_dict4["modules"]["ipneighbor"]
+    assert "asdf" not in filtered_dict4["modules"]["ipneighbor"]
+
+    cleaned_dict = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
+    )
+    assert "api_key" not in cleaned_dict["modules"]["c99"]
+    assert "filterme" in cleaned_dict["modules"]["c99"]
+    assert "ipneighbor" in cleaned_dict["modules"]
+
+    cleaned_dict2 = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
+    )
+    assert "c99" not in cleaned_dict2["modules"]
+    assert "ipneighbor" in cleaned_dict2["modules"]
+
+    cleaned_dict3 = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
+        "key",
+        fuzzy=True,
+    )
+    assert "api_key" not in cleaned_dict3["modules"]["c99"]
+    assert "filterme" in cleaned_dict3["modules"]["c99"]
+    assert "ipneighbor" in cleaned_dict3["modules"]
+
+    cleaned_dict4 = helpers.clean_dict(
+        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
+        "secret",
+        fuzzy=True,
+        exclude_keys="modules",
+    )
+    assert "secrets_db" in cleaned_dict4["modules"]
+    assert "ipneighbor" in cleaned_dict4["modules"]
+    assert "secret" not in cleaned_dict4["modules"]["ipneighbor"]
+    assert "asdf" in cleaned_dict4["modules"]["ipneighbor"]
+
     assert helpers.split_list([1, 2, 3, 4, 5]) == [[1, 2], [3, 4, 5]]
     assert list(helpers.grouper("ABCDEFG", 3)) == [["A", "B", "C"], ["D", "E", "F"], ["G"]]
 
