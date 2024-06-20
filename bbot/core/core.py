@@ -111,7 +111,7 @@ class BBOTCore:
         self._config = None
         # ensure the modules key is always a dictionary
         modules_entry = value.get("modules", None)
-        if not OmegaConf.is_dict(modules_entry):
+        if modules_entry is not None and not OmegaConf.is_dict(modules_entry):
             value["modules"] = {}
         self._custom_config = value
 
