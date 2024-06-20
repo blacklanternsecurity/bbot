@@ -127,8 +127,13 @@ class URLExtractor(BaseExtractor):
                         )
                     self.excavate.debug(f"Tagging {url_event} as spider-danger because {reason}")
                     url_event.add_tag("spider-danger")
-
-                self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
+                if "url" in event.data:
+                    message = f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]"
+                else:
+                    message = (
+                        f"Found URL [{result}] from parsing [{event.parent.data.get('path')}] with regex [{name}]"
+                    )
+                self.excavate.debug(message)
                 await self.excavate.emit_event(url_event)
                 if url_in_scope:
                     urls_found += 1
@@ -219,7 +224,6 @@ class EmailExtractor(BaseExtractor):
         result = result.lower()
         tld = result.split(".")[-1]
         if tld not in self.tld_blacklist:
-            self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
             await self.excavate.emit_event(
                 result,
                 "EMAIL_ADDRESS",
@@ -378,7 +382,7 @@ class JavascriptExtractor(BaseExtractor):
 
 
 class excavate(BaseInternalModule):
-    watched_events = ["HTTP_RESPONSE"]
+    watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive"]
     meta = {

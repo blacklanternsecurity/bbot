@@ -1,0 +1,108 @@
+name: Version Updater
+on:
+  schedule:
+    # Runs at 00:00 every day
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Adds the ability to manually trigger the workflow
+
+jobs:
+  update-nuclei-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: dev
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      - name: Get latest version
+        id: get-latest-version
+        run: |
+          import os, requests
+          response = requests.get('https://api.github.com/repos/projectdiscovery/nuclei/releases/latest')
+          version = response.json()['tag_name'].lstrip('v')
+          release_notes = response.json()['body']
+          os.system(f"echo 'latest_version={version}' >> $GITHUB_ENV")
+          os.system(f"echo 'release_notes={release_notes}' >> $GITHUB_ENV")
+        shell: python
+      - name: Get current version
+        id: get-current-version
+        run: |
+          version=$(grep -m 1 -oP '(?<=version": ")[^"]*' bbot/modules/deadly/nuclei.py)
+          echo "current_version=$version" >> $GITHUB_ENV
+      - name: Update version
+        id: update-version
+        if: env.latest_version != env.current_version
+        run: "sed -i '0,/\"version\": \".*\",/ s/\"version\": \".*\",/\"version\": \"${{ env.latest_version }}\",/g' bbot/modules/deadly/nuclei.py"
+      - name: Create pull request to update the version
+        if: steps.update-version.outcome == 'success'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update nuclei"
+          title: "Update nuclei to ${{ env.latest_version }}"
+          body: |
+            This PR uses https://api.github.com/repos/projectdiscovery/nuclei/releases/latest to obtain the latest version of nuclei and update the version in bbot/modules/deadly/nuclei.py."
+
+            Release notes:
+            ${{ env.release_notes }}
+          branch: "update-nuclei"
+          committer: GitHub <noreply@github.com>
+          author: GitHub <noreply@github.com>
+          assignees: "TheTechromancer"
+  update-trufflehog-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: dev
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      - name: Get latest version
+        id: get-latest-version
+        run: |
+          import os, requests
+          response = requests.get('https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest')
+          version = response.json()['tag_name'].lstrip('v')
+          release_notes = response.json()['body']
+          os.system(f"echo 'latest_version={version}' >> $GITHUB_ENV")
+          os.system(f"echo 'release_notes={release_notes}' >> $GITHUB_ENV")
+        shell: python
+      - name: Get current version
+        id: get-current-version
+        run: |
+          version=$(grep -m 1 -oP '(?<=version": ")[^"]*' bbot/modules/trufflehog.py)
+          echo "current_version=$version" >> $GITHUB_ENV
+      - name: Update version
+        id: update-version
+        if: env.latest_version != env.current_version
+        run: "sed -i '0,/\"version\": \".*\",/ s/\"version\": \".*\",/\"version\": \"${{ env.latest_version }}\",/g' bbot/modules/trufflehog.py"
+      - name: Create pull request to update the version
+        if: steps.update-version.outcome == 'success'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update trufflehog"
+          title: "Update trufflehog to ${{ env.latest_version }}"
+          body: |
+            This PR uses https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest to obtain the latest version of trufflehog and update the version in bbot/modules/trufflehog.py.
+
+            Release notes:
+            ${{ env.release_notes }}
+          branch: "update-trufflehog"
+          committer: GitHub <noreply@github.com>
+          author: GitHub <noreply@github.com>
+          assignees: "TheTechromancer"
