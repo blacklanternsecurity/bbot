@@ -91,7 +91,7 @@ class wpscan(BaseModule):
             await self.handle_technology(event)
 
     async def handle_http_response(self, source_event):
-        url = source_event.parsed._replace(path="/").geturl()
+        url = source_event.parsed_url._replace(path="/").geturl()
         command = self.construct_command(url)
         output = await self.run_process(command)
         for new_event in self.parse_wpscan_output(output.stdout, url, source_event):
