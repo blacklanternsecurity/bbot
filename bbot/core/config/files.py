@@ -33,7 +33,11 @@ class BBOTConfigFiles:
             return OmegaConf.create()
 
     def get_custom_config(self):
-        return self._get_config(self.config_filename, name="config")
+        return OmegaConf.merge(
+            default_config,
+            self._get_config(self.config_filename, name="config"),
+            self._get_config(self.secrets_filename, name="secrets"),
+        )
 
     def get_default_config(self):
         return self._get_config(self.defaults_filename, name="defaults")
