@@ -539,16 +539,16 @@ def test_preset_conditions():
     mkdir(custom_preset_dir_1)
     mkdir(custom_preset_dir_2)
 
-    preset_file_1 = custom_preset_dir_1 / "preset1.yml"
+    preset_file_1 = custom_preset_dir_1 / "preset_condition_1.yml"
     with open(preset_file_1, "w") as f:
         f.write(
             """
 include:
-  - preset2
+  - preset_condition_2
 """
         )
 
-    preset_file_2 = custom_preset_dir_2 / "preset2.yml"
+    preset_file_2 = custom_preset_dir_2 / "preset_condition_2.yml"
     with open(preset_file_2, "w") as f:
         f.write(
             """
