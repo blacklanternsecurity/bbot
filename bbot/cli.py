@@ -4,7 +4,8 @@ import sys
 import logging
 from bbot.errors import *
 from bbot import __version__
-from bbot.core.helpers.logger import log_to_stderr
+from bbot.logger import log_to_stderr
+
 
 silent = "-s" in sys.argv or "--silent" in sys.argv
 
