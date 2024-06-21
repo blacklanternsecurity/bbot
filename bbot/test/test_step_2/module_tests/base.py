@@ -23,19 +23,6 @@ def tempwordlist(content):
     return filename
 
 
-class MockRecord:
-    def __init__(self, record, rdtype):
-        self.rdtype = SimpleNamespace()
-        self.rdtype.name = rdtype
-        self.record = record
-
-    def __str__(self):
-        return self.record
-
-    def to_text(self):
-        return str(self)
-
-
 class ModuleTestBase:
     targets = ["blacklanternsecurity.com"]
     scan_name = None
