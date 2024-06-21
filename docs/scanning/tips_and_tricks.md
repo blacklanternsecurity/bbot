@@ -10,6 +10,12 @@ Press enter during a BBOT scan to change the log level. This will allow you to s
 ## Kill Individual Module During Scan
 Sometimes a certain module can get stuck or slow down the scan. If this happens and you want to kill it, just type "`kill <module>`" in the terminal and press enter. This will kill and disable the module for the rest of the scan.
 
+You can also kill multiple modules at a time by specifying them in a space or comma-separated list:
+
+```bash
+kill httpx sslcert
+```
+
 <img src="https://github.com/blacklanternsecurity/bbot/assets/20261699/61ad7123-8879-4c86-afdd-e96d7264b67c" style="max-width: 45em !important"/>
 
 ## Common Config Changes
