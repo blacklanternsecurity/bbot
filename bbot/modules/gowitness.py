@@ -153,7 +153,7 @@ class gowitness(BaseModule):
         for url, row in self.new_network_logs.items():
             ip = row["ip"]
             status_code = row["status_code"]
-            tags = [f"status-{status_code}", f"ip-{ip}"]
+            tags = [f"status-{status_code}", f"ip-{ip}", "spider-danger"]
 
             _id = row["url_id"]
             parent_url = self.screenshots_taken[_id]
@@ -163,7 +163,7 @@ class gowitness(BaseModule):
                     url,
                     "URL_UNVERIFIED",
                     parent=parent_event,
-                    tags=["spider-danger"],
+                    tags=tags,
                     context=f"{{module}} visited {{event.type}}: {url}",
                 )
 

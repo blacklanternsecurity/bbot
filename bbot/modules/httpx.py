@@ -87,7 +87,7 @@ class httpx(BaseModule):
             if event.parsed_url.path == "/":
                 url_hash = hash((event.host, event.port, has_spider_max))
         else:
-            url = str(e.data)
+            url = str(event.data)
             url_hash = hash((event.host, event.port, has_spider_max))
         if url_hash == None:
             url_hash = hash((url, has_spider_max))
