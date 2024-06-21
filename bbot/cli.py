@@ -18,6 +18,7 @@ from bbot.core.logger import get_log_level, toggle_log_level
 import bbot.core.errors
 from bbot import __version__
 from bbot.modules import module_loader
+from bbot.core.helpers.misc import chain_lists
 from bbot.core.configurator.args import parser
 from bbot.core.helpers.logger import log_to_stderr
 from bbot.core.configurator import ensure_config_files, check_cli_args, environ
@@ -320,17 +321,20 @@ async def _main():
                             input()
 
                         def handle_keyboard_input(keyboard_input):
-                            kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
+                            kill_regex = re.compile(r"kill (?P<modules>[a-z0-9_ ,]+)")
                             if keyboard_input:
                                 log.verbose(f'Got keyboard input: "{keyboard_input}"')
                                 kill_match = kill_regex.match(keyboard_input)
                                 if kill_match:
-                                    module = kill_match.group("module")
-                                    if module in scanner.modules:
-                                        log.hugewarning(f'Killing module: "{module}"')
-                                        scanner.manager.kill_module(module, message="killed by user")
-                                    else:
-                                        log.warning(f'Invalid module: "{module}"')
+                                    modules = kill_match.group("modules")
+                                    if modules:
+                                        modules = chain_lists(modules)
+                                        for module in modules:
+                                            if module in scanner.modules:
+                                                log.hugewarning(f'Killing module: "{module}"')
+                                                scanner.manager.kill_module(module, message="killed by user")
+                                            else:
+                                                log.warning(f'Invalid module: "{module}"')
                             else:
                                 toggle_log_level(logger=log)
                                 scanner.manager.modules_status(_log=True)
