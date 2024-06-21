@@ -600,7 +600,7 @@ class excavate(BaseInternalModule):
             urls_found = kwargs.get("urls_found", None)
             if urls_found:
                 self.excavate.hugewarning(urls_found)
-                exceeds_max_links = urls_found >= self.web_spider_links_per_page and url_in_scope
+                exceeds_max_links = urls_found > self.web_spider_links_per_page and url_in_scope
                 self.excavate.hugewarning(f"Exceeds max links? {str(exceeds_max_links)}")
                 if exceeds_max_links:
                     tags.append("spider-max")
