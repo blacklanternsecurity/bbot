@@ -120,11 +120,6 @@ class ExcavateRule:
         event_draft = await self.report_prep(event_data, event_type, event, tags, **kwargs)
         await self.excavate.emit_event(event_draft, context=context, abort_if=abort_if)
 
-    async def regex_search(self, content, regex):
-        await self.excavate.helpers.sleep(0)
-        for result in await self.helpers.re.findall(regex, content):
-            yield result
-
 
 class CustomExtractor(ExcavateRule):
 
@@ -332,7 +327,7 @@ class excavate(BaseInternalModule):
             regexes_component_list = []
             parameterExtractorRules = find_subclasses(self, self.ParameterExtractorRule)
             for r in parameterExtractorRules:
-                self.excavate.critical(f"Including ParameterExtractor Submodule: {r.__name__}")
+                self.excavate.verbose(f"Including ParameterExtractor Submodule: {r.__name__}")
                 self.parameterExtractorCallbackDict[r.__name__] = r
                 regexes_component_list.append(f"${r.__name__} = {r.discovery_regex}")
             regexes_component = " ".join(regexes_component_list)
@@ -671,7 +666,7 @@ class excavate(BaseInternalModule):
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
-                    self.critical(f"Including Submodule {e.__name__}")
+                    self.verbose(f"Including Submodule {e.__name__}")
                     if e.__name__ == "ParameterExtractor":
                         message = (
                             "Parameter Extraction disabled because no modules consume WEB_PARAMETER events"
@@ -827,7 +822,8 @@ class excavate(BaseInternalModule):
                             "url": self.url_unparse("COOKIE", event.parsed_url),
                             "description": description,
                         }
-                        await self.emit_event(data, "WEB_PARAMETER", event)
+                        context = f"Excavate noticed a set-cookie header for cookie [{cookie_name}] and emitted a WEB_PARAMETER for it"
+                        await self.emit_event(data, "WEB_PARAMETER", event, context=context)
                     else:
                         self.debug(f"blocked cookie parameter [{cookie_name}] due to BL match")
             if k.lower() == "location":
@@ -850,7 +846,8 @@ class excavate(BaseInternalModule):
                             "description": description,
                             "additional_params": additional_params,
                         }
-                        await self.emit_event(data, "WEB_PARAMETER", event)
+                        context = f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
+                        await self.emit_event(data, "WEB_PARAMETER", event, context=context)
             if k.lower() == "content-type":
                 content_type = headers["content-type"]
         await self.search(

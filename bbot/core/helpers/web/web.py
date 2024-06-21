@@ -480,7 +480,6 @@ class WebHelper(EngineClient):
     user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
     pass_keywords = [re.compile(r, re.I) for r in ["pass"]]
 
-
     # DO NOT LEAVE THIS HERE
     def is_spider_danger(self, source_event, url):
         return False

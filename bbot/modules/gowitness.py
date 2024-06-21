@@ -158,14 +158,12 @@ class gowitness(BaseModule):
             _id = row["url_id"]
             parent_url = self.screenshots_taken[_id]
             parent_event = event_dict[parent_url]
-            if self.helpers.is_spider_danger(parent_event, url):
-                tags.append("spider-danger")
             if url and url.startswith("http"):
                 await self.emit_event(
                     url,
                     "URL_UNVERIFIED",
                     parent=parent_event,
-                    tags=tags,
+                    tags=["spider-danger"],
                     context=f"{{module}} visited {{event.type}}: {url}",
                 )
 

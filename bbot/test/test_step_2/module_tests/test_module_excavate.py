@@ -86,21 +86,17 @@ class TestExcavate(ModuleTestBase):
         assert any(
             e.type == "URL_UNVERIFIED"
             and e.data == "http://127.0.0.1:8888/relative.html"
-            and "spider-danger" not in e.tags
+            and "spider-max" not in e.tags
             for e in events
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED"
-            and e.data == "http://127.0.0.1:8888/2/depth2.html"
-            and "spider-danger" in e.tags
+            e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/2/depth2.html" and "spider-max" in e.tags
             for e in events
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED"
-            and e.data == "http://127.0.0.1:8888/distance2.html"
-            and "spider-danger" in e.tags
+            e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/distance2.html" and "spider-max" in e.tags
             for e in events
         )
 
@@ -182,7 +178,16 @@ class TestExcavateRedirect(TestExcavate):
         module_test.httpserver.no_handler_status_code = 404
 
     def check(self, module_test, events):
-        assert 2 == len(
+
+        for e in events:
+            self.log.critical(e)
+            self.log.critical(e.type)
+            if e.type == "URL_UNVERIFIED":
+                self.log.critical("??????")
+                self.log.critical(e.scope_distance)
+                self.log.critical(e.web_spider_distance)
+
+        assert 1 == len(
             [
                 e
                 for e in events

@@ -55,7 +55,6 @@ class httpx(BaseModule):
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.store_responses = self.config.get("store_responses", False)
         self.probe_all_ips = self.config.get("probe_all_ips", False)
-        self.visited = set()
         self.httpx_tempdir_regex = re.compile(r"^httpx\d+$")
         return True
 
@@ -69,34 +68,42 @@ class httpx(BaseModule):
         if event.module == self:
             return False, "event is from self"
 
-        if "spider-danger" in event.tags:
-            return False, "event has spider danger"
+        if "spider-max" in event.tags:
+            return False, "event exceeds spidering limits"
 
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
         safe_to_visit = "httpx-safe" in event.tags
         if not safe_to_visit and (in_scope_only and not self.scan.in_scope(event)):
             return False, "event is not in scope"
-
         return True
+
+    def make_url_metadata(self, event):
+        has_spider_max = "spider-max" in event.tags
+        url_hash = None
+        if event.type.startswith("URL"):
+            # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
+            url = event.with_port().geturl()
+            if event.parsed_url.path == "/":
+                url_hash = hash((event.host, event.port, has_spider_max))
+        else:
+            url = str(e.data)
+            url_hash = hash((event.host, event.port, has_spider_max))
+        if url_hash == None:
+            url_hash = hash((url, has_spider_max))
+        return url, url_hash
+
+    def _incoming_dedup_hash(self, event):
+
+        url, url_hash = self.make_url_metadata(event)
+        return url_hash
 
     async def handle_batch(self, *events):
         stdin = {}
-        for e in events:
-            url_hash = None
-            if e.type.startswith("URL"):
-                # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
-                url = e.with_port().geturl()
-                if e.parsed_url.path == "/":
-                    url_hash = hash((e.host, e.port))
-            else:
-                url = str(e.data)
-                url_hash = hash((e.host, e.port))
 
-            if url_hash not in self.visited:
-                stdin[url] = e
-                if url_hash is not None:
-                    self.visited.add(url_hash)
+        for event in events:
+            url, url_hash = self.make_url_metadata(event)
+            stdin[url] = event
 
         if not stdin:
             return

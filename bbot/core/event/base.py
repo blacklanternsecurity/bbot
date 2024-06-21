@@ -20,6 +20,7 @@ from bbot.core.helpers import (
     is_ip,
     is_ptr,
     is_uri,
+    url_depth,
     domain_stem,
     make_netloc,
     make_ip_type,
@@ -155,6 +156,7 @@ class BaseEvent:
         self._module_priority = None
         self._resolved_hosts = set()
         self.dns_children = dict()
+        self._discovery_context = ""
 
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
@@ -169,7 +171,8 @@ class BaseEvent:
 
         self._tags = set()
         if tags is not None:
-            self._tags = set(tagify(s) for s in tags)
+            for tag in tags:
+                self.add_tag(tag)
 
         self._data = None
         self._type = event_type
@@ -216,10 +219,8 @@ class BaseEvent:
 
         # inherit web spider distance from parent
         self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
-
         if not context:
             context = getattr(self.module, "default_discovery_context", "")
-        self._discovery_context = ""
         if context:
             self.discovery_context = context
 
@@ -361,9 +362,11 @@ class BaseEvent:
 
     @tags.setter
     def tags(self, tags):
+        self._tags = set()
         if isinstance(tags, str):
             tags = (tags,)
-        self._tags = set(tagify(s) for s in tags)
+        for tag in tags:
+            self.add_tag(tag)
 
     def add_tag(self, tag):
         self._tags.add(tagify(tag))
@@ -950,9 +953,6 @@ class URL_UNVERIFIED(BaseEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # increment the web spider distance
-        if self.type == "URL_UNVERIFIED" and "spider-danger" in self.tags:
-            self.web_spider_distance += 1
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
     def sanitize_data(self, data):
@@ -977,6 +977,27 @@ class URL_UNVERIFIED(BaseEvent):
         data = self.parsed_url.geturl()
         return data
 
+    def add_tag(self, tag):
+        if tag == "spider-danger":
+            # increment the web spider distance
+            if self.type == "URL_UNVERIFIED":
+                self.web_spider_distance += 1
+            if self.is_spider_max:
+                self.add_tag("spider-max")
+        super().add_tag(tag)
+
+    @property
+    def is_spider_max(self):
+
+        if self.scan:
+            web_spider_distance = self.scan.config.get("web_spider_distance", 0)
+            web_spider_depth = self.scan.config.get("web_spider_depth", 1)
+            depth = url_depth(self.parsed_url)
+            if (self.web_spider_distance > web_spider_distance) or (depth > web_spider_depth):
+                return True
+
+        return False
+
     def with_port(self):
         netloc_with_port = make_netloc(self.host, self.port)
         return self.parsed_url._replace(netloc=netloc_with_port)
@@ -989,13 +1010,6 @@ class URL_UNVERIFIED(BaseEvent):
 
     def _host(self):
         return make_ip_type(self.parsed_url.hostname)
-
-    def _data_id(self):
-        # consider spider-danger tag when deduping
-        data = super()._data_id()
-        if "spider-danger" in self.tags:
-            data = "spider-danger" + data
-        return data
 
     @property
     def http_status(self):
