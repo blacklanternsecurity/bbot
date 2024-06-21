@@ -354,6 +354,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert "nope" in helpers.str_or_file("nope")
     assert tuple(helpers.chain_lists([str(test_file), "nope"], try_files=True)) == ("asdf", "fdsa", "nope")
     assert tuple(helpers.chain_lists("one, two", try_files=True)) == ("one", "two")
+    assert tuple(helpers.chain_lists("one, two three ,four five")) == ("one", "two", "three", "four", "five")
     assert test_file.is_file()
 
     with pytest.raises(DirectoryCreationError, match="Failed to create.*"):
@@ -744,66 +745,42 @@ async def test_async_helpers():
     assert sorted(random_ints) == sorted(results)
 
 
-# test parse_port_string helper
-
-
-def test_portparse_singleports(helpers):
+def test_portparse(helpers):
     assert helpers.parse_port_string("80,443,22") == [80, 443, 22]
     assert helpers.parse_port_string(80) == [80]
 
-
-def test_portparse_range_valid(helpers):
     assert helpers.parse_port_string("80,443,22,1000-1002") == [80, 443, 22, 1000, 1001, 1002]
 
-
-def test_portparse_invalidport(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,70000")
     assert str(e.value) == "Invalid port: 70000"
 
-
-def test_portparse_range_invalid(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,1000-70000")
     assert str(e.value) == "Invalid port range: 1000-70000"
 
-
-def test_portparse_range_morethantwoparts(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,1000-1001-1002")
     assert str(e.value) == "Invalid port or port range: 1000-1001-1002"
 
-
-def test_portparse_range_startgreaterthanend(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,1002-1000")
     assert str(e.value) == "Invalid port range: 1002-1000"
 
-
-def test_portparse_nonnumericinput(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,foo")
     assert str(e.value) == "Invalid port or port range: foo"
 
 
-# test parse_list_string helper
-
-
-def test_liststring_valid_strings(helpers):
+def test_liststring(helpers):
     assert helpers.parse_list_string("hello,world,bbot") == ["hello", "world", "bbot"]
 
-
-def test_liststring_invalid_string(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_list_string("hello,world,\x01")
     assert str(e.value) == "Invalid character in string: \x01"
 
-
-def test_liststring_singleitem(helpers):
     assert helpers.parse_list_string("hello") == ["hello"]
 
-
-def test_liststring_invalidfnchars(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_list_string("hello,world,bbot|test")
     assert str(e.value) == "Invalid character in string: bbot|test"

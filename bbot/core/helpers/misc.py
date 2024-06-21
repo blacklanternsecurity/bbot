@@ -1160,6 +1160,9 @@ def str_or_file(s):
         yield s
 
 
+split_regex = re.compile(r"[\s,]")
+
+
 def chain_lists(l, try_files=False, msg=None, remove_blank=True):
     """Chains together list elements, allowing for entries separated by commas.
 
@@ -1188,7 +1191,7 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
         l = [l]
     final_list = dict()
     for entry in l:
-        for s in entry.split(","):
+        for s in split_regex.split(entry):
             f = s.strip()
             f_path = Path(f).resolve()
             if try_files and f_path.is_file():
