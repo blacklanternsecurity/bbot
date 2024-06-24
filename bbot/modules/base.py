@@ -682,7 +682,12 @@ class BaseModule:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
         # exclude certain URLs (e.g. javascript):
-        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
+        if (
+            event.type.startswith("URL")
+            and self.name != "httpx"
+            and self.name != "baddns"
+            and "httpx-only" in event.tags
+        ):
             return False, "its extension was listed in url_extension_httpx_only"
 
         return True, "precheck succeeded"

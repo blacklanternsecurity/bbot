@@ -65,3 +65,36 @@ class TestBaddns_cname_signature(BaseTestBaddns):
             e.type == "VULNERABILITY" and "bigcartel.com" in e.data["description"] for e in events
         ), "Failed to emit VULNERABILITY"
         assert any("baddns-cname" in e.tags for e in events), "Failed to add baddns tag"
+
+
+class TestBaddns_references(BaseTestBaddns):
+    targets = ["bad.dns:8888"]
+    modules_overrides = ["baddns", "speculate"]
+
+    async def setup_after_prep(self, module_test):
+        from bbot.modules import baddns as baddns_module
+        from baddns.base import BadDNS_base
+        from baddns.lib.whoismanager import WhoisManager
+
+        def set_target(self, target):
+            return "127.0.0.1:8888"
+
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "<html><script src='distance1.bad.dns/script.js'></html>", "status": 200}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        module_test.mock_dns(
+            {"bad.dns": {"CNAME": ["distance1.azurewebsites.net."]}, "_NXDOMAIN": ["distance1.azurewebsites.net"]}
+        )
+
+        module_test.monkeypatch.setattr(baddns_module.baddns, "select_modules", self.select_modules)
+        module_test.monkeypatch.setattr(BadDNS_base, "set_target", set_target)
+        module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
+
+    def check(self, module_test, events):
+        assert any(
+            e.type == "VULNERABILITY"
+            and e.data["description"]
+            == "Dangling CNAME, probable subdomain takeover (NXDOMAIN technique). Confidence: [PROBABLE] Signature: [Microsoft Azure Takeover Detection] Indicator: [azurewebsites.net] Trigger: [distance1.azurewebsites.net] baddns Module: [CNAME]"
+            for e in events
+        ), "Failed to emit VULNERABILITY from reference JS"

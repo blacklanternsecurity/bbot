@@ -10,7 +10,7 @@ include_logger(logging.getLogger("baddns"))
 
 
 class baddns(BaseModule):
-    watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
+    watched_events = ["URL", "URL_UNVERIFIED", "DNS_NAME", "DNS_NAME_UNRESOLVED"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "web-basic", "baddns", "cloud-enum", "subdomain-hijack"]
     meta = {
@@ -26,10 +26,14 @@ class baddns(BaseModule):
     max_event_handlers = 8
     deps_pip = ["baddns~=1.1.789"]
 
+    per_host_only = True
+    scope_distance_modifier = 1
+
     def select_modules(self):
         selected_modules = []
         for m in get_all_modules():
-            if m.name in ["CNAME", "NS", "MX", "references", "TXT"]:
+            # We don't include the references module in the bbot version, since bbot is already recursively parsing links
+            if m.name in ["CNAME", "NS", "MX", "TXT"]:
                 selected_modules.append(m)
         return selected_modules
 
@@ -88,3 +92,12 @@ class baddns(BaseModule):
                                 await self.emit_event(
                                     found_domain, "DNS_NAME", event, tags=[f"baddns-{module_instance.name.lower()}"]
                                 )
+
+    # instead of using the baddns references module, we just allow in js/css that comes from distance-1
+    async def filter_event(self, event):
+        if event.type.startswith("URL") and "distance-1" in event.tags:
+            if "extension-js" in event.tags or "extension-css" in event.tags:
+                return True
+            else:
+                return False
+        return True
