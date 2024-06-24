@@ -98,7 +98,7 @@ class baddns(BaseModule):
 
     # instead of using the baddns references module, we just allow in js/css that comes from distance-1
     async def filter_event(self, event):
-        if "distance-1" in event.tags:
+        if event.scope_distance == 1:
             if event.type.startswith("URL"):
                 if "extension-js" in event.tags or "extension-css" in event.tags:
                     return True
