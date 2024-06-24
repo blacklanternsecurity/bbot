@@ -1229,7 +1229,7 @@ def chain_lists(
         l = [l]
     final_list = dict()
     for entry in l:
-        for s in entry.split(","):
+        for s in split_regex.split(entry):
             f = s.strip()
             if validate:
                 if any((c in validate_chars) or (ord(c) < 32 and c != " ") for c in f):
