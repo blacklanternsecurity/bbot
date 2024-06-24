@@ -1123,7 +1123,7 @@ def chain_lists(
         msg (str, optional): An optional message to log when reading from a file. Defaults to None.
         remove_blank (bool, optional): Whether to remove blank entries from the list. Defaults to True.
         validate (bool, optional): Whether to perform validation for undesirable characters. Defaults to False.
-        validate (str, optional): When performing validation, what additional set of characters to block (blocks non-printable ascii automatically). Defaults to '<>:"/\\|?*)'
+        validate_chars (str, optional): When performing validation, what additional set of characters to block (blocks non-printable ascii automatically). Defaults to '<>:"/\\|?*)'
 
     Returns:
         list: The list of chained elements.
