@@ -387,18 +387,20 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "3.1.0.318"
+version = "5.0.1.445"
 description = "Check whether an IP address belongs to a cloud provider"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "cloudcheck-3.1.0.318-py3-none-any.whl", hash = "sha256:471dba97531e1f60aadab8daa6cb1d63727f67c16fd7b4758db46c9af2f362f1"},
-    {file = "cloudcheck-3.1.0.318.tar.gz", hash = "sha256:ba7fcc026817aa05f74c7789d2ac306469f3143f91b3ea9f95c57c70a7b0b787"},
+    {file = "cloudcheck-5.0.1.445-py3-none-any.whl", hash = "sha256:ef8b91827144bf8a4b682826c044e0e01c72c393fefb7f950632d404208b911b"},
+    {file = "cloudcheck-5.0.1.445.tar.gz", hash = "sha256:aa795d6ebe8636e9e422c162015d943c8b4001856d992a726c52a1f3c28dc7c0"},
 ]
 
 [package.dependencies]
 httpx = ">=0.26,<0.28"
 pydantic = ">=2.4.2,<3.0.0"
+radixtarget = ">=1.0.0.14,<2.0.0.0"
+regex = ">=2024.4.16,<2025.0.0"
 
 [[package]]
 name = "colorama"
@@ -1983,6 +1985,17 @@ files = [
 pyyaml = "*"
 
 [[package]]
+name = "radixtarget"
+version = "1.1.0.18"
+description = "Check whether an IP address belongs to a cloud provider"
+optional = false
+python-versions = "<4.0,>=3.9"
+files = [
+    {file = "radixtarget-1.1.0.18-py3-none-any.whl", hash = "sha256:05e95de6afb0ee4dfa31c53bd25a34a193ae5bb46dc7624e0424bbcfed2c4cea"},
+    {file = "radixtarget-1.1.0.18.tar.gz", hash = "sha256:1a3306891a22f7ff2c71d6cd42202af8852cdb4fb68e9a1e9a76a3f60aa98ab6"},
+]
+
+[[package]]
 name = "regex"
 version = "2024.4.16"
 description = "Alternative regular expression module, to replace re."
@@ -2524,4 +2537,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "e4f9f370977b072794f49e3b9ac6fb383eb633b839d62693c02ef05494141b93"
+content-hash = "1f17ee3566bbd2fa01e3406f59775bbb904bba1cf3efb01633b602ba96a90e13"
