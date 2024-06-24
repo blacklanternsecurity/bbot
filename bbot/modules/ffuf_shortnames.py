@@ -3,7 +3,7 @@ import random
 import string
 
 from bbot.modules.deadly.ffuf import ffuf
-from bbot.core.helpers.misc import parse_list_string
+from bbot.core.helpers.misc import chain_lists
 
 
 def find_common_prefixes(strings, minimum_set_length=4):
@@ -83,7 +83,7 @@ class ffuf_shortnames(ffuf):
         self.wordlist_extensions = await self.helpers.wordlist(wordlist_extensions)
 
         try:
-            self.extensions = parse_list_string(self.config.get("extensions", ""))
+            self.extensions = chain_lists(self.config.get("extensions", ""), validate=True)
             self.debug(f"Using custom extensions: [{','.join(self.extensions)}]")
         except ValueError as e:
             return False, f"Error parsing extensions: {e}"
