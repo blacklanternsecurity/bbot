@@ -811,7 +811,7 @@ class BaseEvent:
 
 class SCAN(BaseEvent):
     def _data_human(self):
-        return
+        return f"{self.data['name']} ({self.data['id']})"
 
 
 class FINISHED(BaseEvent):

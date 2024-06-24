@@ -145,7 +145,8 @@ class BBOTArgs:
         args_preset.scan_name = self.parsed.name
         args_preset.output_dir = self.parsed.output_dir
         args_preset.force_start = self.parsed.force
-        args_preset.core.merge_custom({"http_headers": self.parsed.custom_headers})
+        if self.parsed.custom_headers:
+            args_preset.core.merge_custom({"http_headers": self.parsed.custom_headers})
 
         # CLI config options (dot-syntax)
         for config_arg in self.parsed.config:

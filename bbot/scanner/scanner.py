@@ -908,7 +908,7 @@ class Scanner:
             }
             ```
         """
-        root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
+        root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True)
         root_event._id = self.id
         root_event.scope_distance = 0
         root_event.parent = root_event
@@ -961,7 +961,7 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        j["preset"] = self.preset.to_json(include_target=True, redact_secrets=True)
+        j["preset"] = self.preset.to_dict(include_target=True, redact_secrets=True)
         return j
 
     def debug(self, *args, trace=False, **kwargs):
