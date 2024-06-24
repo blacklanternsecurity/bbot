@@ -809,6 +809,11 @@ class BaseEvent:
         return str(self)
 
 
+class SCAN(BaseEvent):
+    def _data_human(self):
+        return
+
+
 class FINISHED(BaseEvent):
     """
     Special signal event to indicate end of scan
@@ -816,7 +821,7 @@ class FINISHED(BaseEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._priority = (999999999999999999999,)
+        self._priority = (999999999999999,)
 
 
 class DefaultEvent(BaseEvent):

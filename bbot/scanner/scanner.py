@@ -129,8 +129,7 @@ class Scanner:
         else:
             if not isinstance(preset, Preset):
                 raise ValidationError(f'Preset must be of type Preset, not "{type(preset).__name__}"')
-        self.preset = preset.bake()
-        self.preset.scan = self
+        self.preset = preset.bake(self)
 
         # scan name
         if preset.scan_name is None:
@@ -962,14 +961,7 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        if self.target:
-            j.update({"targets": [str(e.data) for e in self.target]})
-        if self.whitelist:
-            j.update({"whitelist": [str(e.data) for e in self.whitelist]})
-        if self.blacklist:
-            j.update({"blacklist": [str(e.data) for e in self.blacklist]})
-        if self.modules:
-            j.update({"modules": [str(m) for m in self.modules]})
+        j["preset"] = self.preset.to_json(include_target=True, redact_secrets=True)
         return j
 
     def debug(self, *args, trace=False, **kwargs):
