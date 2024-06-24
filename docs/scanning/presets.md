@@ -1,6 +1,12 @@
 # Presets
 
-Presets allow you to put all of your scan settings in one place. A Preset is a YAML file that can include scan targets, modules, and config options like API keys.
+Once you start customizing BBOT, your commands can start to get really long. Presets let you put all your scan settings in a single file:
+
+```bash
+bbot -t my_preset.yml
+```
+
+A Preset is a YAML file that can include scan targets, modules, and config options like API keys.
 
 A typical preset looks like this:
 
@@ -44,7 +50,7 @@ bbot -t evilcorp.com -p subdomain-enum -rf passive
 bbot -t www.evilcorp.com -p spider -c web.spider_distance=10
 ```
 
-You can also build on the default presets, or create your own. Here's an example of a custom preset that builds on `subdomain-enum`:
+You can build on the default presets, or create your own. Here's an example of a custom preset that builds on `subdomain-enum`:
 
 ```yaml title="my_subdomains.yml"
 description: Do a subdomain enumeration + basic web scan + nuclei
