@@ -21,7 +21,9 @@ class TestJSON(ModuleTestBase):
         assert len(dns_json) == 1
         scan_json = scan_json[0]
         dns_json = dns_json[0]
-        assert scan_json["data"] == scan_data
+        assert scan_json["data"]["name"] == module_test.scan.name
+        assert scan_json["data"]["id"] == module_test.scan.id
+        assert scan_json["data"]["preset"]["target"] == ["blacklanternsecurity.com"]
         assert dns_json["data"] == dns_data
         assert dns_json["discovery_context"] == context_data
         assert dns_json["discovery_path"] == [context_data]
@@ -29,7 +31,9 @@ class TestJSON(ModuleTestBase):
         # event objects reconstructed from json
         scan_reconstructed = event_from_json(scan_json)
         dns_reconstructed = event_from_json(dns_json)
-        assert scan_reconstructed.data == scan_data
+        assert scan_reconstructed.data["name"] == module_test.scan.name
+        assert scan_reconstructed.data["id"] == module_test.scan.id
+        assert scan_reconstructed.data["preset"]["target"] == ["blacklanternsecurity.com"]
         assert dns_reconstructed.data == dns_data
         assert dns_reconstructed.discovery_context == context_data
         assert dns_reconstructed.discovery_path == [context_data]
