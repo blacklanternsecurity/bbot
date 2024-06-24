@@ -42,6 +42,7 @@ class portscan(BaseModule):
     }
     deps_shared = ["masscan"]
     batch_size = 1000000
+    _shuffle_incoming_queue = False
 
     async def setup(self):
         self.top_ports = self.config.get("top_ports", 100)
@@ -92,7 +93,7 @@ class portscan(BaseModule):
                 await self.emit_event(
                     alive_host,
                     "DNS_NAME",
-                    source=parent_event,
+                    parent=parent_event,
                     context=f"{{module}} pinged {parent_event.data} and got a response: {{event.type}}: {{event.data}}",
                 )
                 new_targets.append(ipaddress.ip_network(alive_host, strict=False))

@@ -6,6 +6,7 @@ from bbot.errors import *
 from bbot import __version__
 from bbot.logger import log_to_stderr
 
+
 silent = "-s" in sys.argv or "--silent" in sys.argv
 
 if not silent:
@@ -168,6 +169,16 @@ async def _main():
             log.trace(f"Command: {' '.join(sys.argv)}")
 
             if sys.stdin.isatty():
+
+                # warn if any targets belong directly to a cloud provider
+                for event in scan.target.events:
+                    if event.type == "DNS_NAME":
+                        cloudcheck_result = scan.helpers.cloudcheck(event.host)
+                        if cloudcheck_result:
+                            scan.hugewarning(
+                                f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
+                            )
+
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                     input()

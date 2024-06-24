@@ -2,6 +2,7 @@ import re
 import copy
 import logging
 import ipaddress
+from hashlib import sha1
 from contextlib import suppress
 from radixtarget import RadixTarget
 
@@ -20,32 +21,26 @@ class BBOTTarget:
     Provides high-level functions like in_scope(), which includes both whitelist and blacklist checks.
     """
 
-    def __init__(self, targets, whitelist=None, blacklist=None, strict_scope=False):
+    def __init__(self, targets, whitelist=None, blacklist=None, strict_scope=False, scan=None):
         self.strict_scope = strict_scope
-        self.seeds = Target(*targets, strict_scope=self.strict_scope)
+        if len(targets) > 0:
+            log.verbose(f"Creating events from {len(targets):,} targets")
+        self.seeds = Target(*targets, strict_scope=self.strict_scope, scan=scan)
         if whitelist is None:
-            self.whitelist = None
+            self.whitelist = self.seeds.copy()
         else:
-            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
+            log.verbose(f"Creating events from {len(whitelist):,} whitelist entries")
+            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope, scan=scan)
         if blacklist is None:
             blacklist = []
-        self.blacklist = Target(*blacklist)
+        if blacklist:
+            log.verbose(f"Creating events from {len(blacklist):,} blacklist entries")
+        self.blacklist = Target(*blacklist, scan=scan)
+        self._hash = None
 
     def add(self, *args, **kwargs):
         self.seeds.add(*args, **kwargs)
-
-    def merge(self, other):
-        self.seeds.add(other.seeds)
-        if other.whitelist is not None:
-            if self.whitelist is None:
-                self.whitelist = other.whitelist.copy()
-            else:
-                self.whitelist.add(other.whitelist)
-        self.blacklist.add(other.blacklist)
-        self.strict_scope = self.strict_scope or other.strict_scope
-        for t in (self.seeds, self.whitelist):
-            if t is not None:
-                t.strict_scope = self.strict_scope
+        self._hash = None
 
     def get(self, host):
         return self.seeds.get(host)
@@ -68,10 +63,19 @@ class BBOTTarget:
         return bool(self.seeds)
 
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        return self.hash == other.hash
 
-    def __hash__(self):
-        return hash(self.seeds)
+    @property
+    def hash(self):
+        if self._hash is None:
+            # Create a new SHA-1 hash object
+            sha1_hash = sha1()
+            # Update the SHA-1 object with the hash values of each object
+            for target_hash in [t.hash for t in (self.seeds, self.whitelist, self.blacklist)]:
+                # Convert the hash value to bytes and update the SHA-1 object
+                sha1_hash.update(target_hash)
+            self._hash = sha1_hash.digest()
+        return self._hash
 
     def copy(self):
         self_copy = copy.copy(self)
@@ -149,7 +153,7 @@ class BBOTTarget:
         """
         return self.__class__(
             targets=[e.host for e in self.seeds if e.host],
-            whitelist=[e.host for e in self.whitelist if e.host],
+            whitelist=None if self.whitelist is None else [e.host for e in self.whitelist if e.host],
             blacklist=[e.host for e in self.blacklist if e.host],
             strict_scope=self.strict_scope,
         )
@@ -208,7 +212,7 @@ class Target:
         - If you do not want to include child subdomains, use `strict_scope=True`
     """
 
-    def __init__(self, *targets, strict_scope=False):
+    def __init__(self, *targets, strict_scope=False, scan=None):
         """
         Initialize a Target object.
 
@@ -225,6 +229,7 @@ class Target:
             - The strict_scope flag can be set to restrict scope calculation to only exactly-matching hosts and not their child subdomains.
             - Each target is processed and stored as an `Event` in the '_events' dictionary.
         """
+        self.scan = scan
         self.strict_scope = strict_scope
         self.special_event_types = {
             "ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),
@@ -233,8 +238,6 @@ class Target:
         self._events = set()
         self._radix = RadixTarget()
 
-        if len(targets) > 0:
-            log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
             self.add(t)
 
@@ -276,10 +279,7 @@ class Target:
                             break
                     try:
                         event = make_event(
-                            single_target,
-                            event_type=event_type,
-                            dummy=True,
-                            tags=["target"],
+                            single_target, event_type=event_type, dummy=True, tags=["target"], scan=self.scan
                         )
                     except ValidationError as e:
                         # allow commented lines
@@ -386,6 +386,8 @@ class Target:
         else:
             radix_data.add(event)
         self._events.add(event)
+        # clear hash
+        self._hash = None
 
     def _contains(self, other):
         if self.get(other) is not None:
@@ -410,12 +412,21 @@ class Target:
         return bool(self._events)
 
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        return self.hash == other.hash
 
-    def __hash__(self):
+    @property
+    def hash(self):
         if self._hash is None:
-            events = tuple(sorted(list(self.events), key=lambda e: hash(e)))
-            self._hash = hash(events)
+            # Create a new SHA-1 hash object
+            sha1_hash = sha1()
+            # Update the SHA-1 object with the hash values of each object
+            for event in sorted(list(self.events), key=lambda e: hash(e)):
+                event_hash = hash(event)
+                # Convert the hash value to bytes and update the SHA-1 object
+                sha1_hash.update(event_hash.to_bytes((event_hash.bit_length() + 7) // 8, byteorder="big", signed=True))
+            if self.strict_scope:
+                sha1_hash.update(b"\x00")
+            self._hash = sha1_hash.digest()
         return self._hash
 
     def __len__(self):

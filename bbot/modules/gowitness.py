@@ -139,8 +139,8 @@ class gowitness(BaseModule):
         for filename, screenshot in self.new_screenshots.items():
             url = screenshot["url"]
             final_url = screenshot["final_url"]
-            filename = screenshot["filename"]
-            webscreenshot_data = {"filename": filename, "url": final_url}
+            filename = self.screenshot_path / screenshot["filename"]
+            webscreenshot_data = {"filename": str(filename), "url": final_url}
             parent_event = event_dict[url]
             await self.emit_event(
                 webscreenshot_data,

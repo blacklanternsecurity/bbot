@@ -129,8 +129,7 @@ class Scanner:
         else:
             if not isinstance(preset, Preset):
                 raise ValidationError(f'Preset must be of type Preset, not "{type(preset).__name__}"')
-        self.preset = preset.bake()
-        self.preset.scan = self
+        self.preset = preset.bake(self)
 
         # scan name
         if preset.scan_name is None:
@@ -189,6 +188,10 @@ class Scanner:
         # url querystring behavior
         self.url_querystring_remove = self.config.get("url_querystring_remove", True)
 
+        # blob inclusion
+        self._file_blobs = self.config.get("file_blobs", False)
+        self._folder_blobs = self.config.get("folder_blobs", False)
+
         # custom HTTP headers warning
         self.custom_http_headers = self.config.get("http_headers", {})
         if self.custom_http_headers:
@@ -215,6 +218,10 @@ class Scanner:
 
         self._dns_strings = None
         self._dns_regexes = None
+        # temporary fix to boost scan performance
+        # TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
+        self._target_dns_regex_disable = self.config.get("target_dns_regex_disable", False)
+
         self.__log_handlers = None
         self._log_handler_backup = []
 
@@ -361,7 +368,7 @@ class Scanner:
             tasks = self._cancel_tasks()
             self.debug(f"Awaiting {len(tasks):,} tasks")
             for task in tasks:
-                self.debug(f"Awaiting {task}")
+                # self.debug(f"Awaiting {task}")
                 with contextlib.suppress(BaseException):
                     await task
             self.debug(f"Awaited {len(tasks):,} tasks")
@@ -541,28 +548,15 @@ class Scanner:
         self.helpers.cancel_tasks_sync(module._tasks)
 
     @property
-    def queued_event_types(self):
-        event_types = {}
-        queues = set()
+    def incoming_event_queues(self):
+        return self.ingress_module.incoming_queues
 
-        for module in self.modules.values():
-            queues.add(module.incoming_event_queue)
-            queues.add(module.outgoing_event_queue)
-
-        for q in queues:
-            for item in getattr(q, "_queue", []):
-                try:
-                    event, _ = item
-                except ValueError:
-                    event = item
-                event_type = getattr(event, "type", None)
-                if event_type is not None:
-                    try:
-                        event_types[event_type] += 1
-                    except KeyError:
-                        event_types[event_type] = 1
-
-        return event_types
+    @property
+    def num_queued_events(self):
+        total = 0
+        for q in self.incoming_event_queues:
+            total += len(q._queue)
+        return total
 
     def modules_status(self, _log=False):
         finished = True
@@ -624,12 +618,9 @@ class Scanner:
                     f'{self.name}: Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
                 )
 
-            queued_events_by_type = [(k, v) for k, v in self.queued_event_types.items() if v > 0]
-            if queued_events_by_type:
-                queued_events_by_type.sort(key=lambda x: x[-1], reverse=True)
-                queued_events_by_type_str = ", ".join(f"{m}: {t:,}" for m, t in queued_events_by_type)
-                num_queued_events = sum(v for k, v in queued_events_by_type)
-                self.info(f"{self.name}: {num_queued_events:,} events in queue ({queued_events_by_type_str})")
+            num_queued_events = self.num_queued_events
+            if num_queued_events:
+                self.info(f"{self.name}: {num_queued_events:,} events in queue")
             else:
                 self.info(f"{self.name}: No events in queue")
 
@@ -958,6 +949,8 @@ class Scanner:
             ...     for match in regex.finditer(response.text):
             ...         hostname = match.group().lower()
         """
+        if self._target_dns_regex_disable:
+            return []
         if self._dns_regexes is None:
             dns_regexes = []
             for t in self.dns_strings:
@@ -983,14 +976,7 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        if self.target:
-            j.update({"targets": [str(e.data) for e in self.target]})
-        if self.whitelist:
-            j.update({"whitelist": [str(e.data) for e in self.whitelist]})
-        if self.blacklist:
-            j.update({"blacklist": [str(e.data) for e in self.blacklist]})
-        if self.modules:
-            j.update({"modules": [str(m) for m in self.modules]})
+        j["preset"] = self.preset.to_json(include_target=True, redact_secrets=True)
         return j
 
     def debug(self, *args, trace=False, **kwargs):

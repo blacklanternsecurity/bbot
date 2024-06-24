@@ -1187,9 +1187,14 @@ class BaseModule:
             >>> self.log_table(['Header1', 'Header2'], [['row1col1', 'row1col2'], ['row2col1', 'row2col2']], table_name="my_table")
         """
         table_name = kwargs.pop("table_name", None)
+        max_log_entries = kwargs.pop("max_log_entries", None)
         table = self.helpers.make_table(*args, **kwargs)
+        lines_logged = 0
         for line in table.splitlines():
+            if max_log_entries is not None and lines_logged > max_log_entries:
+                break
             self.info(line)
+            lines_logged += 1
         if table_name is not None:
             date = self.helpers.make_date()
             filename = self.scan.home / f"{self.helpers.tagify(table_name)}-table-{date}.txt"
