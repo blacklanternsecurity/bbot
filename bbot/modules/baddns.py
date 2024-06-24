@@ -29,6 +29,9 @@ class baddns(BaseModule):
     per_host_only = True
     scope_distance_modifier = 1
 
+    def _incoming_dedup_hash(self, event):
+        return hash(f"{event.host}|{event.type}")
+
     def select_modules(self):
         selected_modules = []
         for m in get_all_modules():
@@ -50,7 +53,7 @@ class baddns(BaseModule):
         tasks = []
         for ModuleClass in self.select_modules():
             module_instance = ModuleClass(
-                event.data,
+                event.host,
                 http_client_class=self.scan.helpers.web.AsyncClient,
                 dns_client=self.scan.helpers.dns.resolver,
                 custom_nameservers=self.custom_nameservers,
@@ -95,9 +98,12 @@ class baddns(BaseModule):
 
     # instead of using the baddns references module, we just allow in js/css that comes from distance-1
     async def filter_event(self, event):
-        if event.type.startswith("URL") and "distance-1" in event.tags:
-            if "extension-js" in event.tags or "extension-css" in event.tags:
-                return True
+        if "distance-1" in event.tags:
+            if event.type.startswith("URL"):
+                if "extension-js" in event.tags or "extension-css" in event.tags:
+                    return True
+                else:
+                    return False
             else:
                 return False
         return True
