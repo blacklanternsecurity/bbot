@@ -3,7 +3,6 @@ import asyncio
 import logging
 import pytest_asyncio
 from omegaconf import OmegaConf
-from types import SimpleNamespace
 
 from ...bbot_fixtures import *
 from bbot.scanner import Scanner

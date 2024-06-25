@@ -22,8 +22,6 @@ from .helpers.misc import (
     list_files,
     sha1,
     search_dict_by_key,
-    filter_dict,
-    clean_dict,
     search_format_dict,
     make_table,
     os_platform,
@@ -691,10 +689,6 @@ class ModuleLoader:
         return module_list
 
     def ensure_config_files(self):
-
-        secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
-        exclude_keys = ["modules"]
-
         files = self.core.files_config
         mkdir(files.config_dir)
 
@@ -703,17 +697,12 @@ class ModuleLoader:
             + "# Please be sure to uncomment when inserting API keys, etc.\n"
         )
 
-        config_obj = secrets_only_config = OmegaConf.to_object(self.core.default_config)
+        config_obj = OmegaConf.to_object(self.core.default_config)
 
         # ensure bbot.yml
         if not files.config_filename.exists():
             log_to_stderr(f"Creating BBOT config at {files.config_filename}")
-            no_secrets_config = clean_dict(
-                config_obj,
-                *secrets_strings,
-                fuzzy=True,
-                exclude_keys=exclude_keys,
-            )
+            no_secrets_config = self.core.no_secrets_config(config_obj)
             yaml = OmegaConf.to_yaml(no_secrets_config)
             yaml = comment_notice + "\n".join(f"# {line}" for line in yaml.splitlines())
             with open(str(files.config_filename), "w") as f:
@@ -722,12 +711,7 @@ class ModuleLoader:
         # ensure secrets.yml
         if not files.secrets_filename.exists():
             log_to_stderr(f"Creating BBOT secrets at {files.secrets_filename}")
-            secrets_only_config = filter_dict(
-                config_obj,
-                *secrets_strings,
-                fuzzy=True,
-                exclude_keys=exclude_keys,
-            )
+            secrets_only_config = self.core.secrets_only_config(config_obj)
             yaml = OmegaConf.to_yaml(secrets_only_config)
             yaml = comment_notice + "\n".join(f"# {line}" for line in yaml.splitlines())
             with open(str(files.secrets_filename), "w") as f:

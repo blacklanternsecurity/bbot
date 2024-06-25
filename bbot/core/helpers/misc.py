@@ -2802,6 +2802,6 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
                 if _prev_key not in exclude_keys:
                     d.pop(key)
-            else:
-                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
+                    continue
+            d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d

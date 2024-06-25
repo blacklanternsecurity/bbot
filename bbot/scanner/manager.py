@@ -54,7 +54,8 @@ class ScanIngress(InterceptModule):
                     event.parent = self.scan.root_event
                 if event.module is None:
                     event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
-                event.discovery_context = f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}"
+                if event != self.scan.root_event:
+                    event.discovery_context = f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}"
                 self.verbose(f"Target: {event}")
                 await self.queue_event(event, {})
             await asyncio.sleep(0.1)

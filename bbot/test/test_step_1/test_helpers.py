@@ -500,11 +500,11 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     with pytest.raises(NTLMError):
         helpers.ntlm.ntlmdecode("asdf")
 
-    test_filesize = Path("/tmp/test_filesize")
+    test_filesize = bbot_test_dir / "test_filesize"
     test_filesize.touch()
     assert test_filesize.is_file()
     assert helpers.filesize(test_filesize) == 0
-    assert helpers.filesize("/tmp/glkasjdlgksadlkfsdf") == 0
+    assert helpers.filesize(bbot_test_dir / "glkasjdlgksadlkfsdf") == 0
 
     # memory stuff
     int(helpers.memory_status().available)

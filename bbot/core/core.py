@@ -2,6 +2,7 @@ import os
 import logging
 from copy import copy
 from pathlib import Path
+from contextlib import suppress
 from omegaconf import OmegaConf
 
 
@@ -21,6 +22,11 @@ class BBOTCore:
     - allow for easy merging of configs
     - load quickly
     """
+
+    # used for filtering out sensitive config values
+    secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
+    # don't filter/remove entries under this key
+    secrets_exclude_keys = ["modules"]
 
     def __init__(self):
         self._logger = None
@@ -114,6 +120,32 @@ class BBOTCore:
         if modules_entry is not None and not OmegaConf.is_dict(modules_entry):
             value["modules"] = {}
         self._custom_config = value
+
+    def no_secrets_config(self, config):
+        from .helpers.misc import clean_dict
+
+        with suppress(ValueError):
+            config = OmegaConf.to_object(config)
+
+        return clean_dict(
+            config,
+            *self.secrets_strings,
+            fuzzy=True,
+            exclude_keys=self.secrets_exclude_keys,
+        )
+
+    def secrets_only_config(self, config):
+        from .helpers.misc import filter_dict
+
+        with suppress(ValueError):
+            config = OmegaConf.to_object(config)
+
+        return filter_dict(
+            config,
+            *self.secrets_strings,
+            fuzzy=True,
+            exclude_keys=self.secrets_exclude_keys,
+        )
 
     def merge_custom(self, config):
         """

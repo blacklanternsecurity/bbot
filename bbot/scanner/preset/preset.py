@@ -149,6 +149,7 @@ class Preset:
         self._verbose = False
         self._debug = False
         self._silent = False
+        self._baked = False
 
         self._default_output_modules = None
         self._default_internal_modules = None
@@ -237,10 +238,13 @@ class Preset:
         self.module_dirs = module_dirs
 
         # target / whitelist / blacklist
-        from bbot.scanner.target import BBOTTarget
-
         self.strict_scope = strict_scope
-        self.target = BBOTTarget(targets, whitelist=whitelist, blacklist=blacklist, strict_scope=self.strict_scope)
+        # these are temporary receptacles until they all get .baked() together
+        self._seeds = set(targets if targets else [])
+        self._whitelist = set(whitelist) if whitelist else whitelist
+        self._blacklist = set(blacklist if blacklist else [])
+
+        self._target = None
 
         # include other presets
         if include and not isinstance(include, (list, tuple, set)):
@@ -262,11 +266,21 @@ class Preset:
         return Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
 
     @property
+    def target(self):
+        if self._target is None:
+            raise ValueError("Cannot access target before preset is baked (use ._seeds instead)")
+        return self._target
+
+    @property
     def whitelist(self):
+        if self._target is None:
+            raise ValueError("Cannot access whitelist before preset is baked (use ._whitelist instead)")
         return self.target.whitelist
 
     @property
     def blacklist(self):
+        if self._target is None:
+            raise ValueError("Cannot access blacklist before preset is baked (use ._blacklist instead)")
         return self.target.blacklist
 
     @property
@@ -326,8 +340,18 @@ class Preset:
         self.explicit_scan_modules.update(other.explicit_scan_modules)
         self.explicit_output_modules.update(other.explicit_output_modules)
         self.flags.update(other.flags)
+
         # target / scope
-        self.target.merge(other.target)
+        self._seeds.update(other._seeds)
+        # leave whitelist as None until we encounter one
+        if other._whitelist is not None:
+            if self._whitelist is None:
+                self._whitelist = set(other._whitelist)
+            else:
+                self._whitelist.update(other._whitelist)
+        self._blacklist.update(other._blacklist)
+        self.strict_scope = self.strict_scope or other.strict_scope
+
         # log verbosity
         if other.silent:
             self.silent = other.silent
@@ -347,7 +371,7 @@ class Preset:
         self.force_start = self.force_start | other.force_start
         self._cli = self._cli | other._cli
 
-    def bake(self):
+    def bake(self, scan=None):
         """
         Return a "baked" copy of this preset, ready for use by a BBOT scan.
 
@@ -360,10 +384,9 @@ class Preset:
         self.log_debug("Getting baked")
         # create a copy of self
         baked_preset = copy(self)
+        baked_preset.scan = scan
         # copy core
         baked_preset.core = self.core.copy()
-        # copy target
-        baked_preset.target = self.target.copy()
         # copy module loader
         baked_preset._module_loader = self.module_loader.copy()
         # prepare os environment
@@ -376,12 +399,12 @@ class Preset:
         os.environ.clear()
         os.environ.update(os_environ)
 
-        # ensure whitelist
-        if baked_preset.target.whitelist is None:
-            baked_preset.target.whitelist = baked_preset.target.seeds.copy()
-
         # validate flags, config options
         baked_preset.validate()
+
+        # assign baked preset to our scan
+        if scan is not None:
+            scan.preset = baked_preset
 
         # now that our requirements / exclusions are validated, we can start enabling modules
         # enable scan modules
@@ -423,6 +446,17 @@ class Preset:
             for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
+        # create target object
+        from bbot.scanner.target import BBOTTarget
+
+        baked_preset._target = BBOTTarget(
+            *list(self._seeds),
+            whitelist=self._whitelist,
+            blacklist=self._blacklist,
+            strict_scope=self.strict_scope,
+            scan=scan,
+        )
+
         # evaluate conditions
         if baked_preset.conditions:
             from .conditions import ConditionEvaluator
@@ -430,6 +464,7 @@ class Preset:
             evaluator = ConditionEvaluator(baked_preset)
             evaluator.evaluate()
 
+        self._baked = True
         return baked_preset
 
     def parse_args(self):
@@ -671,7 +706,7 @@ class Preset:
     def from_yaml_string(cls, yaml_preset):
         return cls.from_dict(omegaconf.OmegaConf.create(yaml_preset))
 
-    def to_dict(self, include_target=False, full_config=False):
+    def to_dict(self, include_target=False, full_config=False, redact_secrets=False):
         """
         Convert this preset into a Python dictionary.
 
@@ -694,14 +729,16 @@ class Preset:
             config = self.core.config
         else:
             config = self.core.custom_config
-        config = omegaconf.OmegaConf.to_container(config)
+        config = omegaconf.OmegaConf.to_object(config)
+        if redact_secrets:
+            config = self.core.no_secrets_config(config)
         if config:
             preset_dict["config"] = config
 
         # scope
         if include_target:
             target = sorted(str(t.data) for t in self.target.seeds)
-            whitelist = set()
+            whitelist = []
             if self.target.whitelist is not None:
                 whitelist = sorted(str(t.data) for t in self.target.whitelist)
             blacklist = sorted(str(t.data) for t in self.target.blacklist)

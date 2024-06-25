@@ -29,6 +29,7 @@ from bbot.core.helpers import (
     make_netloc,
     make_ip_type,
     recursive_decode,
+    sha1,
     smart_decode,
     split_host_port,
     tagify,
@@ -243,6 +244,7 @@ class BaseEvent:
     @data.setter
     def data(self, data):
         self._hash = None
+        self._data_hash = None
         self._id = None
         self.__host = None
         self._port = None
@@ -393,9 +395,21 @@ class BaseEvent:
 
     @property
     def id(self):
+        """
+        A uniquely identifiable hash of the event from the event type + a SHA1 of its data
+        """
         if self._id is None:
-            self._id = make_event_id(self.data_id, self.type)
+            self._id = f"{self.type}:{self.data_hash.hex()}"
         return self._id
+
+    @property
+    def data_hash(self):
+        """
+        A raw byte hash of the event's data
+        """
+        if self._data_hash is None:
+            self._data_hash = sha1(self.data_id).digest()
+        return self._data_hash
 
     @property
     def scope_distance(self):
@@ -809,6 +823,11 @@ class BaseEvent:
         return str(self)
 
 
+class SCAN(BaseEvent):
+    def _data_human(self):
+        return f"{self.data['name']} ({self.data['id']})"
+
+
 class FINISHED(BaseEvent):
     """
     Special signal event to indicate end of scan
@@ -816,7 +835,7 @@ class FINISHED(BaseEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._priority = (999999999999999999999,)
+        self._priority = (999999999999999,)
 
 
 class DefaultEvent(BaseEvent):

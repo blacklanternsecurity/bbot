@@ -2,6 +2,8 @@ import re
 import copy
 import logging
 import ipaddress
+import traceback
+from hashlib import sha1
 from contextlib import suppress
 from radixtarget import RadixTarget
 
@@ -20,32 +22,27 @@ class BBOTTarget:
     Provides high-level functions like in_scope(), which includes both whitelist and blacklist checks.
     """
 
-    def __init__(self, targets, whitelist=None, blacklist=None, strict_scope=False):
+    def __init__(self, *targets, whitelist=None, blacklist=None, strict_scope=False, scan=None):
         self.strict_scope = strict_scope
-        self.seeds = Target(*targets, strict_scope=self.strict_scope)
+        self.scan = scan
+        if len(targets) > 0:
+            log.verbose(f"Creating events from {len(targets):,} targets")
+        self.seeds = Target(*targets, strict_scope=self.strict_scope, scan=scan)
         if whitelist is None:
-            self.whitelist = None
+            whitelist = set([e.host for e in self.seeds if e.host])
         else:
-            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
+            log.verbose(f"Creating events from {len(whitelist):,} whitelist entries")
+        self.whitelist = Target(*whitelist, strict_scope=self.strict_scope, scan=scan, hosts_only=True)
         if blacklist is None:
             blacklist = []
-        self.blacklist = Target(*blacklist)
+        if blacklist:
+            log.verbose(f"Creating events from {len(blacklist):,} blacklist entries")
+        self.blacklist = Target(*blacklist, scan=scan, hosts_only=True)
+        self._hash = None
 
     def add(self, *args, **kwargs):
         self.seeds.add(*args, **kwargs)
-
-    def merge(self, other):
-        self.seeds.add(other.seeds)
-        if other.whitelist is not None:
-            if self.whitelist is None:
-                self.whitelist = other.whitelist.copy()
-            else:
-                self.whitelist.add(other.whitelist)
-        self.blacklist.add(other.blacklist)
-        self.strict_scope = self.strict_scope or other.strict_scope
-        for t in (self.seeds, self.whitelist):
-            if t is not None:
-                t.strict_scope = self.strict_scope
+        self._hash = None
 
     def get(self, host):
         return self.seeds.get(host)
@@ -68,16 +65,53 @@ class BBOTTarget:
         return bool(self.seeds)
 
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        return self.hash == other.hash
 
-    def __hash__(self):
-        return hash(self.seeds)
+    @property
+    def hash(self):
+        """
+        A sha1 hash representing a BBOT target and all three of its components (seeds, whitelist, blacklist)
+
+        This can be used to compare targets.
+
+        Examples:
+            >>> target1 = BBOTTarget("evilcorp.com", blacklist=["prod.evilcorp.com"], whitelist=["test.evilcorp.com"])
+            >>> target2 = BBOTTarget("evilcorp.com", blacklist=["prod.evilcorp.com"], whitelist=["test.evilcorp.com"])
+            >>> target3 = BBOTTarget("evilcorp.com", blacklist=["prod.evilcorp.com"])
+            >>> target1 == target2
+            True
+            >>> target1 == target3
+            False
+        """
+        if self._hash is None:
+            # Create a new SHA-1 hash object
+            sha1_hash = sha1()
+            # Update the SHA-1 object with the hash values of each object
+            for target_hash in [t.hash for t in (self.seeds, self.whitelist, self.blacklist)]:
+                # Convert the hash value to bytes and update the SHA-1 object
+                sha1_hash.update(target_hash)
+            self._hash = sha1_hash.digest()
+        return self._hash
+
+    @property
+    def scope_hash(self):
+        """
+        A sha1 hash representing only the whitelist and blacklist
+
+        This is used to record the scope of a scan.
+        """
+        # Create a new SHA-1 hash object
+        sha1_hash = sha1()
+        # Update the SHA-1 object with the hash values of each object
+        for target_hash in [t.hash for t in (self.whitelist, self.blacklist)]:
+            # Convert the hash value to bytes and update the SHA-1 object
+            sha1_hash.update(target_hash)
+        return sha1_hash.digest()
 
     def copy(self):
         self_copy = copy.copy(self)
         self_copy.seeds = self.seeds.copy()
-        if self.whitelist is not None:
-            self_copy.whitelist = self.whitelist.copy()
+        self_copy.whitelist = self.whitelist.copy()
         self_copy.blacklist = self.blacklist.copy()
         return self_copy
 
@@ -146,11 +180,13 @@ class BBOTTarget:
     def radix_only(self):
         """
         A slimmer, serializable version of the target designed for simple scope checks
+
+        This version doesn't have the events, only their hosts.
         """
         return self.__class__(
-            targets=[e.host for e in self.seeds if e.host],
-            whitelist=[e.host for e in self.whitelist if e.host],
-            blacklist=[e.host for e in self.blacklist if e.host],
+            *[e.host for e in self.seeds if e.host],
+            whitelist=None if self.whitelist is None else [e for e in self.whitelist],
+            blacklist=[e for e in self.blacklist],
             strict_scope=self.strict_scope,
         )
 
@@ -208,24 +244,24 @@ class Target:
         - If you do not want to include child subdomains, use `strict_scope=True`
     """
 
-    def __init__(self, *targets, strict_scope=False):
+    def __init__(self, *targets, strict_scope=False, scan=None, hosts_only=False):
         """
         Initialize a Target object.
 
         Args:
-            scan (Scan): Reference to the Scan object that instantiated the Target.
             *targets: One or more targets (e.g., domain names, IP ranges) to be included in this Target.
-
-        Attributes:
-            scan (Scan): Reference to the Scan object.
-            strict_scope (bool): Flag to control in-scope conditions. If True, only exact hosts are considered.
+            strict_scope (bool): Whether to consider subdomains of target domains in-scope
+            scan (Scan): Reference to the Scan object that instantiated the Target.
+            hosts_only (bool): Whether to discard events and keep only their hosts
 
         Notes:
             - If you are instantiating a target from within a BBOT module, use `self.helpers.make_target()` instead. (this removes the need to pass in a scan object.)
             - The strict_scope flag can be set to restrict scope calculation to only exactly-matching hosts and not their child subdomains.
             - Each target is processed and stored as an `Event` in the '_events' dictionary.
         """
+        self.scan = scan
         self.strict_scope = strict_scope
+        self.hosts_only = hosts_only
         self.special_event_types = {
             "ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),
             "ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE),
@@ -233,9 +269,9 @@ class Target:
         self._events = set()
         self._radix = RadixTarget()
 
-        if len(targets) > 0:
-            log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
+            if t == "":
+                assert False
             self.add(t)
 
         self._hash = None
@@ -276,14 +312,12 @@ class Target:
                             break
                     try:
                         event = make_event(
-                            single_target,
-                            event_type=event_type,
-                            dummy=True,
-                            tags=["target"],
+                            single_target, event_type=event_type, dummy=True, tags=["target"], scan=self.scan
                         )
                     except ValidationError as e:
                         # allow commented lines
                         if not str(t).startswith("#"):
+                            log.trace(traceback.format_exc())
                             raise ValidationError(f'Could not add target "{t}": {e}')
                 self._add_event(event)
 
@@ -379,12 +413,18 @@ class Target:
                     return event
 
     def _add_event(self, event):
-        radix_data = self._radix.search(event.host)
-        if radix_data is None:
-            radix_data = {event}
-            self._radix.insert(event.host, radix_data)
-        else:
-            radix_data.add(event)
+        if event.host:
+            radix_data = self._radix.search(event.host)
+            if self.hosts_only:
+                event_type = "IP_RANGE" if event.type == "IP_RANGE" else "DNS_NAME"
+                event = make_event(event.host, event_type=event_type, dummy=True, tags=["target"], scan=self.scan)
+            if radix_data is None:
+                radix_data = {event}
+                self._radix.insert(event.host, radix_data)
+            else:
+                radix_data.add(event)
+            # clear hash
+            self._hash = None
         self._events.add(event)
 
     def _contains(self, other):
@@ -410,12 +450,20 @@ class Target:
         return bool(self._events)
 
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        return self.hash == other.hash
 
-    def __hash__(self):
+    @property
+    def hash(self):
         if self._hash is None:
-            events = tuple(sorted(list(self.events), key=lambda e: hash(e)))
-            self._hash = hash(events)
+            # Create a new SHA-1 hash object
+            sha1_hash = sha1()
+            # Update the SHA-1 object with the hash values of each object
+            for event_type, event_hash in sorted([(e.type.encode(), e.data_hash) for e in self.events]):
+                sha1_hash.update(event_type)
+                sha1_hash.update(event_hash)
+            if self.strict_scope:
+                sha1_hash.update(b"\x00")
+            self._hash = sha1_hash.digest()
         return self._hash
 
     def __len__(self):
