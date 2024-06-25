@@ -30,7 +30,8 @@ class baddns(BaseModule):
     scope_distance_modifier = 1
 
     def _incoming_dedup_hash(self, event):
-        return hash(f"{event.host}|{event.type}")
+        # Dedupe on the host + first 3 characters of event. Example: whatever.foo.com|DNS. This opens things up for the custom filter_event(), which handles DNS vs URL.
+        return hash(f"{event.host}|{event.type[0:3]}")
 
     def select_modules(self):
         selected_modules = []
@@ -99,11 +100,7 @@ class baddns(BaseModule):
     # instead of using the baddns references module, we just allow in js/css that comes from distance-1
     async def filter_event(self, event):
         if event.scope_distance == 1:
-            if event.type.startswith("URL"):
-                if "extension-js" in event.tags or "extension-css" in event.tags:
-                    return True
-                else:
-                    return False
-            else:
-                return False
-        return True
+            # For distance-1, we only care about URL events, and further only those with certain extensions
+            return event.type.startswith("URL") and ("extension-js" in event.tags or "extension-css" in event.tags)
+        # If its not distance-0, we only care about DNS events
+        return not event.type.startswith("URL")
