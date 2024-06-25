@@ -634,14 +634,9 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
         async def handle_event(self, event):
             await self.helpers.sleep(0.5)
             self.events_seen.append(event.data)
-            new_event = self.scan.make_event(
-                event.data,
-                "URL_UNVERIFIED",
-                self.scan.root_event
-            )
+            new_event = self.scan.make_event(event.data, "URL_UNVERIFIED", self.scan.root_event)
             if new_event is not None:
                 await self.emit_event(new_event)
-
 
     dummy_text = "<a href='/spider'>spider</a>"
     modules_overrides = ["excavate", "httpx"]
@@ -653,22 +648,25 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
         module_test.httpserver.expect_request("/").respond_with_data(self.dummy_text)
         module_test.httpserver.expect_request("/spider").respond_with_data("hi")
 
-
     def check(self, module_test, events):
 
         found_url_unverified_spider_max = False
         found_url_unverified_dummy = False
         found_url_event = False
 
-        assert self.dummy_module.events_seen == ['http://127.0.0.1:8888/', 'http://127.0.0.1:8888/spider']
+        assert self.dummy_module.events_seen == ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/spider"]
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
 
                 if e.data == "http://127.0.0.1:8888/spider":
-                    if str(e.module) == "excavate" and 'spider-danger' in e.tags and 'spider-max' in e.tags:
+                    if str(e.module) == "excavate" and "spider-danger" in e.tags and "spider-max" in e.tags:
                         found_url_unverified_spider_max = True
-                    if str(e.module) == "dummy_module" and 'spider-danger' not in e.tags and not 'spider-max' in e.tags:
+                    if (
+                        str(e.module) == "dummy_module"
+                        and "spider-danger" not in e.tags
+                        and not "spider-max" in e.tags
+                    ):
                         found_url_unverified_dummy = True
             if e.type == "URL" and e.data == "http://127.0.0.1:8888/spider":
                 found_url_event = True
@@ -676,7 +674,3 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
         assert found_url_unverified_spider_max, "Excavate failed to find /spider link"
         assert found_url_unverified_dummy, "Dummy module did not correctly re-emit"
         assert found_url_event, "URL was not emitted from non-spider-max URL_UNVERIFIED"
-
-
-
-
