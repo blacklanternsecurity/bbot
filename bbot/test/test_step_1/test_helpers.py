@@ -254,6 +254,73 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert replaced["asdf"][1][500] == True
     assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
 
+    filtered_dict = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
+    )
+    assert "api_key" in filtered_dict["modules"]["c99"]
+    assert "filterme" not in filtered_dict["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict["modules"]
+
+    filtered_dict2 = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
+    )
+    assert "api_key" in filtered_dict2["modules"]["c99"]
+    assert "filterme" in filtered_dict2["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict2["modules"]
+
+    filtered_dict3 = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
+        "key",
+        fuzzy=True,
+    )
+    assert "api_key" in filtered_dict3["modules"]["c99"]
+    assert "filterme" not in filtered_dict3["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict3["modules"]
+
+    filtered_dict4 = helpers.filter_dict(
+        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
+        "secret",
+        fuzzy=True,
+        exclude_keys="modules",
+    )
+    assert not "secrets_db" in filtered_dict4["modules"]
+    assert "ipneighbor" in filtered_dict4["modules"]
+    assert "secret" in filtered_dict4["modules"]["ipneighbor"]
+    assert "asdf" not in filtered_dict4["modules"]["ipneighbor"]
+
+    cleaned_dict = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
+    )
+    assert "api_key" not in cleaned_dict["modules"]["c99"]
+    assert "filterme" in cleaned_dict["modules"]["c99"]
+    assert "ipneighbor" in cleaned_dict["modules"]
+
+    cleaned_dict2 = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
+    )
+    assert "c99" not in cleaned_dict2["modules"]
+    assert "ipneighbor" in cleaned_dict2["modules"]
+
+    cleaned_dict3 = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
+        "key",
+        fuzzy=True,
+    )
+    assert "api_key" not in cleaned_dict3["modules"]["c99"]
+    assert "filterme" in cleaned_dict3["modules"]["c99"]
+    assert "ipneighbor" in cleaned_dict3["modules"]
+
+    cleaned_dict4 = helpers.clean_dict(
+        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
+        "secret",
+        fuzzy=True,
+        exclude_keys="modules",
+    )
+    assert "secrets_db" in cleaned_dict4["modules"]
+    assert "ipneighbor" in cleaned_dict4["modules"]
+    assert "secret" not in cleaned_dict4["modules"]["ipneighbor"]
+    assert "asdf" in cleaned_dict4["modules"]["ipneighbor"]
+
     assert helpers.split_list([1, 2, 3, 4, 5]) == [[1, 2], [3, 4, 5]]
     assert list(helpers.grouper("ABCDEFG", 3)) == [["A", "B", "C"], ["D", "E", "F"], ["G"]]
 
@@ -287,6 +354,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert "nope" in helpers.str_or_file("nope")
     assert tuple(helpers.chain_lists([str(test_file), "nope"], try_files=True)) == ("asdf", "fdsa", "nope")
     assert tuple(helpers.chain_lists("one, two", try_files=True)) == ("one", "two")
+    assert tuple(helpers.chain_lists("one, two three ,four five")) == ("one", "two", "three", "four", "five")
     assert test_file.is_file()
 
     with pytest.raises(DirectoryCreationError, match="Failed to create.*"):
@@ -432,11 +500,11 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     with pytest.raises(NTLMError):
         helpers.ntlm.ntlmdecode("asdf")
 
-    test_filesize = Path("/tmp/test_filesize")
+    test_filesize = bbot_test_dir / "test_filesize"
     test_filesize.touch()
     assert test_filesize.is_file()
     assert helpers.filesize(test_filesize) == 0
-    assert helpers.filesize("/tmp/glkasjdlgksadlkfsdf") == 0
+    assert helpers.filesize(bbot_test_dir / "glkasjdlgksadlkfsdf") == 0
 
     # memory stuff
     int(helpers.memory_status().available)
@@ -677,66 +745,42 @@ async def test_async_helpers():
     assert sorted(random_ints) == sorted(results)
 
 
-# test parse_port_string helper
-
-
-def test_portparse_singleports(helpers):
+def test_portparse(helpers):
     assert helpers.parse_port_string("80,443,22") == [80, 443, 22]
     assert helpers.parse_port_string(80) == [80]
 
-
-def test_portparse_range_valid(helpers):
     assert helpers.parse_port_string("80,443,22,1000-1002") == [80, 443, 22, 1000, 1001, 1002]
 
-
-def test_portparse_invalidport(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,70000")
     assert str(e.value) == "Invalid port: 70000"
 
-
-def test_portparse_range_invalid(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,1000-70000")
     assert str(e.value) == "Invalid port range: 1000-70000"
 
-
-def test_portparse_range_morethantwoparts(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,1000-1001-1002")
     assert str(e.value) == "Invalid port or port range: 1000-1001-1002"
 
-
-def test_portparse_range_startgreaterthanend(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,1002-1000")
     assert str(e.value) == "Invalid port range: 1002-1000"
 
-
-def test_portparse_nonnumericinput(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_port_string("80,443,22,foo")
     assert str(e.value) == "Invalid port or port range: foo"
 
 
-# test parse_list_string helper
-
-
-def test_liststring_valid_strings(helpers):
+def test_liststring(helpers):
     assert helpers.parse_list_string("hello,world,bbot") == ["hello", "world", "bbot"]
 
-
-def test_liststring_invalid_string(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_list_string("hello,world,\x01")
     assert str(e.value) == "Invalid character in string: \x01"
 
-
-def test_liststring_singleitem(helpers):
     assert helpers.parse_list_string("hello") == ["hello"]
 
-
-def test_liststring_invalidfnchars(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_list_string("hello,world,bbot|test")
     assert str(e.value) == "Invalid character in string: bbot|test"

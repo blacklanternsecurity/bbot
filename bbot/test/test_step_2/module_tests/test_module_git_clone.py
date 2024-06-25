@@ -1,3 +1,7 @@
+import io
+import base64
+import shutil
+import tarfile
 import subprocess
 from pathlib import Path
 
@@ -156,6 +160,7 @@ class TestGit_Clone(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         temp_path = Path("/tmp/.bbot_test")
+        shutil.rmtree(temp_path / "test_keys", ignore_errors=True)
         subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
         temp_repo_path = temp_path / "test_keys"
         with open(temp_repo_path / "keys.txt", "w") as f:
@@ -176,7 +181,7 @@ class TestGit_Clone(ModuleTestBase):
             cwd=temp_repo_path,
         )
 
-        old_filter_event = module_test.module.filter_event
+        old_filter_event = module_test.scan.modules["git_clone"].filter_event
 
         def new_filter_event(event):
             event.data["url"] = event.data["url"].replace(
@@ -184,7 +189,7 @@ class TestGit_Clone(ModuleTestBase):
             )
             return old_filter_event(event)
 
-        module_test.monkeypatch.setattr(module_test.module, "filter_event", new_filter_event)
+        module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "filter_event", new_filter_event)
 
     def check(self, module_test, events):
         filesystem_events = [
@@ -196,9 +201,26 @@ class TestGit_Clone(ModuleTestBase):
             and e.scope_distance == 1
         ]
         assert 1 == len(filesystem_events), "Failed to git clone CODE_REPOSITORY"
+        # make sure the binary blob isn't here
+        assert not any(["blob" in e.data for e in [e for e in events if e.type == "FILESYSTEM"]])
         filesystem_event = filesystem_events[0]
         folder = Path(filesystem_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
+
+
+class TestGit_CloneWithBlob(TestGit_Clone):
+    config_overrides = {"folder_blobs": True}
+
+    def check(self, module_test, events):
+        filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
+        assert len(filesystem_events) == 1
+        assert all(["blob" in e.data for e in filesystem_events])
+        filesystem_event = filesystem_events[0]
+        blob = filesystem_event.data["blob"]
+        tar_bytes = base64.b64decode(blob)
+        tar_stream = io.BytesIO(tar_bytes)
+        with tarfile.open(fileobj=tar_stream, mode="r:gz") as tar:
+            assert "test_keys/keys.txt" in tar.getnames()

@@ -149,11 +149,11 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert result == None
     out, err = capsys.readouterr()
     # internal modules
-    assert "| excavate" in out
+    assert "| excavate " in out
     # output modules
-    assert "| csv" in out
+    assert "| csv " in out
     # scan modules
-    assert "| wayback" in out
+    assert "| wayback " in out
 
     # output dir and scan name
     output_dir = bbot_test_dir / "bbot_cli_args_output"
@@ -214,28 +214,28 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "| safe" in out
-    assert "| Non-intrusive, safe to run" in out
-    assert "| active" in out
-    assert "| passive" in out
+    assert "| safe " in out
+    assert "| Non-intrusive, safe to run " in out
+    assert "| active " in out
+    assert "| passive " in out
 
     # list only a single flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "--list-flags"])
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert not "| safe" in out
-    assert "| active" in out
-    assert not "| passive" in out
+    assert not "| safe " in out
+    assert "| active " in out
+    assert not "| passive " in out
 
     # list multiple flags
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "safe", "--list-flags"])
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "| safe" in out
-    assert "| active" in out
-    assert not "| passive" in out
+    assert "| safe " in out
+    assert "| active " in out
+    assert not "| passive " in out
 
     # no args
     monkeypatch.setattr("sys.argv", ["bbot"])
@@ -250,8 +250,8 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result == None
     assert "| dnsbrute " in out
-    assert "| httpx" in out
-    assert "| robots" in out
+    assert "| httpx " in out
+    assert "| robots " in out
 
     # list modules by flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-l"])
@@ -259,8 +259,8 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result == None
     assert "| dnsbrute " in out
-    assert "| httpx" in out
-    assert not "| robots" in out
+    assert "| httpx " in out
+    assert not "| robots " in out
 
     # list modules by flag + required flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-rf", "passive", "-l"])
@@ -268,7 +268,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result == None
     assert "| dnsbrute " in out
-    assert not "| httpx" in out
+    assert not "| httpx " in out
 
     # list modules by flag + excluded flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
@@ -276,7 +276,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result == None
     assert "| dnsbrute " in out
-    assert not "| httpx" in out
+    assert not "| httpx " in out
 
     # list modules by flag + excluded module
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "-l"])
@@ -284,7 +284,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result == None
     assert not "| dnsbrute " in out
-    assert "| httpx" in out
+    assert "| httpx " in out
 
     # output modules override
     caplog.clear()

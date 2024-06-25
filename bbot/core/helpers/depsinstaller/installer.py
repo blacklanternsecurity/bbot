@@ -44,7 +44,7 @@ class DepsInstaller:
         self.setup_status = self.read_setup_status()
 
         self.deps_behavior = self.parent_helper.config.get("deps_behavior", "abort_on_failure").lower()
-        self.ansible_debug = True
+        self.ansible_debug = self.core.logger.log_level <= logging.DEBUG
         self.venv = ""
         if sys.prefix != sys.base_prefix:
             self.venv = sys.prefix

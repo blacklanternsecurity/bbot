@@ -38,7 +38,8 @@ class Stdout(BaseOutputModule):
         return True
 
     async def handle_event(self, event):
-        event_json = event.json(mode="human")
+        json_mode = "human" if self.text_format == "text" else "json"
+        event_json = event.json(mode=json_mode)
         if self.show_event_fields:
             event_json = {k: str(event_json.get(k, "")) for k in self.show_event_fields}
 

@@ -1,15 +1,20 @@
+import io
 import re
 import json
+import base64
 import logging
+import tarfile
 import datetime
 import ipaddress
 import traceback
+
 from copy import copy
 from typing import Optional
 from contextlib import suppress
 from urllib.parse import urljoin
 from radixtarget import RadixTarget
 from pydantic import BaseModel, field_validator
+from pathlib import Path
 
 from .helpers import *
 from bbot.errors import *
@@ -20,10 +25,12 @@ from bbot.core.helpers import (
     is_ip,
     is_ptr,
     is_uri,
+    url_depth,
     domain_stem,
     make_netloc,
     make_ip_type,
     recursive_decode,
+    sha1,
     smart_decode,
     split_host_port,
     tagify,
@@ -155,6 +162,7 @@ class BaseEvent:
         self._module_priority = None
         self._resolved_hosts = set()
         self.dns_children = dict()
+        self._discovery_context = ""
 
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
@@ -169,7 +177,8 @@ class BaseEvent:
 
         self._tags = set()
         if tags is not None:
-            self._tags = set(tagify(s) for s in tags)
+            for tag in tags:
+                self.add_tag(tag)
 
         self._data = None
         self._type = event_type
@@ -216,10 +225,8 @@ class BaseEvent:
 
         # inherit web spider distance from parent
         self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
-
         if not context:
             context = getattr(self.module, "default_discovery_context", "")
-        self._discovery_context = ""
         if context:
             self.discovery_context = context
 
@@ -238,6 +245,7 @@ class BaseEvent:
     @data.setter
     def data(self, data):
         self._hash = None
+        self._data_hash = None
         self._id = None
         self.__host = None
         self._port = None
@@ -361,9 +369,11 @@ class BaseEvent:
 
     @tags.setter
     def tags(self, tags):
+        self._tags = set()
         if isinstance(tags, str):
             tags = (tags,)
-        self._tags = set(tagify(s) for s in tags)
+        for tag in tags:
+            self.add_tag(tag)
 
     def add_tag(self, tag):
         self._tags.add(tagify(tag))
@@ -388,9 +398,21 @@ class BaseEvent:
 
     @property
     def id(self):
+        """
+        A uniquely identifiable hash of the event from the event type + a SHA1 of its data
+        """
         if self._id is None:
-            self._id = make_event_id(self.data_id, self.type)
+            self._id = f"{self.type}:{self.data_hash.hex()}"
         return self._id
+
+    @property
+    def data_hash(self):
+        """
+        A raw byte hash of the event's data
+        """
+        if self._data_hash is None:
+            self._data_hash = sha1(self.data_id).digest()
+        return self._data_hash
 
     @property
     def scope_distance(self):
@@ -804,6 +826,11 @@ class BaseEvent:
         return str(self)
 
 
+class SCAN(BaseEvent):
+    def _data_human(self):
+        return f"{self.data['name']} ({self.data['id']})"
+
+
 class FINISHED(BaseEvent):
     """
     Special signal event to indicate end of scan
@@ -811,7 +838,7 @@ class FINISHED(BaseEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._priority = (999999999999999999999,)
+        self._priority = (999999999999999,)
 
 
 class DefaultEvent(BaseEvent):
@@ -840,6 +867,43 @@ class DictHostEvent(DictEvent):
             parsed = getattr(self, "parsed_url", None)
             if parsed is not None:
                 return make_ip_type(parsed.hostname)
+
+
+class DictPathEvent(DictEvent):
+    _path_keywords = ["path", "filename"]
+
+    def sanitize_data(self, data):
+        new_data = dict(data)
+        file_blobs = getattr(self.scan, "_file_blobs", False)
+        folder_blobs = getattr(self.scan, "_folder_blobs", False)
+        for path_keyword in self._path_keywords:
+            blob = None
+            try:
+                data_path = Path(data[path_keyword])
+            except KeyError:
+                continue
+            if data_path.is_file():
+                self.add_tag("file")
+                if file_blobs:
+                    with open(data_path, "rb") as file:
+                        blob = file.read()
+            elif data_path.is_dir():
+                self.add_tag("folder")
+                if folder_blobs:
+                    blob = self._tar_directory(data_path)
+            else:
+                continue
+            if blob:
+                new_data["blob"] = base64.b64encode(blob).decode("utf-8")
+
+        return new_data
+
+    def _tar_directory(self, dir_path):
+        tar_buffer = io.BytesIO()
+        with tarfile.open(fileobj=tar_buffer, mode="w:gz") as tar:
+            # Add the entire directory to the tar archive
+            tar.add(dir_path, arcname=dir_path.name)
+        return tar_buffer.getvalue()
 
 
 class ASN(DictEvent):
@@ -950,9 +1014,6 @@ class URL_UNVERIFIED(BaseEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # increment the web spider distance
-        if self.type == "URL_UNVERIFIED":
-            self.web_spider_distance += 1
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
     def sanitize_data(self, data):
@@ -977,6 +1038,27 @@ class URL_UNVERIFIED(BaseEvent):
         data = self.parsed_url.geturl()
         return data
 
+    def add_tag(self, tag):
+        if tag == "spider-danger":
+            # increment the web spider distance
+            if self.type == "URL_UNVERIFIED":
+                self.web_spider_distance += 1
+            if self.is_spider_max:
+                self.add_tag("spider-max")
+        super().add_tag(tag)
+
+    @property
+    def is_spider_max(self):
+
+        if self.scan:
+            web_spider_distance = self.scan.config.get("web_spider_distance", 0)
+            web_spider_depth = self.scan.config.get("web_spider_depth", 1)
+            depth = url_depth(self.parsed_url)
+            if (self.web_spider_distance > web_spider_distance) or (depth > web_spider_depth):
+                return True
+
+        return False
+
     def with_port(self):
         netloc_with_port = make_netloc(self.host, self.port)
         return self.parsed_url._replace(netloc=netloc_with_port)
@@ -989,13 +1071,6 @@ class URL_UNVERIFIED(BaseEvent):
 
     def _host(self):
         return make_ip_type(self.parsed_url.hostname)
-
-    def _data_id(self):
-        # consider spider-danger tag when deduping
-        data = super()._data_id()
-        if "spider-danger" in self.tags:
-            data = "spider-danger" + data
-        return data
 
     @property
     def http_status(self):
@@ -1053,6 +1128,7 @@ class WEB_PARAMETER(DictHostEvent):
         url = self.data.get("url", "")
         name = self.data.get("name", "")
         param_type = self.data.get("type", "")
+        # REMOVE
         # this is a hack which needs to be replaced with a real fix in bbot-2.0 branch
         if self.scan is not None:
             if self.scan.config.get("url_querystring_remove", True) == False:
@@ -1274,7 +1350,7 @@ class SOCIAL(DictHostEvent):
     _scope_distance_increment_same_host = True
 
 
-class WEBSCREENSHOT(DictHostEvent):
+class WEBSCREENSHOT(DictPathEvent, DictHostEvent):
     _always_emit = True
     _quick_emit = True
 
@@ -1298,6 +1374,10 @@ class WAF(DictHostEvent):
 
     def _pretty_string(self):
         return self.data["waf"]
+
+
+class FILESYSTEM(DictPathEvent):
+    pass
 
 
 def make_event(

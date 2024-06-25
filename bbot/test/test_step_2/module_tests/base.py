@@ -3,7 +3,6 @@ import asyncio
 import logging
 import pytest_asyncio
 from omegaconf import OmegaConf
-from types import SimpleNamespace
 
 from ...bbot_fixtures import *
 from bbot.scanner import Scanner
@@ -21,19 +20,6 @@ def tempwordlist(content):
             line = f"{c}\n"
             f.write(line)
     return filename
-
-
-class MockRecord:
-    def __init__(self, record, rdtype):
-        self.rdtype = SimpleNamespace()
-        self.rdtype.name = rdtype
-        self.record = record
-
-    def __str__(self):
-        return self.record
-
-    def to_text(self):
-        return str(self)
 
 
 class ModuleTestBase:

@@ -124,3 +124,26 @@ class TestHTTPX_URLBlacklist(ModuleTestBase):
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/test.txt"])
         assert not any([e for e in events if "URL" in e.type and ".svg" in e.data])
         assert not any([e for e in events if "URL" in e.type and ".woff" in e.data])
+
+
+class TestHTTPX_querystring_removed(ModuleTestBase):
+
+    modules_overrides = ["httpx", "speculate", "excavate"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data('<a href="/test.php"/>')
+
+    def check(self, module_test, events):
+        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/test.php"]
+
+
+class TestHTTPX_querystring_notremoved(ModuleTestBase):
+
+    config_overrides = {"url_querystring_remove": False}
+    modules_overrides = ["httpx", "speculate", "excavate"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data('<a href="/test.php?foo=bar"/>')
+
+    def check(self, module_test, events):
+        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/test.php?foo=bar"]
