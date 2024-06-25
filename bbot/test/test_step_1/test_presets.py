@@ -246,7 +246,8 @@ def test_preset_scope():
     preset_whitelist = Preset(
         "evilcorp.org",
         name="whitelist",
-        whitelist=["1.2.3.4/24"],
+        whitelist=["1.2.3.4/24", "http://evilcorp.net"],
+        blacklist=["evilcorp.co.uk:443", "bob@evilcorp.co.uk"],
         config={"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
     )
 
@@ -260,13 +261,15 @@ def test_preset_scope():
     assert preset_whitelist_baked.to_dict(include_target=True) == {
         "output_modules": ["csv", "json", "python", "txt"],
         "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.0/24"],
+        "whitelist": ["1.2.3.0/24", "evilcorp.net"],
+        "blacklist": ["evilcorp.co.uk"],
         "config": {"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
     }
     assert preset_whitelist_baked.to_dict(include_target=True, redact_secrets=True) == {
         "output_modules": ["csv", "json", "python", "txt"],
         "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.0/24"],
+        "whitelist": ["1.2.3.0/24", "evilcorp.net"],
+        "blacklist": ["evilcorp.co.uk"],
         "config": {"modules": {"secretsdb": {"otherthing": "asdf"}}},
     }
 
@@ -290,12 +293,12 @@ def test_preset_scope():
     assert set([e.data for e in preset_nowhitelist_baked.target]) == {"evilcorp.com"}
     assert set([e.data for e in preset_whitelist_baked.target]) == {"evilcorp.org"}
     assert set([e.data for e in preset_nowhitelist_baked.whitelist]) == {"evilcorp.com"}
-    assert set([e.data for e in preset_whitelist_baked.whitelist]) == {"1.2.3.0/24"}
+    assert set([e.data for e in preset_whitelist_baked.whitelist]) == {"1.2.3.0/24", "evilcorp.net"}
 
     preset_nowhitelist.merge(preset_whitelist)
     preset_nowhitelist_baked = preset_nowhitelist.bake()
     assert set([e.data for e in preset_nowhitelist_baked.target]) == {"evilcorp.com", "evilcorp.org"}
-    assert set([e.data for e in preset_nowhitelist_baked.whitelist]) == {"1.2.3.0/24"}
+    assert set([e.data for e in preset_nowhitelist_baked.whitelist]) == {"1.2.3.0/24", "evilcorp.net"}
     assert "www.evilcorp.org" in preset_nowhitelist_baked.target
     assert "www.evilcorp.com" in preset_nowhitelist_baked.target
     assert "1.2.3.4" in preset_nowhitelist_baked.whitelist

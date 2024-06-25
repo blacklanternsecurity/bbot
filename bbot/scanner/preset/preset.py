@@ -738,7 +738,7 @@ class Preset:
         # scope
         if include_target:
             target = sorted(str(t.data) for t in self.target.seeds)
-            whitelist = set()
+            whitelist = []
             if self.target.whitelist is not None:
                 whitelist = sorted(str(t.data) for t in self.target.whitelist)
             blacklist = sorted(str(t.data) for t in self.target.blacklist)

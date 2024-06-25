@@ -23,19 +23,20 @@ class BBOTTarget:
 
     def __init__(self, targets, whitelist=None, blacklist=None, strict_scope=False, scan=None):
         self.strict_scope = strict_scope
+        self.scan = scan
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         self.seeds = Target(*targets, strict_scope=self.strict_scope, scan=scan)
         if whitelist is None:
-            self.whitelist = self.seeds.copy()
+            whitelist = set([e.host for e in self.seeds])
         else:
             log.verbose(f"Creating events from {len(whitelist):,} whitelist entries")
-            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope, scan=scan)
+        self.whitelist = Target(*whitelist, strict_scope=self.strict_scope, scan=scan, hosts_only=True)
         if blacklist is None:
             blacklist = []
         if blacklist:
             log.verbose(f"Creating events from {len(blacklist):,} blacklist entries")
-        self.blacklist = Target(*blacklist, scan=scan)
+        self.blacklist = Target(*blacklist, scan=scan, hosts_only=True)
         self._hash = None
 
     def add(self, *args, **kwargs):
@@ -150,11 +151,13 @@ class BBOTTarget:
     def radix_only(self):
         """
         A slimmer, serializable version of the target designed for simple scope checks
+
+        This version doesn't have the events, only their hosts.
         """
         return self.__class__(
             targets=[e.host for e in self.seeds if e.host],
-            whitelist=None if self.whitelist is None else [e.host for e in self.whitelist if e.host],
-            blacklist=[e.host for e in self.blacklist if e.host],
+            whitelist=None if self.whitelist is None else [e for e in self.whitelist],
+            blacklist=[e for e in self.blacklist],
             strict_scope=self.strict_scope,
         )
 
@@ -212,17 +215,15 @@ class Target:
         - If you do not want to include child subdomains, use `strict_scope=True`
     """
 
-    def __init__(self, *targets, strict_scope=False, scan=None):
+    def __init__(self, *targets, strict_scope=False, scan=None, hosts_only=False):
         """
         Initialize a Target object.
 
         Args:
-            scan (Scan): Reference to the Scan object that instantiated the Target.
             *targets: One or more targets (e.g., domain names, IP ranges) to be included in this Target.
-
-        Attributes:
-            scan (Scan): Reference to the Scan object.
-            strict_scope (bool): Flag to control in-scope conditions. If True, only exact hosts are considered.
+            strict_scope (bool): Whether to consider subdomains of target domains in-scope
+            scan (Scan): Reference to the Scan object that instantiated the Target.
+            hosts_only (bool): Whether to discard events and keep only their hosts
 
         Notes:
             - If you are instantiating a target from within a BBOT module, use `self.helpers.make_target()` instead. (this removes the need to pass in a scan object.)
@@ -231,6 +232,7 @@ class Target:
         """
         self.scan = scan
         self.strict_scope = strict_scope
+        self.hosts_only = hosts_only
         self.special_event_types = {
             "ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),
             "ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE),
@@ -379,15 +381,19 @@ class Target:
                     return event
 
     def _add_event(self, event):
-        radix_data = self._radix.search(event.host)
-        if radix_data is None:
-            radix_data = {event}
-            self._radix.insert(event.host, radix_data)
-        else:
-            radix_data.add(event)
+        if event.host:
+            radix_data = self._radix.search(event.host)
+            if self.hosts_only:
+                event_type = "IP_RANGE" if event.type == "IP_RANGE" else "DNS_NAME"
+                event = make_event(event.host, event_type=event_type, dummy=True, tags=["target"], scan=self.scan)
+            if radix_data is None:
+                radix_data = {event}
+                self._radix.insert(event.host, radix_data)
+            else:
+                radix_data.add(event)
+            # clear hash
+            self._hash = None
         self._events.add(event)
-        # clear hash
-        self._hash = None
 
     def _contains(self, other):
         if self.get(other) is not None:
