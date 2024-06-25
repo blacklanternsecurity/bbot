@@ -661,3 +661,14 @@ async def test_event_discovery_context():
     assert 1 == len(final_event)
     j = final_event[0].json()
     assert j["discovery_path"] == final_path
+
+    # test to make sure this doesn't come back
+    #  https://github.com/blacklanternsecurity/bbot/issues/1498
+    scan = Scanner("http://blacklanternsecurity.com", config={"dns_resolution": True})
+    await scan.helpers.dns._mock_dns(
+        {"blacklanternsecurity.com": {"TXT": ["blsops.com"]}, "blsops.com": {"A": ["127.0.0.1"]}}
+    )
+    events = [e async for e in scan.async_start()]
+    blsops_event = [e for e in events if e.type == "DNS_NAME" and e.data == "blsops.com"]
+    assert len(blsops_event) == 1
+    assert blsops_event[0].discovery_path[1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
