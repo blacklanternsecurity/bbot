@@ -158,7 +158,6 @@ class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
                 if "HTTP Extracted Parameter [foo] (HTML Tags Submodule)" in e.data["description"]:
                     excavate_extracted_web_parameter = True
 
-
         assert (
             not excavate_extracted_web_parameter
         ), "Excavate extract WEB_PARAMETER despite disabling parameter extraction"
