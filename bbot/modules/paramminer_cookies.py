@@ -6,7 +6,8 @@ class paramminer_cookies(paramminer_headers):
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
-    watched_events = ["HTTP_RESPONSE"]
+    watched_events = ["HTTP_RESPONSE", "WEB_PARAMETER"]
+    produced_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {

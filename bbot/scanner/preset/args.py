@@ -150,7 +150,9 @@ class BBOTArgs:
             args_preset.core.merge_custom({"http_headers": self.parsed.custom_headers})
 
         if self.parsed.custom_yara_rules:
-            args_preset.core.merge_custom({"modules": {"excavate": {"custom_yara_rules": self.parsed.custom_yara_rules}}})
+            args_preset.core.merge_custom(
+                {"modules": {"excavate": {"custom_yara_rules": self.parsed.custom_yara_rules}}}
+            )
 
         # CLI config options (dot-syntax)
         for config_arg in self.parsed.config:

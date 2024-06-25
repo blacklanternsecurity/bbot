@@ -1114,6 +1114,7 @@ class WEB_PARAMETER(DictHostEvent):
         url = self.data.get("url", "")
         name = self.data.get("name", "")
         param_type = self.data.get("type", "")
+        # REMOVE
         # this is a hack which needs to be replaced with a real fix in bbot-2.0 branch
         if self.scan is not None:
             if self.scan.config.get("url_querystring_remove", True) == False:

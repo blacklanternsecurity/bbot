@@ -178,11 +178,9 @@ class paramminer_headers(BaseModule):
         if event.type == "WEB_PARAMETER" and self.recycle_words:
             parameter_name = event.data.get("name")
             if self.config.get("skip_boring_words", True) and parameter_name not in self.boring_words:
+                self.extracted_words_master.add(parameter_name)
 
-                self.critical(f"ADDING NAME TO MASTER WORD LIST: {parameter_name}")
-                self.extracted_words_master.update(parameter_name)
-
-        elif event.type == "URL":
+        elif event.type == "HTTP_RESPONSE":
             url = event.data.get("url")
             try:
                 compare_helper = self.helpers.http_compare(url)
@@ -196,7 +194,6 @@ class paramminer_headers(BaseModule):
             self.debug(f"Resolved batch_size at {str(batch_size)}")
 
             self.event_dict[url] = (event, batch_size)
-
             try:
                 if not await compare_helper.canary_check(url, mode=self.compare_mode):
                     raise HttpCompareError("failed canary check")
@@ -205,7 +202,7 @@ class paramminer_headers(BaseModule):
                 return
 
             try:
-                results = await self.do_mining(wl, url, batch_size, compare_helper)
+                results = await self.do_mining(self.wl, url, batch_size, compare_helper)
             except HttpCompareError as e:
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
             await self.process_results(event, results)
@@ -257,8 +254,8 @@ class paramminer_headers(BaseModule):
         return await compare_helper.compare(url, headers=test_headers, check_reflection=(len(header_list) == 1))
 
     async def finish(self):
-        untested_matches = self.extracted_words_master.copy()
 
+        untested_matches = self.extracted_words_master.copy()
         for url, (event, batch_size) in list(self.event_dict.items()):
             try:
                 compare_helper = self.helpers.http_compare(url)
@@ -279,5 +276,7 @@ class paramminer_headers(BaseModule):
 
     async def filter_event(self, event):
         # We don't need to look at WEB_PARAMETERS that we produced
+
         if str(event.module).startswith("paramminer"):
             return False
+        return True
