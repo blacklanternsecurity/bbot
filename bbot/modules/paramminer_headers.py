@@ -101,10 +101,6 @@ class paramminer_headers(BaseModule):
             self.wl -= self.boring_words
         self.extracted_words_master = set()
 
-        # REMOVE THIS
-        # here until we get a way to do it dynamically
-        self.recycle_words = True  # REMOVE REMOVE REMOVE
-
         return True
 
     def rand_string(self, *args, **kwargs):
@@ -131,18 +127,6 @@ class paramminer_headers(BaseModule):
         except AssertionError:
             pass
         return results
-
-    # If we are not going to "recycle_words", we need to change our watched_events to include WEB_PARAMETER.
-    # Excavate looks to see if any active modules are ingesting WEB_PARAMETERs, and if not, will disable parameter extraction
-
-    # def get_watched_events(self):
-    #     watched_events = ["HTTP_RESPONSE"]
-    #     self.recycle_words = self.config.get("recycle_words", False)
-    #     self.critical(f"{self.recycle_words}")
-    #     if self.recycle_words == True:
-    #         watched_events.append("WEB_PARAMETER")
-    #     self._watched_events = set(watched_events)
-    #     return self._watched_events
 
     async def process_results(self, event, results):
         url = event.data.get("url")
@@ -278,7 +262,6 @@ class paramminer_headers(BaseModule):
 
     async def filter_event(self, event):
         # We don't need to look at WEB_PARAMETERS that we produced
-
         if str(event.module).startswith("paramminer"):
             return False
         return True
