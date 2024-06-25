@@ -191,7 +191,8 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
 
         assert excavate_extracted_web_parameter, "Excavate failed to extract GET parameter"
         assert found_hidden_getparam_recycled, "Failed to find hidden GET parameter"
-        assert not emitted_excavate_paramminer_duplicate, "Paramminer emitted duplicate already found by excavate"
+        # the fact that it is a duplicate is OK, because it still won't be consumed mutltiple times. But we do want to make sure both modules try to emit it
+        assert emitted_excavate_paramminer_duplicate, "Paramminer emitted duplicate already found by excavate"
 
 
 class TestParamminer_Getparams_xmlspeculative(Paramminer_Headers):

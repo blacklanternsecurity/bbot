@@ -180,9 +180,6 @@ class TestExcavateRedirect(TestExcavate):
 
     def check(self, module_test, events):
 
-        for e in events:
-            if e.type == "URL_UNVERIFIED":
-
         assert 1 == len(
             [
                 e
