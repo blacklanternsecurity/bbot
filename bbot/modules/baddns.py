@@ -26,7 +26,7 @@ class baddns(BaseModule):
     max_event_handlers = 8
     deps_pip = ["baddns~=1.1.789"]
 
-    per_host_only = True
+    # We allow distance-1 events in at the module level so we can selectively block them in filter_event
     scope_distance_modifier = 1
 
     def _incoming_dedup_hash(self, event):
