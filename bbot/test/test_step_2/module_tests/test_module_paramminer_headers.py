@@ -151,7 +151,6 @@ class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
     def check(self, module_test, events):
 
         excavate_extracted_web_parameter = False
-        used_recycled_parameter = False
 
         for e in events:
             if e.type == "WEB_PARAMETER":
