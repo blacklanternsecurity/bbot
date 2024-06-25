@@ -175,10 +175,12 @@ class paramminer_headers(BaseModule):
     async def handle_event(self, event):
 
         # If recycle words is enabled, we will collect WEB_PARAMETERS we find to build our list in finish()
-        if event.type == "WEB_PARAMETER" and self.recycle_words:
-            parameter_name = event.data.get("name")
-            if self.config.get("skip_boring_words", True) and parameter_name not in self.boring_words:
-                self.extracted_words_master.add(parameter_name)
+        # We also collect any parameters of type "SPECULATIVE"
+        if event.type == "WEB_PARAMETER":
+            if self.recycle_words or (event.data.get("type") == "SPECULATIVE"):
+                parameter_name = event.data.get("name")
+                if self.config.get("skip_boring_words", True) and parameter_name not in self.boring_words:
+                    self.extracted_words_master.add(parameter_name)
 
         elif event.type == "HTTP_RESPONSE":
             url = event.data.get("url")

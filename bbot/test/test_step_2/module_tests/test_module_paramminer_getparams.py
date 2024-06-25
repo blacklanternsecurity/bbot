@@ -192,3 +192,55 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
         assert excavate_extracted_web_parameter, "Excavate failed to extract GET parameter"
         assert found_hidden_getparam_recycled, "Failed to find hidden GET parameter"
         assert not emitted_excavate_paramminer_duplicate, "Paramminer emitted duplicate already found by excavate"
+
+
+class TestParamminer_Getparams_xmlspeculative(Paramminer_Headers):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": False}}}
+    getparam_extract_xml = """
+    <data>
+     <obscureParameter>1</obscureParameter>
+         <common>1</common>
+     </data>
+    """
+
+    getparam_speculative_used = """
+    <html>
+    <p>secret parameter used</p>
+    </html>
+    """
+
+    async def setup_after_prep(self, module_test):
+
+        module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.monkeypatch.setattr(
+            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
+        )
+        expect_args = {"query_string": b"obscureParameter=AAAAAAAAAAAAAA&AAAAAA=1"}
+        respond_args = {"response_data": self.getparam_speculative_used}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        respond_args = {"response_data": self.getparam_extract_xml, "headers": {"Content-Type": "application/xml"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_discovered_speculative = False
+        paramminer_used_speculative = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter (speculative from xml content) [obscureParameter]"
+                    in e.data["description"]
+                ):
+                    excavate_discovered_speculative = True
+
+                if (
+                    "[Paramminer] Getparam: [obscureParameter] Reasons: [header,body] Reflection: [False]"
+                    in e.data["description"]
+                ):
+                    paramminer_used_speculative = True
+
+        assert excavate_discovered_speculative, "Excavate failed to discover speculative xml parameter"
+        assert paramminer_used_speculative, "Paramminer failed to confirm speculative GET parameter"

@@ -546,12 +546,10 @@ class TestExcavateParameterExtraction_xml(ModuleTestBase):
     def check(self, module_test, events):
         excavate_xml_extraction = False
         for e in events:
-                if (
-                    "HTTP Extracted Parameter (speculative from xml content) [obscureParameter]"
-                    in e.data["description"]
-                ):
-                    excavate_xml_extraction = True
+            if "HTTP Extracted Parameter (speculative from xml content) [obscureParameter]" in e.data["description"]:
+                excavate_xml_extraction = True
         assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
+
 
 class excavateTestRule(ExcavateRule):
     yara_rules = {
