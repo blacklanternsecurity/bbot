@@ -2,6 +2,7 @@ import re
 import copy
 import logging
 import ipaddress
+import traceback
 from hashlib import sha1
 from contextlib import suppress
 from radixtarget import RadixTarget
@@ -21,14 +22,14 @@ class BBOTTarget:
     Provides high-level functions like in_scope(), which includes both whitelist and blacklist checks.
     """
 
-    def __init__(self, targets, whitelist=None, blacklist=None, strict_scope=False, scan=None):
+    def __init__(self, *targets, whitelist=None, blacklist=None, strict_scope=False, scan=None):
         self.strict_scope = strict_scope
         self.scan = scan
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         self.seeds = Target(*targets, strict_scope=self.strict_scope, scan=scan)
         if whitelist is None:
-            whitelist = set([e.host for e in self.seeds])
+            whitelist = set([e.host for e in self.seeds if e.host])
         else:
             log.verbose(f"Creating events from {len(whitelist):,} whitelist entries")
         self.whitelist = Target(*whitelist, strict_scope=self.strict_scope, scan=scan, hosts_only=True)
@@ -68,6 +69,20 @@ class BBOTTarget:
 
     @property
     def hash(self):
+        """
+        A sha1 hash representing a BBOT target and all three of its components (seeds, whitelist, blacklist)
+
+        This can be used to compare targets.
+
+        Examples:
+            >>> target1 = BBOTTarget("evilcorp.com", blacklist=["prod.evilcorp.com"], whitelist=["test.evilcorp.com"])
+            >>> target2 = BBOTTarget("evilcorp.com", blacklist=["prod.evilcorp.com"], whitelist=["test.evilcorp.com"])
+            >>> target3 = BBOTTarget("evilcorp.com", blacklist=["prod.evilcorp.com"])
+            >>> target1 == target2
+            True
+            >>> target1 == target3
+            False
+        """
         if self._hash is None:
             # Create a new SHA-1 hash object
             sha1_hash = sha1()
@@ -78,11 +93,25 @@ class BBOTTarget:
             self._hash = sha1_hash.digest()
         return self._hash
 
+    @property
+    def scope_hash(self):
+        """
+        A sha1 hash representing only the whitelist and blacklist
+
+        This is used to record the scope of a scan.
+        """
+        # Create a new SHA-1 hash object
+        sha1_hash = sha1()
+        # Update the SHA-1 object with the hash values of each object
+        for target_hash in [t.hash for t in (self.whitelist, self.blacklist)]:
+            # Convert the hash value to bytes and update the SHA-1 object
+            sha1_hash.update(target_hash)
+        return sha1_hash.digest()
+
     def copy(self):
         self_copy = copy.copy(self)
         self_copy.seeds = self.seeds.copy()
-        if self.whitelist is not None:
-            self_copy.whitelist = self.whitelist.copy()
+        self_copy.whitelist = self.whitelist.copy()
         self_copy.blacklist = self.blacklist.copy()
         return self_copy
 
@@ -155,7 +184,7 @@ class BBOTTarget:
         This version doesn't have the events, only their hosts.
         """
         return self.__class__(
-            targets=[e.host for e in self.seeds if e.host],
+            *[e.host for e in self.seeds if e.host],
             whitelist=None if self.whitelist is None else [e for e in self.whitelist],
             blacklist=[e for e in self.blacklist],
             strict_scope=self.strict_scope,
@@ -241,6 +270,8 @@ class Target:
         self._radix = RadixTarget()
 
         for t in targets:
+            if t == "":
+                assert False
             self.add(t)
 
         self._hash = None
@@ -286,6 +317,7 @@ class Target:
                     except ValidationError as e:
                         # allow commented lines
                         if not str(t).startswith("#"):
+                            log.trace(traceback.format_exc())
                             raise ValidationError(f'Could not add target "{t}": {e}')
                 self._add_event(event)
 
@@ -426,10 +458,9 @@ class Target:
             # Create a new SHA-1 hash object
             sha1_hash = sha1()
             # Update the SHA-1 object with the hash values of each object
-            for event in sorted(list(self.events), key=lambda e: hash(e)):
-                event_hash = hash(event)
-                # Convert the hash value to bytes and update the SHA-1 object
-                sha1_hash.update(event_hash.to_bytes((event_hash.bit_length() + 7) // 8, byteorder="big", signed=True))
+            for event_type, event_hash in sorted([(e.type.encode(), e.data_hash) for e in self.events]):
+                sha1_hash.update(event_type)
+                sha1_hash.update(event_hash)
             if self.strict_scope:
                 sha1_hash.update(b"\x00")
             self._hash = sha1_hash.digest()

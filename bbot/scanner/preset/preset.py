@@ -450,7 +450,7 @@ class Preset:
         from bbot.scanner.target import BBOTTarget
 
         baked_preset._target = BBOTTarget(
-            targets=self._seeds,
+            *list(self._seeds),
             whitelist=self._whitelist,
             blacklist=self._blacklist,
             strict_scope=self.strict_scope,

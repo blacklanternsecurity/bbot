@@ -1,7 +1,8 @@
 from ..bbot_fixtures import *  # noqa: F401
 
 
-def test_target(bbot_scanner):
+@pytest.mark.asyncio
+async def test_target(bbot_scanner):
     scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
     scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
     scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
@@ -118,15 +119,15 @@ def test_target(bbot_scanner):
     # now they should match
     assert target1.hash == target2.hash
 
-    bbottarget1 = BBOTTarget(["evilcorp.com", "evilcorp.net"], whitelist=["1.2.3.4/24"], blacklist=["1.2.3.4"])
-    bbottarget2 = BBOTTarget(["evilcorp.com", "evilcorp.net"], whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"])
-    bbottarget3 = BBOTTarget(["evilcorp.com"], whitelist=["1.2.3.4/24"], blacklist=["1.2.3.4"])
-    bbottarget5 = BBOTTarget(["evilcorp.com", "evilcorp.net"], whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"])
+    bbottarget1 = BBOTTarget("evilcorp.com", "evilcorp.net", whitelist=["1.2.3.4/24"], blacklist=["1.2.3.4"])
+    bbottarget2 = BBOTTarget("evilcorp.com", "evilcorp.net", whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"])
+    bbottarget3 = BBOTTarget("evilcorp.com", whitelist=["1.2.3.4/24"], blacklist=["1.2.3.4"])
+    bbottarget5 = BBOTTarget("evilcorp.com", "evilcorp.net", whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"])
     bbottarget6 = BBOTTarget(
-        ["evilcorp.com", "evilcorp.net"], whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"], strict_scope=True
+        "evilcorp.com", "evilcorp.net", whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"], strict_scope=True
     )
-    bbottarget8 = BBOTTarget(["1.2.3.0/24"], whitelist=["evilcorp.com", "evilcorp.net"], blacklist=["1.2.3.4"])
-    bbottarget9 = BBOTTarget(["evilcorp.com", "evilcorp.net"], whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"])
+    bbottarget8 = BBOTTarget("1.2.3.0/24", whitelist=["evilcorp.com", "evilcorp.net"], blacklist=["1.2.3.4"])
+    bbottarget9 = BBOTTarget("evilcorp.com", "evilcorp.net", whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"])
 
     # make sure it's a sha1 hash
     assert isinstance(bbottarget1.hash, bytes)
@@ -153,6 +154,10 @@ def test_target(bbot_scanner):
     assert bbottarget8 != bbottarget9
     assert bbottarget9 != bbottarget8
 
+    bbottarget10 = bbottarget9.copy()
+    assert bbottarget10 == bbottarget9
+    assert bbottarget9 == bbottarget10
+
     # make sure duplicate events don't change hash
     target1 = Target("https://evilcorp.com")
     target2 = Target("https://evilcorp.com")
@@ -160,9 +165,9 @@ def test_target(bbot_scanner):
     target1.add("https://evilcorp.com:443")
     assert target1 == target2
 
-    # make sure hosts are collapsed in whitslist and blacklist
+    # make sure hosts are collapsed in whitelist and blacklist
     bbottarget = BBOTTarget(
-        ["http://evilcorp.com:8080"],
+        "http://evilcorp.com:8080",
         whitelist=["evilcorp.net:443", "http://evilcorp.net:8080"],
         blacklist=["http://evilcorp.org:8080", "evilcorp.org:443"],
     )
@@ -170,3 +175,8 @@ def test_target(bbot_scanner):
     assert list(bbottarget.seeds) == ["http://evilcorp.com:8080"]
     assert list(bbottarget.whitelist) == ["evilcorp.net"]
     assert list(bbottarget.blacklist) == ["evilcorp.org"]
+
+    scan = bbot_scanner("ORG:evilcorp")
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 2
+    assert set([e.type for e in events]) == {"SCAN", "ORG_STUB"}
