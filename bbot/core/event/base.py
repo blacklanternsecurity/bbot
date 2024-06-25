@@ -244,6 +244,7 @@ class BaseEvent:
     @data.setter
     def data(self, data):
         self._hash = None
+        self._data_hash = None
         self._id = None
         self.__host = None
         self._port = None
@@ -406,7 +407,9 @@ class BaseEvent:
         """
         A raw byte hash of the event's data
         """
-        return sha1(self.data).digest()
+        if self._data_hash is None:
+            self._data_hash = sha1(self.data_id).digest()
+        return self._data_hash
 
     @property
     def scope_distance(self):
