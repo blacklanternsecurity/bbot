@@ -159,3 +159,14 @@ def test_target(bbot_scanner):
     assert target1 == target2
     target1.add("https://evilcorp.com:443")
     assert target1 == target2
+
+    # make sure hosts are collapsed in whitslist and blacklist
+    bbottarget = BBOTTarget(
+        ["http://evilcorp.com:8080"],
+        whitelist=["evilcorp.net:443", "http://evilcorp.net:8080"],
+        blacklist=["http://evilcorp.org:8080", "evilcorp.org:443"],
+    )
+    assert list(bbottarget) == ["http://evilcorp.com:8080"]
+    assert list(bbottarget.seeds) == ["http://evilcorp.com:8080"]
+    assert list(bbottarget.whitelist) == ["evilcorp.net"]
+    assert list(bbottarget.blacklist) == ["evilcorp.org"]

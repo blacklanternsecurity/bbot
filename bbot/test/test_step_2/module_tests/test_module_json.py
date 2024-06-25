@@ -6,7 +6,6 @@ from bbot.core.event.base import event_from_json
 
 class TestJSON(ModuleTestBase):
     def check(self, module_test, events):
-        scan_data = f"{module_test.scan.name} ({module_test.scan.id})"
         dns_data = "blacklanternsecurity.com"
         context_data = f"Scan {module_test.scan.name} seeded with DNS_NAME: blacklanternsecurity.com"
 

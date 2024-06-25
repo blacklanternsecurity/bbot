@@ -917,6 +917,7 @@ class Scanner:
         root_event.scope_distance = 0
         root_event.parent = root_event
         root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
+        root_event.discovery_context = f"Scan {self.name} started at {root_event.timestamp}"
         return root_event
 
     @property
