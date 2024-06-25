@@ -180,3 +180,42 @@ async def test_target(bbot_scanner):
     events = [e async for e in scan.async_start()]
     assert len(events) == 2
     assert set([e.type for e in events]) == {"SCAN", "ORG_STUB"}
+
+    # verify hash values
+    bbottarget = BBOTTarget(
+        "1.2.3.0/24",
+        "http://www.evilcorp.net",
+        "bob@fdsa.evilcorp.net",
+        whitelist=["evilcorp.com", "bob@www.evilcorp.com", "evilcorp.net"],
+        blacklist=["1.2.3.4", "4.3.2.1/24", "http://1.2.3.4", "bob@asdf.evilcorp.net"],
+    )
+    assert bbottarget.hash == b"\x8dW\xcbA\x0c\xc5\r\xc0\xfa\xae\xcd\xfc\x8e[<\xb5\x06\xc87\xf9"
+    assert bbottarget.scope_hash == b"/\xce\xbf\x013\xb2\xb8\xf6\xbe_@\xae\xfc\x17w]\x85\x15N9"
+    assert bbottarget.seeds.hash == b"\xaf.\x86\x83\xa1C\xad\xb4\xe7`X\x94\xe2\xa0\x01\xc2\xe3:J\xc5"
+    assert bbottarget.whitelist.hash == b"b\x95\xc5\xf0hQ\x0c\x08\x92}\xa55\xff\x83\xf9'\x93\x927\xcb"
+    assert bbottarget.blacklist.hash == b"\xaf\x0e\x8a\xe9JZ\x86\xbe\xee\xa9\xa9\xdb0\xaf'#\x84 U/"
+
+    scan = bbot_scanner(
+        "http://www.evilcorp.net",
+        "1.2.3.0/24",
+        "bob@fdsa.evilcorp.net",
+        whitelist=["evilcorp.net", "evilcorp.com", "bob@www.evilcorp.com"],
+        blacklist=["bob@asdf.evilcorp.net", "1.2.3.4", "4.3.2.1/24", "http://1.2.3.4"],
+    )
+    events = [e async for e in scan.async_start()]
+    scan_events = [e for e in events if e.type == "SCAN"]
+    assert len(scan_events) == 1
+    assert (
+        scan_events[0].data["target_hash"] == b"\x8dW\xcbA\x0c\xc5\r\xc0\xfa\xae\xcd\xfc\x8e[<\xb5\x06\xc87\xf9".hex()
+    )
+    assert scan_events[0].data["scope_hash"] == b"/\xce\xbf\x013\xb2\xb8\xf6\xbe_@\xae\xfc\x17w]\x85\x15N9".hex()
+    assert scan_events[0].data["seed_hash"] == b"\xaf.\x86\x83\xa1C\xad\xb4\xe7`X\x94\xe2\xa0\x01\xc2\xe3:J\xc5".hex()
+    assert (
+        scan_events[0].data["whitelist_hash"] == b"b\x95\xc5\xf0hQ\x0c\x08\x92}\xa55\xff\x83\xf9'\x93\x927\xcb".hex()
+    )
+    assert scan_events[0].data["blacklist_hash"] == b"\xaf\x0e\x8a\xe9JZ\x86\xbe\xee\xa9\xa9\xdb0\xaf'#\x84 U/".hex()
+    assert scan_events[0].data["target_hash"] == "8d57cb410cc50dc0faaecdfc8e5b3cb506c837f9"
+    assert scan_events[0].data["scope_hash"] == "2fcebf0133b2b8f6be5f40aefc17775d85154e39"
+    assert scan_events[0].data["seed_hash"] == "af2e8683a143adb4e7605894e2a001c2e33a4ac5"
+    assert scan_events[0].data["whitelist_hash"] == "6295c5f068510c08927da535ff83f927939237cb"
+    assert scan_events[0].data["blacklist_hash"] == "af0e8ae94a5a86beeea9a9db30af27238420552f"
