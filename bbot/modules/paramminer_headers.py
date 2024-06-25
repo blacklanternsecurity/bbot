@@ -84,6 +84,7 @@ class paramminer_headers(BaseModule):
 
     async def setup(self):
 
+        self.recycle_words = self.config.get("recycle_words", True)
         self.event_dict = {}
         self.already_checked = set()
         wordlist = self.config.get("wordlist", "")

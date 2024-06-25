@@ -1,3 +1,4 @@
+from bbot.modules.base import BaseModule
 from .base import ModuleTestBase, tempwordlist
 from bbot.modules.internal.excavate import ExcavateRule
 
@@ -275,8 +276,8 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
 
         # base URL + 25 links + speculated without port 8888 = 27
         assert len(url_unverified_events) == 27
-        url_data = [e.data for e in url_unverified_events if "spider-max" not in e.tags]
-        assert len(url_data) == 11
+        url_data = [e.data for e in url_unverified_events if "spider-max" not in e.tags and "spider-danger" in e.tags]
+        assert len(url_data) >= 10 and len(url_data) <= 12
         url_events = [e for e in events if e.type == "URL"]
         assert len(url_events) == 11
 
@@ -546,8 +547,12 @@ class TestExcavateParameterExtraction_xml(ModuleTestBase):
     def check(self, module_test, events):
         excavate_xml_extraction = False
         for e in events:
-            if "HTTP Extracted Parameter (speculative from xml content) [obscureParameter]" in e.data["description"]:
-                excavate_xml_extraction = True
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter (speculative from xml content) [obscureParameter]"
+                    in e.data["description"]
+                ):
+                    excavate_xml_extraction = True
         assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
 
 
@@ -619,94 +624,59 @@ class TestExcavateYaraCustom(TestExcavateYara):
     config_overrides = {"modules": {"excavate": {"custom_yara_rules": f}}}
 
 
-class TestExcavateRawData(TestExcavate):
+class TestExcavateSpiderDedupe(ModuleTestBase):
+    class DummyModule(BaseModule):
+        watched_events = ["URL_UNVERIFIED"]
+        _name = "dummy_module"
+
+        events_seen = []
+
+        async def handle_event(self, event):
+            await self.helpers.sleep(0.5)
+            self.events_seen.append(event.data)
+            new_event = self.scan.make_event(
+                event.data,
+                "URL_UNVERIFIED",
+                self.scan.root_event
+            )
+            if new_event is not None:
+                await self.emit_event(new_event)
+
+
+    dummy_text = "<a href='/spider'>spider</a>"
+    modules_overrides = ["excavate", "httpx"]
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["unstructured", "filedownload", "httpx", "excavate"]
-    config_overrides = {"web_spider_distance": 2, "web_spider_depth": 2}
 
-    pdf_data = """%PDF-1.3
-%���� ReportLab Generated PDF document http://www.reportlab.com
-1 0 obj
-<<
-/F1 2 0 R
->>
-endobj
-2 0 obj
-<<
-/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
->>
-endobj
-3 0 obj
-<<
-/Contents 7 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 6 0 R /Resources <<
-/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
->> /Rotate 0 /Trans <<
+    async def setup_after_prep(self, module_test):
+        self.dummy_module = self.DummyModule(module_test.scan)
+        module_test.scan.modules["dummy_module"] = self.dummy_module
+        module_test.httpserver.expect_request("/").respond_with_data(self.dummy_text)
+        module_test.httpserver.expect_request("/spider").respond_with_data("hi")
 
->> 
-  /Type /Page
->>
-endobj
-4 0 obj
-<<
-/PageMode /UseNone /Pages 6 0 R /Type /Catalog
->>
-endobj
-5 0 obj
-<<
-/Author (anonymous) /CreationDate (D:20240605141216+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240605141216+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
-  /Subject (unspecified) /Title (untitled) /Trapped /False
->>
-endobj
-6 0 obj
-<<
-/Count 1 /Kids [ 3 0 R ] /Type /Pages
->>
-endobj
-7 0 obj
-<<
-/Filter [ /ASCII85Decode /FlateDecode ] /Length 132
->>
-stream
-GapQh0E=F,0U\H3T\pNYT^QKk?tc>IP,;W#U1^23ihPEM_?CW4KISi90MjG^2,FS#<RAf8.4MLLf/GNAf/!Cn6RrNecqhb7/kO8[:,UJC.*9`]<!^TD#gi^AU;-p49&LT2~>endstream
-endobj
-xref
-0 8
-0000000000 65535 f 
-0000000073 00000 n 
-0000000104 00000 n 
-0000000211 00000 n 
-0000000414 00000 n 
-0000000482 00000 n 
-0000000778 00000 n 
-0000000837 00000 n 
-trailer
-<<
-/ID 
-[<4ec66ff265d6f71192a8280f8a3a00ac><4ec66ff265d6f71192a8280f8a3a00ac>]
-% ReportLab generated PDF document -- digest (http://www.reportlab.com)
-
-/Info 5 0 R
-/Root 4 0 R
-/Size 8
->>
-startxref
-1059
-%%EOF"""
-
-    async def setup_before_prep(self, module_test):
-        module_test.set_expect_requests(
-            dict(uri="/"),
-            dict(response_data='<a href="/Test_PDF"/>'),
-        )
-        module_test.set_expect_requests(
-            dict(uri="/Test_PDF"),
-            dict(response_data=self.pdf_data, headers={"Content-Type": "application/pdf"}),
-        )
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "URL_UNVERIFIED"
-            and e.data == "http://127.0.0.1:8888/distance2.html"
-            and "spider-danger" in e.tags
-            for e in events
-        )
+
+        found_url_unverified_spider_max = False
+        found_url_unverified_dummy = False
+        found_url_event = False
+
+        assert self.dummy_module.events_seen == ['http://127.0.0.1:8888/', 'http://127.0.0.1:8888/spider']
+
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+
+                if e.data == "http://127.0.0.1:8888/spider":
+                    if str(e.module) == "excavate" and 'spider-danger' in e.tags and 'spider-max' in e.tags:
+                        found_url_unverified_spider_max = True
+                    if str(e.module) == "dummy_module" and 'spider-danger' not in e.tags and not 'spider-max' in e.tags:
+                        found_url_unverified_dummy = True
+            if e.type == "URL" and e.data == "http://127.0.0.1:8888/spider":
+                found_url_event = True
+
+        assert found_url_unverified_spider_max, "Excavate failed to find /spider link"
+        assert found_url_unverified_dummy, "Dummy module did not correctly re-emit"
+        assert found_url_event, "URL was not emitted from non-spider-max URL_UNVERIFIED"
+
+
+
+

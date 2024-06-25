@@ -588,7 +588,9 @@ class excavate(BaseInternalModule):
                         self.excavate.critical(
                             f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )
-                    urls_found += 1
+
+                    if self.excavate.scan.in_scope(final_url):
+                        urls_found += 1
                     await self.report(
                         final_url, event, yara_rule_settings, event_type="URL_UNVERIFIED", urls_found=urls_found
                     )
