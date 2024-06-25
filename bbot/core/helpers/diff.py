@@ -159,7 +159,7 @@ class HttpCompare:
 
             subject_params = self.parent_helper.get_get_params(subject)
             for k, v in subject_params.items():
-                if k != cache_key:
+                if self.include_cache_buster and k != cache_key:
                     for item in v:
                         if item in subject_response.text:
                             reflection = True
