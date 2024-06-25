@@ -240,7 +240,7 @@ class TestParamminer_Getparams_Extract_Html(Paramminer_Headers):
 class TestParamminer_Getparams_finish(Paramminer_Headers):
     modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
     config_overrides = {
-        "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "canary2"]), "http_extract": True}}
+        "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "canary2"]), "recycle_words": True}}
     }
 
     targets = ["http://127.0.0.1:8888/test1.php", "http://127.0.0.1:8888/test2.php"]
@@ -271,12 +271,44 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
         respond_args = {"response_data": self.test_2_html}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"uri": "/test1.php", "query_string": b"abcd1234=AAAAAAAAAAAAAA&AAAAAA=1"}
+        respond_args = {"response_data": self.test_2_html_match}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
         expect_args = {"uri": "/test1.php"}
         respond_args = {"response_data": self.test_1_html}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "WEB_PARAMETER" and "[abcd1234] Reasons: [body] Reflection: [False]" in e.data["description"]
-            for e in events
-        )
+
+        excavate_extracted_web_parameter = False
+        found_hidden_getparam_recycled = False
+        emitted_excavate_paramminer_duplicate = False
+
+        for e in events:
+
+            if e.type == "WEB_PARAMETER":
+
+                if (
+                    "http://127.0.0.1:8888/test2.php" in e.data["url"]
+                    and "HTTP Extracted Parameter [abcd1234] (HTML Tags Submodule)" in e.data["description"]
+                ):
+                    excavate_extracted_web_parameter = True
+
+                if (
+                    "http://127.0.0.1:8888/test1.php" in e.data["url"]
+                    and "[Paramminer] Getparam: [abcd1234] Reasons: [body] Reflection: [False]"
+                    in e.data["description"]
+                ):
+                    found_hidden_getparam_recycled = True
+
+                if (
+                    "http://127.0.0.1:8888/test2.php" in e.data["url"]
+                    and "[Paramminer] Getparam: [abcd1234] Reasons: [body] Reflection: [False]"
+                    in e.data["description"]
+                ):
+                    emitted_excavate_paramminer_duplicate = True
+
+        assert excavate_extracted_web_parameter, "Excavate failed to extract GET parameter"
+        assert found_hidden_getparam_recycled, "Failed to find hidden GET parameter"
+        assert not emitted_excavate_paramminer_duplicate, "Paramminer emitted duplicate already found by excavate"
