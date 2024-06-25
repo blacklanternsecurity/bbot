@@ -140,11 +140,13 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
 
 class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
 
-    config_overrides = {
-        "modules": {
-            "paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"]), "recycle_words": False}
-        }
-    }
+    modules_overrides = ["httpx", "excavate"]
+    config_overrides = {}
+
+    async def setup_after_prep(self, module_test):
+
+        respond_args = {"response_data": self.headers_body}
+        module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
 
@@ -155,12 +157,8 @@ class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [foo] (HTML Tags Submodule)" in e.data["description"]:
                     excavate_extracted_web_parameter = True
-                if "[Paramminer] Header: [foo] Reasons: [body] Reflection: [True]" in e.data["description"]:
-                    used_recycled_parameter = True
+
 
         assert (
             not excavate_extracted_web_parameter
         ), "Excavate extract WEB_PARAMETER despite disabling parameter extraction"
-        assert (
-            not used_recycled_parameter
-        ), "Found header with recycled parameters despite disabling parameter extraction"

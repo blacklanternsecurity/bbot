@@ -657,7 +657,7 @@ class excavate(BaseInternalModule):
             if "WEB_PARAMETER" in module.watched_events
         ]
 
-        self.parameter_parsing = bool(modules_WEB_PARAMETER)
+        self.parameter_extraction = bool(modules_WEB_PARAMETER)
 
         self.retain_querystring = False
         if self.config.get("retain_querystring", False) == True:
@@ -671,10 +671,13 @@ class excavate(BaseInternalModule):
                     if e.__name__ == "ParameterExtractor":
                         message = (
                             "Parameter Extraction disabled because no modules consume WEB_PARAMETER events"
-                            if not self.parameter_parsing
+                            if not self.parameter_extraction
                             else f"Parameter Extraction enabled because the following modules consume WEB_PARAMETER events: [{', '.join(modules_WEB_PARAMETER)}]"
                         )
-                        self.debug(message) if not self.parameter_parsing else self.hugeinfo(message)
+                        self.debug(message) if not self.parameter_extraction else self.hugeinfo(message)
+                        # do not add parameter extraction yara rules if it's disabled
+                        if not self.parameter_extraction:
+                            continue
                     excavateRule = e(self)
                     for rule_name, rule_content in excavateRule.yara_rules.items():
                         self.add_yara_rule(rule_name, rule_content, excavateRule)
