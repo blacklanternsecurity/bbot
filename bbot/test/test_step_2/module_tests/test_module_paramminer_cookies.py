@@ -36,15 +36,20 @@ class TestParamminer_Cookies(Paramminer_Headers):
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "WEB_PARAMETER"
-            and "[Paramminer] Cookie: [admincookie] Reasons: [body] Reflection: [True]" in e.data["description"]
-            for e in events
-        )
-        assert not any(
-            e.type == "WEB_PARAMETER" and "[Paramminer] Cookie: [junkcookie] Reasons: [body]" in e.data["description"]
-            for e in events
-        )
+
+        found_reflected_cookie = False
+        false_positive_match = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "[Paramminer] Cookie: [admincookie] Reasons: [body] Reflection: [True]" in e.data["description"]:
+                    found_reflected_cookie = True
+
+                if "junkcookie" in e.data["description"]:
+                    false_positive_match = True
+
+        assert found_reflected_cookie, "Failed to find hidden reflected cookie parameter"
+        assert not false_positive_match, "Found word which was in wordlist but not a real match"
 
 
 class TestParamminer_Cookies_noreflection(TestParamminer_Cookies):

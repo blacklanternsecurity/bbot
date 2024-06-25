@@ -478,6 +478,81 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
 
 
+class TestExcavateParameterExtraction_getparam(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate"]
+    getparam_extract_html = """
+<html><a href="/?hack=1">ping</a></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+
+        excavate_getparam_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+
+                if "HTTP Extracted Parameter [hack] (HTML Tags Submodule)" in e.data["description"]:
+                    excavate_getparam_extraction = True
+        assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+
+
+class TestExcavateParameterExtraction_json(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True}}}
+    getparam_extract_json = """
+    {
+  "obscureParameter": 1,
+  "common": 1
+}
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_json, "headers": {"Content-Type": "application/json"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_json_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter (speculative from json content) [obscureParameter]"
+                    in e.data["description"]
+                ):
+                    excavate_json_extraction = True
+        assert excavate_json_extraction, "Excavate failed to extract json parameter"
+
+
+class TestExcavateParameterExtraction_xml(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True}}}
+    getparam_extract_xml = """
+    <data>
+     <obscureParameter>1</obscureParameter>
+         <common>1</common>
+     </data>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_xml, "headers": {"Content-Type": "application/xml"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_xml_extraction = False
+        for e in events:
+                if (
+                    "HTTP Extracted Parameter (speculative from xml content) [obscureParameter]"
+                    in e.data["description"]
+                ):
+                    excavate_xml_extraction = True
+        assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
+
 class excavateTestRule(ExcavateRule):
     yara_rules = {
         "SearchForText": 'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',

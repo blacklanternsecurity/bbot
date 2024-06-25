@@ -26,7 +26,7 @@ class paramminer_getparams(paramminer_headers):
         "recycle_words": "Attempt to use words found during the scan on all other endpoints",
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
     }
-    boring_words = set()
+    boring_words = {"utm_source", "utm_campaign", "utm_medium", "utm_term", "utm_content"}
     in_scope_only = True
     compare_mode = "getparam"
     default_wordlist = "paramminer_parameters.txt"
