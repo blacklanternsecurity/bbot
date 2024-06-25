@@ -2,7 +2,6 @@ import re
 
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
-from bbot.core.helpers.misc import extract_params_json, extract_params_xml
 
 
 class paramminer_headers(BaseModule):
