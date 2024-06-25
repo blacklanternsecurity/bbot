@@ -181,12 +181,7 @@ class TestExcavateRedirect(TestExcavate):
     def check(self, module_test, events):
 
         for e in events:
-            self.log.critical(e)
-            self.log.critical(e.type)
             if e.type == "URL_UNVERIFIED":
-                self.log.critical("??????")
-                self.log.critical(e.scope_distance)
-                self.log.critical(e.web_spider_distance)
 
         assert 1 == len(
             [
@@ -457,7 +452,6 @@ class TestExcavateParameterExtraction(TestExcavate):
                         found_form_post_original_value = True
 
                 if e.data["description"] == "HTTP Extracted Parameter [age] (HTML Tags Submodule)":
-                    print("?????")
                     if e.data["original_value"] == "456":
                         if "id" in e.data["additional_params"].keys():
                             found_htmltags_a = True
