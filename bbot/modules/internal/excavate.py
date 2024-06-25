@@ -545,7 +545,7 @@ class excavate(BaseInternalModule):
             "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
         }
         full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
-        full_url_regex_strict = re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?$")
+        full_url_regex_strict = re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$")
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
 
         def __init__(self, *args, **kwargs):
@@ -579,13 +579,12 @@ class excavate(BaseInternalModule):
                         # path = f"/{unescaped_url.lstrip('/')}"
                         source_url = event.parsed_url.geturl()
                         self.excavate.hugewarning(f"SOURCE URL: {source_url}")
-                        joined_url = urljoin(source_url, unescaped_url)
-                        if not await self.helpers.re.search(self.full_url_regex_strict, joined_url):
+                        final_url = urljoin(source_url, unescaped_url)
+                        if not await self.helpers.re.search(self.full_url_regex_strict, final_url):
                             self.excavate.critical(
-                                f"Rejecting reconstructed URL [{joined_url}] as did not match full_url_regex_strict"
+                                f"Rejecting reconstructed URL [{final_url}] as did not match full_url_regex_strict"
                             )
                             continue
-                        final_url = joined_url
                         self.excavate.critical(
                             f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )

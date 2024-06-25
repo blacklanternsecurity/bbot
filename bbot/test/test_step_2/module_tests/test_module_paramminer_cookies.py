@@ -37,12 +37,12 @@ class TestParamminer_Cookies(Paramminer_Headers):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING"
+            e.type == "WEB_PARAMETER"
             and "[Paramminer] Cookie: [admincookie] Reasons: [body] Reflection: [True]" in e.data["description"]
             for e in events
         )
         assert not any(
-            e.type == "FINDING" and "[Paramminer] Cookie: [junkcookie] Reasons: [body]" in e.data["description"]
+            e.type == "WEB_PARAMETER" and "[Paramminer] Cookie: [junkcookie] Reasons: [body]" in e.data["description"]
             for e in events
         )
 
@@ -59,7 +59,7 @@ class TestParamminer_Cookies_noreflection(TestParamminer_Cookies):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING"
+            e.type == "WEB_PARAMETER"
             and "[Paramminer] Cookie: [admincookie] Reasons: [body] Reflection: [False]" in e.data["description"]
             for e in events
         )

@@ -37,12 +37,12 @@ class TestParamminer_Getparams(Paramminer_Headers):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING"
+            e.type == "WEB_PARAMETER"
             and "[Paramminer] Getparam: [id] Reasons: [body] Reflection: [True]" in e.data["description"]
             for e in events
         )
         assert not any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [canary] Reasons: [body]" in e.data["description"]
+            e.type == "WEB_PARAMETER" and "[Paramminer] Getparam: [canary] Reasons: [body]" in e.data["description"]
             for e in events
         )
 
@@ -59,7 +59,7 @@ class TestParamminer_Getparams_noreflection(TestParamminer_Getparams):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING"
+            e.type == "WEB_PARAMETER"
             and "[Paramminer] Getparam: [id] Reasons: [body] Reflection: [False]" in e.data["description"]
             for e in events
         )
@@ -91,7 +91,7 @@ class TestParamminer_Getparams_boring_off(TestParamminer_Getparams):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [boring] Reasons: [body]" in e.data["description"]
+            e.type == "WEB_PARAMETER" and "[Paramminer] Getparam: [boring] Reasons: [body]" in e.data["description"]
             for e in events
         )
 
@@ -105,7 +105,7 @@ class TestParamminer_Getparams_boring_on(TestParamminer_Getparams_boring_off):
 
     def check(self, module_test, events):
         assert not any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [boring] Reasons: [body]" in e.data["description"]
+            e.type == "WEB_PARAMETER" and "[Paramminer] Getparam: [boring] Reasons: [body]" in e.data["description"]
             for e in events
         )
 
@@ -146,7 +146,7 @@ class TestParamminer_Getparams_Extract_Json(Paramminer_Headers):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING"
+            e.type == "WEB_PARAMETER"
             and "[Paramminer] Getparam: [obscureParameter] Reasons: [body]" in e.data["description"]
             for e in events
         )
@@ -193,7 +193,7 @@ class TestParamminer_Getparams_Extract_Xml(Paramminer_Headers):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING"
+            e.type == "WEB_PARAMETER"
             and "[Paramminer] Getparam: [obscureParameter] Reasons: [body]" in e.data["description"]
             for e in events
         )
@@ -232,7 +232,7 @@ class TestParamminer_Getparams_Extract_Html(Paramminer_Headers):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [hack] Reasons: [body]" in e.data["description"]
+            e.type == "WEB_PARAMETER" and "[Paramminer] Getparam: [hack] Reasons: [body]" in e.data["description"]
             for e in events
         )
 
@@ -277,6 +277,6 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING" and "[abcd1234] Reasons: [body] Reflection: [False]" in e.data["description"]
+            e.type == "WEB_PARAMETER" and "[abcd1234] Reasons: [body] Reflection: [False]" in e.data["description"]
             for e in events
         )

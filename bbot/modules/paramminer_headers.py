@@ -1,3 +1,5 @@
+import re
+
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.misc import extract_params_json, extract_params_xml
@@ -8,8 +10,8 @@ class paramminer_headers(BaseModule):
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
-    watched_events = ["HTTP_RESPONSE"]
-    produced_events = ["FINDING"]
+    watched_events = ["HTTP_RESPONSE", "WEB_PARAMETER"]
+    produced_events = ["WEB_PARAMETER"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {
         "description": "Use smart brute-force to check for common HTTP header parameters",
@@ -18,12 +20,12 @@ class paramminer_headers(BaseModule):
     }
     options = {
         "wordlist": "",  # default is defined within setup function
-        "http_extract": True,
+        "recycle_words": False,
         "skip_boring_words": True,
     }
     options_desc = {
         "wordlist": "Define the wordlist to be used to derive headers",
-        "http_extract": "Attempt to find additional wordlist words from the HTTP Response",
+        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
     }
     scanned_hosts = []
@@ -78,7 +80,10 @@ class paramminer_headers(BaseModule):
     compare_mode = "header"
     default_wordlist = "paramminer_headers.txt"
 
+    header_regex = re.compile(r"^[!#$%&\'*+\-.^_`|~0-9a-zA-Z]+: [^\r\n]+$")
+
     async def setup(self):
+
         self.event_dict = {}
         self.already_checked = set()
         wordlist = self.config.get("wordlist", "")
@@ -92,10 +97,14 @@ class paramminer_headers(BaseModule):
         )
 
         # check against the boring list (if the option is set)
-
         if self.config.get("skip_boring_words", True):
             self.wl -= self.boring_words
         self.extracted_words_master = set()
+
+        # REMOVE THIS
+        # here until we get a way to do it dynamically
+        self.recycle_words = True  # REMOVE REMOVE REMOVE
+
         return True
 
     def rand_string(self, *args, **kwargs):
@@ -123,61 +132,83 @@ class paramminer_headers(BaseModule):
             pass
         return results
 
+    # If we are not going to "recycle_words", we need to change our watched_events to include WEB_PARAMETER.
+    # Excavate looks to see if any active modules are ingesting WEB_PARAMETERs, and if not, will disable parameter extraction
+
+    # def get_watched_events(self):
+    #     watched_events = ["HTTP_RESPONSE"]
+    #     self.recycle_words = self.config.get("recycle_words", False)
+    #     self.critical(f"{self.recycle_words}")
+    #     if self.recycle_words == True:
+    #         watched_events.append("WEB_PARAMETER")
+    #     self._watched_events = set(watched_events)
+    #     return self._watched_events
+
     async def process_results(self, event, results):
         url = event.data.get("url")
         for result, reasons, reflection in results:
+            paramtype = self.compare_mode.upper()
+            if paramtype == "HEADER":
+                if self.header_regex.match(result):
+                    self.debug("rejecting parameter as it is not a valid header")
+                    continue
             tags = []
             if reflection:
                 tags = ["http_reflection"]
             description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}] Reflection: [{str(reflection)}]"
             reflected = "reflected " if reflection else ""
+            self.extracted_words_master.add(result)
             await self.emit_event(
-                {"host": str(event.host), "url": url, "description": description},
-                "FINDING",
+                {
+                    "host": str(event.host),
+                    "url": url,
+                    "type": paramtype,
+                    "description": description,
+                    "name": result,
+                },
+                "WEB_PARAMETER",
                 event,
                 tags=tags,
                 context=f'{{module}} scanned {url} and identified {{event.type}}: {reflected}{self.compare_mode} parameter: "{result}"',
             )
 
     async def handle_event(self, event):
-        url = event.data.get("url")
 
-        try:
-            compare_helper = self.helpers.http_compare(url)
-        except HttpCompareError as e:
-            self.debug(f"Error initializing compare helper: {e}")
-            return
-        batch_size = await self.count_test(url)
-        if batch_size == None or batch_size <= 0:
-            self.debug(f"Failed to get baseline max {self.compare_mode} count, aborting")
-            return
-        self.debug(f"Resolved batch_size at {str(batch_size)}")
+        # If recycle words is enabled, we will collect WEB_PARAMETERS we find to build our list in finish()
+        if event.type == "WEB_PARAMETER" and self.recycle_words:
+            parameter_name = event.data.get("name")
+            if self.config.get("skip_boring_words", True) and parameter_name not in self.boring_words:
 
-        self.event_dict[url] = (event, batch_size)
+                self.critical(f"ADDING NAME TO MASTER WORD LIST: {parameter_name}")
+                self.extracted_words_master.update(parameter_name)
 
-        try:
-            if not await compare_helper.canary_check(url, mode=self.compare_mode):
-                raise HttpCompareError("failed canary check")
-        except HttpCompareError as e:
-            self.verbose(f'Aborting "{url}" ({e})')
-            return
+        elif event.type == "URL":
+            url = event.data.get("url")
+            try:
+                compare_helper = self.helpers.http_compare(url)
+            except HttpCompareError as e:
+                self.debug(f"Error initializing compare helper: {e}")
+                return
+            batch_size = await self.count_test(url)
+            if batch_size == None or batch_size <= 0:
+                self.debug(f"Failed to get baseline max {self.compare_mode} count, aborting")
+                return
+            self.debug(f"Resolved batch_size at {str(batch_size)}")
 
-        wl = set(self.wl)
-        if self.config.get("http_extract"):
-            extracted_words = await self.load_extracted_words(event.data.get("body"), event.data.get("content_type"))
-            if extracted_words:
-                self.debug(f"Extracted {str(len(extracted_words))} words from {url}")
-                self.extracted_words_master.update(extracted_words - wl)
-                wl |= extracted_words
+            self.event_dict[url] = (event, batch_size)
 
-        if self.config.get("skip_boring_words", True):
-            wl -= self.boring_words
+            try:
+                if not await compare_helper.canary_check(url, mode=self.compare_mode):
+                    raise HttpCompareError("failed canary check")
+            except HttpCompareError as e:
+                self.verbose(f'Aborting "{url}" ({e})')
+                return
 
-        try:
-            results = await self.do_mining(wl, url, batch_size, compare_helper)
-        except HttpCompareError as e:
-            self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
-        await self.process_results(event, results)
+            try:
+                results = await self.do_mining(wl, url, batch_size, compare_helper)
+            except HttpCompareError as e:
+                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
+            await self.process_results(event, results)
 
     async def count_test(self, url):
         baseline = await self.helpers.request(url)
@@ -200,16 +231,6 @@ class paramminer_headers(BaseModule):
                 fake_headers[self.rand_string(14)] = self.rand_string(14)
             yield header_count, (url,), {"headers": fake_headers}
             header_count -= 5
-
-    async def load_extracted_words(self, body, content_type):
-        if not body:
-            return None
-        if content_type and "json" in content_type.lower():
-            return extract_params_json(body, self.compare_mode)
-        elif content_type and "xml" in content_type.lower():
-            return extract_params_xml(body, self.compare_mode)
-        else:
-            return set(await self.helpers.re.extract_params_html(body, self.compare_mode))
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
@@ -237,8 +258,6 @@ class paramminer_headers(BaseModule):
 
     async def finish(self):
         untested_matches = self.extracted_words_master.copy()
-        if self.config.get("skip_boring_words", True):
-            untested_matches -= self.boring_words
 
         for url, (event, batch_size) in list(self.event_dict.items()):
             try:
@@ -257,3 +276,8 @@ class paramminer_headers(BaseModule):
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
                 continue
             await self.process_results(event, results)
+
+    async def filter_event(self, event):
+        # We don't need to look at WEB_PARAMETERS that we produced
+        if str(event.module).startswith("paramminer"):
+            return False

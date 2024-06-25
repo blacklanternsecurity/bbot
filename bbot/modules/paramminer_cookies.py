@@ -16,12 +16,12 @@ class paramminer_cookies(paramminer_headers):
     }
     options = {
         "wordlist": "",  # default is defined within setup function
-        "http_extract": True,
+        "recycle_words": False,
         "skip_boring_words": True,
     }
     options_desc = {
         "wordlist": "Define the wordlist to be used to derive headers",
-        "http_extract": "Attempt to find additional wordlist words from the HTTP Response",
+        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
     }
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}

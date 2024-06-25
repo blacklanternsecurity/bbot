@@ -1,4 +1,4 @@
-from .base import ModuleTestBase
+from .base import ModuleTestBase, tempwordlist
 from bbot.modules.internal.excavate import ExcavateRule
 
 import yara
@@ -535,6 +535,17 @@ class TestExcavateYara(TestExcavate):
         assert found_yara_string_1, "Did not extract Match YARA rule (1)"
         assert found_yara_string_2, "Did not extract Match YARA rule (2)"
 
+
+class TestExcavateYaraCustom(TestExcavateYara):
+
+    rule_file = [
+        'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',
+        'rule SearchForText2 { meta: description = "Contains the text DDDDEEEEFFFF" strings: $text2 = "DDDDEEEEFFFF" condition: $text2 }',
+    ]
+    f = tempwordlist(rule_file)
+    config_overrides = {"modules": {"excavate": {"custom_yara_rules": f}}}
+
+
 class TestExcavateRawData(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["unstructured", "filedownload", "httpx", "excavate"]
@@ -626,4 +637,3 @@ startxref
             and "spider-danger" in e.tags
             for e in events
         )
-
