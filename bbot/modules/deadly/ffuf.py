@@ -1,5 +1,4 @@
 from bbot.modules.base import BaseModule
-from bbot.core.helpers.misc import parse_list_string
 
 import random
 import string
@@ -56,7 +55,7 @@ class ffuf(BaseModule):
         self.tempfile, tempfile_len = self.generate_templist()
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         try:
-            self.extensions = parse_list_string(self.config.get("extensions", ""))
+            self.extensions = self.helpers.chain_lists(self.config.get("extensions", ""), validate=True)
             self.debug(f"Using custom extensions: [{','.join(self.extensions)}]")
         except ValueError as e:
             self.warning(f"Error parsing extensions: {e}")

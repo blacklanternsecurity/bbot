@@ -720,15 +720,24 @@ def test_portparse(helpers):
     assert str(e.value) == "Invalid port or port range: foo"
 
 
-def test_liststring(helpers):
-    assert helpers.parse_list_string("hello,world,bbot") == ["hello", "world", "bbot"]
+# test chain_lists helper
 
+
+def test_liststring_valid_strings(helpers):
+    assert helpers.chain_lists("hello,world,bbot") == ["hello", "world", "bbot"]
+
+
+def test_liststring_invalid_string(helpers):
     with pytest.raises(ValueError) as e:
-        helpers.parse_list_string("hello,world,\x01")
+        helpers.chain_lists("hello,world,\x01", validate=True)
     assert str(e.value) == "Invalid character in string: \x01"
 
-    assert helpers.parse_list_string("hello") == ["hello"]
 
+def test_liststring_singleitem(helpers):
+    assert helpers.chain_lists("hello") == ["hello"]
+
+
+def test_liststring_invalidfnchars(helpers):
     with pytest.raises(ValueError) as e:
-        helpers.parse_list_string("hello,world,bbot|test")
+        helpers.chain_lists("hello,world,bbot|test", validate=True)
     assert str(e.value) == "Invalid character in string: bbot|test"
