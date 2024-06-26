@@ -15,18 +15,24 @@ class baddns(BaseModule):
         "created_date": "2024-01-18",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "only_high_confidence": False}
+    options = {"custom_nameservers": [], "only_high_confidence": False, "enable_references": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "only_high_confidence": "Do not emit low-confidence or generic detections",
+        "enable_references": "Enable the references module (off by default)",
     }
     max_event_handlers = 8
     deps_pip = ["baddns~=1.1.789"]
 
     def select_modules(self):
+
+        module_list = ["CNAME", "NS", "MX", "TXT"]
+        if self.config.get("enable_references", False):
+            module_list.append("references")
+
         selected_modules = []
         for m in get_all_modules():
-            if m.name in ["CNAME", "NS", "MX", "references", "TXT"]:
+            if m.name in module_list:
                 selected_modules.append(m)
         return selected_modules
 
