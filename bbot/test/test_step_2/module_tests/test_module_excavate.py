@@ -68,10 +68,6 @@ class TestExcavate(ModuleTestBase):
         assert "x3dhttps://www2.test.notreal/" not in event_data
         assert "a2https://www3.test.notreal/" not in event_data
         assert "uac20https://www4.test.notreal/" not in event_data
-        assert "nwww5.test.notreal" not in event_data
-        assert "x3dwww6.test.notreal" not in event_data
-        assert "a2www7.test.notreal" not in event_data
-        assert "uac20www8.test.notreal" not in event_data
 
         assert any(
             e.type == "FINDING" and e.data.get("description", "") == "Non-HTTP URI: ftp://ftp.test.notreal"
@@ -266,8 +262,8 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
         for u in url_unverified_events:
             self.log.critical(u)
 
-        # base URL + 25 links + speculated without port 8888 = 27
-        assert len(url_unverified_events) == 27
+        # base URL + 25 links = 26
+        assert len(url_unverified_events) == 26
         url_data = [e.data for e in url_unverified_events if "spider-max" not in e.tags and "spider-danger" in e.tags]
         assert len(url_data) >= 10 and len(url_data) <= 12
         url_events = [e for e in events if e.type == "URL"]

@@ -89,7 +89,7 @@ class ExcavateRule:
         yara_rule_settings = YaraRuleSettings(description, tags, emit_match)
         yara_results = {}
         for h in r.strings:
-            yara_results[h.identifier.lstrip("$")] = list(set(h.instances))
+            yara_results[h.identifier.lstrip("$")] = list(set([i.matched_data.decode("utf-8") for i in h.instances]))
         await self.process(yara_results, event, yara_rule_settings)
 
     async def process(self, yara_results, event, yara_rule_settings):
@@ -386,9 +386,7 @@ class excavate(BaseInternalModule):
 
         async def process(self, yara_results, event, yara_rule_settings):
             for identifier in yara_results.keys():
-                for csp in yara_results[identifier]:
-                    csp_bytes = csp.matched_data
-                    csp_str = csp_bytes.decode("utf-8")
+                for csp_str in yara_results[identifier]:
                     domains = await self.helpers.re.findall(bbot_regexes.dns_name_regex, csp_str)
                     unique_domains = set(domains)
                     for domain in unique_domains:
@@ -402,9 +400,7 @@ class excavate(BaseInternalModule):
 
         async def process(self, yara_results, event, yara_rule_settings):
             for identifier in yara_results.keys():
-                for email in yara_results[identifier]:
-                    email_bytes = email.matched_data
-                    email_str = email_bytes.decode("utf-8")
+                for email_str in yara_results[identifier]:
                     await self.report(email_str, event, yara_rule_settings, event_type="EMAIL_ADDRESS")
 
     # Future Work: Emit a JWT Object, and make a new Module to ingest it.
@@ -501,9 +497,7 @@ class excavate(BaseInternalModule):
 
         async def process(self, yara_results, event, yara_rule_settings):
             for identifier, results in yara_results.items():
-                for url in results:
-                    url_bytes = url.matched_data
-                    url_str = url_bytes.decode("utf-8")
+                for url_str in results:
                     scheme = url_str.split("://")[0]
                     if scheme in self.scheme_blacklist:
                         continue
@@ -550,9 +544,7 @@ class excavate(BaseInternalModule):
         async def process(self, yara_results, event, yara_rule_settings):
             urls_found = 0
             for identifier, results in yara_results.items():
-                for url in results:
-                    url_bytes = url.matched_data
-                    url_str = url_bytes.decode("utf-8")
+                for url_str in results:
                     if identifier == "url_full":
                         if not await self.helpers.re.search(self.full_url_regex, url_str):
                             self.excavate.debug(
@@ -614,9 +606,7 @@ class excavate(BaseInternalModule):
 
         async def process(self, yara_results, event, yara_rule_settings):
             for identifier in yara_results.keys():
-                for domain in yara_results[identifier]:
-                    domain_bytes = domain.matched_data
-                    domain_str = domain_bytes.decode("utf-8")
+                for domain_str in yara_results[identifier]:
                     await self.report(domain_str, event, yara_rule_settings, event_type="DNS_NAME")
 
     def add_yara_rule(self, rule_name, rule_content, rule_instance):
