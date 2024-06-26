@@ -243,16 +243,14 @@ class excavate(BaseInternalModule):
                 try:
                     return json.loads(extracted_str)
                 except json.JSONDecodeError as e:
-                    self.excavate.critical(f"Failed to decode JSON: {e}")
+                    self.excavate.debug(f"Failed to decode JSON: {e}")
                     return None
 
             def extract(self):
                 extracted_results = self.extraction_regex.findall(str(self.result))
                 if extracted_results:
                     for action, extracted_parameters in extracted_results:
-                        self.excavate.hugewarning(extracted_parameters)
                         extracted_parameters_dict = self.convert_to_dict(extracted_parameters)
-                        self.excavate.critical(extracted_parameters_dict)
                         for parameter_name, original_value in extracted_parameters_dict.items():
                             yield self.output_type, parameter_name, original_value, action, _exclude_key(
                                 extracted_parameters_dict, parameter_name
@@ -305,7 +303,6 @@ class excavate(BaseInternalModule):
 
                         for parameter_name, original_value in input_tags:
                             original_value
-                            self.excavate.hugeinfo(original_value)
                             form_parameters[parameter_name] = original_value
 
                         for parameter_name, original_value in form_parameters.items():
@@ -553,37 +550,34 @@ class excavate(BaseInternalModule):
         async def process(self, yara_results, event, yara_rule_settings):
             urls_found = 0
             for identifier, results in yara_results.items():
-                self.excavate.hugewarning(f"Identifier: [{identifier}]")
                 for url in results:
                     url_bytes = url.matched_data
                     url_str = url_bytes.decode("utf-8")
                     if identifier == "url_full":
                         if not await self.helpers.re.search(self.full_url_regex, url_str):
-                            self.excavate.critical(
+                            self.excavate.debug(
                                 f"Rejecting potential full URL [{url_str}] as did not match full_url_regex"
                             )
                             continue
                         final_url = url_str
 
-                        self.excavate.critical(f"Discovered Full URL [{final_url}]")
+                        self.excavate.debug(f"Discovered Full URL [{final_url}]")
                     elif identifier == "url_attr":
                         m = await self.helpers.re.search(self.tag_attribute_regex, url_str)
                         if not m:
-                            self.excavate.critical(
+                            self.excavate.debug(
                                 f"Rejecting potential attribute URL [{url_str}] as did not match tag_attribute_regex"
                             )
                             continue
                         unescaped_url = html.unescape(m.group(1))
-                        # path = f"/{unescaped_url.lstrip('/')}"
                         source_url = event.parsed_url.geturl()
-                        self.excavate.hugewarning(f"SOURCE URL: {source_url}")
                         final_url = urljoin(source_url, unescaped_url)
                         if not await self.helpers.re.search(self.full_url_regex_strict, final_url):
-                            self.excavate.critical(
+                            self.excavate.debug(
                                 f"Rejecting reconstructed URL [{final_url}] as did not match full_url_regex_strict"
                             )
                             continue
-                        self.excavate.critical(
+                        self.excavate.debug(
                             f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )
 
@@ -598,9 +592,7 @@ class excavate(BaseInternalModule):
             url_in_scope = self.excavate.scan.in_scope(event_draft)
             urls_found = kwargs.get("urls_found", None)
             if urls_found:
-                self.excavate.hugewarning(urls_found)
                 exceeds_max_links = urls_found > self.web_spider_links_per_page and url_in_scope
-                self.excavate.hugewarning(f"Exceeds max links? {str(exceeds_max_links)}")
                 if exceeds_max_links:
                     tags.append("spider-max")
             event_draft.tags = tags
@@ -713,7 +705,7 @@ class excavate(BaseInternalModule):
         try:
             self.yara_rules = yara.compile(source="\n".join(self.yara_rules_dict.values()))
         except yara.SyntaxError as e:
-            self.critical(f"Yara Rules failed to compile with error: [{e}]")
+            self.hugewarning(f"Yara Rules failed to compile with error: [{e}]")
             return False
 
         # pre-load valid URL schemes
