@@ -341,7 +341,6 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     assert 0 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.77:8888"])
 
 
-    log.critical("@@@@")
     for e in all_events:
         log.critical(e)
     assert len(all_events) == 14

@@ -846,20 +846,24 @@ def extract_params_json(json_data, compare_mode="getparam"):
         return set()
 
     key_value_pairs = set()
-    stack = [data]
+    stack = [(data, "")]
 
     while stack:
-        current_data = stack.pop()
+        current_data, path = stack.pop()
         if isinstance(current_data, dict):
             for key, value in current_data.items():
-                if validate_parameter(key, compare_mode):
-                    key_value_pairs.add((key, value))
-                if isinstance(value, (dict, list)):
-                    stack.append(value)
+                full_key = f"{path}.{key}" if path else key
+                if isinstance(value, dict):
+                    stack.append((value, full_key))
+                elif isinstance(value, list):
+                    stack.append((value, full_key))
+                else:
+                    if validate_parameter(full_key, compare_mode):
+                        key_value_pairs.add((full_key, value))
         elif isinstance(current_data, list):
             for item in current_data:
                 if isinstance(item, (dict, list)):
-                    stack.append(item)
+                    stack.append((item, path))
     return key_value_pairs
 
 

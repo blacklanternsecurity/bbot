@@ -141,8 +141,4 @@ class TestHTTPX_querystring_notremoved(TestHTTPX_querystring_removed):
     config_overrides = {"url_querystring_remove": False}
 
     def check(self, module_test, events):
-        print("@@@@")
-        for e in events:
-            print(e)
-            print(e.type)
         assert [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/test.php?foo=bar"]
