@@ -89,7 +89,7 @@ class ExcavateRule:
         yara_rule_settings = YaraRuleSettings(description, tags, emit_match)
         yara_results = {}
         for h in r.strings:
-            yara_results[h.identifier.lstrip("$")] = list(set([i.matched_data.decode("utf-8") for i in h.instances]))
+            yara_results[h.identifier.lstrip("$")] = sorted(set([i.matched_data.decode("utf-8") for i in h.instances]))
         await self.process(yara_results, event, yara_rule_settings)
 
     async def process(self, yara_results, event, yara_rule_settings):
@@ -542,9 +542,11 @@ class excavate(BaseInternalModule):
             self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
 
         async def process(self, yara_results, event, yara_rule_settings):
-            urls_found = 0
+
             for identifier, results in yara_results.items():
+                urls_found = 0
                 for url_str in results:
+                    self.excavate.critical(f"url_str for identifier [{identifier}]: {url_str}")
                     if identifier == "url_full":
                         if not await self.helpers.re.search(self.full_url_regex, url_str):
                             self.excavate.debug(
@@ -574,7 +576,12 @@ class excavate(BaseInternalModule):
                         )
 
                     if self.excavate.scan.in_scope(final_url):
+                        self.excavate.critical(
+                            f"Incrementing urls_found for URL: [{final_url}], now [{str(urls_found)}]"
+                        )
                         urls_found += 1
+
+                    self.excavate.critical(f"Reporting {final_url}")
                     await self.report(
                         final_url, event, yara_rule_settings, event_type="URL_UNVERIFIED", urls_found=urls_found
                     )
