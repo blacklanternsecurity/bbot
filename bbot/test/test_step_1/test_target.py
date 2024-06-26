@@ -281,3 +281,11 @@ async def test_target(bbot_scanner):
     assert set(e.data for e in target) == {"evilcorp.com"}
     target = Target("www.evilcorp.com", "evilcorp.com", acl_mode=True)
     assert set(e.data for e in target) == {"evilcorp.com"}
+
+    # make sure strict_scope doesn't mess us up
+    target = Target("evilcorp.co.uk", "www.evilcorp.co.uk", acl_mode=True, strict_scope=True)
+    assert set(target.hosts) == {"evilcorp.co.uk", "www.evilcorp.co.uk"}
+    assert "evilcorp.co.uk" in target
+    assert "www.evilcorp.co.uk" in target
+    assert not "api.evilcorp.co.uk" in target
+    assert not "api.www.evilcorp.co.uk" in target
