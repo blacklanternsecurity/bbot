@@ -423,7 +423,7 @@ class Target:
 
     def _len_event(self, event):
         """
-        Used for sorting events by their length, so that bigger ones (i.e. )
+        Used for sorting events by their length, so that bigger ones (e.g. IP subnets) are added first
         """
         try:
             # smaller domains should come first
@@ -459,23 +459,24 @@ class Target:
             radix_data = self._radix.search(event.host)
             if self.acl_mode:
                 # skip if the hostname/IP/subnet (or its parent) has already been added
-                if radix_data is not None:
+                if radix_data is not None and not self.strict_scope:
                     skip = True
                 else:
                     event_type = "IP_RANGE" if event.type == "IP_RANGE" else "DNS_NAME"
                     event = make_event(event.host, event_type=event_type, dummy=True, scan=self.scan)
             if not skip:
-                if radix_data is None:
+                # if strict scope is enabled and it's not an exact host match, we add a whole new entry
+                if radix_data is None or (self.strict_scope and event.host not in radix_data):
                     radix_data = {event}
                     self._radix.insert(event.host, radix_data)
+                # otherwise, we add the event to the set
                 else:
                     radix_data.add(event)
                 # clear hash
                 self._hash = None
-        else:
+        elif self.acl_mode and not self.strict_scope:
             # skip if we're in ACL mode and there's no host
-            if self.acl_mode:
-                skip = True
+            skip = True
         if not skip:
             self._events.add(event)
 
