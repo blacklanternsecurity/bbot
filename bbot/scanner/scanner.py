@@ -998,12 +998,8 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        j["target_hash"] = self.target.hash.hex()
-        j["seed_hash"] = self.target.seeds.hash.hex()
-        j["whitelist_hash"] = self.target.whitelist.hash.hex()
-        j["blacklist_hash"] = self.target.blacklist.hash.hex()
-        j["scope_hash"] = self.target.scope_hash.hex()
-        j["preset"] = self.preset.to_dict(include_target=True, redact_secrets=True)
+        j["target"] = self.preset.target.json
+        j["preset"] = self.preset.to_dict(redact_secrets=True)
         return j
 
     def debug(self, *args, trace=False, **kwargs):
