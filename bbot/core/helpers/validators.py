@@ -130,19 +130,6 @@ def validate_host(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]
 
 
 @validator
-def validate_url(url: str):
-    return validate_url_parsed(url).geturl()
-
-
-@validator
-def validate_url_parsed(url: str):
-    url = str(url).strip()
-    if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
-        raise ValidationError(f'Invalid URL: "{url}"')
-    return clean_url(url)
-
-
-@validator
 def validate_severity(severity: str):
     severity = str(severity).strip().upper()
     if not severity in ("UNKNOWN", "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"):
@@ -158,7 +145,7 @@ def validate_email(email: str):
     raise ValidationError(f'Invalid email: "{email}"')
 
 
-def clean_url(url: str):
+def clean_url(url: str, url_querystring_remove=True):
     """
     Cleans and normalizes a URL. This function removes the query string and fragment,
     lowercases the netloc, and removes redundant port numbers.
@@ -180,9 +167,6 @@ def clean_url(url: str):
         ParseResult(scheme='http', netloc='evilcorp.com', path='/api', params='', query='', fragment='')
     """
     parsed = parse_url(url)
-
-    # REMOVE THIS. Manually setting for now since we're not config-aware here yet.
-    url_querystring_remove = False
 
     if url_querystring_remove:
         parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
@@ -259,6 +243,19 @@ def _collapse_urls(urls, threshold=10):
             yield from new_urls
 
 
+@validator
+def validate_url(url: str):
+    return validate_url_parsed(url).geturl()
+
+
+@validator
+def validate_url_parsed(url: str):
+    url = str(url).strip()
+    if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
+        raise ValidationError(f'Invalid URL: "{url}"')
+    return clean_url_fn(url)
+
+
 def soft_validate(s, t):
     """
     Softly validates a given string against a specified type. This function returns a boolean
@@ -299,3 +296,22 @@ def is_email(email):
         return True
     except ValueError:
         return False
+
+
+class Validators:
+
+    def __init__(self, parent_helper):
+        self.parent_helper = parent_helper
+
+    def clean_url(self, url: str):
+        url_querystring_remove = self.parent_helper.config.get("url_querystring_remove", True)
+        return clean_url(url, url_querystring_remove=url_querystring_remove)
+
+    def validate_url_parsed(self, url: str):
+        """
+        This version is necessary so that it can be config-aware when needed, to avoid a chicken-egg situation. Currently this is only used by the base event class to sanitize URLs
+        """
+        url = str(url).strip()
+        if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
+            raise ValidationError(f'Invalid URL: "{url}"')
+        return self.clean_url(url)

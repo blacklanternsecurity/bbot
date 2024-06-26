@@ -515,6 +515,12 @@ class BaseEvent:
             return parent_id
         return self._parent_id
 
+    @property
+    def validators(self):
+        if self.scan is not None:
+            return self.scan.helpers.config_aware_validators
+        return validators
+
     def get_parent(self):
         """
         Takes into account events with the _omit flag
@@ -850,7 +856,7 @@ class DictEvent(BaseEvent):
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
-            self.parsed_url = validators.validate_url_parsed(url)
+            self.parsed_url = self.validators.validate_url_parsed(url)
         return data
 
     def _data_load(self, data):
@@ -1017,7 +1023,7 @@ class URL_UNVERIFIED(BaseEvent):
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
     def sanitize_data(self, data):
-        self.parsed_url = validators.validate_url_parsed(data)
+        self.parsed_url = self.validators.validate_url_parsed(data)
 
         # special handling of URL extensions
         if self.parsed_url is not None:
@@ -1177,7 +1183,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
     def sanitize_data(self, data):
         url = data.get("url", "")
-        self.parsed_url = validators.validate_url_parsed(url)
+        self.parsed_url = self.validators.validate_url_parsed(url)
         data["url"] = self.parsed_url.geturl()
 
         header_dict = {}

@@ -85,10 +85,17 @@ class ConfigAwareHelper:
 
         self.re = RegexHelper(self)
         self.dns = DNSHelper(self)
-        self.web = WebHelper(self)
+        self._web = None
+        self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
+
+    @property
+    def web(self):
+        if self._web is None:
+            self._web = WebHelper(self)
+        return self._web
 
     @property
     def cloud(self):
