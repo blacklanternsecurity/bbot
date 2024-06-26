@@ -371,7 +371,8 @@ class TestExcavateNonHttpScheme(TestExcavate):
 
 
 class TestExcavateParameterExtraction(TestExcavate):
-
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["excavate", "httpx", "hunt"]
     targets = ["http://127.0.0.1:8888/"]
     parameter_extraction_html = """
     <html>
@@ -422,7 +423,6 @@ class TestExcavateParameterExtraction(TestExcavate):
         found_htmltags_img = False
 
         for e in events:
-
             if e.type == "WEB_PARAMETER":
                 if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
                     found_jquery_get = True
@@ -469,7 +469,9 @@ class TestExcavateParameterExtraction(TestExcavate):
 class TestExcavateParameterExtraction_getparam(ModuleTestBase):
 
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate"]
+
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["httpx", "excavate", "hunt"]
     getparam_extract_html = """
 <html><a href="/?hack=1">ping</a></html>
     """
