@@ -163,13 +163,11 @@ class excavate(BaseInternalModule):
     }
 
     options = {
-        "recursive_decode": True,
         "retain_querystring": False,
         "yara_max_match_data": 2000,
         "custom_yara_rules": "",
     }
     options_desc = {
-        "recursive_decode": "Recursively URL-decode responses before processing",
         "retain_querystring": "Keep the querystring intact on emitted WEB_PARAMETERS",
         "yara_max_match_data": "Sets the maximum amount of text that can extracted from a YARA regex",
         "custom_yara_rules": "Include custom Yara rules",
@@ -639,11 +637,6 @@ class excavate(BaseInternalModule):
             yield r
 
     async def setup(self):
-        self.recursive_decode = self.config.get("recursive_decode", False)
-
-        # REVISIT THIS
-        if self.scan.config.get("url_querystring_remove", True) == False:
-            self.recursive_decode = False
 
         max_redirects = self.scan.config.get("http_max_redirects", 5)
         self.web_spider_distance = self.scan.config.get("web_spider_distance", 0)
@@ -733,6 +726,8 @@ class excavate(BaseInternalModule):
         if not data:
             return None
 
+        decoded_data = await self.helpers.re.recursive_decode(data)
+
         content_type_lower = content_type.lower() if content_type else ""
         extraction_map = {
             "json": self.helpers.extract_params_json,
@@ -761,7 +756,7 @@ class excavate(BaseInternalModule):
                         await self.emit_event(data, "WEB_PARAMETER", event, context=context)
                 return
 
-        for result in self.yara_rules.match(data=data):
+        for result in self.yara_rules.match(data=f"{data}\n{decoded_data}"):
             rule_name = result.rule
             if rule_name in self.yara_preprocess_dict:
                 await self.yara_preprocess_dict[rule_name](result, event, discovery_context)
@@ -799,10 +794,6 @@ class excavate(BaseInternalModule):
         headers_str = event.data.get("raw_header", "")
         if body == "" and headers == "":
             return
-
-        if self.recursive_decode:
-            body = await self.helpers.re.recursive_decode(body)
-            headers_str = await self.helpers.re.recursive_decode(headers_str)
 
         self.assigned_cookies = {}
         content_type = None
@@ -866,7 +857,3 @@ class excavate(BaseInternalModule):
             content_type,
             discovery_context="HTTP response (headers)",
         )
-
-
-# SPIDER DANGER
-# TESTS :/
