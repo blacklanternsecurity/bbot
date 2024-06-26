@@ -253,7 +253,7 @@ def validate_url_parsed(url: str):
     url = str(url).strip()
     if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
         raise ValidationError(f'Invalid URL: "{url}"')
-    return clean_url_fn(url)
+    return clean_url(url)
 
 
 def soft_validate(s, t):
