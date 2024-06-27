@@ -195,6 +195,7 @@ async def _spawn_proc(self, *command, **kwargs):
         return proc, _input, command
     except FileNotFoundError as e:
         log.warning(f"{e} - missing executable?")
+        log.critical(os.environ["PATH"])
         log.trace(traceback.format_exc())
     return None, None, None
 
