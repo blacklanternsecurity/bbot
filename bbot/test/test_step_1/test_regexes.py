@@ -356,6 +356,7 @@ async def test_regex_helper():
     for dns_regex in scan.dns_regexes:
         for match in await scan.helpers.re.findall(dns_regex, to_search):
             matches.append(match)
+
     assert len(matches) == 8
     for s in subdomains:
         assert matches.count(s) == 2

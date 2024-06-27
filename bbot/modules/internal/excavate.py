@@ -603,8 +603,8 @@ class excavate(BaseInternalModule):
         def __init__(self, excavate):
             super().__init__(excavate)
             regexes_component_list = []
-            if excavate.scan.dns_regexes:
-                for i, r in enumerate(excavate.scan.dns_regexes):
+            if excavate.scan.dns_regexes_yara:
+                for i, r in enumerate(excavate.scan.dns_regexes_yara):
                     regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
                 regexes_component = " ".join(regexes_component_list)
                 self.yara_rules[f"hostname_extraction"] = (
