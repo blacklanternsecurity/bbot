@@ -954,8 +954,7 @@ class Scanner:
             dns_regexes = []
             for t in self.dns_strings:
                 regex_pattern = re.compile(f"{pattern}{re.escape(t)})", re.I)
-                print("AAA")
-                print(regex_pattern.pattern)
+                log.debug(f"Generated Regex [{regex_pattern.pattern}] for domain {t}")
                 dns_regexes.append(regex_pattern)
             self._dns_regexes = dns_regexes
         return self._dns_regexes
