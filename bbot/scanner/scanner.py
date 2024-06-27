@@ -948,16 +948,13 @@ class Scanner:
         Returns:
             list[re.Pattern]: A list of compiled regex patterns if enabled, otherwise an empty list.
         """
-        if self._target_dns_regex_disable:
-            return []
-        if self._dns_regexes is None:
-            dns_regexes = []
-            for t in self.dns_strings:
-                regex_pattern = re.compile(f"{pattern}{re.escape(t)})", re.I)
-                log.debug(f"Generated Regex [{regex_pattern.pattern}] for domain {t}")
-                dns_regexes.append(regex_pattern)
-            self._dns_regexes = dns_regexes
-        return self._dns_regexes
+
+        dns_regexes = []
+        for t in self.dns_strings:
+            regex_pattern = re.compile(f"{pattern}{re.escape(t)})", re.I)
+            log.debug(f"Generated Regex [{regex_pattern.pattern}] for domain {t}")
+            dns_regexes.append(regex_pattern)
+        return dns_regexes
 
     @property
     def dns_regexes(self):
@@ -971,7 +968,11 @@ class Scanner:
             ...     for match in regex.finditer(response.text):
             ...         hostname = match.group().lower()
         """
-        return self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
+        if self._target_dns_regex_disable:
+            return []
+        if not self._dns_regexes:
+            self._dns_regexes = self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
+        return self._dns_regexes
 
     @property
     def dns_regexes_yara(self):
