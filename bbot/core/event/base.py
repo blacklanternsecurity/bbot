@@ -200,9 +200,6 @@ class BaseEvent:
 
         self._scope_distance = -1
 
-        # inherit web spider distance from parent
-        self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
-
         try:
             self.data = self._sanitize_data(data)
         except Exception as e:
@@ -212,13 +209,16 @@ class BaseEvent:
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
 
-        if tags is not None:
-            for tag in tags:
-                self.add_tag(tag)
-
         self.parent = parent
         if (not self.parent) and (not self._dummy):
             raise ValidationError(f"Must specify event parent")
+
+        # inherit web spider distance from parent
+        self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
+
+        if tags is not None:
+            for tag in tags:
+                self.add_tag(tag)
 
         # internal events are not ingested by output modules
         if not self._dummy:
