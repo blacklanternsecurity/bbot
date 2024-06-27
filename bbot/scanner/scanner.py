@@ -938,6 +938,24 @@ class Scanner:
             self._dns_strings = dns_strings
         return self._dns_strings
 
+    def _generate_dns_regexes(self, pattern):
+        """
+        Generates a list of compiled DNS hostname regexes based on the provided pattern.
+        This method centralizes the regex compilation to avoid redundancy in the dns_regexes and dns_regexes_yara methods.
+
+        Args:
+            pattern (str):
+        Returns:
+            list[re.Pattern]: A list of compiled regex patterns if enabled, otherwise an empty list.
+        """
+
+        dns_regexes = []
+        for t in self.dns_strings:
+            regex_pattern = re.compile(f"{pattern}{re.escape(t)})", re.I)
+            log.debug(f"Generated Regex [{regex_pattern.pattern}] for domain {t}")
+            dns_regexes.append(regex_pattern)
+        return dns_regexes
+
     @property
     def dns_regexes(self):
         """
@@ -952,13 +970,16 @@ class Scanner:
         """
         if self._target_dns_regex_disable:
             return []
-        if self._dns_regexes is None:
-            dns_regexes = []
-            for t in self.dns_strings:
-                # dns_regexes.append(re.compile(r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")", re.I))
-                dns_regexes.append(re.compile(r"([a-z0-9-]+\.)+" + re.escape(t), re.I))
-            self._dns_regexes = dns_regexes
+        if not self._dns_regexes:
+            self._dns_regexes = self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
         return self._dns_regexes
+
+    @property
+    def dns_regexes_yara(self):
+        """
+        Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
+        """
+        return self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
 
     @property
     def useragent(self):

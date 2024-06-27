@@ -603,8 +603,8 @@ class excavate(BaseInternalModule):
         def __init__(self, excavate):
             super().__init__(excavate)
             regexes_component_list = []
-            if excavate.scan.dns_regexes:
-                for i, r in enumerate(excavate.scan.dns_regexes):
+            if excavate.scan.dns_regexes_yara:
+                for i, r in enumerate(excavate.scan.dns_regexes_yara):
                     regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
                 regexes_component = " ".join(regexes_component_list)
                 self.yara_rules[f"hostname_extraction"] = (
@@ -699,10 +699,12 @@ class excavate(BaseInternalModule):
         yara_max_match_data = self.config.get("yara_max_match_data", 2000)
 
         yara.set_config(max_match_data=yara_max_match_data)
+        yara_rules_combined = "\n".join(self.yara_rules_dict.values())
         try:
-            self.yara_rules = yara.compile(source="\n".join(self.yara_rules_dict.values()))
+            self.yara_rules = yara.compile(source=yara_rules_combined)
         except yara.SyntaxError as e:
             self.hugewarning(f"Yara Rules failed to compile with error: [{e}]")
+            self.debug(yara_rules_combined)
             return False
 
         # pre-load valid URL schemes
