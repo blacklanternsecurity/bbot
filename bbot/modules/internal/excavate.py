@@ -699,10 +699,12 @@ class excavate(BaseInternalModule):
         yara_max_match_data = self.config.get("yara_max_match_data", 2000)
 
         yara.set_config(max_match_data=yara_max_match_data)
+        yara_rules_combined = "\n".join(self.yara_rules_dict.values())
         try:
-            self.yara_rules = yara.compile(source="\n".join(self.yara_rules_dict.values()))
+            self.yara_rules = yara.compile(source=yara_rules_combined)
         except yara.SyntaxError as e:
             self.hugewarning(f"Yara Rules failed to compile with error: [{e}]")
+            self.debug(yara_rules_combined)
             return False
 
         # pre-load valid URL schemes
