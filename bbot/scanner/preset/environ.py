@@ -29,6 +29,33 @@ def env_resolver(env_name, default=None):
     return os.getenv(env_name, default)
 
 
+def add_to_path(v, k="PATH", environ=None):
+    """
+    Add an entry to a colon-separated PATH variable.
+    If it's already contained in the value, shift it to be in first position.
+    """
+    if environ is None:
+        environ = os.environ
+    var_list = os.environ.get(k, "").split(":")
+    deduped_var_list = []
+    for _ in var_list:
+        if _ != v and _ not in deduped_var_list:
+            deduped_var_list.append(_)
+    deduped_var_list = [v] + deduped_var_list
+    new_var_str = ":".join(deduped_var_list)
+    environ[k] = new_var_str
+
+
+# if we're running in a virtual environment, make sure to include its /bin in PATH
+if sys.prefix != sys.base_prefix:
+    bin_dir = str(Path(sys.prefix) / "bin")
+    add_to_path(bin_dir)
+
+# add ~/.local/bin to PATH
+local_bin_dir = str(Path.home() / ".local" / "bin")
+add_to_path(local_bin_dir)
+
+
 # Register the new resolver
 # this allows you to substitute environment variables in your config like "${env:PATH}""
 omegaconf.OmegaConf.register_new_resolver("env", env_resolver)
@@ -52,40 +79,15 @@ class BBOTEnviron:
                 elif type(v) != omegaconf.listconfig.ListConfig:
                     yield (new_base.upper(), str(v))
 
-    def add_to_path(self, v, k="PATH", environ=None):
-        """
-        Add an entry to a colon-separated PATH variable.
-        If it's already contained in the value, shift it to be in first position.
-        """
-        if environ is None:
-            environ = os.environ
-        var_list = os.environ.get(k, "").split(":")
-        deduped_var_list = []
-        for _ in var_list:
-            if _ != v and _ not in deduped_var_list:
-                deduped_var_list.append(_)
-        deduped_var_list = [v] + deduped_var_list
-        new_var_str = ":".join(deduped_var_list)
-        environ[k] = new_var_str
-
     def prepare(self):
         """
         Sync config to OS environment variables
         """
         environ = dict(os.environ)
 
-        # if we're running in a virtual environment, make sure to include its /bin in PATH
-        if sys.prefix != sys.base_prefix:
-            bin_dir = str(Path(sys.prefix) / "bin")
-            self.add_to_path(bin_dir, environ=environ)
-
-        # add ~/.local/bin to PATH
-        local_bin_dir = str(Path.home() / ".local" / "bin")
-        self.add_to_path(local_bin_dir, environ=environ)
-
         # ensure bbot_tools
         environ["BBOT_TOOLS"] = str(self.preset.core.tools_dir)
-        self.add_to_path(str(self.preset.core.tools_dir), environ=environ)
+        add_to_path(str(self.preset.core.tools_dir), environ=environ)
         # ensure bbot_cache
         environ["BBOT_CACHE"] = str(self.preset.core.cache_dir)
         # ensure bbot_temp
@@ -93,7 +95,7 @@ class BBOTEnviron:
         # ensure bbot_lib
         environ["BBOT_LIB"] = str(self.preset.core.lib_dir)
         # export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/.bbot/lib/
-        self.add_to_path(str(self.preset.core.lib_dir), k="LD_LIBRARY_PATH", environ=environ)
+        add_to_path(str(self.preset.core.lib_dir), k="LD_LIBRARY_PATH", environ=environ)
 
         # platform variables
         environ["BBOT_OS_PLATFORM"] = os_platform()
