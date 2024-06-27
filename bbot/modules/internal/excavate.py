@@ -104,6 +104,8 @@ class ExcavateRule:
 
     async def report_prep(self, event_data, event_type, event, tags):
         event_draft = self.excavate.make_event(event_data, event_type, parent=event)
+        if not event_draft:
+            return None
         event_draft.tags = tags
         return event_draft
 
@@ -118,7 +120,8 @@ class ExcavateRule:
         context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {self.discovery_context} {yara_rule_settings.description}"
         tags = yara_rule_settings.tags
         event_draft = await self.report_prep(event_data, event_type, event, tags, **kwargs)
-        await self.excavate.emit_event(event_draft, context=context, abort_if=abort_if)
+        if event_draft:
+            await self.excavate.emit_event(event_draft, context=context, abort_if=abort_if)
 
 
 class CustomExtractor(ExcavateRule):
@@ -583,6 +586,8 @@ class excavate(BaseInternalModule):
 
         async def report_prep(self, event_data, event_type, event, tags, **kwargs):
             event_draft = self.excavate.make_event(event_data, event_type, parent=event)
+            if not event_draft:
+                return None
             url_in_scope = self.excavate.scan.in_scope(event_draft)
             urls_found = kwargs.get("urls_found", None)
             if urls_found:
