@@ -241,7 +241,7 @@ class paramminer_headers(BaseModule):
 
     async def finish(self):
 
-        untested_matches = self.extracted_words_master.copy()
+        untested_matches = sorted(list(self.extracted_words_master.copy()))
         for url, (event, batch_size) in list(self.event_dict.items()):
             try:
                 compare_helper = self.helpers.http_compare(url)

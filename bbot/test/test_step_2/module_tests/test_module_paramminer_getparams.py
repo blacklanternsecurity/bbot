@@ -222,13 +222,16 @@ class TestParamminer_Getparams_xmlspeculative(Paramminer_Headers):
         respond_args = {"response_data": self.getparam_speculative_used}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"query_string": b"data=AAAAAAAAAAAAAA&obscureParameter=AAAAAAAAAAAAAA&AAAAAA=1"}
+        respond_args = {"response_data": self.getparam_speculative_used}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
         respond_args = {"response_data": self.getparam_extract_xml, "headers": {"Content-Type": "application/xml"}}
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
         excavate_discovered_speculative = False
         paramminer_used_speculative = False
-
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if (
