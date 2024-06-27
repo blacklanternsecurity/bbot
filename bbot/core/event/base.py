@@ -153,16 +153,25 @@ class BaseEvent:
 
         self._id = None
         self._hash = None
+        self._data = None
         self.__host = None
+        self._tags = set()
         self._port = None
         self._omit = False
         self.__words = None
+        self._parent = None
         self._priority = None
+        self._parent_id = None
         self._host_original = None
         self._module_priority = None
         self._resolved_hosts = set()
         self.dns_children = dict()
         self._discovery_context = ""
+
+        # for creating one-off events without enforcing parent requirement
+        self._dummy = _dummy
+        self.module = module
+        self._type = event_type
 
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
@@ -175,20 +184,9 @@ class BaseEvent:
             except AttributeError:
                 self.timestamp = datetime.datetime.utcnow()
 
-        self._tags = set()
-        if tags is not None:
-            for tag in tags:
-                self.add_tag(tag)
-
-        self._data = None
-        self._type = event_type
         self.confidence = int(confidence)
-
-        # for creating one-off events without enforcing parent requirement
-        self._dummy = _dummy
         self._internal = False
 
-        self.module = module
         # self.scan holds the instantiated scan object (for helpers, etc.)
         self.scan = scan
         if (not self.scan) and (not self._dummy):
@@ -202,6 +200,9 @@ class BaseEvent:
 
         self._scope_distance = -1
 
+        # inherit web spider distance from parent
+        self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
+
         try:
             self.data = self._sanitize_data(data)
         except Exception as e:
@@ -211,8 +212,10 @@ class BaseEvent:
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
 
-        self._parent = None
-        self._parent_id = None
+        if tags is not None:
+            for tag in tags:
+                self.add_tag(tag)
+
         self.parent = parent
         if (not self.parent) and (not self._dummy):
             raise ValidationError(f"Must specify event parent")
@@ -223,8 +226,6 @@ class BaseEvent:
             if _internal:  # or parent._internal:
                 self.internal = True
 
-        # inherit web spider distance from parent
-        self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
         if not context:
             context = getattr(self.module, "default_discovery_context", "")
         if context:
@@ -1088,12 +1089,14 @@ class URL_UNVERIFIED(BaseEvent):
 
 
 class URL(URL_UNVERIFIED):
-    def sanitize_data(self, data):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         if not self._dummy and not any(t.startswith("status-") for t in self.tags):
             raise ValidationError(
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
-        return super().sanitize_data(data)
 
     @property
     def resolved_hosts(self):
