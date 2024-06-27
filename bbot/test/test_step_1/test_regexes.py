@@ -1,6 +1,7 @@
 import pytest
 import traceback
 
+from ..bbot_fixtures import *  # noqa F401
 from bbot.core.helpers import regexes
 from bbot.errors import ValidationError
 from bbot.core.event.helpers import get_event_type
@@ -322,3 +323,49 @@ def test_url_regexes():
         assert (
             get_event_type(good_url)[0] == "URL_UNVERIFIED"
         ), f"Event type for URL {good_url} was not properly detected"
+
+
+@pytest.mark.asyncio
+async def test_regex_helper():
+    from bbot import Scanner
+
+    scan = Scanner("evilcorp.com", "evilcorp.org", "evilcorp.net", "evilcorp.co.uk")
+
+    dns_name_regexes = regexes.event_type_regexes["DNS_NAME"]
+
+    # re.search
+    matches = []
+    for r in dns_name_regexes:
+        match1 = await scan.helpers.re.search(r, "evilcorp.com")
+        if match1:
+            matches.append(match1)
+        match2 = await scan.helpers.re.search(r, "evilcorp")
+        if match2:
+            matches.append(match2)
+    assert len(matches) == 2
+    groups = [m.group() for m in matches]
+    assert "evilcorp.com" in groups
+    assert "evilcorp" in groups
+
+    subdomains = {"www.evilcorp.com", "www.evilcorp.org", "www.evilcorp.co.uk", "www.evilcorp.net"}
+    to_search = "\n".join(list(subdomains) * 2)
+    assert len(scan.dns_regexes) == 4
+
+    # re.findall
+    matches = []
+    for dns_regex in scan.dns_regexes:
+        for match in await scan.helpers.re.findall(dns_regex, to_search):
+            matches.append(match)
+    assert len(matches) == 8
+    for s in subdomains:
+        assert matches.count(s) == 2
+
+    # re.findall_multi
+    dns_regexes = {r.pattern: r for r in scan.dns_regexes}
+    matches = []
+    async for regex_name, results in scan.helpers.re.findall_multi(dns_regexes, to_search):
+        assert len(results) == 2
+        matches.extend(results)
+    assert len(matches) == 8
+    for s in subdomains:
+        assert matches.count(s) == 2

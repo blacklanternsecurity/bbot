@@ -977,6 +977,7 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
+        j["target_hash"] = self.target.hash.hex()
         j["seed_hash"] = self.target.seeds.hash.hex()
         j["whitelist_hash"] = self.target.whitelist.hash.hex()
         j["blacklist_hash"] = self.target.blacklist.hash.hex()
