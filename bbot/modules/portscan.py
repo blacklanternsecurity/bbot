@@ -115,18 +115,19 @@ class portscan(BaseModule):
             with open(stats_file, "w") as stats_fh:
                 async for line in self.run_process_live(command, sudo=True, stderr=stats_fh):
                     for ip, port in self.parse_json_line(line):
-                        parent_event = correlator.search(ip)
+                        parent_events = correlator.search(ip)
                         # masscan gets the occasional junk result. this is harmless and
                         # seems to be a side effect of it having its own TCP stack
                         # see https://github.com/robertdavidgraham/masscan/issues/397
-                        if parent_event is None:
+                        if parent_events is None:
                             self.debug(f"Failed to correlate {ip} to targets")
                             continue
-                        if parent_event.type == "DNS_NAME":
-                            host = parent_event.host
-                        else:
-                            host = ip
-                        yield host, port, parent_event
+                        for parent_event in parent_events:
+                            if parent_event.type == "DNS_NAME":
+                                host = parent_event.host
+                            else:
+                                host = ip
+                            yield host, port, parent_event
         finally:
             for file in (stats_file, target_file):
                 file.unlink()
@@ -164,9 +165,13 @@ class portscan(BaseModule):
                         await self.emit_open_port(ip.network_address, port, event)
                     continue
                 if not self.scanned_targets.search(ip):
+                    events_set = correlator.search(ip)
+                    if events_set is None:
+                        events_set = set()
+                        correlator.insert(ip, events_set)
                     self.scanned_targets.insert(ip, True)
                     targets.add(ip)
-                    correlator.insert(ip, event)
+                    events_set.add(event)
 
         return targets, correlator
 
