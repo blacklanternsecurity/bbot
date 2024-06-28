@@ -1,7 +1,7 @@
 # Custom Yara Rules
 
 ### Overview 
-Though the `excavate` internal module, BBOT supports searching through HTTP response data using custom YARA rules. 
+Through the `excavate` internal module, BBOT supports searching through HTTP response data using custom YARA rules. 
 
 This feature can be utilized with the command line option `--custom-yara-rules` or `-cy`, followed by a file containing the YARA rules.
 
