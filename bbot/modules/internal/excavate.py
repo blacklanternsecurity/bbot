@@ -75,7 +75,7 @@ class ExcavateRule:
     async def preprocess(self, r, event, discovery_context):
         self.discovery_context = discovery_context
 
-        description = "contained it"
+        description = ""
         tags = []
         emit_match = False
 
