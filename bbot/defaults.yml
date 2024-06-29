@@ -165,6 +165,7 @@ omit_event_types:
     - URL_UNVERIFIED
     - DNS_NAME_UNRESOLVED
     - FILESYSTEM
+    - WEB_PARAMETER
     # - IP_ADDRESS
 
 # Custom interactsh server settings
