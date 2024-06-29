@@ -1,4 +1,5 @@
 from .base import BaseLightfuzz
+from bbot.errors import HttpCompareError
 
 import urllib.parse
 
