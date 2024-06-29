@@ -2743,3 +2743,32 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
                     continue
             d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
+
+
+def string_scan(substrings, text, case_insensitive=True):
+    automaton = ahocorasick.Automaton()
+    if case_insensitive:
+        substrings = [s.lower() for s in substrings]
+        text = text.lower()
+    for idx, substring in enumerate(substrings):
+        automaton.add_word(substring, (idx, substring))
+    automaton.make_automaton()
+    found_substrings = []
+    for end_index, (insert_order, original_value) in automaton.iter(text):
+        found_substrings.append(original_value)
+    return found_substrings
+
+
+def calculate_entropy(data):
+    """Calculate the Shannon entropy of a byte sequence"""
+    if not data:
+        return 0
+    frequency = {}
+    for byte in data:
+        if byte in frequency:
+            frequency[byte] += 1
+        else:
+            frequency[byte] = 1
+    data_len = len(data)
+    entropy = -sum((count / data_len) * math.log2(count / data_len) for count in frequency.values())
+    return entropy
