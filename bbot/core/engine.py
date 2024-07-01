@@ -51,6 +51,7 @@ class EngineClient(EngineBase):
     SERVER_CLASS = None
 
     def __init__(self, **kwargs):
+        self._shutdown = False
         super().__init__()
         self.name = f"EngineClient {self.__class__.__name__}"
         self.process = None
@@ -76,6 +77,9 @@ class EngineClient(EngineBase):
         return False
 
     async def run_and_return(self, command, *args, **kwargs):
+        if self._shutdown:
+            self.log.verbose("Engine has been shut down and is not accepting new tasks")
+            return
         async with self.new_socket() as socket:
             try:
                 message = self.make_message(command, args=args, kwargs=kwargs)
@@ -97,6 +101,9 @@ class EngineClient(EngineBase):
         return message
 
     async def run_and_yield(self, command, *args, **kwargs):
+        if self._shutdown:
+            self.log.verbose("Engine has been shut down and is not accepting new tasks")
+            return
         message = self.make_message(command, args=args, kwargs=kwargs)
         if message is error_sentinel:
             return
@@ -181,6 +188,14 @@ class EngineClient(EngineBase):
         finally:
             with suppress(Exception):
                 socket.close()
+
+    async def shutdown(self):
+        self._shutdown = True
+        async with self.new_socket() as socket:
+            # -99 == special shutdown signal
+            shutdown_message = pickle.dumps({"c": -99})
+            await socket.send(shutdown_message)
+        self.cleanup()
 
     def cleanup(self):
         # delete socket file on exit
@@ -276,6 +291,7 @@ class EngineServer(EngineBase):
                     self.log.warning(f"No command sent in message: {message}")
                     continue
 
+                # -1 == cancel task
                 if cmd == -1:
                     task = self.tasks.get(client_id, None)
                     if task is None:
@@ -292,6 +308,10 @@ class EngineServer(EngineBase):
                         self.log.trace(traceback.format_exc())
                     self.tasks.pop(client_id, None)
                     continue
+
+                # -99 == shut down engine
+                if cmd == -99:
+                    break
 
                 args = message.get("a", ())
                 if not isinstance(args, tuple):
