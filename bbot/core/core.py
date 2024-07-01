@@ -184,6 +184,7 @@ class BBOTCore:
             import threading
 
             kwargs.pop("custom_name", None)
+            kwargs["daemon"] = True
             process = threading.Thread(*args, **kwargs)
         else:
             from .helpers.process import BBOTProcess

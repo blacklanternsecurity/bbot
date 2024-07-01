@@ -111,7 +111,7 @@ DEP_CHROMIUM = [
     },
 ]
 
-MASSCAN = [
+DEP_MASSCAN = [
     {
         "name": "install dev tools",
         "package": {"name": ["gcc", "git", "make"], "state": "present"},

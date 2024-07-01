@@ -40,7 +40,7 @@ class portscan(BaseModule):
         "adapter_mac": "Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
         "router_mac": "Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
     }
-    deps_shared = ["masscan"]
+    deps_common = ["masscan"]
     batch_size = 1000000
     _shuffle_incoming_queue = False
 
@@ -72,12 +72,16 @@ class portscan(BaseModule):
         self.helpers.depsinstaller.ensure_root(message="Masscan requires root privileges")
         # check if we're set up for IPv6
         self.ipv6_support = True
+        dry_run_command = self._build_masscan_command(target_file=self.helpers.tempfile(["::1"], pipe=False), wait=0)
         ipv6_result = await self.run_process(
-            ["masscan", "-p1", "--wait", "0", "-iL", self.helpers.tempfile(["::1"], pipe=False)],
+            dry_run_command,
             sudo=True,
             _log_stderr=False,
         )
-        if ipv6_result.returncode and "failed to detect IPv6 address" in ipv6_result.stderr:
+        if ipv6_result is None:
+            return False, "Masscan failed to run"
+        returncode = getattr(ipv6_result, "returncode", 0)
+        if returncode and "failed to detect IPv6 address" in ipv6_result.stderr:
             self.warning(f"It looks like you are not set up for IPv6. IPv6 targets will not be scanned.")
             self.ipv6_support = False
         return True
@@ -238,7 +242,9 @@ class portscan(BaseModule):
             exclude = ["255.255.255.255/32"]
         self.exclude_file = self.helpers.tempfile(exclude, pipe=False)
 
-    def _build_masscan_command(self, target_file=None, ping=False, dry_run=False):
+    def _build_masscan_command(self, target_file=None, ping=False, dry_run=False, wait=None):
+        if wait is None:
+            wait = self.wait
         command = (
             "masscan",
             "--excludefile",
@@ -246,7 +252,7 @@ class portscan(BaseModule):
             "--rate",
             self.rate,
             "--wait",
-            self.wait,
+            wait,
             "--open-only",
             "-oJ",
             "-",

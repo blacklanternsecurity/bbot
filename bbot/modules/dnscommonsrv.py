@@ -157,6 +157,19 @@ class dnscommonsrv(subdomain_enum):
     meta = {"description": "Check for common SRV records", "created_date": "2022-05-15", "author": "@TheTechromancer"}
     dedup_strategy = "lowest_parent"
 
+    options = {"max_depth": 2}
+    options_desc = {"max_depth": "The maximum subdomain depth to brute-force SRV records"}
+
+    async def setup(self):
+        self.max_subdomain_depth = self.config.get("max_depth", 2)
+        return True
+
+    async def filter_event(self, event):
+        subdomain_depth = self.helpers.subdomain_depth(event.host)
+        if subdomain_depth > self.max_subdomain_depth:
+            return False, f"its subdomain depth ({subdomain_depth}) exceeds max_depth={self.max_subdomain_depth}"
+        return True
+
     async def handle_event(self, event):
         query = self.make_query(event)
         self.verbose(f'Brute-forcing {num_srvs:,} SRV records for "{query}"')
