@@ -43,6 +43,10 @@ class BBOTCore:
         self.logger
         self.log = logging.getLogger("bbot.core")
 
+        import multiprocessing
+
+        self.process_name = multiprocessing.current_process().name
+
     @property
     def home(self):
         return Path(self.config["home"]).expanduser().resolve()
@@ -185,12 +189,25 @@ class BBOTCore:
         if os.environ.get("BBOT_TESTING", "") == "True":
             import threading
 
-            if threading.current_thread() is threading.main_thread():
-                kwargs.pop("custom_name", None)
-                kwargs["daemon"] = True
-                process = threading.Thread(*args, **kwargs)
-            else:
-                raise BBOTError(f"Tried to start server from process {self.process_name}")
+            class BBOTThread(threading.Thread):
+
+                default_name = "default bbot thread"
+
+                def __init__(_self, *args, **kwargs):
+                    _self.custom_name = kwargs.pop("custom_name", _self.default_name)
+                    super().__init__(*args, **kwargs)
+
+                def run(_self):
+                    from setproctitle import setproctitle
+
+                    setproctitle(str(_self.custom_name))
+                    super().run()
+
+            # if threading.current_thread() is threading.main_thread():
+            kwargs.pop("custom_name", None)
+            process = BBOTThread(*args, **kwargs)
+            # else:
+            #     raise BBOTError(f"Tried to start server from process {self.process_name}")
         else:
             if self.process_name == "MainProcess":
                 from .helpers.process import BBOTProcess

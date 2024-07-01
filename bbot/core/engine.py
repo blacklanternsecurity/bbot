@@ -7,7 +7,6 @@ import logging
 import tempfile
 import traceback
 import zmq.asyncio
-import multiprocessing
 from pathlib import Path
 from contextlib import asynccontextmanager, suppress
 
@@ -55,7 +54,6 @@ class EngineClient(EngineBase):
         super().__init__()
         self.name = f"EngineClient {self.__class__.__name__}"
         self.process = None
-        self.process_name = multiprocessing.current_process().name
         if self.SERVER_CLASS is None:
             raise ValueError(f"Must set EngineClient SERVER_CLASS, {self.SERVER_CLASS}")
         self.CMDS = dict(self.SERVER_CLASS.CMDS)

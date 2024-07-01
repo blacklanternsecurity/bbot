@@ -50,5 +50,6 @@ if current_process.name == "MainProcess":
         BBOTProcess.__init__, log_level=CORE.logger.log_level, log_queue=CORE.logger.queue
     )
 
+# this makes our process class the default for process pools, etc.
 mp_context = multiprocessing.get_context("spawn")
 mp_context.Process = BBOTProcess
