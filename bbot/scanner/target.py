@@ -376,12 +376,13 @@ class Target:
         self_copy._radix = copy.copy(self._radix)
         return self_copy
 
-    def get(self, host):
+    def get(self, host, single=True):
         """
         Gets the event associated with the specified host from the target's radix tree.
 
         Args:
             host (Event, Target, or str): The hostname, IP, URL, or event to look for.
+            single (bool): Whether to return a single event. If False, return all events matching the host
 
         Returns:
             Event or None: Returns the Event object associated with the given host if it exists, otherwise returns None.
@@ -397,15 +398,14 @@ class Target:
             - The method returns the first event that matches the given host.
             - If `strict_scope` is False, it will also consider parent domains and IP ranges.
         """
-
         try:
             event = make_event(host, dummy=True)
         except ValidationError:
             return
         if event.host:
-            return self.get_host(event.host)
+            return self.get_host(event.host, single=single)
 
-    def get_host(self, host):
+    def get_host(self, host, single=True):
         """
         A more efficient version of .get() that only accepts hostnames and IP addresses
         """
@@ -413,31 +413,22 @@ class Target:
         with suppress(KeyError, StopIteration):
             result = self._radix.search(host)
             if result is not None:
+                ret = set()
                 for event in result:
                     # if the result is a dns name and strict scope is enabled
                     if isinstance(event.host, str) and self.strict_scope:
                         # if the result doesn't exactly equal the host, abort
                         if event.host != host:
                             return
-                    return event
-
-    def _len_event(self, event):
-        """
-        Used for sorting events by their length, so that bigger ones (e.g. IP subnets) are added first
-        """
-        try:
-            # smaller domains should come first
-            return len(event.host)
-        except TypeError:
-            try:
-                # bigger IP subnets should come first
-                return -event.host.num_addresses
-            except AttributeError:
-                # IP addresses default to 1
-                return 1
+                    if single:
+                        return event
+                    else:
+                        ret.add(event)
+                if ret and not single:
+                    return ret
 
     def _sort_events(self, events):
-        return sorted(events, key=self._len_event)
+        return sorted(events, key=lambda x: x._host_size)
 
     def _make_events(self, targets):
         events = []
