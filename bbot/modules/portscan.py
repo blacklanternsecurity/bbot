@@ -50,6 +50,7 @@ class portscan(BaseModule):
         self.wait = self.config.get("wait", 10)
         self.ping_first = self.config.get("ping_first", False)
         self.ping_only = self.config.get("ping_only", False)
+        self.ping_scan = self.ping_first or self.ping_only
         self.adapter = self.config.get("adapter", "")
         self.adapter_ip = self.config.get("adapter_ip", "")
         self.adapter_mac = self.config.get("adapter_mac", "")
@@ -60,8 +61,15 @@ class portscan(BaseModule):
                 self.helpers.parse_port_string(self.ports)
             except ValueError as e:
                 return False, f"Error parsing ports: {e}"
-        self.alive_hosts = dict()
-        self.scanned_tracker = RadixTarget()
+        # whether we've finished scanning our original scan targets
+        self.scanned_initial_targets = False
+        # keeps track of individual scanned IPs and their open ports
+        # this is necessary because we may encounter more hosts with the same IP
+        # and we want to avoid scanning them again
+        self.open_port_cache = {}
+        # keeps track of which IPs/subnets have already been scanned
+        self.syn_scanned = self.helpers.make_target(acl_mode=True)
+        self.ping_scanned = self.helpers.make_target(acl_mode=True)
         self.prep_blacklist()
         self.helpers.depsinstaller.ensure_root(message="Masscan requires root privileges")
         # check if we're set up for IPv6
@@ -81,48 +89,34 @@ class portscan(BaseModule):
         return True
 
     async def handle_batch(self, *events):
-        targets = [str(h) for h in self.make_targets(events)]
+        # on our first run, we automatically include all our intial scan targets
+        if not self.scanned_initial_targets:
+            self.scanned_initial_targets = True
+            events = set(events)
+            events.update(
+                set([e for e in self.scan.target.seeds.events if e.type in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")])
+            )
 
         # ping scan
-        if self.ping_first or self.ping_only:
-            new_targets = []
-            async for alive_host, _ in self.masscan(targets, ping=True):
-                parent_event = self.scanned_tracker.search(alive_host)
-                # masscan gets the occasional junk result
-                # this seems to be a side effect of it having its own TCP stack
-                # see https://github.com/robertdavidgraham/masscan/issues/397
-                if parent_event is None:
-                    self.debug(f"Failed to correlate {alive_host} to targets")
-                    continue
-                await self.emit_event(
-                    alive_host,
-                    "DNS_NAME",
-                    parent=parent_event,
-                    context=f"{{module}} pinged {parent_event.data} and got a response: {{event.type}}: {{event.data}}",
-                )
-                new_targets.append(ipaddress.ip_network(alive_host, strict=False))
-            targets = new_targets
+        if self.ping_scan:
+            ping_targets, ping_correlator = await self.make_targets(events, self.ping_scanned)
+            ping_events = []
+            async for alive_host, _, parent_event in self.masscan(ping_targets, ping_correlator, ping=True):
+                # port 0 means icmp ping response
+                ping_event = await self.emit_open_port(alive_host, 0, parent_event)
+                ping_events.append(ping_event)
+            syn_targets, syn_correlator = await self.make_targets(ping_events, self.syn_scanned)
+        else:
+            syn_targets, syn_correlator = await self.make_targets(events, self.syn_scanned)
 
         # TCP SYN scan
         if not self.ping_only:
-            async for host, port in self.masscan(targets):
-                parent_event = self.scanned_tracker.search(host)
-                if parent_event is None:
-                    self.debug(f"Failed to correlate {host} to targets")
-                    continue
-                if parent_event.type == "DNS_NAME":
-                    host = parent_event.host
-                netloc = self.helpers.make_netloc(host, port)
-                await self.emit_event(
-                    netloc,
-                    "OPEN_TCP_PORT",
-                    parent=parent_event,
-                    context=f"{{module}} executed a TCP SYN scan against {parent_event.data} and found: {{event.type}}: {{event.data}}",
-                )
+            async for ip, port, parent_event in self.masscan(syn_targets, syn_correlator):
+                await self.emit_open_port(ip, port, parent_event)
         else:
             self.verbose("Only ping sweep was requested, skipping TCP SYN scan")
 
-    async def masscan(self, targets, ping=False):
+    async def masscan(self, targets, correlator, ping=False):
         scan_type = "ping" if ping else "SYN"
         self.verbose(f"Starting masscan {scan_type} scan")
         if not targets:
@@ -135,20 +129,143 @@ class portscan(BaseModule):
         try:
             with open(stats_file, "w") as stats_fh:
                 async for line in self.run_process_live(command, sudo=True, stderr=stats_fh):
-                    for host, port in self.parse_json_line(line):
-                        yield host, port
+                    for ip, port in self.parse_json_line(line):
+                        parent_events = correlator.search(ip)
+                        # masscan gets the occasional junk result. this is harmless and
+                        # seems to be a side effect of it having its own TCP stack
+                        # see https://github.com/robertdavidgraham/masscan/issues/397
+                        if parent_events is None:
+                            self.debug(f"Failed to correlate {ip} to targets")
+                            continue
+                        emitted_hosts = set()
+                        for parent_event in parent_events:
+                            if parent_event.type == "DNS_NAME":
+                                host = parent_event.host
+                            else:
+                                host = ip
+                            if host not in emitted_hosts:
+                                yield host, port, parent_event
+                                emitted_hosts.add(host)
         finally:
             for file in (stats_file, target_file):
                 file.unlink()
 
-    def log_masscan_status(self, s):
-        if "FAIL" in s:
-            self.warning(s)
-            self.warning(
-                f'Masscan failed to detect interface. Recommend passing "adapter_ip", "adapter_mac", and "router_mac" config options to portscan module.'
-            )
+    async def make_targets(self, events, scanned_tracker):
+        """
+        Convert events into a list of targets, skipping ones that have already been scanned
+        """
+        correlator = RadixTarget()
+        targets = set()
+        for event in sorted(events, key=lambda e: e._host_size):
+            # skip events without host
+            if not event.host:
+                continue
+            ips = set()
+            try:
+                # first assume it's an ip address / ip range
+                # False == it's not a hostname
+                ips.add(ipaddress.ip_network(event.host, strict=False))
+            except Exception:
+                # if it's a hostname, get its IPs from resolved_hosts
+                for h in event.resolved_hosts:
+                    try:
+                        ips.add(ipaddress.ip_network(h, strict=False))
+                    except Exception:
+                        continue
+
+            for ip in ips:
+                # remove IPv6 addresses if we're not scanning IPv6
+                if not self.ipv6_support and ip.version == 6:
+                    self.debug(f"Not scanning IPv6 address {ip} because we aren't set up for IPv6")
+                    continue
+
+                # check if we already found open ports on this IP
+                if event.type != "IP_RANGE":
+                    ip_hash = hash(ip.network_address)
+                    already_found_ports = self.open_port_cache.get(ip_hash, None)
+                    if already_found_ports is not None:
+                        # if so, emit them
+                        for port in already_found_ports:
+                            await self.emit_open_port(event.host, port, event)
+
+                # build a correlation from the IP back to its original parent event
+                events_set = correlator.search(ip)
+                if events_set is None:
+                    correlator.insert(ip, {event})
+                else:
+                    events_set.add(event)
+
+                # has this IP already been scanned?
+                if not scanned_tracker.get(ip):
+                    # if not, add it to targets!
+                    scanned_tracker.add(ip)
+                    targets.add(ip)
+                else:
+                    self.debug(f"Skipping {ip} because it's already been scanned")
+
+        return targets, correlator
+
+    async def emit_open_port(self, ip, port, parent_event):
+        parent_is_dns_name = parent_event.type == "DNS_NAME"
+        if parent_is_dns_name:
+            host = parent_event.host
         else:
-            self.verbose(s)
+            host = ip
+
+        if port == 0:
+            event_data = host
+            event_type = "DNS_NAME" if parent_is_dns_name else "IP_ADDRESS"
+            scan_type = "ping"
+        else:
+            event_data = self.helpers.make_netloc(host, port)
+            event_type = "OPEN_TCP_PORT"
+            scan_type = "TCP SYN"
+
+        event = self.make_event(
+            event_data,
+            event_type,
+            parent=parent_event,
+            context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.data}}",
+        )
+        await self.emit_event(event)
+        return event
+
+    def parse_json_line(self, line):
+        try:
+            j = json.loads(line)
+        except Exception:
+            return
+        ip = j.get("ip", "")
+        if not ip:
+            return
+        ip = self.helpers.make_ip_type(ip)
+        ip_hash = hash(ip)
+        ports = j.get("ports", [])
+        if not ports:
+            return
+        for p in ports:
+            proto = p.get("proto", "")
+            port_number = p.get("port", 0)
+            try:
+                self.open_port_cache[ip_hash].add(port_number)
+            except KeyError:
+                self.open_port_cache[ip_hash] = {port_number}
+            if proto == "" or port_number == "":
+                continue
+            yield ip, port_number
+
+    def prep_blacklist(self):
+        exclude = []
+        for t in self.scan.blacklist:
+            t = self.helpers.make_ip_type(t.data)
+            if not isinstance(t, str):
+                if self.helpers.is_ip(t):
+                    exclude.append(str(ipaddress.ip_network(t)))
+                else:
+                    exclude.append(str(t))
+        if not exclude:
+            exclude = ["255.255.255.255/32"]
+        self.exclude_file = self.helpers.tempfile(exclude, pipe=False)
 
     def _build_masscan_command(self, target_file=None, ping=False, dry_run=False, wait=None):
         if wait is None:
@@ -187,69 +304,14 @@ class portscan(BaseModule):
                     command += ("--top-ports", str(self.top_ports))
         return command
 
-    def make_targets(self, events):
-        # convert events into a list of targets, skipping ones that have already been scanned
-        targets = set()
-        for e in events:
-            # skip events without host
-            if not e.host:
-                continue
-            # skip events that we already scanned
-            if self.scanned_tracker.search(e.host):
-                self.debug(f"Skipping {e.host} because it was already scanned")
-                continue
-            try:
-                # first assume it's an ip address / ip range
-                host = ipaddress.ip_network(e.host, strict=False)
-                targets.add(host)
-                self.scanned_tracker.insert(host, e)
-            except Exception:
-                # if it's a hostname, get its IPs from resolved_hosts
-                hosts = set()
-                for h in e.resolved_hosts:
-                    try:
-                        h = ipaddress.ip_network(h, strict=False)
-                        hosts.add(h)
-                    except Exception:
-                        continue
-                for h in hosts:
-                    targets.add(h)
-                    self.scanned_tracker.insert(h, e)
-        # remove IPv6 addresses if we're not scanning IPv6
-        if not self.ipv6_support:
-            targets = [t for t in targets if t.version != 6]
-        return targets
-
-    def parse_json_line(self, line):
-        try:
-            j = json.loads(line)
-        except Exception:
-            return
-        ip = j.get("ip", "")
-        if not ip:
-            return
-        ports = j.get("ports", [])
-        if not ports:
-            return
-        for p in ports:
-            proto = p.get("proto", "")
-            port_number = p.get("port", 0)
-            if proto == "" or port_number == "":
-                continue
-            yield ip, port_number
-
-    def prep_blacklist(self):
-        exclude = []
-        for t in self.scan.blacklist:
-            t = self.helpers.make_ip_type(t.data)
-            if not isinstance(t, str):
-                if self.helpers.is_ip(t):
-                    exclude.append(str(ipaddress.ip_network(t)))
-                else:
-                    exclude.append(str(t))
-        if not exclude:
-            exclude = ["255.255.255.255/32"]
-        self.exclude_file = self.helpers.tempfile(exclude, pipe=False)
+    def log_masscan_status(self, s):
+        if "FAIL" in s:
+            self.warning(s)
+            self.warning(
+                f'Masscan failed to detect interface. Recommend passing "adapter_ip", "adapter_mac", and "router_mac" config options to portscan module.'
+            )
+        else:
+            self.verbose(s)
 
     async def cleanup(self):
         with suppress(Exception):

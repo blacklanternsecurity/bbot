@@ -106,7 +106,7 @@ class DNS(InterceptModule):
                                 with suppress(ValidationError):
                                     if self.scan.whitelisted(host):
                                         event_whitelisted = True
-                            # CNAME to a blacklisted resources, means you're blacklisted
+                            # CNAME to a blacklisted resource, means you're blacklisted
                             with suppress(ValidationError):
                                 if self.scan.blacklisted(host):
                                     dns_tags.add("blacklisted")

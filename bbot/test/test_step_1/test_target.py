@@ -239,13 +239,13 @@ async def test_target(bbot_scanner):
     grandparent_domain = scan.make_event("www.evilcorp.com", dummy=True)
     greatgrandparent_domain = scan.make_event("api.www.evilcorp.com", dummy=True)
     target = Target()
-    assert target._len_event(big_subnet) == -256
-    assert target._len_event(medium_subnet) == -16
-    assert target._len_event(small_subnet) == -4
-    assert target._len_event(ip_event) == 1
-    assert target._len_event(parent_domain) == 12
-    assert target._len_event(grandparent_domain) == 16
-    assert target._len_event(greatgrandparent_domain) == 20
+    assert big_subnet._host_size == -256
+    assert medium_subnet._host_size == -16
+    assert small_subnet._host_size == -4
+    assert ip_event._host_size == 1
+    assert parent_domain._host_size == 12
+    assert grandparent_domain._host_size == 16
+    assert greatgrandparent_domain._host_size == 20
     events = [
         big_subnet,
         medium_subnet,
@@ -289,3 +289,12 @@ async def test_target(bbot_scanner):
     assert "www.evilcorp.co.uk" in target
     assert not "api.evilcorp.co.uk" in target
     assert not "api.www.evilcorp.co.uk" in target
+
+    # test 'single' boolean argument
+    target = Target("http://evilcorp.com", "evilcorp.com:443")
+    assert "www.evilcorp.com" in target
+    event = target.get("www.evilcorp.com")
+    assert event.host == "evilcorp.com"
+    events = target.get("www.evilcorp.com", single=False)
+    assert len(events) == 2
+    assert set([e.data for e in events]) == {"http://evilcorp.com/", "evilcorp.com:443"}

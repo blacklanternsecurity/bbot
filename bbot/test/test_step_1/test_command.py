@@ -116,7 +116,7 @@ async def test_command(bbot_scanner):
     assert not lines
 
     # test sudo + existence of environment variables
-    scan1.load_modules()
+    await scan1.load_modules()
     path_parts = os.environ.get("PATH", "").split(":")
     assert "/tmp/.bbot_test/tools" in path_parts
     run_lines = (await scan1.helpers.run(["env"])).stdout.splitlines()
