@@ -147,20 +147,17 @@ class EngineClient(EngineBase):
         return [s for s in self.CMDS if isinstance(s, str)]
 
     def start_server(self):
-        if self.process_name == "MainProcess":
-            self.process = CORE.create_process(
-                target=self.server_process,
-                args=(
-                    self.SERVER_CLASS,
-                    self.socket_path,
-                ),
-                kwargs=self.server_kwargs,
-                custom_name="bbot dnshelper",
-            )
-            self.process.start()
-            return self.process
-        else:
-            raise BBOTEngineError(f"Tried to start server from process {self.process_name}")
+        self.process = CORE.create_process(
+            target=self.server_process,
+            args=(
+                self.SERVER_CLASS,
+                self.socket_path,
+            ),
+            kwargs=self.server_kwargs,
+            custom_name="bbot dnshelper",
+        )
+        self.process.start()
+        return self.process
 
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
@@ -311,7 +308,8 @@ class EngineServer(EngineBase):
 
                 # -99 == shut down engine
                 if cmd == -99:
-                    break
+                    self.log.verbose("Got shutdown signal, shutting down...")
+                    return
 
                 args = message.get("a", ())
                 if not isinstance(args, tuple):
