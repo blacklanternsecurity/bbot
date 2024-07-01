@@ -185,9 +185,12 @@ class BBOTCore:
         if os.environ.get("BBOT_TESTING", "") == "True":
             import threading
 
-            kwargs.pop("custom_name", None)
-            kwargs["daemon"] = True
-            process = threading.Thread(*args, **kwargs)
+            if threading.current_thread() is threading.main_thread():
+                kwargs.pop("custom_name", None)
+                kwargs["daemon"] = True
+                process = threading.Thread(*args, **kwargs)
+            else:
+                raise BBOTError(f"Tried to start server from process {self.process_name}")
         else:
             if self.process_name == "MainProcess":
                 from .helpers.process import BBOTProcess
