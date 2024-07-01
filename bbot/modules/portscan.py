@@ -66,10 +66,10 @@ class portscan(BaseModule):
         # keeps track of individual scanned IPs and their open ports
         # this is necessary because we may encounter more hosts with the same IP
         # and we want to avoid scanning them again
-        self.open_ports_cache = {}
-        self.alive_hosts_cache = {}
+        self.open_port_cache = {}
         # keeps track of which IPs/subnets have already been scanned
-        self.scanned_targets = self.helpers.make_target(acl_mode=True)
+        self.syn_scanned = self.helpers.make_target(acl_mode=True)
+        self.ping_scanned = self.helpers.make_target(acl_mode=True)
         self.prep_blacklist()
         self.helpers.depsinstaller.ensure_root(message="Masscan requires root privileges")
         # check if we're set up for IPv6
@@ -99,14 +99,15 @@ class portscan(BaseModule):
 
         # ping scan
         if self.ping_scan:
-            ping_targets, ping_correlator = await self.make_targets(events, self.alive_hosts_cache)
-            syn_targets, syn_correlator = self.make_targets([], self.open_ports_cache)
+            ping_targets, ping_correlator = await self.make_targets(events, self.ping_scanned)
+            ping_events = []
             async for alive_host, _, parent_event in self.masscan(ping_targets, ping_correlator, ping=True):
                 # port 0 means icmp ping response
-                await self.emit_open_port(alive_host, 0, parent_event)
-                syn_targets.insert(ipaddress.ip_network(alive_host, strict=False), parent_event)
+                ping_event = await self.emit_open_port(alive_host, 0, parent_event)
+                ping_events.append(ping_event)
+            syn_targets, syn_correlator = await self.make_targets(ping_events, self.syn_scanned)
         else:
-            syn_targets, syn_correlator = await self.make_targets(events, self.open_ports_cache)
+            syn_targets, syn_correlator = await self.make_targets(events, self.syn_scanned)
 
         # TCP SYN scan
         if not self.ping_only:
@@ -136,17 +137,20 @@ class portscan(BaseModule):
                         if parent_events is None:
                             self.debug(f"Failed to correlate {ip} to targets")
                             continue
+                        emitted_hosts = set()
                         for parent_event in parent_events:
                             if parent_event.type == "DNS_NAME":
                                 host = parent_event.host
                             else:
                                 host = ip
-                            yield host, port, parent_event
+                            if host not in emitted_hosts:
+                                yield host, port, parent_event
+                                emitted_hosts.add(host)
         finally:
             for file in (stats_file, target_file):
                 file.unlink()
 
-    async def make_targets(self, events, scanned_cache):
+    async def make_targets(self, events, scanned_tracker):
         """
         Convert events into a list of targets, skipping ones that have already been scanned
         """
@@ -178,12 +182,11 @@ class portscan(BaseModule):
                 # check if we already found open ports on this IP
                 if event.type != "IP_RANGE":
                     ip_hash = hash(ip.network_address)
-                    already_found_ports = scanned_cache.get(ip_hash, None)
+                    already_found_ports = self.open_port_cache.get(ip_hash, None)
                     if already_found_ports is not None:
-                        # if so, no need to scan this one. emit them and move on
+                        # if so, emit them
                         for port in already_found_ports:
                             await self.emit_open_port(event.host, port, event)
-                        continue
 
                 # build a correlation from the IP back to its original parent event
                 events_set = correlator.search(ip)
@@ -193,9 +196,9 @@ class portscan(BaseModule):
                     events_set.add(event)
 
                 # has this IP already been scanned?
-                if not self.scanned_targets.get(ip):
+                if not scanned_tracker.get(ip):
                     # if not, add it to targets!
-                    self.scanned_targets.add(ip)
+                    scanned_tracker.add(ip)
                     targets.add(ip)
                 else:
                     self.debug(f"Skipping {ip} because it's already been scanned")
@@ -203,7 +206,7 @@ class portscan(BaseModule):
         return targets, correlator
 
     async def emit_open_port(self, ip, port, parent_event):
-        parent_is_dns_name = parent_event.type == "HOST"
+        parent_is_dns_name = parent_event.type == "DNS_NAME"
         if parent_is_dns_name:
             host = parent_event.host
         else:
@@ -218,12 +221,14 @@ class portscan(BaseModule):
             event_type = "OPEN_TCP_PORT"
             scan_type = "TCP SYN"
 
-        await self.emit_event(
+        event = self.make_event(
             event_data,
             event_type,
             parent=parent_event,
             context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.data}}",
         )
+        await self.emit_event(event)
+        return event
 
     def parse_json_line(self, line):
         try:
@@ -241,13 +246,10 @@ class portscan(BaseModule):
         for p in ports:
             proto = p.get("proto", "")
             port_number = p.get("port", 0)
-            if port_number == 0:
-                self.alive_hosts_cache[ip_hash] = set(ports)
-            else:
-                try:
-                    self.open_ports_cache[ip_hash].add(port_number)
-                except KeyError:
-                    self.open_ports_cache[ip_hash] = {port_number}
+            try:
+                self.open_port_cache[ip_hash].add(port_number)
+            except KeyError:
+                self.open_port_cache[ip_hash] = {port_number}
             if proto == "" or port_number == "":
                 continue
             yield ip, port_number

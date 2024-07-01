@@ -18,6 +18,8 @@ class TestPortscan(ModuleTestBase):
     masscan_output_2 = """{   "ip": "8.8.4.5",   "timestamp": "1680197558", "ports": [ {"port": 80, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
     masscan_output_3 = """{   "ip": "8.8.4.6",   "timestamp": "1680197558", "ports": [ {"port": 631, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
 
+    masscan_output_ping = """{   "ip": "8.8.8.8",   "timestamp": "1719862594", "ports": [ {"port": 0, "proto": "icmp", "status": "open", "reason": "none", "ttl": 54} ] }"""
+
     async def setup_after_prep(self, module_test):
 
         from bbot.modules.base import BaseModule
@@ -44,20 +46,27 @@ class TestPortscan(ModuleTestBase):
             }
         )
 
-        self.targets_scanned = []
-        self.masscan_runs = 0
+        self.syn_scanned = []
+        self.ping_scanned = []
+        self.syn_runs = 0
+        self.ping_runs = 0
 
         async def run_masscan(command, *args, **kwargs):
             if "masscan" in command[:2]:
                 targets = open(command[11]).read().splitlines()
-                self.targets_scanned += targets
-                self.masscan_runs += 1
                 yield "["
-                if "8.8.8.0/24" in targets:
-                    yield self.masscan_output_1
-                if "8.8.4.0/24" in targets:
-                    yield self.masscan_output_2
-                    yield self.masscan_output_3
+                if "--ping" in command:
+                    self.ping_runs += 1
+                    self.ping_scanned += targets
+                    yield self.masscan_output_ping
+                else:
+                    self.syn_runs += 1
+                    self.syn_scanned += targets
+                    if "8.8.8.0/24" in targets or "8.8.8.8/32" in targets:
+                        yield self.masscan_output_1
+                    if "8.8.4.0/24" in targets:
+                        yield self.masscan_output_2
+                        yield self.masscan_output_3
                 yield "]"
             else:
                 async for l in module_test.scan.helpers.run_live(command, *args, **kwargs):
@@ -66,8 +75,10 @@ class TestPortscan(ModuleTestBase):
         module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", run_masscan)
 
     def check(self, module_test, events):
-        assert set(self.targets_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
-        assert self.masscan_runs == 1
+        assert set(self.syn_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
+        assert set(self.ping_scanned) == set()
+        assert self.syn_runs == 1
+        assert self.ping_runs == 0
         assert 1 == len(
             [e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com" and str(e.module) == "TARGET"]
         )
@@ -111,3 +122,41 @@ class TestPortscan(ModuleTestBase):
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "dummy.asdf.evilcorp.net:80"])
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "dummy.evilcorp.com:631"])
         assert not any([e for e in events if e.type == "OPEN_TCP_PORT" and e.host == "dummy.www.evilcorp.com"])
+
+
+class TestPortscanPingFirst(TestPortscan):
+    modules_overrides = {"portscan"}
+    config_overrides = {
+        "modules": {"portscan": {"ports": "443", "wait": 1, "ping_first": True}},
+        "dns_resolution": True,
+    }
+
+    def check(self, module_test, events):
+        assert set(self.syn_scanned) == {"8.8.8.8/32"}
+        assert set(self.ping_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
+        assert self.syn_runs == 1
+        assert self.ping_runs == 1
+        open_port_events = [e for e in events if e.type == "OPEN_TCP_PORT"]
+        assert len(open_port_events) == 3
+        assert set([e.data for e in open_port_events]) == {"8.8.8.8:443", "evilcorp.com:443", "www.evilcorp.com:443"}
+
+
+class TestPortscanPingOnly(TestPortscan):
+    modules_overrides = {"portscan"}
+    config_overrides = {
+        "modules": {"portscan": {"ports": "443", "wait": 1, "ping_only": True}},
+        "dns_resolution": True,
+    }
+
+    targets = ["8.8.8.8/24", "8.8.4.4/24"]
+
+    def check(self, module_test, events):
+        assert set(self.syn_scanned) == set()
+        assert set(self.ping_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
+        assert self.syn_runs == 0
+        assert self.ping_runs == 1
+        open_port_events = [e for e in events if e.type == "OPEN_TCP_PORT"]
+        assert len(open_port_events) == 0
+        ip_events = [e for e in events if e.type == "IP_ADDRESS"]
+        assert len(ip_events) == 1
+        assert set([e.data for e in ip_events]) == {"8.8.8.8"}
