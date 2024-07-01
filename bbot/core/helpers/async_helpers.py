@@ -2,7 +2,6 @@ import uuid
 import random
 import asyncio
 import logging
-import threading
 from datetime import datetime
 from queue import Queue, Empty
 from cachetools import LRUCache
@@ -118,8 +117,10 @@ def async_to_sync_gen(async_gen):
                 if is_done:
                     break
 
+    from .process import BBOTThread
+
     # Start the event loop in a separate thread
-    thread = threading.Thread(target=lambda: asyncio.run(runner()))
+    thread = BBOTThread(target=lambda: asyncio.run(runner()), daemon=True, custom_name="bbot async_to_sync_gen()")
     thread.start()
 
     # Return the generator
