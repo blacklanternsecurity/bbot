@@ -14,8 +14,6 @@ from bbot.core import CORE
 from bbot.errors import BBOTEngineError
 from bbot.core.helpers.misc import rand_string
 
-CMD_EXIT = 1000
-
 
 error_sentinel = object()
 

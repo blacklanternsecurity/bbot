@@ -187,25 +187,8 @@ class BBOTCore:
 
     def create_process(self, *args, **kwargs):
         if os.environ.get("BBOT_TESTING", "") == "True":
-            import threading
-
-            class BBOTThread(threading.Thread):
-
-                default_name = "default bbot thread"
-
-                def __init__(_self, *args, **kwargs):
-                    _self.custom_name = kwargs.pop("custom_name", _self.default_name)
-                    super().__init__(*args, **kwargs)
-
-                def run(_self):
-                    from setproctitle import setproctitle
-
-                    setproctitle(str(_self.custom_name))
-                    super().run()
-
             # if threading.current_thread() is threading.main_thread():
-            kwargs.pop("custom_name", None)
-            process = BBOTThread(*args, **kwargs)
+            process = self.create_thread(*args, **kwargs)
             # else:
             #     raise BBOTError(f"Tried to start server from process {self.process_name}")
         else:
@@ -217,6 +200,11 @@ class BBOTCore:
                 raise BBOTError(f"Tried to start server from process {self.process_name}")
         process.daemon = True
         return process
+
+    def create_thread(self, *args, **kwargs):
+        from .helpers.process import BBOTThread
+
+        return BBOTThread(*args, **kwargs)
 
     @property
     def logger(self):

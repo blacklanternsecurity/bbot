@@ -1,5 +1,6 @@
 import logging
 import traceback
+import threading
 import multiprocessing
 from multiprocessing.context import SpawnProcess
 
@@ -7,6 +8,21 @@ from .misc import in_exception_chain
 
 
 current_process = multiprocessing.current_process()
+
+
+class BBOTThread(threading.Thread):
+
+    default_name = "default bbot thread"
+
+    def __init__(self, *args, **kwargs):
+        self.custom_name = kwargs.pop("custom_name", self.default_name)
+        super().__init__(*args, **kwargs)
+
+    def run(self):
+        from setproctitle import setproctitle
+
+        setproctitle(str(self.custom_name))
+        super().run()
 
 
 class BBOTProcess(SpawnProcess):
