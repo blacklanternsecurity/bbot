@@ -311,6 +311,7 @@ class EngineServer(EngineBase):
 
                 # -99 == shut down engine
                 if cmd == -99:
+                    self.log.verbose("Got shutdown signal, shutting down...")
                     break
 
                 args = message.get("a", ())

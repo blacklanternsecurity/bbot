@@ -61,13 +61,15 @@ class portscan(BaseModule):
                 self.helpers.parse_port_string(self.ports)
             except ValueError as e:
                 return False, f"Error parsing ports: {e}"
+        # whether we've finished scanning our original scan targets
+        self.scanned_initial_targets = False
         # keeps track of individual scanned IPs and their open ports
         # this is necessary because we may encounter more hosts with the same IP
         # and we want to avoid scanning them again
         self.open_ports_cache = {}
         self.alive_hosts_cache = {}
         # keeps track of which IPs/subnets have already been scanned
-        self.scanned_targets = RadixTarget()
+        self.scanned_targets = self.helpers.make_target(acl_mode=True)
         self.prep_blacklist()
         self.helpers.depsinstaller.ensure_root(message="Masscan requires root privileges")
         # check if we're set up for IPv6
@@ -87,10 +89,18 @@ class portscan(BaseModule):
         return True
 
     async def handle_batch(self, *events):
+        # on our first run, we automatically include all our intial scan targets
+        if not self.scanned_initial_targets:
+            self.scanned_initial_targets = True
+            events = set(events)
+            events.update(
+                set([e for e in self.scan.target.seeds.events if e.type in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")])
+            )
+
         # ping scan
         if self.ping_scan:
             ping_targets, ping_correlator = await self.make_targets(events, self.alive_hosts_cache)
-            syn_targets, syn_correlator = RadixTarget(self.open_ports_cache)
+            syn_targets, syn_correlator = self.make_targets([], self.open_ports_cache)
             async for alive_host, _, parent_event in self.masscan(ping_targets, ping_correlator, ping=True):
                 # port 0 means icmp ping response
                 await self.emit_open_port(alive_host, 0, parent_event)
@@ -137,10 +147,12 @@ class portscan(BaseModule):
                 file.unlink()
 
     async def make_targets(self, events, scanned_cache):
-        # convert events into a list of targets, skipping ones that have already been scanned
+        """
+        Convert events into a list of targets, skipping ones that have already been scanned
+        """
         correlator = RadixTarget()
         targets = set()
-        for event in events:
+        for event in sorted(events, key=lambda e: e._host_size):
             # skip events without host
             if not event.host:
                 continue
@@ -156,26 +168,37 @@ class portscan(BaseModule):
                         ips.add(ipaddress.ip_network(h, strict=False))
                     except Exception:
                         continue
+
             for ip in ips:
                 # remove IPv6 addresses if we're not scanning IPv6
                 if not self.ipv6_support and ip.version == 6:
                     self.debug(f"Not scanning IPv6 address {ip} because we aren't set up for IPv6")
                     continue
-                # if we already scanned this one, emit its open port
-                ip_hash = hash(ip.network_address)
-                already_found_ports = scanned_cache.get(ip_hash, None)
-                if already_found_ports is not None:
-                    for port in already_found_ports:
-                        await self.emit_open_port(ip.network_address, port, event)
-                    continue
-                if not self.scanned_targets.search(ip):
-                    events_set = correlator.search(ip)
-                    if events_set is None:
-                        events_set = set()
-                        correlator.insert(ip, events_set)
-                    self.scanned_targets.insert(ip, True)
-                    targets.add(ip)
+
+                # check if we already found open ports on this IP
+                if event.type != "IP_RANGE":
+                    ip_hash = hash(ip.network_address)
+                    already_found_ports = scanned_cache.get(ip_hash, None)
+                    if already_found_ports is not None:
+                        # if so, no need to scan this one. emit them and move on
+                        for port in already_found_ports:
+                            await self.emit_open_port(event.host, port, event)
+                        continue
+
+                # build a correlation from the IP back to its original parent event
+                events_set = correlator.search(ip)
+                if events_set is None:
+                    correlator.insert(ip, {event})
+                else:
                     events_set.add(event)
+
+                # has this IP already been scanned?
+                if not self.scanned_targets.get(ip):
+                    # if not, add it to targets!
+                    self.scanned_targets.add(ip)
+                    targets.add(ip)
+                else:
+                    self.debug(f"Skipping {ip} because it's already been scanned")
 
         return targets, correlator
 
