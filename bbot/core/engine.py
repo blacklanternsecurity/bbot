@@ -191,7 +191,7 @@ class EngineClient(EngineBase):
         self.cleanup()
 
     def cleanup(self):
-        self.context.close()
+        self.context.destroy()
         # delete socket file on exit
         self.socket_path.unlink(missing_ok=True)
 
@@ -338,4 +338,4 @@ class EngineServer(EngineBase):
             with suppress(Exception):
                 self.socket.close()
             with suppress(Exception):
-                self.context.close()
+                self.context.destroy()
