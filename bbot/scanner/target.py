@@ -32,12 +32,12 @@ class BBOTTarget:
             whitelist = set([e.host for e in self.seeds if e.host])
         else:
             log.verbose(f"Creating events from {len(whitelist):,} whitelist entries")
-        self.whitelist = Target(*whitelist, strict_scope=self.strict_scope, scan=scan, hosts_only=True)
+        self.whitelist = Target(*whitelist, strict_scope=self.strict_scope, scan=scan, acl_mode=True)
         if blacklist is None:
             blacklist = []
         if blacklist:
             log.verbose(f"Creating events from {len(blacklist):,} blacklist entries")
-        self.blacklist = Target(*blacklist, scan=scan, hosts_only=True)
+        self.blacklist = Target(*blacklist, scan=scan, acl_mode=True)
         self._hash = None
 
     def add(self, *args, **kwargs):
@@ -107,6 +107,20 @@ class BBOTTarget:
             # Convert the hash value to bytes and update the SHA-1 object
             sha1_hash.update(target_hash)
         return sha1_hash.digest()
+
+    @property
+    def json(self):
+        return {
+            "seeds": sorted([e.data for e in self.seeds]),
+            "whitelist": sorted([e.data for e in self.whitelist]),
+            "blacklist": sorted([e.data for e in self.blacklist]),
+            "strict_scope": self.strict_scope,
+            "hash": self.hash.hex(),
+            "seed_hash": self.seeds.hash.hex(),
+            "whitelist_hash": self.whitelist.hash.hex(),
+            "blacklist_hash": self.blacklist.hash.hex(),
+            "scope_hash": self.scope_hash.hex(),
+        }
 
     def copy(self):
         self_copy = copy.copy(self)
@@ -244,7 +258,7 @@ class Target:
         - If you do not want to include child subdomains, use `strict_scope=True`
     """
 
-    def __init__(self, *targets, strict_scope=False, scan=None, hosts_only=False):
+    def __init__(self, *targets, strict_scope=False, scan=None, acl_mode=False):
         """
         Initialize a Target object.
 
@@ -252,7 +266,7 @@ class Target:
             *targets: One or more targets (e.g., domain names, IP ranges) to be included in this Target.
             strict_scope (bool): Whether to consider subdomains of target domains in-scope
             scan (Scan): Reference to the Scan object that instantiated the Target.
-            hosts_only (bool): Whether to discard events and keep only their hosts
+            acl_mode (bool): Stricter deduplication for more efficient checks
 
         Notes:
             - If you are instantiating a target from within a BBOT module, use `self.helpers.make_target()` instead. (this removes the need to pass in a scan object.)
@@ -261,7 +275,7 @@ class Target:
         """
         self.scan = scan
         self.strict_scope = strict_scope
-        self.hosts_only = hosts_only
+        self.acl_mode = acl_mode
         self.special_event_types = {
             "ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),
             "ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE),
@@ -269,10 +283,8 @@ class Target:
         self._events = set()
         self._radix = RadixTarget()
 
-        for t in targets:
-            if t == "":
-                assert False
-            self.add(t)
+        for target_event in self._make_events(targets):
+            self._add_event(target_event)
 
         self._hash = None
 
@@ -303,13 +315,6 @@ class Target:
                 if is_event(single_target):
                     event = single_target
                 else:
-                    single_target = str(single_target)
-                    for eventtype, regex in self.special_event_types.items():
-                        match = regex.match(single_target)
-                        if match:
-                            single_target = match.groups()[0]
-                            event_type = eventtype
-                            break
                     try:
                         event = make_event(
                             single_target, event_type=event_type, dummy=True, tags=["target"], scan=self.scan
@@ -339,6 +344,10 @@ class Target:
         """
         return self._events
 
+    @property
+    def hosts(self):
+        return [e.host for e in self.events]
+
     def copy(self):
         """
         Creates and returns a copy of the Target object, including a shallow copy of the `_events` and `_radix` attributes.
@@ -367,12 +376,13 @@ class Target:
         self_copy._radix = copy.copy(self._radix)
         return self_copy
 
-    def get(self, host):
+    def get(self, host, single=True):
         """
         Gets the event associated with the specified host from the target's radix tree.
 
         Args:
             host (Event, Target, or str): The hostname, IP, URL, or event to look for.
+            single (bool): Whether to return a single event. If False, return all events matching the host
 
         Returns:
             Event or None: Returns the Event object associated with the given host if it exists, otherwise returns None.
@@ -388,15 +398,14 @@ class Target:
             - The method returns the first event that matches the given host.
             - If `strict_scope` is False, it will also consider parent domains and IP ranges.
         """
-
         try:
             event = make_event(host, dummy=True)
         except ValidationError:
             return
         if event.host:
-            return self.get_host(event.host)
+            return self.get_host(event.host, single=single)
 
-    def get_host(self, host):
+    def get_host(self, host, single=True):
         """
         A more efficient version of .get() that only accepts hostnames and IP addresses
         """
@@ -404,28 +413,63 @@ class Target:
         with suppress(KeyError, StopIteration):
             result = self._radix.search(host)
             if result is not None:
+                ret = set()
                 for event in result:
                     # if the result is a dns name and strict scope is enabled
                     if isinstance(event.host, str) and self.strict_scope:
                         # if the result doesn't exactly equal the host, abort
                         if event.host != host:
                             return
-                    return event
+                    if single:
+                        return event
+                    else:
+                        ret.add(event)
+                if ret and not single:
+                    return ret
+
+    def _sort_events(self, events):
+        return sorted(events, key=lambda x: x._host_size)
+
+    def _make_events(self, targets):
+        events = []
+        for target in targets:
+            event_type = None
+            for eventtype, regex in self.special_event_types.items():
+                if isinstance(target, str):
+                    match = regex.match(target)
+                    if match:
+                        target = match.groups()[0]
+                        event_type = eventtype
+                        break
+            events.append(make_event(target, event_type=event_type, dummy=True, scan=self.scan))
+        return self._sort_events(events)
 
     def _add_event(self, event):
+        skip = False
         if event.host:
             radix_data = self._radix.search(event.host)
-            if self.hosts_only:
-                event_type = "IP_RANGE" if event.type == "IP_RANGE" else "DNS_NAME"
-                event = make_event(event.host, event_type=event_type, dummy=True, tags=["target"], scan=self.scan)
-            if radix_data is None:
-                radix_data = {event}
-                self._radix.insert(event.host, radix_data)
-            else:
-                radix_data.add(event)
-            # clear hash
-            self._hash = None
-        self._events.add(event)
+            if self.acl_mode:
+                # skip if the hostname/IP/subnet (or its parent) has already been added
+                if radix_data is not None and not self.strict_scope:
+                    skip = True
+                else:
+                    event_type = "IP_RANGE" if event.type == "IP_RANGE" else "DNS_NAME"
+                    event = make_event(event.host, event_type=event_type, dummy=True, scan=self.scan)
+            if not skip:
+                # if strict scope is enabled and it's not an exact host match, we add a whole new entry
+                if radix_data is None or (self.strict_scope and event.host not in radix_data):
+                    radix_data = {event}
+                    self._radix.insert(event.host, radix_data)
+                # otherwise, we add the event to the set
+                else:
+                    radix_data.add(event)
+                # clear hash
+                self._hash = None
+        elif self.acl_mode and not self.strict_scope:
+            # skip if we're in ACL mode and there's no host
+            skip = True
+        if not skip:
+            self._events.add(event)
 
     def _contains(self, other):
         if self.get(other) is not None:

@@ -9,6 +9,7 @@ async def test_scan(
     bbot_scanner,
 ):
     scan0 = bbot_scanner(
+        "1.1.1.0",
         "1.1.1.1/31",
         "evilcorp.com",
         blacklist=["1.1.1.1/28", "www.evilcorp.com"],
@@ -30,9 +31,9 @@ async def test_scan(
     assert not scan0.in_scope("test.www.evilcorp.com")
     assert not scan0.in_scope("www.evilcorp.co.uk")
     j = scan0.json
-    assert "1.1.1.0/31" in j["preset"]["target"]
-    assert "whitelist" not in j["preset"]
-    assert "1.1.1.0/28" in j["preset"]["blacklist"]
+    assert set(j["target"]["seeds"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com"}
+    assert set(j["target"]["whitelist"]) == {"1.1.1.0/31", "evilcorp.com"}
+    assert set(j["target"]["blacklist"]) == {"1.1.1.0/28", "www.evilcorp.com"}
     assert "ipneighbor" in j["preset"]["modules"]
 
     scan1 = bbot_scanner("1.1.1.1", whitelist=["1.0.0.1"])

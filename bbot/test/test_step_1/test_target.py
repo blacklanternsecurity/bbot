@@ -3,6 +3,10 @@ from ..bbot_fixtures import *  # noqa: F401
 
 @pytest.mark.asyncio
 async def test_target(bbot_scanner):
+    import random
+    from ipaddress import ip_address, ip_network
+    from bbot.scanner.target import Target, BBOTTarget
+
     scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
     scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
     scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
@@ -72,8 +76,6 @@ async def test_target(bbot_scanner):
     assert scan1.target.get("2001:4860:4860::888c") is None
     assert str(scan1.target.get("www.api.publicapis.org").host) == "api.publicapis.org"
     assert scan1.target.get("publicapis.org") is None
-
-    from bbot.scanner.target import Target, BBOTTarget
 
     target = Target("evilcorp.com")
     assert not "com" in target
@@ -189,10 +191,20 @@ async def test_target(bbot_scanner):
         whitelist=["evilcorp.com", "bob@www.evilcorp.com", "evilcorp.net"],
         blacklist=["1.2.3.4", "4.3.2.1/24", "http://1.2.3.4", "bob@asdf.evilcorp.net"],
     )
-    assert bbottarget.hash == b"\x8dW\xcbA\x0c\xc5\r\xc0\xfa\xae\xcd\xfc\x8e[<\xb5\x06\xc87\xf9"
-    assert bbottarget.scope_hash == b"/\xce\xbf\x013\xb2\xb8\xf6\xbe_@\xae\xfc\x17w]\x85\x15N9"
+    assert set([e.data for e in bbottarget.seeds.events]) == {
+        "1.2.3.0/24",
+        "http://www.evilcorp.net/",
+        "bob@fdsa.evilcorp.net",
+    }
+    assert set([e.data for e in bbottarget.whitelist.events]) == {"evilcorp.com", "evilcorp.net"}
+    assert set([e.data for e in bbottarget.blacklist.events]) == {"1.2.3.4", "4.3.2.0/24", "asdf.evilcorp.net"}
+    assert set(bbottarget.seeds.hosts) == {ip_network("1.2.3.0/24"), "www.evilcorp.net", "fdsa.evilcorp.net"}
+    assert set(bbottarget.whitelist.hosts) == {"evilcorp.com", "evilcorp.net"}
+    assert set(bbottarget.blacklist.hosts) == {ip_address("1.2.3.4"), ip_network("4.3.2.0/24"), "asdf.evilcorp.net"}
+    assert bbottarget.hash == b"\x0b\x908\xe3\xef\n=\x13d\xdf\x00;\xack\x0c\xbc\xd2\xcc'\xba"
+    assert bbottarget.scope_hash == b"\x00\xf5V\xfb.\xeb#\xcb\xf0q\xf9\xe9e\xb7\x1f\xe2T+\xdbw"
     assert bbottarget.seeds.hash == b"\xaf.\x86\x83\xa1C\xad\xb4\xe7`X\x94\xe2\xa0\x01\xc2\xe3:J\xc5"
-    assert bbottarget.whitelist.hash == b"b\x95\xc5\xf0hQ\x0c\x08\x92}\xa55\xff\x83\xf9'\x93\x927\xcb"
+    assert bbottarget.whitelist.hash == b"\xa0Af\x07n\x10\xd9\xb6\n\xa7TO\xb07\xcdW\xc4vLC"
     assert bbottarget.blacklist.hash == b"\xaf\x0e\x8a\xe9JZ\x86\xbe\xee\xa9\xa9\xdb0\xaf'#\x84 U/"
 
     scan = bbot_scanner(
@@ -205,17 +217,84 @@ async def test_target(bbot_scanner):
     events = [e async for e in scan.async_start()]
     scan_events = [e for e in events if e.type == "SCAN"]
     assert len(scan_events) == 1
-    assert (
-        scan_events[0].data["target_hash"] == b"\x8dW\xcbA\x0c\xc5\r\xc0\xfa\xae\xcd\xfc\x8e[<\xb5\x06\xc87\xf9".hex()
-    )
-    assert scan_events[0].data["scope_hash"] == b"/\xce\xbf\x013\xb2\xb8\xf6\xbe_@\xae\xfc\x17w]\x85\x15N9".hex()
-    assert scan_events[0].data["seed_hash"] == b"\xaf.\x86\x83\xa1C\xad\xb4\xe7`X\x94\xe2\xa0\x01\xc2\xe3:J\xc5".hex()
-    assert (
-        scan_events[0].data["whitelist_hash"] == b"b\x95\xc5\xf0hQ\x0c\x08\x92}\xa55\xff\x83\xf9'\x93\x927\xcb".hex()
-    )
-    assert scan_events[0].data["blacklist_hash"] == b"\xaf\x0e\x8a\xe9JZ\x86\xbe\xee\xa9\xa9\xdb0\xaf'#\x84 U/".hex()
-    assert scan_events[0].data["target_hash"] == "8d57cb410cc50dc0faaecdfc8e5b3cb506c837f9"
-    assert scan_events[0].data["scope_hash"] == "2fcebf0133b2b8f6be5f40aefc17775d85154e39"
-    assert scan_events[0].data["seed_hash"] == "af2e8683a143adb4e7605894e2a001c2e33a4ac5"
-    assert scan_events[0].data["whitelist_hash"] == "6295c5f068510c08927da535ff83f927939237cb"
-    assert scan_events[0].data["blacklist_hash"] == "af0e8ae94a5a86beeea9a9db30af27238420552f"
+    target_dict = scan_events[0].data["target"]
+    assert target_dict["strict_scope"] == False
+    assert target_dict["hash"] == b"\x0b\x908\xe3\xef\n=\x13d\xdf\x00;\xack\x0c\xbc\xd2\xcc'\xba".hex()
+    assert target_dict["scope_hash"] == b"\x00\xf5V\xfb.\xeb#\xcb\xf0q\xf9\xe9e\xb7\x1f\xe2T+\xdbw".hex()
+    assert target_dict["seed_hash"] == b"\xaf.\x86\x83\xa1C\xad\xb4\xe7`X\x94\xe2\xa0\x01\xc2\xe3:J\xc5".hex()
+    assert target_dict["whitelist_hash"] == b"\xa0Af\x07n\x10\xd9\xb6\n\xa7TO\xb07\xcdW\xc4vLC".hex()
+    assert target_dict["blacklist_hash"] == b"\xaf\x0e\x8a\xe9JZ\x86\xbe\xee\xa9\xa9\xdb0\xaf'#\x84 U/".hex()
+    assert target_dict["hash"] == "0b9038e3ef0a3d1364df003bac6b0cbcd2cc27ba"
+    assert target_dict["scope_hash"] == "00f556fb2eeb23cbf071f9e965b71fe2542bdb77"
+    assert target_dict["seed_hash"] == "af2e8683a143adb4e7605894e2a001c2e33a4ac5"
+    assert target_dict["whitelist_hash"] == "a04166076e10d9b60aa7544fb037cd57c4764c43"
+    assert target_dict["blacklist_hash"] == "af0e8ae94a5a86beeea9a9db30af27238420552f"
+
+    # test target sorting
+    big_subnet = scan.make_event("1.2.3.4/24", dummy=True)
+    medium_subnet = scan.make_event("1.2.3.4/28", dummy=True)
+    small_subnet = scan.make_event("1.2.3.4/30", dummy=True)
+    ip_event = scan.make_event("1.2.3.4", dummy=True)
+    parent_domain = scan.make_event("evilcorp.com", dummy=True)
+    grandparent_domain = scan.make_event("www.evilcorp.com", dummy=True)
+    greatgrandparent_domain = scan.make_event("api.www.evilcorp.com", dummy=True)
+    target = Target()
+    assert big_subnet._host_size == -256
+    assert medium_subnet._host_size == -16
+    assert small_subnet._host_size == -4
+    assert ip_event._host_size == 1
+    assert parent_domain._host_size == 12
+    assert grandparent_domain._host_size == 16
+    assert greatgrandparent_domain._host_size == 20
+    events = [
+        big_subnet,
+        medium_subnet,
+        small_subnet,
+        ip_event,
+        parent_domain,
+        grandparent_domain,
+        greatgrandparent_domain,
+    ]
+    random.shuffle(events)
+    assert target._sort_events(events) == [
+        big_subnet,
+        medium_subnet,
+        small_subnet,
+        ip_event,
+        parent_domain,
+        grandparent_domain,
+        greatgrandparent_domain,
+    ]
+
+    # make sure child subnets/IPs don't get added to whitelist/blacklist
+    target = Target("1.2.3.4/24", "1.2.3.4/28", acl_mode=True)
+    assert set(e.data for e in target) == {"1.2.3.0/24"}
+    target = Target("1.2.3.4/28", "1.2.3.4/24", acl_mode=True)
+    assert set(e.data for e in target) == {"1.2.3.0/24"}
+    target = Target("1.2.3.4/28", "1.2.3.4", acl_mode=True)
+    assert set(e.data for e in target) == {"1.2.3.0/28"}
+    target = Target("1.2.3.4", "1.2.3.4/28", acl_mode=True)
+    assert set(e.data for e in target) == {"1.2.3.0/28"}
+
+    # same but for domains
+    target = Target("evilcorp.com", "www.evilcorp.com", acl_mode=True)
+    assert set(e.data for e in target) == {"evilcorp.com"}
+    target = Target("www.evilcorp.com", "evilcorp.com", acl_mode=True)
+    assert set(e.data for e in target) == {"evilcorp.com"}
+
+    # make sure strict_scope doesn't mess us up
+    target = Target("evilcorp.co.uk", "www.evilcorp.co.uk", acl_mode=True, strict_scope=True)
+    assert set(target.hosts) == {"evilcorp.co.uk", "www.evilcorp.co.uk"}
+    assert "evilcorp.co.uk" in target
+    assert "www.evilcorp.co.uk" in target
+    assert not "api.evilcorp.co.uk" in target
+    assert not "api.www.evilcorp.co.uk" in target
+
+    # test 'single' boolean argument
+    target = Target("http://evilcorp.com", "evilcorp.com:443")
+    assert "www.evilcorp.com" in target
+    event = target.get("www.evilcorp.com")
+    assert event.host == "evilcorp.com"
+    events = target.get("www.evilcorp.com", single=False)
+    assert len(events) == 2
+    assert set([e.data for e in events]) == {"http://evilcorp.com/", "evilcorp.com:443"}
