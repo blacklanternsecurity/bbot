@@ -114,7 +114,7 @@ DEP_CHROMIUM = [
 DEP_MASSCAN = [
     {
         "name": "install os deps (Debian)",
-        "package": {"name": ["gcc", "git", "make", "libpcap-0.8"], "state": "present"},
+        "package": {"name": ["gcc", "git", "make", "libpcap0.8"], "state": "present"},
         "become": True,
         "when": "ansible_facts['os_family'] == 'Debian'",
         "ignore_errors": True,
