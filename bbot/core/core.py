@@ -187,10 +187,7 @@ class BBOTCore:
 
     def create_process(self, *args, **kwargs):
         if os.environ.get("BBOT_TESTING", "") == "True":
-            # if threading.current_thread() is threading.main_thread():
             process = self.create_thread(*args, **kwargs)
-            # else:
-            #     raise BBOTError(f"Tried to start server from process {self.process_name}")
         else:
             if self.process_name == "MainProcess":
                 from .helpers.process import BBOTProcess
