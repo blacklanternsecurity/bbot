@@ -19,9 +19,9 @@ class BBOTThread(threading.Thread):
         super().__init__(*args, **kwargs)
 
     def run(self):
-        from setproctitle import setproctitle
+        from setproctitle import setthreadtitle
 
-        setproctitle(str(self.custom_name))
+        setthreadtitle(str(self.custom_name))
         super().run()
 
 
