@@ -129,8 +129,7 @@ class Scanner:
         else:
             if not isinstance(preset, Preset):
                 raise ValidationError(f'Preset must be of type Preset, not "{type(preset).__name__}"')
-        self.preset = preset.bake()
-        self.preset.scan = self
+        self.preset = preset.bake(self)
 
         # scan name
         if preset.scan_name is None:
@@ -783,8 +782,10 @@ class Scanner:
             None
         """
         self.status = "CLEANING_UP"
-        # clean up dns engine
-        self.helpers.dns.cleanup()
+        # shut down dns engine
+        await self.helpers.dns.shutdown()
+        # shut down web engine
+        await self.helpers.web.shutdown()
         # clean up modules
         for mod in self.modules.values():
             await mod._cleanup()
@@ -909,11 +910,12 @@ class Scanner:
             }
             ```
         """
-        root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
+        root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True)
         root_event._id = self.id
         root_event.scope_distance = 0
         root_event.parent = root_event
         root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
+        root_event.discovery_context = f"Scan {self.name} started at {root_event.timestamp}"
         return root_event
 
     @property
@@ -962,14 +964,8 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        if self.target:
-            j.update({"targets": [str(e.data) for e in self.target]})
-        if self.whitelist:
-            j.update({"whitelist": [str(e.data) for e in self.whitelist]})
-        if self.blacklist:
-            j.update({"blacklist": [str(e.data) for e in self.blacklist]})
-        if self.modules:
-            j.update({"modules": [str(m) for m in self.modules]})
+        j["target"] = self.preset.target.json
+        j["preset"] = self.preset.to_dict(redact_secrets=True)
         return j
 
     def debug(self, *args, trace=False, **kwargs):

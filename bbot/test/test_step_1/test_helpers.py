@@ -254,6 +254,73 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert replaced["asdf"][1][500] == True
     assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
 
+    filtered_dict = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
+    )
+    assert "api_key" in filtered_dict["modules"]["c99"]
+    assert "filterme" not in filtered_dict["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict["modules"]
+
+    filtered_dict2 = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
+    )
+    assert "api_key" in filtered_dict2["modules"]["c99"]
+    assert "filterme" in filtered_dict2["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict2["modules"]
+
+    filtered_dict3 = helpers.filter_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
+        "key",
+        fuzzy=True,
+    )
+    assert "api_key" in filtered_dict3["modules"]["c99"]
+    assert "filterme" not in filtered_dict3["modules"]["c99"]
+    assert "ipneighbor" not in filtered_dict3["modules"]
+
+    filtered_dict4 = helpers.filter_dict(
+        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
+        "secret",
+        fuzzy=True,
+        exclude_keys="modules",
+    )
+    assert not "secrets_db" in filtered_dict4["modules"]
+    assert "ipneighbor" in filtered_dict4["modules"]
+    assert "secret" in filtered_dict4["modules"]["ipneighbor"]
+    assert "asdf" not in filtered_dict4["modules"]["ipneighbor"]
+
+    cleaned_dict = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
+    )
+    assert "api_key" not in cleaned_dict["modules"]["c99"]
+    assert "filterme" in cleaned_dict["modules"]["c99"]
+    assert "ipneighbor" in cleaned_dict["modules"]
+
+    cleaned_dict2 = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
+    )
+    assert "c99" not in cleaned_dict2["modules"]
+    assert "ipneighbor" in cleaned_dict2["modules"]
+
+    cleaned_dict3 = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
+        "key",
+        fuzzy=True,
+    )
+    assert "api_key" not in cleaned_dict3["modules"]["c99"]
+    assert "filterme" in cleaned_dict3["modules"]["c99"]
+    assert "ipneighbor" in cleaned_dict3["modules"]
+
+    cleaned_dict4 = helpers.clean_dict(
+        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
+        "secret",
+        fuzzy=True,
+        exclude_keys="modules",
+    )
+    assert "secrets_db" in cleaned_dict4["modules"]
+    assert "ipneighbor" in cleaned_dict4["modules"]
+    assert "secret" not in cleaned_dict4["modules"]["ipneighbor"]
+    assert "asdf" in cleaned_dict4["modules"]["ipneighbor"]
+
     assert helpers.split_list([1, 2, 3, 4, 5]) == [[1, 2], [3, 4, 5]]
     assert list(helpers.grouper("ABCDEFG", 3)) == [["A", "B", "C"], ["D", "E", "F"], ["G"]]
 
@@ -320,6 +387,18 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.validators.soft_validate("!@#$", "port") == False
     with pytest.raises(ValueError):
         helpers.validators.validate_port("asdf")
+    # top tcp ports
+    top_tcp_ports = helpers.top_tcp_ports(100)
+    assert len(top_tcp_ports) == 100
+    assert len(set(top_tcp_ports)) == 100
+    top_tcp_ports = helpers.top_tcp_ports(800000)
+    assert top_tcp_ports[:10] == [80, 23, 443, 21, 22, 25, 3389, 110, 445, 139]
+    assert top_tcp_ports[-10:] == [65526, 65527, 65528, 65529, 65530, 65531, 65532, 65533, 65534, 65535]
+    assert len(top_tcp_ports) == 65535
+    assert len(set(top_tcp_ports)) == 65535
+    assert all([isinstance(i, int) for i in top_tcp_ports])
+    top_tcp_ports = helpers.top_tcp_ports(10, as_string=True)
+    assert top_tcp_ports == "80,23,443,21,22,25,3389,110,445,139"
     # urls
     assert helpers.validators.validate_url(" httP://evilcorP.com/asdf?a=b&c=d#e") == "http://evilcorp.com/asdf"
     assert (
@@ -433,11 +512,11 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     with pytest.raises(NTLMError):
         helpers.ntlm.ntlmdecode("asdf")
 
-    test_filesize = Path("/tmp/test_filesize")
+    test_filesize = bbot_test_dir / "test_filesize"
     test_filesize.touch()
     assert test_filesize.is_file()
     assert helpers.filesize(test_filesize) == 0
-    assert helpers.filesize("/tmp/glkasjdlgksadlkfsdf") == 0
+    assert helpers.filesize(bbot_test_dir / "glkasjdlgksadlkfsdf") == 0
 
     # memory stuff
     int(helpers.memory_status().available)

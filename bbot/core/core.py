@@ -2,7 +2,10 @@ import os
 import logging
 from copy import copy
 from pathlib import Path
+from contextlib import suppress
 from omegaconf import OmegaConf
+
+from bbot.errors import BBOTError
 
 
 DEFAULT_CONFIG = None
@@ -22,6 +25,11 @@ class BBOTCore:
     - load quickly
     """
 
+    # used for filtering out sensitive config values
+    secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
+    # don't filter/remove entries under this key
+    secrets_exclude_keys = ["modules"]
+
     def __init__(self):
         self._logger = None
         self._files_config = None
@@ -34,6 +42,10 @@ class BBOTCore:
         # bare minimum == logging
         self.logger
         self.log = logging.getLogger("bbot.core")
+
+        import multiprocessing
+
+        self.process_name = multiprocessing.current_process().name
 
     @property
     def home(self):
@@ -102,14 +114,44 @@ class BBOTCore:
         # we temporarily clear out the config so it can be refreshed if/when custom_config changes
         self._config = None
         if self._custom_config is None:
-            self._custom_config = self.files_config.get_custom_config()
+            self.custom_config = self.files_config.get_custom_config()
         return self._custom_config
 
     @custom_config.setter
     def custom_config(self, value):
         # we temporarily clear out the config so it can be refreshed if/when custom_config changes
         self._config = None
+        # ensure the modules key is always a dictionary
+        modules_entry = value.get("modules", None)
+        if modules_entry is not None and not OmegaConf.is_dict(modules_entry):
+            value["modules"] = {}
         self._custom_config = value
+
+    def no_secrets_config(self, config):
+        from .helpers.misc import clean_dict
+
+        with suppress(ValueError):
+            config = OmegaConf.to_object(config)
+
+        return clean_dict(
+            config,
+            *self.secrets_strings,
+            fuzzy=True,
+            exclude_keys=self.secrets_exclude_keys,
+        )
+
+    def secrets_only_config(self, config):
+        from .helpers.misc import filter_dict
+
+        with suppress(ValueError):
+            config = OmegaConf.to_object(config)
+
+        return filter_dict(
+            config,
+            *self.secrets_strings,
+            fuzzy=True,
+            exclude_keys=self.secrets_exclude_keys,
+        )
 
     def merge_custom(self, config):
         """
@@ -145,16 +187,21 @@ class BBOTCore:
 
     def create_process(self, *args, **kwargs):
         if os.environ.get("BBOT_TESTING", "") == "True":
-            import threading
-
-            kwargs.pop("custom_name", None)
-            process = threading.Thread(*args, **kwargs)
+            process = self.create_thread(*args, **kwargs)
         else:
-            from .helpers.process import BBOTProcess
+            if self.process_name == "MainProcess":
+                from .helpers.process import BBOTProcess
 
-            process = BBOTProcess(*args, **kwargs)
+                process = BBOTProcess(*args, **kwargs)
+            else:
+                raise BBOTError(f"Tried to start server from process {self.process_name}")
         process.daemon = True
         return process
+
+    def create_thread(self, *args, **kwargs):
+        from .helpers.process import BBOTThread
+
+        return BBOTThread(*args, **kwargs)
 
     @property
     def logger(self):
