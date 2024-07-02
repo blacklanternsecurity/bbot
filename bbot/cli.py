@@ -5,6 +5,7 @@ import logging
 from bbot.errors import *
 from bbot import __version__
 from bbot.logger import log_to_stderr
+from bbot.core.helpers.misc import chain_lists
 
 silent = "-s" in sys.argv or "--silent" in sys.argv
 
