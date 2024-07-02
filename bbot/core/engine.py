@@ -7,15 +7,12 @@ import logging
 import tempfile
 import traceback
 import zmq.asyncio
-import multiprocessing
 from pathlib import Path
 from contextlib import asynccontextmanager, suppress
 
 from bbot.core import CORE
 from bbot.errors import BBOTEngineError
 from bbot.core.helpers.misc import rand_string
-
-CMD_EXIT = 1000
 
 
 error_sentinel = object()
@@ -55,7 +52,6 @@ class EngineClient(EngineBase):
         super().__init__()
         self.name = f"EngineClient {self.__class__.__name__}"
         self.process = None
-        self.process_name = multiprocessing.current_process().name
         if self.SERVER_CLASS is None:
             raise ValueError(f"Must set EngineClient SERVER_CLASS, {self.SERVER_CLASS}")
         self.CMDS = dict(self.SERVER_CLASS.CMDS)
@@ -147,20 +143,17 @@ class EngineClient(EngineBase):
         return [s for s in self.CMDS if isinstance(s, str)]
 
     def start_server(self):
-        if self.process_name == "MainProcess":
-            self.process = CORE.create_process(
-                target=self.server_process,
-                args=(
-                    self.SERVER_CLASS,
-                    self.socket_path,
-                ),
-                kwargs=self.server_kwargs,
-                custom_name="bbot dnshelper",
-            )
-            self.process.start()
-            return self.process
-        else:
-            raise BBOTEngineError(f"Tried to start server from process {self.process_name}")
+        self.process = CORE.create_process(
+            target=self.server_process,
+            args=(
+                self.SERVER_CLASS,
+                self.socket_path,
+            ),
+            kwargs=self.server_kwargs,
+            custom_name="bbot dnshelper",
+        )
+        self.process.start()
+        return self.process
 
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
@@ -198,6 +191,7 @@ class EngineClient(EngineBase):
         self.cleanup()
 
     def cleanup(self):
+        self.context.destroy()
         # delete socket file on exit
         self.socket_path.unlink(missing_ok=True)
 
@@ -312,7 +306,7 @@ class EngineServer(EngineBase):
                 # -99 == shut down engine
                 if cmd == -99:
                     self.log.verbose("Got shutdown signal, shutting down...")
-                    break
+                    return
 
                 args = message.get("a", ())
                 if not isinstance(args, tuple):
@@ -343,3 +337,5 @@ class EngineServer(EngineBase):
         finally:
             with suppress(Exception):
                 self.socket.close()
+            with suppress(Exception):
+                self.context.destroy()

@@ -5,6 +5,8 @@ from pathlib import Path
 from contextlib import suppress
 from omegaconf import OmegaConf
 
+from bbot.errors import BBOTError
+
 
 DEFAULT_CONFIG = None
 
@@ -40,6 +42,10 @@ class BBOTCore:
         # bare minimum == logging
         self.logger
         self.log = logging.getLogger("bbot.core")
+
+        import multiprocessing
+
+        self.process_name = multiprocessing.current_process().name
 
     @property
     def home(self):
@@ -181,17 +187,21 @@ class BBOTCore:
 
     def create_process(self, *args, **kwargs):
         if os.environ.get("BBOT_TESTING", "") == "True":
-            import threading
-
-            kwargs.pop("custom_name", None)
-            kwargs["daemon"] = True
-            process = threading.Thread(*args, **kwargs)
+            process = self.create_thread(*args, **kwargs)
         else:
-            from .helpers.process import BBOTProcess
+            if self.process_name == "MainProcess":
+                from .helpers.process import BBOTProcess
 
-            process = BBOTProcess(*args, **kwargs)
+                process = BBOTProcess(*args, **kwargs)
+            else:
+                raise BBOTError(f"Tried to start server from process {self.process_name}")
         process.daemon = True
         return process
+
+    def create_thread(self, *args, **kwargs):
+        from .helpers.process import BBOTThread
+
+        return BBOTThread(*args, **kwargs)
 
     @property
     def logger(self):

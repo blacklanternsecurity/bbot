@@ -301,7 +301,7 @@ class portscan(BaseModule):
                 if self.ports:
                     command += ("-p", self.ports)
                 else:
-                    command += ("--top-ports", str(self.top_ports))
+                    command += ("-p", self.helpers.top_tcp_ports(self.top_ports, as_string=True))
         return command
 
     def log_masscan_status(self, s):
