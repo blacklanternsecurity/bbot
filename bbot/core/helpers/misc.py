@@ -2805,3 +2805,28 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
                     continue
             d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
+
+
+top_ports_cache = None
+
+
+def top_tcp_ports(n, as_string=False):
+    """
+    Returns the top *n* TCP ports as evaluated by nmap
+    """
+    top_ports_file = Path(__file__).parent.parent.parent / "wordlists" / "top_open_ports_nmap.txt"
+
+    global top_ports_cache
+    if top_ports_cache is None:
+        # Read the open ports from the file
+        with open(top_ports_file, "r") as f:
+            top_ports_cache = [int(line.strip()) for line in f]
+
+        # If n is greater than the length of the ports list, add remaining ports from range(1, 65536)
+        unique_ports = set(top_ports_cache)
+        top_ports_cache.extend([port for port in range(1, 65536) if port not in unique_ports])
+
+    top_ports = top_ports_cache[:n]
+    if as_string:
+        return ",".join([str(s) for s in top_ports])
+    return top_ports

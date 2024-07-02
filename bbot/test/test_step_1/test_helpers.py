@@ -387,6 +387,18 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.validators.soft_validate("!@#$", "port") == False
     with pytest.raises(ValueError):
         helpers.validators.validate_port("asdf")
+    # top tcp ports
+    top_tcp_ports = helpers.top_tcp_ports(100)
+    assert len(top_tcp_ports) == 100
+    assert len(set(top_tcp_ports)) == 100
+    top_tcp_ports = helpers.top_tcp_ports(800000)
+    assert top_tcp_ports[:10] == [80, 23, 443, 21, 22, 25, 3389, 110, 445, 139]
+    assert top_tcp_ports[-10:] == [65526, 65527, 65528, 65529, 65530, 65531, 65532, 65533, 65534, 65535]
+    assert len(top_tcp_ports) == 65535
+    assert len(set(top_tcp_ports)) == 65535
+    assert all([isinstance(i, int) for i in top_tcp_ports])
+    top_tcp_ports = helpers.top_tcp_ports(10, as_string=True)
+    assert top_tcp_ports == "80,23,443,21,22,25,3389,110,445,139"
     # urls
     assert helpers.validators.validate_url(" httP://evilcorP.com/asdf?a=b&c=d#e") == "http://evilcorp.com/asdf"
     assert (
