@@ -185,7 +185,10 @@ class EngineClient(EngineBase):
         return [s for s in self.CMDS if isinstance(s, str)]
 
     def start_server(self):
-        if self.process_name == "MainProcess":
+        import multiprocessing
+
+        process_name = multiprocessing.current_process().name
+        if process_name == "MainProcess":
             self.process = CORE.create_process(
                 target=self.server_process,
                 args=(
@@ -199,7 +202,7 @@ class EngineClient(EngineBase):
             return self.process
         else:
             raise BBOTEngineError(
-                f"Tried to start server from process {self.process_name}. Did you forget \"if __name__ == '__main__'?\""
+                f"Tried to start server from process {process_name}. Did you forget \"if __name__ == '__main__'?\""
             )
 
     @staticmethod

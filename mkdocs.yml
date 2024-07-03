@@ -39,6 +39,7 @@ nav:
 - Developer Manual:
   - Development Overview: dev/index.md
   - How to Write a BBOT Module: dev/module_howto.md
+  - Unit Tests: dev/tests.md
   - Discord Bot Example: dev/discord_bot.md
   - Code Reference:
     - Scanner: dev/scanner.md
