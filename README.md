@@ -1,8 +1,6 @@
 [![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)](https://github.com/blacklanternsecurity/bbot)
 
-### BEE·bot: A recursive internet scanner for hackers.
-
-BBOT automates Recon and Vulnerability Scanning. Designed for Pentesters, Bug Bounty Hunters, and OSINTers. Developer-friendly!
+**BEE·bot is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your Recon, Bug Bounties, and ASM!**
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
@@ -24,7 +22,7 @@ _For more installation methods, including [Docker](https://hub.docker.com/r/blac
 
 ## Example Commands
 
-## 1) Subdomain Finder
+### 1) Subdomain Finder
 
 Passive API sources plus a recursive DNS brute-force with target-specific subdomain mutations.
 
@@ -57,7 +55,7 @@ BBOT consistently finds 20-50% more subdomains than other tools. The bigger the 
 
 ![subdomain-stats-ebay](https://github.com/blacklanternsecurity/bbot/assets/20261699/de3e7f21-6f52-4ac4-8eab-367296cd385f)
 
-## 2) Web Spider
+### 2) Web Spider
 
 ```bash
 # crawl evilcorp.com, extracting emails and other goodies
@@ -90,7 +88,7 @@ config:
 
 <!-- END BBOT SPIDER PRESET EXPANDABLE -->
 
-## 3) Email Gatherer
+### 3) Email Gatherer
 
 ```bash
 # enumerate evilcorp.com email addresses
@@ -117,7 +115,7 @@ output_modules:
 
 <!-- END BBOT EMAIL-ENUM PRESET EXPANDABLE -->
 
-## 4) Web Scanner
+### 4) Web Scanner
 
 ```bash
 # run a light web scan against www.evilcorp.com
@@ -167,7 +165,7 @@ flags:
 
 <!-- END BBOT WEB-THOROUGH PRESET EXPANDABLE -->
 
-## 5) Everything Everywhere All at Once
+### 5) Everything Everywhere All at Once
 
 ```bash
 # everything everywhere all at once
@@ -250,14 +248,10 @@ A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/discord_bot/)
 
 ## Feature Overview
 
-BBOT (Bighuge BLS OSINT Tool) is a recursive internet scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), but designed to be faster, more reliable, and friendlier to pentesters, bug bounty hunters, and developers.
-
-Special features include:
-
 - Support for Multiple Targets
 - Web Screenshots
 - Suite of Offensive Web Modules
-- AI-powered Subdomain Mutations
+- NLP-powered Subdomain Mutations
 - Native Output to Neo4j (and more)
 - Python API + Developer Documentation
 
@@ -380,4 +374,4 @@ Special thanks to:
 - @kerrymilan for his Neo4j and Ansible expertise
 - @domwhewell-sage for his family of badass code-looting modules
 - @aconite33 and @amiremami for their ruthless testing
-- Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
+- Aleksei Kornev (@alekseiko) for granting us ownership of the bbot Pypi repository <3
