@@ -85,10 +85,8 @@ deps:
 
 ### ADVANCED OPTIONS ###
 
+# Load BBOT modules from these custom paths
 module_paths: []
-
-# Limit the number of scan manager workers
-manager_tasks: 5
 
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
@@ -133,47 +131,47 @@ ssl_verify: false
 keep_scans: 20
 # Completely ignore URLs with these extensions
 url_extension_blacklist:
-    # images
-    - png
-    - jpg
-    - bmp
-    - ico
-    - jpeg
-    - gif
-    - svg
-    - webp
-    # web/fonts
-    - css
-    - woff
-    - woff2
-    - ttf
-    - eot
-    - sass
-    - scss
-    # audio
-    - mp3
-    - m4a
-    - wav
-    - flac
-    # video
-    - mp4
-    - mkv
-    - avi
-    - wmv
-    - mov
-    - flv
-    - webm
+  # images
+  - png
+  - jpg
+  - bmp
+  - ico
+  - jpeg
+  - gif
+  - svg
+  - webp
+  # web/fonts
+  - css
+  - woff
+  - woff2
+  - ttf
+  - eot
+  - sass
+  - scss
+  # audio
+  - mp3
+  - m4a
+  - wav
+  - flac
+  # video
+  - mp4
+  - mkv
+  - avi
+  - wmv
+  - mov
+  - flv
+  - webm
 # Distribute URLs with these extensions only to httpx (these are omitted from output)
 url_extension_httpx_only:
-    - js
+  - js
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:
-    - HTTP_RESPONSE
-    - RAW_TEXT
-    - URL_UNVERIFIED
-    - DNS_NAME_UNRESOLVED
-    - FILESYSTEM
-    # - IP_ADDRESS
+  - HTTP_RESPONSE
+  - RAW_TEXT
+  - URL_UNVERIFIED
+  - DNS_NAME_UNRESOLVED
+  - FILESYSTEM
+  # - IP_ADDRESS
 
 # Custom interactsh server settings
 interactsh_server: null

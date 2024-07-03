@@ -66,7 +66,7 @@ bbot -t ebay.com -p subdomain-enum
 
 What happened here? How is BBOT -- a single tool -- able to find more subdomains than this entire Trickest workflow? The two have more or less the same features -- passive enumeration, DNS brute force, subdomain permutations, port scanner, and web client. Individually, these features are pretty comparable.
 
-The difference is in the underlying philosophy. Trickest (and the tools it's leveraging) use a one-time, one-way enumeration. This approach produces results that are shallow and incomplete. There's also a fair amount of wastefulness ub running five separate tools, each of which under the hood are calling the same APIs -- but we won't get into that.
+The difference is in the underlying philosophy. Trickest (and the tools it's leveraging) use a one-time, one-way enumeration. This approach produces results that are shallow and incomplete. There's also a fair amount of wastefulness in running five separate tools which under the hood are calling the same APIs multiple times.
 
 Alternatively, BBOT runs in a perpetual cycle, feeding each result back into itself to continually fuel its discovery. It finds subdomains of subdomains of subdomains, permutations of permutations of permutations. It portscans hosts, visits their websites, extracts new subdomains, generates permutations of them, portscans those permutations, visits their websites, and so on infinitely until there is nothing left to be discovered:
 

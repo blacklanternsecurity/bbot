@@ -22,9 +22,9 @@ pipx install --pip-args '\--pre' bbot
 
 _For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/)_
 
-## BBOT is...
+## Example Commands
 
-## 1) A Subdomain Finder
+## 1) Subdomain Finder
 
 Passive API sources plus a recursive DNS brute-force with target-specific subdomain mutations.
 
@@ -33,8 +33,10 @@ Passive API sources plus a recursive DNS brute-force with target-specific subdom
 bbot -t evilcorp.com -p subdomain-enum
 ```
 
+<!-- BBOT SUBDOMAIN-ENUM PRESET EXPANDABLE -->
+
 <details>
-<summary><b>subdomain-enum.yml</b></summary>
+<summary><b><code>subdomain-enum.yml</code></b></summary>
 
 ```yaml
 description: Enumerate subdomains via APIs, brute-force
@@ -45,43 +47,77 @@ flags:
 output_modules:
   - subdomains
 
-config:
-  modules:
-    stdout:
-      format: text
-      # only output DNS_NAMEs to the console
-      event_types:
-        - DNS_NAME
-      # only show in-scope subdomains
-      in_scope_only: True
-      # display the raw subdomains, nothing else
-      event_fields:
-        - data
-      # automatically dedupe
-      accept_dups: False
 ```
 
 </details>
+
+<!-- END BBOT SUBDOMAIN-ENUM PRESET EXPANDABLE -->
 
 BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
 
 ![subdomain-stats-ebay](https://github.com/blacklanternsecurity/bbot/assets/20261699/de3e7f21-6f52-4ac4-8eab-367296cd385f)
 
-## 2) A Web Spider
+## 2) Web Spider
 
 ```bash
 # crawl evilcorp.com, extracting emails and other goodies
 bbot -t evilcorp.com -p spider
 ```
 
-## 3) An Email Gatherer
+<!-- BBOT SPIDER PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>spider.yml</code></b></summary>
+
+```yaml
+description: Recursive web spider
+
+modules:
+  - httpx
+
+config:
+  web:
+    # how many links to follow in a row
+    spider_distance: 2
+    # don't follow links whose directory depth is higher than 4
+    spider_depth: 4
+    # maximum number of links to follow per page
+    spider_links_per_page: 25
+
+```
+
+</details>
+
+<!-- END BBOT SPIDER PRESET EXPANDABLE -->
+
+## 3) Email Gatherer
 
 ```bash
 # enumerate evilcorp.com email addresses
 bbot -t evilcorp.com -p subdomain-enum spider email-enum
 ```
 
-## 4) A Web Scanner
+<!-- BBOT EMAIL-ENUM PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>email-enum.yml</code></b></summary>
+
+```yaml
+description: Enumerate email addresses from APIs, web crawling, etc.
+
+flags:
+  - email-enum
+
+output_modules:
+  - emails
+
+```
+
+</details>
+
+<!-- END BBOT EMAIL-ENUM PRESET EXPANDABLE -->
+
+## 4) Web Scanner
 
 ```bash
 # run a light web scan against www.evilcorp.com
@@ -90,6 +126,46 @@ bbot -t www.evilcorp.com -p web-basic
 # run a heavy web scan against www.evilcorp.com
 bbot -t www.evilcorp.com -p web-thorough
 ```
+
+<!-- BBOT WEB-BASIC PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>web-basic.yml</code></b></summary>
+
+```yaml
+description: Quick web scan
+
+include:
+  - iis-shortnames
+
+flags:
+  - web-basic
+
+```
+
+</details>
+
+<!-- END BBOT WEB-BASIC PRESET EXPANDABLE -->
+
+<!-- BBOT WEB-THOROUGH PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>web-thorough.yml</code></b></summary>
+
+```yaml
+description: Aggressive web scan
+
+include:
+  - web-basic
+
+flags:
+  - web-thorough
+
+```
+
+</details>
+
+<!-- END BBOT WEB-THOROUGH PRESET EXPANDABLE -->
 
 ## 5) Everything Everywhere All at Once
 
@@ -100,6 +176,38 @@ bbot -t evilcorp.com -p kitchen-sink
 # roughly equivalent to:
 bbot -t evilcorp.com -p subdomain-enum cloud-enum code-enum email-enum spider web-basic paramminer dirbust-light web-screenshots
 ```
+
+<!-- BBOT KITCHEN-SINK PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>kitchen-sink.yml</code></b></summary>
+
+```yaml
+description: Everything everywhere all at once
+
+include:
+  - subdomain-enum
+  - cloud-enum
+  - code-enum
+  - email-enum
+  - spider
+  - web-basic
+  - paramminer
+  - dirbust-light
+  - web-screenshots
+
+config:
+  modules:
+    baddns:
+      enable_references: True
+
+
+
+```
+
+</details>
+
+<!-- END BBOT KITCHEN-SINK PRESET EXPANDABLE -->
 
 ## How it Works
 
@@ -137,6 +245,8 @@ asyncio.run(main())
 A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/discord_bot/) that responds to the `/scan` command. Scan the internet from the comfort of your discord server!
 
 ![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9)
+
+</details>
 
 ## Feature Overview
 
@@ -191,7 +301,15 @@ If you like, you can also specify them on the command line:
 bbot -c modules.virustotal.api_key=dd5f0eee2e4a99b71a939bded450b246
 ```
 
-For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/)
+For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/).
+
+## Complete Lists of Modules, Flags, etc.
+
+- Complete list of [Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules/).
+- Complete list of [Flags](https://www.blacklanternsecurity.com/bbot/scanning/#list-of-flags).
+- Complete list of [Presets](https://www.blacklanternsecurity.com/bbot/scanning/presets_list/).
+    - Complete list of [Global Config Options](https://www.blacklanternsecurity.com/bbot/scanning/configuration/#global-config-options).
+    - Complete list of [Module Config Options](https://www.blacklanternsecurity.com/bbot/scanning/configuration/#module-config-options).
 
 ## Documentation
 
@@ -229,6 +347,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scann
         - [Target](https://www.blacklanternsecurity.com/bbot/dev/target)
         - [BaseModule](https://www.blacklanternsecurity.com/bbot/dev/basemodule)
         - [BBOTCore](https://www.blacklanternsecurity.com/bbot/dev/core)
+        - [Engine](https://www.blacklanternsecurity.com/bbot/dev/engine)
         - **Helpers**
             - [Overview](https://www.blacklanternsecurity.com/bbot/dev/helpers/)
             - [Command](https://www.blacklanternsecurity.com/bbot/dev/helpers/command)

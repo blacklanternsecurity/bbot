@@ -160,8 +160,6 @@ class Scanner:
         self._status = "NOT_STARTED"
         self._status_code = 0
 
-        self.max_workers = max(1, self.config.get("manager_tasks", 5))
-
         self.modules = OrderedDict({})
         self._modules_loaded = False
         self.dummy_modules = {}

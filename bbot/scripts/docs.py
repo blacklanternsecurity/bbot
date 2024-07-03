@@ -124,14 +124,25 @@ def update_docs():
     assert len(bbot_presets_table.splitlines()) > 5
     update_md_files("BBOT PRESETS", bbot_presets_table)
 
-    # BBOT subdomain enum preset
+    # BBOT presets
     for yaml_file, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
-        if loaded_preset.name == "subdomain-enum":
-            subdomain_enum_preset = f"""```yaml title="{yaml_file.name}"
+        preset_yaml = f"""
+```yaml title={yaml_file.name}
 {loaded_preset._yaml_str}
-```"""
-            update_md_files("BBOT SUBDOMAIN ENUM PRESET", subdomain_enum_preset)
-            break
+```
+"""
+        preset_yaml_expandable = f"""
+<details>
+<summary><b><code>{yaml_file.name}</code></b></summary>
+
+```yaml
+{loaded_preset._yaml_str}
+```
+
+</details>
+"""
+        update_md_files(f"BBOT {loaded_preset.name.upper()} PRESET", preset_yaml)
+        update_md_files(f"BBOT {loaded_preset.name.upper()} PRESET EXPANDABLE", preset_yaml_expandable)
 
     content = []
     for yaml_file, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
@@ -207,6 +218,8 @@ Modules: [{num_modules:,}]("{modules}")"""
 
     # generate data for chord graph
     from gen_chord_data import gen_chord_data
+
     gen_chord_data()
+
 
 update_docs()
