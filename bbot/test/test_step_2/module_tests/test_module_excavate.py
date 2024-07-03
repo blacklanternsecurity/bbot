@@ -354,7 +354,7 @@ class TestExcavateSerializationPositive(TestExcavate):
 # /Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
 # >> /Rotate 0 /Trans <<
 
-# >> 
+# >>
 #   /Type /Page
 # >>
 # endobj
@@ -365,7 +365,7 @@ class TestExcavateSerializationPositive(TestExcavate):
 # endobj
 # 5 0 obj
 # <<
-# /Author (anonymous) /CreationDate (D:20240605141216+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240605141216+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+# /Author (anonymous) /CreationDate (D:20240605141216+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240605141216+00'00') /Producer (ReportLab PDF Library - www.reportlab.com)
 #   /Subject (unspecified) /Title (untitled) /Trapped /False
 # >>
 # endobj
@@ -383,17 +383,17 @@ class TestExcavateSerializationPositive(TestExcavate):
 # endobj
 # xref
 # 0 8
-# 0000000000 65535 f 
-# 0000000073 00000 n 
-# 0000000104 00000 n 
-# 0000000211 00000 n 
-# 0000000414 00000 n 
-# 0000000482 00000 n 
-# 0000000778 00000 n 
-# 0000000837 00000 n 
+# 0000000000 65535 f
+# 0000000073 00000 n
+# 0000000104 00000 n
+# 0000000211 00000 n
+# 0000000414 00000 n
+# 0000000482 00000 n
+# 0000000778 00000 n
+# 0000000837 00000 n
 # trailer
 # <<
-# /ID 
+# /ID
 # [<4ec66ff265d6f71192a8280f8a3a00ac><4ec66ff265d6f71192a8280f8a3a00ac>]
 # % ReportLab generated PDF document -- digest (http://www.reportlab.com)
 
