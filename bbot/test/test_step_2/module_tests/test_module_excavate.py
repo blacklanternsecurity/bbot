@@ -259,9 +259,6 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
 
     def check(self, module_test, events):
         url_unverified_events = [e for e in events if e.type == "URL_UNVERIFIED"]
-        for u in url_unverified_events:
-            self.log.critical(u)
-
         # base URL + 25 links = 26
         assert len(url_unverified_events) == 26
         url_data = [e.data for e in url_unverified_events if "spider-max" not in e.tags and "spider-danger" in e.tags]
