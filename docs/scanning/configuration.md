@@ -69,6 +69,10 @@ status_frequency: 15
 http_proxy: 
 # Web user-agent
 user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
+# Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
+file_blobs: false
+# Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
+folder_blobs: false
 
 ### SCOPE ###
 
@@ -224,15 +228,16 @@ url_extension_httpx_only:
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:
     - HTTP_RESPONSE
+    - RAW_TEXT
     - URL_UNVERIFIED
     - DNS_NAME_UNRESOLVED
+    - FILESYSTEM
     # - IP_ADDRESS
 
 # Custom interactsh server settings
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
-
 ```
 <!-- END BBOT DEFAULT CONFIG -->
 

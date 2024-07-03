@@ -59,10 +59,11 @@ class docker_pull(BaseModule):
                 tags=["docker", "tarball"],
                 parent=event,
             )
-            codebase_event.scope_distance = event.scope_distance
-            await self.emit_event(
-                codebase_event, context=f"{{module}} downloaded Docker image to {{event.type}}: {repo_path}"
-            )
+            if codebase_event:
+                codebase_event.scope_distance = event.scope_distance
+                await self.emit_event(
+                    codebase_event, context=f"{{module}} downloaded Docker image to {{event.type}}: {repo_path}"
+                )
 
     def get_registry_and_repository(self, repository_url):
         """Function to get the registry and repository from a html repository URL."""

@@ -2,14 +2,17 @@
 
 import sys
 import logging
+import multiprocessing
 from bbot.errors import *
 from bbot import __version__
 from bbot.logger import log_to_stderr
 
-silent = "-s" in sys.argv or "--silent" in sys.argv
 
-if not silent:
-    ascii_art = f""" [1;38;5;208m ______ [0m _____   ____ _______
+if multiprocessing.current_process().name == "MainProcess":
+    silent = "-s" in sys.argv or "--silent" in sys.argv
+
+    if not silent:
+        ascii_art = rf""" [1;38;5;208m ______ [0m _____   ____ _______
  [1;38;5;208m|  ___ \[0m|  __ \ / __ \__   __|
  [1;38;5;208m| |___) [0m| |__) | |  | | | |
  [1;38;5;208m|  ___ <[0m|  __ <| |  | | | |
@@ -17,9 +20,9 @@ if not silent:
  [1;38;5;208m|______/[0m|_____/ \____/  |_|
  [1;38;5;208mBIGHUGE[0m BLS OSINT TOOL {__version__}
 
- www.blacklanternsecurity.com/bbot
+www.blacklanternsecurity.com/bbot
 """
-    print(ascii_art, file=sys.stderr)
+        print(ascii_art, file=sys.stderr)
 
 scan_name = ""
 
@@ -168,6 +171,16 @@ async def _main():
             log.trace(f"Command: {' '.join(sys.argv)}")
 
             if sys.stdin.isatty():
+
+                # warn if any targets belong directly to a cloud provider
+                for event in scan.target.events:
+                    if event.type == "DNS_NAME":
+                        cloudcheck_result = scan.helpers.cloudcheck(event.host)
+                        if cloudcheck_result:
+                            scan.hugewarning(
+                                f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
+                            )
+
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                     input()

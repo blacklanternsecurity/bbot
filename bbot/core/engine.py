@@ -6,15 +6,12 @@ import logging
 import tempfile
 import traceback
 import zmq.asyncio
-import multiprocessing
 from pathlib import Path
 from contextlib import asynccontextmanager, suppress
 
 from bbot.core import CORE
 from bbot.errors import BBOTEngineError
 from bbot.core.helpers.misc import rand_string
-
-CMD_EXIT = 1000
 
 
 error_sentinel = object()
@@ -94,10 +91,10 @@ class EngineClient(EngineBase):
     SERVER_CLASS = None
 
     def __init__(self, **kwargs):
+        self._shutdown = False
         super().__init__()
         self.name = f"EngineClient {self.__class__.__name__}"
         self.process = None
-        self.process_name = multiprocessing.current_process().name
         if self.SERVER_CLASS is None:
             raise ValueError(f"Must set EngineClient SERVER_CLASS, {self.SERVER_CLASS}")
         self.CMDS = dict(self.SERVER_CLASS.CMDS)
@@ -118,6 +115,9 @@ class EngineClient(EngineBase):
         return False
 
     async def run_and_return(self, command, *args, **kwargs):
+        if self._shutdown:
+            self.log.verbose("Engine has been shut down and is not accepting new tasks")
+            return
         async with self.new_socket() as socket:
             try:
                 message = self.make_message(command, args=args, kwargs=kwargs)
@@ -139,6 +139,9 @@ class EngineClient(EngineBase):
         return message
 
     async def run_and_yield(self, command, *args, **kwargs):
+        if self._shutdown:
+            self.log.verbose("Engine has been shut down and is not accepting new tasks")
+            return
         message = self.make_message(command, args=args, kwargs=kwargs)
         if message is error_sentinel:
             return
@@ -226,11 +229,16 @@ class EngineClient(EngineBase):
             with suppress(Exception):
                 socket.close()
 
-    async def cleanup(self):
-        # -2 == special "shutdown" signal
-        shutdown_message = pickle.dumps({"c": -2})
+    async def shutdown(self):
+        self._shutdown = True
         async with self.new_socket() as socket:
+            # -99 == special shutdown signal
+            shutdown_message = pickle.dumps({"c": -99})
             await socket.send(shutdown_message)
+        self.context.destroy()
+        # delete socket file on exit
+        self.socket_path.unlink(missing_ok=True)
+
 
 
 class EngineServer(EngineBase):
@@ -348,16 +356,16 @@ class EngineServer(EngineBase):
                     self.log.warning(f"No command sent in message: {message}")
                     continue
 
-                # -1 == special signal to cancel a task
+                # -1 == cancel task
                 if cmd == -1:
                     await self.cancel_task(client_id)
                     continue
 
-                # -2 == special signal to shut down the engine
-                if cmd == -2:
-                    self.log.debug(f"Shutting down {self.name}")
+                # -99 == shut down engine
+                if cmd == -99:
+                    self.log.verbose("Got shutdown signal, shutting down...")
                     await self.cancel_all_tasks()
-                    break
+                    return
 
                 args = message.get("a", ())
                 if not isinstance(args, tuple):
@@ -388,6 +396,8 @@ class EngineServer(EngineBase):
         finally:
             with suppress(Exception):
                 self.socket.close()
+            with suppress(Exception):
+                self.context.destroy()
             # delete socket file on exit
             self.socket_path.unlink(missing_ok=True)
 

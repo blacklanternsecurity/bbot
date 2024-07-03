@@ -30,10 +30,11 @@ class DNSEngine(EngineServer):
 
     CMDS = {
         0: "resolve",
-        1: "resolve_batch",
-        2: "resolve_raw_batch",
-        3: "is_wildcard",
-        4: "is_wildcard_domain",
+        1: "resolve_raw",
+        2: "resolve_batch",
+        3: "resolve_raw_batch",
+        4: "is_wildcard",
+        5: "is_wildcard_domain",
         99: "_mock_dns",
     }
 
@@ -113,7 +114,6 @@ class DNSEngine(EngineServer):
             {"1.2.3.4", "dead::beef"}
         """
         results = set()
-        errors = []
         try:
             answers, errors = await self.resolve_raw(query, **kwargs)
             for answer in answers:

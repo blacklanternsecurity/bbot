@@ -1,3 +1,4 @@
+import asyncio
 import regex as re
 from . import misc
 
@@ -33,6 +34,38 @@ class RegexHelper:
     async def findall(self, compiled_regex, *args, **kwargs):
         self.ensure_compiled_regex(compiled_regex)
         return await self.parent_helper.run_in_executor(compiled_regex.findall, *args, **kwargs)
+
+    async def findall_multi(self, compiled_regexes, *args, threads=10, **kwargs):
+        """
+        Same as findall() but with multiple regexes
+        """
+        if not isinstance(compiled_regexes, dict):
+            raise ValueError('compiled_regexes must be a dictionary like this: {"regex_name": <compiled_regex>}')
+        for k, v in compiled_regexes.items():
+            self.ensure_compiled_regex(v)
+
+        tasks = {}
+
+        def new_task(regex_name, r):
+            task = self.parent_helper.run_in_executor(r.findall, *args, **kwargs)
+            tasks[task] = regex_name
+
+        compiled_regexes = dict(compiled_regexes)
+        for _ in range(threads):  # Start initial batch of tasks
+            if compiled_regexes:  # Ensure there are args to process
+                new_task(*compiled_regexes.popitem())
+
+        while tasks:  # While there are tasks pending
+            # Wait for the first task to complete
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                result = task.result()
+                regex_name = tasks.pop(task)
+                yield (regex_name, result)
+
+                if compiled_regexes:  # Start a new task for each one completed, if URLs remain
+                    new_task(*compiled_regexes.popitem())
 
     async def finditer(self, compiled_regex, *args, **kwargs):
         self.ensure_compiled_regex(compiled_regex)

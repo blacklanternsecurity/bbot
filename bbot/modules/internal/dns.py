@@ -109,7 +109,7 @@ class DNS(InterceptModule):
                                 with suppress(ValidationError):
                                     if self.scan.whitelisted(host):
                                         event_whitelisted = True
-                            # CNAME to a blacklisted resources, means you're blacklisted
+                            # CNAME to a blacklisted resource, means you're blacklisted
                             with suppress(ValidationError):
                                 if self.scan.blacklisted(host):
                                     dns_tags.add("blacklisted")
@@ -183,6 +183,7 @@ class DNS(InterceptModule):
                 "DNS_NAME",
                 module=self.host_module,
                 parent=event,
+                context="{event.parent.type} has host {event.type}: {event.host}",
             )
             # only emit the event if it's not already in the parent chain
             if parent_event is not None and (parent_event.always_emit or parent_event not in event.get_parents()):
@@ -191,7 +192,6 @@ class DNS(InterceptModule):
                     parent_event.add_tag("target")
                 await self.emit_event(
                     parent_event,
-                    context="{event.parent.type} has host {event.type}: {event.host}",
                 )
 
         # emit DNS children

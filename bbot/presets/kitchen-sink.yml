@@ -10,3 +10,10 @@ include:
   - paramminer
   - dirbust-light
   - web-screenshots
+
+config:
+  modules:
+    baddns:
+      enable_references: True
+
+

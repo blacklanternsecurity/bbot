@@ -1,5 +1,6 @@
 import os
 import sys
+import copy
 import json
 import random
 import string
@@ -1159,6 +1160,9 @@ def str_or_file(s):
         yield s
 
 
+split_regex = re.compile(r"[\s,]")
+
+
 def chain_lists(l, try_files=False, msg=None, remove_blank=True):
     """Chains together list elements, allowing for entries separated by commas.
 
@@ -1187,7 +1191,7 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
         l = [l]
     final_list = dict()
     for entry in l:
-        for s in entry.split(","):
+        for s in split_regex.split(entry):
             f = s.strip()
             f_path = Path(f).resolve()
             if try_files and f_path.is_file():
@@ -2484,7 +2488,7 @@ async def cancel_tasks(tasks, ignore_errors=True):
     current_task = asyncio.current_task()
     tasks = [t for t in tasks if t != current_task]
     for task in tasks:
-        log.debug(f"Cancelling task: {task}")
+        # log.debug(f"Cancelling task: {task}")
         task.cancel()
     if ignore_errors:
         for task in tasks:
@@ -2516,7 +2520,7 @@ def cancel_tasks_sync(tasks):
     current_task = asyncio.current_task()
     for task in tasks:
         if task != current_task:
-            log.debug(f"Cancelling task: {task}")
+            # log.debug(f"Cancelling task: {task}")
             task.cancel()
 
 
@@ -2775,3 +2779,96 @@ def get_keys_in_dot_syntax(config):
 
     recursive_keys(container)
     return keys
+
+
+def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
+    """
+    Recursively filter a dictionary based on key names.
+
+    Args:
+        d (dict): The input dictionary.
+        *key_names: Names of keys to filter for.
+        fuzzy (bool): Whether to perform fuzzy matching on keys.
+        exclude_keys (list, None): List of keys to be excluded from the final dict.
+        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
+
+    Returns:
+        dict: A dictionary containing only the keys specified in key_names.
+
+    Examples:
+        >>> filter_dict({"key1": "test", "key2": "asdf"}, "key2")
+        {"key2": "asdf"}
+        >>> filter_dict({"key1": "test", "key2": {"key3": "asdf"}}, "key1", "key3", exclude_keys="key2")
+        {'key1': 'test'}
+    """
+    if exclude_keys is None:
+        exclude_keys = []
+    if isinstance(exclude_keys, str):
+        exclude_keys = [exclude_keys]
+    ret = {}
+    if isinstance(d, dict):
+        for key in d:
+            if key in key_names or (fuzzy and any(k in key for k in key_names)):
+                if not any(k in exclude_keys for k in [key, _prev_key]):
+                    ret[key] = copy.deepcopy(d[key])
+            elif isinstance(d[key], list) or isinstance(d[key], dict):
+                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
+                if child:
+                    ret[key] = child
+    return ret
+
+
+def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
+    """
+    Recursively clean unwanted keys from a dictionary.
+    Useful for removing secrets from a config.
+
+    Args:
+        d (dict): The input dictionary.
+        *key_names: Names of keys to remove.
+        fuzzy (bool): Whether to perform fuzzy matching on keys.
+        exclude_keys (list, None): List of keys to be excluded from removal.
+        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
+
+    Returns:
+        dict: A dictionary cleaned of the keys specified in key_names.
+
+    """
+    if exclude_keys is None:
+        exclude_keys = []
+    if isinstance(exclude_keys, str):
+        exclude_keys = [exclude_keys]
+    d = copy.deepcopy(d)
+    if isinstance(d, dict):
+        for key, val in list(d.items()):
+            if key in key_names or (fuzzy and any(k in key for k in key_names)):
+                if _prev_key not in exclude_keys:
+                    d.pop(key)
+                    continue
+            d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
+    return d
+
+
+top_ports_cache = None
+
+
+def top_tcp_ports(n, as_string=False):
+    """
+    Returns the top *n* TCP ports as evaluated by nmap
+    """
+    top_ports_file = Path(__file__).parent.parent.parent / "wordlists" / "top_open_ports_nmap.txt"
+
+    global top_ports_cache
+    if top_ports_cache is None:
+        # Read the open ports from the file
+        with open(top_ports_file, "r") as f:
+            top_ports_cache = [int(line.strip()) for line in f]
+
+        # If n is greater than the length of the ports list, add remaining ports from range(1, 65536)
+        unique_ports = set(top_ports_cache)
+        top_ports_cache.extend([port for port in range(1, 65536) if port not in unique_ports])
+
+    top_ports = top_ports_cache[:n]
+    if as_string:
+        return ",".join([str(s) for s in top_ports])
+    return top_ports

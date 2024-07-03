@@ -111,11 +111,19 @@ DEP_CHROMIUM = [
     },
 ]
 
-MASSCAN = [
+DEP_MASSCAN = [
     {
-        "name": "install dev tools",
-        "package": {"name": ["gcc", "git", "make"], "state": "present"},
+        "name": "install os deps (Debian)",
+        "package": {"name": ["gcc", "git", "make", "libpcap0.8-dev"], "state": "present"},
         "become": True,
+        "when": "ansible_facts['os_family'] == 'Debian'",
+        "ignore_errors": True,
+    },
+    {
+        "name": "install dev tools (Non-Debian)",
+        "package": {"name": ["gcc", "git", "make", "libpcap"], "state": "present"},
+        "become": True,
+        "when": "ansible_facts['os_family'] != 'Debian'",
         "ignore_errors": True,
     },
     {
