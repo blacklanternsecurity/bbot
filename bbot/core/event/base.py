@@ -9,12 +9,13 @@ import ipaddress
 import traceback
 
 from copy import copy
+from pathlib import Path
 from typing import Optional
 from contextlib import suppress
-from urllib.parse import urljoin
 from radixtarget import RadixTarget
+from urllib.parse import urljoin, parse_qs
 from pydantic import BaseModel, field_validator
-from pathlib import Path
+
 
 from .helpers import *
 from bbot.errors import *
@@ -1041,6 +1042,26 @@ class URL_UNVERIFIED(BaseEvent):
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
+    def _data_id(self):
+        # consider spider-danger tag when deduping
+        data = super()._data_id()
+        if "spider-danger" in self.tags:
+            data = "spider-danger" + data
+
+        if self.scan is not None:
+            if not self.scan.config.get("url_querystring_remove", True) and self.parsed_url.query:
+                query_dict = parse_qs(self.parsed_url.query)
+                if self.scan.config.get("url_querystring_collapse", True):
+                    # Only consider parameter names in dedup (collapse values)
+                    cleaned_query = "|".join(sorted(query_dict.keys()))
+                else:
+                    # Consider parameter names and values in dedup
+                    cleaned_query = "&".join(
+                        f"{key}={','.join(sorted(values))}" for key, values in sorted(query_dict.items())
+                    )
+                data += f":{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
+        return data
+
     def sanitize_data(self, data):
         self.parsed_url = self.validators.validate_url_parsed(data)
 
@@ -1150,26 +1171,10 @@ class URL_HINT(URL_UNVERIFIED):
 class WEB_PARAMETER(DictHostEvent):
 
     def _data_id(self):
-
         # dedupe by url:name:param_type
         url = self.data.get("url", "")
         name = self.data.get("name", "")
         param_type = self.data.get("type", "")
-        # REMOVE
-        # this is a hack which needs to be replaced with a real fix in bbot-2.0 branch
-        if self.scan is not None:
-            if self.scan.config.get("url_querystring_remove", True) == False:
-                from urllib.parse import urlparse
-
-                parsed_url = urlparse(url)
-
-                if self.scan.config.get("url_querystring_collapse", True) == True:
-                    # Only consider parameter names in dedup (collapse values)
-                    cleaned_query = "|".join(sorted([p.split("=")[0] for p in parsed_url.query.split("&")]))
-                else:
-                    # Consider parameter names and values in dedup
-                    cleaned_query = "&".join(sorted(parsed_url.query.split("&"), key=lambda p: p.split("=")[0]))
-                url = f"{parsed_url.scheme}:{parsed_url.netloc}:{parsed_url.path}:{cleaned_query}"
         return f"{url}:{name}:{param_type}"
 
     def _url(self):
@@ -1201,6 +1206,9 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
         if str(self.http_status).startswith("3"):
             self.num_redirects += 1
+
+    def _data_id(self):
+        return self.data["url"]
 
     def sanitize_data(self, data):
         url = data.get("url", "")
