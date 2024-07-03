@@ -518,6 +518,14 @@ class BaseEvent:
 
     @property
     def validators(self):
+        """
+        Depending on whether the scan attribute is accessible, return either a config-aware or non-config-aware validator
+
+        This exists to prevent a chicken-and-egg scenario during the creation of certain events such as URLs,
+        whose sanitization behavior is different depending on the config.
+
+        However, thanks to this property, validation can still work in the absence of a config.
+        """
         if self.scan is not None:
             return self.scan.helpers.config_aware_validators
         return validators
@@ -1074,14 +1082,12 @@ class URL_UNVERIFIED(BaseEvent):
 
     @property
     def is_spider_max(self):
-
         if self.scan:
             web_spider_distance = self.scan.config.get("web_spider_distance", 0)
             web_spider_depth = self.scan.config.get("web_spider_depth", 1)
             depth = url_depth(self.parsed_url)
             if (self.web_spider_distance > web_spider_distance) or (depth > web_spider_depth):
                 return True
-
         return False
 
     def with_port(self):
