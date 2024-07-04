@@ -106,7 +106,7 @@ async def test_speed_counter():
     counter = SpeedCounter(1)
     # 10 events spread across 2 seconds
     for i in range(10):
-        counter.add_timestamp()
+        counter.tick()
         await asyncio.sleep(0.2)
     # only 5 should show
     assert 4 <= counter.speed <= 5
