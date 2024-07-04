@@ -243,6 +243,9 @@ class TestExcavateQuerystringRemoveTrue(TestExcavate):
 
     def check(self, module_test, events):
         assert (
+            len([e for e in events if e.type == "URL_UNVERIFIED"]) == 2
+        )
+        assert (
             len([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/endpoint"]) == 1
         )
 

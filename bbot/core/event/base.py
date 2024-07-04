@@ -1213,7 +1213,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
             self.num_redirects += 1
 
     def _data_id(self):
-        return self.data["url"]
+        return self.data["method"] + "|" + self.data["url"]
 
     def sanitize_data(self, data):
         url = data.get("url", "")
