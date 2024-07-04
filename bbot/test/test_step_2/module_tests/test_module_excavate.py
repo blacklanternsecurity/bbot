@@ -699,8 +699,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
 
         assert sorted(self.dummy_module.events_seen) == [
             "http://127.0.0.1:8888/",
-            "http://127.0.0.1:8888/spider",
-            "http://127.0.0.1:8888/spider",
+            "http://127.0.0.1:8888/spider"
         ]
 
         for e in events:
