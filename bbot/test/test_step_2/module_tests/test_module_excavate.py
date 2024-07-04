@@ -242,9 +242,7 @@ class TestExcavateQuerystringRemoveTrue(TestExcavate):
         module_test.httpserver.expect_request("/").respond_with_data(self.lots_of_params)
 
     def check(self, module_test, events):
-        assert (
-            len([e for e in events if e.type == "URL_UNVERIFIED"]) == 2
-        )
+        assert len([e for e in events if e.type == "URL_UNVERIFIED"]) == 2
         assert (
             len([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/endpoint"]) == 1
         )
