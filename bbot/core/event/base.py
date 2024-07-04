@@ -1053,15 +1053,15 @@ class URL_UNVERIFIED(BaseEvent):
     def _data_id(self):
 
         data = super()._data_id()
+
         # remove the querystring for URL/URL_UNVERIFIED events, because we will conditionally add it back in (based on settings)
-        if self.__class__.__name__.startswith("URL"):
-            data == data.split("?")[0]
+        if self.__class__.__name__.startswith("URL") and self.scan is not None:
+            prefix = data.split("?")[0]
 
-        # consider spider-danger tag when deduping
-        if "spider-danger" in self.tags:
-            data = "spider-danger" + data
+            # consider spider-danger tag when deduping
+            if "spider-danger" in self.tags:
+                prefix += "spider-danger"
 
-        if self.scan is not None:
             if not self.scan.config.get("url_querystring_remove", True) and self.parsed_url.query:
                 query_dict = parse_qs(self.parsed_url.query)
                 if self.scan.config.get("url_querystring_collapse", True):
@@ -1072,7 +1072,7 @@ class URL_UNVERIFIED(BaseEvent):
                     cleaned_query = "&".join(
                         f"{key}={','.join(sorted(values))}" for key, values in sorted(query_dict.items())
                     )
-                data += f":{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
+                data = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
         return data
 
     def sanitize_data(self, data):

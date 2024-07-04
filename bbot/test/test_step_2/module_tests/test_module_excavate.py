@@ -224,7 +224,7 @@ class TestExcavateRedirect(TestExcavate):
 
 class TestExcavateQuerystringRemoveTrue(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
-    config_overrides = {"url_querystring_remove": True}
+    config_overrides = {"url_querystring_remove": True, "url_querystring_collapse": True}
     lots_of_params = """
     <a href="http://127.0.0.1:8888/endpoint?foo=1"/>
     <a href="http://127.0.0.1:8888/endpoint?foo=2"/>
