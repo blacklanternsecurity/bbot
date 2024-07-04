@@ -18,6 +18,9 @@ class fingerprintx(BaseModule):
     _module_threads = 2
     _priority = 2
 
+    options = {"skip_common_web": True}
+    options_desc = {"skip_common_web": "Skip common web ports such as 80, 443, 8080, 8443, etc."}
+
     deps_ansible = [
         {
             "name": "Download fingerprintx",
@@ -29,6 +32,35 @@ class fingerprintx(BaseModule):
             },
         },
     ]
+
+    common_web_ports = (
+        80,
+        443,
+        # cloudflare HTTP
+        8080,
+        8880,
+        2052,
+        2082,
+        2086,
+        2095,
+        # cloudflare HTTPS
+        2053,
+        2083,
+        2087,
+        2096,
+        8443,
+    )
+
+    async def setup(self):
+        self.skip_common_web = self.config.get("skip_common_web", True)
+        return True
+
+    async def filter_event(self, event):
+        if self.skip_common_web:
+            port_str = str(event.port)
+            if event.port in self.common_web_ports or any(port_str.endswith(x) for x in ("080", "443")):
+                return False, "port is a common web port and skip_common_web=True"
+        return True
 
     async def handle_batch(self, *events):
         _input = {e.data: e for e in events}

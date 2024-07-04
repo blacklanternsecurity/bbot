@@ -6,6 +6,7 @@ import multiprocessing
 from bbot.errors import *
 from bbot import __version__
 from bbot.logger import log_to_stderr
+from bbot.core.helpers.misc import chain_lists
 
 
 if multiprocessing.current_process().name == "MainProcess":
@@ -191,17 +192,20 @@ async def _main():
                 from bbot.core.helpers.misc import smart_decode
 
                 def handle_keyboard_input(keyboard_input):
-                    kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
+                    kill_regex = re.compile(r"kill (?P<modules>[a-z0-9_ ,]+)")
                     if keyboard_input:
                         log.verbose(f'Got keyboard input: "{keyboard_input}"')
                         kill_match = kill_regex.match(keyboard_input)
                         if kill_match:
-                            module = kill_match.group("module")
-                            if module in scan.modules:
-                                log.hugewarning(f'Killing module: "{module}"')
-                                scan.kill_module(module, message="killed by user")
-                            else:
-                                log.warning(f'Invalid module: "{module}"')
+                            modules = kill_match.group("modules")
+                            if modules:
+                                modules = chain_lists(modules)
+                                for module in modules:
+                                    if module in scan.modules:
+                                        log.hugewarning(f'Killing module: "{module}"')
+                                        scan.kill_module(module, message="killed by user")
+                                    else:
+                                        log.warning(f'Invalid module: "{module}"')
                     else:
                         scan.preset.core.logger.toggle_log_level(logger=log)
                         scan.modules_status(_log=True)
