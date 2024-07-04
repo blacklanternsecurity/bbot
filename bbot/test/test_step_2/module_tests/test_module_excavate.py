@@ -242,20 +242,41 @@ class TestExcavateQuerystringRemoveTrue(TestExcavate):
         module_test.httpserver.expect_request("/").respond_with_data(self.lots_of_params)
 
     def check(self, module_test, events):
-        assert len([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/endpoint"]) == 1
+        assert (
+            len([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/endpoint"]) == 1
+        )
+
 
 class TestExcavateQuerystringRemoveFalse(TestExcavateQuerystringRemoveTrue):
     config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": True}
 
     def check(self, module_test, events):
-        assert len([e for e in events if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")]) == 1
+        assert (
+            len(
+                [
+                    e
+                    for e in events
+                    if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")
+                ]
+            )
+            == 1
+        )
+
 
 class TestExcavateQuerystringCollapseFalse(TestExcavateQuerystringRemoveTrue):
     config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": False}
 
     def check(self, module_test, events):
-        assert len([e for e in events if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")]) == 10
-
+        assert (
+            len(
+                [
+                    e
+                    for e in events
+                    if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")
+                ]
+            )
+            == 10
+        )
 
 
 class TestExcavateMaxLinksPerPage(TestExcavate):
