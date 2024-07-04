@@ -1051,9 +1051,13 @@ class URL_UNVERIFIED(BaseEvent):
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
     def _data_id(self):
-        # consider spider-danger tag when deduping
-        data = super()._data_id().split("?")[0]
 
+        data = super()._data_id()
+        # remove the querystring for URL/URL_UNVERIFIED events, because we will conditionally add it back in (based on settings)
+        if self.__class__.__name__.startswith("URL"):
+            data == data.split("?")[0]
+
+        # consider spider-danger tag when deduping
         if "spider-danger" in self.tags:
             data = "spider-danger" + data
 
