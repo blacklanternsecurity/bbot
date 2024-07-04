@@ -1052,7 +1052,8 @@ class URL_UNVERIFIED(BaseEvent):
 
     def _data_id(self):
         # consider spider-danger tag when deduping
-        data = super()._data_id()
+        data = super()._data_id().split("?")[0]
+
         if "spider-danger" in self.tags:
             data = "spider-danger" + data
 
