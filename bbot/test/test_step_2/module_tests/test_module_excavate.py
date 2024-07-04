@@ -647,9 +647,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
         ]
 
         for e in events:
-
             if e.type == "URL_UNVERIFIED":
-
                 if e.data == "http://127.0.0.1:8888/spider":
                     if str(e.module) == "excavate" and "spider-danger" in e.tags and "spider-max" in e.tags:
                         found_url_unverified_spider_max = True
