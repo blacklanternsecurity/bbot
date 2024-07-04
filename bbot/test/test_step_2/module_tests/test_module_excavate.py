@@ -222,6 +222,42 @@ class TestExcavateRedirect(TestExcavate):
         assert 0 == len([e for e in events if e.type == "PROTOCOL" and e.data["protocol"] == "SSH"])
 
 
+class TestExcavateQuerystringRemoveTrue(TestExcavate):
+    targets = ["http://127.0.0.1:8888/"]
+    config_overrides = {"url_querystring_remove": True}
+    lots_of_params = """
+    <a href="http://127.0.0.1:8888/endpoint?foo=1"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=2"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=3"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=4"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=5"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=6"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=7"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=8"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=9"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=10"/>
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(self.lots_of_params)
+
+    def check(self, module_test, events):
+        assert len([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/endpoint"]) == 1
+
+class TestExcavateQuerystringRemoveFalse(TestExcavateQuerystringRemoveTrue):
+    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": True}
+
+    def check(self, module_test, events):
+        assert len([e for e in events if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")]) == 1
+
+class TestExcavateQuerystringCollapseFalse(TestExcavateQuerystringRemoveTrue):
+    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": False}
+
+    def check(self, module_test, events):
+        assert len([e for e in events if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")]) == 10
+
+
+
 class TestExcavateMaxLinksPerPage(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
     config_overrides = {"web_spider_links_per_page": 10, "web_spider_distance": 1}
