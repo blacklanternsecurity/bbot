@@ -794,6 +794,24 @@ class BaseEvent:
         self._hash = None
         self._id = None
 
+    @property
+    def _host_size(self):
+        """
+        Used for sorting events by their host size, so that parent ones (e.g. IP subnets) come first
+        """
+        if self.host:
+            if isinstance(self.host, str):
+                # smaller domains should come first
+                return len(self.host)
+            else:
+                try:
+                    # bigger IP subnets should come first
+                    return -self.host.num_addresses
+                except AttributeError:
+                    # IP addresses default to 1
+                    return 1
+        return 0
+
     def __iter__(self):
         """
         For dict(event)

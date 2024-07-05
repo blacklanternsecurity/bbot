@@ -122,6 +122,6 @@ def async_to_sync_gen(async_gen):
     # Start the event loop in a separate thread
     thread = BBOTThread(target=lambda: asyncio.run(runner()), daemon=True, custom_name="bbot async_to_sync_gen()")
     thread.start()
-
+    
     # Return the generator
     return generator()
