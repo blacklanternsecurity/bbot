@@ -349,6 +349,27 @@ class TestExcavateURL(TestExcavate):
         assert any(e.data == "https://asdffoo.test.notreal/some/path" for e in events)
 
 
+class TestExcavateURL_IP(TestExcavate):
+
+    targets = ["http://127.0.0.1:8888/", "127.0.0.2"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "SomeSMooshedDATAhttps://127.0.0.2/some/path"
+        )
+
+    def check(self, module_test, events):
+        print("@@@@")
+        for e in events:
+            print(e)
+            print(e.type)
+            if e.type == "URL_UNVERIFIED":
+                print(e.data)
+
+        assert any(e.data == "127.0.0.2" for e in events)
+        assert any(e.data == "https://127.0.0.2/some/path" for e in events)
+
+
 class TestExcavateSerializationNegative(TestExcavate):
     async def setup_before_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(
