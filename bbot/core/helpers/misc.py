@@ -1094,7 +1094,14 @@ def str_or_file(s):
 split_regex = re.compile(r"[\s,]")
 
 
-def chain_lists(l, try_files=False, msg=None, remove_blank=True):
+def chain_lists(
+    l,
+    try_files=False,
+    msg=None,
+    remove_blank=True,
+    validate=False,
+    validate_chars='<>:"/\\|?*)',
+):
     """Chains together list elements, allowing for entries separated by commas.
 
     This function takes a list `l` and flattens it by splitting its entries on commas.
@@ -1107,9 +1114,14 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
         try_files (bool, optional): Whether to try to open entries as files. Defaults to False.
         msg (str, optional): An optional message to log when reading from a file. Defaults to None.
         remove_blank (bool, optional): Whether to remove blank entries from the list. Defaults to True.
+        validate (bool, optional): Whether to perform validation for undesirable characters. Defaults to False.
+        validate_chars (str, optional): When performing validation, what additional set of characters to block (blocks non-printable ascii automatically). Defaults to '<>:"/\\|?*)'
 
     Returns:
         list: The list of chained elements.
+
+    Raises:
+        ValueError: If the input string contains invalid characters, when enabled (off by default).
 
     Examples:
         >>> chain_lists(["a", "b,c,d"])
@@ -1124,6 +1136,9 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
     for entry in l:
         for s in split_regex.split(entry):
             f = s.strip()
+            if validate:
+                if any((c in validate_chars) or (ord(c) < 32 and c != " ") for c in f):
+                    raise ValueError(f"Invalid character in string: {f}")
             f_path = Path(f).resolve()
             if try_files and f_path.is_file():
                 if msg is not None:
@@ -2547,39 +2562,6 @@ def parse_port_string(port_string):
             raise ValueError(f"Invalid port or port range: {element}")
 
     return ports
-
-
-def parse_list_string(list_string):
-    """
-    Parses a comma-separated string into a list, removing invalid characters.
-
-    Args:
-        list_string (str): The string containing elements separated by commas.
-
-    Returns:
-        list: A list of individual elements parsed from the input string.
-
-    Raises:
-        ValueError: If the input string contains invalid characters.
-
-    Examples:
-        >>> parse_list_string("html,js,css")
-        ['html', 'js', 'css']
-
-        >>> parse_list_string("png,jpg,gif")
-        ['png', 'jpg', 'gif']
-
-        >>> parse_list_string("invalid<>char")
-        ValueError: Invalid character in string: invalid<>char
-    """
-    elements = list_string.split(",")
-    result = []
-
-    for element in elements:
-        if any((c in '<>:"/\\|?*') or (ord(c) < 32 and c != " ") for c in element):
-            raise ValueError(f"Invalid character in string: {element}")
-        result.append(element)
-    return result
 
 
 async def as_completed(coros):
