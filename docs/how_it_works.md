@@ -35,9 +35,3 @@ For example, the `portscan` module consumes `DNS_NAME`, and produces `OPEN_TCP_P
 ![module-recursion](https://github.com/blacklanternsecurity/bbot/assets/20261699/10ff5fb4-b3e7-453d-9772-7a26808b071e)
 
 Every BBOT module is designed to interwork with all the others in this recursive system. Because of this, enabling even one module has the potential to increase your results exponentially. This is exactly how BBOT is able to outperform other tools.
-
-## Event Flow
-
-Below is a graph showing the internal event flow in BBOT. White lines represent queues. Notice how some modules run in sequence, while others run in parallel. With the exception of a few specific modules, most BBOT modules are parallelized.
-
-![event-flow](https://github.com/blacklanternsecurity/bbot/assets/20261699/6cece76b-70bd-4690-a53f-02d42e6ed05b)

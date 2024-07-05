@@ -38,6 +38,7 @@ nav:
     - Troubleshooting: troubleshooting.md
 - Developer Manual:
   - Development Overview: dev/index.md
+  - BBOT Internal Architecture: dev/architecture.md
   - How to Write a BBOT Module: dev/module_howto.md
   - Unit Tests: dev/tests.md
   - Discord Bot Example: dev/discord_bot.md
