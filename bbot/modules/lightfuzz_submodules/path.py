@@ -44,13 +44,15 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                     http_compare, self.event.data["type"], payloads["doubledot_payload"], cookies
                 )
 
+                self.lightfuzz.debug(f"[POSSIBLE Path Traversal debug] [{path_technique}] DEBUG: singledot_probe URL: [{singledot_probe[3].request.url}] doubledot_probe URL: [{doubledot_probe[3].request.url}]")
+
                 if (
                     singledot_probe[0] == True
                     and doubledot_probe[0] == False
                     and doubledot_probe[3] != None
-                    and not str(doubledot_probe[3].status_code).startswith("4")
                     and doubledot_probe[1] != ["header"]
                 ):
+
                     self.results.append(
                         {
                             "type": "FINDING",

@@ -293,7 +293,7 @@ class excavate(BaseInternalModule):
     }
 
     options = {
-        "retain_querystring": False,
+        "retain_querystring": True,
         "yara_max_match_data": 2000,
         "custom_yara_rules": "",
     }
