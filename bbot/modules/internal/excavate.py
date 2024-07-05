@@ -11,6 +11,26 @@ from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
 
 
 def find_subclasses(obj, base_class):
+    """
+    Finds and returns subclasses of a specified base class within an object.
+
+    Parameters:
+    obj : object
+        The object to inspect for subclasses.
+    base_class : type
+        The base class to find subclasses of.
+
+    Returns:
+    list
+        A list of subclasses found within the object.
+
+    Example:
+    >>> class A: pass
+    >>> class B(A): pass
+    >>> class C(A): pass
+    >>> find_subclasses(locals(), A)
+    [<class '__main__.B'>, <class '__main__.C'>]
+    """
     subclasses = []
     for name, member in inspect.getmembers(obj):
         if inspect.isclass(member) and issubclass(member, base_class) and member is not base_class:
@@ -19,6 +39,24 @@ def find_subclasses(obj, base_class):
 
 
 def _exclude_key(original_dict, key_to_exclude):
+    """
+    Returns a new dictionary excluding the specified key from the original dictionary.
+
+    Parameters:
+    original_dict : dict
+        The dictionary to exclude the key from.
+    key_to_exclude : hashable
+        The key to exclude.
+
+    Returns:
+    dict
+        A new dictionary without the specified key.
+
+    Example:
+    >>> original = {'a': 1, 'b': 2, 'c': 3}
+    >>> _exclude_key(original, 'b')
+    {'a': 1, 'c': 3}
+    """
     return {key: value for key, value in original_dict.items() if key != key_to_exclude}
 
 
@@ -72,6 +110,24 @@ class ExcavateRule:
         self.name = ""
 
     async def preprocess(self, r, event, discovery_context):
+        """
+        Preprocesses YARA rule results, extracts meta tags, and configures a YaraRuleSettings object.
+
+        This method retrieves optional meta tags from YARA rules and uses them to configure a YaraRuleSettings object.
+        It formats the results from the YARA engine into a suitable format for the process() method and initiates
+        a call to process(), passing on the pre-processed YARA results, event data, YARA rule settings, and discovery context.
+
+        Parameters:
+        r : YaraMatch
+            The YARA match object containing the rule and meta information.
+        event : Event
+            The event data associated with the YARA match.
+        discovery_context : DiscoveryContext
+            The context in which the discovery is made.
+
+        Returns:
+        None
+        """
         description = ""
         tags = []
         emit_match = False
@@ -90,7 +146,26 @@ class ExcavateRule:
         await self.process(yara_results, event, yara_rule_settings, discovery_context)
 
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+        """
+        Processes YARA rule results and reports events with enriched data.
 
+        This method iterates over the provided YARA rule results and constructs event data for each match.
+        It enriches the event data with host, URL, and description information, and conditionally includes
+        matched data based on the YaraRuleSettings. Finally, it reports the constructed event data.
+
+        Parameters:
+        yara_results : dict
+            A dictionary where keys are YARA rule identifiers and values are lists of matched data strings.
+        event : Event
+            The event data associated with the YARA match.
+        yara_rule_settings : YaraRuleSettings
+            The settings configured from YARA rule meta tags, including description, tags, and emit_match flag.
+        discovery_context : DiscoveryContext
+            The context in which the discovery is made.
+
+        Returns:
+        None
+        """
         for identifier, results in yara_results.items():
             for result in results:
                 event_data = {"host": str(event.host), "url": event.data.get("url", "")}
@@ -100,6 +175,25 @@ class ExcavateRule:
                 await self.report(event_data, event, yara_rule_settings, discovery_context)
 
     async def report_prep(self, event_data, event_type, event, tags):
+        """
+        Prepares an event draft for reporting by creating and tagging the event.
+
+        This method creates an event draft using the provided event data and type, associating it with a parent event.
+        It tags the event draft with the provided tags and returns the draft. If event creation fails, it returns None.
+
+        Parameters:
+        event_data : dict
+            The data to be included in the event.
+        event_type : str
+            The type of the event being reported.
+        event : Event
+            The parent event to which this event draft is related.
+        tags : list
+            A list of tags to be associated with the event draft.
+
+        Returns:
+        EventDraft or None
+        """
         event_draft = self.excavate.make_event(event_data, event_type, parent=event)
         if not event_draft:
             return None
@@ -109,6 +203,32 @@ class ExcavateRule:
     async def report(
         self, event_data, event, yara_rule_settings, discovery_context, event_type="FINDING", abort_if=None, **kwargs
     ):
+        """
+        Reports an event by preparing an event draft and emitting it.
+
+        Processes the provided event data, sets a default description if needed, prepares the event draft, and emits it.
+        It constructs a context string for the event and uses the report_prep method to create the event draft. If the draft is successfully
+        created, it emits the event.
+
+        Parameters:
+        event_data : dict
+            The data to be included in the event.
+        event : Event
+            The parent event to which this event is related.
+        yara_rule_settings : YaraRuleSettings
+            The settings configured from YARA rule meta tags, including description and tags.
+        discovery_context : DiscoveryContext
+            The context in which the discovery is made.
+        event_type : str, optional
+            The type of the event being reported, default is "FINDING".
+        abort_if : callable, optional
+            A callable that determines if the event emission should be aborted.
+        **kwargs : dict
+            Additional keyword arguments to pass to the report_prep method.
+
+        Returns:
+        None
+        """
 
         # If a description is not set and is needed, provide a basic one
         if event_type == "FINDING" and "description" not in event_data.keys():
