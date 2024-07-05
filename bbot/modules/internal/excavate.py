@@ -8,8 +8,6 @@ from bbot.errors import ExcavateError
 import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.internal.base import BaseInternalModule
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
-from bbot.core.helpers.misc import parse_list_string
-
 
 def find_subclasses(obj, base_class):
     subclasses = []
@@ -80,7 +78,7 @@ class ExcavateRule:
         if "description" in r.meta.keys():
             description = r.meta["description"]
         if "tags" in r.meta.keys():
-            tags = parse_list_string(r.meta["tags"])
+            tags = self.excavate.helpers.chain_lists(r.meta["tags"])
         if "emit_match" in r.meta.keys():
             emit_match = True
 
