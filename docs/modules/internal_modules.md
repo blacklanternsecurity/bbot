@@ -2,7 +2,7 @@
 
 ## What are internal modules?
 
-Internal modules just like regular modules, except that they run all the time. They do not have to be explicitly enabled. They can, however, be explicitly disabled if needed.
+Internal modules are just like regular modules, except that they run all the time. They do not have to be explicitly enabled. They can, however, be explicitly disabled if needed.
 
 Turning them off is simple, a root-level config option is present which can be set to False to disable them:
 
