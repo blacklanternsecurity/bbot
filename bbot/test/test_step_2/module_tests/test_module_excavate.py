@@ -359,13 +359,6 @@ class TestExcavateURL_IP(TestExcavate):
         )
 
     def check(self, module_test, events):
-        print("@@@@")
-        for e in events:
-            print(e)
-            print(e.type)
-            if e.type == "URL_UNVERIFIED":
-                print(e.data)
-
         assert any(e.data == "127.0.0.2" for e in events)
         assert any(e.data == "https://127.0.0.2/some/path" for e in events)
 
