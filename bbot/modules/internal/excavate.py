@@ -156,7 +156,7 @@ class excavate(BaseInternalModule):
         }
     """
 
-    watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
+    watched_events = ["HTTP_RESPONSE"]
     produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
     flags = ["passive"]
     meta = {
