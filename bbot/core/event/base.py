@@ -1075,7 +1075,10 @@ class URL_UNVERIFIED(BaseEvent):
                 data = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
         return data
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> yara-excavate
     def sanitize_data(self, data):
         self.parsed_url = self.validators.validate_url_parsed(data)
 
