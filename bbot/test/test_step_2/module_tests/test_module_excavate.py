@@ -729,3 +729,62 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
         assert found_url_unverified_spider_max, "Excavate failed to find /spider link"
         assert found_url_unverified_dummy, "Dummy module did not correctly re-emit"
         assert found_url_event, "URL was not emitted from non-spider-max URL_UNVERIFIED"
+
+
+class TestExcavate_retain_querystring(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/?foo=1"]
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    config_overrides = {
+        "url_querystring_remove": False,
+        "url_querystring_collapse": False,
+        "interactsh_disable": True,
+        "web_spider_depth": 4,
+        "web_spider_distance": 4,
+        "modules": {
+            "excavate": {
+                "retain_querystring": True,
+            }
+        },
+    }
+
+    async def setup_after_prep(self, module_test):
+        expect_args = {"method": "GET", "uri": "/", "query_string": "foo=1"}
+        respond_args = {
+            "response_data": "<html>alive</html>",
+            "headers": {"Set-Cookie": "a=b"},
+            "status": 200,
+        }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check(self, module_test, events):
+        web_parameter_emit = False
+        for e in events:
+            if e.type == "WEB_PARAMETER" and "foo" in e.data["url"]:
+                web_parameter_emit = True
+
+        assert web_parameter_emit
+
+
+class TestExcavate_retain_querystring_not(TestExcavate_retain_querystring):
+
+    config_overrides = {
+        "url_querystring_remove": False,
+        "url_querystring_collapse": False,
+        "interactsh_disable": True,
+        "web_spider_depth": 4,
+        "web_spider_distance": 4,
+        "modules": {
+            "excavate": {
+                "retain_querystring": True,
+            }
+        },
+    }
+
+    def check(self, module_test, events):
+        web_parameter_emit = False
+        for e in events:
+            if e.type == "WEB_PARAMETER" and "foo" not in e.data["url"]:
+                web_parameter_emit = True
+
+        assert web_parameter_emit
+
