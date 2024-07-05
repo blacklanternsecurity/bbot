@@ -117,6 +117,8 @@ class ExcavateRule:
         It formats the results from the YARA engine into a suitable format for the process() method and initiates
         a call to process(), passing on the pre-processed YARA results, event data, YARA rule settings, and discovery context.
 
+        This should typically NOT be overridden.
+
         Parameters:
         r : YaraMatch
             The YARA match object containing the rule and meta information.
@@ -153,6 +155,8 @@ class ExcavateRule:
         It enriches the event data with host, URL, and description information, and conditionally includes
         matched data based on the YaraRuleSettings. Finally, it reports the constructed event data.
 
+        Override when custom processing and/or validation is needed on data before reporting.
+
         Parameters:
         yara_results : dict
             A dictionary where keys are YARA rule identifiers and values are lists of matched data strings.
@@ -180,6 +184,8 @@ class ExcavateRule:
 
         This method creates an event draft using the provided event data and type, associating it with a parent event.
         It tags the event draft with the provided tags and returns the draft. If event creation fails, it returns None.
+
+        Override when an event needs to be modified before it is emitted - for example, custom tags need to be conditionally added.
 
         Parameters:
         event_data : dict
@@ -209,6 +215,8 @@ class ExcavateRule:
         Processes the provided event data, sets a default description if needed, prepares the event draft, and emits it.
         It constructs a context string for the event and uses the report_prep method to create the event draft. If the draft is successfully
         created, it emits the event.
+
+        Typically not overridden, but might need to be if custom logic is needed to build description/context, etc.
 
         Parameters:
         event_data : dict
