@@ -354,9 +354,7 @@ class TestExcavateURL_IP(TestExcavate):
     targets = ["http://127.0.0.1:8888/", "127.0.0.2"]
 
     async def setup_before_prep(self, module_test):
-        module_test.httpserver.expect_request("/").respond_with_data(
-            "SomeSMooshedDATAhttps://127.0.0.2/some/path"
-        )
+        module_test.httpserver.expect_request("/").respond_with_data("SomeSMooshedDATAhttps://127.0.0.2/some/path")
 
     def check(self, module_test, events):
         assert any(e.data == "127.0.0.2" for e in events)
