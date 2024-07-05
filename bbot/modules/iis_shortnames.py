@@ -53,7 +53,7 @@ class iis_shortnames(BaseModule):
         for method, result in results.items():
             control = results[method].get(control_url, None)
             test = results[method].get(test_url, None)
-            if (result != None) and (test != None):
+            if (result != None) and (test != None) and (control != None):
                 if control.status_code != test.status_code:
                     technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
                     detections.append((method, test.status_code, technique))
