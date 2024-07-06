@@ -356,8 +356,8 @@ class WebHelper(EngineClient):
         if ignore_bbot_global_settings:
             log.debug("ignore_bbot_global_settings enabled. Global settings will not be applied")
         else:
-            http_timeout = self.parent_helper.config.get("http_timeout", 20)
-            user_agent = self.parent_helper.config.get("user_agent", "BBOT")
+            http_timeout = self.parent_helper.web_config.get("http_timeout", 20)
+            user_agent = self.parent_helper.web_config.get("user_agent", "BBOT")
 
             if "User-Agent" not in headers:
                 headers["User-Agent"] = user_agent

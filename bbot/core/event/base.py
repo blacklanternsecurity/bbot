@@ -1109,10 +1109,8 @@ class URL_UNVERIFIED(BaseEvent):
     @property
     def is_spider_max(self):
         if self.scan:
-            web_spider_distance = self.scan.config.get("web_spider_distance", 0)
-            web_spider_depth = self.scan.config.get("web_spider_depth", 1)
             depth = url_depth(self.parsed_url)
-            if (self.web_spider_distance > web_spider_distance) or (depth > web_spider_depth):
+            if (self.web_spider_distance > self.scan.web_spider_distance) or (depth > self.scan.web_spider_depth):
                 return True
         return False
 

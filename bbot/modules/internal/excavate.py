@@ -675,10 +675,6 @@ class excavate(BaseInternalModule):
         full_url_regex_strict = re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$")
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
-
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
 
             for identifier, results in yara_results.items():
@@ -731,7 +727,7 @@ class excavate(BaseInternalModule):
             url_in_scope = self.excavate.scan.in_scope(event_draft)
             urls_found = kwargs.get("urls_found", None)
             if urls_found:
-                exceeds_max_links = urls_found > self.web_spider_links_per_page and url_in_scope
+                exceeds_max_links = urls_found > self.excavate.scan.web_spider_links_per_page and url_in_scope
                 if exceeds_max_links:
                     tags.append("spider-max")
             event_draft.tags = tags
@@ -766,10 +762,6 @@ class excavate(BaseInternalModule):
             yield r
 
     async def setup(self):
-        self.web_config = self.scan.config.get("web", {})
-        max_redirects = self.web_config.get("http_max_redirects", 5)
-        self.web_spider_distance = self.web_config.get("spider_distance", 0)
-        self.max_redirects = max(max_redirects, self.web_spider_distance)
         self.yara_rules_dict = {}
         self.yara_preprocess_dict = {}
 
@@ -938,7 +930,7 @@ class excavate(BaseInternalModule):
                     if scheme in ("http", "https"):
                         web_spider_distance = getattr(event, "web_spider_distance", 0)
                         num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
-                        if num_redirects <= self.max_redirects:
+                        if num_redirects <= self.scan.web_max_redirects:
                             # we do not want to allow the web_spider_distance to be incremented on redirects, so we do not add spider-danger tag
                             url_event = self.make_event(redirect_location, "URL_UNVERIFIED", event, tags="affiliate")
                             if url_event is not None:

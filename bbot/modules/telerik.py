@@ -168,10 +168,6 @@ class telerik(BaseModule):
         else:
             return hash(event.data["url"])
 
-    async def setup(self):
-        self.timeout = self.scan.config.get("httpx_timeout", 5)
-        return True
-
     async def handle_event(self, event):
         if event.type == "URL":
             webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
@@ -364,7 +360,7 @@ class telerik(BaseModule):
     async def test_detector(self, baseurl, detector):
         result = None
         url = self.create_url(baseurl, detector)
-        result = await self.helpers.request(url, timeout=self.timeout)
+        result = await self.helpers.request(url, timeout=self.scan.httpx_timeout)
         return result, detector
 
     async def filter_event(self, event):

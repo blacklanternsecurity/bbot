@@ -521,6 +521,10 @@ class Preset:
         return self.core.config
 
     @property
+    def web_config(self):
+        return self.core.config.get("web", {})
+
+    @property
     def verbose(self):
         return self._verbose
 

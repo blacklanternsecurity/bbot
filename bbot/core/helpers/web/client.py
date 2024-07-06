@@ -32,7 +32,8 @@ class BBOTAsyncClient(httpx.AsyncClient):
     def from_config(cls, config, target, *args, **kwargs):
         kwargs["_config"] = config
         kwargs["_target"] = target
-        retries = kwargs.pop("retries", config.get("http_retries", 1))
+        web_config = config.get("web", {})
+        retries = kwargs.pop("retries", web_config.get("http_retries", 1))
         ssl_verify = config.get("ssl_verify", False)
         if ssl_verify is False:
             from .ssl_context import ssl_context_noverify
@@ -46,14 +47,15 @@ class BBOTAsyncClient(httpx.AsyncClient):
         self._config = kwargs.pop("_config")
         self._target = kwargs.pop("_target")
 
-        http_debug = self._config.get("http_debug", None)
+        self._web_config = self._config.get("web", {})
+        http_debug = self._web_config.get("debug", None)
         if http_debug:
             log.trace(f"Creating AsyncClient: {args}, {kwargs}")
 
         self._persist_cookies = kwargs.pop("persist_cookies", True)
 
         # timeout
-        http_timeout = self._config.get("http_timeout", 20)
+        http_timeout = self._web_config.get("http_timeout", 20)
         if not "timeout" in kwargs:
             kwargs["timeout"] = http_timeout
 
@@ -62,12 +64,12 @@ class BBOTAsyncClient(httpx.AsyncClient):
         if headers is None:
             headers = {}
         # user agent
-        user_agent = self._config.get("user_agent", "BBOT")
+        user_agent = self._web_config.get("user_agent", "BBOT")
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
         kwargs["headers"] = headers
         # proxy
-        proxies = self._config.get("http_proxy", None)
+        proxies = self._web_config.get("http_proxy", None)
         kwargs["proxies"] = proxies
 
         super().__init__(*args, **kwargs)
@@ -79,7 +81,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
         # add custom headers if the URL is in-scope
         # TODO: re-enable this
         if self._target.in_scope(str(request.url)):
-            for hk, hv in self._config.get("http_headers", {}).items():
+            for hk, hv in self._web_config.get("http_headers", {}).items():
                 # don't clobber headers
                 if hk not in request.headers:
                     request.headers[hk] = hv

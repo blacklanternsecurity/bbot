@@ -181,6 +181,19 @@ class Scanner:
         self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
         self.scope_report_distance = int(self.scope_config.get("report_distance", 1))
 
+        # web config
+        self.web_config = self.config.get("web", {})
+        self.web_spider_distance = self.web_config.get("spider_distance", 0)
+        self.web_spider_depth = self.web_config.get("spider_depth", 1)
+        self.web_spider_links_per_page = self.web_config.get("spider_links_per_page", 20)
+        max_redirects = self.web_config.get("http_max_redirects", 5)
+        self.web_max_redirects = max(max_redirects, self.web_spider_distance)
+        self.http_timeout = self.web_config.get("http_timeout", 10)
+        self.httpx_timeout = self.web_config.get("httpx_timeout", 5)
+        self.http_retries = self.web_config.get("http_retries", 1)
+        self.httpx_retries = self.web_config.get("httpx_retries", 1)
+        self.http_headers = self.web_config.get("http_headers", {})
+
         # url file extensions
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
         self.url_extension_httpx_only = set(e.lower() for e in self.config.get("url_extension_httpx_only", []))

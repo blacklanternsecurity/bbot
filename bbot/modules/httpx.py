@@ -45,13 +45,12 @@ class httpx(BaseModule):
     ]
 
     scope_distance_modifier = 1
+    _shuffle_incoming_queue = False
     _batch_size = 500
     _priority = 2
 
     async def setup(self):
         self.threads = self.config.get("threads", 50)
-        self.timeout = self.scan.config.get("httpx_timeout", 5)
-        self.retries = self.scan.config.get("httpx_retries", 1)
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.store_responses = self.config.get("store_responses", False)
         self.probe_all_ips = self.config.get("probe_all_ips", False)
@@ -116,9 +115,9 @@ class httpx(BaseModule):
             "-threads",
             self.threads,
             "-timeout",
-            self.timeout,
+            self.scan.httpx_timeout,
             "-retries",
-            self.retries,
+            self.scan.httpx_retries,
             "-header",
             f"User-Agent: {self.scan.useragent}",
             "-response-size-to-read",

@@ -335,9 +335,8 @@ async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
     # test user agent + custom headers
     bbot_httpserver_ssl.expect_request(uri=endpoint).respond_with_data("test_http_ssl_yep")
 
-    scan1 = bbot_scanner("127.0.0.1", config={"ssl_verify": True, "http_debug": True})
-
-    scan2 = bbot_scanner("127.0.0.1", config={"ssl_verify": False, "http_debug": True})
+    scan1 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": True, "debug": True}})
+    scan2 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": False, "debug": True}})
 
     r1 = await scan1.helpers.request(url)
     assert r1 is None, "Request to self-signed SSL server went through even with ssl_verify=True"

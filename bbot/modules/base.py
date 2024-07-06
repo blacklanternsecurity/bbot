@@ -1144,7 +1144,7 @@ class BaseModule:
         """
         Convenience shortcut to `http_timeout` in the config
         """
-        return self.scan.config.get("http_timeout", 10)
+        return self.scan.web_config.get("http_timeout", 10)
 
     @property
     def log(self):
