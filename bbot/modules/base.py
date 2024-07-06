@@ -641,6 +641,12 @@ class BaseModule:
                 # this trace was used for debugging leaked CancelledErrors from inside httpx
                 # self.log.trace("Worker cancelled")
                 raise
+            except BaseException as e:
+                if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
+                    self.scan.stop()
+                else:
+                    self.error(f"Critical failure in module {self.name}: {e}")
+                    self.error(traceback.format_exc())
         self.log.trace(f"Worker stopped")
 
     @property
@@ -1488,9 +1494,11 @@ class InterceptModule(BaseModule):
                 # self.log.trace("Worker cancelled")
                 raise
             except BaseException as e:
-                self.critical(f"Critical failure in intercept module {self.name}: {e}")
-                self.critical(traceback.format_exc())
-                self.scan.stop()
+                if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
+                    self.scan.stop()
+                else:
+                    self.critical(f"Critical failure in intercept module {self.name}: {e}")
+                    self.critical(traceback.format_exc())
         self.log.trace(f"Worker stopped")
 
     async def get_incoming_event(self):

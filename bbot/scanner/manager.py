@@ -133,7 +133,8 @@ class ScanIngress(InterceptModule):
 
     @property
     def incoming_queues(self):
-        return [self.incoming_event_queue] + [m.outgoing_event_queue for m in self.non_intercept_modules]
+        queues = [self.incoming_event_queue] + [m.outgoing_event_queue for m in self.non_intercept_modules]
+        return [q for q in queues if q is not False]
 
     @property
     def module_priority_weights(self):
