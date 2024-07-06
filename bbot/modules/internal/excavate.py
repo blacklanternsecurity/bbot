@@ -766,24 +766,9 @@ class excavate(BaseInternalModule):
             yield r
 
     async def setup(self):
-<<<<<<< HEAD
         self.web_config = self.scan.config.get("web", {})
         max_redirects = self.web_config.get("http_max_redirects", 5)
         self.web_spider_distance = self.web_config.get("spider_distance", 0)
-        self.max_redirects = max(max_redirects, self.web_spider_distance)
-        self.csp = CSPExtractor(self)
-        self.hostname = HostnameExtractor(self)
-        self.url = URLExtractor(self)
-        self.email = EmailExtractor(self)
-        self.error_extractor = ErrorExtractor(self)
-        self.jwt = JWTExtractor(self)
-        self.javascript = JavascriptExtractor(self)
-        self.serialization = SerializationExtractor(self)
-        self.functionality = FunctionalityExtractor(self)
-=======
-
-        max_redirects = self.scan.config.get("http_max_redirects", 5)
-        self.web_spider_distance = self.scan.config.get("web_spider_distance", 0)
         self.max_redirects = max(max_redirects, self.web_spider_distance)
         self.yara_rules_dict = {}
         self.yara_preprocess_dict = {}
@@ -866,7 +851,6 @@ class excavate(BaseInternalModule):
         valid_schemes_filename = self.helpers.wordlist_dir / "valid_url_schemes.txt"
         self.valid_schemes = set(self.helpers.read_file(valid_schemes_filename))
 
->>>>>>> bbot-2.0
         return True
 
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
