@@ -1,6 +1,6 @@
 [![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)](https://github.com/blacklanternsecurity/bbot)
 
-**BEE·bot is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your Recon, Bug Bounties, and ASM!**
+**BEE·bot** is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your **Recon**, **Bug Bounties**, and **ASM**!
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
@@ -40,10 +40,25 @@ bbot -t evilcorp.com -p subdomain-enum
 description: Enumerate subdomains via APIs, brute-force
 
 flags:
+  # enable every module with the subdomain-enum flag
   - subdomain-enum
 
 output_modules:
+  # output unique subdomains to TXT file
   - subdomains
+
+config:
+  dns:
+    threads: 25
+    brute_threads: 1000
+  # put your API keys here
+  modules:
+    github:
+      api_key: ""
+    chaos:
+      api_key: ""
+    securitytrails:
+      api_key: ""
 
 ```
 
@@ -154,6 +169,7 @@ flags:
 description: Aggressive web scan
 
 include:
+  # include the web-basic preset
   - web-basic
 
 flags:
@@ -332,7 +348,9 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scann
         - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
 - **Developer Manual**
     - [Development Overview](https://www.blacklanternsecurity.com/bbot/dev/)
+    - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/dev/architecture)
     - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/dev/module_howto)
+    - [Unit Tests](https://www.blacklanternsecurity.com/bbot/dev/tests)
     - [Discord Bot Example](https://www.blacklanternsecurity.com/bbot/dev/discord_bot)
     - **Code Reference**
         - [Scanner](https://www.blacklanternsecurity.com/bbot/dev/scanner)

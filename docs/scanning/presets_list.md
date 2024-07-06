@@ -276,10 +276,25 @@ Enumerate subdomains via APIs, brute-force
     description: Enumerate subdomains via APIs, brute-force
     
     flags:
+      # enable every module with the subdomain-enum flag
       - subdomain-enum
     
     output_modules:
+      # output unique subdomains to TXT file
       - subdomains
+    
+    config:
+      dns:
+        threads: 25
+        brute_threads: 1000
+      # put your API keys here
+      modules:
+        github:
+          api_key: ""
+        chaos:
+          api_key: ""
+        securitytrails:
+          api_key: ""
     ```
 
 
@@ -340,6 +355,7 @@ Aggressive web scan
     description: Aggressive web scan
     
     include:
+      # include the web-basic preset
       - web-basic
     
     flags:

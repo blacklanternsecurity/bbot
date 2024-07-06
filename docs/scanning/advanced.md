@@ -62,14 +62,14 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: sslcert,crt,smuggler,rapiddns,fullhunt,dnscommonsrv,c99,binaryedge,oauth,badsecrets,ffuf,internetdb,gowitness,wayback,subdomaincenter,threatminer,postman,host_header,builtwith,anubisdb,generic_ssrf,unstructured,trufflehog,ipneighbor,iis_shortnames,hunt,zoomeye,securitytrails,dastardly,github_workflows,passivetotal,ffuf_shortnames,github_org,myssl,ntlm,digitorus,vhost,github_codesearch,paramminer_getparams,portscan,hackertarget,dnsdumpster,social,dnsbrute_mutations,dehashed,certspotter,docker_pull,emailformat,secretsdb,urlscan,paramminer_cookies,fingerprintx,git,azure_realm,wappalyzer,crobat,ajaxpro,httpx,azure_tenant,baddns_zone,gitlab,dnsbrute,url_manipulation,bucket_azure,riddler,bucket_firebase,bucket_digitalocean,dotnetnuke,asn,otx,robots,telerik,code_repository,baddns,chaos,git_clone,bypass403,filedownload,skymem,wafw00f,hunterio,bucket_amazon,virustotal,censys,bevigil,credshed,shodan_dns,viewdns,pgp,dockerhub,ipstack,ip2location,leakix,newsletters,columbus,paramminer_headers,dnscaa,affiliates,sitedossier,wpscan,sublist3r,bucket_google,nuclei,bucket_file_enum
+                        Modules to enable. Choices: paramminer_cookies,secretsdb,azure_realm,builtwith,hunt,dotnetnuke,sublist3r,censys,paramminer_getparams,rapiddns,robots,ffuf_shortnames,anubisdb,wafw00f,bucket_digitalocean,passivetotal,github_codesearch,bucket_file_enum,emailformat,columbus,leakix,viewdns,zoomeye,crt,hackertarget,fingerprintx,github_workflows,azure_tenant,affiliates,sitedossier,ajaxpro,baddns,ntlm,bypass403,threatminer,nuclei,github_org,dockerhub,unstructured,iis_shortnames,hunterio,generic_ssrf,dehashed,git,digitorus,bucket_google,shodan_dns,trufflehog,urlscan,virustotal,subdomaincenter,dnsbrute_mutations,ipneighbor,telerik,vhost,git_clone,oauth,dastardly,baddns_zone,ipstack,paramminer_headers,securitytrails,otx,gitlab,badsecrets,portscan,ffuf,wpscan,dnscommonsrv,myssl,docker_pull,certspotter,skymem,dnsbrute,code_repository,url_manipulation,newsletters,httpx,dnsdumpster,host_header,fullhunt,sslcert,bucket_firebase,credshed,bevigil,binaryedge,chaos,wappalyzer,dnscaa,ip2location,postman,bucket_amazon,smuggler,filedownload,pgp,social,c99,crobat,bucket_azure,riddler,wayback,internetdb,asn,gowitness
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: email-enum,passive,safe,web-paramminer,code-enum,deadly,aggressive,active,social-enum,subdomain-hijack,affiliates,subdomain-enum,iis-shortnames,web-basic,portscan,service-enum,web-screenshots,web-thorough,report,slow,cloud-enum,baddns
+                        Enable modules by flag. Choices: subdomain-enum,web-paramminer,code-enum,deadly,email-enum,iis-shortnames,web-thorough,service-enum,affiliates,aggressive,slow,web-screenshots,active,social-enum,safe,report,portscan,passive,baddns,web-basic,subdomain-hijack,cloud-enum
   -lf, --list-flags     List available flags.
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
@@ -94,7 +94,7 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: web_report,websocket,txt,python,emails,discord,csv,splunk,stdout,http,json,neo4j,teams,asset_inventory,subdomains,slack
+                        Output module(s). Choices: http,asset_inventory,websocket,teams,discord,neo4j,splunk,web_report,subdomains,slack,txt,emails,python,csv,stdout,json
   --json, -j            Output scan data in JSON format
   --brief, -br          Output only the data itself
   --event-types EVENT_TYPES [EVENT_TYPES ...]
