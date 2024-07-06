@@ -147,7 +147,7 @@ class BBOTArgs:
         args_preset.force_start = self.parsed.force
 
         if self.parsed.custom_headers:
-            args_preset.core.merge_custom({"http_headers": self.parsed.custom_headers})
+            args_preset.core.merge_custom({"web": {"http_headers": self.parsed.custom_headers}})
 
         if self.parsed.custom_yara_rules:
             args_preset.core.merge_custom(
