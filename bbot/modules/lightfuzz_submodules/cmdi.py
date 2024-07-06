@@ -3,6 +3,7 @@ from .base import BaseLightfuzz
 
 import urllib.parse
 
+
 class CmdILightFuzz(BaseLightfuzz):
 
     async def fuzz(self):
@@ -77,4 +78,3 @@ class CmdILightFuzz(BaseLightfuzz):
                 await self.standard_probe(
                     self.event.data["type"], cookies, f"{probe_value}{interactsh_probe}", timeout=15
                 )
-

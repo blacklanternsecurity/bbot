@@ -1,5 +1,6 @@
 from .base import BaseLightfuzz
 
+
 class SSTILightfuzz(BaseLightfuzz):
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
@@ -12,5 +13,3 @@ class SSTILightfuzz(BaseLightfuzz):
                     "description": f"POSSIBLE Server-side Template Injection. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [Integer Multiplication]",
                 }
             )
-
-

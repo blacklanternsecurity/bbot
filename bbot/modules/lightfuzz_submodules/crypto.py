@@ -2,6 +2,7 @@ from .base import BaseLightfuzz
 
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, unquote
 
+
 class CryptoLightfuzz(BaseLightfuzz):
 
     @staticmethod
@@ -56,13 +57,12 @@ class CryptoLightfuzz(BaseLightfuzz):
             data = str
         return data, encoding
 
-
     @staticmethod
     def format_agnostic_encode(data, encoding):
         if encoding == "hex":
             encoded_data = data.hex()
         elif encoding == "base64":
-            encoded_data = base64.b64encode(data).decode('utf-8')  # base64 encoding returns bytes, decode to string
+            encoded_data = base64.b64encode(data).decode("utf-8")  # base64 encoding returns bytes, decode to string
         else:
             raise ValueError("Unsupported encoding type specified")
         return encoded_data
@@ -115,17 +115,19 @@ class CryptoLightfuzz(BaseLightfuzz):
 
     async def padding_oracle_execute(self, data, encoding, cookies, possible_first_byte=False):
         if possible_first_byte:
-            baseline_byte = b'\xFF'
+            baseline_byte = b"\xFF"
             starting_pos = 0
         else:
-            baseline_byte = b'\x00'
+            baseline_byte = b"\x00"
             starting_pos = 1
 
         baseline = self.compare_baseline(self.event.data["type"], data[:-1] + baseline_byte, cookies)
         differ_count = 0
-        for i in range(starting_pos, starting_pos+254):
+        for i in range(starting_pos, starting_pos + 254):
             byte = bytes([i])
-            oracle_probe = await self.compare_probe(baseline, self.event.data["type"], self.format_agnostic_encode(data[:-1] + byte, encoding), cookies)
+            oracle_probe = await self.compare_probe(
+                baseline, self.event.data["type"], self.format_agnostic_encode(data[:-1] + byte, encoding), cookies
+            )
             if oracle_probe[0] == False and "body" in oracle_probe[1]:
                 differ_count += 1
                 if i == 1:
@@ -145,7 +147,9 @@ class CryptoLightfuzz(BaseLightfuzz):
         padding_oracle_result = await self.padding_oracle_execute(data, encoding, cookies)
         if padding_oracle_result == None:
             self.lightfuzz.hugewarning("ENDED UP IN POSSIBLE_FIRST_BYTE SITUATION")
-            padding_oracle_result = await self.padding_oracle_execute(data, encoding, cookies, possible_first_byte=False)
+            padding_oracle_result = await self.padding_oracle_execute(
+                data, encoding, cookies, possible_first_byte=False
+            )
 
         if padding_oracle_result == True:
             context = f"Lightfuzz Cryptographic Probe Submodule detected a probable padding oracle vulnerability after manipulating parameter: [{self.event.data['name']}]"

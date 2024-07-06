@@ -2,6 +2,7 @@ from .base import BaseLightfuzz
 
 import re
 
+
 class XSSLightfuzz(BaseLightfuzz):
     def determine_context(self, html, random_string):
         between_tags = False

@@ -3,6 +3,7 @@ from bbot.errors import HttpCompareError
 
 import urllib.parse
 
+
 class PathTraversalLightfuzz(BaseLightfuzz):
 
     async def fuzz(self):
@@ -44,7 +45,9 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                     http_compare, self.event.data["type"], payloads["doubledot_payload"], cookies
                 )
 
-                self.lightfuzz.debug(f"[POSSIBLE Path Traversal debug] [{path_technique}] DEBUG: singledot_probe URL: [{singledot_probe[3].request.url}] doubledot_probe URL: [{doubledot_probe[3].request.url}]")
+                self.lightfuzz.debug(
+                    f"[POSSIBLE Path Traversal debug] [{path_technique}] DEBUG: singledot_probe URL: [{singledot_probe[3].request.url}] doubledot_probe URL: [{doubledot_probe[3].request.url}]"
+                )
 
                 if (
                     singledot_probe[0] == True
@@ -78,6 +81,3 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                         "description": f"POSSIBLE Path Traversal. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [Absolute Path: {path}]",
                     }
                 )
-
-
-

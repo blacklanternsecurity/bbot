@@ -791,6 +791,7 @@ def recursive_decode(data, max_depth=5):
 rand_pool = string.ascii_lowercase
 rand_pool_digits = rand_pool + string.digits
 
+
 def rand_string(length=10, digits=True, numeric_only=False):
     """
     Generates a random string of specified length.
@@ -821,7 +822,6 @@ def rand_string(length=10, digits=True, numeric_only=False):
         pool = string.ascii_letters
 
     return "".join(random.choice(pool) for _ in range(length))
-
 
 
 def truncate_string(s, n):
@@ -2755,6 +2755,8 @@ def calculate_entropy(data):
     data_len = len(data)
     entropy = -sum((count / data_len) * math.log2(count / data_len) for count in frequency.values())
     return entropy
+
+
 top_ports_cache = None
 
 

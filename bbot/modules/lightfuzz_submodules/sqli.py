@@ -3,6 +3,7 @@ from bbot.errors import HttpCompareError
 
 import statistics
 
+
 class SQLiLightfuzz(BaseLightfuzz):
     expected_delay = 5
 
@@ -93,6 +94,3 @@ class SQLiLightfuzz(BaseLightfuzz):
 
         else:
             self.lightfuzz.debug("Could not get baseline for time-delay tests")
-
-
-

@@ -15,22 +15,26 @@ from .lightfuzz_submodules.sqli import SQLiLightfuzz
 from .lightfuzz_submodules.ssti import SSTILightfuzz
 from .lightfuzz_submodules.xss import XSSLightfuzz
 
+
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "web-thorough"]
 
     submodules = {
-        "sqli": {"description": "SQL Injection","module": SQLiLightfuzz },
-        "cmdi": {"description": "Command Injection","module": CmdILightFuzz },
-        "xss": {"description": "Cross-site Scripting","module": XSSLightfuzz },
-        "path": {"description": "Path Traversal","module": PathTraversalLightfuzz },
-        "ssti": {"description": "Server-side Template Injection","module": SSTILightfuzz },
-        "crypto": {"description": "Cryptography Probe","module": CryptoLightfuzz }
+        "sqli": {"description": "SQL Injection", "module": SQLiLightfuzz},
+        "cmdi": {"description": "Command Injection", "module": CmdILightFuzz},
+        "xss": {"description": "Cross-site Scripting", "module": XSSLightfuzz},
+        "path": {"description": "Path Traversal", "module": PathTraversalLightfuzz},
+        "ssti": {"description": "Server-side Template Injection", "module": SSTILightfuzz},
+        "crypto": {"description": "Cryptography Probe", "module": CryptoLightfuzz},
     }
 
     options = {"force_common_headers": False, "enabled_submodules": []}
-    options_desc = {"force_common_headers": "Force emit commonly exploitable parameters that may be difficult to detect", "enabled_submodules": "A list of submodules to enable. Empty list enabled all modules."}
+    options_desc = {
+        "force_common_headers": "Force emit commonly exploitable parameters that may be difficult to detect",
+        "enabled_submodules": "A list of submodules to enable. Empty list enabled all modules.",
+    }
 
     meta = {"description": "Find Web Parameters and Lightly Fuzz them using a heuristic based scanner"}
     common_headers = ["x-forwarded-for", "user-agent"]
@@ -71,7 +75,9 @@ class lightfuzz(BaseModule):
                 if submodule == "submodule_cmdi" and self.scan.config.get("interactsh_disable", False) == False:
                     try:
                         self.interactsh_instance = self.helpers.interactsh()
-                        self.interactsh_domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
+                        self.interactsh_domain = await self.interactsh_instance.register(
+                            callback=self.interactsh_callback
+                        )
                     except InteractshError as e:
                         self.warning(f"Interactsh failure: {e}")
             else:
@@ -167,13 +173,11 @@ class lightfuzz(BaseModule):
                 }
                 await self.emit_event(data, "WEB_PARAMETER", event)
 
-        
         elif event.type == "WEB_PARAMETER":
             for submodule, submodule_dict in self.submodules.items():
                 if getattr(self, submodule):
                     self.debug(f"Starting {submodule_dict['description']} fuzz()")
-                    await self.run_submodule(submodule_dict['module'], event)
-                    
+                    await self.run_submodule(submodule_dict["module"], event)
 
     async def cleanup(self):
         if self.interactsh_instance:
