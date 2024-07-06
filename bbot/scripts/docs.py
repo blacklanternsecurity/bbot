@@ -170,12 +170,12 @@ def update_docs():
     update_md_files("BBOT EVENTS", bbot_event_table)
 
     # BBOT modules
-    bbot_module_table = DEFAULT_PRESET.module_loader.modules_table()
+    bbot_module_table = DEFAULT_PRESET.module_loader.modules_table(include_author=True)
     assert len(bbot_module_table.splitlines()) > 50
     update_md_files("BBOT MODULES", bbot_module_table)
 
     # BBOT output modules
-    bbot_output_module_table = DEFAULT_PRESET.module_loader.modules_table(mod_type="output")
+    bbot_output_module_table = DEFAULT_PRESET.module_loader.modules_table(mod_type="output", include_author=True)
     assert len(bbot_output_module_table.splitlines()) > 10
     update_md_files("BBOT OUTPUT MODULES", bbot_output_module_table)
 
