@@ -664,9 +664,9 @@ async def test_event_discovery_context():
 
     # test to make sure this doesn't come back
     #  https://github.com/blacklanternsecurity/bbot/issues/1498
-    scan = Scanner("http://blacklanternsecurity.com", config={"dns_resolution": True})
+    scan = Scanner("http://blacklanternsecurity.com", config={"dns": {"minimal": False}})
     await scan.helpers.dns._mock_dns(
-        {"blacklanternsecurity.com": {"TXT": ["blsops.com"]}, "blsops.com": {"A": ["127.0.0.1"]}}
+        {"blacklanternsecurity.com": {"TXT": ["blsops.com"], "A": ["127.0.0.1"]}, "blsops.com": {"A": ["127.0.0.1"]}}
     )
     events = [e async for e in scan.async_start()]
     blsops_event = [e for e in events if e.type == "DNS_NAME" and e.data == "blsops.com"]

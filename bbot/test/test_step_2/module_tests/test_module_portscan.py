@@ -126,10 +126,7 @@ class TestPortscan(ModuleTestBase):
 
 class TestPortscanPingFirst(TestPortscan):
     modules_overrides = {"portscan"}
-    config_overrides = {
-        "modules": {"portscan": {"ports": "443", "wait": 1, "ping_first": True}},
-        "dns_resolution": True,
-    }
+    config_overrides = {"modules": {"portscan": {"ports": "443", "wait": 1, "ping_first": True}}}
 
     def check(self, module_test, events):
         assert set(self.syn_scanned) == {"8.8.8.8/32"}
@@ -143,10 +140,7 @@ class TestPortscanPingFirst(TestPortscan):
 
 class TestPortscanPingOnly(TestPortscan):
     modules_overrides = {"portscan"}
-    config_overrides = {
-        "modules": {"portscan": {"ports": "443", "wait": 1, "ping_only": True}},
-        "dns_resolution": True,
-    }
+    config_overrides = {"modules": {"portscan": {"ports": "443", "wait": 1, "ping_only": True}}}
 
     targets = ["8.8.8.8/24", "8.8.4.4/24"]
 

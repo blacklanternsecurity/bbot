@@ -51,7 +51,7 @@ class speculate(BaseInternalModule):
         )
         self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         self.range_to_ip = True
-        self.dns_resolution = self.scan.config.get("dns_resolution", True)
+        self.dns_disable = self.scan.config.get("dns", {}).get("disable", False)
         self.org_stubs_seen = set()
 
         port_string = self.config.get("ports", "80,443")
@@ -151,7 +151,7 @@ class speculate(BaseInternalModule):
             # don't act on unresolved DNS_NAMEs
             usable_dns = False
             if event.type == "DNS_NAME":
-                if (not self.dns_resolution) or ("a-record" in event.tags or "aaaa-record" in event.tags):
+                if self.dns_disable or ("a-record" in event.tags or "aaaa-record" in event.tags):
                     usable_dns = True
 
             if event.type == "IP_ADDRESS" or usable_dns:
