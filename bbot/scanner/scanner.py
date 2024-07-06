@@ -541,6 +541,9 @@ class Scanner:
         from signal import SIGINT
 
         module = self.modules[module_name]
+        if module._intercept:
+            self.warning(f'Cannot kill module "{module_name}" because it is critical to the scan')
+            return
         module.set_error_state(message=message, clear_outgoing_queue=True)
         for proc in module._proc_tracker:
             with contextlib.suppress(Exception):
@@ -564,8 +567,8 @@ class Scanner:
 
         sorted_modules = []
         for module_name, module in self.modules.items():
-            # if module_name.startswith("_"):
-            #     continue
+            if module_name.startswith("_"):
+                continue
             sorted_modules.append(module)
             mod_status = module.status
             if mod_status["running"]:
@@ -620,9 +623,13 @@ class Scanner:
 
             num_queued_events = self.num_queued_events
             if num_queued_events:
-                self.info(f"{self.name}: {num_queued_events:,} events in queue")
+                self.info(
+                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                )
             else:
-                self.info(f"{self.name}: No events in queue")
+                self.info(
+                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                )
 
             if self.log_level <= logging.DEBUG:
                 # status debugging

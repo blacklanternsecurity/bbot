@@ -203,11 +203,13 @@ async def _write_proc_line(proc, chunk):
     try:
         proc.stdin.write(smart_encode(chunk) + b"\n")
         await proc.stdin.drain()
+        return True
     except Exception as e:
         proc_args = [str(s) for s in getattr(proc, "args", [])]
         command = " ".join(proc_args)
         log.warning(f"Error writing line to stdin for command: {command}: {e}")
         log.trace(traceback.format_exc())
+        return False
 
 
 async def _write_stdin(proc, _input):
@@ -227,10 +229,14 @@ async def _write_stdin(proc, _input):
             _input = [_input]
         if isinstance(_input, (list, tuple)):
             for chunk in _input:
-                await _write_proc_line(proc, chunk)
+                write_result = await _write_proc_line(proc, chunk)
+                if not write_result:
+                    break
         else:
             async for chunk in _input:
-                await _write_proc_line(proc, chunk)
+                write_result = await _write_proc_line(proc, chunk)
+                if not write_result:
+                    break
         proc.stdin.close()
 
 

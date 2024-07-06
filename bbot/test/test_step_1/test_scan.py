@@ -96,3 +96,17 @@ async def test_url_extension_handling(bbot_scanner):
     result = await scan.ingress_module.handle_event(httpx_event, {})
     assert result == None
     assert "httpx-only" in httpx_event.tags
+
+
+@pytest.mark.asyncio
+async def test_speed_counter():
+    from bbot.scanner.stats import SpeedCounter
+
+    # counter with 1-second window
+    counter = SpeedCounter(1)
+    # 10 events spread across 2 seconds
+    for i in range(10):
+        counter.tick()
+        await asyncio.sleep(0.2)
+    # only 5 should show
+    assert 4 <= counter.speed <= 5
