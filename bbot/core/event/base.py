@@ -9,12 +9,13 @@ import ipaddress
 import traceback
 
 from copy import copy
+from pathlib import Path
 from typing import Optional
 from contextlib import suppress
-from urllib.parse import urljoin
 from radixtarget import RadixTarget
+from urllib.parse import urljoin, parse_qs
 from pydantic import BaseModel, field_validator
-from pathlib import Path
+
 
 from .helpers import *
 from bbot.errors import *
@@ -25,6 +26,7 @@ from bbot.core.helpers import (
     is_ip,
     is_ptr,
     is_uri,
+    url_depth,
     domain_stem,
     make_netloc,
     make_ip_type,
@@ -152,15 +154,25 @@ class BaseEvent:
 
         self._id = None
         self._hash = None
+        self._data = None
         self.__host = None
+        self._tags = set()
         self._port = None
         self._omit = False
         self.__words = None
+        self._parent = None
         self._priority = None
+        self._parent_id = None
         self._host_original = None
         self._module_priority = None
         self._resolved_hosts = set()
         self.dns_children = dict()
+        self._discovery_context = ""
+
+        # for creating one-off events without enforcing parent requirement
+        self._dummy = _dummy
+        self.module = module
+        self._type = event_type
 
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
@@ -173,19 +185,9 @@ class BaseEvent:
             except AttributeError:
                 self.timestamp = datetime.datetime.utcnow()
 
-        self._tags = set()
-        if tags is not None:
-            self._tags = set(tagify(s) for s in tags)
-
-        self._data = None
-        self._type = event_type
         self.confidence = int(confidence)
-
-        # for creating one-off events without enforcing parent requirement
-        self._dummy = _dummy
         self._internal = False
 
-        self.module = module
         # self.scan holds the instantiated scan object (for helpers, etc.)
         self.scan = scan
         if (not self.scan) and (not self._dummy):
@@ -208,11 +210,16 @@ class BaseEvent:
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
 
-        self._parent = None
-        self._parent_id = None
         self.parent = parent
         if (not self.parent) and (not self._dummy):
             raise ValidationError(f"Must specify event parent")
+
+        # inherit web spider distance from parent
+        self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
+
+        if tags is not None:
+            for tag in tags:
+                self.add_tag(tag)
 
         # internal events are not ingested by output modules
         if not self._dummy:
@@ -220,12 +227,8 @@ class BaseEvent:
             if _internal:  # or parent._internal:
                 self.internal = True
 
-        # inherit web spider distance from parent
-        self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
-
         if not context:
             context = getattr(self.module, "default_discovery_context", "")
-        self._discovery_context = ""
         if context:
             self.discovery_context = context
 
@@ -368,9 +371,11 @@ class BaseEvent:
 
     @tags.setter
     def tags(self, tags):
+        self._tags = set()
         if isinstance(tags, str):
             tags = (tags,)
-        self._tags = set(tagify(s) for s in tags)
+        for tag in tags:
+            self.add_tag(tag)
 
     def add_tag(self, tag):
         self._tags.add(tagify(tag))
@@ -511,6 +516,20 @@ class BaseEvent:
         if parent_id is not None:
             return parent_id
         return self._parent_id
+
+    @property
+    def validators(self):
+        """
+        Depending on whether the scan attribute is accessible, return either a config-aware or non-config-aware validator
+
+        This exists to prevent a chicken-and-egg scenario during the creation of certain events such as URLs,
+        whose sanitization behavior is different depending on the config.
+
+        However, thanks to this property, validation can still work in the absence of a config.
+        """
+        if self.scan is not None:
+            return self.scan.helpers.config_aware_validators
+        return validators
 
     def get_parent(self):
         """
@@ -865,7 +884,7 @@ class DictEvent(BaseEvent):
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
-            self.parsed_url = validators.validate_url_parsed(url)
+            self.parsed_url = self.validators.validate_url_parsed(url)
         return data
 
     def _data_load(self, data):
@@ -1029,13 +1048,35 @@ class URL_UNVERIFIED(BaseEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # increment the web spider distance
-        if self.type == "URL_UNVERIFIED":
-            self.web_spider_distance += 1
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
+    def _data_id(self):
+
+        data = super()._data_id()
+
+        # remove the querystring for URL/URL_UNVERIFIED events, because we will conditionally add it back in (based on settings)
+        if self.__class__.__name__.startswith("URL") and self.scan is not None:
+            prefix = data.split("?")[0]
+
+            # consider spider-danger tag when deduping
+            if "spider-danger" in self.tags:
+                prefix += "spider-danger"
+
+            if not self.scan.config.get("url_querystring_remove", True) and self.parsed_url.query:
+                query_dict = parse_qs(self.parsed_url.query)
+                if self.scan.config.get("url_querystring_collapse", True):
+                    # Only consider parameter names in dedup (collapse values)
+                    cleaned_query = "|".join(sorted(query_dict.keys()))
+                else:
+                    # Consider parameter names and values in dedup
+                    cleaned_query = "&".join(
+                        f"{key}={','.join(sorted(values))}" for key, values in sorted(query_dict.items())
+                    )
+                data = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
+        return data
+
     def sanitize_data(self, data):
-        self.parsed_url = validators.validate_url_parsed(data)
+        self.parsed_url = self.validators.validate_url_parsed(data)
 
         # special handling of URL extensions
         if self.parsed_url is not None:
@@ -1056,6 +1097,25 @@ class URL_UNVERIFIED(BaseEvent):
         data = self.parsed_url.geturl()
         return data
 
+    def add_tag(self, tag):
+        if tag == "spider-danger":
+            # increment the web spider distance
+            if self.type == "URL_UNVERIFIED":
+                self.web_spider_distance += 1
+            if self.is_spider_max:
+                self.add_tag("spider-max")
+        super().add_tag(tag)
+
+    @property
+    def is_spider_max(self):
+        if self.scan:
+            web_spider_distance = self.scan.config.get("web_spider_distance", 0)
+            web_spider_depth = self.scan.config.get("web_spider_depth", 1)
+            depth = url_depth(self.parsed_url)
+            if (self.web_spider_distance > web_spider_distance) or (depth > web_spider_depth):
+                return True
+        return False
+
     def with_port(self):
         netloc_with_port = make_netloc(self.host, self.port)
         return self.parsed_url._replace(netloc=netloc_with_port)
@@ -1069,13 +1129,6 @@ class URL_UNVERIFIED(BaseEvent):
     def _host(self):
         return make_ip_type(self.parsed_url.hostname)
 
-    def _data_id(self):
-        # consider spider-danger tag when deduping
-        data = super()._data_id()
-        if "spider-danger" in self.tags:
-            data = "spider-danger" + data
-        return data
-
     @property
     def http_status(self):
         for t in self.tags:
@@ -1086,12 +1139,14 @@ class URL_UNVERIFIED(BaseEvent):
 
 
 class URL(URL_UNVERIFIED):
-    def sanitize_data(self, data):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         if not self._dummy and not any(t.startswith("status-") for t in self.tags):
             raise ValidationError(
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
-        return super().sanitize_data(data)
 
     @property
     def resolved_hosts(self):
@@ -1124,6 +1179,24 @@ class URL_HINT(URL_UNVERIFIED):
     pass
 
 
+class WEB_PARAMETER(DictHostEvent):
+
+    def _data_id(self):
+        # dedupe by url:name:param_type
+        url = self.data.get("url", "")
+        name = self.data.get("name", "")
+        param_type = self.data.get("type", "")
+        return f"{url}:{name}:{param_type}"
+
+    def _url(self):
+        return self.data["url"]
+
+    def __str__(self):
+        max_event_len = 200
+        d = str(self.data)
+        return f'{self.type}("{d[:max_event_len]}{("..." if len(d) > max_event_len else "")}", module={self.module}, tags={self.tags})'
+
+
 class EMAIL_ADDRESS(BaseEvent):
     def sanitize_data(self, data):
         return validators.validate_email(data)
@@ -1145,9 +1218,12 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         if str(self.http_status).startswith("3"):
             self.num_redirects += 1
 
+    def _data_id(self):
+        return self.data["method"] + "|" + self.data["url"]
+
     def sanitize_data(self, data):
         url = data.get("url", "")
-        self.parsed_url = validators.validate_url_parsed(url)
+        self.parsed_url = self.validators.validate_url_parsed(url)
         data["url"] = self.parsed_url.geturl()
 
         header_dict = {}

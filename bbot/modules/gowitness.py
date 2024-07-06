@@ -153,13 +153,11 @@ class gowitness(BaseModule):
         for url, row in self.new_network_logs.items():
             ip = row["ip"]
             status_code = row["status_code"]
-            tags = [f"status-{status_code}", f"ip-{ip}"]
+            tags = [f"status-{status_code}", f"ip-{ip}", "spider-danger"]
 
             _id = row["url_id"]
             parent_url = self.screenshots_taken[_id]
             parent_event = event_dict[parent_url]
-            if self.helpers.is_spider_danger(parent_event, url):
-                tags.append("spider-danger")
             if url and url.startswith("http"):
                 await self.emit_event(
                     url,

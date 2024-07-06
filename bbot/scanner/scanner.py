@@ -185,6 +185,9 @@ class Scanner:
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
         self.url_extension_httpx_only = set(e.lower() for e in self.config.get("url_extension_httpx_only", []))
 
+        # url querystring behavior
+        self.url_querystring_remove = self.config.get("url_querystring_remove", True)
+
         # blob inclusion
         self._file_blobs = self.config.get("file_blobs", False)
         self._folder_blobs = self.config.get("folder_blobs", False)
@@ -213,6 +216,7 @@ class Scanner:
 
         self._stopping = False
 
+        self._dns_strings = None
         self._dns_regexes = None
         # temporary fix to boost scan performance
         # TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
@@ -919,6 +923,42 @@ class Scanner:
         return root_event
 
     @property
+    def dns_strings(self):
+        """
+        A list of DNS hostname strings generated from the scan target
+        """
+        if self._dns_strings is None:
+            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
+            dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
+            dns_targets.update(dns_whitelist)
+            dns_targets = sorted(dns_targets, key=len)
+            dns_targets_set = set()
+            dns_strings = []
+            for t in dns_targets:
+                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
+                    dns_strings.append(t)
+            self._dns_strings = dns_strings
+        return self._dns_strings
+
+    def _generate_dns_regexes(self, pattern):
+        """
+        Generates a list of compiled DNS hostname regexes based on the provided pattern.
+        This method centralizes the regex compilation to avoid redundancy in the dns_regexes and dns_regexes_yara methods.
+
+        Args:
+            pattern (str):
+        Returns:
+            list[re.Pattern]: A list of compiled regex patterns if enabled, otherwise an empty list.
+        """
+
+        dns_regexes = []
+        for t in self.dns_strings:
+            regex_pattern = re.compile(f"{pattern}{re.escape(t)})", re.I)
+            log.debug(f"Generated Regex [{regex_pattern.pattern}] for domain {t}")
+            dns_regexes.append(regex_pattern)
+        return dns_regexes
+
+    @property
     def dns_regexes(self):
         """
         A list of DNS hostname regexes generated from the scan target
@@ -932,20 +972,16 @@ class Scanner:
         """
         if self._target_dns_regex_disable:
             return []
-        if self._dns_regexes is None:
-            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
-            dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
-            dns_targets.update(dns_whitelist)
-            dns_targets = sorted(dns_targets, key=len)
-            dns_targets_set = set()
-            dns_regexes = []
-            for t in dns_targets:
-                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
-                    dns_targets_set.add(t)
-                    dns_regexes.append(re.compile(r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")", re.I))
-            self._dns_regexes = dns_regexes
-
+        if not self._dns_regexes:
+            self._dns_regexes = self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
         return self._dns_regexes
+
+    @property
+    def dns_regexes_yara(self):
+        """
+        Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
+        """
+        return self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
 
     @property
     def useragent(self):

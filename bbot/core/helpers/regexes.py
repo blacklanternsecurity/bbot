@@ -114,11 +114,29 @@ event_type_regexes = OrderedDict(
 scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
 
 
-# For use with extract_params_html helper
-input_tag_regex = re.compile(r"<input[^>]+?name=[\"\'](\w+)[\"\']")
-jquery_get_regex = re.compile(r"\$.get\([\'\"].+[\'\"].+\{(.+)\}")
+# For use with excavate paramaters extractor
+input_tag_regex = re.compile(
+    r"<input[^>]+?name=[\"\']?([\.$\w]+)[\"\']?(?:[^>]*?value=[\"\']([=+\/\w]*)[\"\'])?[^>]*>"
+)
+jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
 jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
-a_tag_regex = re.compile(r"<a[^>]*href=[\"\'][^\"\'#>]*\?([^\"\'#>]+)[\"\']")
+a_tag_regex = re.compile(r"<a[^>]*href=[\"\']([^\"\'?>]*)\?([^&\"\'=]+)=([^&\"\'=]+)")
+img_tag_regex = re.compile(r"<img[^>]*src=[\"\']([^\"\'?>]*)\?([^&\"\'=]+)=([^&\"\'=]+)")
+get_form_regex = re.compile(
+    r"<form[^>]+(?:action=[\"']?([^\s\'\"]+)[\"\']?)?[^>]*method=[\"']?[gG][eE][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    re.DOTALL,
+)
+post_form_regex = re.compile(
+    r"<form[^>]+(?:action=[\"']?([^\s\'\"]+)[\"\']?)?[^>]*method=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    re.DOTALL,
+)
+select_tag_regex = re.compile(
+    r"<select[^>]+?name=[\"\']?(\w+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\'](\w*)[\"\']?[^>]*>)?"
+)
+textarea_tag_regex = re.compile(
+    r'<textarea[^>]*\bname=["\']?(\w+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
+)
+tag_attribute_regex = re.compile(r"<[^>]*(?:href|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
 
 valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
 

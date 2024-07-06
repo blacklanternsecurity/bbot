@@ -1,4 +1,8 @@
-from .base import ModuleTestBase
+from bbot.modules.base import BaseModule
+from .base import ModuleTestBase, tempwordlist
+from bbot.modules.internal.excavate import ExcavateRule
+
+import yara
 
 
 class TestExcavate(ModuleTestBase):
@@ -7,6 +11,7 @@ class TestExcavate(ModuleTestBase):
     config_overrides = {"web_spider_distance": 1, "web_spider_depth": 1}
 
     async def setup_before_prep(self, module_test):
+
         response_data = """
         ftp://ftp.test.notreal
         \\nhttps://www1.test.notreal
@@ -63,10 +68,6 @@ class TestExcavate(ModuleTestBase):
         assert "x3dhttps://www2.test.notreal/" not in event_data
         assert "a2https://www3.test.notreal/" not in event_data
         assert "uac20https://www4.test.notreal/" not in event_data
-        assert "nwww5.test.notreal" not in event_data
-        assert "x3dwww6.test.notreal" not in event_data
-        assert "a2www7.test.notreal" not in event_data
-        assert "uac20www8.test.notreal" not in event_data
 
         assert any(
             e.type == "FINDING" and e.data.get("description", "") == "Non-HTTP URI: ftp://ftp.test.notreal"
@@ -82,21 +83,17 @@ class TestExcavate(ModuleTestBase):
         assert any(
             e.type == "URL_UNVERIFIED"
             and e.data == "http://127.0.0.1:8888/relative.html"
-            and "spider-danger" not in e.tags
+            and "spider-max" not in e.tags
             for e in events
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED"
-            and e.data == "http://127.0.0.1:8888/2/depth2.html"
-            and "spider-danger" in e.tags
+            e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/2/depth2.html" and "spider-max" in e.tags
             for e in events
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED"
-            and e.data == "http://127.0.0.1:8888/distance2.html"
-            and "spider-danger" in e.tags
+            e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/distance2.html" and "spider-max" in e.tags
             for e in events
         )
 
@@ -178,7 +175,8 @@ class TestExcavateRedirect(TestExcavate):
         module_test.httpserver.no_handler_status_code = 404
 
     def check(self, module_test, events):
-        assert 2 == len(
+
+        assert 1 == len(
             [
                 e
                 for e in events
@@ -224,6 +222,64 @@ class TestExcavateRedirect(TestExcavate):
         assert 0 == len([e for e in events if e.type == "PROTOCOL" and e.data["protocol"] == "SSH"])
 
 
+class TestExcavateQuerystringRemoveTrue(TestExcavate):
+    targets = ["http://127.0.0.1:8888/"]
+    config_overrides = {"url_querystring_remove": True, "url_querystring_collapse": True}
+    lots_of_params = """
+    <a href="http://127.0.0.1:8888/endpoint?foo=1"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=2"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=3"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=4"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=5"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=6"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=7"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=8"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=9"/>
+    <a href="http://127.0.0.1:8888/endpoint?foo=10"/>
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(self.lots_of_params)
+
+    def check(self, module_test, events):
+        assert len([e for e in events if e.type == "URL_UNVERIFIED"]) == 2
+        assert (
+            len([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/endpoint"]) == 1
+        )
+
+
+class TestExcavateQuerystringRemoveFalse(TestExcavateQuerystringRemoveTrue):
+    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": True}
+
+    def check(self, module_test, events):
+        assert (
+            len(
+                [
+                    e
+                    for e in events
+                    if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")
+                ]
+            )
+            == 1
+        )
+
+
+class TestExcavateQuerystringCollapseFalse(TestExcavateQuerystringRemoveTrue):
+    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": False}
+
+    def check(self, module_test, events):
+        assert (
+            len(
+                [
+                    e
+                    for e in events
+                    if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")
+                ]
+            )
+            == 10
+        )
+
+
 class TestExcavateMaxLinksPerPage(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
     config_overrides = {"web_spider_links_per_page": 10, "web_spider_distance": 1}
@@ -261,18 +317,17 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
 
     def check(self, module_test, events):
         url_unverified_events = [e for e in events if e.type == "URL_UNVERIFIED"]
-        # base URL + 25 links (10 w/o spider-danger) + 10 links (extracted from HTTP_RESPONSES, w/ spider-danger) == 36
-        assert len(url_unverified_events) == 36
-        url_data = [e.data for e in url_unverified_events if "spider-danger" not in e.tags]
-        assert len(url_data) == 11
-        assert "http://127.0.0.1:8888/10" in url_data
-        assert "http://127.0.0.1:8888/11" not in url_data
+        # base URL + 25 links = 26
+        assert len(url_unverified_events) == 26
+        url_data = [e.data for e in url_unverified_events if "spider-max" not in e.tags and "spider-danger" in e.tags]
+        assert len(url_data) >= 10 and len(url_data) <= 12
         url_events = [e for e in events if e.type == "URL"]
         assert len(url_events) == 11
 
 
 class TestExcavateCSP(TestExcavate):
-    csp_test_header = "default-src 'self'; script-src test.asdf.fakedomain; object-src 'none';"
+
+    csp_test_header = "default-src 'self'; script-src asdf.test.notreal; object-src 'none';"
 
     async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
@@ -280,7 +335,7 @@ class TestExcavateCSP(TestExcavate):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.data == "test.asdf.fakedomain" for e in events)
+        assert any(e.data == "asdf.test.notreal" for e in events)
 
 
 class TestExcavateURL(TestExcavate):
@@ -292,6 +347,18 @@ class TestExcavateURL(TestExcavate):
     def check(self, module_test, events):
         assert any(e.data == "asdffoo.test.notreal" for e in events)
         assert any(e.data == "https://asdffoo.test.notreal/some/path" for e in events)
+
+
+class TestExcavateURL_IP(TestExcavate):
+
+    targets = ["http://127.0.0.1:8888/", "127.0.0.2"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data("SomeSMooshedDATAhttps://127.0.0.2/some/path")
+
+    def check(self, module_test, events):
+        assert any(e.data == "127.0.0.2" for e in events)
+        assert any(e.data == "https://127.0.0.2/some/path" for e in events)
 
 
 class TestExcavateSerializationNegative(TestExcavate):
@@ -325,100 +392,340 @@ class TestExcavateSerializationPositive(TestExcavate):
         )
 
     def check(self, module_test, events):
-        for serialize_type in ["Java", ".NET", "PHP (Array)", "PHP (String)", "PHP (Object)", "Possible Compressed"]:
+        for serialize_type in ["Java", "DOTNET", "PHP_Array", "PHP_String", "PHP_Object", "Possible_Compressed"]:
             assert any(
                 e.type == "FINDING" and serialize_type in e.data["description"] for e in events
             ), f"Did not find {serialize_type} Serialized Object"
 
 
-class TestExcavateRawData(TestExcavate):
-    targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["unstructured", "filedownload", "httpx", "excavate"]
-    config_overrides = {"web_spider_distance": 2, "web_spider_depth": 2}
+class TestExcavateNonHttpScheme(TestExcavate):
 
-    pdf_data = """%PDF-1.3
-%���� ReportLab Generated PDF document http://www.reportlab.com
-1 0 obj
-<<
-/F1 2 0 R
->>
-endobj
-2 0 obj
-<<
-/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
->>
-endobj
-3 0 obj
-<<
-/Contents 7 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 6 0 R /Resources <<
-/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
->> /Rotate 0 /Trans <<
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
 
->> 
-  /Type /Page
->>
-endobj
-4 0 obj
-<<
-/PageMode /UseNone /Pages 6 0 R /Type /Catalog
->>
-endobj
-5 0 obj
-<<
-/Author (anonymous) /CreationDate (D:20240605141216+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240605141216+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
-  /Subject (unspecified) /Title (untitled) /Trapped /False
->>
-endobj
-6 0 obj
-<<
-/Count 1 /Kids [ 3 0 R ] /Type /Pages
->>
-endobj
-7 0 obj
-<<
-/Filter [ /ASCII85Decode /FlateDecode ] /Length 132
->>
-stream
-GapQh0E=F,0U\H3T\pNYT^QKk?tc>IP,;W#U1^23ihPEM_?CW4KISi90MjG^2,FS#<RAf8.4MLLf/GNAf/!Cn6RrNecqhb7/kO8[:,UJC.*9`]<!^TD#gi^AU;-p49&LT2~>endstream
-endobj
-xref
-0 8
-0000000000 65535 f 
-0000000073 00000 n 
-0000000104 00000 n 
-0000000211 00000 n 
-0000000414 00000 n 
-0000000482 00000 n 
-0000000778 00000 n 
-0000000837 00000 n 
-trailer
-<<
-/ID 
-[<4ec66ff265d6f71192a8280f8a3a00ac><4ec66ff265d6f71192a8280f8a3a00ac>]
-% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+    non_http_scheme_html = """
 
-/Info 5 0 R
-/Root 4 0 R
-/Size 8
->>
-startxref
-1059
-%%EOF"""
+    <html>
+    <head>
+    </head>
+    <body>
+    <p>hxxp://test.notreal</p>
+    <p>ftp://test.notreal</p>
+    <p>nonsense://test.notreal</p>
+    </body>
+    </html>
+    """
 
     async def setup_before_prep(self, module_test):
-        module_test.set_expect_requests(
-            dict(uri="/"),
-            dict(response_data='<a href="/Test_PDF"/>'),
-        )
-        module_test.set_expect_requests(
-            dict(uri="/Test_PDF"),
-            dict(response_data=self.pdf_data, headers={"Content-Type": "application/pdf"}),
-        )
+        module_test.httpserver.expect_request("/").respond_with_data(self.non_http_scheme_html)
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "URL_UNVERIFIED"
-            and e.data == "http://127.0.0.1:8888/distance2.html"
-            and "spider-danger" in e.tags
-            for e in events
+
+        found_hxxp_url = False
+        found_ftp_url = False
+        found_nonsense_url = False
+
+        for e in events:
+            if e.type == "FINDING":
+                if e.data["description"] == "Non-HTTP URI: hxxp://test.notreal":
+                    found_hxxp_url = True
+                if e.data["description"] == "Non-HTTP URI: ftp://test.notreal":
+                    found_ftp_url = True
+                if "nonsense" in e.data["description"]:
+                    found_nonsense_url = True
+        assert found_hxxp_url
+        assert found_ftp_url
+        assert not found_nonsense_url
+
+
+class TestExcavateParameterExtraction(TestExcavate):
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["excavate", "httpx", "hunt"]
+    targets = ["http://127.0.0.1:8888/"]
+    parameter_extraction_html = """
+    <html>
+    <head>
+        <title>Get extract</title>
+        <script>
+            $.get("/test", {jqueryget: "value1"});
+            $.post("/test", {jquerypost: "value2"});
+        </script>
+    </head>
+    <body>
+    <body>
+        <h1>Simple GET Form</h1>
+        <p>Use the form below to submit a GET request:</p>
+        <form action="/search" method="get">
+            <label for="searchQuery">Search Query:</label>
+            <input type="text" id="searchQuery" name="q" value="flowers"><br><br>
+            <input type="submit" value="Search">
+        </form>
+        <h1>Simple POST Form</h1>
+        <p>Use the form below to submit a POST request:</p>
+        <form action="/search" method="post">
+            <label for="searchQuery">Search Query:</label>
+            <input type="text" id="searchQuery" name="q" value="boats"><br><br>
+            <input type="submit" value="Search">
+        </form>
+        <p>Links</p>
+        <a href="/validPath?id=123&age=456">href</a>
+        <img src="http://127.0.0.1:8888/validPath?size=m&fit=slim">img</a>
+    </body>
+    </body>
+    </html>
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(self.parameter_extraction_html)
+
+    def check(self, module_test, events):
+        found_jquery_get = False
+        found_jquery_post = False
+        found_form_get = False
+        found_form_post = False
+        found_jquery_get_original_value = False
+        found_jquery_post_original_value = False
+        found_form_get_original_value = False
+        found_form_post_original_value = False
+        found_htmltags_a = False
+        found_htmltags_img = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
+                    found_jquery_get = True
+                    if e.data["original_value"] == "value1":
+                        found_jquery_get_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [jquerypost] (POST jquery Submodule)":
+                    found_jquery_post = True
+                    if e.data["original_value"] == "value2":
+                        found_jquery_post_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [q] (GET Form Submodule)":
+                    found_form_get = True
+                    if e.data["original_value"] == "flowers":
+                        found_form_get_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [q] (POST Form Submodule)":
+                    found_form_post = True
+                    if e.data["original_value"] == "boats":
+                        found_form_post_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [age] (HTML Tags Submodule)":
+                    if e.data["original_value"] == "456":
+                        if "id" in e.data["additional_params"].keys():
+                            found_htmltags_a = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [size] (HTML Tags Submodule)":
+                    if e.data["original_value"] == "m":
+                        if "fit" in e.data["additional_params"].keys():
+                            found_htmltags_img = True
+
+        assert found_jquery_get, "Did not extract Jquery GET parameters"
+        assert found_jquery_post, "Did not extract Jquery POST parameters"
+        assert found_form_get, "Did not extract Form GET parameters"
+        assert found_form_post, "Did not extract Form POST parameters"
+        assert found_jquery_get_original_value, "Did not extract Jquery GET parameter original_value"
+        assert found_jquery_post_original_value, "Did not extract Jquery POST parameter original_value"
+        assert found_form_get_original_value, "Did not extract Form GET parameter original_value"
+        assert found_form_post_original_value, "Did not extract Form POST parameter original_value"
+        assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
+        assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
+
+
+class TestExcavateParameterExtraction_getparam(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    getparam_extract_html = """
+<html><a href="/?hack=1">ping</a></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+
+        excavate_getparam_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+
+                if "HTTP Extracted Parameter [hack] (HTML Tags Submodule)" in e.data["description"]:
+                    excavate_getparam_extraction = True
+        assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+
+
+class TestExcavateParameterExtraction_json(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True}}}
+    getparam_extract_json = """
+    {
+  "obscureParameter": 1,
+  "common": 1
+}
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_json, "headers": {"Content-Type": "application/json"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_json_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter (speculative from json content) [obscureParameter]"
+                    in e.data["description"]
+                ):
+                    excavate_json_extraction = True
+        assert excavate_json_extraction, "Excavate failed to extract json parameter"
+
+
+class TestExcavateParameterExtraction_xml(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True}}}
+    getparam_extract_xml = """
+    <data>
+     <obscureParameter>1</obscureParameter>
+         <common>1</common>
+     </data>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_xml, "headers": {"Content-Type": "application/xml"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_xml_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter (speculative from xml content) [obscureParameter]"
+                    in e.data["description"]
+                ):
+                    excavate_xml_extraction = True
+        assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
+
+
+class excavateTestRule(ExcavateRule):
+    yara_rules = {
+        "SearchForText": 'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',
+        "SearchForText2": 'rule SearchForText2 { meta: description = "Contains the text DDDDEEEEFFFF" strings: $text2 = "DDDDEEEEFFFF" condition: $text2 }',
+    }
+
+
+class TestExcavateYara(TestExcavate):
+
+    targets = ["http://127.0.0.1:8888/"]
+    yara_test_html = """
+    <html>
+<head>
+</head>
+<body>
+<p>AAAABBBBCCCC</p>
+<p>filler</p>
+<p>DDDDEEEEFFFF</p>
+</body>
+</html>
+"""
+
+    async def setup_before_prep(self, module_test):
+
+        self.modules_overrides = ["excavate", "httpx"]
+        module_test.httpserver.expect_request("/").respond_with_data(self.yara_test_html)
+
+    async def setup_after_prep(self, module_test):
+
+        excavate_module = module_test.scan.modules["excavate"]
+        excavateruleinstance = excavateTestRule(excavate_module)
+        excavate_module.add_yara_rule(
+            "SearchForText",
+            'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',
+            excavateruleinstance,
         )
+        excavate_module.add_yara_rule(
+            "SearchForText2",
+            'rule SearchForText2 { meta: description = "Contains the text DDDDEEEEFFFF" strings: $text2 = "DDDDEEEEFFFF" condition: $text2 }',
+            excavateruleinstance,
+        )
+        excavate_module.yara_rules = yara.compile(source="\n".join(excavate_module.yara_rules_dict.values()))
+
+    def check(self, module_test, events):
+        found_yara_string_1 = False
+        found_yara_string_2 = False
+        for e in events:
+
+            if e.type == "FINDING":
+                if e.data["description"] == "HTTP response (body) Contains the text AAAABBBBCCCC":
+                    found_yara_string_1 = True
+                if e.data["description"] == "HTTP response (body) Contains the text DDDDEEEEFFFF":
+                    found_yara_string_2 = True
+
+        assert found_yara_string_1, "Did not extract Match YARA rule (1)"
+        assert found_yara_string_2, "Did not extract Match YARA rule (2)"
+
+
+class TestExcavateYaraCustom(TestExcavateYara):
+
+    rule_file = [
+        'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',
+        'rule SearchForText2 { meta: description = "Contains the text DDDDEEEEFFFF" strings: $text2 = "DDDDEEEEFFFF" condition: $text2 }',
+    ]
+    f = tempwordlist(rule_file)
+    config_overrides = {"modules": {"excavate": {"custom_yara_rules": f}}}
+
+
+class TestExcavateSpiderDedupe(ModuleTestBase):
+    class DummyModule(BaseModule):
+        watched_events = ["URL_UNVERIFIED"]
+        _name = "dummy_module"
+
+        events_seen = []
+
+        async def handle_event(self, event):
+            await self.helpers.sleep(0.5)
+            self.events_seen.append(event.data)
+            new_event = self.scan.make_event(event.data, "URL_UNVERIFIED", self.scan.root_event)
+            if new_event is not None:
+                await self.emit_event(new_event)
+
+    dummy_text = "<a href='/spider'>spider</a>"
+    modules_overrides = ["excavate", "httpx"]
+    targets = ["http://127.0.0.1:8888/"]
+
+    async def setup_after_prep(self, module_test):
+        self.dummy_module = self.DummyModule(module_test.scan)
+        module_test.scan.modules["dummy_module"] = self.dummy_module
+        module_test.httpserver.expect_request("/").respond_with_data(self.dummy_text)
+        module_test.httpserver.expect_request("/spider").respond_with_data("hi")
+
+    def check(self, module_test, events):
+
+        found_url_unverified_spider_max = False
+        found_url_unverified_dummy = False
+        found_url_event = False
+
+        assert sorted(self.dummy_module.events_seen) == ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/spider"]
+
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if e.data == "http://127.0.0.1:8888/spider":
+                    if str(e.module) == "excavate" and "spider-danger" in e.tags and "spider-max" in e.tags:
+                        found_url_unverified_spider_max = True
+                    if (
+                        str(e.module) == "dummy_module"
+                        and "spider-danger" not in e.tags
+                        and not "spider-max" in e.tags
+                    ):
+                        found_url_unverified_dummy = True
+            if e.type == "URL" and e.data == "http://127.0.0.1:8888/spider":
+                found_url_event = True
+
+        assert found_url_unverified_spider_max, "Excavate failed to find /spider link"
+        assert found_url_unverified_dummy, "Dummy module did not correctly re-emit"
+        assert found_url_event, "URL was not emitted from non-spider-max URL_UNVERIFIED"

@@ -116,6 +116,13 @@ dns_debug: false
 ssl_verify: false
 # How many scan results to keep before cleaning up the older ones
 keep_scans: 20
+
+
+# Strip querystring from URLs by default
+url_querystring_remove: True
+# When query string is retained, by default collapse parameter values down to a single value per parameter
+url_querystring_collapse: True
+
 # Completely ignore URLs with these extensions
 url_extension_blacklist:
     # images
@@ -158,6 +165,7 @@ omit_event_types:
     - URL_UNVERIFIED
     - DNS_NAME_UNRESOLVED
     - FILESYSTEM
+    - WEB_PARAMETER
     # - IP_ADDRESS
 
 # Custom interactsh server settings
