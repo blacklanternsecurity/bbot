@@ -1,8 +1,8 @@
 [![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)](https://github.com/blacklanternsecurity/bbot)
 
-**BEE·bot** is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your **Recon**, **Bug Bounties**, and **ASM**!
-
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
+
+### **BEE·bot** is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your **Recon**, **Bug Bounties**, and **ASM**!
 
 https://github.com/blacklanternsecurity/bbot/assets/20261699/e539e89b-92ea-46fa-b893-9cde94eebf81
 
@@ -106,8 +106,11 @@ config:
 ### 3) Email Gatherer
 
 ```bash
-# enumerate evilcorp.com email addresses
-bbot -t evilcorp.com -p subdomain-enum spider email-enum
+# quick email enum with free APIs + scraping
+bbot -t evilcorp.com -p email-enum
+
+# pair with subdomain enum + web spider for maximum yield
+bbot -t evilcorp.com -p email-enum subdomain-enum spider
 ```
 
 <!-- BBOT EMAIL-ENUM PRESET EXPANDABLE -->
@@ -269,6 +272,8 @@ A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/discord_bot/)
 - Suite of Offensive Web Modules
 - NLP-powered Subdomain Mutations
 - Native Output to Neo4j (and more)
+- Automatic dependency install with Ansible
+- Search entire attack surface with custom YARA rules
 - Python API + Developer Documentation
 
 ## Targets
