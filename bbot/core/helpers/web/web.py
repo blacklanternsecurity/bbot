@@ -422,37 +422,6 @@ class WebHelper(EngineClient):
         output = (await self.parent_helper.run(curl_command)).stdout
         return output
 
-    def is_spider_danger(self, parent_event, url):
-        """
-        Determines whether visiting a URL could potentially trigger a web-spider-like happening.
-
-        This function assesses the depth and distance of a URL in relation to the parent helper's
-        configuration settings for web spidering. If the URL exceeds the specified depth or distance,
-        the function returns True, indicating a possible web-spider risk.
-
-        Args:
-            parent_event: The parent event object that discovered the URL.
-            url (str): The URL to evaluate for web-spider risk.
-
-        Returns:
-            bool: True if visiting the URL might trigger a web-spider-like event, False otherwise.
-
-        Todo:
-            - Write tests for this function
-
-        Examples:
-            >>> is_spider_danger(parent_event_obj, "https://example.com/subpage")
-            True
-
-            >>> is_spider_danger(parent_event_obj, "https://example.com/")
-            False
-        """
-        url_depth = self.parent_helper.url_depth(url)
-        spider_distance = getattr(parent_event, "web_spider_distance", 0) + 1
-        if (url_depth > self.web_spider_depth) or (spider_distance > self.web_spider_distance):
-            return True
-        return False
-
     def beautifulsoup(
         self,
         markup,

@@ -136,8 +136,6 @@ class speculate(BaseInternalModule):
                 url = event.data["url"]
             # only emit the url if it's not already in the event's history
             if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_parents()):
-                if self.helpers.is_spider_danger(event.parent, url):
-                    event_tags.append("spider-danger")
                 await self.emit_event(
                     url,
                     "URL_UNVERIFIED",

@@ -84,3 +84,7 @@ class WebError(BBOTEngineError):
 
 class DNSError(BBOTEngineError):
     pass
+
+
+class ExcavateError(BBOTError):
+    pass
