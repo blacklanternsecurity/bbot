@@ -105,6 +105,7 @@ class EngineClient(EngineBase):
         self.server_kwargs = kwargs.pop("server_kwargs", {})
         self._server_process = None
         self.context = zmq.asyncio.Context()
+        self.context.setsockopt(zmq.LINGER, 0)
 
     def check_error(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_e" in message:
@@ -238,7 +239,7 @@ class EngineClient(EngineBase):
             # -99 == special shutdown signal
             shutdown_message = pickle.dumps({"c": -99})
             await socket.send(shutdown_message)
-        self.context.destroy()
+        self.context.term()
         # delete socket file on exit
         self.socket_path.unlink(missing_ok=True)
 
@@ -279,6 +280,7 @@ class EngineServer(EngineBase):
         if self.socket_path is not None:
             # create ZeroMQ context
             self.context = zmq.asyncio.Context()
+            self.context.setsockopt(zmq.LINGER, 0)
             # ROUTER socket can handle multiple concurrent requests
             self.socket = self.context.socket(zmq.ROUTER)
             # create socket file
@@ -399,7 +401,7 @@ class EngineServer(EngineBase):
             with suppress(Exception):
                 self.socket.close()
             with suppress(Exception):
-                self.context.destroy()
+                self.context.term()
             # delete socket file on exit
             self.socket_path.unlink(missing_ok=True)
 
