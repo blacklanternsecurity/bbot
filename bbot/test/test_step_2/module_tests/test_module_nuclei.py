@@ -159,7 +159,7 @@ class TestNucleiRetriesCustom(TestNucleiRetries):
 class TestNucleiCustomHeaders(TestNucleiManual):
     custom_headers = {"testheader1": "test1", "testheader2": "test2"}
     config_overrides = TestNucleiManual.config_overrides
-    config_overrides["http_headers"] = custom_headers
+    config_overrides["web"]["http_headers"] = custom_headers
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/", "headers": self.custom_headers}

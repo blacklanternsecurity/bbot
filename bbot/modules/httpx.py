@@ -136,9 +136,9 @@ class httpx(BaseModule):
         if self.probe_all_ips:
             command += ["-probe-all-ips"]
 
-        for hk, hv in self.scan.config.get("http_headers", {}).items():
+        for hk, hv in self.scan.custom_http_headers.items():
             command += ["-header", f"{hk}: {hv}"]
-        proxy = self.scan.config.get("http_proxy", "")
+        proxy = self.scan.http_proxy
         if proxy:
             command += ["-http-proxy", proxy]
         async for line in self.run_process_live(command, input=list(stdin), stderr=subprocess.DEVNULL):

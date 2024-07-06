@@ -188,11 +188,17 @@ class Scanner:
         self.web_spider_links_per_page = self.web_config.get("spider_links_per_page", 20)
         max_redirects = self.web_config.get("http_max_redirects", 5)
         self.web_max_redirects = max(max_redirects, self.web_spider_distance)
+        self.http_proxy = self.web_config.get("http_proxy", "")
         self.http_timeout = self.web_config.get("http_timeout", 10)
         self.httpx_timeout = self.web_config.get("httpx_timeout", 5)
         self.http_retries = self.web_config.get("http_retries", 1)
         self.httpx_retries = self.web_config.get("httpx_retries", 1)
-        self.http_headers = self.web_config.get("http_headers", {})
+        # custom HTTP headers warning
+        self.custom_http_headers = self.web_config.get("http_headers", {})
+        if self.custom_http_headers:
+            self.warning(
+                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
+            )
 
         # url file extensions
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
@@ -204,13 +210,6 @@ class Scanner:
         # blob inclusion
         self._file_blobs = self.config.get("file_blobs", False)
         self._folder_blobs = self.config.get("folder_blobs", False)
-
-        # custom HTTP headers warning
-        self.custom_http_headers = self.config.get("http_headers", {})
-        if self.custom_http_headers:
-            self.warning(
-                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
-            )
 
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)

@@ -364,7 +364,7 @@ class WebHelper(EngineClient):
 
             # only add custom headers if the URL is in-scope
             if self.parent_helper.preset.in_scope(url):
-                for hk, hv in self.parent_helper.config.get("http_headers", {}).items():
+                for hk, hv in self.scan.custom_http_headers.items():
                     headers[hk] = hv
 
             # add the timeout

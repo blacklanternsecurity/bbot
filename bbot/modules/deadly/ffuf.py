@@ -258,7 +258,7 @@ class ffuf(BaseModule):
                 command.append("-mc")
                 command.append("all")
 
-            for hk, hv in self.scan.config.get("http_headers", {}).items():
+            for hk, hv in self.scan.custom_http_headers.items():
                 command += ["-H", f"{hk}: {hv}"]
 
             async for found in self.run_process_live(command):

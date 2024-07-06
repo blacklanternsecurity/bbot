@@ -406,7 +406,7 @@ async def test_cli_customheaders(monkeypatch, caplog, capsys):
     assert success == None, "setting custom headers on command line failed"
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_headers"] == {"foo": "bar", "foo2": "bar2", "foo3": "bar=3"}
+    assert stdout_preset["config"]["web"]["http_headers"] == {"foo": "bar", "foo2": "bar2", "foo3": "bar=3"}
 
     # test custom headers invalid (no "=")
     monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "justastring", "--current-preset"])
