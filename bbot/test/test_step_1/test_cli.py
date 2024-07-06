@@ -574,10 +574,10 @@ def test_cli_presets(monkeypatch, capsys, caplog):
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
     # show current preset
-    monkeypatch.setattr("sys.argv", ["bbot", "-c", "http_proxy=currentpresettest", "--current-preset"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-c", "web.http_proxy=currentpresettest", "--current-preset"])
     cli.main()
     captured = capsys.readouterr()
-    assert "  http_proxy: currentpresettest" in captured.out
+    assert "    http_proxy: currentpresettest" in captured.out
 
     # show current preset (full)
     monkeypatch.setattr("sys.argv", ["bbot", "-c" "modules.c99.api_key=asdf", "--current-preset-full"])
@@ -593,7 +593,8 @@ def test_cli_presets(monkeypatch, capsys, caplog):
         f.write(
             """
 config:
-  http_proxy: http://proxy1
+  web:
+    http_proxy: http://proxy1
         """
         )
 
@@ -602,7 +603,8 @@ config:
         f.write(
             """
 config:
-  http_proxy: http://proxy2
+  web:
+    http_proxy: http://proxy2
         """
         )
 
@@ -611,7 +613,7 @@ config:
     cli.main()
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_proxy"] == "http://proxy1"
+    assert stdout_preset["config"]["web"]["http_proxy"] == "http://proxy1"
 
     # preset overrides preset
     monkeypatch.setattr(
@@ -620,7 +622,7 @@ config:
     cli.main()
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_proxy"] == "http://proxy1"
+    assert stdout_preset["config"]["web"]["http_proxy"] == "http://proxy1"
 
     # override other way
     monkeypatch.setattr(
@@ -629,7 +631,7 @@ config:
     cli.main()
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_proxy"] == "http://proxy2"
+    assert stdout_preset["config"]["web"]["http_proxy"] == "http://proxy2"
 
     # cli config overrides all presets
     monkeypatch.setattr(
@@ -640,14 +642,14 @@ config:
             str(preset1_file.resolve()),
             str(preset2_file.resolve()),
             "-c",
-            "http_proxy=asdf",
+            "web.http_proxy=asdf",
             "--current-preset",
         ],
     )
     cli.main()
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_proxy"] == "asdf"
+    assert stdout_preset["config"]["web"]["http_proxy"] == "asdf"
 
     # invalid preset
     caplog.clear()
