@@ -1,6 +1,6 @@
 # Unit Tests
 
-BBOT takes tests seriously. Every module *must* have a custom-written test that *actually tests* its functionality. Don't worry if you aren't used to writing tests. You can go ahead and open a draft PR anyway, and we will help write them :)
+BBOT takes tests seriously. Every module *must* have a custom-written test that *actually tests* its functionality. Don't worry if you want to contribute but you aren't used to writing tests. If you open a draft PR, we will help write them :)
 
 We use [black](https://github.com/psf/black) and [flake8](https://flake8.pycqa.org/en/latest/) for linting, and [pytest](https://docs.pytest.org/en/8.2.x/) for tests.
 

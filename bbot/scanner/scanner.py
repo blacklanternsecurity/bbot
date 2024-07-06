@@ -193,6 +193,7 @@ class Scanner:
         self.httpx_timeout = self.web_config.get("httpx_timeout", 5)
         self.http_retries = self.web_config.get("http_retries", 1)
         self.httpx_retries = self.web_config.get("httpx_retries", 1)
+        self.useragent = self.web_config.get("user_agent", "BBOT")
         # custom HTTP headers warning
         self.custom_http_headers = self.web_config.get("http_headers", {})
         if self.custom_http_headers:
@@ -994,13 +995,6 @@ class Scanner:
         Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
         """
         return self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
-
-    @property
-    def useragent(self):
-        """
-        Convenient shortcut to the HTTP user-agent configured for the scan
-        """
-        return self.config.get("user_agent", "BBOT")
 
     @property
     def json(self):
