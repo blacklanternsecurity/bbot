@@ -555,7 +555,7 @@ class ModuleLoader:
         except KeyError:
             d[k] = set(items)
 
-    def modules_table(self, modules=None, mod_type=None):
+    def modules_table(self, modules=None, mod_type=None, include_author=False):
         """Generates a table of module information.
 
         Constructs a table to display information such as module name, type, and event details.
@@ -579,6 +579,8 @@ class ModuleLoader:
 
         table = []
         header = ["Module", "Type", "Needs API Key", "Description", "Flags", "Consumed Events", "Produced Events"]
+        if include_author:
+            header.append("Author")
         maxcolwidths = [20, 10, 5, 30, 30, 20, 20]
         for module_name, preloaded in self.filter_modules(modules, mod_type):
             module_type = preloaded["type"]
@@ -589,17 +591,19 @@ class ModuleLoader:
             meta = preloaded.get("meta", {})
             api_key_required = "Yes" if meta.get("auth_required", False) else "No"
             description = meta.get("description", "")
-            table.append(
-                [
-                    module_name,
-                    module_type,
-                    api_key_required,
-                    description,
-                    ", ".join(flags),
-                    ", ".join(consumed_events),
-                    ", ".join(produced_events),
-                ]
-            )
+            row = [
+                module_name,
+                module_type,
+                api_key_required,
+                description,
+                ", ".join(flags),
+                ", ".join(consumed_events),
+                ", ".join(produced_events),
+            ]
+            if include_author:
+                author = meta.get("author", "")
+                row.append(author)
+            table.append(row)
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
     def modules_options(self, modules=None, mod_type=None):

@@ -157,6 +157,10 @@ class ConfigAwareHelper:
         return self.preset.config
 
     @property
+    def web_config(self):
+        return self.preset.web_config
+
+    @property
     def scan(self):
         return self.preset.scan
 

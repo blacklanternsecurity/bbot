@@ -139,7 +139,7 @@ async def test_dns_resolution(bbot_scanner):
     assert "a-record" in resolved_hosts_event1.tags
     assert not "a-record" in resolved_hosts_event2.tags
 
-    scan2 = bbot_scanner("evilcorp.com", config={"dns_resolution": True})
+    scan2 = bbot_scanner("evilcorp.com", config={"dns": {"minimal": False}})
     await scan2.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"TXT": ['"v=spf1 include:cloudprovider.com ~all"']},
@@ -225,7 +225,7 @@ async def test_wildcards(bbot_scanner):
     from bbot.scanner import Scanner
 
     # test with full scan
-    scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", whitelist=["github.io"], config={"dns_resolution": True})
+    scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", whitelist=["github.io"], config={"dns": {"minimal": False}})
     await scan2._prep()
     other_event = scan2.make_event(
         "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], parent=scan2.root_event
@@ -269,7 +269,7 @@ async def test_wildcards(bbot_scanner):
     scan2 = Scanner(
         "asdfl.gashdgkjsadgsdf.github.io",
         whitelist=["github.io"],
-        config={"dns_wildcard_ignore": ["github.io"], "dns_resolution": True},
+        config={"dns": {"wildcard_ignore": ["github.io"]}},
         exclude_modules=["cloud"],
     )
     await scan2._prep()

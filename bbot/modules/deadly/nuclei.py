@@ -216,7 +216,7 @@ class nuclei(BaseModule):
         if self.helpers.system_resolvers:
             command += ["-r", self.helpers.resolver_file]
 
-        for hk, hv in self.scan.config.get("http_headers", {}).items():
+        for hk, hv in self.scan.custom_http_headers.items():
             command += ["-H", f"{hk}: {hv}"]
 
         for cli_option in ("severity", "templates", "iserver", "itoken", "tags", "etags"):

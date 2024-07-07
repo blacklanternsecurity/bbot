@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestIPNeighbor(ModuleTestBase):
     targets = ["127.0.0.15", "www.bls.notreal"]
-    config_overrides = {"scope_report_distance": 1, "dns_resolution": True, "scope_dns_search_distance": 2}
+    config_overrides = {"scope": {"report_distance": 1}, "dns": {"minimal": False, "search_distance": 2}}
 
     async def setup_after_prep(self, module_test):
         await module_test.mock_dns(

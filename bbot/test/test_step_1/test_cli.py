@@ -13,7 +13,7 @@ async def test_cli_scope(monkeypatch, capsys):
     # basic target without whitelist
     monkeypatch.setattr(
         "sys.argv",
-        ["bbot", "-t", "one.one.one.one", "-c", "scope_report_distance=10", "dns_resolution=true", "--json"],
+        ["bbot", "-t", "one.one.one.one", "-c", "scope.report_distance=10", "dns.minimal=false", "--json"],
     )
     result = await cli._main()
     out, err = capsys.readouterr()
@@ -49,9 +49,9 @@ async def test_cli_scope(monkeypatch, capsys):
             "-w",
             "192.168.0.1",
             "-c",
-            "scope_report_distance=10",
-            "dns_resolution=true",
-            "scope_dns_search_distance=2",
+            "scope.report_distance=10",
+            "dns.minimal=false",
+            "dns.search_distance=2",
             "--json",
         ],
     )
@@ -94,7 +94,7 @@ async def test_cli_scan(monkeypatch):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bbot", "-y", "-t", "127.0.0.1", "www.example.com", "-n", "test_cli_scan", "-c", "dns_resolution=False"],
+        ["bbot", "-y", "-t", "127.0.0.1", "www.example.com", "-n", "test_cli_scan", "-c", "dns.disable=true"],
     )
     result = await cli._main()
     assert result == True
@@ -108,7 +108,7 @@ async def test_cli_scan(monkeypatch):
 
     with open(scan_home / "preset.yml") as f:
         text = f.read()
-        assert "  dns_resolution: false" in text
+        assert "  dns:\n    disable: true" in text
 
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
@@ -406,7 +406,7 @@ async def test_cli_customheaders(monkeypatch, caplog, capsys):
     assert success == None, "setting custom headers on command line failed"
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_headers"] == {"foo": "bar", "foo2": "bar2", "foo3": "bar=3"}
+    assert stdout_preset["config"]["web"]["http_headers"] == {"foo": "bar", "foo2": "bar2", "foo3": "bar=3"}
 
     # test custom headers invalid (no "=")
     monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "justastring", "--current-preset"])
@@ -447,7 +447,7 @@ def test_cli_config_validation(monkeypatch, caplog):
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "web_spier_distance=4"])
     cli.main()
     assert 'Could not find config option "web_spier_distance"' in caplog.text
-    assert 'Did you mean "web_spider_distance"?' in caplog.text
+    assert 'Did you mean "web.spider_distance"?' in caplog.text
 
 
 def test_cli_module_validation(monkeypatch, caplog):
@@ -574,10 +574,10 @@ def test_cli_presets(monkeypatch, capsys, caplog):
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
     # show current preset
-    monkeypatch.setattr("sys.argv", ["bbot", "-c", "http_proxy=currentpresettest", "--current-preset"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-c", "web.http_proxy=currentpresettest", "--current-preset"])
     cli.main()
     captured = capsys.readouterr()
-    assert "  http_proxy: currentpresettest" in captured.out
+    assert "    http_proxy: currentpresettest" in captured.out
 
     # show current preset (full)
     monkeypatch.setattr("sys.argv", ["bbot", "-c" "modules.c99.api_key=asdf", "--current-preset-full"])
@@ -593,7 +593,8 @@ def test_cli_presets(monkeypatch, capsys, caplog):
         f.write(
             """
 config:
-  http_proxy: http://proxy1
+  web:
+    http_proxy: http://proxy1
         """
         )
 
@@ -602,7 +603,8 @@ config:
         f.write(
             """
 config:
-  http_proxy: http://proxy2
+  web:
+    http_proxy: http://proxy2
         """
         )
 
@@ -611,7 +613,7 @@ config:
     cli.main()
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_proxy"] == "http://proxy1"
+    assert stdout_preset["config"]["web"]["http_proxy"] == "http://proxy1"
 
     # preset overrides preset
     monkeypatch.setattr(
@@ -620,7 +622,7 @@ config:
     cli.main()
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_proxy"] == "http://proxy1"
+    assert stdout_preset["config"]["web"]["http_proxy"] == "http://proxy1"
 
     # override other way
     monkeypatch.setattr(
@@ -629,7 +631,7 @@ config:
     cli.main()
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_proxy"] == "http://proxy2"
+    assert stdout_preset["config"]["web"]["http_proxy"] == "http://proxy2"
 
     # cli config overrides all presets
     monkeypatch.setattr(
@@ -640,14 +642,14 @@ config:
             str(preset1_file.resolve()),
             str(preset2_file.resolve()),
             "-c",
-            "http_proxy=asdf",
+            "web.http_proxy=asdf",
             "--current-preset",
         ],
     )
     cli.main()
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
-    assert stdout_preset["config"]["http_proxy"] == "asdf"
+    assert stdout_preset["config"]["web"]["http_proxy"] == "asdf"
 
     # invalid preset
     caplog.clear()

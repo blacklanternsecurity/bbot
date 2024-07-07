@@ -61,6 +61,7 @@ class Scanner:
             ```
         _status_code (int): The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in `_status_codes`.
         target (Target): Target of scan (alias to `self.preset.target`).
+        preset (Preset): The main scan Preset in its baked form.
         config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `self.preset.config`).
         whitelist (Target): Scan whitelist (by default this is the same as `target`) (alias to `self.preset.whitelist`).
         blacklist (Target): Scan blacklist (this takes ultimate precedence) (alias to `self.preset.blacklist`).
@@ -112,7 +113,7 @@ class Scanner:
             preset (Preset, optional): Preset to use for the scan.
             scan_id (str, optional): Unique identifier for the scan. Auto-generates if None.
             dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.
-            *kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
+            **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
         """
         if scan_id is not None:
             self.id = str(id)
@@ -159,8 +160,6 @@ class Scanner:
         self._status = "NOT_STARTED"
         self._status_code = 0
 
-        self.max_workers = max(1, self.config.get("manager_tasks", 5))
-
         self.modules = OrderedDict({})
         self._modules_loaded = False
         self.dummy_modules = {}
@@ -178,8 +177,29 @@ class Scanner:
         self.stats = ScanStats(self)
 
         # scope distance
-        self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 0)))
-        self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
+        self.scope_config = self.config.get("scope", {})
+        self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
+        self.scope_report_distance = int(self.scope_config.get("report_distance", 1))
+
+        # web config
+        self.web_config = self.config.get("web", {})
+        self.web_spider_distance = self.web_config.get("spider_distance", 0)
+        self.web_spider_depth = self.web_config.get("spider_depth", 1)
+        self.web_spider_links_per_page = self.web_config.get("spider_links_per_page", 20)
+        max_redirects = self.web_config.get("http_max_redirects", 5)
+        self.web_max_redirects = max(max_redirects, self.web_spider_distance)
+        self.http_proxy = self.web_config.get("http_proxy", "")
+        self.http_timeout = self.web_config.get("http_timeout", 10)
+        self.httpx_timeout = self.web_config.get("httpx_timeout", 5)
+        self.http_retries = self.web_config.get("http_retries", 1)
+        self.httpx_retries = self.web_config.get("httpx_retries", 1)
+        self.useragent = self.web_config.get("user_agent", "BBOT")
+        # custom HTTP headers warning
+        self.custom_http_headers = self.web_config.get("http_headers", {})
+        if self.custom_http_headers:
+            self.warning(
+                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
+            )
 
         # url file extensions
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
@@ -191,13 +211,6 @@ class Scanner:
         # blob inclusion
         self._file_blobs = self.config.get("file_blobs", False)
         self._folder_blobs = self.config.get("folder_blobs", False)
-
-        # custom HTTP headers warning
-        self.custom_http_headers = self.config.get("http_headers", {})
-        if self.custom_http_headers:
-            self.warning(
-                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
-            )
 
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)
@@ -793,9 +806,9 @@ class Scanner:
             None
         """
         self.status = "CLEANING_UP"
-        # shut down dns engine
+        # clean up dns engine
         await self.helpers.dns.shutdown()
-        # shut down web engine
+        # clean up web engine
         await self.helpers.web.shutdown()
         # clean up modules
         for mod in self.modules.values():
@@ -989,13 +1002,6 @@ class Scanner:
         Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
         """
         return self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
-
-    @property
-    def useragent(self):
-        """
-        Convenient shortcut to the HTTP user-agent configured for the scan
-        """
-        return self.config.get("user_agent", "BBOT")
 
     @property
     def json(self):

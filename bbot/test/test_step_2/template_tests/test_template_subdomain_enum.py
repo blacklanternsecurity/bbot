@@ -4,7 +4,7 @@ from ..module_tests.base import ModuleTestBase
 class TestSubdomainEnum(ModuleTestBase):
     targets = ["blacklanternsecurity.com"]
     modules_overrides = []
-    config_overrides = {"dns_resolution": True, "scope_report_distance": 10}
+    config_overrides = {"dns": {"minimal": False}, "scope": {"report_distance": 10}}
     dedup_strategy = "highest_parent"
 
     txt = [

@@ -5,7 +5,7 @@ from .test_module_azure_realm import TestAzure_Realm as Azure_Realm
 
 class TestOAUTH(ModuleTestBase):
     targets = ["evilcorp.com"]
-    config_overrides = {"scope_report_distance": 1, "omit_event_types": []}
+    config_overrides = {"scope": {"report_distance": 1}, "omit_event_types": []}
     modules_overrides = ["azure_realm", "oauth"]
     openid_config_azure = {
         "token_endpoint": "https://login.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/oauth2/token",

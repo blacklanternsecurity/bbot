@@ -5,8 +5,10 @@ class TestNucleiManual(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "excavate", "nuclei"]
     config_overrides = {
-        "web_spider_distance": 1,
-        "web_spider_depth": 1,
+        "web": {
+            "spider_distance": 1,
+            "spider_depth": 1,
+        },
         "modules": {
             "nuclei": {
                 "version": "2.9.4",
@@ -157,7 +159,7 @@ class TestNucleiRetriesCustom(TestNucleiRetries):
 class TestNucleiCustomHeaders(TestNucleiManual):
     custom_headers = {"testheader1": "test1", "testheader2": "test2"}
     config_overrides = TestNucleiManual.config_overrides
-    config_overrides["http_headers"] = custom_headers
+    config_overrides["web"]["http_headers"] = custom_headers
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/", "headers": self.custom_headers}

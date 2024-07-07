@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestPostman(ModuleTestBase):
     config_overrides = {
         "omit_event_types": [],
-        "scope_report_distance": 1,
+        "scope": {"report_distance": 1},
     }
 
     modules_overrides = ["postman", "httpx", "excavate"]

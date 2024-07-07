@@ -17,7 +17,7 @@ class OAUTH(BaseModule):
 
     in_scope_only = False
     scope_distance_modifier = 1
-    _max_event_handlers = 2
+    _module_threads = 2
 
     async def setup(self):
         self.processed = set()

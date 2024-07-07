@@ -30,7 +30,7 @@ class DNSHelper(EngineClient):
         timeout (int): The timeout value for DNS queries. Defaults to 5 seconds.
         retries (int): The number of retries for failed DNS queries. Defaults to 1.
         abort_threshold (int): The threshold for aborting after consecutive failed queries. Defaults to 50.
-        max_dns_resolve_distance (int): Maximum allowed distance for DNS resolution. Defaults to 4.
+        runaway_limit (int): Maximum allowed distance for consecutive DNS resolutions. Defaults to 5.
         all_rdtypes (list): A list of DNS record types to be considered during operations.
         wildcard_ignore (tuple): Domains to be ignored during wildcard detection.
         wildcard_tests (int): Number of tests to be run for wildcard detection. Defaults to 5.
@@ -53,21 +53,22 @@ class DNSHelper(EngineClient):
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.config = self.parent_helper.config
+        self.dns_config = self.config.get("dns", {})
         super().__init__(server_kwargs={"config": self.config})
 
         # resolver
-        self.timeout = self.config.get("dns_timeout", 5)
+        self.timeout = self.dns_config.get("timeout", 5)
         self.resolver = dns.asyncresolver.Resolver()
         self.resolver.rotate = True
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
 
-        self.max_dns_resolve_distance = self.config.get("max_dns_resolve_distance", 5)
+        self.runaway_limit = self.config.get("runaway_limit", 5)
 
         # wildcard handling
-        self.wildcard_disable = self.config.get("dns_wildcard_disable", False)
+        self.wildcard_disable = self.dns_config.get("wildcard_disable", False)
         self.wildcard_ignore = RadixTarget()
-        for d in self.config.get("dns_wildcard_ignore", []):
+        for d in self.dns_config.get("wildcard_ignore", []):
             self.wildcard_ignore.insert(d)
 
         # copy the system's current resolvers to a text file for tool use

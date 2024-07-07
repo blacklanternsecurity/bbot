@@ -9,7 +9,12 @@ class TestGowitness(ModuleTestBase):
 
     home_dir = Path("/tmp/.bbot_gowitness_test")
     shutil.rmtree(home_dir, ignore_errors=True)
-    config_overrides = {"force_deps": True, "home": str(home_dir), "scope_report_distance": 2, "omit_event_types": []}
+    config_overrides = {
+        "force_deps": True,
+        "home": str(home_dir),
+        "scope": {"report_distance": 2},
+        "omit_event_types": [],
+    }
 
     async def setup_after_prep(self, module_test):
         respond_args = {

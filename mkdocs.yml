@@ -38,7 +38,9 @@ nav:
     - Troubleshooting: troubleshooting.md
 - Developer Manual:
   - Development Overview: dev/index.md
+  - BBOT Internal Architecture: dev/architecture.md
   - How to Write a BBOT Module: dev/module_howto.md
+  - Unit Tests: dev/tests.md
   - Discord Bot Example: dev/discord_bot.md
   - Code Reference:
     - Scanner: dev/scanner.md
@@ -47,6 +49,7 @@ nav:
     - Target: dev/target.md
     - BaseModule: dev/basemodule.md
     - BBOTCore: dev/core.md
+    - Engine: dev/engine.md
     - Helpers:
       - Overview: dev/helpers/index.md
       - Command: dev/helpers/command.md
@@ -111,5 +114,7 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 extra_javascript:
-  - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
   - javascripts/tablesort.js
+  - javascripts/vega@5.js
+  - javascripts/vega-lite@5.js
+  - javascripts/vega-embed@6.js

@@ -5,7 +5,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 class dehashed(subdomain_enum):
     watched_events = ["DNS_NAME"]
-    produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME"]
+    produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME", "EMAIL_ADDRESS"]
     flags = ["passive", "safe", "email-enum"]
     meta = {
         "description": "Execute queries against dehashed.com for exposed credentials",

@@ -1,6 +1,12 @@
 # Presets
 
-Presets allow you to put all of your scan settings in one place. A Preset is a YAML file that can include scan targets, modules, and config options like API keys.
+Once you start customizing BBOT, your commands can start to get really long. Presets let you put all your scan settings in a single file:
+
+```bash
+bbot -t my_preset.yml
+```
+
+A Preset is a YAML file that can include scan targets, modules, and config options like API keys.
 
 A typical preset looks like this:
 
@@ -13,22 +19,6 @@ flags:
 
 output_modules:
   - subdomains
-
-config_exclusive:
-  custom_stdout:
-    modules:
-      stdout:
-        format: text
-        # only output DNS_NAMEs to the console
-        event_types:
-          - DNS_NAME
-        # only show in-scope subdomains
-        in_scope_only: True
-        # display the raw subdomains, nothing else
-        event_fields:
-          - data
-        # automatically dedupe
-        accept_dups: False
 
 ```
 <!-- END BBOT SUBDOMAIN ENUM PRESET -->
@@ -57,10 +47,10 @@ bbot -t evilcorp.com -p subdomain-enum spider
 bbot -t evilcorp.com -p subdomain-enum -rf passive
 
 # preset + manual config override
-bbot -t www.evilcorp.com -p spider -c web_spider_distance=10
+bbot -t www.evilcorp.com -p spider -c web.spider_distance=10
 ```
 
-You can also build on the default presets, or create your own. Here's an example of a custom preset that builds on `subdomain-enum`:
+You can build on the default presets, or create your own. Here's an example of a custom preset that builds on `subdomain-enum`:
 
 ```yaml title="my_subdomains.yml"
 description: Do a subdomain enumeration + basic web scan + nuclei
@@ -97,10 +87,12 @@ bbot -p ./my_subdomains.yml
 
 ## Preset Load Order
 
-When you enable multiple presets, the order matters. In the case of a conflict, the last preset will always win. This means, for example, if you have a custom preset called `my_spider` that sets `web_spider_distance` to 1:
+When you enable multiple presets, the order matters. In the case of a conflict, the last preset will always win. This means, for example, if you have a custom preset called `my_spider` that sets `web.spider_distance` to 1:
 
 ```yaml title="my_spider.yml"
-web_spider_distance: 1
+config:
+  web:
+    spider_distance: 1
 ```
 
 ...and you enable it alongside the default `spider` preset in this order:
@@ -109,7 +101,7 @@ web_spider_distance: 1
 bbot -t evilcorp.com -p ./my_spider.yml spider
 ```
 
-...the value of `web_spider_distance` will be overridden by `spider`. To ensure this doesn't happen, you would want to switch the order of the presets:
+...the value of `web.spider_distance` will be overridden by `spider`. To ensure this doesn't happen, you would want to switch the order of the presets:
 
 ```bash
 bbot -t evilcorp.com -p spider ./my_spider.yml
@@ -177,7 +169,7 @@ modules:
 
 conditions:
   - |
-    {% if config.web_spider_distance > 0 and config.web_spider_depth > 0 %}
+    {% if config.web.spider_distance > 0 and config.web.spider_depth > 0 %}
       {{ warn("Disabling ffuf because the web spider is enabled") }}
       {{ preset.exclude_module("ffuf") }}
     {% endif %}

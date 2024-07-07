@@ -2652,6 +2652,48 @@ def truncate_filename(file_path, max_length=255):
     return new_path
 
 
+def get_keys_in_dot_syntax(config):
+    """Retrieve all keys in an OmegaConf configuration in dot notation.
+
+    This function converts an OmegaConf configuration into a list of keys
+    represented in dot notation.
+
+    Args:
+        config (DictConfig): The OmegaConf configuration object.
+
+    Returns:
+        List[str]: A list of keys in dot notation.
+
+    Examples:
+        >>> config = OmegaConf.create({
+        ...     "web": {
+        ...         "test": True
+        ...     },
+        ...     "db": {
+        ...         "host": "localhost",
+        ...         "port": 5432
+        ...     }
+        ... })
+        >>> get_keys_in_dot_syntax(config)
+        ['web.test', 'db.host', 'db.port']
+    """
+    from omegaconf import OmegaConf
+
+    container = OmegaConf.to_container(config, resolve=True)
+    keys = []
+
+    def recursive_keys(d, parent_key=""):
+        for k, v in d.items():
+            full_key = f"{parent_key}.{k}" if parent_key else k
+            if isinstance(v, dict):
+                recursive_keys(v, full_key)
+            else:
+                keys.append(full_key)
+
+    recursive_keys(container)
+    return keys
+
+
 def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
     """
     Recursively filter a dictionary based on key names.
