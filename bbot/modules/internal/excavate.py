@@ -989,9 +989,7 @@ class excavate(BaseInternalModule):
                                     context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
 =======
         for header, header_values in headers.items():
-            self.critical(header)
             for header_value in header_values:
-                self.hugewarning(header_value)
                 if header.lower() == "set-cookie":
                     if "=" not in header_value:
                         self.debug(f"Cookie found without '=': {header_value}")
@@ -1048,7 +1046,7 @@ class excavate(BaseInternalModule):
                                 original_value,
                                 regex_name,
                                 additional_params,
-                            ) in extract_params_location(v, event.parsed_url):
+                            ) in extract_params_location(header_value, event.parsed_url):
                                 if self.in_bl(parameter_name) == False:
                                     description = f"HTTP Extracted Parameter [{parameter_name}] (Location Header)"
                                     data = {
