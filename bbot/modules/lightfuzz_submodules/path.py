@@ -26,8 +26,8 @@ class PathTraversalLightfuzz(BaseLightfuzz):
 
         path_techniques = {
             "single-dot traversal tolerance (no-encoding)": {
-                "singledot_payload": f"/./{probe_value}",
-                "doubledot_payload": f"/../{probe_value}",
+                "singledot_payload": f"/./a/../{probe_value}",
+                "doubledot_payload": f"/../a/../{probe_value}",
             },
             "single-dot traversal tolerance (url-encoding)": {
                 "singledot_payload": urllib.parse.quote(f"/./{probe_value}".encode(), safe=""),
