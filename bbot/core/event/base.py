@@ -1424,6 +1424,10 @@ class FILESYSTEM(DictPathEvent):
     pass
 
 
+class RAW_DNS_RECORD(DictHostEvent):
+    pass
+
+
 def make_event(
     data,
     event_type=None,

@@ -7,14 +7,13 @@ import traceback
 from cachetools import LRUCache
 from contextlib import suppress
 
-from ..regexes import dns_name_regex
 from bbot.errors import DNSWildcardBreak
 from bbot.core.engine import EngineServer
 from bbot.core.helpers.async_helpers import NamedLock
+from bbot.core.helpers.dns.helpers import extract_targets
 from bbot.core.helpers.misc import (
     is_ip,
     rand_string,
-    smart_decode,
     parent_domain,
     domain_parents,
     clean_dns_record,
@@ -117,7 +116,7 @@ class DNSEngine(EngineServer):
         try:
             answers, errors = await self.resolve_raw(query, **kwargs)
             for answer in answers:
-                for _, host in self.extract_targets(answer):
+                for _, host in extract_targets(answer):
                     results.add(host)
         except BaseException:
             log.trace(f"Caught exception in resolve({query}, {kwargs}):")
@@ -392,71 +391,11 @@ class DNSEngine(EngineServer):
             for task in done:
                 answers, errors = task.result()
                 query, rdtype = tasks.pop(task)
-
-                results = set()
                 for answer in answers:
-                    for rdtype, host in self.extract_targets(answer):
-                        results.add((host, rdtype))
-                if results or errors:
-                    yield ((query, rdtype), (results, errors))
+                    yield ((query, rdtype), (answer, errors))
 
                 if queries:  # Start a new task for each one completed, if URLs remain
                     new_task(*queries.pop(0))
-
-    @staticmethod
-    def extract_targets(record):
-        """
-        Extracts hostnames or IP addresses from a given DNS record.
-
-        This method reads the DNS record's type and based on that, extracts the target
-        hostnames or IP addresses it points to. The type of DNS record
-        (e.g., "A", "MX", "CNAME", etc.) determines which fields are used for extraction.
-
-        Args:
-            record (dns.rdata.Rdata): The DNS record to extract information from.
-
-        Returns:
-            set: A set of tuples, each containing the DNS record type and the extracted value.
-
-        Examples:
-            >>> from dns.rrset import from_text
-            >>> record = from_text('www.example.com', 3600, 'IN', 'A', '192.0.2.1')
-            >>> extract_targets(record[0])
-            {('A', '192.0.2.1')}
-
-            >>> record = from_text('example.com', 3600, 'IN', 'MX', '10 mail.example.com.')
-            >>> extract_targets(record[0])
-            {('MX', 'mail.example.com')}
-
-        """
-        results = set()
-
-        def add_result(rdtype, _record):
-            cleaned = clean_dns_record(_record)
-            if cleaned:
-                results.add((rdtype, cleaned))
-
-        rdtype = str(record.rdtype.name).upper()
-        if rdtype in ("A", "AAAA", "NS", "CNAME", "PTR"):
-            add_result(rdtype, record)
-        elif rdtype == "SOA":
-            add_result(rdtype, record.mname)
-        elif rdtype == "MX":
-            add_result(rdtype, record.exchange)
-        elif rdtype == "SRV":
-            add_result(rdtype, record.target)
-        elif rdtype == "TXT":
-            for s in record.strings:
-                s = smart_decode(s)
-                for match in dns_name_regex.finditer(s):
-                    start, end = match.span()
-                    host = s[start:end]
-                    add_result(rdtype, host)
-        elif rdtype == "NSEC":
-            add_result(rdtype, record.next)
-        else:
-            log.warning(f'Unknown DNS record type "{rdtype}"')
-        return results
 
     async def _catch(self, callback, *args, **kwargs):
         """
@@ -536,8 +475,9 @@ class DNSEngine(EngineServer):
             # then resolve the query for all rdtypes
             queries = [(query, t) for t in rdtypes_to_check]
             async for (query, _rdtype), (answers, errors) in self.resolve_raw_batch(queries):
+                answers = extract_targets(answers)
                 if answers:
-                    query_baseline[_rdtype] = set([a[0] for a in answers])
+                    query_baseline[_rdtype] = set([a[1] for a in answers])
                 else:
                     if errors:
                         self.debug(f"Failed to resolve {query} ({_rdtype}) during wildcard detection")
@@ -646,11 +586,12 @@ class DNSEngine(EngineServer):
                         queries.append((rand_query, rdtype))
 
                 async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(queries):
+                    answers = extract_targets(answers)
                     if answers:
                         is_wildcard = True
                         if not rdtype in wildcard_results:
                             wildcard_results[rdtype] = set()
-                        wildcard_results[rdtype].update(set(a[0] for a in answers))
+                        wildcard_results[rdtype].update(set(a[1] for a in answers))
                         # we know this rdtype is a wildcard
                         # so we don't need to check it anymore
                         with suppress(KeyError):
