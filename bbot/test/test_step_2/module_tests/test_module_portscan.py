@@ -12,7 +12,7 @@ class TestPortscan(ModuleTestBase):
         "8.8.4.4/24",
     ]
     scan_name = "test_portscan"
-    config_overrides = {"modules": {"portscan": {"ports": "443", "wait": 1}}, "dns_resolution": True}
+    config_overrides = {"modules": {"portscan": {"ports": "443", "wait": 1}}, "dns": {"minimal": False}}
 
     masscan_output_1 = """{   "ip": "8.8.8.8",   "timestamp": "1680197558", "ports": [ {"port": 443, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
     masscan_output_2 = """{   "ip": "8.8.4.5",   "timestamp": "1680197558", "ports": [ {"port": 80, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
