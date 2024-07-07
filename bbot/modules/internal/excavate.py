@@ -938,14 +938,15 @@ class excavate(BaseInternalModule):
 
         # process response data
         body = event.data.get("body", "")
-        headers = event.data.get("header-dict", "")
+        headers = event.data.get("header-dict", {})
 
-        if body == "" and headers == "":
+        if body == "" and headers == {}:
             return
 
         self.assigned_cookies = {}
         content_type = None
         reported_location_header = False
+<<<<<<< HEAD
 
         for k, v in headers.items():
             if k.lower() == "set-cookie" and self.parameter_extraction:
@@ -986,10 +987,60 @@ class excavate(BaseInternalModule):
                                 await self.emit_event(
                                     url_event,
                                     context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
-                                )
+=======
+        for header, header_values in headers.items():
+            self.critical(header)
+            for header_value in header_values:
+                self.hugewarning(header_value)
+                if header.lower() == "set-cookie":
+                    if "=" not in header_value:
+                        self.debug(f"Cookie found without '=': {header_value}")
+                        continue
+                    else:
+                        cookie_name = header_value.split("=")[0]
+                        cookie_value = header_value.split("=")[1].split(";")[0]
 
+                        if self.in_bl(cookie_value) == False:
+                            self.assigned_cookies[cookie_name] = cookie_value
+                            description = f"Set-Cookie Assigned Cookie [{cookie_name}]"
+                            data = {
+                                "host": str(event.host),
+                                "type": "COOKIE",
+                                "name": cookie_name,
+                                "original_value": cookie_value,
+                                "url": self.url_unparse("COOKIE", event.parsed_url),
+                                "description": description,
+                            }
+                            context = f"Excavate noticed a set-cookie header for cookie [{cookie_name}] and emitted a WEB_PARAMETER for it"
+                            await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+                        else:
+                            self.debug(f"blocked cookie parameter [{cookie_name}] due to BL match")
+                if header.lower() == "location":
+                    redirect_location = getattr(event, "redirect_location", "")
+                    if redirect_location:
+                        scheme = self.helpers.is_uri(redirect_location, return_scheme=True)
+                        if scheme in ("http", "https"):
+                            web_spider_distance = getattr(event, "web_spider_distance", 0)
+                            num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
+                            if num_redirects <= self.scan.web_max_redirects:
+                                # we do not want to allow the web_spider_distance to be incremented on redirects, so we do not add spider-danger tag
+                                url_event = self.make_event(
+                                    redirect_location, "URL_UNVERIFIED", event, tags="affiliate"
+>>>>>>> bc4483fe (fixing multuple same header extraction)
+                                )
+                                if url_event is not None:
+                                    reported_location_header = True
+                                    await self.emit_event(
+                                        url_event,
+                                        context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
+                                    )
+
+<<<<<<< HEAD
                         # Try to extract parameters from the redirect URL
                         if self.parameter_extraction:
+=======
+                            # Try to extract parameters from the redirect URL
+>>>>>>> bc4483fe (fixing multuple same header extraction)
                             for (
                                 method,
                                 parsed_url,
@@ -1012,10 +1063,10 @@ class excavate(BaseInternalModule):
                                     context = f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
                                     await self.emit_event(data, "WEB_PARAMETER", event, context=context)
 
-                else:
-                    self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
-            if k.lower() == "content-type":
-                content_type = headers["content-type"]
+                    else:
+                        self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
+                if header.lower() == "content-type":
+                    content_type = headers["content-type"][0]
 
         await self.search(
             body,
@@ -1029,7 +1080,7 @@ class excavate(BaseInternalModule):
             # Failure to do so results in a race against the same URL extracted by the URLExtractor submodule
             # If the extracted URL wins, it will cause the manual one to be a dupe, but it will have a higher web_spider_distance.
             headers.pop("location")
-        headers_str = "\n".join(f"{k}: {v}" for k, v in headers.items())
+        headers_str = "\n".join(f"{k}: {v}" for k, values in headers.items() for v in values)
 
         await self.search(
             headers_str,

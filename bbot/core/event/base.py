@@ -1232,7 +1232,11 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
                 k, v = i.split(":", 1)
                 k = k.strip().lower()
                 v = v.lstrip()
-                header_dict[k] = v
+                if k in header_dict:
+                    header_dict[k].append(v)
+                else:
+                    header_dict[k] = [v]
+
         data["header-dict"] = header_dict
         # move URL to the front of the dictionary for visibility
         data = dict(data)

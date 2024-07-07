@@ -849,3 +849,38 @@ class TestExcavate_webparameter_outofscope(ModuleTestBase):
 
         assert web_parameter_differentsite, "WEB_PARAMETER was not emitted"
         assert not web_parameter_outofscope, "Out of scope domain was emitted"
+
+class TestExcavateHeaders(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["excavate", "httpx"]
+    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
+
+    async def setup_before_prep(self, module_test):
+
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<html><p>test</p></html>",
+            status=200,
+            headers={
+                "Set-Cookie": [
+                    "COOKIE1=aaaa; Secure; HttpOnly",
+                    "COOKIE2=bbbb; Secure; HttpOnly; SameSite=None",
+                ]
+            },
+        )
+
+    def check(self, module_test, events):
+
+        found_first_cookie = False
+        found_second_cookie = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if e.data["name"] == "COOKIE1":
+                    found_first_cookie = True
+                if e.data["name"] == "COOKIE2":
+                    found_second_cookie = True
+
+        assert found_first_cookie == True
+        assert found_second_cookie == True
+
