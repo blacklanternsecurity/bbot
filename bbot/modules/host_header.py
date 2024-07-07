@@ -84,13 +84,14 @@ class host_header(BaseModule):
 
         added_cookies = {}
 
-        for header, header_value in event.data["header-dict"].items():
-            if header_value.lower() == "set-cookie":
-                header_split = header_value.split("=")
-                try:
-                    added_cookies = {header_split[0]: header_split[1]}
-                except IndexError:
-                    self.debug(f"failed to parse cookie from string {header_value}")
+        for header, header_values in event.data["header-dict"].items():
+            for header_value in header_values:
+                if header_value.lower() == "set-cookie":
+                    header_split = header_value.split("=")
+                    try:
+                        added_cookies = {header_split[0]: header_split[1]}
+                    except IndexError:
+                        self.debug(f"failed to parse cookie from string {header_value}")
 
         domain_reflections = []
 
