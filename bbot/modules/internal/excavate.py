@@ -417,8 +417,6 @@ class excavate(BaseInternalModule):
                         k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in query_strings.items()
                     }
                     for parameter_name, original_value in query_strings_dict.items():
-       #                 if original_value == None or original_value == "":
-      #                      original_value = 1
                         yield self.output_type, parameter_name, original_value, url, _exclude_key(
                             query_strings_dict, parameter_name
                         )
@@ -445,9 +443,6 @@ class excavate(BaseInternalModule):
                             form_parameters[parameter_name] = original_value
 
                         for parameter_name, original_value in form_parameters.items():
- #                           if original_value == None or original_value == "":
- #                               original_value = 1
-
                             yield self.output_type, parameter_name, original_value, form_action, _exclude_key(
                                 form_parameters, parameter_name
                             )
