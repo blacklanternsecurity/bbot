@@ -61,14 +61,10 @@ Below is a full list of the config options supported, along with their defaults.
 
 # BBOT working directory
 home: ~/.bbot
-# Rate-limit HTTP
-web_requests_per_second: 100
+# How many scan results to keep before cleaning up the older ones
+keep_scans: 20
 # Interval for displaying status messages
 status_frequency: 15
-# HTTP proxy
-http_proxy: 
-# Web user-agent
-user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
 # Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
 file_blobs: false
 # Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
@@ -130,12 +126,35 @@ dns:
 ### WEB ###
 
 web:
+  # HTTP proxy
+  http_proxy: 
+  # Web user-agent
+  user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
   # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
   spider_distance: 0
   # Set the maximum directory depth for the web spider
   spider_depth: 1
   # Set the maximum number of links that can be followed per page
   spider_links_per_page: 25
+  # HTTP timeout (for Python requests; API calls, etc.)
+  http_timeout: 10
+  # HTTP timeout (for httpx)
+  httpx_timeout: 5
+  # Custom HTTP headers (e.g. cookies, etc.)
+  # in the format { "Header-Key": "header_value" }
+  # These are attached to all in-scope HTTP requests
+  # Note that some modules (e.g. github) may end up sending these to out-of-scope resources
+  http_headers: {}
+  # HTTP retries (for Python requests; API calls, etc.)
+  http_retries: 1
+  # HTTP retries (for httpx)
+  httpx_retries: 1
+  # Enable/disable debug messages for web requests/responses
+  debug: false
+  # Maximum number of HTTP redirects to follow
+  http_max_redirects: 5
+  # Whether to verify SSL certificates
+  ssl_verify: false
 
 # Tool dependencies
 deps:
@@ -165,30 +184,6 @@ cloudcheck: True
 #  - ignore_failed - run the scan regardless of what happens with dependency installation
 #  - disable - completely disable BBOT's dependency system (you are responsible for installing tools, pip packages, etc.)
 deps_behavior: abort_on_failure
-
-# HTTP timeout (for Python requests; API calls, etc.)
-http_timeout: 10
-# HTTP timeout (for httpx)
-httpx_timeout: 5
-# Custom HTTP headers (e.g. cookies, etc.)
-# in the format { "Header-Key": "header_value" }
-# These are attached to all in-scope HTTP requests
-# Note that some modules (e.g. github) may end up sending these to out-of-scope resources
-http_headers: {}
-# HTTP retries (for Python requests; API calls, etc.)
-http_retries: 1
-# HTTP retries (for httpx)
-httpx_retries: 1
-# Enable/disable debug messages for web requests/responses
-http_debug: false
-# Maximum number of HTTP redirects to follow
-http_max_redirects: 5
-
-# Whether to verify SSL certificates
-ssl_verify: false
-# How many scan results to keep before cleaning up the older ones
-keep_scans: 20
-
 
 # Strip querystring from URLs by default
 url_querystring_remove: True
@@ -238,6 +233,7 @@ omit_event_types:
   - DNS_NAME_UNRESOLVED
   - FILESYSTEM
   - WEB_PARAMETER
+  - RAW_DNS_RECORD
   # - IP_ADDRESS
 
 # Custom interactsh server settings

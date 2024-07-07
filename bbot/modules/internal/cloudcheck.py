@@ -1,7 +1,7 @@
 from bbot.modules.base import InterceptModule
 
 
-class cloud(InterceptModule):
+class CloudCheck(InterceptModule):
     watched_events = ["*"]
     meta = {"description": "Tag events by cloud provider, identify cloud resources like storage buckets"}
     scope_distance_modifier = 1

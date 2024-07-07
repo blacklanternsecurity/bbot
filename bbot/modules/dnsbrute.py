@@ -5,7 +5,11 @@ class dnsbrute(subdomain_enum):
     flags = ["subdomain-enum", "passive", "aggressive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Brute-force subdomains with massdns + static wordlist"}
+    meta = {
+        "description": "Brute-force subdomains with massdns + static wordlist",
+        "author": "@TheTechromancer",
+        "created_date": "2024-04-24",
+    }
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "max_depth": 5,

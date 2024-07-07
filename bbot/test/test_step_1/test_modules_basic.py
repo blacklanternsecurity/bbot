@@ -9,7 +9,7 @@ from bbot.modules.internal.base import BaseInternalModule
 
 
 @pytest.mark.asyncio
-async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
+async def test_modules_basic_checks(events, httpx_mock):
     for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
 
@@ -114,32 +114,6 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
         valid, reason = await base_module._event_postcheck(events.localhost)
         assert valid
 
-    base_output_module = BaseOutputModule(scan)
-    base_output_module.watched_events = ["IP_ADDRESS"]
-
-    scan2 = bbot_scanner(
-        modules=list(available_modules),
-        output_modules=list(available_output_modules),
-        config={i: True for i in available_internal_modules if i != "dns"},
-        force_start=True,
-    )
-    await scan2.load_modules()
-    scan2.status = "RUNNING"
-
-    # attributes, descriptions, etc.
-    # TODO: Ensure every flag has a description
-    for module_name, module in sorted(scan2.modules.items()):
-        # flags
-        assert module._type in ("internal", "output", "scan")
-        # async stuff
-        not_async = []
-        for func_name in ("setup", "ping", "filter_event", "handle_event", "finish", "report", "cleanup"):
-            f = getattr(module, func_name)
-            if not scan2.helpers.is_async_function(f):
-                log.error(f"{f.__qualname__}() is not async")
-                not_async.append(f)
-    assert not any(not_async)
-
     # module preloading
     all_preloaded = DEFAULT_PRESET.module_loader.preloaded()
     assert "dnsbrute" in all_preloaded
@@ -155,6 +129,7 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
 
     all_flags = set()
 
+    created_date_regex = re.compile(r"2[\d]{3}-[\d]{2}-[\d]{2}")
     for module_name, preloaded in all_preloaded.items():
         # either active or passive and never both
         flags = preloaded.get("flags", [])
@@ -170,7 +145,17 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
             assert not (
                 "web-basic" in flags and "web-thorough" in flags
             ), f'module "{module_name}" should have either "web-basic" or "web-thorough" flags, not both'
-            assert preloaded.get("meta", {}).get("description", ""), f"{module_name} must have a description"
+            meta = preloaded.get("meta", {})
+            # make sure every module has a description
+            assert meta.get("description", ""), f"{module_name} must have a description"
+            # make sure every module has an author
+            assert meta.get("author", ""), f"{module_name} must have an author"
+            # make sure every module has a created date
+            created_date = meta.get("created_date", "")
+            assert created_date, f"{module_name} must have a created date"
+            assert created_date_regex.match(
+                created_date
+            ), f"{module_name}'s created_date must match the format YYYY-MM-DD"
 
         # attribute checks
         watched_events = preloaded.get("watched_events")
@@ -215,7 +200,7 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_perhostonly(helpers, events, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_perhostonly(bbot_scanner):
     from bbot.modules.base import BaseModule
 
     class mod_normal(BaseModule):
@@ -302,7 +287,7 @@ async def test_modules_basic_perhostonly(helpers, events, bbot_scanner, httpx_mo
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
     per_domain_scan = bbot_scanner(
         "evilcorp.com",
         modules=list(available_modules),
@@ -435,3 +420,28 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     assert speculate_stats.produced_total == 3
     assert speculate_stats.consumed == {"URL": 1, "DNS_NAME": 2, "URL_UNVERIFIED": 1}
     assert speculate_stats.consumed_total == 4
+
+
+@pytest.mark.asyncio
+async def test_module_loading(bbot_scanner):
+    scan2 = bbot_scanner(
+        modules=list(available_modules),
+        output_modules=list(available_output_modules),
+        config={i: True for i in available_internal_modules if i != "dns"},
+        force_start=True,
+    )
+    await scan2.load_modules()
+    scan2.status = "RUNNING"
+
+    # attributes, descriptions, etc.
+    for module_name, module in sorted(scan2.modules.items()):
+        # flags
+        assert module._type in ("internal", "output", "scan")
+        # async stuff
+        not_async = []
+        for func_name in ("setup", "ping", "filter_event", "handle_event", "finish", "report", "cleanup"):
+            f = getattr(module, func_name)
+            if not scan2.helpers.is_async_function(f):
+                log.error(f"{f.__qualname__}() is not async")
+                not_async.append(f)
+    assert not any(not_async)
