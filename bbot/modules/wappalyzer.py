@@ -10,6 +10,8 @@ warnings.filterwarnings(
 )
 
 
+
+
 class wappalyzer(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["TECHNOLOGY"]
@@ -23,6 +25,24 @@ class wappalyzer(BaseModule):
     # accept all events regardless of scope distance
     scope_distance_modifier = None
     _module_threads = 5
+
+    @staticmethod
+    def process_headers(headers):
+        unique_headers = {}
+        count = {}
+
+        for k, v in headers.items():
+            if isinstance(v, list):
+                for i, item in enumerate(v):
+                    unique_key = f"{k}_{count.get(k, 0) + i}"
+                    unique_headers[unique_key] = item
+                count[k] = count.get(k, 0) + len(v)
+            else:
+                unique_key = f"{k}_{count.get(k, 0)}" if k in unique_headers else k
+                unique_headers[unique_key] = v
+                count[k] = count.get(k, 0) + 1
+
+        return unique_headers
 
     async def setup(self):
         self.wappalyzer = await self.helpers.run_in_executor(Wappalyzer.latest)
@@ -39,5 +59,7 @@ class wappalyzer(BaseModule):
             )
 
     def wappalyze(self, data):
-        w = WebPage(url=data["url"], html=data.get("body", ""), headers=data.get("header-dict", {}))
+        # Convert dictionary of lists to a dictionary of strings
+        header_dict = self.process_headers(data.get("header-dict", {}))
+        w = WebPage(url=data["url"], html=data.get("body", ""), headers=header_dict)
         return self.wappalyzer.analyze(w)
