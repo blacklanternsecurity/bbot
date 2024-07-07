@@ -5,7 +5,6 @@ from werkzeug.wrappers import Response
 from urllib.parse import unquote
 
 
-
 # Path Traversal single dot tolerance
 class Test_Lightfuzz_path_singledot(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]

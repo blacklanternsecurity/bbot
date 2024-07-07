@@ -820,18 +820,13 @@ class TestExcavate_retain_querystring_not(TestExcavate_retain_querystring):
         assert web_parameter_emit
 
 
-
-
-
 class TestExcavate_webparameter_outofscope(ModuleTestBase):
 
     html_body = "<html><a class=button href='https://socialmediasite.com/send?text=foo'><a class=button href='https://outofscope.com/send?text=foo'></html>"
 
     targets = ["http://127.0.0.1:8888", "socialmediasite.com"]
     modules_overrides = ["httpx", "excavate", "hunt"]
-    config_overrides = {
-        "interactsh_disable": True
-    }
+    config_overrides = {"interactsh_disable": True}
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
