@@ -315,7 +315,7 @@ async def test_http_proxy(bbot_scanner, bbot_httpserver, proxy_server):
 
     proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
 
-    scan = bbot_scanner("127.0.0.1", config={"http_proxy": proxy_address})
+    scan = bbot_scanner("127.0.0.1", config={"web": {"http_proxy": proxy_address}})
 
     assert len(proxy_server.RequestHandlerClass.urls) == 0
 

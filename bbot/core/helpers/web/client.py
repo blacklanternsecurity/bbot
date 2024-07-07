@@ -34,7 +34,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
         kwargs["_target"] = target
         web_config = config.get("web", {})
         retries = kwargs.pop("retries", web_config.get("http_retries", 1))
-        ssl_verify = config.get("ssl_verify", False)
+        ssl_verify = web_config.get("ssl_verify", False)
         if ssl_verify is False:
             from .ssl_context import ssl_context_noverify
 
