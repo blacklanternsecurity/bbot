@@ -32,23 +32,42 @@ class SQLiLightfuzz(BaseLightfuzz):
         if "original_value" in self.event.data and self.event.data["original_value"] is not None:
             probe_value = urllib.parse.quote(self.event.data["original_value"], safe="")
 
-
         else:
             probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
-        http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
+        http_compare = self.compare_baseline(
+            self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
+        )
 
         try:
-            single_quote = await self.compare_probe(http_compare, self.event.data["type"], f"{probe_value}'", cookies)
+            single_quote = await self.compare_probe(
+                http_compare,
+                self.event.data["type"],
+                f"{probe_value}'",
+                cookies,
+                additional_params_populate_empty=True,
+            )
             double_single_quote = await self.compare_probe(
-                http_compare, self.event.data["type"], f"{probe_value}''", cookies
+                http_compare,
+                self.event.data["type"],
+                f"{probe_value}''",
+                cookies,
+                additional_params_populate_empty=True,
             )
             self.lightfuzz.critical("@@@@@@")
+            self.lightfuzz.critical(self.event.data["name"])
+            self.lightfuzz.critical(self.event.data["type"])
             self.lightfuzz.critical(probe_value)
             self.lightfuzz.critical(single_quote)
             self.lightfuzz.critical(double_single_quote)
             self.lightfuzz.critical(single_quote[3].request)
+            self.lightfuzz.critical(single_quote[3].request.content)
             self.lightfuzz.critical(double_single_quote[3].request)
-            if "code" in single_quote[1] and "code" not in double_single_quote[1]:
+            self.lightfuzz.critical(double_single_quote[3].request.content)
+
+            self.lightfuzz.hugeinfo(single_quote[3].status_code)
+            self.lightfuzz.hugeinfo(double_single_quote[3].status_code)
+
+            if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
                 self.results.append(
                     {
                         "type": "FINDING",
@@ -66,8 +85,12 @@ class SQLiLightfuzz(BaseLightfuzz):
         ]
         method = "GET"
 
-        baseline_1 = await self.standard_probe(self.event.data["type"], cookies, probe_value)
-        baseline_2 = await self.standard_probe(self.event.data["type"], cookies, probe_value)
+        baseline_1 = await self.standard_probe(
+            self.event.data["type"], cookies, probe_value, additional_params_populate_empty=True
+        )
+        baseline_2 = await self.standard_probe(
+            self.event.data["type"], cookies, probe_value, additional_params_populate_empty=True
+        )
 
         if baseline_1 and baseline_2:
             baseline_1_delay = baseline_1.elapsed.total_seconds()
@@ -77,7 +100,9 @@ class SQLiLightfuzz(BaseLightfuzz):
             for p in standard_probe_strings:
                 confirmations = 0
                 for i in range(0, 3):
-                    r = await self.standard_probe(self.event.data["type"], cookies, f"{probe_value}{p}")
+                    r = await self.standard_probe(
+                        self.event.data["type"], cookies, f"{probe_value}{p}", additional_params_populate_empty=True
+                    )
                     if not r:
                         self.lightfuzz.debug("delay measure request failed")
                         break
