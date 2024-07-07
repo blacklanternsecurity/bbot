@@ -116,7 +116,7 @@ class ntlm(BaseModule):
             return True
         if event.type == "HTTP_RESPONSE":
             if "www-authenticate" in event.data["header-dict"]:
-                header_value = event.data["header-dict"]["www-authenticate"].lower()
+                header_value = event.data["header-dict"]["www-authenticate"][0].lower()
                 if "ntlm" in header_value or "negotiate" in header_value:
                     return True
         return False
