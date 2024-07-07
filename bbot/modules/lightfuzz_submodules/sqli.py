@@ -6,10 +6,10 @@ import statistics
 
 
 class SQLiLightfuzz(BaseLightfuzz):
-    expected_delay = 10
+    expected_delay = 5
 
     def evaluate_delay(self, mean_baseline, measured_delay):
-        margin = 2
+        margin = 1.5
         if (
             mean_baseline + self.expected_delay - margin
             <= measured_delay
