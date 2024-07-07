@@ -49,8 +49,8 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             original_path_only = "/".join(probe_value.split("/")[:-1])
             original_filename_only = probe_value.split("/")[-1]
             path_techniques["single-dot traversal tolerance (start of path validation)"] = {
-                 "singledot_payload": f"{original_path_only}/./{original_filename_only}",
-               "doubledot_payload": f"{original_path_only}/../{original_filename_only}"
+                "singledot_payload": f"{original_path_only}/./{original_filename_only}",
+                "doubledot_payload": f"{original_path_only}/../{original_filename_only}",
             }
 
         for path_technique, payloads in path_techniques.items():
@@ -88,7 +88,11 @@ class PathTraversalLightfuzz(BaseLightfuzz):
 
         # Absolute path test
 
-        absolute_paths = {r"c:\\windows\\win.ini": "; for 16-bit app support", "/etc/passwd": "daemon:x:", "../../../../../etc/passwd%00.png": "daemon:x:"}
+        absolute_paths = {
+            r"c:\\windows\\win.ini": "; for 16-bit app support",
+            "/etc/passwd": "daemon:x:",
+            "../../../../../etc/passwd%00.png": "daemon:x:",
+        }
 
         for path, trigger in absolute_paths.items():
             r = await self.standard_probe(self.event.data["type"], cookies, path)
