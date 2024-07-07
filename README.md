@@ -281,7 +281,7 @@ A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/discord_bot/)
 BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!):
 
 ```bash
-bbot -t evilcorp.com evilcorp.org 1.2.3.0/24 -f subdomain-enum
+bbot -t evilcorp.com evilcorp.org 1.2.3.0/24 -p subdomain-enum
 ```
 
 Targets can be any of the following:
