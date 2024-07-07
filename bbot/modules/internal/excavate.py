@@ -417,9 +417,9 @@ class excavate(BaseInternalModule):
                         k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in query_strings.items()
                     }
                     for parameter_name, original_value in query_strings_dict.items():
-                        if original_value == None or original_value == "":
-                            original_value = 1
-                        yield self.output_type, parameter_name, original_value, parsed_url.path, _exclude_key(
+       #                 if original_value == None or original_value == "":
+      #                      original_value = 1
+                        yield self.output_type, parameter_name, original_value, url, _exclude_key(
                             query_strings_dict, parameter_name
                         )
 
@@ -442,10 +442,12 @@ class excavate(BaseInternalModule):
                         input_tags = form_content_regex.findall(form_content)
 
                         for parameter_name, original_value in input_tags:
-                            original_value
                             form_parameters[parameter_name] = original_value
 
                         for parameter_name, original_value in form_parameters.items():
+ #                           if original_value == None or original_value == "":
+ #                               original_value = 1
+
                             yield self.output_type, parameter_name, original_value, form_action, _exclude_key(
                                 form_parameters, parameter_name
                             )
@@ -914,7 +916,7 @@ class excavate(BaseInternalModule):
             and self.url_querystring_remove == False
             and str(event.parent.parent.module) == "TARGET"
         ):
-            self.debug(f"Processing target URL [{event.url}] for GET parameters")
+            self.debug(f"Processing target URL [{urlunparse(event.parsed_url)}] for GET parameters")
             for (
                 method,
                 parsed_url,

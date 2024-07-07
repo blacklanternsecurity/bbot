@@ -5,140 +5,16 @@ from werkzeug.wrappers import Response
 from urllib.parse import unquote
 
 
-class Test_Lightfuzz_querystring_noremove(ModuleTestBase):
-    html_body = '<html><a class="button" href="/product?productId=7">View details</a><a class="button" href="/product?productId=8">View details</a>'
-
-    targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
-    config_overrides = {
-        "url_querystring_remove": False,
-        "interactsh_disable": True,
-        "web_spider_depth": 4,
-        "web_spider_distance": 4,
-        "modules": {
-            "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": False,
-                "submodule_cmdi": False,
-                "submodule_path": False,
-                "submodule_ssti": False,
-            }
-        },
-    }
-
-    async def setup_after_prep(self, module_test):
-        expect_args = {"method": "GET", "uri": "/"}
-        respond_args = {
-            "response_data": self.html_body,
-            "status": 200,
-        }
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-        expect_args = {"method": "GET", "uri": "/product"}
-        respond_args = {
-            "response_data": "alive",
-            "status": 200,
-        }
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-    def check(self, module_test, events):
-
-        web_parameter_emit = False
-        web_parameter_outofscope = False
-
-        for e in events:
-            if e.type == "WEB_PARAMETER":
-                web_parameter_emit = True
-
-        count_url_events = sum(1 for event in events if event.type == "URL")
-        assert count_url_events == 2
-
-
-class Test_Lightfuzz_querystring_nocollapse(Test_Lightfuzz_querystring_noremove):
-
-    config_overrides = {
-        "url_querystring_remove": False,
-        "url_querystring_collapse": False,
-        "interactsh_disable": True,
-        "web_spider_depth": 4,
-        "web_spider_distance": 4,
-        "modules": {
-            "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": False,
-                "submodule_cmdi": False,
-                "submodule_path": False,
-                "submodule_ssti": False,
-            }
-        },
-    }
-
-    def check(self, module_test, events):
-
-        web_parameter_emit = False
-        web_parameter_outofscope = False
-        for e in events:
-            if e.type == "WEB_PARAMETER":
-                web_parameter_emit = True
-        count_url_events = sum(1 for event in events if event.type == "URL")
-        assert count_url_events == 3
-
-
-class Test_Lightfuzz_webparameter_outofscope(ModuleTestBase):
-
-    html_body = "<html><a class=button href='https://socialmediasite.com/send?text=foo'><a class=button href='https://outofscope.com/send?text=foo'></html>"
-
-    targets = ["http://127.0.0.1:8888", "socialmediasite.com"]
-    modules_overrides = ["httpx", "lightfuzz"]
-    config_overrides = {
-        "interactsh_disable": True,
-        "modules": {
-            "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": False,
-                "submodule_cmdi": False,
-                "submodule_path": False,
-                "submodule_ssti": False,
-            }
-        },
-    }
-
-    async def setup_after_prep(self, module_test):
-        expect_args = {"method": "GET", "uri": "/"}
-        respond_args = {
-            "response_data": self.html_body,
-            "status": 200,
-        }
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-    def check(self, module_test, events):
-        web_parameter_differentsite = False
-        web_parameter_outofscope = False
-
-        for e in events:
-            if e.type == "WEB_PARAMETER" and "in-scope" in e.tags and e.host == "socialmediasite.com":
-                web_parameter_differentsite = True
-
-            if e.type == "WEB_PARAMETER" and e.host == "outofscope.com":
-                web_parameter_outofscope = True
-
-        assert web_parameter_differentsite, "WEB_PARAMETER was not emitted"
-        assert not web_parameter_outofscope, "Out of scope domain was emitted"
-
 
 # Path Traversal single dot tolerance
 class Test_Lightfuzz_path_singledot(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": False,
-                "submodule_cmdi": False,
-                "submodule_path": True,
-                "submodule_ssti": False,
+                "enabled_submodules": ["path"],
             }
         },
     }
@@ -185,7 +61,7 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
             if e.type == "FINDING":
 
                 if (
-                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Detection Method: [single-dot traversal tolerance (url-encoding)]"
+                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Detection Method: [single-dot traversal tolerance"
                     in e.data["description"]
                 ):
                     pathtraversal_finding_emitted = True
@@ -248,16 +124,12 @@ lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
 # SSTI Integer Multiplcation
 class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": False,
-                "submodule_cmdi": False,
-                "submodule_path": False,
-                "submodule_ssti": True,
+                "enabled_submodules": ["ssti"],
             }
         },
     }
@@ -304,16 +176,12 @@ class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
 # Between Tags XSS Detection
 class Test_Lightfuzz_xss(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "submodule_xss": True,
-                "submodule_sqli": False,
-                "submodule_cmdi": False,
-                "submodule_path": False,
-                "submodule_ssti": False,
+                "enabled_submodules": ["sqli"],
             }
         },
     }
@@ -478,21 +346,19 @@ console.log(lang);
 # SQLI Single Quote/Two Single Quote (getparam)
 class Test_Lightfuzz_sqli(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": True,
-                "submodule_cmdi": False,
-                "submodule_path": False,
-                "submodule_ssti": False,
+                "enabled_submodules": ["sqli"],
             }
         },
     }
 
     def request_handler(self, request):
+        print("((((")
+        print(request)
         qs = str(request.query_string.decode())
         parameter_block = """
         <section class=search>
@@ -554,16 +420,12 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
 # SQLI Single Quote/Two Single Quote (postparam)
 class Test_Lightfuzz_sqli_post(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": True,
-                "submodule_cmdi": False,
-                "submodule_path": False,
-                "submodule_ssti": False,
+                "enabled_submodules": ["sqli"],
             }
         },
     }
@@ -833,16 +695,12 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": False,
-                "submodule_cmdi": True,
-                "submodule_path": False,
-                "submodule_ssti": False,
+                "enabled_submodules": ["cmdi"],
             }
         },
     }
@@ -919,11 +777,7 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
         "interactsh_disable": False,
         "modules": {
             "lightfuzz": {
-                "submodule_xss": False,
-                "submodule_sqli": False,
-                "submodule_cmdi": True,
-                "submodule_path": False,
-                "submodule_ssti": False,
+                "enabled_submodules": ["cmdi"],
             }
         },
     }

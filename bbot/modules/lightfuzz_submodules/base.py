@@ -17,7 +17,7 @@ class BaseLightfuzz:
         if event_type == "GETPARAM":
             baseline_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
             http_compare = self.lightfuzz.helpers.http_compare(
-                baseline_url, cookies=cookies, include_cache_buster=True
+                baseline_url, cookies=cookies, include_cache_buster=False
             )
         elif event_type == "COOKIE":
             cookies_probe = {self.event.data["name"]: f"{probe}"}

@@ -738,8 +738,6 @@ class TestExcavateParameterExtraction_targeturl(ModuleTestBase):
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
         "interactsh_disable": True,
-        "web_spider_depth": 4,
-        "web_spider_distance": 4,
         "modules": {
             "excavate": {
                 "retain_querystring": True,
@@ -751,7 +749,6 @@ class TestExcavateParameterExtraction_targeturl(ModuleTestBase):
         expect_args = {"method": "GET", "uri": "/", "query_string": "foo=1"}
         respond_args = {
             "response_data": "<html>alive</html>",
-            "headers": {"Set-Cookie": "a=b"},
             "status": 200,
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -821,3 +818,39 @@ class TestExcavate_retain_querystring_not(TestExcavate_retain_querystring):
                 web_parameter_emit = True
 
         assert web_parameter_emit
+
+
+
+
+
+class TestExcavate_webparameter_outofscope(ModuleTestBase):
+
+    html_body = "<html><a class=button href='https://socialmediasite.com/send?text=foo'><a class=button href='https://outofscope.com/send?text=foo'></html>"
+
+    targets = ["http://127.0.0.1:8888", "socialmediasite.com"]
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    config_overrides = {
+        "interactsh_disable": True
+    }
+
+    async def setup_after_prep(self, module_test):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {
+            "response_data": self.html_body,
+            "status": 200,
+        }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check(self, module_test, events):
+        web_parameter_differentsite = False
+        web_parameter_outofscope = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER" and "in-scope" in e.tags and e.host == "socialmediasite.com":
+                web_parameter_differentsite = True
+
+            if e.type == "WEB_PARAMETER" and e.host == "outofscope.com":
+                web_parameter_outofscope = True
+
+        assert web_parameter_differentsite, "WEB_PARAMETER was not emitted"
+        assert not web_parameter_outofscope, "Out of scope domain was emitted"

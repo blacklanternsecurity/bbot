@@ -39,7 +39,12 @@ class SQLiLightfuzz(BaseLightfuzz):
             double_single_quote = await self.compare_probe(
                 http_compare, self.event.data["type"], f"{probe_value}''", cookies
             )
-
+            self.lightfuzz.critical("@@@@@@")
+            self.lightfuzz.critical(probe_value)
+            self.lightfuzz.critical(single_quote)
+            self.lightfuzz.critical(double_single_quote)
+            self.lightfuzz.critical(single_quote[3].request)
+            self.lightfuzz.critical(double_single_quote[3].request)
             if "code" in single_quote[1] and "code" not in double_single_quote[1]:
                 self.results.append(
                     {
@@ -48,7 +53,7 @@ class SQLiLightfuzz(BaseLightfuzz):
                     }
                 )
         except HttpCompareError as e:
-            self.lightfuzz.debug(e)
+            self.lightfuzz.critical(e)
 
         standard_probe_strings = [
             f"'||pg_sleep({str(self.expected_delay)})--",  # postgres
