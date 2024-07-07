@@ -54,7 +54,6 @@ class SQLiLightfuzz(BaseLightfuzz):
                 additional_params_populate_empty=True,
             )
 
-
             if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
                 self.results.append(
                     {
@@ -89,12 +88,15 @@ class SQLiLightfuzz(BaseLightfuzz):
                 confirmations = 0
                 for i in range(0, 3):
                     r = await self.standard_probe(
-                        self.event.data["type"], cookies, f"{probe_value}{p}", additional_params_populate_empty=True, timeout=20
+                        self.event.data["type"],
+                        cookies,
+                        f"{probe_value}{p}",
+                        additional_params_populate_empty=True,
+                        timeout=20,
                     )
                     if not r:
                         self.lightfuzz.debug("delay measure request failed")
                         break
-
 
                     d = r.elapsed.total_seconds()
                     self.lightfuzz.debug(f"measured delay: {str(d)}")

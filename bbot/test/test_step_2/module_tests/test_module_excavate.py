@@ -850,6 +850,7 @@ class TestExcavate_webparameter_outofscope(ModuleTestBase):
         assert web_parameter_differentsite, "WEB_PARAMETER was not emitted"
         assert not web_parameter_outofscope, "Out of scope domain was emitted"
 
+
 class TestExcavateHeaders(ModuleTestBase):
 
     targets = ["http://127.0.0.1:8888/"]
@@ -883,4 +884,3 @@ class TestExcavateHeaders(ModuleTestBase):
 
         assert found_first_cookie == True
         assert found_second_cookie == True
-
