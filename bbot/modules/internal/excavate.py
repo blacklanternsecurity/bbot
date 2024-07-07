@@ -941,53 +941,13 @@ class excavate(BaseInternalModule):
         headers = event.data.get("header-dict", {})
 
         if body == "" and headers == {}:
+
             return
 
         self.assigned_cookies = {}
         content_type = None
         reported_location_header = False
-<<<<<<< HEAD
 
-        for k, v in headers.items():
-            if k.lower() == "set-cookie" and self.parameter_extraction:
-                if "=" not in v:
-                    self.debug(f"Cookie found without '=': {v}")
-                    continue
-                else:
-                    cookie_name = v.split("=")[0]
-                    cookie_value = v.split("=")[1].split(";")[0]
-
-                    if self.in_bl(cookie_value) == False:
-                        self.assigned_cookies[cookie_name] = cookie_value
-                        description = f"Set-Cookie Assigned Cookie [{cookie_name}]"
-                        data = {
-                            "host": str(event.host),
-                            "type": "COOKIE",
-                            "name": cookie_name,
-                            "original_value": cookie_value,
-                            "url": self.url_unparse("COOKIE", event.parsed_url),
-                            "description": description,
-                        }
-                        context = f"Excavate noticed a set-cookie header for cookie [{cookie_name}] and emitted a WEB_PARAMETER for it"
-                        await self.emit_event(data, "WEB_PARAMETER", event, context=context)
-                    else:
-                        self.debug(f"blocked cookie parameter [{cookie_name}] due to BL match")
-            if k.lower() == "location":
-                redirect_location = getattr(event, "redirect_location", "")
-                if redirect_location:
-                    scheme = self.helpers.is_uri(redirect_location, return_scheme=True)
-                    if scheme in ("http", "https"):
-                        web_spider_distance = getattr(event, "web_spider_distance", 0)
-                        num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
-                        if num_redirects <= self.max_redirects:
-                            # we do not want to allow the web_spider_distance to be incremented on redirects, so we do not add spider-danger tag
-                            url_event = self.make_event(redirect_location, "URL_UNVERIFIED", event, tags="affiliate")
-                            if url_event is not None:
-                                reported_location_header = True
-                                await self.emit_event(
-                                    url_event,
-                                    context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
-=======
         for header, header_values in headers.items():
             for header_value in header_values:
                 if header.lower() == "set-cookie":
@@ -1024,7 +984,6 @@ class excavate(BaseInternalModule):
                                 # we do not want to allow the web_spider_distance to be incremented on redirects, so we do not add spider-danger tag
                                 url_event = self.make_event(
                                     redirect_location, "URL_UNVERIFIED", event, tags="affiliate"
->>>>>>> bc4483fe (fixing multuple same header extraction)
                                 )
                                 if url_event is not None:
                                     reported_location_header = True
@@ -1033,12 +992,9 @@ class excavate(BaseInternalModule):
                                         context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
                                     )
 
-<<<<<<< HEAD
                         # Try to extract parameters from the redirect URL
                         if self.parameter_extraction:
-=======
-                            # Try to extract parameters from the redirect URL
->>>>>>> bc4483fe (fixing multuple same header extraction)
+
                             for (
                                 method,
                                 parsed_url,

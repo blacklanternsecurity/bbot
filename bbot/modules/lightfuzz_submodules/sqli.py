@@ -6,10 +6,10 @@ import statistics
 
 
 class SQLiLightfuzz(BaseLightfuzz):
-    expected_delay = 5
+    expected_delay = 10
 
     def evaluate_delay(self, mean_baseline, measured_delay):
-        margin = 1
+        margin = 2
         if (
             mean_baseline + self.expected_delay - margin
             <= measured_delay
@@ -53,19 +53,7 @@ class SQLiLightfuzz(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
-            self.lightfuzz.critical("@@@@@@")
-            self.lightfuzz.critical(self.event.data["name"])
-            self.lightfuzz.critical(self.event.data["type"])
-            self.lightfuzz.critical(probe_value)
-            self.lightfuzz.critical(single_quote)
-            self.lightfuzz.critical(double_single_quote)
-            self.lightfuzz.critical(single_quote[3].request)
-            self.lightfuzz.critical(single_quote[3].request.content)
-            self.lightfuzz.critical(double_single_quote[3].request)
-            self.lightfuzz.critical(double_single_quote[3].request.content)
 
-            self.lightfuzz.hugeinfo(single_quote[3].status_code)
-            self.lightfuzz.hugeinfo(double_single_quote[3].status_code)
 
             if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
                 self.results.append(
@@ -101,11 +89,12 @@ class SQLiLightfuzz(BaseLightfuzz):
                 confirmations = 0
                 for i in range(0, 3):
                     r = await self.standard_probe(
-                        self.event.data["type"], cookies, f"{probe_value}{p}", additional_params_populate_empty=True
+                        self.event.data["type"], cookies, f"{probe_value}{p}", additional_params_populate_empty=True, timeout=20
                     )
                     if not r:
                         self.lightfuzz.debug("delay measure request failed")
                         break
+
 
                     d = r.elapsed.total_seconds()
                     self.lightfuzz.debug(f"measured delay: {str(d)}")
