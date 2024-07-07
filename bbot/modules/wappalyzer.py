@@ -28,25 +28,15 @@ class wappalyzer(BaseModule):
     def process_headers(headers):
         unique_headers = {}
         count = {}
-
         for k, v in headers.items():
-            if isinstance(v, list):
-                for i, item in enumerate(v):
-                    unique_key = f"{k}_{count[k]}" if k in count else k
-                    while unique_key in unique_headers:
-                        count[k] += 1
-                        unique_key = f"{k}_{count[k]}"
-                    unique_headers[unique_key] = item
-                count[k] = count.get(k, 0) + len(v)
-            else:
-                if k in unique_headers:
-                    unique_key = f"{k}_{count.get(k, 1)}"
-                    count[k] = count.get(k, 1) + 1
-                else:
-                    unique_key = k
-                    count[k] = 1
-                unique_headers[unique_key] = v
-
+            values = v if isinstance(v, list) else [v]
+            for item in values:
+                unique_key = k if k not in count else f"{k}_{count[k]}"
+                while unique_key in unique_headers:
+                    count[k] = count.get(k, 0) + 1
+                    unique_key = f"{k}_{count[k]}"
+                unique_headers[unique_key] = item
+            count[k] = count.get(k, 0) + 1
         return unique_headers
 
     async def setup(self):
