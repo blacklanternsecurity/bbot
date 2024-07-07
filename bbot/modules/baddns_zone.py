@@ -17,7 +17,7 @@ class baddns_zone(baddns_module):
         "only_high_confidence": "Do not emit low-confidence or generic detections",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.1.789"]
+    deps_pip = ["baddns~=1.1.796"]
 
     def select_modules(self):
         selected_modules = []

@@ -22,7 +22,7 @@ class baddns(BaseModule):
         "enable_references": "Enable the references module (off by default)",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.1.789"]
+    deps_pip = ["baddns~=1.1.796"]
 
     def select_modules(self):
 
