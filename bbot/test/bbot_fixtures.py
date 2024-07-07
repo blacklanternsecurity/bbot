@@ -1,6 +1,7 @@
 import os  # noqa
 import sys
 import pytest
+import shutil  # noqa
 import asyncio  # noqa
 import logging
 import subprocess
