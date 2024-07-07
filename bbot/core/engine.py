@@ -106,6 +106,7 @@ class EngineClient(EngineBase):
         self._server_process = None
         self.context = zmq.asyncio.Context()
         self.context.setsockopt(zmq.LINGER, 0)
+        self.sockets = set()
 
     def check_error(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_e" in message:
@@ -129,7 +130,8 @@ class EngineClient(EngineBase):
             except BaseException:
                 # -1 == special "cancel" signal
                 cancel_message = pickle.dumps({"c": -1})
-                await socket.send(cancel_message)
+                with suppress(Exception):
+                    await socket.send(cancel_message)
                 raise
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = self.unpickle(binary)
@@ -161,7 +163,8 @@ class EngineClient(EngineBase):
                 except GeneratorExit:
                     # -1 == special "cancel" signal
                     cancel_message = pickle.dumps({"c": -1})
-                    await socket.send(cancel_message)
+                    with suppress(Exception):
+                        await socket.send(cancel_message)
                     raise
 
     def check_stop(self, message):
@@ -226,10 +229,13 @@ class EngineClient(EngineBase):
             while not self.socket_path.exists():
                 await asyncio.sleep(0.1)
         socket = self.context.socket(zmq.DEALER)
+        socket.setsockopt(zmq.LINGER, 0)
         socket.connect(f"ipc://{self.socket_path}")
+        self.sockets.add(socket)
         try:
             yield socket
         finally:
+            self.sockets.remove(socket)
             with suppress(Exception):
                 socket.close()
 
@@ -239,6 +245,8 @@ class EngineClient(EngineBase):
             # -99 == special shutdown signal
             shutdown_message = pickle.dumps({"c": -99})
             await socket.send(shutdown_message)
+        for socket in self.sockets:
+            socket.close()
         self.context.term()
         # delete socket file on exit
         self.socket_path.unlink(missing_ok=True)
@@ -283,6 +291,7 @@ class EngineServer(EngineBase):
             self.context.setsockopt(zmq.LINGER, 0)
             # ROUTER socket can handle multiple concurrent requests
             self.socket = self.context.socket(zmq.ROUTER)
+            self.socket.setsockopt(zmq.LINGER, 0)
             # create socket file
             self.socket.bind(f"ipc://{self.socket_path}")
             # task <--> client id mapping
@@ -398,10 +407,8 @@ class EngineServer(EngineBase):
             self.log.error(f"Error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
         finally:
-            with suppress(Exception):
-                self.socket.close()
-            with suppress(Exception):
-                self.context.term()
+            self.socket.close()
+            self.context.term()
             # delete socket file on exit
             self.socket_path.unlink(missing_ok=True)
 

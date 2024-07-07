@@ -6,6 +6,7 @@ from bbot.errors import ValidationError
 from bbot.core.helpers.dns.engine import all_rdtypes
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.modules.base import InterceptModule, BaseModule
+from bbot.core.helpers.dns.helpers import extract_targets
 
 
 class DNS(InterceptModule):
@@ -32,6 +33,7 @@ class DNS(InterceptModule):
 
         self.minimal = self.dns_config.get("minimal", False)
         self.dns_search_distance = max(0, int(self.dns_config.get("search_distance", 1)))
+        self._emit_raw_records = None
 
         # event resolution cache
         self._event_cache = LRUCache(maxsize=10000)
@@ -44,6 +46,17 @@ class DNS(InterceptModule):
     @property
     def _dns_search_distance(self):
         return max(self.scan.scope_search_distance, self.dns_search_distance)
+
+    @property
+    def emit_raw_records(self):
+        if self._emit_raw_records is None:
+            watching_raw_records = any(
+                ["RAW_DNS_RECORD" in m.get_watched_events() for m in self.scan.modules.values()]
+            )
+            omitted_event_types = self.scan.config.get("omit_event_types", [])
+            omit_raw_records = "RAW_DNS_RECORD" in omitted_event_types
+            self._emit_raw_records = watching_raw_records or not omit_raw_records
+        return self._emit_raw_records
 
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):
@@ -81,15 +94,22 @@ class DNS(InterceptModule):
                 # if missing from cache, do DNS resolution
                 queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
                 error_rdtypes = []
-                async for (query, rdtype), (answers, errors) in self.helpers.dns.resolve_raw_batch(queries):
+                async for (query, rdtype), (answer, errors) in self.helpers.dns.resolve_raw_batch(queries):
+                    if self.emit_raw_records and rdtype in ("TXT", "MX", "NS"):
+                        await self.emit_event(
+                            {"host": str(event_host), "type": rdtype, "answer": answer.to_text()},
+                            "RAW_DNS_RECORD",
+                            parent=event,
+                            tags=[f"{rdtype.lower()}-record"],
+                        )
                     if errors:
                         error_rdtypes.append(rdtype)
-                    for answer, _rdtype in answers:
+                    for _rdtype, host in extract_targets(answer):
                         dns_tags.add(f"{rdtype.lower()}-record")
                         try:
-                            dns_children[_rdtype].add(answer)
+                            dns_children[_rdtype].add(host)
                         except KeyError:
-                            dns_children[_rdtype] = {answer}
+                            dns_children[_rdtype] = {host}
 
                 for rdtype in error_rdtypes:
                     if rdtype not in dns_children:

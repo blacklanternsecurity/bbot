@@ -1,5 +1,19 @@
 from ..bbot_fixtures import *
 
+from bbot.core.helpers.dns.helpers import extract_targets
+
+
+mock_records = {
+    "one.one.one.one": {
+        "A": ["1.1.1.1", "1.0.0.1"],
+        "AAAA": ["2606:4700:4700::1111", "2606:4700:4700::1001"],
+        "TXT": [
+            '"v=spf1 ip4:103.151.192.0/23 ip4:185.12.80.0/22 ip4:188.172.128.0/20 ip4:192.161.144.0/20 ip4:216.198.0.0/18 ~all"'
+        ],
+    },
+    "1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one."]},
+}
+
 
 @pytest.mark.asyncio
 async def test_dns_engine(bbot_scanner):
@@ -25,14 +39,14 @@ async def test_dns_engine(bbot_scanner):
     pass_1 = False
     pass_2 = False
     for (query, rdtype), (result, errors) in results:
-        _results = [r[0] for r in result]
+        result = extract_targets(result)
+        _results = [r[1] for r in result]
         if query == "one.one.one.one" and "1.1.1.1" in _results:
             pass_1 = True
         elif query == "1.1.1.1" and "one.one.one.one" in _results:
             pass_2 = True
     assert pass_1 and pass_2
 
-    from bbot.core.helpers.dns.engine import DNSEngine
     from bbot.core.helpers.dns.mock import MockResolver
 
     # ensure dns records are being properly cleaned
@@ -40,7 +54,7 @@ async def test_dns_engine(bbot_scanner):
     mx_records = await mockresolver.resolve("evilcorp.com", rdtype="MX")
     results = set()
     for r in mx_records:
-        results.update(DNSEngine.extract_targets(r))
+        results.update(extract_targets(r))
     assert not results
 
 
@@ -51,6 +65,7 @@ async def test_dns_resolution(bbot_scanner):
     from bbot.core.helpers.dns.engine import DNSEngine
 
     dnsengine = DNSEngine(None)
+    await dnsengine._mock_dns(mock_records)
 
     # lowest level functions
     a_responses = await dnsengine._resolve_hostname("one.one.one.one")
@@ -64,22 +79,23 @@ async def test_dns_resolution(bbot_scanner):
     answers, errors = await dnsengine.resolve_raw("one.one.one.one", type="A")
     responses = []
     for answer in answers:
-        responses += list(dnsengine.extract_targets(answer))
+        responses += list(extract_targets(answer))
     assert ("A", "1.1.1.1") in responses
     assert not ("AAAA", "2606:4700:4700::1111") in responses
     answers, errors = await dnsengine.resolve_raw("one.one.one.one", type="AAAA")
     responses = []
     for answer in answers:
-        responses += list(dnsengine.extract_targets(answer))
+        responses += list(extract_targets(answer))
     assert not ("A", "1.1.1.1") in responses
     assert ("AAAA", "2606:4700:4700::1111") in responses
     answers, errors = await dnsengine.resolve_raw("1.1.1.1")
     responses = []
     for answer in answers:
-        responses += list(dnsengine.extract_targets(answer))
+        responses += list(extract_targets(answer))
     assert ("PTR", "one.one.one.one") in responses
 
     # high level functions
+    dnsengine = DNSEngine(None)
     assert "1.1.1.1" in await dnsengine.resolve("one.one.one.one")
     assert "2606:4700:4700::1111" in await dnsengine.resolve("one.one.one.one", type="AAAA")
     assert "one.one.one.one" in await dnsengine.resolve("1.1.1.1")
@@ -95,10 +111,10 @@ async def test_dns_resolution(bbot_scanner):
 
     # custom batch resolution
     batch_results = [r async for r in dnsengine.resolve_raw_batch([("1.1.1.1", "PTR"), ("one.one.one.one", "A")])]
-    assert len(batch_results) == 2
-    batch_results = dict(batch_results)
-    assert ("1.1.1.1", "A") in batch_results[("one.one.one.one", "A")][0]
-    assert ("one.one.one.one", "PTR") in batch_results[("1.1.1.1", "PTR")][0]
+    batch_results = [(response.to_text(), response.rdtype.name) for query, (response, errors) in batch_results]
+    assert len(batch_results) == 3
+    assert any(answer == "1.0.0.1" and rdtype == "A" for answer, rdtype in batch_results)
+    assert any(answer == "one.one.one.one." and rdtype == "PTR" for answer, rdtype in batch_results)
 
     # dns cache
     dnsengine._dns_cache.clear()
@@ -315,3 +331,80 @@ async def test_wildcards(bbot_scanner):
     )
     modified_wildcard_events = [e for e in events if e.type == "DNS_NAME" and e.data == "_wildcard.github.io"]
     assert len(modified_wildcard_events) == 0
+
+
+@pytest.mark.asyncio
+async def test_dns_raw_records(bbot_scanner):
+
+    from bbot.modules.base import BaseModule
+
+    class DummyModule(BaseModule):
+        watched_events = ["*"]
+
+        async def setup(self):
+            self.events = []
+            return True
+
+        async def handle_event(self, event):
+            self.events.append(event)
+
+    # scan without omitted event type
+    scan = bbot_scanner("one.one.one.one", "1.1.1.1", config={"dns": {"minimal": False}, "omit_event_types": []})
+    await scan.helpers.dns._mock_dns(mock_records)
+    dummy_module = DummyModule(scan)
+    scan.modules["dummy_module"] = dummy_module
+    events = [e async for e in scan.async_start()]
+    assert 1 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "RAW_DNS_RECORD"
+            and e.host == "one.one.one.one"
+            and e.data["host"] == "one.one.one.one"
+            and e.data["type"] == "TXT"
+            and e.data["answer"]
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in dummy_module.events
+            if e.type == "RAW_DNS_RECORD"
+            and e.host == "one.one.one.one"
+            and e.data["host"] == "one.one.one.one"
+            and e.data["type"] == "TXT"
+            and e.data["answer"]
+        ]
+    )
+    # scan with omitted event type
+    scan = bbot_scanner("one.one.one.one", config={"dns": {"minimal": False}, "omit_event_types": ["RAW_DNS_RECORD"]})
+    await scan.helpers.dns._mock_dns(mock_records)
+    dummy_module = DummyModule(scan)
+    scan.modules["dummy_module"] = dummy_module
+    events = [e async for e in scan.async_start()]
+    # no raw records should be emitted
+    assert 0 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
+    assert 0 == len([e for e in dummy_module.events if e.type == "RAW_DNS_RECORD"])
+
+    # scan with watching module
+    DummyModule.watched_events = ["RAW_DNS_RECORD"]
+    scan = bbot_scanner("one.one.one.one", config={"dns": {"minimal": False}, "omit_event_types": ["RAW_DNS_RECORD"]})
+    await scan.helpers.dns._mock_dns(mock_records)
+    dummy_module = DummyModule(scan)
+    scan.modules["dummy_module"] = dummy_module
+    events = [e async for e in scan.async_start()]
+    # no raw records should be ouptut
+    assert 0 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
+    # but they should still make it to the module
+    assert 1 == len(
+        [
+            e
+            for e in dummy_module.events
+            if e.type == "RAW_DNS_RECORD"
+            and e.host == "one.one.one.one"
+            and e.data["host"] == "one.one.one.one"
+            and e.data["type"] == "TXT"
+            and e.data["answer"]
+        ]
+    )
