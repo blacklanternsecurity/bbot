@@ -167,6 +167,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert scan_dir.is_dir()
     assert "[SCAN]" in open(scan_dir / "output.txt").read()
     assert "[INFO]" in open(scan_dir / "scan.log").read()
+    shutil.rmtree(output_dir)
 
     # list module options
     monkeypatch.setattr("sys.argv", ["bbot", "--list-module-options"])
@@ -313,17 +314,17 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 5/5 internal modules (aggregate,cloud,dns,excavate,speculate)" in caplog.text
+    assert "Loaded 5/5 internal modules (aggregate,cloudcheck,dnsresolve,excavate,speculate)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "excavate", "speculate", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 3/3 internal modules (aggregate,cloud,dns)" in caplog.text
+    assert "Loaded 3/3 internal modules (aggregate,cloudcheck,dnsresolve)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "speculate=false", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 4/4 internal modules (aggregate,cloud,dns,excavate)" in caplog.text
+    assert "Loaded 4/4 internal modules (aggregate,cloudcheck,dnsresolve,excavate)" in caplog.text
 
     # custom target type
     out, err = capsys.readouterr()

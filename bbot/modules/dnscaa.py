@@ -42,7 +42,7 @@ class dnscaa(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "URL_UNVERIFIED"]
     flags = ["subdomain-enum", "email-enum", "passive", "safe"]
-    meta = {"description": "Check for CAA records"}
+    meta = {"description": "Check for CAA records", "author": "@colin-stubbs", "created_date": "2024-05-26"}
     options = {
         "in_scope_only": True,
         "dns_names": True,

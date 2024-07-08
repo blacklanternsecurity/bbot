@@ -34,7 +34,7 @@ class Bucket_Amazon_Base(ModuleTestBase):
 
     @property
     def modules_overrides(self):
-        return ["excavate", "speculate", "httpx", self.module_name, "cloud"]
+        return ["excavate", "speculate", "httpx", self.module_name, "cloudcheck"]
 
     def url_setup(self):
         self.url_1 = f"https://{self.random_bucket_1}/"

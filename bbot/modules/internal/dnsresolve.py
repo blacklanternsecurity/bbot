@@ -9,7 +9,7 @@ from bbot.modules.base import InterceptModule, BaseModule
 from bbot.core.helpers.dns.helpers import extract_targets
 
 
-class DNS(InterceptModule):
+class DNSResolve(InterceptModule):
     watched_events = ["*"]
     _priority = 1
     scope_distance_modifier = None
@@ -95,7 +95,7 @@ class DNS(InterceptModule):
                 queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
                 error_rdtypes = []
                 async for (query, rdtype), (answer, errors) in self.helpers.dns.resolve_raw_batch(queries):
-                    if self.emit_raw_records and rdtype in ("TXT", "MX", "NS"):
+                    if self.emit_raw_records and rdtype not in ("A", "AAAA", "CNAME", "PTR"):
                         await self.emit_event(
                             {"host": str(event_host), "type": rdtype, "answer": answer.to_text()},
                             "RAW_DNS_RECORD",
