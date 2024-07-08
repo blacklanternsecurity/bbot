@@ -17,4 +17,5 @@ config:
   modules:
     lightfuzz:
       force_common_headers: True
+    excavate:
       retain_querystring: True

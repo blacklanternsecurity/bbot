@@ -12,3 +12,5 @@ config:
   modules:
     lightfuzz:
       submodules_enabled: [cmdi,crypto,sqli,ssti,xss]
+    excavate:
+      retain_querystring: True
