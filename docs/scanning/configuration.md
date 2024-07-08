@@ -89,7 +89,7 @@ dns:
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
   # How many instances of the dns module to run concurrently
-  threads: 25
+  threads: 20
   # How many concurrent DNS resolvers to use when brute-forcing
   # (under the hood this is passed through directly to massdns -s)
   brute_threads: 1000
@@ -172,7 +172,7 @@ speculate: True
 excavate: True
 # Summarize activity at the end of a scan
 aggregate: True
-# DNS resolution
+# DNS resolution, wildcard detection, etc.
 dnsresolve: True
 # Cloud provider tagging
 cloudcheck: True
@@ -240,10 +240,6 @@ omit_event_types:
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
-
-# temporary fix to boost scan performance
-# TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
-target_dns_regex_disable: false
 
 ```
 <!-- END BBOT DEFAULT CONFIG -->
