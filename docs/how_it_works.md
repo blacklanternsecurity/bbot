@@ -26,7 +26,7 @@ Below is an interactive graph showing the relationships between modules and the 
 
 ## How BBOT Modules Work Together
 
-Each BBOT module does one specific task, like query an API for subdomains, or run a tool like `nuclei`. They are carefully designed to work together in an efficient and very effective way.
+Each BBOT module does one specific task, such as querying an API for subdomains, or running a tool like `nuclei`, and is carefully designed to work together with other modules inside BBOT's recursive system.
 
 For example, the `portscan` module consumes `DNS_NAME`, and produces `OPEN_TCP_PORT`. The `sslcert` module consumes `OPEN_TCP_PORT` and produces `DNS_NAME`. You can see how even these two modules, when enabled together, will feed each other recursively.
 
