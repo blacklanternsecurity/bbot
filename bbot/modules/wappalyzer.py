@@ -24,6 +24,21 @@ class wappalyzer(BaseModule):
     scope_distance_modifier = None
     _module_threads = 5
 
+    @staticmethod
+    def process_headers(headers):
+        unique_headers = {}
+        count = {}
+        for k, v in headers.items():
+            values = v if isinstance(v, list) else [v]
+            for item in values:
+                unique_key = k if k not in count else f"{k}_{count[k]}"
+                while unique_key in unique_headers:
+                    count[k] = count.get(k, 0) + 1
+                    unique_key = f"{k}_{count[k]}"
+                unique_headers[unique_key] = item
+            count[k] = count.get(k, 0) + 1
+        return unique_headers
+
     async def setup(self):
         self.wappalyzer = await self.helpers.run_in_executor(Wappalyzer.latest)
         return True
@@ -39,5 +54,7 @@ class wappalyzer(BaseModule):
             )
 
     def wappalyze(self, data):
-        w = WebPage(url=data["url"], html=data.get("body", ""), headers=data.get("header-dict", {}))
+        # Convert dictionary of lists to a dictionary of strings
+        header_dict = self.process_headers(data.get("header-dict", {}))
+        w = WebPage(url=data["url"], html=data.get("body", ""), headers=header_dict)
         return self.wappalyzer.analyze(w)
