@@ -60,6 +60,15 @@ def _exclude_key(original_dict, key_to_exclude):
     return {key: value for key, value in original_dict.items() if key != key_to_exclude}
 
 
+def extract_params_url(parsed_url):
+
+    params = parse_qs(parsed_url.query)
+    flat_params = {k: v[0] for k, v in params.items()}
+
+    for p, p_value in flat_params.items():
+        yield "GET", parsed_url, p, p_value, "direct_url", _exclude_key(flat_params, p)
+
+
 def extract_params_location(location_header_value, original_parsed_url):
     """
     Extracts parameters from a location header, yielding them one at a time.
@@ -334,6 +343,7 @@ class excavate(BaseInternalModule):
             querystring = ""
         else:
             querystring = parsed_url.query
+
         return urlunparse(
             (
                 parsed_url.scheme,
@@ -406,9 +416,7 @@ class excavate(BaseInternalModule):
                         k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in query_strings.items()
                     }
                     for parameter_name, original_value in query_strings_dict.items():
-                        if original_value == None or original_value == "":
-                            original_value = 1
-                        yield self.output_type, parameter_name, original_value, parsed_url.path, _exclude_key(
+                        yield self.output_type, parameter_name, original_value, url, _exclude_key(
                             query_strings_dict, parameter_name
                         )
 
@@ -431,7 +439,6 @@ class excavate(BaseInternalModule):
                         input_tags = form_content_regex.findall(form_content)
 
                         for parameter_name, original_value in input_tags:
-                            original_value
                             form_parameters[parameter_name] = original_value
 
                         for parameter_name, original_value in form_parameters.items():
@@ -843,6 +850,8 @@ class excavate(BaseInternalModule):
         valid_schemes_filename = self.helpers.wordlist_dir / "valid_url_schemes.txt"
         self.valid_schemes = set(self.helpers.read_file(valid_schemes_filename))
 
+        self.url_querystring_remove = self.scan.config.get("url_querystring_remove", True)
+
         return True
 
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
@@ -887,18 +896,47 @@ class excavate(BaseInternalModule):
                 self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
     async def handle_event(self, event):
+        # Harvest GET parameters from URL, if it came directly from the target, and parameter extraction is enabled
+        if (
+            self.parameter_extraction == True
+            and self.url_querystring_remove == False
+            and str(event.parent.parent.module) == "TARGET"
+        ):
+            self.debug(f"Processing target URL [{urlunparse(event.parsed_url)}] for GET parameters")
+            for (
+                method,
+                parsed_url,
+                parameter_name,
+                original_value,
+                regex_name,
+                additional_params,
+            ) in extract_params_url(event.parsed_url):
+                if self.in_bl(parameter_name) == False:
+                    description = f"HTTP Extracted Parameter [{parameter_name}] (Target URL)"
+                    data = {
+                        "host": parsed_url.hostname,
+                        "type": "GETPARAM",
+                        "name": parameter_name,
+                        "original_value": original_value,
+                        "url": self.url_unparse("GETPARAM", parsed_url),
+                        "description": description,
+                        "additional_params": additional_params,
+                    }
+                    context = f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
+                    await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+
         data = event.data
 
         # process response data
         body = event.data.get("body", "")
         headers = event.data.get("header-dict", {})
-
         if body == "" and headers == {}:
             return
 
         self.assigned_cookies = {}
         content_type = None
         reported_location_header = False
+
         for header, header_values in headers.items():
             for header_value in header_values:
                 if header.lower() == "set-cookie":
@@ -943,7 +981,9 @@ class excavate(BaseInternalModule):
                                         context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
                                     )
 
-                            # Try to extract parameters from the redirect URL
+                        # Try to extract parameters from the redirect URL
+                        if self.parameter_extraction:
+
                             for (
                                 method,
                                 parsed_url,
@@ -965,7 +1005,6 @@ class excavate(BaseInternalModule):
                                     }
                                     context = f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
                                     await self.emit_event(data, "WEB_PARAMETER", event, context=context)
-
                     else:
                         self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
                 if header.lower() == "content-type":
