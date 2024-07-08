@@ -5,7 +5,11 @@ class dnsbrute_mutations(BaseModule):
     flags = ["subdomain-enum", "passive", "aggressive", "slow"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Brute-force subdomains with massdns + target-specific mutations"}
+    meta = {
+        "description": "Brute-force subdomains with massdns + target-specific mutations",
+        "author": "@TheTechromancer",
+        "created_date": "2024-04-25",
+    }
     options = {
         "max_mutations": 100,
     }

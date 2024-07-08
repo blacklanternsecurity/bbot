@@ -1,7 +1,7 @@
 from .base import ModuleTestBase
 
 
-class TestDNS(ModuleTestBase):
+class TestDNSREsolve(ModuleTestBase):
     config_overrides = {"dns": {"minimal": False}, "scope": {"report_distance": 1}}
 
     async def setup_after_prep(self, module_test):

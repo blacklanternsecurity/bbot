@@ -113,7 +113,7 @@ speculate: True
 excavate: True
 # Summarize activity at the end of a scan
 aggregate: True
-# DNS resolution
+# DNS resolution, wildcard detection, etc.
 dnsresolve: True
 # Cloud provider tagging
 cloudcheck: True

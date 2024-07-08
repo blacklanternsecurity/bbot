@@ -141,7 +141,7 @@ async def test_dns_resolution(bbot_scanner):
     await scan._prep()
     resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", parent=scan.root_event)
     resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", parent=scan.root_event)
-    dnsresolve = scan.modules["dns"]
+    dnsresolve = scan.modules["dnsresolve"]
     assert hash(resolved_hosts_event1.host) not in dnsresolve._event_cache
     assert hash(resolved_hosts_event2.host) not in dnsresolve._event_cache
     await dnsresolve.handle_event(resolved_hosts_event1, {})
@@ -210,7 +210,7 @@ async def test_wildcards(bbot_scanner):
 
     # event resolution
     await scan._prep()
-    dnsresolve = scan.modules["dns"]
+    dnsresolve = scan.modules["dnsresolve"]
     await dnsresolve.handle_event(wildcard_event1, {})
     await dnsresolve.handle_event(wildcard_event2, {})
     await dnsresolve.handle_event(wildcard_event3, {})
@@ -244,7 +244,7 @@ async def test_wildcards(bbot_scanner):
     scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", whitelist=["github.io"], config={"dns": {"minimal": False}})
     await scan2._prep()
     other_event = scan2.make_event(
-        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], parent=scan2.root_event
+        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dnsresolve"], parent=scan2.root_event
     )
     await scan2.ingress_module.queue_event(other_event, {})
     events = [e async for e in scan2.async_start()]
@@ -286,11 +286,11 @@ async def test_wildcards(bbot_scanner):
         "asdfl.gashdgkjsadgsdf.github.io",
         whitelist=["github.io"],
         config={"dns": {"wildcard_ignore": ["github.io"]}},
-        exclude_modules=["cloud"],
+        exclude_modules=["cloudcheck"],
     )
     await scan2._prep()
     other_event = scan2.make_event(
-        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], parent=scan2.root_event
+        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dnsresolve"], parent=scan2.root_event
     )
     await scan2.ingress_module.queue_event(other_event, {})
     events = [e async for e in scan2.async_start()]

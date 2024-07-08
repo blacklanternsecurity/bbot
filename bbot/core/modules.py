@@ -555,7 +555,7 @@ class ModuleLoader:
         except KeyError:
             d[k] = set(items)
 
-    def modules_table(self, modules=None, mod_type=None, include_author=False):
+    def modules_table(self, modules=None, mod_type=None, include_author=False, include_created_date=False):
         """Generates a table of module information.
 
         Constructs a table to display information such as module name, type, and event details.
@@ -581,6 +581,8 @@ class ModuleLoader:
         header = ["Module", "Type", "Needs API Key", "Description", "Flags", "Consumed Events", "Produced Events"]
         if include_author:
             header.append("Author")
+        if include_created_date:
+            header.append("Created Date")
         maxcolwidths = [20, 10, 5, 30, 30, 20, 20]
         for module_name, preloaded in self.filter_modules(modules, mod_type):
             module_type = preloaded["type"]
@@ -603,6 +605,9 @@ class ModuleLoader:
             if include_author:
                 author = meta.get("author", "")
                 row.append(author)
+            if include_created_date:
+                created_date = meta.get("created_date", "")
+                row.append(created_date)
             table.append(row)
         return make_table(table, header, maxcolwidths=maxcolwidths)
 

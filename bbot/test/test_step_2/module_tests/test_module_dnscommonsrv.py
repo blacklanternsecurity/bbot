@@ -56,7 +56,7 @@ class TestDNSCommonSRV(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 17
+        assert len(events) == 19
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"])
         assert 1 == len(
             [
@@ -91,6 +91,25 @@ class TestDNSCommonSRV(ModuleTestBase):
         assert 1 == len(
             [e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"]
         ), "Failed to detect main domain"
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "RAW_DNS_RECORD"
+                and e.data["host"] == "_ldap._tcp.gc._msdcs.api.blacklanternsecurity.com"
+                and e.data["answer"] == "0 100 3268 asdf.blacklanternsecurity.com"
+            ]
+        ), "Failed to emit RAW_DNS_RECORD for _ldap._tcp.gc._msdcs.api.blacklanternsecurity.com"
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "RAW_DNS_RECORD"
+                and e.data["host"] == "_ldap._tcp.gc._msdcs.blacklanternsecurity.com"
+                and e.data["answer"] == "0 100 3268 asdf.blacklanternsecurity.com"
+            ]
+        ), "Failed to emit RAW_DNS_RECORD for _ldap._tcp.gc._msdcs.blacklanternsecurity.com"
+        assert 2 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
         assert 10 == len([e for e in events if e.type == "DNS_NAME"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED" and str(e.module) == "speculate"])

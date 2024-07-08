@@ -3,17 +3,16 @@ from .base import ModuleTestBase
 from bbot.scanner import Scanner
 
 
-class TestCloud(ModuleTestBase):
+class TestCloudCheck(ModuleTestBase):
     targets = ["http://127.0.0.1:8888", "asdf2.storage.googleapis.com"]
-    modules_overrides = ["httpx", "excavate", "cloud"]
+    modules_overrides = ["httpx", "excavate", "cloudcheck"]
 
     async def setup_after_prep(self, module_test):
-
         module_test.set_expect_requests({"uri": "/"}, {"response_data": "<a href='asdf.s3.amazonaws.com'/>"})
 
-        scan = Scanner(config={"cloud": True})
+        scan = Scanner(config={"cloudcheck": True})
         await scan._prep()
-        module = scan.modules["cloud"]
+        module = scan.modules["cloudcheck"]
         providers = scan.helpers.cloud.providers
         # make sure we have all the providers
         provider_names = (
