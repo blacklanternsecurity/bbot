@@ -25,7 +25,8 @@ class DepsInstaller:
         self.core = self.preset.core
 
         # respect BBOT's http timeout
-        http_timeout = self.parent_helper.config.get("http_timeout", 30)
+        self.web_config = self.parent_helper.config.get("web", {})
+        http_timeout = self.web_config.get("http_timeout", 30)
         os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
 
         self.askpass_filename = "sudo_askpass.py"

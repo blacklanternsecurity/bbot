@@ -12,7 +12,7 @@ class TestPortscan(ModuleTestBase):
         "8.8.4.4/24",
     ]
     scan_name = "test_portscan"
-    config_overrides = {"modules": {"portscan": {"ports": "443", "wait": 1}}, "dns_resolution": True}
+    config_overrides = {"modules": {"portscan": {"ports": "443", "wait": 1}}, "dns": {"minimal": False}}
 
     masscan_output_1 = """{   "ip": "8.8.8.8",   "timestamp": "1680197558", "ports": [ {"port": 443, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
     masscan_output_2 = """{   "ip": "8.8.4.5",   "timestamp": "1680197558", "ports": [ {"port": 80, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
@@ -126,10 +126,7 @@ class TestPortscan(ModuleTestBase):
 
 class TestPortscanPingFirst(TestPortscan):
     modules_overrides = {"portscan"}
-    config_overrides = {
-        "modules": {"portscan": {"ports": "443", "wait": 1, "ping_first": True}},
-        "dns_resolution": True,
-    }
+    config_overrides = {"modules": {"portscan": {"ports": "443", "wait": 1, "ping_first": True}}}
 
     def check(self, module_test, events):
         assert set(self.syn_scanned) == {"8.8.8.8/32"}
@@ -143,10 +140,7 @@ class TestPortscanPingFirst(TestPortscan):
 
 class TestPortscanPingOnly(TestPortscan):
     modules_overrides = {"portscan"}
-    config_overrides = {
-        "modules": {"portscan": {"ports": "443", "wait": 1, "ping_only": True}},
-        "dns_resolution": True,
-    }
+    config_overrides = {"modules": {"portscan": {"ports": "443", "wait": 1, "ping_only": True}}}
 
     targets = ["8.8.8.8/24", "8.8.4.4/24"]
 

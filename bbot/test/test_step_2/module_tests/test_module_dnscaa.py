@@ -5,7 +5,9 @@ class TestDNSCAA(ModuleTestBase):
     targets = ["blacklanternsecurity.notreal"]
     modules_overrides = ["dnscaa", "speculate"]
     config_overrides = {
-        "scope_report_distance": 1,
+        "scope": {
+            "report_distance": 1,
+        }
     }
 
     async def setup_after_prep(self, module_test):
@@ -54,7 +56,7 @@ class TestDNSCAA(ModuleTestBase):
 
 
 class TestDNSCAAInScopeFalse(TestDNSCAA):
-    config_overrides = {"scope_report_distance": 3, "modules": {"dnscaa": {"in_scope_only": False}}}
+    config_overrides = {"scope": {"report_distance": 3}, "modules": {"dnscaa": {"in_scope_only": False}}}
 
     def check(self, module_test, events):
         assert any(str(e.host) == "caa.comodoca.com" for e in events)

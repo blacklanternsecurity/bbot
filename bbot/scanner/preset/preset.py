@@ -414,7 +414,7 @@ class Preset:
         # enable output modules
         output_modules_to_enable = baked_preset.explicit_output_modules
         output_module_override = any(m in self.default_output_modules for m in output_modules_to_enable)
-        # enable the default  if none of the default output modules have been explicitly specified, enable them
+        # if none of the default output modules have been explicitly specified, enable them all
         if not output_module_override:
             output_modules_to_enable.update(self.default_output_modules)
         for module in output_modules_to_enable:
@@ -519,6 +519,10 @@ class Preset:
     @property
     def config(self):
         return self.core.config
+
+    @property
+    def web_config(self):
+        return self.core.config.get("web", {})
 
     @property
     def verbose(self):
@@ -627,7 +631,7 @@ class Preset:
             Preset: The loaded preset
 
         Examples:
-            >>> preset = Preset.from_dict({"target": "evilcorp.com", "modules": ["portscan}]})
+            >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
         new_preset = cls(
             *preset_dict.get("target", []),
@@ -666,6 +670,9 @@ class Preset:
 
         Args:
             filename (Path): The preset YAML file to merge
+
+        Examples:
+            >>> preset.include_preset("/home/user/my_preset.yml")
         """
         self.log_debug(f'Including preset "{filename}"')
         preset_filename = PRESET_PATH.find(filename)
@@ -677,7 +684,12 @@ class Preset:
     @classmethod
     def from_yaml_file(cls, filename, _exclude=None, _log=False):
         """
-        Load a preset from a YAML file.
+        Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
+
+        The file extension is optional.
+
+        Examples:
+            >>> preset = Preset.from_yaml_file("/home/user/my_preset.yml")
         """
         filename = Path(filename).resolve()
         try:
@@ -704,6 +716,19 @@ class Preset:
 
     @classmethod
     def from_yaml_string(cls, yaml_preset):
+        """
+        Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
+
+        The file extension is optional.
+
+        Examples:
+            >>> yaml_string = '''
+            >>> target:
+            >>> - evilcorp.com
+            >>> modules:
+            >>> - portscan'''
+            >>> preset = Preset.from_yaml_string(yaml_string)
+        """
         return cls.from_dict(omegaconf.OmegaConf.create(yaml_preset))
 
     def to_dict(self, include_target=False, full_config=False, redact_secrets=False):

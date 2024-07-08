@@ -21,8 +21,8 @@ class baddns(BaseModule):
         "only_high_confidence": "Do not emit low-confidence or generic detections",
         "enable_references": "Enable the references module (off by default)",
     }
-    max_event_handlers = 8
-    deps_pip = ["baddns~=1.1.789"]
+    module_threads = 8
+    deps_pip = ["baddns~=1.1.796"]
 
     def select_modules(self):
 

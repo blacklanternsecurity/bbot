@@ -32,7 +32,7 @@ class badsecrets(BaseModule):
         return True
 
     @property
-    def _max_event_handlers(self):
+    def _module_threads(self):
         return max(1, multiprocessing.cpu_count() - 1)
 
     async def handle_event(self, event):

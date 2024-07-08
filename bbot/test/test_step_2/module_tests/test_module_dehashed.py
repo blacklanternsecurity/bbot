@@ -39,7 +39,7 @@ dehashed_domain_response = {
 class TestDehashed(ModuleTestBase):
     modules_overrides = ["dehashed", "speculate"]
     config_overrides = {
-        "scope_report_distance": 2,
+        "scope": {"report_distance": 2},
         "modules": {"dehashed": {"username": "admin", "api_key": "deadbeef"}},
     }
 

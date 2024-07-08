@@ -1,6 +1,6 @@
 # Getting Started
 
-<video controls="" autoplay="" name="media"><source src="https://github-production-user-asset-6210df.s3.amazonaws.com/20261699/245941416-ebf2a81e-7530-4a9e-922d-4e62eb949f35.mp4" type="video/mp4"></video>
+<video controls="" autoplay="" name="media"><source src="https://github.com/blacklanternsecurity/bbot/assets/20261699/e539e89b-92ea-46fa-b893-9cde94eebf81" type="video/mp4"></video>
 
 _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)_
 
@@ -69,7 +69,7 @@ bbot -t evilcorp.com -p subdomain-enum -rf passive
 
 ```bash
 # Port-scan every subdomain, screenshot every webpage, output to current directory
-bbot -t evilcorp.com -p subdomain-enum -m nmap gowitness -n my_scan -o .
+bbot -t evilcorp.com -p subdomain-enum -m portscan gowitness -n my_scan -o .
 ```
 
 **Subdomains + basic web scan:**
@@ -83,7 +83,7 @@ bbot -t evilcorp.com -p subdomain-enum web-basic
 
 ```bash
 # Crawl www.evilcorp.com up to a max depth of 2, automatically extracting emails, secrets, etc.
-bbot -t www.evilcorp.com -p spider -c web_spider_distance=2 web_spider_depth=2
+bbot -t www.evilcorp.com -p spider -c web.spider_distance=2 web.spider_depth=2
 ```
 
 **Everything everywhere all at once:**

@@ -87,7 +87,7 @@ async def test_manager_deduplication(bbot_scanner):
     # dns search distance = 1, report distance = 0
     events, default_events, all_events, no_suppress_dupes, accept_dupes, per_hostport_only, per_domain_only = await do_scan(
         "test.notreal",
-        _config={"dns_resolution": True, "scope_dns_search_distance": 1, "scope_report_distance": 0},
+        _config={"dns": {"minimal": False, "search_distance": 1}, "scope": {"report_distance": 0}},
         _dns_mock=dns_mock_chain,
     )
 

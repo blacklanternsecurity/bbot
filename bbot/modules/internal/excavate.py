@@ -266,7 +266,6 @@ class CustomExtractor(ExcavateRule):
         super().__init__(excavate)
 
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
-
         for identifier, results in yara_results.items():
             for result in results:
                 event_data = {"host": str(event.host), "url": event.data.get("url", "")}
@@ -683,10 +682,6 @@ class excavate(BaseInternalModule):
         full_url_regex_strict = re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$")
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
-
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
 
             for identifier, results in yara_results.items():
@@ -739,7 +734,7 @@ class excavate(BaseInternalModule):
             url_in_scope = self.excavate.scan.in_scope(event_draft)
             urls_found = kwargs.get("urls_found", None)
             if urls_found:
-                exceeds_max_links = urls_found > self.web_spider_links_per_page and url_in_scope
+                exceeds_max_links = urls_found > self.excavate.scan.web_spider_links_per_page and url_in_scope
                 if exceeds_max_links:
                     tags.append("spider-max")
             event_draft.tags = tags
@@ -774,10 +769,6 @@ class excavate(BaseInternalModule):
             yield r
 
     async def setup(self):
-
-        max_redirects = self.scan.config.get("http_max_redirects", 5)
-        self.web_spider_distance = self.scan.config.get("web_spider_distance", 0)
-        self.max_redirects = max(max_redirects, self.web_spider_distance)
         self.yara_rules_dict = {}
         self.yara_preprocess_dict = {}
 
@@ -939,9 +930,7 @@ class excavate(BaseInternalModule):
         # process response data
         body = event.data.get("body", "")
         headers = event.data.get("header-dict", {})
-
         if body == "" and headers == {}:
-
             return
 
         self.assigned_cookies = {}
@@ -1016,7 +1005,6 @@ class excavate(BaseInternalModule):
                                     }
                                     context = f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
                                     await self.emit_event(data, "WEB_PARAMETER", event, context=context)
-
                     else:
                         self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
                 if header.lower() == "content-type":

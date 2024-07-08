@@ -1,5 +1,4 @@
 import zmq
-import atexit
 import pickle
 import asyncio
 import inspect
@@ -19,6 +18,19 @@ error_sentinel = object()
 
 
 class EngineBase:
+    """
+    Base Engine class for Server and Client.
+
+    An Engine is a simple and lightweight RPC implementation that allows offloading async tasks
+    to a separate process. It leverages ZeroMQ in a ROUTER-DEALER configuration.
+
+    BBOT makes use of this by spawning a dedicated engine for DNS and HTTP tasks.
+    This offloads I/O and helps free up the main event loop for other tasks.
+
+    To use of Engine, you must subclass both EngineClient and EngineServer.
+
+    See the respective EngineClient and EngineServer classes for usage examples.
+    """
 
     ERROR_CLASS = BBOTEngineError
 
@@ -44,6 +56,37 @@ class EngineBase:
 
 
 class EngineClient(EngineBase):
+    """
+    The client portion of BBOT's RPC Engine.
+
+    To create an engine, you must create a subclass of this class and also
+    define methods for each of your desired functions.
+
+    Note that this only supports async functions. If you need to offload a synchronous function to another CPU, use BBOT's multiprocessing pool instead.
+
+    Any CPU or I/O intense logic should be implemented in the EngineServer.
+
+    These functions are typically stubs whose only job is to forward the arguments to the server.
+
+    Functions with the same names should be defined on the EngineServer.
+
+    The EngineClient must specify its associated server class via the `SERVER_CLASS` variable.
+
+    Depending on whether your function is a generator, you will use either `run_and_return()`, or `run_and_yield`.
+
+    Examples:
+        >>> from bbot.core.engine import EngineClient
+        >>>
+        >>> class MyClient(EngineClient):
+        >>>     SERVER_CLASS = MyServer
+        >>>
+        >>>     async def my_function(self, **kwargs)
+        >>>         return await self.run_and_return("my_function", **kwargs)
+        >>>
+        >>>     async def my_generator(self, **kwargs):
+        >>>         async for _ in self.run_and_yield("my_generator", **kwargs):
+        >>>             yield _
+    """
 
     SERVER_CLASS = None
 
@@ -62,7 +105,8 @@ class EngineClient(EngineBase):
         self.server_kwargs = kwargs.pop("server_kwargs", {})
         self._server_process = None
         self.context = zmq.asyncio.Context()
-        atexit.register(self.cleanup)
+        self.context.setsockopt(zmq.LINGER, 0)
+        self.sockets = set()
 
     def check_error(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_e" in message:
@@ -86,7 +130,8 @@ class EngineClient(EngineBase):
             except BaseException:
                 # -1 == special "cancel" signal
                 cancel_message = pickle.dumps({"c": -1})
-                await socket.send(cancel_message)
+                with suppress(Exception):
+                    await socket.send(cancel_message)
                 raise
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = self.unpickle(binary)
@@ -118,7 +163,8 @@ class EngineClient(EngineBase):
                 except GeneratorExit:
                     # -1 == special "cancel" signal
                     cancel_message = pickle.dumps({"c": -1})
-                    await socket.send(cancel_message)
+                    with suppress(Exception):
+                        await socket.send(cancel_message)
                     raise
 
     def check_stop(self, message):
@@ -143,17 +189,25 @@ class EngineClient(EngineBase):
         return [s for s in self.CMDS if isinstance(s, str)]
 
     def start_server(self):
-        self.process = CORE.create_process(
-            target=self.server_process,
-            args=(
-                self.SERVER_CLASS,
-                self.socket_path,
-            ),
-            kwargs=self.server_kwargs,
-            custom_name="bbot dnshelper",
-        )
-        self.process.start()
-        return self.process
+        import multiprocessing
+
+        process_name = multiprocessing.current_process().name
+        if process_name == "MainProcess":
+            self.process = CORE.create_process(
+                target=self.server_process,
+                args=(
+                    self.SERVER_CLASS,
+                    self.socket_path,
+                ),
+                kwargs=self.server_kwargs,
+                custom_name=f"BBOT {self.__class__.__name__}",
+            )
+            self.process.start()
+            return self.process
+        else:
+            raise BBOTEngineError(
+                f"Tried to start server from process {process_name}. Did you forget \"if __name__ == '__main__'?\""
+            )
 
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
@@ -175,10 +229,13 @@ class EngineClient(EngineBase):
             while not self.socket_path.exists():
                 await asyncio.sleep(0.1)
         socket = self.context.socket(zmq.DEALER)
+        socket.setsockopt(zmq.LINGER, 0)
         socket.connect(f"ipc://{self.socket_path}")
+        self.sockets.add(socket)
         try:
             yield socket
         finally:
+            self.sockets.remove(socket)
             with suppress(Exception):
                 socket.close()
 
@@ -188,28 +245,55 @@ class EngineClient(EngineBase):
             # -99 == special shutdown signal
             shutdown_message = pickle.dumps({"c": -99})
             await socket.send(shutdown_message)
-        self.cleanup()
-
-    def cleanup(self):
-        self.context.destroy()
+        for socket in self.sockets:
+            socket.close()
+        self.context.term()
         # delete socket file on exit
         self.socket_path.unlink(missing_ok=True)
 
 
 class EngineServer(EngineBase):
+    """
+    The server portion of BBOT's RPC Engine.
+
+    Methods defined here must match the methods in your EngineClient.
+
+    To use the functions, you must create mappings for them in the CMDS attribute, as shown below.
+
+    Examples:
+        >>> from bbot.core.engine import EngineServer
+        >>>
+        >>> class MyServer(EngineServer):
+        >>>     CMDS = {
+        >>>         0: "my_function",
+        >>>         1: "my_generator",
+        >>>     }
+        >>>
+        >>>     def my_function(self, arg1=None):
+        >>>         await asyncio.sleep(1)
+        >>>         return str(arg1)
+        >>>
+        >>>     def my_generator(self):
+        >>>         for i in range(10):
+        >>>             await asyncio.sleep(1)
+        >>>             yield i
+    """
 
     CMDS = {}
 
     def __init__(self, socket_path):
         super().__init__()
         self.name = f"EngineServer {self.__class__.__name__}"
-        if socket_path is not None:
+        self.socket_path = socket_path
+        if self.socket_path is not None:
             # create ZeroMQ context
             self.context = zmq.asyncio.Context()
+            self.context.setsockopt(zmq.LINGER, 0)
             # ROUTER socket can handle multiple concurrent requests
             self.socket = self.context.socket(zmq.ROUTER)
+            self.socket.setsockopt(zmq.LINGER, 0)
             # create socket file
-            self.socket.bind(f"ipc://{socket_path}")
+            self.socket.bind(f"ipc://{self.socket_path}")
             # task <--> client id mapping
             self.tasks = dict()
 
@@ -287,25 +371,13 @@ class EngineServer(EngineBase):
 
                 # -1 == cancel task
                 if cmd == -1:
-                    task = self.tasks.get(client_id, None)
-                    if task is None:
-                        continue
-                    task, _cmd, _args, _kwargs = task
-                    self.log.debug(f"Cancelling client id {client_id} (task: {task})")
-                    task.cancel()
-                    try:
-                        await task
-                    except (KeyboardInterrupt, asyncio.CancelledError):
-                        pass
-                    except BaseException as e:
-                        self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
-                        self.log.trace(traceback.format_exc())
-                    self.tasks.pop(client_id, None)
+                    await self.cancel_task(client_id)
                     continue
 
                 # -99 == shut down engine
                 if cmd == -99:
                     self.log.verbose("Got shutdown signal, shutting down...")
+                    await self.cancel_all_tasks()
                     return
 
                 args = message.get("a", ())
@@ -335,7 +407,28 @@ class EngineServer(EngineBase):
             self.log.error(f"Error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
         finally:
-            with suppress(Exception):
-                self.socket.close()
-            with suppress(Exception):
-                self.context.destroy()
+            self.socket.close()
+            self.context.term()
+            # delete socket file on exit
+            self.socket_path.unlink(missing_ok=True)
+
+    async def cancel_task(self, client_id):
+        task = self.tasks.get(client_id, None)
+        if task is None:
+            return
+        task, _cmd, _args, _kwargs = task
+        self.log.debug(f"Cancelling client id {client_id} (task: {task})")
+        task.cancel()
+        try:
+            await task
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            pass
+        except BaseException as e:
+            self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
+            self.log.trace(traceback.format_exc())
+        finally:
+            self.tasks.pop(client_id, None)
+
+    async def cancel_all_tasks(self):
+        for client_id in self.tasks:
+            await self.cancel_task(client_id)

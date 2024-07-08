@@ -2,7 +2,7 @@ from .base import ModuleTestBase
 
 
 class TestAggregate(ModuleTestBase):
-    config_overrides = {"dns_resolution": True, "scope_report_distance": 1}
+    config_overrides = {"dns": {"minimal": False}, "scope": {"report_distance": 1}}
 
     async def setup_before_prep(self, module_test):
         await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["1.2.3.4"]}})

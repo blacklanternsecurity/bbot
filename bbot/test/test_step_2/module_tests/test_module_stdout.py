@@ -65,7 +65,7 @@ class TestStdoutJSONFields(TestStdout):
 class TestStdoutDupes(TestStdout):
     targets = ["blacklanternsecurity.com", "127.0.0.2"]
     config_overrides = {
-        "dns_resolution": True,
+        "dns": {"minimal": False},
         "modules": {
             "stdout": {
                 "event_types": ["DNS_NAME", "IP_ADDRESS"],
@@ -85,7 +85,7 @@ class TestStdoutDupes(TestStdout):
 
 class TestStdoutNoDupes(TestStdoutDupes):
     config_overrides = {
-        "dns_resolution": True,
+        "dns": {"minimal": False},
         "modules": {
             "stdout": {
                 "event_types": ["DNS_NAME", "IP_ADDRESS"],

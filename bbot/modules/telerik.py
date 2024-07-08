@@ -160,17 +160,13 @@ class telerik(BaseModule):
         },
     ]
 
-    _max_event_handlers = 5
+    _module_threads = 5
 
     def _incoming_dedup_hash(self, event):
         if event.type == "URL":
             return hash(event.host)
         else:
             return hash(event.data["url"])
-
-    async def setup(self):
-        self.timeout = self.scan.config.get("httpx_timeout", 5)
-        return True
 
     async def handle_event(self, event):
         if event.type == "URL":
@@ -364,7 +360,7 @@ class telerik(BaseModule):
     async def test_detector(self, baseurl, detector):
         result = None
         url = self.create_url(baseurl, detector)
-        result = await self.helpers.request(url, timeout=self.timeout)
+        result = await self.helpers.request(url, timeout=self.scan.httpx_timeout)
         return result, detector
 
     async def filter_event(self, event):

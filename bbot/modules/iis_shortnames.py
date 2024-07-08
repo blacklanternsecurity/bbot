@@ -29,7 +29,7 @@ class iis_shortnames(BaseModule):
     }
     in_scope_only = True
 
-    _max_event_handlers = 8
+    _module_threads = 8
 
     async def detect(self, target):
         technique = None

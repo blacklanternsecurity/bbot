@@ -400,7 +400,7 @@ class TestGithub_Org_MemberRepos(TestGithub_Org):
 
 class TestGithub_Org_Custom_Target(TestGithub_Org):
     targets = ["ORG:blacklanternsecurity"]
-    config_overrides = {"scope_report_distance": 10, "omit_event_types": [], "speculate": True}
+    config_overrides = {"scope": {"report_distance": 10}, "omit_event_types": [], "speculate": True}
 
     def check(self, module_test, events):
         assert len(events) == 8

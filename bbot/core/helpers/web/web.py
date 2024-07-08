@@ -52,6 +52,9 @@ class WebHelper(EngineClient):
         self.parent_helper = parent_helper
         self.preset = self.parent_helper.preset
         self.config = self.preset.config
+        self.web_config = self.config.get("web", {})
+        self.web_spider_depth = self.web_config.get("spider_depth", 1)
+        self.web_spider_distance = self.web_config.get("spider_distance", 0)
         self.target = self.preset.target
         self.ssl_verify = self.config.get("ssl_verify", False)
         super().__init__(server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.radix_only})
@@ -353,15 +356,15 @@ class WebHelper(EngineClient):
         if ignore_bbot_global_settings:
             log.debug("ignore_bbot_global_settings enabled. Global settings will not be applied")
         else:
-            http_timeout = self.parent_helper.config.get("http_timeout", 20)
-            user_agent = self.parent_helper.config.get("user_agent", "BBOT")
+            http_timeout = self.parent_helper.web_config.get("http_timeout", 20)
+            user_agent = self.parent_helper.web_config.get("user_agent", "BBOT")
 
             if "User-Agent" not in headers:
                 headers["User-Agent"] = user_agent
 
             # only add custom headers if the URL is in-scope
             if self.parent_helper.preset.in_scope(url):
-                for hk, hv in self.parent_helper.config.get("http_headers", {}).items():
+                for hk, hv in self.web_config.get("http_headers", {}).items():
                     headers[hk] = hv
 
             # add the timeout

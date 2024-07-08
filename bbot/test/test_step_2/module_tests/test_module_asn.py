@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestASNBGPView(ModuleTestBase):
     targets = ["8.8.8.8"]
     module_name = "asn"
-    config_overrides = {"scope_report_distance": 2}
+    config_overrides = {"scope": {"report_distance": 2}}
 
     response_get_asn_bgpview = {
         "status": "ok",
@@ -92,7 +92,7 @@ class TestASNBGPView(ModuleTestBase):
 class TestASNRipe(ModuleTestBase):
     targets = ["8.8.8.8"]
     module_name = "asn"
-    config_overrides = {"scope_report_distance": 2}
+    config_overrides = {"scope": {"report_distance": 2}}
 
     response_get_asn_ripe = {
         "messages": [],

@@ -6,14 +6,12 @@ from bbot.errors import ValidationError
 from bbot.core.helpers.dns.engine import all_rdtypes
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.modules.base import InterceptModule, BaseModule
+from bbot.core.helpers.dns.helpers import extract_targets
 
 
 class DNS(InterceptModule):
     watched_events = ["*"]
-    options = {"max_event_handlers": 25}
-    options_desc = {"max_event_handlers": "Number of concurrent DNS workers"}
     _priority = 1
-    _max_event_handlers = 25
     scope_distance_modifier = None
 
     class HostModule(BaseModule):
@@ -23,14 +21,19 @@ class DNS(InterceptModule):
         def _outgoing_dedup_hash(self, event):
             return hash((event, self.name, event.always_emit))
 
+    @property
+    def module_threads(self):
+        return self.dns_config.get("threads", 25)
+
     async def setup(self):
-        self.dns_resolution = True
-        # you can disable DNS resolution with either the "dns" or "dns_resolution" config options
-        for key in ("dns", "dns_resolution"):
-            if self.scan.config.get(key, None) is False:
-                self.dns_resolution = False
-        self.scope_search_distance = max(0, int(self.scan.config.get("scope_search_distance", 0)))
-        self.scope_dns_search_distance = max(0, int(self.scan.config.get("scope_dns_search_distance", 1)))
+        self.dns_config = self.scan.config.get("dns", {})
+        self.dns_disable = self.dns_config.get("disable", False)
+        if self.dns_disable:
+            return None, "DNS resolution is disabled in the config"
+
+        self.minimal = self.dns_config.get("minimal", False)
+        self.dns_search_distance = max(0, int(self.dns_config.get("search_distance", 1)))
+        self._emit_raw_records = None
 
         # event resolution cache
         self._event_cache = LRUCache(maxsize=10000)
@@ -42,7 +45,18 @@ class DNS(InterceptModule):
 
     @property
     def _dns_search_distance(self):
-        return max(self.scope_search_distance, self.scope_dns_search_distance)
+        return max(self.scan.scope_search_distance, self.dns_search_distance)
+
+    @property
+    def emit_raw_records(self):
+        if self._emit_raw_records is None:
+            watching_raw_records = any(
+                ["RAW_DNS_RECORD" in m.get_watched_events() for m in self.scan.modules.values()]
+            )
+            omitted_event_types = self.scan.config.get("omit_event_types", [])
+            omit_raw_records = "RAW_DNS_RECORD" in omitted_event_types
+            self._emit_raw_records = watching_raw_records or not omit_raw_records
+        return self._emit_raw_records
 
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):
@@ -67,26 +81,35 @@ class DNS(InterceptModule):
                 # try to get from cache
                 dns_tags, dns_children, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
             except KeyError:
+                rdtypes_to_resolve = ()
                 if event_is_ip:
-                    rdtypes_to_resolve = ["PTR"]
+                    if not self.minimal:
+                        rdtypes_to_resolve = ("PTR",)
                 else:
-                    if self.dns_resolution:
-                        rdtypes_to_resolve = all_rdtypes
-                    else:
+                    if self.minimal:
                         rdtypes_to_resolve = ("A", "AAAA", "CNAME")
+                    else:
+                        rdtypes_to_resolve = all_rdtypes
 
                 # if missing from cache, do DNS resolution
                 queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
                 error_rdtypes = []
-                async for (query, rdtype), (answers, errors) in self.helpers.dns.resolve_raw_batch(queries):
+                async for (query, rdtype), (answer, errors) in self.helpers.dns.resolve_raw_batch(queries):
+                    if self.emit_raw_records and rdtype in ("TXT", "MX", "NS"):
+                        await self.emit_event(
+                            {"host": str(event_host), "type": rdtype, "answer": answer.to_text()},
+                            "RAW_DNS_RECORD",
+                            parent=event,
+                            tags=[f"{rdtype.lower()}-record"],
+                        )
                     if errors:
                         error_rdtypes.append(rdtype)
-                    for answer, _rdtype in answers:
+                    for _rdtype, host in extract_targets(answer):
                         dns_tags.add(f"{rdtype.lower()}-record")
                         try:
-                            dns_children[_rdtype].add(answer)
+                            dns_children[_rdtype].add(host)
                         except KeyError:
-                            dns_children[_rdtype] = {answer}
+                            dns_children[_rdtype] = {host}
 
                 for rdtype in error_rdtypes:
                     if rdtype not in dns_children:
@@ -122,7 +145,7 @@ class DNS(InterceptModule):
                             continue
 
                 # only emit DNS children if we haven't seen this host before
-                emit_children = self.dns_resolution and event_host_hash not in self._event_cache
+                emit_children = (not self.minimal) and (event_host_hash not in self._event_cache)
 
                 # store results in cache
                 self._event_cache[event_host_hash] = dns_tags, dns_children, event_whitelisted, event_blacklisted
@@ -153,9 +176,9 @@ class DNS(InterceptModule):
 
         # kill runaway DNS chains
         dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
-        if dns_resolve_distance >= self.helpers.dns.max_dns_resolve_distance:
+        if dns_resolve_distance >= self.helpers.dns.runaway_limit:
             self.debug(
-                f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.max_dns_resolve_distance})"
+                f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.runaway_limit})"
             )
             dns_children = {}
 

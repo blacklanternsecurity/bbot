@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestAffiliates(ModuleTestBase):
     targets = ["8.8.8.8"]
-    config_overrides = {"dns_resolution": True}
+    config_overrides = {"dns": {"minimal": False}}
 
     async def setup_before_prep(self, module_test):
         await module_test.mock_dns(

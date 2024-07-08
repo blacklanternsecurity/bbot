@@ -98,7 +98,7 @@ modules:
 
 ...or on the command line:
 ```bash
-bbot -t evilcorp.com -om discord -c output_modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
+bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
 ```
 
 By default, only `VULNERABILITY` and `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
@@ -114,7 +114,7 @@ modules:
 
 ...or on the command line:
 ```bash
-bbot -t evilcorp.com -om discord -c output_modules.discord.event_types=["STORAGE_BUCKET","FINDING","VULNERABILITY"]
+bbot -t evilcorp.com -om discord -c modules.discord.event_types=["STORAGE_BUCKET","FINDING","VULNERABILITY"]
 ```
 
 You can also filter on the severity of `VULNERABILITY` events by setting `min_severity`:
@@ -132,7 +132,7 @@ The `http` output module sends [events](events.md) in JSON format to a desired H
 
 ```bash
 # POST scan results to localhost
-bbot -t evilcorp.com -om http -c output_modules.http.url=http://localhost:8000
+bbot -t evilcorp.com -om http -c modules.http.url=http://localhost:8000
 ```
 
 You can customize the HTTP method if needed. Authentication is also supported:

@@ -1,5 +1,8 @@
+# How to Write a BBOT Module
 
-Writing a module is easy and requires only a basic understanding of Python. It consists of a few steps:
+Here we'll go over a basic example of writing a custom BBOT module.
+
+## Create the python file
 
 1. Create a new `.py` file in `bbot/modules`
 1. At the top of the file, import `BaseModule`
@@ -43,6 +46,8 @@ class whois(BaseModule):
             await self.emit_event(response.json(), "WHOIS", parent=event)
 ```
 
+## Test your new module
+
 After saving the module, you can run it with `-m`:
 
 ```bash
@@ -50,13 +55,15 @@ After saving the module, you can run it with `-m`:
 bbot -t evilcorp.com -m whois
 ```
 
-### `handle_event()` and `emit_event()`
+For details on how tests are written, see [Unit Tests](./tests.md).
+
+## `handle_event()` and `emit_event()`
 
 The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events.md) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that event as its argument.
 
 The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events.md) and outputs it, sending it any modules that are interested in that data type.
 
-### `setup()`
+## `setup()`
 
 A module's `setup()` method is used for performing one-time setup at the start of the scan, like downloading a wordlist or checking to make sure an API key is valid. It needs to return either:
 
@@ -85,7 +92,7 @@ async def setup(self):
     return True
 ```
 
-### Module Config Options
+## Module Config Options
 
 Each module can have its own set of config options. These live in the `options` and `options_desc` attributes on your class. Both are dictionaries; `options` is for defaults and `options_desc` is for descriptions. Here is a typical example:
 
@@ -110,6 +117,7 @@ class nmap(BaseModule):
         self.timing = self.config.get("timing", "T4")
         self.top_ports = self.config.get("top_ports", 100)
         self.skip_host_discovery = self.config.get("skip_host_discovery", True)
+        return True
 ```
 
 Once you've defined these variables, you can pass the options via `-c`:
@@ -132,7 +140,7 @@ Inside the module, you access them via `self.config`, e.g.:
 self.config.get("top_ports")
 ```
 
-### Module Dependencies
+## Module Dependencies
 
 BBOT automates module dependencies with **Ansible**. If your module relies on a third-party binary, OS package, or python library, you can specify them in the `deps_*` attributes of your module.
 
