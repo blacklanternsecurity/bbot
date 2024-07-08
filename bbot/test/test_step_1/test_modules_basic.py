@@ -291,7 +291,7 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
     per_domain_scan = bbot_scanner(
         "evilcorp.com",
         modules=list(available_modules),
-        config={i: True for i in available_internal_modules if i != "dns"},
+        config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
 
@@ -381,7 +381,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "ORG_STUB": 1,
     }
 
-    assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "dns"}
+    assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "dnsresolve"}
 
     target_stats = scan.stats.module_stats["TARGET"]
     assert target_stats.produced == {"SCAN": 1, "DNS_NAME": 1}
@@ -427,7 +427,7 @@ async def test_module_loading(bbot_scanner):
     scan2 = bbot_scanner(
         modules=list(available_modules),
         output_modules=list(available_output_modules),
-        config={i: True for i in available_internal_modules if i != "dns"},
+        config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
     await scan2.load_modules()

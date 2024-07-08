@@ -59,7 +59,7 @@ class ModuleTestBase:
                     modules.remove(module)
                     if module_type == "output":
                         output_modules.append(module)
-                    elif module_type == "internal" and not module == "dns":
+                    elif module_type == "internal" and not module == "dnsresolve":
                         self.config = OmegaConf.merge(self.config, {module: True})
 
             self.scan = Scanner(
