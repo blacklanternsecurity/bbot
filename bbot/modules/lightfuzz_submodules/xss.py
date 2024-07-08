@@ -38,6 +38,8 @@ class XSSLightfuzz(BaseLightfuzz):
                     "description": f"Possible Reflected XSS. Parameter: [{self.event.data['name']}] Context: [{context}]",
                 }
             )
+            return True
+        return False
 
     async def fuzz(self):
         lightfuzz_event = self.event.parent
@@ -64,10 +66,13 @@ class XSSLightfuzz(BaseLightfuzz):
         self.lightfuzz.debug(
             f"determine_context returned: between_tags [{between_tags}], in_tag_attribute [{in_tag_attribute}], in_javascript [{in_javascript}]"
         )
-
+        tags = ["z","svg","img"]
         if between_tags:
-            between_tags_probe = f"<z>{random_string}</z>"
-            await self.check_probe(between_tags_probe, between_tags_probe, "Between Tags")
+            for tag in tags:
+                between_tags_probe = f"<{tag}>{random_string}</{tag}>"
+                result = await self.check_probe(between_tags_probe, between_tags_probe, f"Between Tags ({tag}) tag")
+                if result == True:
+                    continue
 
         if in_tag_attribute:
             in_tag_attribute_probe = f'{random_string}"'

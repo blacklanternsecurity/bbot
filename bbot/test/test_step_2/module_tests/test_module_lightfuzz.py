@@ -224,7 +224,7 @@ class Test_Lightfuzz_xss(ModuleTestBase):
                     web_parameter_emitted = True
 
             if e.type == "FINDING":
-                if "Possible Reflected XSS. Parameter: [search] Context: [Between Tags]" in e.data["description"]:
+                if "Possible Reflected XSS. Parameter: [search] Context: [Between Tags" in e.data["description"]:
                     xss_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
