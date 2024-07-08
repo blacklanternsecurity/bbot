@@ -21,9 +21,12 @@ class bucket_azure(bucket_template):
     # Dirbusting is required to know whether a bucket is public
     supports_open_check = False
 
-    async def check_bucket_exists(self, bucket_name, url):
+    def build_bucket_request(self, bucket_name, base_domain, region):
+        url = self.build_url(bucket_name, base_domain, region)
         url = url.strip("/") + f"/{bucket_name}?restype=container"
-        response = await self.helpers.request(url, retries=0)
+        return url, {"retries": 0}
+
+    def check_bucket_exists(self, bucket_name, response):
         status_code = getattr(response, "status_code", 0)
         existent_bucket = status_code != 0
-        return existent_bucket, set(), bucket_name, url
+        return existent_bucket, set()

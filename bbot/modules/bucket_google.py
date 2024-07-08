@@ -60,8 +60,7 @@ class bucket_google(bucket_template):
             msg = f"Open permissions on storage bucket ({perms_str})"
         return (msg, set())
 
-    async def check_bucket_exists(self, bucket_name, url):
-        response = await self.helpers.request(url)
+    def check_bucket_exists(self, bucket_name, response):
         status_code = getattr(response, "status_code", 0)
         existent_bucket = status_code not in (0, 400, 404)
-        return existent_bucket, set(), bucket_name, url
+        return existent_bucket, set()
