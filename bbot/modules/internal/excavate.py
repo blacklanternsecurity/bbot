@@ -12,12 +12,13 @@ from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
 
 def ensure_utf8_compliant(text):
     try:
-        text.encode('utf-8')
+        text.encode("utf-8")
     except UnicodeEncodeError:
-        text = text.encode('utf-8', errors='ignore').decode('utf-8')
+        text = text.encode("utf-8", errors="ignore").decode("utf-8")
     # Remove any surrogate characters
-    return ''.join(c for c in text if not (0xD800 <= ord(c) <= 0xDFFF))
-    
+    return "".join(c for c in text if not (0xD800 <= ord(c) <= 0xDFFF))
+
+
 def find_subclasses(obj, base_class):
     """
     Finds and returns subclasses of a specified base class within an object.
@@ -896,11 +897,9 @@ class excavate(BaseInternalModule):
                         await self.emit_event(data, "WEB_PARAMETER", event, context=context)
                 return
 
-
         # ensure data is utf-8 compliant
         data = ensure_utf8_compliant(data)
         decoded_data = ensure_utf8_compliant(decoded_data)
-
 
         for result in self.yara_rules.match(data=f"{data}\n{decoded_data}"):
             rule_name = result.rule
