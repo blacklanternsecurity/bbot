@@ -101,6 +101,7 @@ class DNSResolve(InterceptModule):
                             "RAW_DNS_RECORD",
                             parent=event,
                             tags=[f"{rdtype.lower()}-record"],
+                            context=f"{rdtype} lookup on {{event.parent.host}} produced {{event.type}}",
                         )
                     if errors:
                         error_rdtypes.append(rdtype)
