@@ -1,17 +1,91 @@
 import re
-from omegaconf import OmegaConf
 
 from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
-    scan1 = bbot_scanner("8.8.8.8", config=bbot_config)
-    scan2 = bbot_scanner("127.0.0.1", config=bbot_config)
+async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
-    user_agent = bbot_config.get("user_agent", "")
+    from werkzeug.wrappers import Response
+
+    def server_handler(request):
+        return Response(f"{request.url}: {request.headers}")
+
+    base_url = bbot_httpserver.url_for("/test/")
+    bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
+
+    scan = bbot_scanner()
+
+    # request
+    response = await scan.helpers.request(f"{base_url}1")
+    assert response.status_code == 200
+    assert response.text.startswith(f"{base_url}1: ")
+
+    num_urls = 100
+
+    # request_batch
+    urls = [f"{base_url}{i}" for i in range(num_urls)]
+    responses = [r async for r in scan.helpers.request_batch(urls)]
+    assert len(responses) == 100
+    assert all([r[1].status_code == 200 and r[1].text.startswith(f"{r[0]}: ") for r in responses])
+
+    # request_batch w/ cancellation
+    agen = scan.helpers.request_batch(urls)
+    async for url, response in agen:
+        assert response.text.startswith(base_url)
+        await agen.aclose()
+        break
+
+    # request_custom_batch
+    urls_and_kwargs = [(urls[i], {"headers": {f"h{i}": f"v{i}"}}, i) for i in range(num_urls)]
+    results = [r async for r in scan.helpers.request_custom_batch(urls_and_kwargs)]
+    assert len(responses) == 100
+    for result in results:
+        url, kwargs, custom_tracker, response = result
+        assert "headers" in kwargs
+        assert f"h{custom_tracker}" in kwargs["headers"]
+        assert kwargs["headers"][f"h{custom_tracker}"] == f"v{custom_tracker}"
+        assert response.status_code == 200
+        assert response.text.startswith(f"{url}: ")
+        assert f"H{custom_tracker}: v{custom_tracker}" in response.text
+
+    # download
+    url = f"{base_url}999"
+    filename = await scan.helpers.download(url)
+    file_content = open(filename).read()
+    assert file_content.startswith(f"{url}: ")
+
+    # raise_error=True
+    with pytest.raises(WebError):
+        await scan.helpers.request("http://www.example.com/", raise_error=True)
+
+
+@pytest.mark.asyncio
+async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
+
+    # json conversion
+    scan = bbot_scanner("evilcorp.com")
+    url = "http://www.evilcorp.com/json_test?a=b"
+    httpx_mock.add_response(url=url, text="hello\nworld")
+    response = await scan.helpers.web.request(url)
+    j = scan.helpers.response_to_json(response)
+    assert j["status_code"] == 200
+    assert j["host"] == "www.evilcorp.com"
+    assert j["scheme"] == "http"
+    assert j["method"] == "GET"
+    assert j["port"] == 80
+    assert j["path"] == "/json_test"
+    assert j["body"] == "hello\nworld"
+    assert j["content_type"] == "text/plain"
+    assert j["url"] == "http://www.evilcorp.com/json_test?a=b"
+
+    scan1 = bbot_scanner("8.8.8.8")
+    scan2 = bbot_scanner("127.0.0.1")
+
+    web_config = CORE.config.get("web", {})
+    user_agent = web_config.get("user_agent", "")
     headers = {"User-Agent": user_agent}
-    custom_headers = bbot_config.get("http_headers", {})
+    custom_headers = web_config.get("http_headers", {})
     headers.update(custom_headers)
     assert headers["test"] == "header"
 
@@ -77,6 +151,8 @@ async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     filename = await scan1.helpers.download(url)
     assert filename is None
     assert not scan1.helpers.is_cached(url)
+    with pytest.raises(WebError):
+        filename = await scan1.helpers.download(url, raise_error=True)
 
     # wordlist
     path = "/test_http_helpers_wordlist"
@@ -125,7 +201,7 @@ async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
 
 
 @pytest.mark.asyncio
-async def test_web_interactsh(bbot_scanner, bbot_config, bbot_httpserver):
+async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     from bbot.core.helpers.interactsh import server_list
 
     sync_called = False
@@ -134,7 +210,7 @@ async def test_web_interactsh(bbot_scanner, bbot_config, bbot_httpserver):
     sync_correct_url = False
     async_correct_url = False
 
-    scan1 = bbot_scanner("8.8.8.8", config=bbot_config)
+    scan1 = bbot_scanner("8.8.8.8")
     scan1.status = "RUNNING"
 
     interactsh_client = scan1.helpers.interactsh(poll_interval=3)
@@ -186,8 +262,8 @@ async def test_web_interactsh(bbot_scanner, bbot_config, bbot_httpserver):
 
 
 @pytest.mark.asyncio
-async def test_web_curl(bbot_scanner, bbot_config, bbot_httpserver):
-    scan = bbot_scanner("127.0.0.1", config=bbot_config)
+async def test_web_curl(bbot_scanner, bbot_httpserver):
+    scan = bbot_scanner("127.0.0.1")
     helpers = scan.helpers
     url = bbot_httpserver.url_for("/curl")
     bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
@@ -231,7 +307,7 @@ async def test_web_http_compare(httpx_mock, helpers):
 
 
 @pytest.mark.asyncio
-async def test_http_proxy(bbot_scanner, bbot_config, bbot_httpserver, proxy_server):
+async def test_http_proxy(bbot_scanner, bbot_httpserver, proxy_server):
     endpoint = "/test_http_proxy"
     url = bbot_httpserver.url_for(endpoint)
     # test user agent + custom headers
@@ -239,9 +315,7 @@ async def test_http_proxy(bbot_scanner, bbot_config, bbot_httpserver, proxy_serv
 
     proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
 
-    test_config = OmegaConf.merge(bbot_config, OmegaConf.create({"http_proxy": proxy_address}))
-
-    scan = bbot_scanner("127.0.0.1", config=test_config)
+    scan = bbot_scanner("127.0.0.1", config={"web": {"http_proxy": proxy_address}})
 
     assert len(proxy_server.RequestHandlerClass.urls) == 0
 
@@ -256,17 +330,14 @@ async def test_http_proxy(bbot_scanner, bbot_config, bbot_httpserver, proxy_serv
 
 
 @pytest.mark.asyncio
-async def test_http_ssl(bbot_scanner, bbot_config, bbot_httpserver_ssl):
+async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
     endpoint = "/test_http_ssl"
     url = bbot_httpserver_ssl.url_for(endpoint)
     # test user agent + custom headers
     bbot_httpserver_ssl.expect_request(uri=endpoint).respond_with_data("test_http_ssl_yep")
 
-    verify_config = OmegaConf.merge(bbot_config, OmegaConf.create({"ssl_verify": True, "http_debug": True}))
-    scan1 = bbot_scanner("127.0.0.1", config=verify_config)
-
-    not_verify_config = OmegaConf.merge(bbot_config, OmegaConf.create({"ssl_verify": False, "http_debug": True}))
-    scan2 = bbot_scanner("127.0.0.1", config=not_verify_config)
+    scan1 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": True, "debug": True}})
+    scan2 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": False, "debug": True}})
 
     r1 = await scan1.helpers.request(url)
     assert r1 is None, "Request to self-signed SSL server went through even with ssl_verify=True"
@@ -276,13 +347,15 @@ async def test_http_ssl(bbot_scanner, bbot_config, bbot_httpserver_ssl):
 
 
 @pytest.mark.asyncio
-async def test_web_cookies(bbot_scanner, bbot_config, httpx_mock):
+async def test_web_cookies(bbot_scanner, httpx_mock):
     import httpx
+    from bbot.core.helpers.web.client import BBOTAsyncClient
 
     # make sure cookies work when enabled
     httpx_mock.add_response(url="http://www.evilcorp.com/cookies", headers=[("set-cookie", "wat=asdf; path=/")])
-    scan = bbot_scanner(config=bbot_config)
-    client = scan.helpers.AsyncClient(persist_cookies=True)
+    scan = bbot_scanner()
+
+    client = BBOTAsyncClient(persist_cookies=True, _config=scan.config, _target=scan.target)
     r = await client.get(url="http://www.evilcorp.com/cookies")
     assert r.cookies["wat"] == "asdf"
     httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test", match_headers={"Cookie": "wat=asdf"})
@@ -294,8 +367,8 @@ async def test_web_cookies(bbot_scanner, bbot_config, httpx_mock):
 
     # make sure they don't when they're not
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies", headers=[("set-cookie", "wats=fdsa; path=/")])
-    scan = bbot_scanner(config=bbot_config)
-    client2 = scan.helpers.AsyncClient(persist_cookies=False)
+    scan = bbot_scanner()
+    client2 = BBOTAsyncClient(persist_cookies=False, _config=scan.config, _target=scan.target)
     r = await client2.get(url="http://www2.evilcorp.com/cookies")
     # make sure we can access the cookies
     assert "wats" in r.cookies

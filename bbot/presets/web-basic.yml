@@ -1,0 +1,7 @@
+description: Quick web scan
+
+include:
+  - iis-shortnames
+
+flags:
+  - web-basic

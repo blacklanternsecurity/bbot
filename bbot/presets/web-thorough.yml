@@ -1,0 +1,8 @@
+description: Aggressive web scan
+
+include:
+  # include the web-basic preset
+  - web-basic
+
+flags:
+  - web-thorough

@@ -2,10 +2,10 @@ from .base import ModuleTestBase
 
 
 class TestInternetDB(ModuleTestBase):
-    config_overrides = {"dns_resolution": True}
+    config_overrides = {"dns": {"minimal": False}}
 
     async def setup_before_prep(self, module_test):
-        module_test.mock_dns(
+        await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["1.2.3.4"]},
                 "autodiscover.blacklanternsecurity.com": {"A": ["2.3.4.5"]},

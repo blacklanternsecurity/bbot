@@ -16,7 +16,6 @@ class ffuf(BaseModule):
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
         "lines": 5000,
         "max_depth": 0,
-        "version": "2.0.0",
         "extensions": "",
     }
 
@@ -24,21 +23,10 @@ class ffuf(BaseModule):
         "wordlist": "Specify wordlist to use when finding directories",
         "lines": "take only the first N lines from the wordlist when finding directories",
         "max_depth": "the maximum directory depth to attempt to solve",
-        "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
     }
 
-    deps_ansible = [
-        {
-            "name": "Download ffuf",
-            "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
-                "include": "ffuf",
-                "dest": "#{BBOT_TOOLS}",
-                "remote_src": True,
-            },
-        }
-    ]
+    deps_common = ["ffuf"]
 
     banned_characters = [" "]
 
@@ -68,7 +56,7 @@ class ffuf(BaseModule):
             return
 
         # only FFUF against a directory
-        if "." in event.parsed.path.split("/")[-1]:
+        if "." in event.parsed_url.path.split("/")[-1]:
             self.debug("Aborting FFUF as period was detected in right-most path segment (likely a file)")
             return
         else:
@@ -82,7 +70,13 @@ class ffuf(BaseModule):
 
         filters = await self.baseline_ffuf(fixed_url, exts=exts)
         async for r in self.execute_ffuf(self.tempfile, fixed_url, exts=exts, filters=filters):
-            await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+            await self.emit_event(
+                r["url"],
+                "URL_UNVERIFIED",
+                parent=event,
+                tags=[f"status-{r['status']}"],
+                context=f"{{module}} brute-forced {event.data} and found {{event.type}}: {{event.data}}",
+            )
 
     async def filter_event(self, event):
         if "endpoint" in event.tags:
@@ -264,7 +258,7 @@ class ffuf(BaseModule):
                 command.append("-mc")
                 command.append("all")
 
-            for hk, hv in self.scan.config.get("http_headers", {}).items():
+            for hk, hv in self.scan.custom_http_headers.items():
                 command += ["-H", f"{hk}: {hv}"]
 
             async for found in self.run_process_live(command):

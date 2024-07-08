@@ -6,7 +6,7 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
+async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     ### URL ###
     bad_urls = (
         "http://e.co/index.html",
@@ -103,17 +103,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.domain_stem("evilcorp.co.uk") == "evilcorp"
     assert helpers.domain_stem("www.evilcorp.co.uk") == "www.evilcorp"
 
-    assert helpers.host_in_host("www.evilcorp.com", "evilcorp.com") == True
-    assert helpers.host_in_host("asdf.www.evilcorp.com", "evilcorp.com") == True
-    assert helpers.host_in_host("evilcorp.com", "www.evilcorp.com") == False
-    assert helpers.host_in_host("evilcorp.com", "evilcorp.com") == True
-    assert helpers.host_in_host("evilcorp.com", "eevilcorp.com") == False
-    assert helpers.host_in_host("eevilcorp.com", "evilcorp.com") == False
-    assert helpers.host_in_host("evilcorp.com", "evilcorp") == False
-    assert helpers.host_in_host("evilcorp", "evilcorp.com") == False
-    assert helpers.host_in_host("evilcorp.com", "com") == True
-
-    assert tuple(helpers.extract_emails("asdf@asdf.com\nT@t.Com&a=a@a.com__ b@b.com")) == (
+    assert tuple(await helpers.re.extract_emails("asdf@asdf.com\nT@t.Com&a=a@a.com__ b@b.com")) == (
         "asdf@asdf.com",
         "t@t.com",
         "a@a.com",
@@ -188,7 +178,11 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.subdomain_depth("a.evilcorp.com") == 1
     assert helpers.subdomain_depth("a.s.d.f.evilcorp.notreal") == 4
 
+    assert helpers.split_host_port("http://evilcorp.co.uk") == ("evilcorp.co.uk", 80)
     assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
+    assert helpers.split_host_port("ws://evilcorp.co.uk") == ("evilcorp.co.uk", 80)
+    assert helpers.split_host_port("wss://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
+    assert helpers.split_host_port("WSS://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk") == ("evilcorp.co.uk", None)
@@ -224,7 +218,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.get_file_extension("/etc/passwd") == ""
 
     assert helpers.tagify("HttP  -_Web  Title--  ") == "http-web-title"
-    tagged_event = scan.make_event("127.0.0.1", source=scan.root_event, tags=["HttP  web -__- title  "])
+    tagged_event = scan.make_event("127.0.0.1", parent=scan.root_event, tags=["HttP  web -__- title  "])
     assert "http-web-title" in tagged_event.tags
     tagged_event.remove_tag("http-web-title")
     assert "http-web-title" not in tagged_event.tags
@@ -253,6 +247,12 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "https://www.evilcorp.com/asdf",
         "https://www.evilcorp.com/fdsa",
     }
+
+    replaced = helpers.search_format_dict(
+        {"asdf": [{"wat": {"here": "#{replaceme}!"}}, {500: True}]}, replaceme="asdf"
+    )
+    assert replaced["asdf"][1][500] == True
+    assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
 
     filtered_dict = helpers.filter_dict(
         {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
@@ -321,12 +321,6 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert "secret" not in cleaned_dict4["modules"]["ipneighbor"]
     assert "asdf" in cleaned_dict4["modules"]["ipneighbor"]
 
-    replaced = helpers.search_format_dict(
-        {"asdf": [{"wat": {"here": "#{replaceme}!"}}, {500: True}]}, replaceme="asdf"
-    )
-    assert replaced["asdf"][1][500] == True
-    assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
-
     assert helpers.split_list([1, 2, 3, 4, 5]) == [[1, 2], [3, 4, 5]]
     assert list(helpers.grouper("ABCDEFG", 3)) == [["A", "B", "C"], ["D", "E", "F"], ["G"]]
 
@@ -393,6 +387,18 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.validators.soft_validate("!@#$", "port") == False
     with pytest.raises(ValueError):
         helpers.validators.validate_port("asdf")
+    # top tcp ports
+    top_tcp_ports = helpers.top_tcp_ports(100)
+    assert len(top_tcp_ports) == 100
+    assert len(set(top_tcp_ports)) == 100
+    top_tcp_ports = helpers.top_tcp_ports(800000)
+    assert top_tcp_ports[:10] == [80, 23, 443, 21, 22, 25, 3389, 110, 445, 139]
+    assert top_tcp_ports[-10:] == [65526, 65527, 65528, 65529, 65530, 65531, 65532, 65533, 65534, 65535]
+    assert len(top_tcp_ports) == 65535
+    assert len(set(top_tcp_ports)) == 65535
+    assert all([isinstance(i, int) for i in top_tcp_ports])
+    top_tcp_ports = helpers.top_tcp_ports(10, as_string=True)
+    assert top_tcp_ports == "80,23,443,21,22,25,3389,110,445,139"
     # urls
     assert helpers.validators.validate_url(" httP://evilcorP.com/asdf?a=b&c=d#e") == "http://evilcorp.com/asdf"
     assert (
@@ -428,20 +434,30 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.smart_encode_punycode("ドメイン.テスト:80") == "xn--eckwd4c7c.xn--zckzah:80"
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah:80") == "ドメイン.テスト:80"
 
-    assert helpers.recursive_decode("Hello%20world%21") == "Hello world!"
-    assert helpers.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"
-    assert helpers.recursive_decode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021") == " Привет!"
-    assert helpers.recursive_decode("Hello%2520world%2521") == "Hello world!"
+    assert await helpers.re.recursive_decode("Hello%20world%21") == "Hello world!"
     assert (
-        helpers.recursive_decode("Hello%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442")
+        await helpers.re.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"
+    )
+    assert (
+        await helpers.re.recursive_decode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021")
+        == " Привет!"
+    )
+    assert await helpers.re.recursive_decode("Hello%2520world%2521") == "Hello world!"
+    assert (
+        await helpers.re.recursive_decode(
+            "Hello%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442"
+        )
         == "Hello Привет"
     )
     assert (
-        helpers.recursive_decode("%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021")
+        await helpers.re.recursive_decode(
+            "%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021"
+        )
         == " Привет!"
     )
     assert (
-        helpers.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText") == "Hello\nWorld\tGreetings\nMore\nText"
+        await helpers.re.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText")
+        == "Hello\nWorld\tGreetings\nMore\nText"
     )
 
     ### CACHE ###
@@ -496,11 +512,11 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     with pytest.raises(NTLMError):
         helpers.ntlm.ntlmdecode("asdf")
 
-    test_filesize = Path("/tmp/test_filesize")
+    test_filesize = bbot_test_dir / "test_filesize"
     test_filesize.touch()
     assert test_filesize.is_file()
     assert helpers.filesize(test_filesize) == 0
-    assert helpers.filesize("/tmp/glkasjdlgksadlkfsdf") == 0
+    assert helpers.filesize(bbot_test_dir / "glkasjdlgksadlkfsdf") == 0
 
     # memory stuff
     int(helpers.memory_status().available)
@@ -508,6 +524,23 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
 
     assert helpers.bytes_to_human(459819198709) == "428.24GB"
     assert helpers.human_to_bytes("428.24GB") == 459819198709
+
+    # ordinals
+    assert helpers.integer_to_ordinal(1) == "1st"
+    assert helpers.integer_to_ordinal(2) == "2nd"
+    assert helpers.integer_to_ordinal(3) == "3rd"
+    assert helpers.integer_to_ordinal(4) == "4th"
+    assert helpers.integer_to_ordinal(11) == "11th"
+    assert helpers.integer_to_ordinal(12) == "12th"
+    assert helpers.integer_to_ordinal(13) == "13th"
+    assert helpers.integer_to_ordinal(21) == "21st"
+    assert helpers.integer_to_ordinal(22) == "22nd"
+    assert helpers.integer_to_ordinal(23) == "23rd"
+    assert helpers.integer_to_ordinal(101) == "101st"
+    assert helpers.integer_to_ordinal(111) == "111th"
+    assert helpers.integer_to_ordinal(112) == "112th"
+    assert helpers.integer_to_ordinal(113) == "113th"
+    assert helpers.integer_to_ordinal(0) == "0th"
 
     scan1 = bbot_scanner(modules="ipneighbor")
     await scan1.load_modules()
@@ -529,8 +562,39 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         < first_frequencies["e"]
     )
 
+    # error handling helpers
+    test_ran = False
+    try:
+        try:
+            raise KeyboardInterrupt("asdf")
+        except KeyboardInterrupt:
+            raise ValueError("asdf")
+    except Exception as e:
+        assert len(helpers.get_exception_chain(e)) == 2
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, KeyboardInterrupt)]) == 1
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, ValueError)]) == 1
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) == True
+        assert helpers.in_exception_chain(e, (TypeError, OSError)) == False
+        test_ran = True
+    assert test_ran
+    test_ran = False
+    try:
+        try:
+            raise AttributeError("asdf")
+        except AttributeError:
+            raise ValueError("asdf")
+    except Exception as e:
+        assert len(helpers.get_exception_chain(e)) == 2
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, AttributeError)]) == 1
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, ValueError)]) == 1
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) == False
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, AttributeError)) == True
+        assert helpers.in_exception_chain(e, (AttributeError,)) == True
+        test_ran = True
+    assert test_ran
 
-def test_word_cloud(helpers, bbot_config, bbot_scanner):
+
+def test_word_cloud(helpers, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
     assert "base0_p013" in number_mutations
     assert "base7_p013" in number_mutations
@@ -546,7 +610,7 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert ("dev", "_base") in permutations
 
     # saving and loading
-    scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
+    scan1 = bbot_scanner("127.0.0.1")
     word_cloud = scan1.helpers.word_cloud
     word_cloud.add_word("lantern")
     word_cloud.add_word("black")
@@ -741,3 +805,99 @@ def test_liststring_invalidfnchars(helpers):
     with pytest.raises(ValueError) as e:
         helpers.chain_lists("hello,world,bbot|test", validate=True)
     assert str(e.value) == "Invalid character in string: bbot|test"
+
+
+# test parameter validation
+@pytest.mark.asyncio
+async def test_parameter_validation(helpers):
+
+    getparam_valid_params = {
+        "name",
+        "age",
+        "valid_name",
+        "valid-name",
+        "session_token",
+        "user.id",
+        "user-name",
+        "client.id",
+        "auth-token",
+        "access_token",
+        "abcd",
+        "jqueryget",
+        "<script>",
+    }
+    getparam_invalid_params = {
+        "invalid,name",
+        "###$$$",
+        "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
+        "parens()",
+        "cookie$name",
+    }
+
+    getparam_params = getparam_valid_params | getparam_invalid_params
+    for p in getparam_params:
+        if helpers.validate_parameter(p, "getparam"):
+            assert p in getparam_valid_params and p not in getparam_invalid_params
+        else:
+            assert p in getparam_invalid_params and not p in getparam_valid_params
+
+    header_valid_params = {
+        "name",
+        "age",
+        "valid_name",
+        "valid-name",
+        "session_token",
+        "user-name",
+        "auth-token",
+        "access_token",
+        "abcd",
+        "jqueryget",
+    }
+    header_invalid_params = {
+        "invalid,name",
+        "<script>",
+        "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
+        "parens()",
+        "cookie$name",
+        "carrot^",
+        "###$$$",
+        "user.id",
+        "client.id",
+    }
+
+    header_params = header_valid_params | header_invalid_params
+    for p in header_params:
+        if helpers.validate_parameter(p, "header"):
+            assert p in header_valid_params and p not in header_invalid_params
+        else:
+            assert p in header_invalid_params and not p in header_valid_params
+
+    cookie_valid_params = {
+        "name",
+        "age",
+        "valid_name",
+        "valid-name",
+        "session_token",
+        "user-name",
+        "auth-token",
+        "access_token",
+        "user.id",
+        "client.id",
+        "abcd",
+        "jqueryget",
+        "###$$$",
+        "cookie$name",
+    }
+    cookie_invalid_params = {
+        "invalid,name",
+        "<script>",
+        "parens()",
+        "this_parameter_name_is_seriously_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_wow",
+    }
+
+    cookie_params = cookie_valid_params | cookie_invalid_params
+    for p in cookie_params:
+        if helpers.validate_parameter(p, "cookie"):
+            assert p in cookie_valid_params and p not in cookie_invalid_params
+        else:
+            assert p in cookie_invalid_params and not p in cookie_valid_params

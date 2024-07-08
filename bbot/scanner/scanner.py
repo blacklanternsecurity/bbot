@@ -1,45 +1,24 @@
-import re
 import sys
 import asyncio
 import logging
 import traceback
 import contextlib
-from sys import exc_info
+import regex as re
 from pathlib import Path
-import multiprocessing as mp
+from sys import exc_info
 from datetime import datetime
-from functools import partial
-from omegaconf import OmegaConf
 from collections import OrderedDict
-from concurrent.futures import ProcessPoolExecutor
 
 from bbot import __version__
-from bbot import config as bbot_config
 
-from .target import Target
-from .stats import ScanStats
-from .manager import ScanManager
-from .dispatcher import Dispatcher
-from bbot.modules import module_loader
 from bbot.core.event import make_event
+from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
-from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
-from bbot.core.configurator.environ import prepare_environment
-from bbot.core.errors import BBOTError, ScanError, ValidationError
-from bbot.core.logger import (
-    init_logging,
-    get_log_level,
-    set_log_level,
-    add_log_handler,
-    get_log_handlers,
-    remove_log_handler,
-)
+from bbot.errors import BBOTError, ScanError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
-
-init_logging()
 
 
 class Scanner:
@@ -47,11 +26,11 @@ class Scanner:
 
     Examples:
         Create scan with multiple targets:
-        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["nmap", "sslcert", "httpx"])
+        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["portscan", "sslcert", "httpx"])
 
         Create scan with custom config:
-        >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"nmap": {"top_ports": 2000}}}
-        >>> my_scan = Scanner("www.evilcorp.com", modules=["nmap", "httpx"], config=config)
+        >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"portscan": {"top_ports": 2000}}}
+        >>> my_scan = Scanner("www.evilcorp.com", modules=["portscan", "httpx"], config=config)
 
         Start the scan, iterating over events as they're discovered (synchronous):
         >>> for event in my_scan.start():
@@ -81,16 +60,18 @@ class Scanner:
             - "FINISHED" (8): Status when the scan has successfully completed.
             ```
         _status_code (int): The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in `_status_codes`.
-        target (Target): Target of scan
-        config (omegaconf.dictconfig.DictConfig): BBOT config
-        whitelist (Target): Scan whitelist (by default this is the same as `target`)
-        blacklist (Target): Scan blacklist (this takes ultimate precedence)
-        helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc.
-        manager (ScanManager): Coordinates and monitors the flow of events between modules during a scan
-        dispatcher (Dispatcher): Triggers certain events when the scan `status` changes
-        modules (dict): Holds all loaded modules in this format: `{"module_name": Module()}`
-        stats (ScanStats): Holds high-level scan statistics such as how many events have been produced and consumed by each module
-        home (pathlib.Path): Base output directory of the scan (default: `~/.bbot/scans/<scan_name>`)
+        target (Target): Target of scan (alias to `self.preset.target`).
+        preset (Preset): The main scan Preset in its baked form.
+        config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `self.preset.config`).
+        whitelist (Target): Scan whitelist (by default this is the same as `target`) (alias to `self.preset.whitelist`).
+        blacklist (Target): Scan blacklist (this takes ultimate precedence) (alias to `self.preset.blacklist`).
+        helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc. (alias to `self.preset.helpers`).
+        output_dir (pathlib.Path): Output directory for scan (alias to `self.preset.output_dir`).
+        name (str): Name of scan (alias to `self.preset.scan_name`).
+        dispatcher (Dispatcher): Triggers certain events when the scan `status` changes.
+        modules (dict): Holds all loaded modules in this format: `{"module_name": Module()}`.
+        stats (ScanStats): Holds high-level scan statistics such as how many events have been produced and consumed by each module.
+        home (pathlib.Path): Base output directory of the scan (default: `~/.bbot/scans/<scan_name>`).
         running (bool): Whether the scan is currently running.
         stopping (bool): Whether the scan is currently stopping.
         stopped (bool): Whether the scan is currently stopped.
@@ -117,142 +98,128 @@ class Scanner:
     def __init__(
         self,
         *targets,
-        whitelist=None,
-        blacklist=None,
         scan_id=None,
-        name=None,
-        modules=None,
-        output_modules=None,
-        output_dir=None,
-        config=None,
         dispatcher=None,
-        strict_scope=False,
-        force_start=False,
+        **kwargs,
     ):
         """
         Initializes the Scanner class.
 
+        If a premade `preset` is specified, it will be used for the scan.
+        Otherwise, `Scan` accepts the same arguments as `Preset`, which are passed through and used to create a new preset.
+
         Args:
-            *targets (str): Target(s) to scan.
-            whitelist (list, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.
-            blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
+            *targets (list[str], optional): Scan targets (passed through to `Preset`).
+            preset (Preset, optional): Preset to use for the scan.
             scan_id (str, optional): Unique identifier for the scan. Auto-generates if None.
-            name (str, optional): Human-readable name of the scan. Auto-generates if None.
-            modules (list[str], optional): List of module names to use during the scan. Defaults to empty list.
-            output_modules (list[str], optional): List of output modules to use. Defaults to ['python'].
-            output_dir (str or Path, optional): Directory to store scan output. Defaults to BBOT home directory (`~/.bbot`).
-            config (dict, optional): Configuration settings. Merged with BBOT config.
             dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.
-            strict_scope (bool, optional): If True, only targets explicitly in whitelist are scanned. Defaults to False.
-            force_start (bool, optional): If True, allows the scan to start even when module setups hard-fail. Defaults to False.
+            **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
         """
-        if modules is None:
-            modules = []
-        if output_modules is None:
-            output_modules = ["python"]
-
-        if isinstance(modules, str):
-            modules = [modules]
-        if isinstance(output_modules, str):
-            output_modules = [output_modules]
-
-        if config is None:
-            config = OmegaConf.create({})
-        else:
-            config = OmegaConf.create(config)
-        self.config = OmegaConf.merge(bbot_config, config)
-        prepare_environment(self.config)
-        if self.config.get("debug", False):
-            set_log_level(logging.DEBUG)
-
-        self.strict_scope = strict_scope
-        self.force_start = force_start
-
         if scan_id is not None:
-            self.id = str(scan_id)
+            self.id = str(id)
         else:
             self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
-        self._status = "NOT_STARTED"
-        self._status_code = 0
 
-        self.max_workers = max(1, self.config.get("max_threads", 25))
-        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
+        preset = kwargs.pop("preset", None)
+        kwargs["_log"] = True
 
-        if name is None:
+        from .preset import Preset
+
+        if preset is None:
+            preset = Preset(*targets, **kwargs)
+        else:
+            if not isinstance(preset, Preset):
+                raise ValidationError(f'Preset must be of type Preset, not "{type(preset).__name__}"')
+        self.preset = preset.bake(self)
+
+        # scan name
+        if preset.scan_name is None:
             tries = 0
             while 1:
                 if tries > 5:
-                    self.name = f"{self.helpers.rand_string(4)}_{self.helpers.rand_string(4)}"
+                    scan_name = f"{rand_string(4)}_{rand_string(4)}"
                     break
-                self.name = random_name()
-                if output_dir is not None:
-                    home_path = Path(output_dir).resolve() / self.name
+                scan_name = random_name()
+                if self.preset.output_dir is not None:
+                    home_path = Path(self.preset.output_dir).resolve() / scan_name
                 else:
-                    home_path = self.helpers.bbot_home / "scans" / self.name
+                    home_path = self.preset.bbot_home / "scans" / scan_name
                 if not home_path.exists():
                     break
                 tries += 1
         else:
-            self.name = str(name)
+            scan_name = str(preset.scan_name)
+        self.name = scan_name
 
-        if output_dir is not None:
-            self.home = Path(output_dir).resolve() / self.name
+        # scan output dir
+        if preset.output_dir is not None:
+            self.home = Path(preset.output_dir).resolve() / self.name
         else:
-            self.home = self.helpers.bbot_home / "scans" / self.name
+            self.home = self.preset.bbot_home / "scans" / self.name
 
-        self.target = Target(self, *targets, strict_scope=strict_scope, make_in_scope=True)
+        self._status = "NOT_STARTED"
+        self._status_code = 0
 
         self.modules = OrderedDict({})
-        self._scan_modules = modules
-        self._internal_modules = list(self._internal_modules())
-        self._output_modules = output_modules
         self._modules_loaded = False
-
-        if not whitelist:
-            self.whitelist = self.target.copy()
-        else:
-            self.whitelist = Target(self, *whitelist, strict_scope=strict_scope)
-        if not blacklist:
-            blacklist = []
-        self.blacklist = Target(self, *blacklist)
+        self.dummy_modules = {}
 
         if dispatcher is None:
+            from .dispatcher import Dispatcher
+
             self.dispatcher = Dispatcher()
         else:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
 
-        self.manager = ScanManager(self)
+        from .stats import ScanStats
+
         self.stats = ScanStats(self)
 
         # scope distance
-        self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 0)))
-        self.scope_dns_search_distance = max(
-            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 1))
-        )
-        self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
+        self.scope_config = self.config.get("scope", {})
+        self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
+        self.scope_report_distance = int(self.scope_config.get("report_distance", 1))
+
+        # web config
+        self.web_config = self.config.get("web", {})
+        self.web_spider_distance = self.web_config.get("spider_distance", 0)
+        self.web_spider_depth = self.web_config.get("spider_depth", 1)
+        self.web_spider_links_per_page = self.web_config.get("spider_links_per_page", 20)
+        max_redirects = self.web_config.get("http_max_redirects", 5)
+        self.web_max_redirects = max(max_redirects, self.web_spider_distance)
+        self.http_proxy = self.web_config.get("http_proxy", "")
+        self.http_timeout = self.web_config.get("http_timeout", 10)
+        self.httpx_timeout = self.web_config.get("httpx_timeout", 5)
+        self.http_retries = self.web_config.get("http_retries", 1)
+        self.httpx_retries = self.web_config.get("httpx_retries", 1)
+        self.useragent = self.web_config.get("user_agent", "BBOT")
+        # custom HTTP headers warning
+        self.custom_http_headers = self.web_config.get("http_headers", {})
+        if self.custom_http_headers:
+            self.warning(
+                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
+            )
 
         # url file extensions
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
         self.url_extension_httpx_only = set(e.lower() for e in self.config.get("url_extension_httpx_only", []))
 
+        # url querystring behavior
+        self.url_querystring_remove = self.config.get("url_querystring_remove", True)
+
         # blob inclusion
         self._file_blobs = self.config.get("file_blobs", False)
         self._folder_blobs = self.config.get("folder_blobs", False)
-
-        # custom HTTP headers warning
-        self.custom_http_headers = self.config.get("http_headers", {})
-        if self.custom_http_headers:
-            self.warning(
-                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
-            )
 
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)
 
         self._prepped = False
         self._finished_init = False
+        self._new_activity = False
         self._cleanedup = False
+        self._omitted_event_types = None
 
         self.__loop = None
         self._manager_worker_loop_tasks = []
@@ -260,18 +227,9 @@ class Scanner:
         self.ticker_task = None
         self.dispatcher_tasks = []
 
-        # multiprocessing thread pool
-        try:
-            mp.set_start_method("spawn")
-        except Exception:
-            self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
-        # we spawn 1 fewer processes than cores
-        # this helps to avoid locking up the system or competing with the main python process for cpu time
-        num_processes = max(1, mp.cpu_count() - 1)
-        self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
-
         self._stopping = False
 
+        self._dns_strings = None
         self._dns_regexes = None
         # temporary fix to boost scan performance
         # TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
@@ -282,12 +240,17 @@ class Scanner:
 
     async def _prep(self):
         """
-        Calls .load_modules() and .setup_modules() in preparation for a scan
+        Creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
 
         self.helpers.mkdir(self.home)
         if not self._prepped:
-            start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target):,} targets"
+            # save scan preset
+            with open(self.home / "preset.yml", "w") as f:
+                f.write(self.preset.to_yaml())
+
+            # log scan overview
+            start_msg = f"Scan with {len(self.preset.scan_modules):,} modules seeded with {len(self.target):,} targets"
             details = []
             if self.whitelist != self.target:
                 details.append(f"{len(self.whitelist):,} in whitelist")
@@ -297,14 +260,27 @@ class Scanner:
                 start_msg += f" ({', '.join(details)})"
             self.hugeinfo(start_msg)
 
+            # load scan modules (this imports and instantiates them)
+            # up to this point they were only preloaded
             await self.load_modules()
 
-            self.info(f"Setting up modules...")
+            # run each module's .setup() method
             succeeded, hard_failed, soft_failed = await self.setup_modules()
 
+            # intercept modules get sewn together like human centipede
+            self.intercept_modules = [m for m in self.modules.values() if m._intercept]
+            for i, intercept_module in enumerate(self.intercept_modules[1:]):
+                prev_intercept_module = self.intercept_modules[i]
+                self.debug(
+                    f"Setting intercept module {intercept_module.name}._incoming_event_queue to previous intercept module {prev_intercept_module.name}.outgoing_event_queue"
+                )
+                intercept_module._incoming_event_queue = prev_intercept_module.outgoing_event_queue
+
+            # abort if there are no output modules
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
             if num_output_modules < 1:
                 raise ScanError("Failed to load output modules. Aborting.")
+            # abort if any of the module .setup()s hard-failed (i.e. they errored or returned False)
             total_failed = len(hard_failed + soft_failed)
             if hard_failed:
                 msg = f"Setup hard-failed for {len(hard_failed):,} modules ({','.join(hard_failed)})"
@@ -355,17 +331,12 @@ class Scanner:
 
             await self.dispatcher.on_start(self)
 
-            # start manager worker loops
-            self._manager_worker_loop_tasks = [
-                asyncio.create_task(self.manager._worker_loop()) for _ in range(self.max_workers)
-            ]
-
-            # distribute seed events
-            self.init_events_task = asyncio.create_task(self.manager.init_events())
-
             self.status = "RUNNING"
             self._start_modules()
             self.verbose(f"{len(self.modules):,} modules started")
+
+            # distribute seed events
+            self.init_events_task = asyncio.create_task(self.ingress_module.init_events(self.target.events))
 
             # main scan loop
             while 1:
@@ -374,13 +345,14 @@ class Scanner:
                     self._drain_queues()
                     break
 
+                # yield events as they come (async for event in scan.async_start())
                 if "python" in self.modules:
-                    events, finish = await self.modules["python"]._events_waiting()
+                    events, finish = await self.modules["python"]._events_waiting(batch_size=-1)
                     for e in events:
                         yield e
 
-                # if initialization finished and the scan is no longer active
-                if self._finished_init and not self.manager.active:
+                # break if initialization finished and the scan is no longer active
+                if self._finished_init and self.modules_finished:
                     new_activity = await self.finish()
                     if not new_activity:
                         break
@@ -390,8 +362,7 @@ class Scanner:
             failed = False
 
         except BaseException as e:
-            exception_chain = self.helpers.get_exception_chain(e)
-            if any(isinstance(exc, (KeyboardInterrupt, asyncio.CancelledError)) for exc in exception_chain):
+            if self.helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                 self.stop()
                 failed = False
             else:
@@ -410,7 +381,7 @@ class Scanner:
             tasks = self._cancel_tasks()
             self.debug(f"Awaiting {len(tasks):,} tasks")
             for task in tasks:
-                self.debug(f"Awaiting {task}")
+                # self.debug(f"Awaiting {task}")
                 with contextlib.suppress(BaseException):
                     await task
             self.debug(f"Awaited {len(tasks):,} tasks")
@@ -437,7 +408,7 @@ class Scanner:
 
     def _start_modules(self):
         self.verbose(f"Starting module worker loops")
-        for module_name, module in self.modules.items():
+        for module in self.modules.values():
             module.start()
 
     async def setup_modules(self, remove_failed=True):
@@ -466,19 +437,20 @@ class Scanner:
         soft_failed = []
 
         async for task in self.helpers.as_completed([m._setup() for m in self.modules.values()]):
-            module_name, status, msg = await task
+            module, status, msg = await task
             if status == True:
-                self.debug(f"Setup succeeded for {module_name} ({msg})")
-                succeeded.append(module_name)
+                self.debug(f"Setup succeeded for {module.name} ({msg})")
+                succeeded.append(module.name)
             elif status == False:
-                self.warning(f"Setup hard-failed for {module_name}: {msg}")
-                self.modules[module_name].set_error_state()
-                hard_failed.append(module_name)
+                self.warning(f"Setup hard-failed for {module.name}: {msg}")
+                self.modules[module.name].set_error_state()
+                hard_failed.append(module.name)
             else:
-                self.info(f"Setup soft-failed for {module_name}: {msg}")
-                soft_failed.append(module_name)
-            if not status and remove_failed:
-                self.modules.pop(module_name)
+                self.info(f"Setup soft-failed for {module.name}: {msg}")
+                soft_failed.append(module.name)
+            if (not status) and (module._intercept or remove_failed):
+                # if a intercept module fails setup, we always remove it
+                self.modules.pop(module.name)
 
         return succeeded, hard_failed, soft_failed
 
@@ -493,7 +465,7 @@ class Scanner:
         4. Load output modules and updates the `modules` dictionary.
         5. Sorts modules based on their `_priority` attribute.
 
-        If any modules fail to load or their dependencies fail to install, a ScanError will be raised (unless `self.force_start` is set to True).
+        If any modules fail to load or their dependencies fail to install, a ScanError will be raised (unless `self.force_start` is True).
 
         Attributes:
             succeeded, failed (tuple): A tuple containing lists of modules that succeeded or failed during the dependency installation.
@@ -501,7 +473,7 @@ class Scanner:
             failed, failed_internal, failed_output (list): Lists of module names that failed to load.
 
         Raises:
-            ScanError: If any module dependencies fail to install or modules fail to load, and if self.force_start is False.
+            ScanError: If any module dependencies fail to install or modules fail to load, and if `self.force_start` is False.
 
         Returns:
             None
@@ -510,24 +482,21 @@ class Scanner:
             After all modules are loaded, they are sorted by `_priority` and stored in the `modules` dictionary.
         """
         if not self._modules_loaded:
-            all_modules = list(set(self._scan_modules + self._output_modules + self._internal_modules))
-            if not all_modules:
+            if not self.preset.modules:
                 self.warning(f"No modules to load")
                 return
 
-            if not self._scan_modules:
+            if not self.preset.scan_modules:
                 self.warning(f"No scan modules to load")
 
             # install module dependencies
-            succeeded, failed = await self.helpers.depsinstaller.install(
-                *self._scan_modules, *self._output_modules, *self._internal_modules
-            )
+            succeeded, failed = await self.helpers.depsinstaller.install(*self.preset.modules)
             if failed:
                 msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
                 self._fail_setup(msg)
-            modules = sorted([m for m in self._scan_modules if m in succeeded])
-            output_modules = sorted([m for m in self._output_modules if m in succeeded])
-            internal_modules = sorted([m for m in self._internal_modules if m in succeeded])
+            modules = sorted([m for m in self.preset.scan_modules if m in succeeded])
+            output_modules = sorted([m for m in self.preset.output_modules if m in succeeded])
+            internal_modules = sorted([m for m in self.preset.internal_modules if m in succeeded])
 
             # Load scan modules
             self.verbose(f"Loading {len(modules):,} scan modules: {','.join(modules)}")
@@ -538,7 +507,7 @@ class Scanner:
                 self._fail_setup(msg)
             if loaded_modules:
                 self.info(
-                    f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules ({','.join(loaded_modules)})"
+                    f"Loaded {len(loaded_modules):,}/{len(self.preset.scan_modules):,} scan modules ({','.join(loaded_modules)})"
                 )
 
             # Load internal modules
@@ -550,7 +519,7 @@ class Scanner:
                 self._fail_setup(msg)
             if loaded_internal_modules:
                 self.info(
-                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(loaded_internal_modules)})"
+                    f"Loaded {len(loaded_internal_modules):,}/{len(self.preset.internal_modules):,} internal modules ({','.join(loaded_internal_modules)})"
                 )
 
             # Load output modules
@@ -562,11 +531,150 @@ class Scanner:
                 self._fail_setup(msg)
             if loaded_output_modules:
                 self.info(
-                    f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules, ({','.join(loaded_output_modules)})"
+                    f"Loaded {len(loaded_output_modules):,}/{len(self.preset.output_modules):,} output modules, ({','.join(loaded_output_modules)})"
                 )
 
-            self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
+            # builtin intercept modules
+            self.ingress_module = ScanIngress(self)
+            self.egress_module = ScanEgress(self)
+            self.modules[self.ingress_module.name] = self.ingress_module
+            self.modules[self.egress_module.name] = self.egress_module
+
+            # sort modules by priority
+            self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "priority", 3)))
+
             self._modules_loaded = True
+
+    @property
+    def modules_finished(self):
+        finished_modules = [m.finished for m in self.modules.values()]
+        return all(finished_modules)
+
+    def kill_module(self, module_name, message=None):
+        from signal import SIGINT
+
+        module = self.modules[module_name]
+        if module._intercept:
+            self.warning(f'Cannot kill module "{module_name}" because it is critical to the scan')
+            return
+        module.set_error_state(message=message, clear_outgoing_queue=True)
+        for proc in module._proc_tracker:
+            with contextlib.suppress(Exception):
+                proc.send_signal(SIGINT)
+        self.helpers.cancel_tasks_sync(module._tasks)
+
+    @property
+    def incoming_event_queues(self):
+        return self.ingress_module.incoming_queues
+
+    @property
+    def num_queued_events(self):
+        total = 0
+        for q in self.incoming_event_queues:
+            total += len(q._queue)
+        return total
+
+    def modules_status(self, _log=False):
+        finished = True
+        status = {"modules": {}}
+
+        sorted_modules = []
+        for module_name, module in self.modules.items():
+            if module_name.startswith("_"):
+                continue
+            sorted_modules.append(module)
+            mod_status = module.status
+            if mod_status["running"]:
+                finished = False
+            status["modules"][module_name] = mod_status
+
+        # sort modules by name
+        sorted_modules.sort(key=lambda m: m.name)
+
+        status["finished"] = finished
+
+        modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
+
+        max_mem_percent = 90
+        mem_status = self.helpers.memory_status()
+        # abort if we don't have the memory
+        mem_percent = mem_status.percent
+        if mem_percent > max_mem_percent:
+            free_memory = mem_status.available
+            free_memory_human = self.helpers.bytes_to_human(free_memory)
+            self.warning(f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining)")
+
+        if _log:
+            modules_status = []
+            for m, s in status["modules"].items():
+                running = s["running"]
+                incoming = s["events"]["incoming"]
+                outgoing = s["events"]["outgoing"]
+                tasks = s["tasks"]
+                total = sum([incoming, outgoing, tasks])
+                if running or total > 0:
+                    modules_status.append((m, running, incoming, outgoing, tasks, total))
+            modules_status.sort(key=lambda x: x[-1], reverse=True)
+
+            if modules_status:
+                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, r, i, o, t, _ in modules_status])
+                self.info(f"{self.name}: Modules running (incoming:processing:outgoing) {modules_status_str}")
+            else:
+                self.info(f"{self.name}: No modules running")
+            event_type_summary = sorted(self.stats.events_emitted_by_type.items(), key=lambda x: x[-1], reverse=True)
+            if event_type_summary:
+                self.info(
+                    f'{self.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
+                )
+            else:
+                self.info(f"{self.name}: No events produced yet")
+
+            if modules_errored:
+                self.verbose(
+                    f'{self.name}: Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
+                )
+
+            num_queued_events = self.num_queued_events
+            if num_queued_events:
+                self.info(
+                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                )
+            else:
+                self.info(
+                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                )
+
+            if self.log_level <= logging.DEBUG:
+                # status debugging
+                scan_active_status = []
+                scan_active_status.append(f"scan._finished_init: {self._finished_init}")
+                scan_active_status.append(f"scan.modules_finished: {self.modules_finished}")
+                for m in sorted_modules:
+                    running = m.running
+                    scan_active_status.append(f"    {m}.finished: {m.finished}")
+                    scan_active_status.append(f"        running: {running}")
+                    if running:
+                        scan_active_status.append(f"        tasks:")
+                        for task in list(m._task_counter.tasks.values()):
+                            scan_active_status.append(f"            - {task}:")
+                    scan_active_status.append(f"        incoming_queue_size: {m.num_incoming_events}")
+                    scan_active_status.append(f"        outgoing_queue_size: {m.outgoing_event_queue.qsize()}")
+                for line in scan_active_status:
+                    self.debug(line)
+
+                # log module memory usage
+                module_memory_usage = []
+                for module in sorted_modules:
+                    memory_usage = module.memory_usage
+                    module_memory_usage.append((module.name, memory_usage))
+                module_memory_usage.sort(key=lambda x: x[-1], reverse=True)
+                self.debug(f"MODULE MEMORY USAGE:")
+                for module_name, usage in module_memory_usage:
+                    self.debug(f"    - {module_name}: {self.helpers.bytes_to_human(usage)}")
+
+        status.update({"modules_errored": len(modules_errored)})
+
+        return status
 
     def stop(self):
         """Stops the in-progress scan and performs necessary cleanup.
@@ -601,13 +709,13 @@ class Scanner:
             This method alters the scan's status to "FINISHING" if new activity is detected.
         """
         # if new events were generated since last time we were here
-        if self.manager._new_activity:
-            self.manager._new_activity = False
+        if self._new_activity:
+            self._new_activity = False
             self.status = "FINISHING"
             # Trigger .finished() on every module and start over
             log.info("Finishing scan")
-            finished_event = self.make_event("FINISHED", "FINISHED", dummy=True)
             for module in self.modules.values():
+                finished_event = self.make_event(f"FINISHED", "FINISHED", dummy=True, tags={module.name})
                 await module.queue_event(finished_event)
             self.verbose("Completed finish()")
             return True
@@ -633,9 +741,6 @@ class Scanner:
                 while 1:
                     if module.outgoing_event_queue:
                         module.outgoing_event_queue.get_nowait()
-        with contextlib.suppress(asyncio.queues.QueueEmpty):
-            while 1:
-                self.manager.incoming_event_queue.get_nowait()
         self.debug("Finished draining queues")
 
     def _cancel_tasks(self):
@@ -666,7 +771,7 @@ class Scanner:
         tasks += self._manager_worker_loop_tasks
         self.helpers.cancel_tasks_sync(tasks)
         # process pool
-        self.process_pool.shutdown(cancel_futures=True)
+        self.helpers.process_pool.shutdown(cancel_futures=True)
         self.debug("Finished cancelling all scan tasks")
         return tasks
 
@@ -701,47 +806,56 @@ class Scanner:
             None
         """
         self.status = "CLEANING_UP"
+        # clean up dns engine
+        await self.helpers.dns.shutdown()
+        # clean up web engine
+        await self.helpers.web.shutdown()
+        # clean up modules
         for mod in self.modules.values():
             await mod._cleanup()
+        # clean up self
         if not self._cleanedup:
             self._cleanedup = True
             with contextlib.suppress(Exception):
                 self.home.rmdir()
             self.helpers.clean_old_scans()
 
-    def in_scope(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is in scope.
-        Accepts either events or string data.
+    def in_scope(self, *args, **kwargs):
+        return self.preset.in_scope(*args, **kwargs)
 
-        Checks whitelist and blacklist.
-        If `e` is an event and its scope distance is zero, it will be considered in-scope.
+    def whitelisted(self, *args, **kwargs):
+        return self.preset.whitelisted(*args, **kwargs)
 
-        Examples:
-            Check if a URL is in scope:
-            >>> scan.in_scope("http://www.evilcorp.com")
-            True
-        """
-        try:
-            e = make_event(e, dummy=True)
-        except ValidationError:
-            return False
-        in_scope = e.scope_distance == 0 or self.whitelisted(e)
-        return in_scope and not self.blacklisted(e)
+    def blacklisted(self, *args, **kwargs):
+        return self.preset.blacklisted(*args, **kwargs)
 
-    def blacklisted(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is blacklisted.
-        """
-        e = make_event(e, dummy=True)
-        return e in self.blacklist
+    @property
+    def core(self):
+        return self.preset.core
 
-    def whitelisted(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is whitelisted.
-        """
-        e = make_event(e, dummy=True)
-        return e in self.whitelist
+    @property
+    def config(self):
+        return self.preset.core.config
+
+    @property
+    def target(self):
+        return self.preset.target
+
+    @property
+    def whitelist(self):
+        return self.preset.whitelist
+
+    @property
+    def blacklist(self):
+        return self.preset.blacklist
+
+    @property
+    def helpers(self):
+        return self.preset.helpers
+
+    @property
+    def force_start(self):
+        return self.preset.force_start
 
     @property
     def word_cloud(self):
@@ -766,6 +880,12 @@ class Scanner:
     @property
     def status(self):
         return self._status
+
+    @property
+    def omitted_event_types(self):
+        if self._omitted_event_types is None:
+            self._omitted_event_types = self.config.get("omit_event_types", [])
+        return self._omitted_event_types
 
     @status.setter
     def status(self, status):
@@ -805,7 +925,7 @@ class Scanner:
               "scope_distance": 0,
               "scan": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
               "timestamp": 1694548779.616255,
-              "source": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
+              "parent": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
               "tags": [
                 "distance-0"
               ],
@@ -814,36 +934,49 @@ class Scanner:
             }
             ```
         """
-        root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
+        root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True)
         root_event._id = self.id
         root_event.scope_distance = 0
-        root_event._resolved.set()
-        root_event.source = root_event
-        root_event.module = self.helpers._make_dummy_module(name="TARGET", _type="TARGET")
+        root_event.parent = root_event
+        root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
+        root_event.discovery_context = f"Scan {self.name} started at {root_event.timestamp}"
         return root_event
 
-    def run_in_executor(self, callback, *args, **kwargs):
+    @property
+    def dns_strings(self):
         """
-        Run a synchronous task in the event loop's default thread pool executor
+        A list of DNS hostname strings generated from the scan target
+        """
+        if self._dns_strings is None:
+            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
+            dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
+            dns_targets.update(dns_whitelist)
+            dns_targets = sorted(dns_targets, key=len)
+            dns_targets_set = set()
+            dns_strings = []
+            for t in dns_targets:
+                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
+                    dns_strings.append(t)
+            self._dns_strings = dns_strings
+        return self._dns_strings
 
-        Examples:
-            Execute callback:
-            >>> result = await self.scan.run_in_executor(callback_fn, arg1, arg2)
+    def _generate_dns_regexes(self, pattern):
         """
-        callback = partial(callback, **kwargs)
-        return self._loop.run_in_executor(None, callback, *args)
+        Generates a list of compiled DNS hostname regexes based on the provided pattern.
+        This method centralizes the regex compilation to avoid redundancy in the dns_regexes and dns_regexes_yara methods.
 
-    def run_in_executor_mp(self, callback, *args, **kwargs):
+        Args:
+            pattern (str):
+        Returns:
+            list[re.Pattern]: A list of compiled regex patterns if enabled, otherwise an empty list.
         """
-        Same as run_in_executor() except with a process pool executor
-        Use only in cases where callback is CPU-bound
 
-        Examples:
-            Execute callback:
-            >>> result = await self.scan.run_in_executor_mp(callback_fn, arg1, arg2)
-        """
-        callback = partial(callback, **kwargs)
-        return self._loop.run_in_executor(self.process_pool, callback, *args)
+        dns_regexes = []
+        for t in self.dns_strings:
+            regex_pattern = re.compile(f"{pattern}{re.escape(t)})", re.I)
+            log.debug(f"Generated Regex [{regex_pattern.pattern}] for domain {t}")
+            dns_regexes.append(regex_pattern)
+        return dns_regexes
 
     @property
     def dns_regexes(self):
@@ -859,27 +992,16 @@ class Scanner:
         """
         if self._target_dns_regex_disable:
             return []
-        if self._dns_regexes is None:
-            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
-            dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
-            dns_targets.update(dns_whitelist)
-            dns_targets = sorted(dns_targets, key=len)
-            dns_targets_set = set()
-            dns_regexes = []
-            for t in dns_targets:
-                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
-                    dns_targets_set.add(t)
-                    dns_regexes.append(re.compile(r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")", re.I))
-            self._dns_regexes = dns_regexes
-
+        if not self._dns_regexes:
+            self._dns_regexes = self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
         return self._dns_regexes
 
     @property
-    def useragent(self):
+    def dns_regexes_yara(self):
         """
-        Convenient shortcut to the HTTP user-agent configured for the scan
+        Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
         """
-        return self.config.get("user_agent", "BBOT")
+        return self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
 
     @property
     def json(self):
@@ -891,14 +1013,8 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        if self.target:
-            j.update({"targets": [str(e.data) for e in self.target]})
-        if self.whitelist:
-            j.update({"whitelist": [str(e.data) for e in self.whitelist]})
-        if self.blacklist:
-            j.update({"blacklist": [str(e.data) for e in self.blacklist]})
-        if self.modules:
-            j.update({"modules": [str(m) for m in self.modules]})
+        j["target"] = self.preset.target.json
+        j["preset"] = self.preset.to_dict(redact_secrets=True)
         return j
 
     def debug(self, *args, trace=False, **kwargs):
@@ -969,7 +1085,7 @@ class Scanner:
         """
         Return the current log level, e.g. logging.INFO
         """
-        return get_log_level()
+        return self.core.logger.log_level
 
     @property
     def _log_handlers(self):
@@ -978,60 +1094,46 @@ class Scanner:
             main_handler = logging.handlers.TimedRotatingFileHandler(
                 str(self.home / "scan.log"), when="d", interval=1, backupCount=14
             )
-            main_handler.addFilter(
-                lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE
-            )
+            main_handler.addFilter(lambda x: x.levelno != logging.TRACE and x.levelno >= logging.VERBOSE)
             debug_handler = logging.handlers.TimedRotatingFileHandler(
                 str(self.home / "debug.log"), when="d", interval=1, backupCount=14
             )
-            debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
+            debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
             self.__log_handlers = [main_handler, debug_handler]
         return self.__log_handlers
 
     def _start_log_handlers(self):
         # add log handlers
         for handler in self._log_handlers:
-            add_log_handler(handler)
+            self.core.logger.add_log_handler(handler)
         # temporarily disable main ones
         for handler_name in ("file_main", "file_debug"):
-            handler = get_log_handlers().get(handler_name, None)
+            handler = self.core.logger.log_handlers.get(handler_name, None)
             if handler is not None and handler not in self._log_handler_backup:
                 self._log_handler_backup.append(handler)
-                remove_log_handler(handler)
+                self.core.logger.remove_log_handler(handler)
 
     def _stop_log_handlers(self):
         # remove log handlers
         for handler in self._log_handlers:
-            remove_log_handler(handler)
+            self.core.logger.remove_log_handler(handler)
         # restore main ones
         for handler in self._log_handler_backup:
-            add_log_handler(handler)
-
-    def _internal_modules(self):
-        for modname in module_loader.preloaded(type="internal"):
-            if self.config.get(modname, True):
-                yield modname
+            self.core.logger.add_log_handler(handler)
 
     def _fail_setup(self, msg):
         msg = str(msg)
-        if not self.force_start:
-            msg += " (--force to run module anyway)"
         if self.force_start:
             self.error(msg)
         else:
+            msg += " (--force to run module anyway)"
             raise ScanError(msg)
-
-    @property
-    def _loop(self):
-        if self.__loop is None:
-            self.__loop = asyncio.get_event_loop()
-        return self.__loop
 
     def _load_modules(self, modules):
         modules = [str(m) for m in modules]
         loaded_modules = {}
         failed = set()
-        for module_name, module_class in module_loader.load_modules(modules).items():
+        for module_name, module_class in self.preset.module_loader.load_modules(modules).items():
             if module_class:
                 try:
                     loaded_modules[module_name] = module_class(self)
@@ -1048,10 +1150,10 @@ class Scanner:
         async with self._acatch():
             while 1:
                 await asyncio.sleep(interval)
-                self.manager.modules_status(_log=True)
+                self.modules_status(_log=True)
 
     @contextlib.asynccontextmanager
-    async def _acatch(self, context="scan", finally_callback=None):
+    async def _acatch(self, context="scan", finally_callback=None, unhandled_is_critical=False):
         """
         Async version of catch()
 
@@ -1061,14 +1163,13 @@ class Scanner:
         try:
             yield
         except BaseException as e:
-            self._handle_exception(e, context=context)
+            self._handle_exception(e, context=context, unhandled_is_critical=unhandled_is_critical)
 
-    def _handle_exception(self, e, context="scan", finally_callback=None):
+    def _handle_exception(self, e, context="scan", finally_callback=None, unhandled_is_critical=False):
         if callable(context):
             context = f"{context.__qualname__}()"
         filename, lineno, funcname = self.helpers.get_traceback_details(e)
-        exception_chain = self.helpers.get_exception_chain(e)
-        if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+        if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
             log.debug(f"Interrupted")
             self.stop()
         elif isinstance(e, BrokenPipeError):
@@ -1076,7 +1177,44 @@ class Scanner:
         elif isinstance(e, asyncio.CancelledError):
             raise
         elif isinstance(e, Exception):
-            log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
-            log.trace(traceback.format_exc())
+            if unhandled_is_critical:
+                log.critical(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
+                log.critical(traceback.format_exc())
+            else:
+                log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
+                log.trace(traceback.format_exc())
         if callable(finally_callback):
             finally_callback(e)
+
+    def _make_dummy_module(self, name, _type="scan"):
+        """
+        Construct a dummy module, for attachment to events
+        """
+        try:
+            return self.dummy_modules[name]
+        except KeyError:
+            dummy = DummyModule(scan=self, name=name, _type=_type)
+            self.dummy_modules[name] = dummy
+            return dummy
+
+    def _make_dummy_module_dns(self, name):
+        try:
+            dummy_module = self.dummy_modules[name]
+        except KeyError:
+            dummy_module = self._make_dummy_module(name=name, _type="DNS")
+            dummy_module.suppress_dupes = False
+            dummy_module._priority = 4
+            self.dummy_modules[name] = dummy_module
+        return dummy_module
+
+
+from bbot.modules.base import BaseModule
+
+
+class DummyModule(BaseModule):
+    _priority = 4
+
+    def __init__(self, *args, **kwargs):
+        self._name = kwargs.pop("name")
+        self._type = kwargs.pop("_type")
+        super().__init__(*args, **kwargs)

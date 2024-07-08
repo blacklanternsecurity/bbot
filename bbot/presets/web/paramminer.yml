@@ -1,0 +1,12 @@
+description: Discover new web parameters via brute-force
+
+flags:
+  - web-paramminer
+
+modules:
+  - httpx
+
+config:
+  web:
+    spider_distance: 1
+    spider_depth: 4

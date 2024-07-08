@@ -1,4 +1,4 @@
-import re
+import regex as re
 from contextlib import suppress
 
 from bbot.modules.base import BaseModule
@@ -29,7 +29,7 @@ class azure_tenant(BaseModule):
 
         tenant_id = None
         authorization_endpoint = openid_config.get("authorization_endpoint", "")
-        matches = self.helpers.regexes.uuid_regex.findall(authorization_endpoint)
+        matches = await self.helpers.re.findall(self.helpers.regexes.uuid_regex, authorization_endpoint)
         if matches:
             tenant_id = matches[0]
 
@@ -38,17 +38,30 @@ class azure_tenant(BaseModule):
             self.verbose(f'Found {len(domains):,} domains under tenant for "{query}": {", ".join(sorted(domains))}')
             for domain in domains:
                 if domain != query:
-                    await self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate", "azure-tenant"])
+                    await self.emit_event(
+                        domain,
+                        "DNS_NAME",
+                        parent=event,
+                        tags=["affiliate", "azure-tenant"],
+                        context=f'{{module}} queried Outlook autodiscover for "{query}" and found {{event.type}}: {{event.data}}',
+                    )
                     # tenant names
                     if domain.lower().endswith(".onmicrosoft.com"):
                         tenantname = domain.split(".")[0].lower()
                         if tenantname:
                             tenant_names.add(tenantname)
 
-            event_data = {"tenant-names": sorted(tenant_names), "domains": sorted(domains)}
+            tenant_names = sorted(tenant_names)
+            event_data = {"tenant-names": tenant_names, "domains": sorted(domains)}
+            tenant_names_str = ",".join(tenant_names)
             if tenant_id is not None:
                 event_data["tenant-id"] = tenant_id
-            await self.emit_event(event_data, "AZURE_TENANT", source=event)
+            await self.emit_event(
+                event_data,
+                "AZURE_TENANT",
+                parent=event,
+                context=f'{{module}} queried Outlook autodiscover for "{query}" and found {{event.type}}: {tenant_names_str}',
+            )
 
     async def query(self, domain):
         url = f"{self.base_url}/autodiscover/autodiscover.svc"
@@ -90,7 +103,7 @@ class azure_tenant(BaseModule):
         if status_code not in (200, 421):
             self.verbose(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
             return set(), dict()
-        found_domains = list(set(self.d_xml_regex.findall(r.text)))
+        found_domains = list(set(await self.helpers.re.findall(self.d_xml_regex, r.text)))
         domains = set()
 
         for d in found_domains:

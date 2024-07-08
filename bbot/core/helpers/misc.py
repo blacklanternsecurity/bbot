@@ -1,42 +1,22 @@
 import os
-import re
 import sys
 import copy
-import idna
 import json
-import atexit
-import codecs
-import psutil
 import random
-import shutil
-import signal
 import string
 import asyncio
-import difflib
-import inspect
 import logging
-import platform
 import ipaddress
-import traceback
+import regex as re
 import subprocess as sp
 from pathlib import Path
-from itertools import islice
-from datetime import datetime
-from tabulate import tabulate
-import wordninja as _wordninja
 from contextlib import suppress
 from unidecode import unidecode  # noqa F401
-import cloudcheck as _cloudcheck
-import tldextract as _tldextract
-import xml.etree.ElementTree as ET
-from collections.abc import Mapping
-from hashlib import sha1 as hashlib_sha1
 from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 
 from .url import *  # noqa F401
-from .. import errors
-from .logger import log_to_stderr
+from ... import errors
 from . import regexes as bbot_regexes
 from .names_generator import random_name, names, adjectives  # noqa F401
 
@@ -257,6 +237,7 @@ def split_host_port(d):
 
     port = match.group(3)
     if port is None and scheme is not None:
+        scheme = scheme.lower()
         if scheme in ("https", "wss"):
             port = 443
         elif scheme in ("http", "ws"):
@@ -479,6 +460,8 @@ def tldextract(data):
         - Utilizes `smart_decode` to preprocess the data.
         - Makes use of the `tldextract` library for extraction.
     """
+    import tldextract as _tldextract
+
     return _tldextract.extract(smart_decode(data))
 
 
@@ -656,7 +639,7 @@ def is_ip_type(i):
         >>> is_ip_type("192.168.1.0/24")
         False
     """
-    return isinstance(i, ipaddress._BaseV4) or isinstance(i, ipaddress._BaseV6)
+    return ipaddress._IPAddressBase in i.__class__.__mro__
 
 
 def make_ip_type(s):
@@ -682,76 +665,15 @@ def make_ip_type(s):
         >>> make_ip_type("evilcorp.com")
         'evilcorp.com'
     """
+    if not s:
+        raise ValueError(f'Invalid hostname: "{s}"')
     # IP address
     with suppress(Exception):
-        return ipaddress.ip_address(str(s).strip())
+        return ipaddress.ip_address(s)
     # IP network
     with suppress(Exception):
-        return ipaddress.ip_network(str(s).strip(), strict=False)
+        return ipaddress.ip_network(s, strict=False)
     return s
-
-
-def host_in_host(host1, host2):
-    """
-    Checks if host1 is included within host2, either as a subdomain, IP, or IP network.
-    Used for scope calculations/decisions within BBOT.
-
-    Args:
-        host1 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
-            The host to check for inclusion within host2.
-        host2 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
-            The host within which to check for the inclusion of host1.
-
-    Returns:
-        bool: True if host1 is included in host2, otherwise False.
-
-    Examples:
-        >>> host_in_host("www.evilcorp.com", "evilcorp.com")
-        True
-        >>> host_in_host("evilcorp.com", "www.evilcorp.com")
-        False
-        >>> host_in_host(ipaddress.IPv6Address('dead::beef'), ipaddress.IPv6Network('dead::/64'))
-        True
-        >>> host_in_host(ipaddress.IPv4Address('192.168.1.1'), ipaddress.IPv4Network('10.0.0.0/8'))
-        False
-
-    Notes:
-        - If checking an IP address/network, you MUST FIRST convert your IP into an ipaddress object (e.g. via `make_ip_type()`) before passing it to this function.
-    """
-
-    """
-    Is host1 included in host2?
-        "www.evilcorp.com" in "evilcorp.com"? --> True
-        "evilcorp.com" in "www.evilcorp.com"? --> False
-        IPv6Address('dead::beef') in IPv6Network('dead::/64')? --> True
-        IPv4Address('192.168.1.1') in IPv4Network('10.0.0.0/8')? --> False
-
-    Very important! Used throughout BBOT for scope calculations/decisions.
-
-    Works with hostnames, IPs, and IP networks.
-    """
-
-    if not host1 or not host2:
-        return False
-
-    # check if hosts are IP types
-    host1_ip_type = is_ip_type(host1)
-    host2_ip_type = is_ip_type(host2)
-    # if both hosts are IP types
-    if host1_ip_type and host2_ip_type:
-        if not host1.version == host2.version:
-            return False
-        host1_net = ipaddress.ip_network(host1)
-        host2_net = ipaddress.ip_network(host2)
-        return host1_net.subnet_of(host2_net)
-
-    # else hostnames
-    elif not (host1_ip_type or host2_ip_type):
-        host2_len = len(host2.split("."))
-        host1_truncated = ".".join(host1.split(".")[-host2_len:])
-        return host1_truncated == host2
-
-    return False
 
 
 def sha1(data):
@@ -768,6 +690,8 @@ def sha1(data):
         >>> sha1("asdf").hexdigest()
         '3da541559918a808c2402bba5012f6c60b27661c'
     """
+    from hashlib import sha1 as hashlib_sha1
+
     if isinstance(data, dict):
         data = json.dumps(data, sort_keys=True)
     return hashlib_sha1(smart_encode(data))
@@ -841,6 +765,8 @@ def recursive_decode(data, max_depth=5):
         >>> recursive_dcode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021")
         " Привет!"
     """
+    import codecs
+
     # Decode newline and tab escapes
     data = backslash_regex.sub(
         lambda match: {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "v": "\v"}.get(match.group("char")), data
@@ -897,133 +823,105 @@ def truncate_string(s, n):
         return s
 
 
-def extract_params_json(json_data):
+def extract_params_json(json_data, compare_mode="getparam"):
     """
-    Extracts keys from a JSON object and returns them as a set. Used by the `paramminer_headers` module.
+    Extracts key-value pairs from a JSON object and returns them as a set of tuples. Used by the `paramminer_headers` module.
 
     Args:
         json_data (str): JSON-formatted string containing key-value pairs.
 
     Returns:
-        set: A set containing the keys present in the JSON object.
+        set: A set of tuples containing the keys and their corresponding values present in the JSON object.
 
     Raises:
-        Logs a message if JSONDecodeError occurs.
+        Returns an empty set if JSONDecodeError occurs.
 
     Examples:
         >>> extract_params_json('{"a": 1, "b": {"c": 2}}')
-        {'a', 'b', 'c'}
+        {('a', 1), ('b', {'c': 2}), ('c', 2)}
     """
     try:
         data = json.loads(json_data)
     except json.JSONDecodeError:
-        log.debug("Invalid JSON supplied. Returning empty list.")
         return set()
 
-    keys = set()
-    stack = [data]
+    key_value_pairs = set()
+    stack = [(data, "")]
 
     while stack:
-        current_data = stack.pop()
+        current_data, path = stack.pop()
         if isinstance(current_data, dict):
             for key, value in current_data.items():
-                keys.add(key)
-                if isinstance(value, (dict, list)):
-                    stack.append(value)
+                full_key = f"{path}.{key}" if path else key
+                if isinstance(value, dict):
+                    stack.append((value, full_key))
+                elif isinstance(value, list):
+                    stack.append((value, full_key))
+                else:
+                    if validate_parameter(full_key, compare_mode):
+                        key_value_pairs.add((full_key, value))
         elif isinstance(current_data, list):
             for item in current_data:
                 if isinstance(item, (dict, list)):
-                    stack.append(item)
+                    stack.append((item, path))
+    return key_value_pairs
 
-    return keys
 
-
-def extract_params_xml(xml_data):
+def extract_params_xml(xml_data, compare_mode="getparam"):
     """
-    Extracts tags from an XML object and returns them as a set.
+    Extracts tags and their text values from an XML object and returns them as a set of tuples.
 
     Args:
         xml_data (str): XML-formatted string containing elements.
 
     Returns:
-        set: A set containing the tags present in the XML object.
+        set: A set of tuples containing the tags and their corresponding text values present in the XML object.
 
     Raises:
-        Logs a message if ParseError occurs.
+        Returns an empty set if ParseError occurs.
 
     Examples:
-        >>> extract_params_xml('<root><child1><child2/></child1></root>')
-        {'child1', 'child2', 'root'}
+        >>> extract_params_xml('<root><child1><child2>value</child2></child1></root>')
+        {('root', None), ('child1', None), ('child2', 'value')}
     """
+    import xml.etree.ElementTree as ET
+
     try:
         root = ET.fromstring(xml_data)
     except ET.ParseError:
-        log.debug("Invalid XML supplied. Returning empty list.")
         return set()
 
-    tags = set()
+    tag_value_pairs = set()
     stack = [root]
 
     while stack:
         current_element = stack.pop()
-        tags.add(current_element.tag)
+        if validate_parameter(current_element.tag, compare_mode):
+            tag_value_pairs.add((current_element.tag, current_element.text))
         for child in current_element:
             stack.append(child)
-    return tags
+    return tag_value_pairs
 
 
-def extract_params_html(html_data):
-    """
-    Extracts parameters from an HTML object, yielding them one at a time.
+# Define valid characters for each mode based on RFCs
+valid_chars_dict = {
+    "header": set(
+        chr(c) for c in range(33, 127) if chr(c) in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+    ),
+    "getparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
+    "postparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
+    "cookie": set(chr(c) for c in range(33, 127) if chr(c) not in '()<>@,;:"/[]?={} \t'),
+}
 
-    Args:
-        html_data (str): HTML-formatted string.
 
-    Yields:
-        str: A string containing the parameter found in HTML object.
-
-    Examples:
-        >>> html_data = '''
-        ... <html>
-        ...     <body>
-        ...         <input name="user">
-        ...         <a href="/page?param3=value3">Click Me</a>
-        ...         <script>
-        ...             $.get("/test", {param1: "value1"});
-        ...             $.post("/test", {param2: "value2"});
-        ...         </script>
-        ...     </body>
-        ... </html>
-        ... '''
-        >>> list(extract_params_html(html_data))
-        ['user', 'param2', 'param3']
-    """
-    input_tag = bbot_regexes.input_tag_regex.findall(html_data)
-
-    for i in input_tag:
-        log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
-        yield i
-
-    # check for jquery get parameters
-    jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
-
-    for i in jquery_get:
-        log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
-        yield i
-
-    # check for jquery post parameters
-    jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
-    if jquery_post:
-        for i in jquery_post:
-            for x in i.split(","):
-                s = x.split(":")[0].rstrip()
-                log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
-                yield s
-
-    a_tag = bbot_regexes.a_tag_regex.findall(html_data)
-    for s in a_tag:
-        log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
-        yield s
+def validate_parameter(param, compare_mode):
+    compare_mode = compare_mode.lower()
+    if len(param) > 100:
+        return False
+    if compare_mode not in valid_chars_dict:
+        raise ValueError(f"Invalid compare_mode: {compare_mode}")
+    allowed_chars = valid_chars_dict[compare_mode]
+    return set(param).issubset(allowed_chars)
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
@@ -1047,6 +945,7 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
         >>> extract_words('blacklanternsecurity')
         {'black', 'lantern', 'security', 'bls', 'blacklanternsecurity'}
     """
+    import wordninja as _wordninja
 
     if word_regexes is None:
         word_regexes = bbot_regexes.word_regexes
@@ -1103,6 +1002,8 @@ def closest_match(s, choices, n=1, cutoff=0.0):
         >>> closest_match("asdf", ["asd", "fds", "asdff"], n=3)
         ['asdff', 'asd', 'fds']
     """
+    import difflib
+
     matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
     if not choices or not matches:
         return
@@ -1111,8 +1012,8 @@ def closest_match(s, choices, n=1, cutoff=0.0):
     return matches
 
 
-def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
-    """Finds the closest match from a list of choices for a given string, logs a warning, and exits the program.
+def get_closest_match(s, choices, msg=None):
+    """Finds the closest match from a list of choices for a given string.
 
     This function is particularly useful for CLI applications where you want to validate flags or modules.
 
@@ -1124,23 +1025,27 @@ def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
         exitcode (int, optional): The exit code to use when exiting the program. Defaults to 2.
 
     Examples:
-        >>> match_and_exit("some_module", ["some_mod", "some_other_mod"], msg="module")
+        >>> get_closest_match("some_module", ["some_mod", "some_other_mod"], msg="module")
         # Output: Could not find module "some_module". Did you mean "some_mod"?
-        # Exits with code 2
     """
     if msg is None:
         msg = ""
     else:
         msg += " "
     closest = closest_match(s, choices)
-    log_to_stderr(f'Could not find {msg}"{s}". Did you mean "{closest}"?', level="HUGEWARNING")
-    sys.exit(2)
+    return f'Could not find {msg}"{s}". Did you mean "{closest}"?'
 
 
-def kill_children(parent_pid=None, sig=signal.SIGTERM):
+def kill_children(parent_pid=None, sig=None):
     """
     Forgive me father for I have sinned
     """
+    import psutil
+    import signal
+
+    if sig is None:
+        sig = signal.SIGTERM
+
     try:
         parent = psutil.Process(parent_pid)
     except psutil.NoSuchProcess:
@@ -1283,6 +1188,8 @@ def rm_at_exit(path):
     Examples:
         >>> rm_at_exit("/tmp/test/file1.txt")
     """
+    import atexit
+
     atexit.register(delete_file, path)
 
 
@@ -1396,6 +1303,8 @@ def which(*executables):
         >>> which("python", "python3")
         "/usr/bin/python"
     """
+    import shutil
+
     for e in executables:
         location = shutil.which(e)
         if location:
@@ -1494,74 +1403,6 @@ def search_dict_values(d, *regexes):
             yield from search_dict_values(v, *regexes)
 
 
-def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
-    """
-    Recursively filter a dictionary based on key names.
-
-    Args:
-        d (dict): The input dictionary.
-        *key_names: Names of keys to filter for.
-        fuzzy (bool): Whether to perform fuzzy matching on keys.
-        exclude_keys (list, None): List of keys to be excluded from the final dict.
-        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
-
-    Returns:
-        dict: A dictionary containing only the keys specified in key_names.
-
-    Examples:
-        >>> filter_dict({"key1": "test", "key2": "asdf"}, "key2")
-        {"key2": "asdf"}
-        >>> filter_dict({"key1": "test", "key2": {"key3": "asdf"}}, "key1", "key3", exclude_keys="key2")
-        {'key1': 'test'}
-    """
-    if exclude_keys is None:
-        exclude_keys = []
-    if isinstance(exclude_keys, str):
-        exclude_keys = [exclude_keys]
-    ret = {}
-    if isinstance(d, dict):
-        for key in d:
-            if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if not any(k in exclude_keys for k in [key, _prev_key]):
-                    ret[key] = copy.deepcopy(d[key])
-            elif isinstance(d[key], list) or isinstance(d[key], dict):
-                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
-                if child:
-                    ret[key] = child
-    return ret
-
-
-def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
-    """
-    Recursively clean unwanted keys from a dictionary.
-    Useful for removing secrets from a config.
-
-    Args:
-        d (dict): The input dictionary.
-        *key_names: Names of keys to remove.
-        fuzzy (bool): Whether to perform fuzzy matching on keys.
-        exclude_keys (list, None): List of keys to be excluded from removal.
-        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
-
-    Returns:
-        dict: A dictionary cleaned of the keys specified in key_names.
-
-    """
-    if exclude_keys is None:
-        exclude_keys = []
-    if isinstance(exclude_keys, str):
-        exclude_keys = [exclude_keys]
-    d = copy.deepcopy(d)
-    if isinstance(d, dict):
-        for key, val in list(d.items()):
-            if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if _prev_key not in exclude_keys:
-                    d.pop(key)
-            else:
-                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
-    return d
-
-
 def grouper(iterable, n):
     """
     Grouper groups an iterable into chunks of a given size.
@@ -1577,6 +1418,7 @@ def grouper(iterable, n):
         >>> list(grouper('ABCDEFG', 3))
         [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
     """
+    from itertools import islice
 
     iterable = iter(iterable)
     return iter(lambda: list(islice(iterable, n)), [])
@@ -1655,6 +1497,8 @@ def make_date(d=None, microseconds=False):
         >>> make_date(microseconds=True)
         "20220707_1330_35167617"
     """
+    from datetime import datetime
+
     f = "%Y%m%d_%H%M_%S"
     if microseconds:
         f += "%f"
@@ -1788,6 +1632,8 @@ def rm_rf(f):
     Examples:
         >>> rm_rf("/tmp/httpx98323849")
     """
+    import shutil
+
     shutil.rmtree(f)
 
 
@@ -1907,6 +1753,8 @@ def smart_encode_punycode(text: str) -> str:
     """
     ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
     """
+    import idna
+
     host, before, after = extract_host(text)
     if host is None:
         return text
@@ -1923,6 +1771,8 @@ def smart_decode_punycode(text: str) -> str:
     """
     xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
     """
+    import idna
+
     host, before, after = extract_host(text)
     if host is None:
         return text
@@ -2014,6 +1864,8 @@ def make_table(rows, header, **kwargs):
         | row2      | row2      |
         +-----------+-----------+
     """
+    from tabulate import tabulate
+
     # fix IndexError: list index out of range
     if not rows:
         rows = [[]]
@@ -2150,6 +2002,50 @@ def human_to_bytes(filesize):
     raise ValueError(f'Unable to convert filesize "{filesize}" to bytes')
 
 
+def integer_to_ordinal(n):
+    """
+    Convert an integer to its ordinal representation.
+
+    Args:
+        n (int): The integer to convert.
+
+    Returns:
+        str: The ordinal representation of the integer.
+
+    Examples:
+        >>> integer_to_ordinal(1)
+        '1st'
+        >>> integer_to_ordinal(2)
+        '2nd'
+        >>> integer_to_ordinal(3)
+        '3rd'
+        >>> integer_to_ordinal(11)
+        '11th'
+        >>> integer_to_ordinal(21)
+        '21st'
+        >>> integer_to_ordinal(101)
+        '101st'
+    """
+    # Check the last digit
+    last_digit = n % 10
+    # Check the last two digits for special cases (11th, 12th, 13th)
+    last_two_digits = n % 100
+
+    if 10 <= last_two_digits <= 20:
+        suffix = "th"
+    else:
+        if last_digit == 1:
+            suffix = "st"
+        elif last_digit == 2:
+            suffix = "nd"
+        elif last_digit == 3:
+            suffix = "rd"
+        else:
+            suffix = "th"
+
+    return f"{n}{suffix}"
+
+
 def cpu_architecture():
     """Return the CPU architecture of the current system.
 
@@ -2163,6 +2059,8 @@ def cpu_architecture():
         >>> cpu_architecture()
         'amd64'
     """
+    import platform
+
     uname = platform.uname()
     arch = uname.machine.lower()
     if arch.startswith("aarch"):
@@ -2185,6 +2083,8 @@ def os_platform():
         >>> os_platform()
         'linux'
     """
+    import platform
+
     return platform.system().lower()
 
 
@@ -2210,7 +2110,7 @@ def os_platform_friendly():
 tag_filter_regex = re.compile(r"[^a-z0-9]+")
 
 
-def tagify(s, maxlen=None):
+def tagify(s, delimiter=None, maxlen=None):
     """Sanitize a string into a tag-friendly format.
 
     Converts a given string to lowercase and replaces all characters not matching
@@ -2229,8 +2129,10 @@ def tagify(s, maxlen=None):
         >>> tagify("HTTP Web Title", maxlen=8)
         'http-web'
     """
+    if delimiter is None:
+        delimiter = "-"
     ret = str(s).lower()
-    return tag_filter_regex.sub("-", ret)[:maxlen].strip("-")
+    return tag_filter_regex.sub(delimiter, ret)[:maxlen].strip(delimiter)
 
 
 def memory_status():
@@ -2253,6 +2155,8 @@ def memory_status():
         >>> mem.percent
         79.0
     """
+    import psutil
+
     return psutil.virtual_memory()
 
 
@@ -2275,6 +2179,8 @@ def swap_status():
         >>> swap.used
         2097152
     """
+    import psutil
+
     return psutil.swap_memory()
 
 
@@ -2297,6 +2203,8 @@ def get_size(obj, max_depth=5, seen=None):
         >>> get_size(my_dict, max_depth=3)
         8400
     """
+    from collections.abc import Mapping
+
     # If seen is not provided, initialize an empty set
     if seen is None:
         seen = set()
@@ -2372,6 +2280,8 @@ def cloudcheck(ip):
         >>> cloudcheck("168.62.20.37")
         ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
     """
+    import cloudcheck as _cloudcheck
+
     return _cloudcheck.check(ip)
 
 
@@ -2391,6 +2301,8 @@ def is_async_function(f):
         >>> is_async_function(foo)
         True
     """
+    import inspect
+
     return inspect.iscoroutinefunction(f)
 
 
@@ -2451,6 +2363,27 @@ def get_exception_chain(e):
     return exception_chain
 
 
+def in_exception_chain(e, exc_types):
+    """
+    Given an Exception and a list of Exception types, returns whether any of the specified types are contained anywhere in the Exception chain.
+
+    Args:
+        e (BaseException): The exception to check
+        exc_types (list[Exception]): Exception types to consider intentional cancellations. Default is KeyboardInterrupt
+
+    Returns:
+        bool: Whether the error is the result of an intentional cancellaion
+
+    Examples:
+        >>> try:
+        ...     raise ValueError("This is a value error")
+        ... except Exception as e:
+        ...     if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+        ...         raise
+    """
+    return any([isinstance(_, exc_types) for _ in get_exception_chain(e)])
+
+
 def get_traceback_details(e):
     """
     Retrieves detailed information from the traceback of an exception.
@@ -2469,6 +2402,8 @@ def get_traceback_details(e):
         ...     print(f"File: {filename}, Line: {lineno}, Function: {funcname}")
         File: <stdin>, Line: 2, Function: <module>
     """
+    import traceback
+
     tb = traceback.extract_tb(e.__traceback__)
     last_frame = tb[-1]  # Get the last frame in the traceback (the one where the exception was raised)
     filename = last_frame.filename
@@ -2499,7 +2434,7 @@ async def cancel_tasks(tasks, ignore_errors=True):
     current_task = asyncio.current_task()
     tasks = [t for t in tasks if t != current_task]
     for task in tasks:
-        log.debug(f"Cancelling task: {task}")
+        # log.debug(f"Cancelling task: {task}")
         task.cancel()
     if ignore_errors:
         for task in tasks:
@@ -2507,6 +2442,8 @@ async def cancel_tasks(tasks, ignore_errors=True):
                 await task
             except BaseException as e:
                 if not isinstance(e, asyncio.CancelledError):
+                    import traceback
+
                     log.trace(traceback.format_exc())
 
 
@@ -2529,7 +2466,7 @@ def cancel_tasks_sync(tasks):
     current_task = asyncio.current_task()
     for task in tasks:
         if task != current_task:
-            log.debug(f"Cancelling task: {task}")
+            # log.debug(f"Cancelling task: {task}")
             task.cancel()
 
 
@@ -2653,6 +2590,33 @@ async def as_completed(coros):
             yield task
 
 
+def clean_dns_record(record):
+    """
+    Cleans and formats a given DNS record for further processing.
+
+    This static method converts the DNS record to text format if it's not already a string.
+    It also removes any trailing dots and converts the record to lowercase.
+
+    Args:
+        record (str or dns.rdata.Rdata): The DNS record to clean.
+
+    Returns:
+        str: The cleaned and formatted DNS record.
+
+    Examples:
+        >>> clean_dns_record('www.evilcorp.com.')
+        'www.evilcorp.com'
+
+        >>> from dns.rrset import from_text
+        >>> record = from_text('www.evilcorp.com', 3600, 'IN', 'A', '1.2.3.4')[0]
+        >>> clean_dns_record(record)
+        '1.2.3.4'
+    """
+    if not isinstance(record, str):
+        record = str(record.to_text())
+    return str(record).rstrip(".").lower()
+
+
 def truncate_filename(file_path, max_length=255):
     """
     Truncate the filename while preserving the file extension to ensure the total path length does not exceed the maximum length.
@@ -2686,3 +2650,138 @@ def truncate_filename(file_path, max_length=255):
 
     new_path = directory / (truncated_stem + suffix)
     return new_path
+
+
+def get_keys_in_dot_syntax(config):
+    """Retrieve all keys in an OmegaConf configuration in dot notation.
+
+    This function converts an OmegaConf configuration into a list of keys
+    represented in dot notation.
+
+    Args:
+        config (DictConfig): The OmegaConf configuration object.
+
+    Returns:
+        List[str]: A list of keys in dot notation.
+
+    Examples:
+        >>> config = OmegaConf.create({
+        ...     "web": {
+        ...         "test": True
+        ...     },
+        ...     "db": {
+        ...         "host": "localhost",
+        ...         "port": 5432
+        ...     }
+        ... })
+        >>> get_keys_in_dot_syntax(config)
+        ['web.test', 'db.host', 'db.port']
+    """
+    from omegaconf import OmegaConf
+
+    container = OmegaConf.to_container(config, resolve=True)
+    keys = []
+
+    def recursive_keys(d, parent_key=""):
+        for k, v in d.items():
+            full_key = f"{parent_key}.{k}" if parent_key else k
+            if isinstance(v, dict):
+                recursive_keys(v, full_key)
+            else:
+                keys.append(full_key)
+
+    recursive_keys(container)
+    return keys
+
+
+def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
+    """
+    Recursively filter a dictionary based on key names.
+
+    Args:
+        d (dict): The input dictionary.
+        *key_names: Names of keys to filter for.
+        fuzzy (bool): Whether to perform fuzzy matching on keys.
+        exclude_keys (list, None): List of keys to be excluded from the final dict.
+        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
+
+    Returns:
+        dict: A dictionary containing only the keys specified in key_names.
+
+    Examples:
+        >>> filter_dict({"key1": "test", "key2": "asdf"}, "key2")
+        {"key2": "asdf"}
+        >>> filter_dict({"key1": "test", "key2": {"key3": "asdf"}}, "key1", "key3", exclude_keys="key2")
+        {'key1': 'test'}
+    """
+    if exclude_keys is None:
+        exclude_keys = []
+    if isinstance(exclude_keys, str):
+        exclude_keys = [exclude_keys]
+    ret = {}
+    if isinstance(d, dict):
+        for key in d:
+            if key in key_names or (fuzzy and any(k in key for k in key_names)):
+                if not any(k in exclude_keys for k in [key, _prev_key]):
+                    ret[key] = copy.deepcopy(d[key])
+            elif isinstance(d[key], list) or isinstance(d[key], dict):
+                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
+                if child:
+                    ret[key] = child
+    return ret
+
+
+def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
+    """
+    Recursively clean unwanted keys from a dictionary.
+    Useful for removing secrets from a config.
+
+    Args:
+        d (dict): The input dictionary.
+        *key_names: Names of keys to remove.
+        fuzzy (bool): Whether to perform fuzzy matching on keys.
+        exclude_keys (list, None): List of keys to be excluded from removal.
+        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
+
+    Returns:
+        dict: A dictionary cleaned of the keys specified in key_names.
+
+    """
+    if exclude_keys is None:
+        exclude_keys = []
+    if isinstance(exclude_keys, str):
+        exclude_keys = [exclude_keys]
+    d = copy.deepcopy(d)
+    if isinstance(d, dict):
+        for key, val in list(d.items()):
+            if key in key_names or (fuzzy and any(k in key for k in key_names)):
+                if _prev_key not in exclude_keys:
+                    d.pop(key)
+                    continue
+            d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
+    return d
+
+
+top_ports_cache = None
+
+
+def top_tcp_ports(n, as_string=False):
+    """
+    Returns the top *n* TCP ports as evaluated by nmap
+    """
+    top_ports_file = Path(__file__).parent.parent.parent / "wordlists" / "top_open_ports_nmap.txt"
+
+    global top_ports_cache
+    if top_ports_cache is None:
+        # Read the open ports from the file
+        with open(top_ports_file, "r") as f:
+            top_ports_cache = [int(line.strip()) for line in f]
+
+        # If n is greater than the length of the ports list, add remaining ports from range(1, 65536)
+        unique_ports = set(top_ports_cache)
+        top_ports_cache.extend([port for port in range(1, 65536) if port not in unique_ports])
+
+    top_ports = top_ports_cache[:n]
+    if as_string:
+        return ",".join([str(s) for s in top_ports])
+    return top_ports

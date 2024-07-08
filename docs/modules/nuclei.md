@@ -103,20 +103,20 @@ The **ratelimit** and **concurrency** settings default to the same defaults that
 
 ```bash
 # Scan a SINGLE target with a basic port scan and web modules
-bbot -f web-basic -m nmap nuclei --allow-deadly -t app.evilcorp.com
+bbot -f web-basic -m portscan nuclei --allow-deadly -t app.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets
-bbot -f web-basic -m nmap nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f web-basic -m portscan nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets while performing subdomain enumeration
-bbot -f subdomain-enum web-basic -m nmap nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f subdomain-enum web-basic -m portscan nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets on a BUDGET
-bbot -f subdomain-enum web-basic -m nmap nuclei --allow-deadly -c modules.nuclei.mode=budget -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f subdomain-enum web-basic -m portscan nuclei --allow-deadly -c modules.nuclei.mode=budget -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```

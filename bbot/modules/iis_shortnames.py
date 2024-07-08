@@ -16,7 +16,7 @@ class IISShortnamesError(Exception):
 class iis_shortnames(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
-    flags = ["active", "safe", "web-basic", "web-thorough", "iis-shortnames"]
+    flags = ["active", "safe", "web-basic", "iis-shortnames"]
     meta = {
         "description": "Check for IIS shortname vulnerability",
         "created_date": "2022-04-15",
@@ -29,7 +29,7 @@ class iis_shortnames(BaseModule):
     }
     in_scope_only = True
 
-    _max_event_handlers = 8
+    _module_threads = 8
 
     async def detect(self, target):
         technique = None
@@ -38,10 +38,22 @@ class iis_shortnames(BaseModule):
         control_url = f"{target}{random_string}*~1*/a.aspx"
         test_url = f"{target}*~1*/a.aspx"
 
+        urls_and_kwargs = []
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
-            control = await self.helpers.request(method=method, url=control_url, allow_redirects=False, timeout=10)
-            test = await self.helpers.request(method=method, url=test_url, allow_redirects=False, timeout=10)
-            if (control != None) and (test != None):
+            kwargs = dict(method=method, allow_redirects=False, timeout=10)
+            urls_and_kwargs.append((control_url, kwargs, method))
+            urls_and_kwargs.append((test_url, kwargs, method))
+
+        results = {}
+        async for url, kwargs, method, response in self.helpers.request_custom_batch(urls_and_kwargs):
+            try:
+                results[method][url] = response
+            except KeyError:
+                results[method] = {url: response}
+        for method, result in results.items():
+            control = results[method].get(control_url, None)
+            test = results[method].get(test_url, None)
+            if (result != None) and (test != None) and (control != None):
                 if control.status_code != test.status_code:
                     technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
                     detections.append((method, test.status_code, technique))
@@ -112,32 +124,23 @@ class iis_shortnames(BaseModule):
     async def solve_valid_chars(self, method, target, affirmative_status_code):
         confirmed_chars = []
         confirmed_exts = []
-        tasks = []
         suffix = "/a.aspx"
 
+        urls_and_kwargs = []
+        kwargs = dict(method=method, allow_redirects=False, retries=2, timeout=10)
         for c in valid_chars:
-            payload = encode_all(f"*{c}*~1*")
-            url = f"{target}{payload}{suffix}"
-            task = self.threaded_request(method, url, affirmative_status_code, c)
-            tasks.append(task)
+            for file_part in ("stem", "ext"):
+                payload = encode_all(f"*{c}*~1*")
+                url = f"{target}{payload}{suffix}"
+                urls_and_kwargs.append((url, kwargs, (c, file_part)))
 
-        async for task in self.helpers.as_completed(tasks):
-            result, c = await task
-            if result:
-                confirmed_chars.append(c)
-
-        tasks = []
-
-        for c in valid_chars:
-            payload = encode_all(f"*~1*{c}*")
-            url = f"{target}{payload}{suffix}"
-            task = self.threaded_request(method, url, affirmative_status_code, c)
-            tasks.append(task)
-
-        async for task in self.helpers.as_completed(tasks):
-            result, c = await task
-            if result:
-                confirmed_exts.append(c)
+        async for url, kwargs, (c, file_part), response in self.helpers.request_custom_batch(urls_and_kwargs):
+            if response is not None:
+                if response.status_code == affirmative_status_code:
+                    if file_part == "stem":
+                        confirmed_chars.append(c)
+                    elif file_part == "ext":
+                        confirmed_exts.append(c)
 
         return confirmed_chars, confirmed_exts
 
@@ -156,53 +159,55 @@ class iis_shortnames(BaseModule):
         url_hint_list = []
         found_results = False
 
-        tasks = []
-
         cl = ext_char_list if extension_mode == True else char_list
+
+        urls_and_kwargs = []
 
         for c in cl:
             suffix = "/a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
-            task = self.threaded_request(method, url, affirmative_status_code, c)
-            tasks.append(task)
+            kwargs = dict(method=method)
+            urls_and_kwargs.append((url, kwargs, c))
 
-        async for task in self.helpers.as_completed(tasks):
-            result, c = await task
-            if result:
-                found_results = True
-                node_count += 1
-                safety_counter.counter += 1
-                if safety_counter.counter > 3000:
-                    raise IISShortnamesError(f"Exceeded safety counter threshold ({safety_counter.counter})")
-                self.verbose(f"node_count: {str(node_count)} for node: {target}")
-                if node_count > self.config.get("max_node_count"):
-                    self.warning(
-                        f"iis_shortnames: max_node_count ({str(self.config.get('max_node_count'))}) exceeded for node: {target}. Affected branch will be terminated."
+        async for url, kwargs, c, response in self.helpers.request_custom_batch(urls_and_kwargs):
+            if response is not None:
+                if response.status_code == affirmative_status_code:
+                    found_results = True
+                    node_count += 1
+                    safety_counter.counter += 1
+                    if safety_counter.counter > 3000:
+                        raise IISShortnamesError(f"Exceeded safety counter threshold ({safety_counter.counter})")
+                    self.verbose(f"node_count: {str(node_count)} for node: {target}")
+                    if node_count > self.config.get("max_node_count"):
+                        self.warning(
+                            f"iis_shortnames: max_node_count ({str(self.config.get('max_node_count'))}) exceeded for node: {target}. Affected branch will be terminated."
+                        )
+                        return url_hint_list
+
+                    # check to make sure the file isn't shorter than 6 characters
+                    wildcard = "~1*"
+                    payload = encode_all(f"{prefix}{c}{wildcard}")
+                    url = f"{target}{payload}{suffix}"
+                    r = await self.helpers.request(
+                        method=method, url=url, allow_redirects=False, retries=2, timeout=10
                     )
-                    return url_hint_list
+                    if r is not None:
+                        if r.status_code == affirmative_status_code:
+                            url_hint_list.append(f"{prefix}{c}")
 
-                # check to make sure the file isn't shorter than 6 characters
-                wildcard = "~1*"
-                payload = encode_all(f"{prefix}{c}{wildcard}")
-                url = f"{target}{payload}{suffix}"
-                r = await self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
-                if r is not None:
-                    if r.status_code == affirmative_status_code:
-                        url_hint_list.append(f"{prefix}{c}")
-
-                url_hint_list += await self.solve_shortname_recursive(
-                    safety_counter,
-                    method,
-                    target,
-                    f"{prefix}{c}",
-                    affirmative_status_code,
-                    char_list,
-                    ext_char_list,
-                    extension_mode,
-                    node_count=node_count,
-                )
+                    url_hint_list += await self.solve_shortname_recursive(
+                        safety_counter,
+                        method,
+                        target,
+                        f"{prefix}{c}",
+                        affirmative_status_code,
+                        char_list,
+                        ext_char_list,
+                        extension_mode,
+                        node_count=node_count,
+                    )
         if len(prefix) > 0 and found_results == False:
             url_hint_list.append(f"{prefix}")
             self.verbose(f"Found new (possibly partial) URL_HINT: {prefix} from node {target}")
@@ -228,6 +233,7 @@ class iis_shortnames(BaseModule):
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
                 event,
+                context=f"{{module}} detected low {{event.type}}: IIS shortname enumeration",
             )
             if not self.config.get("detect_only"):
                 for detection in detections:
@@ -317,7 +323,13 @@ class iis_shortnames(BaseModule):
                             hint_type = "shortname-file"
                         else:
                             hint_type = "shortname-directory"
-                        await self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
+                        await self.emit_event(
+                            f"{normalized_url}/{url_hint}",
+                            "URL_HINT",
+                            event,
+                            tags=[hint_type],
+                            context=f"{{module}} enumerated shortnames at {normalized_url} and found {{event.type}}: {url_hint}",
+                        )
 
     async def filter_event(self, event):
         if "dir" in event.tags:

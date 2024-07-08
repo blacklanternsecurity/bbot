@@ -4,8 +4,8 @@ from subprocess import CalledProcessError
 
 
 @pytest.mark.asyncio
-async def test_command(bbot_scanner, bbot_config):
-    scan1 = bbot_scanner(config=bbot_config)
+async def test_command(bbot_scanner):
+    scan1 = bbot_scanner()
 
     # test timeouts
     command = ["sleep", "3"]
@@ -78,10 +78,10 @@ async def test_command(bbot_scanner, bbot_config):
 
     # test check=True
     with pytest.raises(CalledProcessError) as excinfo:
-        lines = [l async for line in scan1.helpers.run_live(["ls", "/aslkdjflasdkfsd"], check=True)]
+        lines = [line async for line in scan1.helpers.run_live(["ls", "/aslkdjflasdkfsd"], check=True)]
     assert "No such file or directory" in excinfo.value.stderr
     with pytest.raises(CalledProcessError) as excinfo:
-        lines = [l async for line in scan1.helpers.run_live(["ls", "/aslkdjflasdkfsd"], check=True, text=False)]
+        lines = [line async for line in scan1.helpers.run_live(["ls", "/aslkdjflasdkfsd"], check=True, text=False)]
     assert b"No such file or directory" in excinfo.value.stderr
     with pytest.raises(CalledProcessError) as excinfo:
         await scan1.helpers.run(["ls", "/aslkdjflasdkfsd"], check=True)
@@ -116,29 +116,29 @@ async def test_command(bbot_scanner, bbot_config):
     assert not lines
 
     # test sudo + existence of environment variables
-    scan1.load_modules()
+    await scan1.load_modules()
     path_parts = os.environ.get("PATH", "").split(":")
     assert "/tmp/.bbot_test/tools" in path_parts
     run_lines = (await scan1.helpers.run(["env"])).stdout.splitlines()
-    assert "BBOT_PLUMBUS=asdf" in run_lines
+    assert "BBOT_WEB_USER_AGENT=BBOT Test User-Agent" in run_lines
     for line in run_lines:
         if line.startswith("PATH="):
             path_parts = line.split("=", 1)[-1].split(":")
             assert "/tmp/.bbot_test/tools" in path_parts
     run_lines_sudo = (await scan1.helpers.run(["env"], sudo=True)).stdout.splitlines()
-    assert "BBOT_PLUMBUS=asdf" in run_lines_sudo
+    assert "BBOT_WEB_USER_AGENT=BBOT Test User-Agent" in run_lines_sudo
     for line in run_lines_sudo:
         if line.startswith("PATH="):
             path_parts = line.split("=", 1)[-1].split(":")
             assert "/tmp/.bbot_test/tools" in path_parts
     run_live_lines = [l async for l in scan1.helpers.run_live(["env"])]
-    assert "BBOT_PLUMBUS=asdf" in run_live_lines
+    assert "BBOT_WEB_USER_AGENT=BBOT Test User-Agent" in run_live_lines
     for line in run_live_lines:
         if line.startswith("PATH="):
             path_parts = line.strip().split("=", 1)[-1].split(":")
             assert "/tmp/.bbot_test/tools" in path_parts
     run_live_lines_sudo = [l async for l in scan1.helpers.run_live(["env"], sudo=True)]
-    assert "BBOT_PLUMBUS=asdf" in run_live_lines_sudo
+    assert "BBOT_WEB_USER_AGENT=BBOT Test User-Agent" in run_live_lines_sudo
     for line in run_live_lines_sudo:
         if line.startswith("PATH="):
             path_parts = line.strip().split("=", 1)[-1].split(":")

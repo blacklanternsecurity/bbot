@@ -1,7 +1,6 @@
 # adapted from https://github.com/bugcrowd/HUNT
 
 from bbot.modules.base import BaseModule
-from bbot.core.helpers.misc import extract_params_html
 
 hunt_param_dict = {
     "Command Injection": [
@@ -272,25 +271,24 @@ hunt_param_dict = {
 
 
 class hunt(BaseModule):
-    watched_events = ["HTTP_RESPONSE"]
+    watched_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
     flags = ["active", "safe", "web-thorough"]
     meta = {
         "description": "Watch for commonly-exploitable HTTP parameters",
-        "created_date": "2022-07-20",
         "author": "@liquidsec",
+        "created_date": "2022-07-20",
     }
     # accept all events regardless of scope distance
     scope_distance_modifier = None
 
     async def handle_event(self, event):
-        body = event.data.get("body", "")
-        for p in extract_params_html(body):
-            for k in hunt_param_dict.keys():
-                if p.lower() in hunt_param_dict[k]:
-                    description = f"Found potential {k.upper()} parameter [{p}]"
-                    data = {"host": str(event.host), "description": description}
-                    url = event.data.get("url", "")
-                    if url:
-                        data["url"] = url
-                    await self.emit_event(data, "FINDING", event)
+        p = event.data["name"]
+        for k in hunt_param_dict.keys():
+            if p.lower() in hunt_param_dict[k]:
+                description = f"Found potential {k.upper()} parameter [{p}]"
+                data = {"host": str(event.host), "description": description}
+                url = event.data.get("url", "")
+                if url:
+                    data["url"] = url
+                await self.emit_event(data, "FINDING", event)

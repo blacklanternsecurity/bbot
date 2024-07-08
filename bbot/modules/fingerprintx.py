@@ -15,7 +15,7 @@ class fingerprintx(BaseModule):
     options = {"version": "1.1.4"}
     options_desc = {"version": "fingerprintx version"}
     _batch_size = 10
-    _max_event_handlers = 2
+    _module_threads = 2
     _priority = 2
 
     options = {"skip_common_web": True}
@@ -74,18 +74,24 @@ class fingerprintx(BaseModule):
             ip = j.get("ip", "")
             host = j.get("host", ip)
             port = str(j.get("port", ""))
+            protocol = j.get("protocol", "").upper()
+            if not host and port and protocol:
+                continue
             banner = j.get("metadata", {}).get("banner", "").strip()
-            if port:
-                port_data = f"{host}:{port}"
-            protocol = j.get("protocol", "")
+            port_data = f"{host}:{port}"
             tags = set()
             if host and ip:
                 tags.add(f"ip-{ip}")
-            if host and port and protocol:
-                source_event = _input.get(port_data)
-                protocol_data = {"host": host, "protocol": protocol.upper()}
-                if port:
-                    protocol_data["port"] = port
-                if banner:
-                    protocol_data["banner"] = banner
-                await self.emit_event(protocol_data, "PROTOCOL", source=source_event, tags=tags)
+            parent_event = _input.get(port_data)
+            protocol_data = {"host": host, "protocol": protocol}
+            if port:
+                protocol_data["port"] = port
+            if banner:
+                protocol_data["banner"] = banner
+            await self.emit_event(
+                protocol_data,
+                "PROTOCOL",
+                parent=parent_event,
+                tags=tags,
+                context=f"{{module}} probed {port_data} and detected {{event.type}}: {protocol}",
+            )

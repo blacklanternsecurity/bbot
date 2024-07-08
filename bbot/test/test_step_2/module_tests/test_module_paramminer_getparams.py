@@ -37,12 +37,12 @@ class TestParamminer_Getparams(Paramminer_Headers):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING"
+            e.type == "WEB_PARAMETER"
             and "[Paramminer] Getparam: [id] Reasons: [body] Reflection: [True]" in e.data["description"]
             for e in events
         )
         assert not any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [canary] Reasons: [body]" in e.data["description"]
+            e.type == "WEB_PARAMETER" and "[Paramminer] Getparam: [canary] Reasons: [body]" in e.data["description"]
             for e in events
         )
 
@@ -59,7 +59,7 @@ class TestParamminer_Getparams_noreflection(TestParamminer_Getparams):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING"
+            e.type == "WEB_PARAMETER"
             and "[Paramminer] Getparam: [id] Reasons: [body] Reflection: [False]" in e.data["description"]
             for e in events
         )
@@ -72,17 +72,16 @@ class TestParamminer_Getparams_singlewordlist(TestParamminer_Getparams):
 class TestParamminer_Getparams_boring_off(TestParamminer_Getparams):
     config_overrides = {
         "modules": {
-            "paramminer_getparams": {"skip_boring_words": False, "wordlist": tempwordlist(["canary", "boring"])}
+            "paramminer_getparams": {"skip_boring_words": False, "wordlist": tempwordlist(["canary", "utm_term"])}
         }
     }
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-        module_test.scan.modules["paramminer_getparams"].boring_words = {"boring"}
         module_test.monkeypatch.setattr(
             helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
         )
-        expect_args = {"query_string": b"boring=AAAAAAAAAAAAAA&AAAAAA=1"}
+        expect_args = {"query_string": b"utm_term=AAAAAAAAAAAAAA&AAAAAA=1"}
         respond_args = {"response_data": self.getparam_body_match}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -90,10 +89,13 @@ class TestParamminer_Getparams_boring_off(TestParamminer_Getparams):
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [boring] Reasons: [body]" in e.data["description"]
-            for e in events
-        )
+
+        emitted_boring_parameter = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "utm_term" in e.data["description"]:
+                    emitted_boring_parameter = True
+        assert emitted_boring_parameter, "failed to emit boring parameter with skip_boring_words disabled"
 
 
 class TestParamminer_Getparams_boring_on(TestParamminer_Getparams_boring_off):
@@ -104,143 +106,21 @@ class TestParamminer_Getparams_boring_on(TestParamminer_Getparams_boring_off):
     }
 
     def check(self, module_test, events):
-        assert not any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [boring] Reasons: [body]" in e.data["description"]
-            for e in events
-        )
 
+        emitted_boring_parameter = False
 
-class TestParamminer_Getparams_Extract_Json(Paramminer_Headers):
-    modules_overrides = ["httpx", "paramminer_getparams"]
-    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "http_extract": True}}}
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "boring" in e.data["description"]:
+                    emitted_boring_parameter = True
 
-    getparam_extract_json = """
-    {
-  "obscureParameter": 1,
-  "common": 1
-}
-    """
-
-    getparam_extract_json_match = """
-    {
-  "obscureParameter": "AAAAAAAAAAAAAA",
-  "common": 1
-}
-    """
-
-    async def setup_after_prep(self, module_test):
-        module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-        module_test.monkeypatch.setattr(
-            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
-        )
-
-        expect_args = {"query_string": b"obscureParameter=AAAAAAAAAAAAAA&AAAAAA=1"}
-        respond_args = {
-            "response_data": self.getparam_extract_json_match,
-            "headers": {"Content-Type": "application/json"},
-        }
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-        respond_args = {"response_data": self.getparam_extract_json, "headers": {"Content-Type": "application/json"}}
-        module_test.set_expect_requests(respond_args=respond_args)
-
-    def check(self, module_test, events):
-        assert any(
-            e.type == "FINDING"
-            and "[Paramminer] Getparam: [obscureParameter] Reasons: [body]" in e.data["description"]
-            for e in events
-        )
-
-
-class TestParamminer_Getparams_Extract_Xml(Paramminer_Headers):
-    modules_overrides = ["httpx", "paramminer_getparams"]
-    config_overrides = {
-        "modules": {
-            "paramminer_getparams": {"wordlist": tempwordlist([]), "http_extract": True, "skip_boring_words": True}
-        }
-    }
-
-    getparam_extract_xml = """
-<data>
-    <obscureParameter>1</obscureParameter>
-    <common>1</common>
-</data>
-    """
-
-    getparam_extract_xml_match = """
-<data>
-    <obscureParameter>AAAAAAAAAAAAAA</obscureParameter>
-    <common>1</common>
-</data>
-    """
-
-    async def setup_after_prep(self, module_test):
-        module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-        module_test.monkeypatch.setattr(
-            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
-        )
-        module_test.scan.modules["paramminer_getparams"].boring_words = {"data", "common"}
-
-        expect_args = {"query_string": b"obscureParameter=AAAAAAAAAAAAAA&AAAAAA=1"}
-        respond_args = {
-            "response_data": self.getparam_extract_xml_match,
-            "headers": {"Content-Type": "application/xml"},
-        }
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-        respond_args = {"response_data": self.getparam_extract_xml, "headers": {"Content-Type": "application/xml"}}
-        module_test.set_expect_requests(respond_args=respond_args)
-
-    def check(self, module_test, events):
-        assert any(
-            e.type == "FINDING"
-            and "[Paramminer] Getparam: [obscureParameter] Reasons: [body]" in e.data["description"]
-            for e in events
-        )
-
-
-class TestParamminer_Getparams_Extract_Html(Paramminer_Headers):
-    modules_overrides = ["httpx", "paramminer_getparams"]
-    config_overrides = {
-        "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary"]), "http_extract": True}}
-    }
-
-    getparam_extract_html = """
-<html><a href="/?hack=1">ping</a></html>
-    """
-
-    getparam_extract_html_match = """
-<html><a href="/?hack=1">ping</a><p>HackThePlanet</p></html>
-    """
-
-    async def setup_after_prep(self, module_test):
-        module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-        module_test.monkeypatch.setattr(
-            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
-        )
-
-        expect_args = {"query_string": b"id=AAAAAAAAAAAAAA&hack=AAAAAAAAAAAAAA&AAAAAA=1"}
-        respond_args = {"response_data": self.getparam_extract_html_match, "headers": {"Content-Type": "text/html"}}
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-        expect_args = {"query_string": b"hack=AAAAAAAAAAAAAA&AAAAAA=1"}
-        respond_args = {"response_data": self.getparam_extract_html_match, "headers": {"Content-Type": "text/html"}}
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-        respond_args = {"response_data": self.getparam_extract_html, "headers": {"Content-Type": "text/html"}}
-        module_test.set_expect_requests(respond_args=respond_args)
-
-    def check(self, module_test, events):
-        assert any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [hack] Reasons: [body]" in e.data["description"]
-            for e in events
-        )
+        assert not emitted_boring_parameter, "emitted boring parameter with skip_boring_words enabled"
 
 
 class TestParamminer_Getparams_finish(Paramminer_Headers):
     modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
     config_overrides = {
-        "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "canary2"]), "http_extract": True}}
+        "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "canary2"]), "recycle_words": True}}
     }
 
     targets = ["http://127.0.0.1:8888/test1.php", "http://127.0.0.1:8888/test2.php"]
@@ -271,12 +151,100 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
         respond_args = {"response_data": self.test_2_html}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"uri": "/test1.php", "query_string": b"abcd1234=AAAAAAAAAAAAAA&AAAAAA=1"}
+        respond_args = {"response_data": self.test_2_html_match}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
         expect_args = {"uri": "/test1.php"}
         respond_args = {"response_data": self.test_1_html}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "FINDING" and "[abcd1234] Reasons: [body] Reflection: [False]" in e.data["description"]
-            for e in events
+
+        excavate_extracted_web_parameter = False
+        found_hidden_getparam_recycled = False
+        emitted_excavate_paramminer_duplicate = False
+
+        for e in events:
+
+            if e.type == "WEB_PARAMETER":
+
+                if (
+                    "http://127.0.0.1:8888/test2.php" in e.data["url"]
+                    and "HTTP Extracted Parameter [abcd1234] (HTML Tags Submodule)" in e.data["description"]
+                ):
+                    excavate_extracted_web_parameter = True
+
+                if (
+                    "http://127.0.0.1:8888/test1.php" in e.data["url"]
+                    and "[Paramminer] Getparam: [abcd1234] Reasons: [body] Reflection: [False]"
+                    in e.data["description"]
+                ):
+                    found_hidden_getparam_recycled = True
+
+                if (
+                    "http://127.0.0.1:8888/test2.php" in e.data["url"]
+                    and "[Paramminer] Getparam: [abcd1234] Reasons: [body] Reflection: [False]"
+                    in e.data["description"]
+                ):
+                    emitted_excavate_paramminer_duplicate = True
+
+        assert excavate_extracted_web_parameter, "Excavate failed to extract GET parameter"
+        assert found_hidden_getparam_recycled, "Failed to find hidden GET parameter"
+        # the fact that it is a duplicate is OK, because it still won't be consumed mutltiple times. But we do want to make sure both modules try to emit it
+        assert emitted_excavate_paramminer_duplicate, "Paramminer emitted duplicate already found by excavate"
+
+
+class TestParamminer_Getparams_xmlspeculative(Paramminer_Headers):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": False}}}
+    getparam_extract_xml = """
+    <data>
+     <obscureParameter>1</obscureParameter>
+         <common>1</common>
+     </data>
+    """
+
+    getparam_speculative_used = """
+    <html>
+    <p>secret parameter used</p>
+    </html>
+    """
+
+    async def setup_after_prep(self, module_test):
+
+        module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.monkeypatch.setattr(
+            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
         )
+        expect_args = {"query_string": b"obscureParameter=AAAAAAAAAAAAAA&AAAAAA=1"}
+        respond_args = {"response_data": self.getparam_speculative_used}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"query_string": b"data=AAAAAAAAAAAAAA&obscureParameter=AAAAAAAAAAAAAA&AAAAAA=1"}
+        respond_args = {"response_data": self.getparam_speculative_used}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        respond_args = {"response_data": self.getparam_extract_xml, "headers": {"Content-Type": "application/xml"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_discovered_speculative = False
+        paramminer_used_speculative = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter (speculative from xml content) [obscureParameter]"
+                    in e.data["description"]
+                ):
+                    excavate_discovered_speculative = True
+
+                if (
+                    "[Paramminer] Getparam: [obscureParameter] Reasons: [header,body] Reflection: [False]"
+                    in e.data["description"]
+                ):
+                    paramminer_used_speculative = True
+
+        assert excavate_discovered_speculative, "Excavate failed to discover speculative xml parameter"
+        assert paramminer_used_speculative, "Paramminer failed to confirm speculative GET parameter"

@@ -1,0 +1,7 @@
+description: Enumerate cloud resources such as storage buckets, etc.
+
+include:
+  - subdomain-enum
+
+flags:
+  - cloud-enum
