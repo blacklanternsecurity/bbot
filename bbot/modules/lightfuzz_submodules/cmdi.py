@@ -59,11 +59,10 @@ class CmdILightFuzz(BaseLightfuzz):
             )
 
         # Blind OS Command Injection
+
         if self.lightfuzz.interactsh_instance:
             self.lightfuzz.event_dict[self.event.data["url"]] = self.event
-
             for p in cmdi_probe_strings:
-
                 subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
                 self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
                     "event": self.event,

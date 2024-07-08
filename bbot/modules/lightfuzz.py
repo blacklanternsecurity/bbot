@@ -72,7 +72,7 @@ class lightfuzz(BaseModule):
                 setattr(self, submodule, True)
                 self.hugeinfo(f"Lightfuzz {submodule_dict['description']} Submodule Enabled")
 
-                if submodule == "submodule_cmdi" and self.scan.config.get("interactsh_disable", False) == False:
+                if submodule == "cmdi" and self.scan.config.get("interactsh_disable", False) == False:
                     try:
                         self.interactsh_instance = self.helpers.interactsh()
                         self.interactsh_domain = await self.interactsh_instance.register(

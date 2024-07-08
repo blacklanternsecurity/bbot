@@ -179,7 +179,7 @@ class Test_Lightfuzz_xss(ModuleTestBase):
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "enabled_submodules": ["sqli"],
+                "enabled_submodules": ["xss"],
             }
         },
     }
@@ -794,10 +794,6 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
         """
 
         if "search=" in qs:
-            value = qs.split("=")[1]
-
-            if "&" in value:
-                value = value.split("&")[0]
 
             subdomain_tag = None
             subdomain_tag = self.extract_subdomain_tag(request.full_path)
@@ -822,12 +818,17 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
 
         web_parameter_emitted = False
         cmdi_interacttsh_finding_emitted = False
+        print("@@@@")
         for e in events:
+            print(e)
+            print(e.type)
             if e.type == "WEB_PARAMETER":
+                print(e.data["description"])
                 if "HTTP Extracted Parameter [search]" in e.data["description"]:
                     web_parameter_emitted = True
 
             if e.type == "VULNERABILITY":
+                print(e.data["description"])
                 if (
                     "OS Command Injection (OOB Interaction) Type: [GETPARAM] Parameter Name: [search] Probe: [&&]"
                     in e.data["description"]
