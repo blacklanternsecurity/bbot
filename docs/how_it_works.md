@@ -2,7 +2,7 @@
 
 ## BBOT's Recursive Philosophy
 
-It is well-known that if you're doing recon, it's best to do it recursively. However, there are very few recursive tools out there, mainly because making a recursive tool (and keeping it stable) is pretty hard. Building a tool like BBOT would not have been possible without extensive [Unit Tests](./dev/tests.md). We are proud to have over 90% code coverage, and a full-fledged test for every module.
+It is well-known that if you're doing recon, it's best to do it recursively. However, there are very few recursive tools out there, mainly because making a recursive tool (and keeping it stable) is pretty hard. BBOT manages this with extensive [Unit Tests](./dev/tests.md).
 
 BBOT inherits its recursive philosophy from [Spiderfoot](https://github.com/smicallef/spiderfoot), which means it is also ***event-driven***. Each of BBOT's 100+ modules ***consume*** a certain type of [Event](./scanning/events.md), use it to discover something new, and ***produce*** new events, which get distributed to all the other modules. This happens again and again -- thousands of times during a scan -- spidering outwards in a recursive web of discovery.
 
