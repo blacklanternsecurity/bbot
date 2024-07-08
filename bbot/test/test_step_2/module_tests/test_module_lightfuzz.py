@@ -32,9 +32,6 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
     def request_handler(self, request):
 
         qs = str(request.query_string.decode())
-        print("!!!!")
-        print(qs)
-
         if "filename=" in qs:
             value = qs.split("=")[1]
 
@@ -54,16 +51,13 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
 
         web_parameter_emitted = False
         pathtraversal_finding_emitted = False
-        print("@@@@")
         for e in events:
-            print(e)
-            print(e.type)
+
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [filename]" in e.data["description"]:
                     web_parameter_emitted = True
 
             if e.type == "FINDING":
-                print(e.data["description"])
                 if (
                     "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Detection Method: [single-dot traversal tolerance"
                     in e.data["description"]
