@@ -99,27 +99,32 @@ class bucket_template(BaseModule):
             new_buckets = new_buckets - buckets
         new_buckets = [b for b in new_buckets if self.valid_bucket_name(b)]
         num_buckets = len(new_buckets)
-        tasks = []
+        bucket_urls_kwargs = []
         for base_domain in self.base_domains:
             for region in self.regions:
                 for bucket_name in new_buckets:
-                    url = self.build_url(bucket_name, base_domain, region)
-                    tasks.append(self._check_bucket_exists(bucket_name, url))
-        async for task in self.helpers.as_completed(tasks):
-            existent_bucket, tags, bucket_name, url = await task
+                    url, kwargs = self.build_bucket_request(bucket_name, base_domain, region)
+                    bucket_urls_kwargs.append((url, kwargs, (bucket_name, base_domain, region)))
+        async for url, kwargs, (bucket_name, base_domain, region), response in self.helpers.request_custom_batch(
+            bucket_urls_kwargs
+        ):
+            existent_bucket, tags = self._check_bucket_exists(bucket_name, response)
             if existent_bucket:
                 yield bucket_name, url, tags, num_buckets
 
-    async def _check_bucket_exists(self, bucket_name, url):
-        self.debug(f'Checking if bucket exists: "{bucket_name}"')
-        return await self.check_bucket_exists(bucket_name, url)
+    def build_bucket_request(self, bucket_name, base_domain, region):
+        url = self.build_url(bucket_name, base_domain, region)
+        return url, {}
 
-    async def check_bucket_exists(self, bucket_name, url):
-        response = await self.helpers.request(url)
+    def _check_bucket_exists(self, bucket_name, response):
+        self.debug(f'Checking if bucket exists: "{bucket_name}"')
+        return self.check_bucket_exists(bucket_name, response)
+
+    def check_bucket_exists(self, bucket_name, response):
         tags = self.gen_tags_exists(response)
         status_code = getattr(response, "status_code", 404)
         existent_bucket = status_code != 404
-        return (existent_bucket, tags, bucket_name, url)
+        return (existent_bucket, tags)
 
     async def _check_bucket_open(self, bucket_name, url):
         self.debug(f'Checking if bucket is misconfigured: "{bucket_name}"')
