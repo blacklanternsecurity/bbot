@@ -177,7 +177,7 @@ class HTTPEngine(EngineServer):
                     chunks.append(chunk)
                 return b"".join(chunks), response
         except httpx.HTTPError as e:
-            self.debug(f"Error requesting {url}: {e}")
+            self.log.debug(f"Error requesting {url}: {e}")
             if raise_error:
                 raise
 
