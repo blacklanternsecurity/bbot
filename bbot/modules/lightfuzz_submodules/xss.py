@@ -70,7 +70,7 @@ class XSSLightfuzz(BaseLightfuzz):
         if between_tags:
             for tag in tags:
                 between_tags_probe = f"<{tag}>{random_string}</{tag}>"
-                result = await self.check_probe(between_tags_probe, between_tags_probe, f"Between Tags ({tag}) tag")
+                result = await self.check_probe(between_tags_probe, between_tags_probe, f"Between Tags ({tag} tag)")
                 if result == True:
                     continue
 
