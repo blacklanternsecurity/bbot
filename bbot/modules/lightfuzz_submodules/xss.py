@@ -72,7 +72,7 @@ class XSSLightfuzz(BaseLightfuzz):
                 between_tags_probe = f"<{tag}>{random_string}</{tag}>"
                 result = await self.check_probe(between_tags_probe, between_tags_probe, f"Between Tags ({tag} tag)")
                 if result == True:
-                    continue
+                    break
 
         if in_tag_attribute:
             in_tag_attribute_probe = f'{random_string}"'
