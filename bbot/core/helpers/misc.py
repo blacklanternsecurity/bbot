@@ -745,6 +745,10 @@ encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}
 backslash_regex = re.compile(r"(?P<slashes>\\+)(?P<char>[ntrvb])")
 
 
+def ensure_utf8_compliant(text):
+    return text.encode("utf-8", errors="ignore").decode("utf-8")
+
+
 def recursive_decode(data, max_depth=5):
     """
     Recursively decodes doubly or triply-encoded strings to their original form.
@@ -779,12 +783,11 @@ def recursive_decode(data, max_depth=5):
     data = unquote(data, errors="ignore")
     # Decode Unicode escapes
     with suppress(UnicodeEncodeError):
-        data = codecs.decode(data, "unicode_escape", errors="ignore")
+        data = ensure_utf8_compliant(codecs.decode(data, "unicode_escape", errors="ignore"))
     # Check if there's still URL-encoded or Unicode-escaped content
     if encoded_regex.search(data):
         # If yes, continue decoding
         return recursive_decode(data, max_depth=max_depth - 1)
-
     return data
 
 
