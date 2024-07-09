@@ -52,7 +52,7 @@ class iis_shortnames(BaseModule):
                 results[method] = {url: response}
         for method, result in results.items():
             confirmations = 0
-            iterations = 4 # one failed detection is tolerated, as long as its not the first run
+            iterations = 4  # one failed detection is tolerated, as long as its not the first run
             while iterations > 0:
                 control = results[method].get(control_url, None)
                 test = results[method].get(test_url, None)
