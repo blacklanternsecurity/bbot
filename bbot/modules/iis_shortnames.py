@@ -51,18 +51,30 @@ class iis_shortnames(BaseModule):
             except KeyError:
                 results[method] = {url: response}
         for method, result in results.items():
-            control = results[method].get(control_url, None)
-            test = results[method].get(test_url, None)
-            if (result != None) and (test != None) and (control != None):
-                if control.status_code != test.status_code:
-                    technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
-                    detections.append((method, test.status_code, technique))
-
-                elif ("Error Code</th><td>0x80070002" in control.text) and (
-                    "Error Code</th><td>0x00000000" in test.text
-                ):
-                    detections.append((method, 0, technique))
-                    technique = "HTTP Body Error Message"
+            confirmations = 0
+            iterations = 4 # one failed detection is tolerated, as long as its not the first run
+            while iterations > 0:
+                control = results[method].get(control_url, None)
+                test = results[method].get(test_url, None)
+                if control and test:
+                    if control.status_code != test.status_code:
+                        confirmations += 1
+                        self.debug(f"New detection, number of confirmations: [{str(confirmations)}]")
+                        if confirmations > 2:
+                            technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
+                            detections.append((method, test.status_code, technique))
+                            break
+                    elif ("Error Code</th><td>0x80070002" in control.text) and (
+                        "Error Code</th><td>0x00000000" in test.text
+                    ):
+                        confirmations += 1
+                        if confirmations > 2:
+                            detections.append((method, 0, technique))
+                            technique = "HTTP Body Error Message"
+                            break
+                iterations -= 1
+                if confirmations == 0:
+                    break
         return detections
 
     async def setup(self):
@@ -177,11 +189,11 @@ class iis_shortnames(BaseModule):
                     found_results = True
                     node_count += 1
                     safety_counter.counter += 1
-                    if safety_counter.counter > 3000:
+                    if safety_counter.counter > 1500:
                         raise IISShortnamesError(f"Exceeded safety counter threshold ({safety_counter.counter})")
                     self.verbose(f"node_count: {str(node_count)} for node: {target}")
                     if node_count > self.config.get("max_node_count"):
-                        self.warning(
+                        self.verbose(
                             f"iis_shortnames: max_node_count ({str(self.config.get('max_node_count'))}) exceeded for node: {target}. Affected branch will be terminated."
                         )
                         return url_hint_list
