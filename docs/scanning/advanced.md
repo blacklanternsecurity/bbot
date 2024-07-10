@@ -70,14 +70,14 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: unstructured,paramminer_cookies,wayback,urlscan,bucket_amazon,wappalyzer,digitorus,host_header,fingerprintx,certspotter,iis_shortnames,newsletters,threatminer,generic_ssrf,hunterio,bucket_google,passivetotal,ipstack,bucket_firebase,dehashed,dnsbrute_mutations,internetdb,asn,ajaxpro,nuclei,oauth,telerik,baddns,riddler,docker_pull,code_repository,gowitness,secretsdb,sslcert,github_codesearch,emailformat,columbus,sitedossier,chaos,ip2location,github_org,rapiddns,myssl,dotnetnuke,dockerhub,binaryedge,pgp,hunt,skymem,dnscommonsrv,vhost,httpx,c99,builtwith,sublist3r,filedownload,virustotal,social,otx,baddns_zone,github_workflows,shodan_dns,url_manipulation,ntlm,paramminer_getparams,viewdns,trufflehog,anubisdb,bypass403,git_clone,ffuf,credshed,git,dnsdumpster,fullhunt,subdomaincenter,bucket_file_enum,portscan,ipneighbor,crt,postman,zoomeye,dnscaa,paramminer_headers,bucket_azure,badsecrets,dastardly,smuggler,hackertarget,ffuf_shortnames,dnsbrute,leakix,censys,wafw00f,bucket_digitalocean,robots,azure_tenant,securitytrails,azure_realm,wpscan,affiliates,crobat,bevigil,gitlab
+                        Modules to enable. Choices: dockerhub,iis_shortnames,shodan_dns,git_clone,wappalyzer,bucket_file_enum,baddns_zone,dastardly,gowitness,hunterio,paramminer_headers,bevigil,telerik,dotnetnuke,anubisdb,paramminer_cookies,newsletters,viewdns,bucket_google,github_codesearch,gitlab,dnscaa,fingerprintx,ntlm,securitytrails,chaos,smuggler,riddler,ffuf_shortnames,ajaxpro,wayback,dnsbrute_mutations,sublist3r,bypass403,passivetotal,bucket_azure,vhost,zoomeye,dnsdumpster,subdomaincenter,postman,baddns,affiliates,httpx,internetdb,azure_tenant,threatminer,github_org,github_workflows,dehashed,pgp,ip2location,badsecrets,ffuf,secretsdb,crobat,wafw00f,certspotter,fullhunt,urlscan,otx,bucket_firebase,nuclei,portscan,code_repository,crt,sitedossier,docker_pull,dnscommonsrv,git,ipneighbor,columbus,robots,host_header,asn,bucket_amazon,digitorus,trufflehog,builtwith,hunt,hackertarget,azure_realm,oauth,leakix,filedownload,censys,skymem,unstructured,dnsbrute,generic_ssrf,binaryedge,sslcert,rapiddns,wpscan,myssl,credshed,emailformat,bucket_digitalocean,social,virustotal,c99,paramminer_getparams,url_manipulation,ipstack
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: email-enum,active,web-screenshots,report,subdomain-hijack,portscan,baddns,web-thorough,iis-shortnames,service-enum,web-basic,passive,web-paramminer,subdomain-enum,slow,social-enum,code-enum,cloud-enum,deadly,affiliates,aggressive,safe
+                        Enable modules by flag. Choices: active,social-enum,service-enum,passive,email-enum,web-thorough,subdomain-hijack,web-screenshots,web-paramminer,iis-shortnames,slow,cloud-enum,portscan,baddns,affiliates,safe,code-enum,subdomain-enum,web-basic,aggressive,deadly,report
   -lf, --list-flags     List available flags.
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
@@ -102,7 +102,7 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: discord,slack,splunk,websocket,http,web_report,neo4j,emails,python,subdomains,csv,txt,asset_inventory,stdout,json,teams
+                        Output module(s). Choices: python,stdout,http,asset_inventory,txt,subdomains,emails,websocket,discord,neo4j,slack,web_report,csv,json,teams,splunk
   --json, -j            Output scan data in JSON format
   --brief, -br          Output only the data itself
   --event-types EVENT_TYPES [EVENT_TYPES ...]
