@@ -103,6 +103,13 @@ class dnsbrute_mutations(BaseModule):
                     ):
                         add_mutation(subdomain)
 
+                    # skip if there's hardly any mutations
+                    if len(mutations) < 10:
+                        self.debug(
+                            f"Skipping {len(mutations):,} mutations against {domain} because there are less than 10"
+                        )
+                        continue
+
                     if mutations:
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(trimmed_found)})")
                         results = await self.helpers.dns.brute(self, query, mutations)

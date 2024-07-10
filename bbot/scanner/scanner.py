@@ -310,6 +310,8 @@ class Scanner:
 
             self._start_log_handlers()
             self.trace(f'Ran BBOT {__version__} at {scan_start_time}, command: {" ".join(sys.argv)}')
+            self.trace(f"Target: {self.preset.target.json}")
+            self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 
             if not self.target:
                 self.warning(f"No scan targets specified")

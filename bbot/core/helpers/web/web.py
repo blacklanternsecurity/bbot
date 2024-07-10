@@ -291,6 +291,9 @@ class WebHelper(EngineClient):
             else:
                 new_url = url.format(page=page, page_size=page_size, offset=offset)
             result = await self.request(new_url, **requests_kwargs)
+            if result is None:
+                log.verbose(f"api_page_iter() got no response for {url}")
+                break
             try:
                 if json:
                     result = result.json()
