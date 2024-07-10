@@ -240,16 +240,20 @@ class EngineClient(EngineBase):
                 socket.close()
 
     async def shutdown(self):
-        self._shutdown = True
-        async with self.new_socket() as socket:
-            # -99 == special shutdown signal
-            shutdown_message = pickle.dumps({"c": -99})
-            await socket.send(shutdown_message)
-        for socket in self.sockets:
-            socket.close()
-        self.context.term()
-        # delete socket file on exit
-        self.socket_path.unlink(missing_ok=True)
+        if not self._shutdown:
+            self._shutdown = True
+            async with self.new_socket() as socket:
+                # -99 == special shutdown signal
+                shutdown_message = pickle.dumps({"c": -99})
+                await socket.send(shutdown_message)
+            # allow shutdown signal .1 seconds to send
+            await asyncio.sleep(0.1)
+            # then close sockets
+            for socket in self.sockets:
+                socket.close()
+            self.context.term()
+            # delete socket file on exit
+            self.socket_path.unlink(missing_ok=True)
 
 
 class EngineServer(EngineBase):
