@@ -25,6 +25,8 @@ class BaseLightfuzz:
 
     def compare_baseline(self, event_type, probe, cookies, additional_params_populate_empty=False):
 
+        http_compare = None
+
         if event_type == "GETPARAM":
             baseline_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
             http_compare = self.lightfuzz.helpers.http_compare(

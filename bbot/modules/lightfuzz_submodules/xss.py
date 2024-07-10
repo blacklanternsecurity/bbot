@@ -66,7 +66,7 @@ class XSSLightfuzz(BaseLightfuzz):
         self.lightfuzz.debug(
             f"determine_context returned: between_tags [{between_tags}], in_tag_attribute [{in_tag_attribute}], in_javascript [{in_javascript}]"
         )
-        tags = ["z","svg","img"]
+        tags = ["z", "svg", "img"]
         if between_tags:
             for tag in tags:
                 between_tags_probe = f"<{tag}>{random_string}</{tag}>"
