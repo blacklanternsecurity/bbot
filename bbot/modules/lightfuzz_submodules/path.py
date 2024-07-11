@@ -73,7 +73,6 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                     ):
 
                         confirmations += 1
-                        self.lightfuzz.critical(confirmations)
                         if confirmations > 2:
                             self.results.append(
                                 {
