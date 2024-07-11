@@ -35,12 +35,12 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                 "doubledot_payload": urllib.parse.quote(f"/../a/../{probe_value}".encode(), safe=""),
             },
             "single-dot traversal tolerance (non-recursive stripping)": {
-                "singledot_payload": f"/...//{probe_value}",
-                "doubledot_payload": f"/....//....//{probe_value}",
+                "singledot_payload": f"/...//a/....//{probe_value}",
+                "doubledot_payload": f"/....//a/....//{probe_value}",
             },
             "single-dot traversal tolerance (double url-encoding)": {
-                "singledot_payload": f"%252f.%252f{probe_value}",
-                "doubledot_payload": f"%252f..%252f{probe_value}",
+                "singledot_payload": f"%252f.%252fa%252f..%252f{probe_value}",
+                "doubledot_payload": f"%252f..%252fa%252f..%252f{probe_value}",
             },
         }
 
@@ -54,37 +54,43 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             }
 
         for path_technique, payloads in path_techniques.items():
-
-            try:
-                singledot_probe = await self.compare_probe(
-                    http_compare, self.event.data["type"], payloads["singledot_payload"], cookies
-                )
-                doubledot_probe = await self.compare_probe(
-                    http_compare, self.event.data["type"], payloads["doubledot_payload"], cookies
-                )
-
-                self.lightfuzz.debug(
-                    f"[POSSIBLE Path Traversal debug] [{path_technique}] DEBUG: singledot_probe URL: [{singledot_probe[3].request.url}] doubledot_probe URL: [{doubledot_probe[3].request.url}]"
-                )
-
-                if (
-                    singledot_probe[0] == True
-                    and doubledot_probe[0] == False
-                    and doubledot_probe[3] != None
-                    and doubledot_probe[1] != ["header"]
-                ):
-
-                    self.results.append(
-                        {
-                            "type": "FINDING",
-                            "description": f"POSSIBLE Path Traversal. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [{path_technique}]",
-                        }
+            iterations = 4  # one failed detection is tolerated, as long as its not the first run
+            confirmations = 0
+            while iterations > 0:
+                try:
+                    singledot_probe = await self.compare_probe(
+                        http_compare, self.event.data["type"], payloads["singledot_payload"], cookies
                     )
-                    # no need to report both techniques if they both work
+                    doubledot_probe = await self.compare_probe(
+                        http_compare, self.event.data["type"], payloads["doubledot_payload"], cookies
+                    )
+
+                    if (
+                        singledot_probe[0] == True
+                        and doubledot_probe[0] == False
+                        and doubledot_probe[3] != None
+                        and doubledot_probe[1] != ["header"]
+                    ):
+
+                        confirmations += 1
+                        self.lightfuzz.critical(confirmations)
+                        if confirmations > 2:
+                            self.results.append(
+                                {
+                                    "type": "FINDING",
+                                    "description": f"POSSIBLE Path Traversal. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [{path_technique}]",
+                                }
+                            )
+                            # no need to report both techniques if they both work
+                            break
+                except HttpCompareError as e:
+                    self.lightfuzz.debug(e)
+                    continue
+
+                iterations -= 1
+                if confirmations == 0:
                     break
-            except HttpCompareError as e:
-                self.lightfuzz.debug(e)
-                continue
+
 
         # Absolute path test
 
