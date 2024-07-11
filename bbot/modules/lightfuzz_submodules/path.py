@@ -21,8 +21,6 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             )
             return
 
-        http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
-
         # Single dot traversal tolerance test
 
         path_techniques = {
@@ -58,6 +56,9 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             confirmations = 0
             while iterations > 0:
                 try:
+
+                    http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
+                    
                     singledot_probe = await self.compare_probe(
                         http_compare, self.event.data["type"], payloads["singledot_payload"], cookies
                     )
@@ -73,6 +74,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                     ):
 
                         confirmations += 1
+                        self.lightfuzz.verbose(f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations")
                         if confirmations > 2:
                             self.results.append(
                                 {
