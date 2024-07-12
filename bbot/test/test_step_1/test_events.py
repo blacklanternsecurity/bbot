@@ -409,7 +409,7 @@ async def test_events(events, helpers):
     db_event.scope_distance = 1
     assert db_event.discovery_context == "test context"
     assert db_event.discovery_path == ["test context"]
-    timestamp = db_event.timestamp.timestamp()
+    timestamp = db_event.timestamp.isoformat()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
     assert json_event["data"] == "evilcorp.com:80"
