@@ -312,7 +312,7 @@ class excavate(BaseInternalModule):
     }
     scope_distance_modifier = None
 
-    _max_event_handlers = 8
+    _module_threads = 8
 
     parameter_blacklist = [
         "__VIEWSTATE",
