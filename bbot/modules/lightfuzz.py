@@ -54,7 +54,7 @@ class lightfuzz(BaseModule):
     ]
     in_scope_only = True
 
-    max_event_handlers = 4
+    _module_threads = 4
 
     async def setup(self):
         self.event_dict = {}
