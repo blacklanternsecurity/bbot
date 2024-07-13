@@ -8,6 +8,7 @@ import string
 import asyncio
 import logging
 import ipaddress
+import ahocorasick
 import regex as re
 import subprocess as sp
 from pathlib import Path
