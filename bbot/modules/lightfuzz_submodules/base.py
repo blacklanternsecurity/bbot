@@ -70,8 +70,6 @@ class BaseLightfuzz:
         speculative_mode="GETPARAM",
     ):
 
-        http_compare = None
-
         if event_type == "SPECULATIVE":
             event_type = speculative_mode
 
