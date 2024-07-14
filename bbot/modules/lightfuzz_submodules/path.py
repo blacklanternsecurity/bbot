@@ -85,6 +85,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                             # no need to report both techniques if they both work
                             break
                 except HttpCompareError as e:
+                    iterations -= 1
                     self.lightfuzz.debug(e)
                     continue
 
