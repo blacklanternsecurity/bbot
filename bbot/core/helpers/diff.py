@@ -103,11 +103,9 @@ class HttpCompare:
 
             for k, v in ddiff.items():
                 for x in list(ddiff[k]):
-                    log.debug(f"Added {k} filter for path: {x.path()}")
                     self.ddiff_filters.append(x.path())
 
             self.baseline_json = baseline_1_json
-
             self.baseline_ignore_headers = [
                 h.lower()
                 for h in [
@@ -158,7 +156,6 @@ class HttpCompare:
         if len(ddiff.keys()) == 0:
             return True
         else:
-            log.debug(ddiff)
             return False
 
     async def compare(
