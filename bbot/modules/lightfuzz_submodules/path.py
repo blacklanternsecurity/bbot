@@ -52,7 +52,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             }
 
         for path_technique, payloads in path_techniques.items():
-            iterations = 4  # one failed detection is tolerated, as long as its not the first run
+            iterations = 5  # one failed detection is tolerated, as long as its not the first run
             confirmations = 0
             while iterations > 0:
                 try:
@@ -75,7 +75,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
 
                         confirmations += 1
                         self.lightfuzz.verbose(f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations")
-                        if confirmations > 2:
+                        if confirmations > 3:
                             self.results.append(
                                 {
                                     "type": "FINDING",
