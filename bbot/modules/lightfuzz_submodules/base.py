@@ -55,7 +55,18 @@ class BaseLightfuzz:
             )
         return http_compare
 
-    async def compare_probe(self, http_compare, event_type, probe, cookies, additional_params_populate_empty=False):
+    async def compare_probe(
+        self,
+        http_compare,
+        event_type,
+        probe,
+        cookies,
+        additional_params_populate_empty=False,
+        speculative_mode="GETPARAM",
+    ):
+
+        if event_type == "SPECULATIVE":
+            event_type = speculative_mode
 
         if event_type == "GETPARAM":
             probe_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"

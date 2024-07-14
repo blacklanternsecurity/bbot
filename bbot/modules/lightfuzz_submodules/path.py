@@ -58,7 +58,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                 try:
 
                     http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
-                    
+
                     singledot_probe = await self.compare_probe(
                         http_compare, self.event.data["type"], payloads["singledot_payload"], cookies
                     )
@@ -74,7 +74,9 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                     ):
 
                         confirmations += 1
-                        self.lightfuzz.verbose(f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations")
+                        self.lightfuzz.verbose(
+                            f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations"
+                        )
                         if confirmations > 3:
                             self.results.append(
                                 {
@@ -92,7 +94,6 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                 iterations -= 1
                 if confirmations == 0:
                     break
-
 
         # Absolute path test
 
