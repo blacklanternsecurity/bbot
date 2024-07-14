@@ -1,6 +1,6 @@
 import re
 
-from .base import ModuleTestBase
+from .base import ModuleTestBase, tempwordlist
 from werkzeug.wrappers import Response
 from urllib.parse import unquote
 
@@ -837,3 +837,58 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert cmdi_interacttsh_finding_emitted, "interactsh CMDi FINDING not emitted"
+
+
+class Test_Lightfuzz_speculative(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "paramminer_getparams", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["xss"]},
+            "paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True},
+        },
+    }
+
+    def request_handler(self, request):
+
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        {
+          "search": 1,
+          "common": 1
+        }
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            xss_block = f"""
+        <section class=blog-header>
+            <h1>0 search results for '{unquote(value)}'</h1>
+            <hr>
+        </section>
+        """
+            return Response(xss_block, status=200)
+        return Response(parameter_block, status=200, headers={"Content-Type": "application/json"})
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        excavate_json_extraction = False
+        xss_finding_emitted = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter (speculative from json content) [search]" in e.data["description"]:
+                    excavate_json_extraction = True
+
+            if e.type == "FINDING":
+                if "Possible Reflected XSS. Parameter: [search] Context: [Between Tags" in e.data["description"]:
+                    xss_finding_emitted = True
+
+        assert excavate_json_extraction, "Excavate failed to extract json parameter"
+        assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"

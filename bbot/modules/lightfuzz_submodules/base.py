@@ -23,9 +23,14 @@ class BaseLightfuzz:
         if r:
             return r.text
 
-    def compare_baseline(self, event_type, probe, cookies, additional_params_populate_empty=False):
+    def compare_baseline(
+        self, event_type, probe, cookies, additional_params_populate_empty=False, speculative_mode="GETPARAM"
+    ):
 
         http_compare = None
+
+        if event_type == "SPECULATIVE":
+            event_type = speculative_mode
 
         if event_type == "GETPARAM":
             baseline_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
@@ -65,6 +70,8 @@ class BaseLightfuzz:
         speculative_mode="GETPARAM",
     ):
 
+        http_compare = None
+
         if event_type == "SPECULATIVE":
             event_type = speculative_mode
 
@@ -91,8 +98,17 @@ class BaseLightfuzz:
         return compare_result
 
     async def standard_probe(
-        self, event_type, cookies, probe_value, timeout=10, additional_params_populate_empty=False
+        self,
+        event_type,
+        cookies,
+        probe_value,
+        timeout=10,
+        additional_params_populate_empty=False,
+        speculative_mode="GETPARAM",
     ):
+
+        if event_type == "SPECULATIVE":
+            event_type = speculative_mode
 
         method = "GET"
         if event_type == "GETPARAM":
