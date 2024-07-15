@@ -119,15 +119,21 @@ class EngineClient(EngineBase):
 
     async def run_and_return(self, command, *args, **kwargs):
         if self._shutdown:
-            self.log.verbose("Engine has been shut down and is not accepting new tasks")
+            self.log.verbose(f"{self.name} has been shut down and is not accepting new tasks")
             return
         async with self.new_socket() as socket:
             try:
                 message = self.make_message(command, args=args, kwargs=kwargs)
                 if message is error_sentinel:
                     return
-                await socket.send(message)
-                binary = await socket.recv()
+                await asyncio.wait_for(socket.send(message), timeout=10)
+                while 1:
+                    try:
+                        binary = await asyncio.wait_for(socket.recv(), timeout=10)
+                    except (TimeoutError, asyncio.TimeoutError):
+                        self.log.debug(
+                            f"{self.name}: Timeout waiting for response for {self.name}.{command}({kwargs}), retrying..."
+                        )
             except BaseException:
                 # -1 == special "cancel" signal
                 cancel_message = pickle.dumps({"c": -1})
@@ -314,17 +320,15 @@ class EngineServer(EngineBase):
             self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
             try:
                 result = await command_fn(*args, **kwargs)
-            except (asyncio.CancelledError, KeyboardInterrupt):
-                return
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
-                trace = traceback.format_exc()
                 self.log.debug(error)
+                trace = traceback.format_exc()
                 self.log.debug(trace)
                 result = {"_e": (error, trace)}
             finally:
                 self.tasks.pop(client_id, None)
-            await self.send_socket_multipart(client_id, result)
+            await asyncio.wait_for(self.send_socket_multipart(client_id, result), timeout=10)
         except BaseException as e:
             self.log.critical(
                 f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
@@ -338,8 +342,6 @@ class EngineServer(EngineBase):
                 async for _ in command_fn(*args, **kwargs):
                     await self.send_socket_multipart(client_id, _)
                 await self.send_socket_multipart(client_id, {"_s": None})
-            except (asyncio.CancelledError, KeyboardInterrupt):
-                return
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
                 trace = traceback.format_exc()
@@ -360,7 +362,7 @@ class EngineServer(EngineBase):
             message = pickle.dumps(message)
             await self.socket.send_multipart([client_id, message])
         except Exception as e:
-            self.log.warning(f"Error sending ZMQ message: {e}")
+            self.log.verbose(f"Error sending ZMQ message: {e}")
             self.log.trace(traceback.format_exc())
 
     def check_error(self, message):

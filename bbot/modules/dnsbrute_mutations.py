@@ -29,7 +29,7 @@ class dnsbrute_mutations(BaseModule):
         return True
 
     async def handle_event(self, event):
-        # here we don't brute-force, we just add the subdomain to our end-of-scan TODO
+        # here we don't brute-force, we just add the subdomain to our end-of-scan
         self.add_found(event)
 
     def add_found(self, event):

@@ -412,8 +412,9 @@ class Preset:
             baked_preset.add_module(module, module_type="scan")
 
         # enable output modules
-        output_modules_to_enable = baked_preset.explicit_output_modules
-        output_module_override = any(m in self.default_output_modules for m in output_modules_to_enable)
+        output_modules_to_enable = set(baked_preset.explicit_output_modules)
+        default_output_modules = self.default_output_modules
+        output_module_override = any(m in default_output_modules for m in output_modules_to_enable)
         # if none of the default output modules have been explicitly specified, enable them all
         if not output_module_override:
             output_modules_to_enable.update(self.default_output_modules)
