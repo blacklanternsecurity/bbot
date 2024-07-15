@@ -108,7 +108,7 @@ class dnsbrute_mutations(BaseModule):
                         self.debug(
                             f"Skipping {len(mutations):,} mutations against {domain} because there are less than 10"
                         )
-                        continue
+                        break
 
                     if mutations:
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(trimmed_found)})")
