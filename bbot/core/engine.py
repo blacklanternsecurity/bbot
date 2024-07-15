@@ -242,14 +242,13 @@ class EngineClient(EngineBase):
     async def shutdown(self):
         if not self._shutdown:
             self._shutdown = True
-            try:
-                async with asyncio.timeout(10):
-                    async with self.new_socket() as socket:
-                        # -99 == special shutdown signal
-                        shutdown_message = pickle.dumps({"c": -99})
-                        await socket.send(shutdown_message)
-            except TimeoutError:
-                self.log.debug(f"Timeout sending shutdown message to {self.name} server")
+            async with self.new_socket() as socket:
+                # -99 == special shutdown signal
+                shutdown_message = pickle.dumps({"c": -99})
+                try:
+                    await asyncio.wait_for(socket.send(shutdown_message), timeout=.2)
+                except (TimeoutError, asyncio.TimeoutError):
+                    self.log.debug(f"Timeout sending shutdown message to {self.name} server")
             # allow shutdown signal .1 seconds to get delivered
             await asyncio.sleep(0.1)
             # then terminate context
@@ -427,9 +426,8 @@ class EngineServer(EngineBase):
         task.cancel()
         try:
             try:
-                async with asyncio.timeout(0.2):
-                    await task
-            except TimeoutError:
+                await asyncio.wait_for(task, timeout=.2)
+            except (TimeoutError, asyncio.TimeoutError):
                 self.log.debug(f"{self.name}: Timeout cancelling task")
         except (KeyboardInterrupt, asyncio.CancelledError):
             pass
