@@ -252,6 +252,7 @@ class EngineClient(EngineBase):
                     await asyncio.sleep(0.1)
                 except (TimeoutError, asyncio.TimeoutError):
                     self.log.debug(f"Timeout sending shutdown message to {self.name} server")
+
             def shutdown_daemon():
                 for socket in self.sockets:
                     socket.close()
@@ -259,6 +260,7 @@ class EngineClient(EngineBase):
                 self.context.term()
                 # delete socket file on exit
                 self.socket_path.unlink(missing_ok=True)
+
             threading.Thread(target=shutdown_daemon, daemon=True).start()
 
 
