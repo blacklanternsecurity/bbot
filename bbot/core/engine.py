@@ -132,7 +132,7 @@ class EngineClient(EngineBase):
                         binary = await asyncio.wait_for(socket.recv(), timeout=10)
                     except (TimeoutError, asyncio.TimeoutError):
                         self.log.debug(
-                            f"{self.name}: Timeout waiting for response for {self.name}.{command}({kwargs}), retrying..."
+                            f"{self.name}: Timeout waiting for response for {self.name}.{command}({args}, {kwargs}), retrying..."
                         )
             except BaseException:
                 # -1 == special "cancel" signal
@@ -142,7 +142,7 @@ class EngineClient(EngineBase):
                 raise
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = self.unpickle(binary)
-        self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
+        self.log.debug(f"{self.name}.{command}({args}, {kwargs}) got message: {message}")
         # error handling
         if self.check_error(message):
             return
