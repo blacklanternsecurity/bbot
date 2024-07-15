@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import logging
 import tempfile
+import threading
 import traceback
 import zmq.asyncio
 from pathlib import Path
@@ -251,12 +252,14 @@ class EngineClient(EngineBase):
                     await asyncio.sleep(0.1)
                 except (TimeoutError, asyncio.TimeoutError):
                     self.log.debug(f"Timeout sending shutdown message to {self.name} server")
-            for socket in self.sockets:
-                socket.close()
-            # then terminate context
-            self.context.term()
-            # delete socket file on exit
-            self.socket_path.unlink(missing_ok=True)
+            def shutdown_daemon():
+                for socket in self.sockets:
+                    socket.close()
+                # then terminate context
+                self.context.term()
+                # delete socket file on exit
+                self.socket_path.unlink(missing_ok=True)
+            threading.Thread(target=shutdown_daemon, daemon=True).start()
 
 
 class EngineServer(EngineBase):
