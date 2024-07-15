@@ -420,7 +420,7 @@ async def test_events(events, helpers):
     assert json_event["discovery_path"] == ["test context"]
     reconstituted_event = event_from_json(json_event)
     assert reconstituted_event.scope_distance == 1
-    assert reconstituted_event.timestamp.timestamp() == timestamp
+    assert reconstituted_event.timestamp.isoformat() == timestamp
     assert reconstituted_event.data == "evilcorp.com:80"
     assert reconstituted_event.type == "OPEN_TCP_PORT"
     assert reconstituted_event.host == "evilcorp.com"
@@ -442,7 +442,7 @@ async def test_events(events, helpers):
     assert json_event_siemfriendly["timestamp"] == timestamp
     reconstituted_event2 = event_from_json(json_event_siemfriendly, siem_friendly=True)
     assert reconstituted_event2.scope_distance == 1
-    assert reconstituted_event2.timestamp.timestamp() == timestamp
+    assert reconstituted_event2.timestamp.isoformat() == timestamp
     assert reconstituted_event2.data == "evilcorp.com:80"
     assert reconstituted_event2.type == "OPEN_TCP_PORT"
     assert reconstituted_event2.host == "evilcorp.com"
