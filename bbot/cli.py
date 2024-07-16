@@ -2,6 +2,7 @@
 
 import sys
 import logging
+
 # import multiprocessing
 from bbot.errors import *
 from bbot import __version__
@@ -28,9 +29,7 @@ www.blacklanternsecurity.com/bbot
         "This is a pre-release of BBOT 2.0. If you upgraded from version 1, we recommend cleaning your old configs etc. before running this version!",
         level="WARNING",
     )
-    log_to_stderr(
-        "For details, see https://github.com/blacklanternsecurity/bbot/discussions/1540", level="WARNING"
-    )
+    log_to_stderr("For details, see https://github.com/blacklanternsecurity/bbot/discussions/1540", level="WARNING")
 
 scan_name = ""
 
