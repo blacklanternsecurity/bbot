@@ -16,6 +16,7 @@ class BBOTThread(threading.Thread):
 
     def __init__(self, *args, **kwargs):
         self.custom_name = kwargs.pop("custom_name", self.default_name)
+        kwargs["daemon"] = True
         super().__init__(*args, **kwargs)
 
     def run(self):

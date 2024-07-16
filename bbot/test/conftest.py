@@ -194,7 +194,7 @@ def proxy_server():
     server = socketserver.ThreadingTCPServer(("localhost", 0), Proxy)
 
     # Start the server in a new thread.
-    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
     yield server
