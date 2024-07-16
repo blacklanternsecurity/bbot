@@ -55,6 +55,16 @@ class EngineBase:
             self.log.trace(traceback.format_exc())
         return error_sentinel
 
+    async def _infinite_retry(self, callback, *args, **kwargs):
+        interval = kwargs.pop("_interval", 10)
+        while 1:
+            try:
+                return await asyncio.wait_for(callback(*args, **kwargs), timeout=interval)
+            except (TimeoutError, asyncio.TimeoutError):
+                self.log.debug(
+                    f"{self.name}: Timeout waiting for response for {callback.__name__}({args}, {kwargs}), retrying..."
+                )
+
 
 class EngineClient(EngineBase):
     """
@@ -126,14 +136,8 @@ class EngineClient(EngineBase):
                 message = self.make_message(command, args=args, kwargs=kwargs)
                 if message is error_sentinel:
                     return
-                await asyncio.wait_for(socket.send(message), timeout=10)
-                while 1:
-                    try:
-                        binary = await asyncio.wait_for(socket.recv(), timeout=10)
-                    except (TimeoutError, asyncio.TimeoutError):
-                        self.log.debug(
-                            f"{self.name}: Timeout waiting for response for {self.name}.{command}({args}, {kwargs}), retrying..."
-                        )
+                await self._infinite_retry(socket.send, message)
+                binary = await self._infinite_retry(socket.recv)
             except BaseException:
                 # -1 == special "cancel" signal
                 cancel_message = pickle.dumps({"c": -1})
@@ -159,10 +163,10 @@ class EngineClient(EngineBase):
             await socket.send(message)
             while 1:
                 try:
-                    binary = await socket.recv()
+                    binary = await self._infinite_retry(socket.recv)
                     # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
                     message = self.unpickle(binary)
-                    self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
+                    self.log.debug(f"{self.name}.{command}({args}, {kwargs}) got message: {message}")
                     # error handling
                     if self.check_error(message) or self.check_stop(message):
                         break
@@ -328,7 +332,8 @@ class EngineServer(EngineBase):
                 result = {"_e": (error, trace)}
             finally:
                 self.tasks.pop(client_id, None)
-            await asyncio.wait_for(self.send_socket_multipart(client_id, result), timeout=10)
+                self.log.debug(f"{self.name}: Sending response to {command_fn.__name__}({args}, {kwargs}): {result}")
+                await self.send_socket_multipart(client_id, result)
         except BaseException as e:
             self.log.critical(
                 f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
@@ -341,7 +346,6 @@ class EngineServer(EngineBase):
             try:
                 async for _ in command_fn(*args, **kwargs):
                     await self.send_socket_multipart(client_id, _)
-                await self.send_socket_multipart(client_id, {"_s": None})
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
                 trace = traceback.format_exc()
@@ -350,6 +354,8 @@ class EngineServer(EngineBase):
                 result = {"_e": (error, trace)}
                 await self.send_socket_multipart(client_id, result)
             finally:
+                # _s == special signal that means StopIteration
+                await self.send_socket_multipart(client_id, {"_s": None})
                 self.tasks.pop(client_id, None)
         except BaseException as e:
             self.log.critical(
@@ -360,7 +366,7 @@ class EngineServer(EngineBase):
     async def send_socket_multipart(self, client_id, message):
         try:
             message = pickle.dumps(message)
-            await self.socket.send_multipart([client_id, message])
+            await self._infinite_retry(self.socket.send_multipart, [client_id, message])
         except Exception as e:
             self.log.verbose(f"Error sending ZMQ message: {e}")
             self.log.trace(traceback.format_exc())

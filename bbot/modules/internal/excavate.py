@@ -788,7 +788,7 @@ class excavate(BaseInternalModule):
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
-                    self.verbose(f"Including Submodule {e.__name__}")
+                    self.debug(f"Including Submodule {e.__name__}")
                     if e.__name__ == "ParameterExtractor":
                         message = (
                             "Parameter Extraction disabled because no modules consume WEB_PARAMETER events"

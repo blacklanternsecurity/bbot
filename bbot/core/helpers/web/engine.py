@@ -32,7 +32,7 @@ class HTTPEngine(EngineServer):
         self.target = target
         self.config = config
         self.web_config = self.config.get("web", {})
-        self.http_debug = self.web_config.get("http_debug", False)
+        self.http_debug = self.web_config.get("debug", False)
         self._ssl_context_noverify = None
         self.web_client = self.AsyncClient(persist_cookies=False)
 

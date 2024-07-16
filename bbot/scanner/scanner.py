@@ -1174,9 +1174,8 @@ class Scanner:
         elif isinstance(e, asyncio.CancelledError):
             raise
         elif isinstance(e, Exception):
-            try:
-                traceback_str = e.engine_traceback
-            except AttributeError:
+            traceback_str = getattr(e, "engine_traceback", None)
+            if traceback_str is None:
                 traceback_str = traceback.format_exc()
             if unhandled_is_critical:
                 log.critical(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
