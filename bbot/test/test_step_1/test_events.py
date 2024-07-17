@@ -408,7 +408,7 @@ async def test_events(events, helpers):
     db_event._resolved_hosts = {"127.0.0.1"}
     db_event.scope_distance = 1
     assert db_event.discovery_context == "test context"
-    assert db_event.discovery_path == [['OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac', 'test context']]
+    assert db_event.discovery_path == [["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]]
     timestamp = db_event.timestamp.isoformat()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
@@ -417,7 +417,7 @@ async def test_events(events, helpers):
     assert json_event["host"] == "evilcorp.com"
     assert json_event["timestamp"] == timestamp
     assert json_event["discovery_context"] == "test context"
-    assert json_event["discovery_path"] == [['OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac', 'test context']]
+    assert json_event["discovery_path"] == [["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]]
     reconstituted_event = event_from_json(json_event)
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.timestamp() == timestamp
@@ -425,7 +425,9 @@ async def test_events(events, helpers):
     assert reconstituted_event.type == "OPEN_TCP_PORT"
     assert reconstituted_event.host == "evilcorp.com"
     assert reconstituted_event.discovery_context == "test context"
-    assert reconstituted_event.discovery_path == [['OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac', 'test context']]
+    assert reconstituted_event.discovery_path == [
+        ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]
+    ]
     assert "127.0.0.1" in reconstituted_event.resolved_hosts
     hostless_event = scan.make_event("asdf", "ASDF", dummy=True)
     hostless_event_json = hostless_event.json()
