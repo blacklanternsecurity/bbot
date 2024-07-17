@@ -128,7 +128,7 @@ class EngineClient(EngineBase):
         return False
 
     async def run_and_return(self, command, *args, **kwargs):
-        if self._shutdown:
+        if self._shutdown and not command == "_shutdown":
             self.log.verbose(f"{self.name} has been shut down and is not accepting new tasks")
             return
         async with self.new_socket() as socket:
@@ -253,23 +253,18 @@ class EngineClient(EngineBase):
     async def shutdown(self):
         if not self._shutdown:
             self._shutdown = True
+            shutdown_msg = {"c": -99}
             async with self.new_socket() as socket:
-                # -99 == special shutdown signal
-                shutdown_message = pickle.dumps({"c": -99})
-                try:
-                    await asyncio.wait_for(socket.send(shutdown_message), timeout=0.2)
-                    # allow shutdown signal .1 seconds to get delivered
-                    await asyncio.sleep(0.1)
-                except (TimeoutError, asyncio.TimeoutError):
-                    self.log.debug(f"Timeout sending shutdown message to {self.name} server")
+                await self._infinite_retry(socket.send, pickle.dumps(shutdown_msg))
 
             def shutdown_daemon():
-                for socket in self.sockets:
-                    socket.close()
+                self.log.debug(f"{self.name}: shutting down...")
                 # then terminate context
+                self.context.destroy(linger=0)
                 self.context.term()
                 # delete socket file on exit
                 self.socket_path.unlink(missing_ok=True)
+                self.log.debug(f"{self.name}: finished shutting down")
 
             threading.Thread(target=shutdown_daemon, daemon=True).start()
 
@@ -394,10 +389,9 @@ class EngineServer(EngineBase):
                     await self.cancel_task(client_id)
                     continue
 
-                # -99 == shut down engine
+                # -99 == shutdown task
                 if cmd == -99:
-                    self.log.verbose("Got shutdown signal, shutting down...")
-                    await self.cancel_all_tasks()
+                    await self._shutdown()
                     return
 
                 args = message.get("a", ())
@@ -426,11 +420,13 @@ class EngineServer(EngineBase):
         except Exception as e:
             self.log.error(f"Error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
-        finally:
-            self.socket.close()
-            self.context.term()
-            # delete socket file on exit
-            self.socket_path.unlink(missing_ok=True)
+
+    async def _shutdown(self):
+        self.log.debug(f"{self.name}: shutting down...")
+        await self.cancel_all_tasks()
+        self.context.destroy(linger=0)
+        self.context.term()
+        self.log.debug(f"{self.name}: finished shutting down")
 
     async def cancel_task(self, client_id):
         task = self.tasks.get(client_id, None)
@@ -453,5 +449,5 @@ class EngineServer(EngineBase):
             self.tasks.pop(client_id, None)
 
     async def cancel_all_tasks(self):
-        for client_id in self.tasks:
+        for client_id in list(self.tasks):
             await self.cancel_task(client_id)
