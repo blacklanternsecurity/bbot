@@ -251,6 +251,7 @@ class EngineClient(EngineBase):
                 socket.close()
 
     async def shutdown(self):
+        self.log.debug(f"{self.name}: shutting down...")
         if not self._shutdown:
             self._shutdown = True
             shutdown_msg = {"c": -99}
@@ -258,13 +259,13 @@ class EngineClient(EngineBase):
                 await self._infinite_retry(socket.send, pickle.dumps(shutdown_msg))
 
             def shutdown_daemon():
-                self.log.debug(f"{self.name}: shutting down...")
+                self.log.debug(f"{self.name}: entered shutdown thread")
                 # then terminate context
                 self.context.destroy(linger=0)
                 self.context.term()
                 # delete socket file on exit
                 self.socket_path.unlink(missing_ok=True)
-                self.log.debug(f"{self.name}: finished shutting down")
+                self.log.debug(f"{self.name}: exiting shutdown thread")
 
             threading.Thread(target=shutdown_daemon, daemon=True).start()
 
