@@ -5,7 +5,7 @@ class robots(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
-    meta = {"description": "Look for and parse robots.txt"}
+    meta = {"description": "Look for and parse robots.txt", "created_date": "2023-02-01", "author": "@liquidsec"}
 
     options = {"include_sitemap": False, "include_allow": True, "include_disallow": True}
     options_desc = {

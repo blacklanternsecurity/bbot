@@ -13,14 +13,18 @@ class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "web-basic", "baddns", "cloud-enum", "subdomain-hijack"]
-    meta = {"description": "Check hosts for domain/subdomain takeovers"}
+    meta = {
+        "description": "Check hosts for domain/subdomain takeovers",
+        "created_date": "2024-01-18",
+        "author": "@liquidsec",
+    }
     options = {"custom_nameservers": [], "only_high_confidence": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "only_high_confidence": "Do not emit low-confidence or generic detections",
     }
     max_event_handlers = 8
-    deps_pip = ["baddns~=1.1.0"]
+    deps_pip = ["baddns~=1.1.789"]
 
     def select_modules(self):
         selected_modules = []

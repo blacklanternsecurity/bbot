@@ -5,7 +5,11 @@ class certspotter(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query Certspotter's API for subdomains"}
+    meta = {
+        "description": "Query Certspotter's API for subdomains",
+        "created_date": "2022-07-28",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://api.certspotter.com/v1"
 

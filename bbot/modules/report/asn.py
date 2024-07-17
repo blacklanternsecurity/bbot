@@ -5,7 +5,11 @@ class asn(BaseReportModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["ASN"]
     flags = ["passive", "subdomain-enum", "safe"]
-    meta = {"description": "Query ripe and bgpview.io for ASNs"}
+    meta = {
+        "description": "Query ripe and bgpview.io for ASNs",
+        "created_date": "2022-07-25",
+        "author": "@TheTechromancer",
+    }
     scope_distance_modifier = 1
     # we accept dupes to avoid missing data
     # because sometimes IP addresses are re-emitted with lower scope distances
@@ -102,7 +106,7 @@ class asn(BaseReportModule):
                     continue
                 return res
         self.warning(f"Error retrieving ASN for {ip}")
-        return []
+        return [], ""
 
     async def get_asn_ripe(self, ip):
         url = f"https://stat.ripe.net/data/network-info/data.json?resource={ip}"

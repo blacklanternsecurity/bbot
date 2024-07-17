@@ -5,7 +5,12 @@ class securitytrails(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query the SecurityTrails API for subdomains", "auth_required": True}
+    meta = {
+        "description": "Query the SecurityTrails API for subdomains",
+        "created_date": "2022-07-03",
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "SecurityTrails API key"}
 

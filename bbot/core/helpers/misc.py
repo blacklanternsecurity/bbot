@@ -1454,7 +1454,7 @@ def search_dict_values(d, *regexes):
         ...         ]
         ...     }
         ... }
-        >>> url_regexes = re.compile(r'https?://[^\\s<>"]+|www\.[^\\s<>"]+')
+        >>> url_regexes = re.compile(r'https?://[^\\s<>"]+|www\\.[^\\s<>"]+')
         >>> list(search_dict_values(dict_to_search, url_regexes))
         ["https://www.evilcorp.com"]
     """
@@ -2666,3 +2666,38 @@ async def as_completed(coros):
         for task in done:
             tasks.pop(task)
             yield task
+
+
+def truncate_filename(file_path, max_length=255):
+    """
+    Truncate the filename while preserving the file extension to ensure the total path length does not exceed the maximum length.
+
+    Args:
+        file_path (str): The original file path.
+        max_length (int): The maximum allowed length for the total path. Default is 255.
+
+    Returns:
+        pathlib.Path: A new Path object with the truncated filename.
+
+    Raises:
+        ValueError: If the directory path is too long to accommodate any filename within the limit.
+
+    Example:
+        >>> truncate_filename('/path/to/example_long_filename.txt', 20)
+        PosixPath('/path/to/example.txt')
+    """
+    p = Path(file_path)
+    directory, stem, suffix = p.parent, p.stem, p.suffix
+
+    max_filename_length = max_length - len(str(directory)) - len(suffix) - 1  # 1 for the '/' separator
+
+    if max_filename_length <= 0:
+        raise ValueError("The directory path is too long to accommodate any filename within the limit.")
+
+    if len(stem) > max_filename_length:
+        truncated_stem = stem[:max_filename_length]
+    else:
+        truncated_stem = stem
+
+    new_path = directory / (truncated_stem + suffix)
+    return new_path
