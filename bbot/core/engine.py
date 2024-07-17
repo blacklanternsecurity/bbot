@@ -261,8 +261,14 @@ class EngineClient(EngineBase):
             def shutdown_daemon():
                 self.log.debug(f"{self.name}: entered shutdown thread")
                 # then terminate context
-                self.context.destroy(linger=0)
-                self.context.term()
+                try:
+                    self.context.destroy(linger=0)
+                except Exception:
+                    self.log.trace(traceback.format_exc())
+                try:
+                    self.context.term()
+                except Exception:
+                    self.log.trace(traceback.format_exc())
                 # delete socket file on exit
                 self.socket_path.unlink(missing_ok=True)
                 self.log.debug(f"{self.name}: exiting shutdown thread")
