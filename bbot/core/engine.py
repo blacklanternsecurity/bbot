@@ -352,6 +352,8 @@ class EngineServer(EngineBase):
                 f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
             )
             self.log.critical(traceback.format_exc())
+        finally:
+            self.log.debug(f"{self.name} finished run-and-return {command_fn.__name__}({args}, {kwargs})")
 
     async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
         try:
@@ -375,6 +377,8 @@ class EngineServer(EngineBase):
                 f"Unhandled exception in {self.name}.run_and_yield({client_id}, {command_fn}, {args}, {kwargs}): {e}"
             )
             self.log.critical(traceback.format_exc())
+        finally:
+            self.log.debug(f"{self.name} finished run-and-yield {command_fn.__name__}({args}, {kwargs})")
 
     async def send_socket_multipart(self, client_id, message):
         try:
@@ -399,7 +403,7 @@ class EngineServer(EngineBase):
 
                 cmd = message.get("c", None)
                 if not isinstance(cmd, int):
-                    self.log.warning(f"No command sent in message: {message}")
+                    self.log.warning(f"{self.name}: no command sent in message: {message}")
                     continue
 
                 # -1 == cancel task
@@ -436,8 +440,10 @@ class EngineServer(EngineBase):
                 task = asyncio.create_task(coroutine)
                 self.tasks[client_id] = task, command_fn, args, kwargs
         except Exception as e:
-            self.log.error(f"Error in EngineServer worker: {e}")
+            self.log.error(f"{self.name}: error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
+        finally:
+            self.log.debug(f"{self.name}: finished worker()")
 
     async def _shutdown(self):
         self.log.debug(f"{self.name}: shutting down...")
