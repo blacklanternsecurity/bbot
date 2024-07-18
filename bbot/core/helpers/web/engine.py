@@ -32,7 +32,7 @@ class HTTPEngine(EngineServer):
         self.target = target
         self.config = config
         self.web_config = self.config.get("web", {})
-        self.http_debug = self.web_config.get("http_debug", False)
+        self.http_debug = self.web_config.get("debug", False)
         self._ssl_context_noverify = None
         self.web_client = self.AsyncClient(persist_cookies=False)
 
@@ -135,7 +135,10 @@ class HTTPEngine(EngineServer):
         filename = kwargs.pop("filename")
         raise_error = kwargs.get("raise_error", False)
         try:
-            content, response = await self.stream_request(url, **kwargs)
+            result = await self.stream_request(url, **kwargs)
+            if result is None:
+                raise httpx.HTTPError(f"No response from {url}")
+            content, response = result
             log.debug(f"Download result: HTTP {response.status_code}")
             response.raise_for_status()
             with open(filename, "wb") as f:

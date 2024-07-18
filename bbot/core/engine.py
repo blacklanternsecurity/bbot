@@ -1,9 +1,11 @@
+import os
 import zmq
 import pickle
 import asyncio
 import inspect
 import logging
 import tempfile
+import threading
 import traceback
 import zmq.asyncio
 from pathlib import Path
@@ -53,6 +55,16 @@ class EngineBase:
             self.log.trace(f"Offending binary: {binary}")
             self.log.trace(traceback.format_exc())
         return error_sentinel
+
+    async def _infinite_retry(self, callback, *args, **kwargs):
+        interval = kwargs.pop("_interval", 10)
+        while 1:
+            try:
+                return await asyncio.wait_for(callback(*args, **kwargs), timeout=interval)
+            except (TimeoutError, asyncio.TimeoutError):
+                self.log.debug(
+                    f"{self.name}: Timeout waiting for response for {callback.__name__}({args}, {kwargs}), retrying..."
+                )
 
 
 class EngineClient(EngineBase):
@@ -117,16 +129,16 @@ class EngineClient(EngineBase):
         return False
 
     async def run_and_return(self, command, *args, **kwargs):
-        if self._shutdown:
-            self.log.verbose("Engine has been shut down and is not accepting new tasks")
+        if self._shutdown and not command == "_shutdown":
+            self.log.verbose(f"{self.name} has been shut down and is not accepting new tasks")
             return
         async with self.new_socket() as socket:
             try:
                 message = self.make_message(command, args=args, kwargs=kwargs)
                 if message is error_sentinel:
                     return
-                await socket.send(message)
-                binary = await socket.recv()
+                await self._infinite_retry(socket.send, message)
+                binary = await self._infinite_retry(socket.recv)
             except BaseException:
                 # -1 == special "cancel" signal
                 cancel_message = pickle.dumps({"c": -1})
@@ -135,7 +147,7 @@ class EngineClient(EngineBase):
                 raise
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = self.unpickle(binary)
-        self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
+        self.log.debug(f"{self.name}.{command}({args}, {kwargs}) got message: {message}")
         # error handling
         if self.check_error(message):
             return
@@ -152,10 +164,10 @@ class EngineClient(EngineBase):
             await socket.send(message)
             while 1:
                 try:
-                    binary = await socket.recv()
+                    binary = await self._infinite_retry(socket.recv)
                     # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
                     message = self.unpickle(binary)
-                    self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
+                    self.log.debug(f"{self.name}.{command}({args}, {kwargs}) got message: {message}")
                     # error handling
                     if self.check_error(message) or self.check_stop(message):
                         break
@@ -193,13 +205,18 @@ class EngineClient(EngineBase):
 
         process_name = multiprocessing.current_process().name
         if process_name == "MainProcess":
+            kwargs = dict(self.server_kwargs)
+            # if we're in tests, we use a single event loop to avoid weird race conditions
+            # this allows us to more easily mock http, etc.
+            if os.environ.get("BBOT_TESTING", "") == "True":
+                kwargs["_loop"] = asyncio.get_event_loop()
             self.process = CORE.create_process(
                 target=self.server_process,
                 args=(
                     self.SERVER_CLASS,
                     self.socket_path,
                 ),
-                kwargs=self.server_kwargs,
+                kwargs=kwargs,
                 custom_name=f"BBOT {self.__class__.__name__}",
             )
             self.process.start()
@@ -212,8 +229,13 @@ class EngineClient(EngineBase):
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
         try:
+            loop = kwargs.pop("_loop", None)
             engine_server = server_class(socket_path, **kwargs)
-            asyncio.run(engine_server.worker())
+            if loop is not None:
+                future = asyncio.run_coroutine_threadsafe(engine_server.worker(), loop)
+                future.result()
+            else:
+                asyncio.run(engine_server.worker())
         except (asyncio.CancelledError, KeyboardInterrupt):
             pass
         except Exception:
@@ -240,16 +262,29 @@ class EngineClient(EngineBase):
                 socket.close()
 
     async def shutdown(self):
-        self._shutdown = True
-        async with self.new_socket() as socket:
-            # -99 == special shutdown signal
-            shutdown_message = pickle.dumps({"c": -99})
-            await socket.send(shutdown_message)
-        for socket in self.sockets:
-            socket.close()
-        self.context.term()
-        # delete socket file on exit
-        self.socket_path.unlink(missing_ok=True)
+        self.log.debug(f"{self.name}: shutting down...")
+        if not self._shutdown:
+            self._shutdown = True
+            shutdown_msg = {"c": -99}
+            async with self.new_socket() as socket:
+                await self._infinite_retry(socket.send, pickle.dumps(shutdown_msg))
+
+            def shutdown_daemon():
+                self.log.debug(f"{self.name}: entered shutdown thread")
+                # then terminate context
+                try:
+                    self.context.destroy(linger=0)
+                except Exception:
+                    self.log.trace(traceback.format_exc())
+                try:
+                    self.context.term()
+                except Exception:
+                    self.log.trace(traceback.format_exc())
+                # delete socket file on exit
+                self.socket_path.unlink(missing_ok=True)
+                self.log.debug(f"{self.name}: exiting shutdown thread")
+
+            threading.Thread(target=shutdown_daemon, daemon=True).start()
 
 
 class EngineServer(EngineBase):
@@ -302,17 +337,16 @@ class EngineServer(EngineBase):
             self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
             try:
                 result = await command_fn(*args, **kwargs)
-            except (asyncio.CancelledError, KeyboardInterrupt):
-                return
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
-                trace = traceback.format_exc()
                 self.log.debug(error)
+                trace = traceback.format_exc()
                 self.log.debug(trace)
                 result = {"_e": (error, trace)}
             finally:
                 self.tasks.pop(client_id, None)
-            await self.send_socket_multipart(client_id, result)
+                self.log.debug(f"{self.name}: Sending response to {command_fn.__name__}({args}, {kwargs}): {result}")
+                await self.send_socket_multipart(client_id, result)
         except BaseException as e:
             self.log.critical(
                 f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
@@ -325,9 +359,6 @@ class EngineServer(EngineBase):
             try:
                 async for _ in command_fn(*args, **kwargs):
                     await self.send_socket_multipart(client_id, _)
-                await self.send_socket_multipart(client_id, {"_s": None})
-            except (asyncio.CancelledError, KeyboardInterrupt):
-                return
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
                 trace = traceback.format_exc()
@@ -336,6 +367,8 @@ class EngineServer(EngineBase):
                 result = {"_e": (error, trace)}
                 await self.send_socket_multipart(client_id, result)
             finally:
+                # _s == special signal that means StopIteration
+                await self.send_socket_multipart(client_id, {"_s": None})
                 self.tasks.pop(client_id, None)
         except BaseException as e:
             self.log.critical(
@@ -346,9 +379,9 @@ class EngineServer(EngineBase):
     async def send_socket_multipart(self, client_id, message):
         try:
             message = pickle.dumps(message)
-            await self.socket.send_multipart([client_id, message])
+            await self._infinite_retry(self.socket.send_multipart, [client_id, message])
         except Exception as e:
-            self.log.warning(f"Error sending ZMQ message: {e}")
+            self.log.verbose(f"Error sending ZMQ message: {e}")
             self.log.trace(traceback.format_exc())
 
     def check_error(self, message):
@@ -374,10 +407,9 @@ class EngineServer(EngineBase):
                     await self.cancel_task(client_id)
                     continue
 
-                # -99 == shut down engine
+                # -99 == shutdown task
                 if cmd == -99:
-                    self.log.verbose("Got shutdown signal, shutting down...")
-                    await self.cancel_all_tasks()
+                    await self._shutdown()
                     return
 
                 args = message.get("a", ())
@@ -406,11 +438,19 @@ class EngineServer(EngineBase):
         except Exception as e:
             self.log.error(f"Error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
-        finally:
-            self.socket.close()
+
+    async def _shutdown(self):
+        self.log.debug(f"{self.name}: shutting down...")
+        await self.cancel_all_tasks()
+        try:
+            self.context.destroy(linger=0)
+        except Exception:
+            self.log.trace(traceback.format_exc())
+        try:
             self.context.term()
-            # delete socket file on exit
-            self.socket_path.unlink(missing_ok=True)
+        except Exception:
+            self.log.trace(traceback.format_exc())
+        self.log.debug(f"{self.name}: finished shutting down")
 
     async def cancel_task(self, client_id):
         task = self.tasks.get(client_id, None)
@@ -420,7 +460,10 @@ class EngineServer(EngineBase):
         self.log.debug(f"Cancelling client id {client_id} (task: {task})")
         task.cancel()
         try:
-            await task
+            try:
+                await asyncio.wait_for(task, timeout=0.2)
+            except (TimeoutError, asyncio.TimeoutError):
+                self.log.debug(f"{self.name}: Timeout cancelling task")
         except (KeyboardInterrupt, asyncio.CancelledError):
             pass
         except BaseException as e:
@@ -430,5 +473,5 @@ class EngineServer(EngineBase):
             self.tasks.pop(client_id, None)
 
     async def cancel_all_tasks(self):
-        for client_id in self.tasks:
+        for client_id in list(self.tasks):
             await self.cancel_task(client_id)

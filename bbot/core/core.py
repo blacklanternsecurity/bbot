@@ -187,6 +187,7 @@ class BBOTCore:
 
     def create_process(self, *args, **kwargs):
         if os.environ.get("BBOT_TESTING", "") == "True":
+            kwargs["daemon"] = False
             process = self.create_thread(*args, **kwargs)
         else:
             if self.process_name == "MainProcess":
@@ -195,7 +196,6 @@ class BBOTCore:
                 process = BBOTProcess(*args, **kwargs)
             else:
                 raise BBOTError(f"Tried to start server from process {self.process_name}")
-        process.daemon = True
         return process
 
     def create_thread(self, *args, **kwargs):

@@ -712,7 +712,7 @@ class BaseEvent:
         if self.scan:
             j["scan"] = self.scan.id
         # timestamp
-        j["timestamp"] = self.timestamp.timestamp()
+        j["timestamp"] = self.timestamp.isoformat()
         # parent event
         parent_id = self.parent_id
         if parent_id:
@@ -1604,7 +1604,7 @@ def event_from_json(j, siem_friendly=False):
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
 
-        event.timestamp = datetime.datetime.fromtimestamp(j["timestamp"])
+        event.timestamp = datetime.datetime.fromisoformat(j["timestamp"])
         event.scope_distance = j["scope_distance"]
         parent_id = j.get("parent", None)
         if parent_id is not None:

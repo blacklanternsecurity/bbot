@@ -255,18 +255,15 @@ def test_preset_scope():
     preset_whitelist_baked = preset_whitelist.bake()
 
     assert preset_nowhitelist_baked.to_dict(include_target=True) == {
-        "output_modules": ["csv", "json", "python", "txt"],
         "target": ["evilcorp.com"],
     }
     assert preset_whitelist_baked.to_dict(include_target=True) == {
-        "output_modules": ["csv", "json", "python", "txt"],
         "target": ["evilcorp.org"],
         "whitelist": ["1.2.3.0/24", "evilcorp.net"],
         "blacklist": ["evilcorp.co.uk"],
         "config": {"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
     }
     assert preset_whitelist_baked.to_dict(include_target=True, redact_secrets=True) == {
-        "output_modules": ["csv", "json", "python", "txt"],
         "target": ["evilcorp.org"],
         "whitelist": ["1.2.3.0/24", "evilcorp.net"],
         "blacklist": ["evilcorp.co.uk"],

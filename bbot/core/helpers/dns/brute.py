@@ -50,7 +50,7 @@ class DNSBrute:
             )
             return []
         else:
-            self.log.trace(f"{domain}: A is not in domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
+            self.log.debug(f"{domain}: A is not in domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
 
         canaries = self.gen_random_subdomains(self.num_canaries)
         canaries_list = list(canaries)

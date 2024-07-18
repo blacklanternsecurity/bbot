@@ -29,21 +29,6 @@ else:
 CORE.merge_default(test_config)
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_sessionfinish(session, exitstatus):
-    # Remove handlers from all loggers to prevent logging errors at exit
-    loggers = [logging.getLogger("bbot")] + list(logging.Logger.manager.loggerDict.values())
-    for logger in loggers:
-        handlers = getattr(logger, "handlers", [])
-        for handler in handlers:
-            logger.removeHandler(handler)
-
-    # Wipe out BBOT home dir
-    shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
-
-    yield
-
-
 @pytest.fixture
 def assert_all_responses_were_requested() -> bool:
     return False
@@ -194,7 +179,7 @@ def proxy_server():
     server = socketserver.ThreadingTCPServer(("localhost", 0), Proxy)
 
     # Start the server in a new thread.
-    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
     yield server
@@ -232,3 +217,104 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             print(f"{BLUE}Test Name: {test_name}{RESET} {CYAN}({file_and_line}){RESET}")
             print(f"{RED}Location: {item.nodeid} at {item.location[0]}:{item.location[1]}{RESET}")
             print(f"{RED}Failure details:\n{item.longreprtext}{RESET}")
+
+
+import psutil
+import traceback
+import inspect
+
+
+def _print_detailed_info():
+    """
+    Debugging pytests hanging
+    """
+    print("=== Detailed Thread and Process Information ===\n")
+    try:
+        print("=== Threads ===")
+        for thread in threading.enumerate():
+            print(f"Thread Name: {thread.name}")
+            print(f"Thread ID: {thread.ident}")
+            print(f"Is Alive: {thread.is_alive()}")
+            print(f"Daemon: {thread.daemon}")
+
+            if hasattr(thread, "_target"):
+                target = thread._target
+                if target:
+                    qualname = (
+                        f"{target.__module__}.{target.__qualname__}"
+                        if hasattr(target, "__qualname__")
+                        else str(target)
+                    )
+                    print(f"Target Function: {qualname}")
+
+                    if hasattr(thread, "_args"):
+                        args = thread._args
+                        kwargs = thread._kwargs if hasattr(thread, "_kwargs") else {}
+                        arg_spec = inspect.getfullargspec(target)
+
+                        all_args = list(args) + [f"{k}={v}" for k, v in kwargs.items()]
+
+                        if inspect.ismethod(target) and arg_spec.args[0] == "self":
+                            arg_spec.args.pop(0)
+
+                        named_args = list(zip(arg_spec.args, all_args))
+                        if arg_spec.varargs:
+                            named_args.extend((f"*{arg_spec.varargs}", arg) for arg in all_args[len(arg_spec.args) :])
+
+                        print("Arguments:")
+                        for name, value in named_args:
+                            print(f"  {name}: {value}")
+                else:
+                    print("Target Function: None")
+            else:
+                print("Target Function: Unknown")
+
+            print()
+
+        print("=== Processes ===")
+        current_process = psutil.Process()
+        for child in current_process.children(recursive=True):
+            print(f"Process ID: {child.pid}")
+            print(f"Name: {child.name()}")
+            print(f"Status: {child.status()}")
+            print(f"CPU Times: {child.cpu_times()}")
+            print(f"Memory Info: {child.memory_info()}")
+            print()
+
+        print("=== Current Process ===")
+        print(f"Process ID: {current_process.pid}")
+        print(f"Name: {current_process.name()}")
+        print(f"Status: {current_process.status()}")
+        print(f"CPU Times: {current_process.cpu_times()}")
+        print(f"Memory Info: {current_process.memory_info()}")
+        print()
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        print("Traceback:")
+        traceback.print_exc()
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_sessionfinish(session, exitstatus):
+    # Remove handlers from all loggers to prevent logging errors at exit
+    loggers = [logging.getLogger("bbot")] + list(logging.Logger.manager.loggerDict.values())
+    for logger in loggers:
+        handlers = getattr(logger, "handlers", [])
+        for handler in handlers:
+            logger.removeHandler(handler)
+
+    # Wipe out BBOT home dir
+    shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
+
+    yield
+
+    # temporarily suspend stdout capture and print detailed thread info
+    capmanager = session.config.pluginmanager.get_plugin("capturemanager")
+    if capmanager:
+        capmanager.suspend_global_capture(in_=True)
+
+    _print_detailed_info()
+
+    if capmanager:
+        capmanager.resume_global_capture()

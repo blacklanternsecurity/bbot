@@ -310,6 +310,8 @@ class Scanner:
 
             self._start_log_handlers()
             self.trace(f'Ran BBOT {__version__} at {scan_start_time}, command: {" ".join(sys.argv)}')
+            self.trace(f"Target: {self.preset.target.json}")
+            self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 
             if not self.target:
                 self.warning(f"No scan targets specified")
@@ -1172,12 +1174,15 @@ class Scanner:
         elif isinstance(e, asyncio.CancelledError):
             raise
         elif isinstance(e, Exception):
+            traceback_str = getattr(e, "engine_traceback", None)
+            if traceback_str is None:
+                traceback_str = traceback.format_exc()
             if unhandled_is_critical:
                 log.critical(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
-                log.critical(traceback.format_exc())
+                log.critical(traceback_str)
             else:
                 log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
-                log.trace(traceback.format_exc())
+                log.trace(traceback_str)
         if callable(finally_callback):
             finally_callback(e)
 
