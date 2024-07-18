@@ -232,7 +232,8 @@ class EngineClient(EngineBase):
             loop = kwargs.pop("_loop", None)
             engine_server = server_class(socket_path, **kwargs)
             if loop is not None:
-                asyncio.run_coroutine_threadsafe(engine_server.worker(), loop)
+                future = asyncio.run_coroutine_threadsafe(engine_server.worker(), loop)
+                future.result()
             else:
                 asyncio.run(engine_server.worker())
         except (asyncio.CancelledError, KeyboardInterrupt):
