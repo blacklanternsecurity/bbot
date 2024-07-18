@@ -1,3 +1,4 @@
+import os
 import zmq
 import pickle
 import asyncio
@@ -204,13 +205,18 @@ class EngineClient(EngineBase):
 
         process_name = multiprocessing.current_process().name
         if process_name == "MainProcess":
+            kwargs = dict(self.server_kwargs)
+            # if we're in tests, we use a single event loop to avoid weird race conditions
+            # this allows us to more easily mock http, etc.
+            if os.environ.get("BBOT_TESTING", "") == "True":
+                kwargs["_loop"] = asyncio.get_event_loop()
             self.process = CORE.create_process(
                 target=self.server_process,
                 args=(
                     self.SERVER_CLASS,
                     self.socket_path,
                 ),
-                kwargs=self.server_kwargs,
+                kwargs=kwargs,
                 custom_name=f"BBOT {self.__class__.__name__}",
             )
             self.process.start()
@@ -223,8 +229,12 @@ class EngineClient(EngineBase):
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
         try:
+            loop = kwargs.pop("_loop", None)
             engine_server = server_class(socket_path, **kwargs)
-            asyncio.run(engine_server.worker())
+            if loop is not None:
+                asyncio.run_coroutine_threadsafe(engine_server.worker(), loop)
+            else:
+                asyncio.run(engine_server.worker())
         except (asyncio.CancelledError, KeyboardInterrupt):
             pass
         except Exception:
