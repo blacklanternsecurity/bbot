@@ -1,6 +1,5 @@
 import os
 import logging
-import threading
 from copy import copy
 from pathlib import Path
 from contextlib import suppress
