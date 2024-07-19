@@ -1,5 +1,6 @@
 import os
 import logging
+import threading
 from copy import copy
 from pathlib import Path
 from contextlib import suppress
@@ -8,7 +9,9 @@ from omegaconf import OmegaConf
 from bbot.errors import BBOTError
 
 
-DEFAULT_CONFIG = None
+thread_local = threading.local()
+thread_local.DEFAULT_CONFIG = None
+# DEFAULT_CONFIG = None
 
 
 class BBOTCore:
@@ -89,22 +92,20 @@ class BBOTCore:
         """
         The default BBOT config (from `defaults.yml`). Read-only.
         """
-        global DEFAULT_CONFIG
-        if DEFAULT_CONFIG is None:
+        if thread_local.DEFAULT_CONFIG is None:
             self.default_config = self.files_config.get_default_config()
             # ensure bbot home dir
             if not "home" in self.default_config:
                 self.default_config["home"] = "~/.bbot"
-        return DEFAULT_CONFIG
+        return thread_local.DEFAULT_CONFIG
 
     @default_config.setter
     def default_config(self, value):
         # we temporarily clear out the config so it can be refreshed if/when default_config changes
-        global DEFAULT_CONFIG
         self._config = None
-        DEFAULT_CONFIG = value
+        thread_local.DEFAULT_CONFIG = value
         # set read-only flag (change .custom_config instead)
-        OmegaConf.set_readonly(DEFAULT_CONFIG, True)
+        OmegaConf.set_readonly(thread_local.DEFAULT_CONFIG, True)
 
     @property
     def custom_config(self):

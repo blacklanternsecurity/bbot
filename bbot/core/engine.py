@@ -9,6 +9,7 @@ import threading
 import traceback
 import zmq.asyncio
 from pathlib import Path
+from concurrent.futures import CancelledError
 from contextlib import asynccontextmanager, suppress
 
 from bbot.core import CORE
@@ -175,8 +176,13 @@ class EngineClient(EngineBase):
                 except GeneratorExit:
                     # -1 == special "cancel" signal
                     cancel_message = pickle.dumps({"c": -1})
-                    with suppress(Exception):
+                    try:
                         await socket.send(cancel_message)
+                    except Exception:
+                        self.log.debug(
+                            f"{self.name}.{command}({args}, {kwargs}) failed to send cancel message after GeneratorExit"
+                        )
+                        self.log.trace(traceback.format_exc())
                     raise
 
     def check_stop(self, message):
@@ -236,7 +242,7 @@ class EngineClient(EngineBase):
                 future.result()
             else:
                 asyncio.run(engine_server.worker())
-        except (asyncio.CancelledError, KeyboardInterrupt):
+        except (asyncio.CancelledError, KeyboardInterrupt, CancelledError, RuntimeError):
             pass
         except Exception:
             import traceback
@@ -249,6 +255,7 @@ class EngineClient(EngineBase):
         if self._server_process is None:
             self._server_process = self.start_server()
             while not self.socket_path.exists():
+                self.log.debug(f"{self.name}: waiting for server process to start...")
                 await asyncio.sleep(0.1)
         socket = self.context.socket(zmq.DEALER)
         socket.setsockopt(zmq.LINGER, 0)
