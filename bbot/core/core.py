@@ -91,7 +91,6 @@ class BBOTCore:
         """
         global DEFAULT_CONFIG
         if DEFAULT_CONFIG is None:
-            print("MAKING DEFAULT CONF")
             self.default_config = self.files_config.get_default_config()
             # ensure bbot home dir
             if not "home" in self.default_config:
@@ -105,9 +104,7 @@ class BBOTCore:
         self._config = None
         DEFAULT_CONFIG = value
         # set read-only flag (change .custom_config instead)
-        print("READONLY")
         OmegaConf.set_readonly(DEFAULT_CONFIG, True)
-        print("READONLY DONE")
 
     @property
     def custom_config(self):
