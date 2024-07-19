@@ -61,6 +61,39 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
 
 @pytest.mark.asyncio
+async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, httpx_mock):
+
+    from werkzeug.wrappers import Response
+
+    urls_requested = []
+
+    def server_handler(request):
+        urls_requested.append(request.url.split("/")[-1])
+        return Response(f"{request.url}: {request.headers}")
+
+    base_url = bbot_httpserver.url_for("/test/")
+    bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
+
+    scan = bbot_scanner()
+
+    urls = [f"{base_url}{i}" for i in range(100)]
+
+    # request_batch w/ cancellation
+    counter = 0
+    agen = scan.helpers.request_batch(urls)
+    async for url, response in agen:
+        assert response.text.startswith(base_url)
+        if counter > 10:
+            await agen.aclose()
+            break
+        counter += 1
+        await asyncio.sleep(0.1)
+
+    # TODO: enforce qsize limits on zmq to help prevent runaway generators
+    # assert 10 <= len(urls_requested) <= 20
+
+
+@pytest.mark.asyncio
 async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
 
     # json conversion

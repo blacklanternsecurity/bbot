@@ -162,6 +162,8 @@ class EngineClient(EngineBase):
         if message is error_sentinel:
             return
         async with self.new_socket() as socket:
+            socket.setsockopt(zmq.RCVHWM, 1)
+            socket.setsockopt(zmq.SNDHWM, 1)
             await socket.send(message)
             while 1:
                 try:
@@ -173,17 +175,30 @@ class EngineClient(EngineBase):
                     if self.check_error(message) or self.check_stop(message):
                         break
                     yield message
-                except GeneratorExit:
+                except (StopAsyncIteration, GeneratorExit) as e:
+                    exc_name = e.__class__.__name__
                     # -1 == special "cancel" signal
-                    cancel_message = pickle.dumps({"c": -1})
+                    self.log.debug(f"{self.name}.{command} got {exc_name}")
                     try:
-                        await socket.send(cancel_message)
+                        await self.send_cancel_message(socket)
                     except Exception:
-                        self.log.debug(
-                            f"{self.name}.{command}({args}, {kwargs}) failed to send cancel message after GeneratorExit"
-                        )
+                        self.log.debug(f"{self.name}.{command} failed to send cancel message after {exc_name}")
                         self.log.trace(traceback.format_exc())
-                    raise
+                    break
+
+    async def send_cancel_message(self, socket):
+        """
+        Send a cancel message and wait for confirmation from the server
+        """
+        message = pickle.dumps({"c": -1})
+        await self._infinite_retry(socket.send, message)
+        while 1:
+            response = await self._infinite_retry(socket.recv)
+            response = pickle.loads(response)
+            if isinstance(response, dict):
+                response = response.get("m", "")
+                if response == "CANCEL_OK":
+                    break
 
     def check_stop(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_s" in message:
@@ -415,7 +430,9 @@ class EngineServer(EngineBase):
 
                 # -1 == cancel task
                 if cmd == -1:
+                    self.log.debug(f"{self.name} got cancel signal")
                     await self.cancel_task(client_id)
+                    await self.send_socket_multipart(client_id, {"m": "CANCEL_OK"})
                     continue
 
                 # -99 == shutdown task
