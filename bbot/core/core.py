@@ -9,9 +9,7 @@ from omegaconf import OmegaConf
 from bbot.errors import BBOTError
 
 
-thread_local = threading.local()
-thread_local.DEFAULT_CONFIG = None
-# DEFAULT_CONFIG = None
+DEFAULT_CONFIG = None
 
 
 class BBOTCore:
@@ -92,20 +90,25 @@ class BBOTCore:
         """
         The default BBOT config (from `defaults.yml`). Read-only.
         """
-        if thread_local.DEFAULT_CONFIG is None:
+        global DEFAULT_CONFIG
+        if DEFAULT_CONFIG is None:
+            print("MAKING DEFAULT CONF")
             self.default_config = self.files_config.get_default_config()
             # ensure bbot home dir
             if not "home" in self.default_config:
                 self.default_config["home"] = "~/.bbot"
-        return thread_local.DEFAULT_CONFIG
+        return DEFAULT_CONFIG
 
     @default_config.setter
     def default_config(self, value):
         # we temporarily clear out the config so it can be refreshed if/when default_config changes
+        global DEFAULT_CONFIG
         self._config = None
-        thread_local.DEFAULT_CONFIG = value
+        DEFAULT_CONFIG = value
         # set read-only flag (change .custom_config instead)
-        OmegaConf.set_readonly(thread_local.DEFAULT_CONFIG, True)
+        print("READONLY")
+        OmegaConf.set_readonly(DEFAULT_CONFIG, True)
+        print("READONLY DONE")
 
     @property
     def custom_config(self):
@@ -196,6 +199,7 @@ class BBOTCore:
                 process = BBOTProcess(*args, **kwargs)
             else:
                 raise BBOTError(f"Tried to start server from process {self.process_name}")
+        process.daemon = True
         return process
 
     def create_thread(self, *args, **kwargs):
