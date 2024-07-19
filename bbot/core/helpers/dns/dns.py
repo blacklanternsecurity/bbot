@@ -89,7 +89,7 @@ class DNSHelper(EngineClient):
         agen = self.run_and_yield("resolve_batch", queries=queries, **kwargs)
         while 1:
             try:
-                yield await anext(agen)
+                yield await agen.__anext__()
             except (StopAsyncIteration, GeneratorExit):
                 await agen.aclose()
                 break
@@ -98,7 +98,7 @@ class DNSHelper(EngineClient):
         agen = self.run_and_yield("resolve_raw_batch", queries=queries)
         while 1:
             try:
-                yield await anext(agen)
+                yield await agen.__anext__()
             except (StopAsyncIteration, GeneratorExit):
                 await agen.aclose()
                 break

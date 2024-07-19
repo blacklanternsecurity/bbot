@@ -127,7 +127,7 @@ class WebHelper(EngineClient):
         agen = self.run_and_yield("request_batch", urls, *args, **kwargs)
         while 1:
             try:
-                yield await anext(agen)
+                yield await agen.__anext__()
             except (StopAsyncIteration, GeneratorExit):
                 await agen.aclose()
                 break
@@ -157,7 +157,7 @@ class WebHelper(EngineClient):
         agen = self.run_and_yield("request_custom_batch", urls_and_kwargs)
         while 1:
             try:
-                yield await anext(agen)
+                yield await agen.__anext__()
             except (StopAsyncIteration, GeneratorExit):
                 await agen.aclose()
                 break
