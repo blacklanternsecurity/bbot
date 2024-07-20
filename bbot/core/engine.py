@@ -162,8 +162,9 @@ class EngineClient(EngineBase):
         if message is error_sentinel:
             return
         async with self.new_socket() as socket:
-            socket.setsockopt(zmq.RCVHWM, 1)
-            socket.setsockopt(zmq.SNDHWM, 1)
+            # TODO: synchronize server-side generator by limiting qsize
+            # socket.setsockopt(zmq.RCVHWM, 1)
+            # socket.setsockopt(zmq.SNDHWM, 1)
             await socket.send(message)
             while 1:
                 try:
