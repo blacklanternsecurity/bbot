@@ -925,6 +925,42 @@ class excavate(BaseInternalModule):
                     context = f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
                     await self.emit_event(data, "WEB_PARAMETER", event, context=context)
 
+        # If parameter_extraction is enabled and we assigned custom headers, emit them as WEB_PARAMETER
+        if self.parameter_extraction == True and self.parent_helper.preset.in_scope(url):
+
+            custom_cookies = self.scan.web_config.get("http_cookies", {})
+            for custom_cookie_name, custom_cookie_value in custom_cookies.items():
+                description = f"HTTP Extracted Parameter [{custom_cookie_name}] (Custom Cookie)"
+                data = {
+                    "host": event.parsed_url.hostname,
+                    "type": "COOKIE",
+                    "name": custom_cookie_name,
+                    "original_value": custom_cookie_value,
+                    "url": self.url_unparse("COOKIE", event.parsed_url),
+                    "description": description,
+                    "additional_params": _exclude_key(custom_cookies, custom_cookie_name),
+                }
+                context = f"Excavate saw a custom cookie set [{custom_cookie_name}], and emitted a WEB_PARAMETER for it"
+                await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+
+
+            custom_headers = self.scan.web_config.get("http_headers", {})
+            for custom_header_name, custom_header_value in custom_headers.items():
+                self.hugewarning(custom_header_name)
+                self.hugewarning(custom_header_value)
+                description = f"HTTP Extracted Parameter [{custom_header_name}] (Custom Header)"
+                data = {
+                    "host": event.parsed_url.hostname,
+                    "type": "HEADER",
+                    "name": custom_header_name,
+                    "original_value": custom_header_value,
+                    "url": self.url_unparse("HEADER", event.parsed_url),
+                    "description": description,
+                    "additional_params": _exclude_key(custom_headers, custom_header_name),
+                }
+                context = f"Excavate saw a custom header set [{custom_header_name}], and emitted a WEB_PARAMETER for it"
+                await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+
         data = event.data
 
         # process response data

@@ -63,11 +63,18 @@ class BBOTAsyncClient(httpx.AsyncClient):
         headers = kwargs.get("headers", None)
         if headers is None:
             headers = {}
+
+        # cookies
+        cookies = kwargs.get("cookies", None)
+        if cookies is None:
+            cookies = {}
+
         # user agent
         user_agent = self._web_config.get("user_agent", "BBOT")
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
         kwargs["headers"] = headers
+        kwargs["cookies"] = cookies
         # proxy
         proxies = self._web_config.get("http_proxy", None)
         kwargs["proxies"] = proxies

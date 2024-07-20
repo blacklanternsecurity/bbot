@@ -350,6 +350,7 @@ class WebHelper(EngineClient):
             curl_command.append("-k")
 
         headers = kwargs.get("headers", {})
+        cookies = kwargs.get("cookies", {})
 
         ignore_bbot_global_settings = kwargs.get("ignore_bbot_global_settings", False)
 
@@ -362,10 +363,17 @@ class WebHelper(EngineClient):
             if "User-Agent" not in headers:
                 headers["User-Agent"] = user_agent
 
-            # only add custom headers if the URL is in-scope
+            # only add custom headers / cookies if the URL is in-scope
             if self.parent_helper.preset.in_scope(url):
                 for hk, hv in self.web_config.get("http_headers", {}).items():
-                    headers[hk] = hv
+                    # Only add the header if it doesn't already exist in the headers dictionary
+                    if hk not in headers:
+                        headers[hk] = hv
+
+                for ck, cv in self._web_config.get("http_cookies", {}).items():
+                    # don't clobber cookies
+                    if ck not in cookies:
+                        cookies[ck] = cv
 
             # add the timeout
             if not "timeout" in kwargs:
