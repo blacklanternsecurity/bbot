@@ -291,19 +291,20 @@ class CryptoLightfuzz(BaseLightfuzz):
 
             data, encoding = CryptoLightfuzz.format_agnostic_decode(probe_value)
             hash_function = self.identify_hash_function(data)
-            hash_instance = hash_function()
-            # if there are any hash functions which match the length, we check the additional parameters to see if they cause identical changes
-            # this would indicate they are being used to generate the hash
-            if hash_function and self.event.data["additional_params"]:
-                for additional_param_name, additional_param_value in self.event.data["additional_params"].items():
-                    additional_param_probe = await self.compare_probe(http_compare, self.event.data["type"], probe_value, cookies, additional_params_override={additional_param_name: additional_param_value + "A"})
-                    # the additional parameter affects the potential hash parameter (suggesting its calculated in the hash)
-                    if additional_param_probe[0] == False and (additional_param_probe[1] == mutate_probe[1]):
-                        context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) that is a likely a hash, which is connected to another parameter {additional_param_name})"
-                        self.results.append(
-                            {
-                                "type": "FINDING",
-                                "description": f"Possible {self.event.data['type']} parameter with {hash_instance.name.upper()} Hash as value. Parameter: [{self.event.data['name']}], linked to additional parameter [{additional_param_name}]",
-                                "context": context,
-                            }
-                        )
+            if hash_function:
+                hash_instance = hash_function()
+                # if there are any hash functions which match the length, we check the additional parameters to see if they cause identical changes
+                # this would indicate they are being used to generate the hash
+                if hash_function and self.event.data["additional_params"]:
+                    for additional_param_name, additional_param_value in self.event.data["additional_params"].items():
+                        additional_param_probe = await self.compare_probe(http_compare, self.event.data["type"], probe_value, cookies, additional_params_override={additional_param_name: additional_param_value + "A"})
+                        # the additional parameter affects the potential hash parameter (suggesting its calculated in the hash)
+                        if additional_param_probe[0] == False and (additional_param_probe[1] == mutate_probe[1]):
+                            context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) that is a likely a hash, which is connected to another parameter {additional_param_name})"
+                            self.results.append(
+                                {
+                                    "type": "FINDING",
+                                    "description": f"Possible {self.event.data['type']} parameter with {hash_instance.name.upper()} Hash as value. Parameter: [{self.event.data['name']}], linked to additional parameter [{additional_param_name}]",
+                                    "context": context,
+                                }
+                            )

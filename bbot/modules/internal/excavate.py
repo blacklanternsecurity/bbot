@@ -926,7 +926,7 @@ class excavate(BaseInternalModule):
                     await self.emit_event(data, "WEB_PARAMETER", event, context=context)
 
         # If parameter_extraction is enabled and we assigned custom headers, emit them as WEB_PARAMETER
-        if self.parameter_extraction == True and self.parent_helper.preset.in_scope(url):
+        if self.parameter_extraction == True:
 
             custom_cookies = self.scan.web_config.get("http_cookies", {})
             for custom_cookie_name, custom_cookie_value in custom_cookies.items():
