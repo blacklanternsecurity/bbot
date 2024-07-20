@@ -75,7 +75,7 @@ class BaseLightfuzz:
         speculative_mode="GETPARAM",
     ):
 
-        additional_params = copy.deepcopy(self.event.data["additional_params"])
+        additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
         if additional_params_override:
             for k, v in additional_params_override.items():
                 additional_params[k] = v
@@ -85,7 +85,7 @@ class BaseLightfuzz:
 
         if event_type == "GETPARAM":
             probe_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
-            if additional_params is not None:
+            if additional_params:
                 probe_url = self.lightfuzz.helpers.add_get_params(probe_url,additional_params).geturl()
             compare_result = await http_compare.compare(probe_url, cookies=cookies)
         elif event_type == "COOKIE":
@@ -96,7 +96,7 @@ class BaseLightfuzz:
             compare_result = await http_compare.compare(self.event.data["url"], headers=headers, cookies=cookies)
         elif event_type == "POSTPARAM":
             data = {self.event.data["name"]: f"{probe}"}
-            if additional_params is not None:
+            if additional_params:
                 data.update(
                     self.additional_params_process(
                         additional_params, additional_params_populate_empty
