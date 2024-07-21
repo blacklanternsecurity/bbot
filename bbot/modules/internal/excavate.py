@@ -946,8 +946,6 @@ class excavate(BaseInternalModule):
 
             custom_headers = self.scan.web_config.get("http_headers", {})
             for custom_header_name, custom_header_value in custom_headers.items():
-                self.hugewarning(custom_header_name)
-                self.hugewarning(custom_header_value)
                 description = f"HTTP Extracted Parameter [{custom_header_name}] (Custom Header)"
                 data = {
                     "host": event.parsed_url.hostname,
