@@ -37,7 +37,7 @@ class BaseLightfuzz:
 
         if event_type == "GETPARAM":
             baseline_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
-            if self.event.data["additional_params"] is not None:
+            if "additional_params" in self.event.data.keys() and self.event.data["additional_params"] is not None:
                 baseline_url = self.lightfuzz.helpers.add_get_params(
                     baseline_url, self.event.data["additional_params"], encode=False
                 ).geturl()
