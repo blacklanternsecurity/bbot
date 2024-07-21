@@ -180,7 +180,6 @@ class EngineClient(EngineBase):
                     yield message
                 except (StopAsyncIteration, GeneratorExit) as e:
                     exc_name = e.__class__.__name__
-                    # -1 == special "cancel" signal
                     self.log.debug(f"{self.name}.{command} got {exc_name}")
                     try:
                         await self.send_cancel_message(socket)
@@ -193,6 +192,7 @@ class EngineClient(EngineBase):
         """
         Send a cancel message and wait for confirmation from the server
         """
+        # -1 == special "cancel" signal
         message = pickle.dumps({"c": -1})
         await self._infinite_retry(socket.send, message)
         while 1:
@@ -515,31 +515,35 @@ class EngineServer(EngineBase):
         return done
 
     async def cancel_task(self, client_id):
-        parent_task = self.tasks.get(client_id, None)
+        parent_task = self.tasks.pop(client_id, None)
         if parent_task is None:
             return
         parent_task, _cmd, _args, _kwargs = parent_task
-        self.log.debug(f"Cancelling client id {client_id} (task: {parent_task})")
+        self.log.debug(f"{self.name}: Cancelling client id {client_id} (task: {parent_task})")
         parent_task.cancel()
-        child_tasks = self.child_tasks.get(client_id, set())
+        child_tasks = self.child_tasks.pop(client_id, set())
         if child_tasks:
-            self.log.debug(f"Cancelling {len(child_tasks):,} child tasks for client id {client_id}")
+            self.log.debug(f"{self.name}: Cancelling {len(child_tasks):,} child tasks for client id {client_id}")
             for child_task in child_tasks:
                 child_task.cancel()
+
+        for task in [parent_task] + list(child_tasks):
+            await self._cancel_task(task)
+
+    async def _cancel_task(self, task):
         try:
-            for task in [parent_task] + list(child_tasks):
-                try:
-                    await asyncio.wait_for(task, timeout=0.2)
-                except (TimeoutError, asyncio.TimeoutError):
-                    self.log.debug(f"{self.name}: Timeout cancelling task")
+            await asyncio.wait_for(task, timeout=10)
+        except (TimeoutError, asyncio.TimeoutError):
+            self.log.debug(f"{self.name}: Timeout cancelling task")
         except (KeyboardInterrupt, asyncio.CancelledError):
             pass
         except BaseException as e:
-            self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
+            self.log.error(f"Unhandled error in {task.get_coro().__name__}(): {e}")
             self.log.trace(traceback.format_exc())
-        finally:
-            self.tasks.pop(client_id, None)
 
     async def cancel_all_tasks(self):
         for client_id in list(self.tasks):
             await self.cancel_task(client_id)
+        for client_id, tasks in self.child_tasks.items():
+            for task in tasks:
+                await self._cancel_task(task)

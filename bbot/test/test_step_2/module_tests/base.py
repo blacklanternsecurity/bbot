@@ -123,8 +123,10 @@ class ModuleTestBase:
         module_test.log.info(f"Finished {self.name} module test")
         current_task = asyncio.current_task()
         tasks = [t for t in asyncio.all_tasks() if t != current_task]
-        if len(tasks) > 0:
+        if len(tasks):
             module_test.log.info(f"Unfinished tasks detected: {tasks}")
+        else:
+            module_test.log.info(f"No unfinished tasks detected")
 
     def check(self, module_test, events):
         assert False, f"Must override {self.name}.check()"
