@@ -1,5 +1,6 @@
 import copy
 
+
 class BaseLightfuzz:
     def __init__(self, lightfuzz, event):
         self.lightfuzz = lightfuzz
@@ -19,7 +20,7 @@ class BaseLightfuzz:
 
     async def send_probe(self, probe):
         getparams = {self.event.data["name"]: probe}
-        url = self.lightfuzz.helpers.add_get_params(self.event.data["url"], getparams).geturl()
+        url = self.lightfuzz.helpers.add_get_params(self.event.data["url"], getparams, encode=False).geturl()
         self.lightfuzz.debug(f"lightfuzz sending probe with URL: {url}")
         r = await self.lightfuzz.helpers.request(method="GET", url=url, allow_redirects=False, retries=2, timeout=10)
         if r:
@@ -37,7 +38,9 @@ class BaseLightfuzz:
         if event_type == "GETPARAM":
             baseline_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
             if self.event.data["additional_params"] is not None:
-                baseline_url = self.lightfuzz.helpers.add_get_params(baseline_url,self.event.data["additional_params"]).geturl()
+                baseline_url = self.lightfuzz.helpers.add_get_params(
+                    baseline_url, self.event.data["additional_params"], encode=False
+                ).geturl()
             http_compare = self.lightfuzz.helpers.http_compare(
                 baseline_url, cookies=cookies, include_cache_buster=False
             )
@@ -71,7 +74,7 @@ class BaseLightfuzz:
         probe,
         cookies,
         additional_params_populate_empty=False,
-        additional_params_override = {},
+        additional_params_override={},
         speculative_mode="GETPARAM",
     ):
 
@@ -86,7 +89,7 @@ class BaseLightfuzz:
         if event_type == "GETPARAM":
             probe_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
             if additional_params:
-                probe_url = self.lightfuzz.helpers.add_get_params(probe_url,additional_params).geturl()
+                probe_url = self.lightfuzz.helpers.add_get_params(probe_url, additional_params, encode=False).geturl()
             compare_result = await http_compare.compare(probe_url, cookies=cookies)
         elif event_type == "COOKIE":
             cookies_probe = {self.event.data["name"]: probe}
@@ -97,11 +100,7 @@ class BaseLightfuzz:
         elif event_type == "POSTPARAM":
             data = {self.event.data["name"]: f"{probe}"}
             if additional_params:
-                data.update(
-                    self.additional_params_process(
-                        additional_params, additional_params_populate_empty
-                    )
-                )
+                data.update(self.additional_params_process(additional_params, additional_params_populate_empty))
             compare_result = await http_compare.compare(
                 self.event.data["url"], method="POST", data=data, cookies=cookies
             )
@@ -124,7 +123,9 @@ class BaseLightfuzz:
         if event_type == "GETPARAM":
             url = f"{self.event.data['url']}?{self.event.data['name']}={probe_value}"
             if self.event.data["additional_params"] is not None:
-                url = self.lightfuzz.helpers.add_get_params(url,self.event.data["additional_params"]).geturl()
+                url = self.lightfuzz.helpers.add_get_params(
+                    url, self.event.data["additional_params"], encode=False
+                ).geturl()
         else:
             url = self.event.data["url"]
         if event_type == "COOKIE":

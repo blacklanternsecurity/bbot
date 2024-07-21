@@ -940,9 +940,10 @@ class excavate(BaseInternalModule):
                     "description": description,
                     "additional_params": _exclude_key(custom_cookies, custom_cookie_name),
                 }
-                context = f"Excavate saw a custom cookie set [{custom_cookie_name}], and emitted a WEB_PARAMETER for it"
+                context = (
+                    f"Excavate saw a custom cookie set [{custom_cookie_name}], and emitted a WEB_PARAMETER for it"
+                )
                 await self.emit_event(data, "WEB_PARAMETER", event, context=context)
-
 
             custom_headers = self.scan.web_config.get("http_headers", {})
             for custom_header_name, custom_header_value in custom_headers.items():
@@ -956,7 +957,9 @@ class excavate(BaseInternalModule):
                     "description": description,
                     "additional_params": _exclude_key(custom_headers, custom_header_name),
                 }
-                context = f"Excavate saw a custom header set [{custom_header_name}], and emitted a WEB_PARAMETER for it"
+                context = (
+                    f"Excavate saw a custom header set [{custom_header_name}], and emitted a WEB_PARAMETER for it"
+                )
                 await self.emit_event(data, "WEB_PARAMETER", event, context=context)
 
         data = event.data

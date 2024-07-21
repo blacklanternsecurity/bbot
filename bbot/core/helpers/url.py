@@ -1,7 +1,7 @@
 import uuid
 import logging
 from contextlib import suppress
-from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
+from urllib.parse import urlparse, parse_qsl, urlencode, ParseResult
 
 from .regexes import double_slash_regex
 
@@ -32,7 +32,10 @@ def parse_url(url):
     return urlparse(url)
 
 
-def add_get_params(url, params):
+def add_get_params(url, params, encode=True):
+    def _no_encode_quote(s, safe="/", encoding=None, errors=None):
+        return s
+
     """
     Add or update query parameters to the given URL.
 
@@ -53,10 +56,23 @@ def add_get_params(url, params):
         >>> add_get_params('https://www.evilcorp.com?foo=1', {'foo': 2})
         ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='foo=2', fragment='')
     """
-    parsed = parse_url(url)
-    old_params = dict(parse_qs(parsed.query))
-    old_params.update(params)
-    return parsed._replace(query=urlencode(old_params, doseq=True))
+    parsed = urlparse(url)
+    query_params = parsed.query.split("&")
+
+    existing_params = {}
+    for param in query_params:
+        if "=" in param:
+            k, v = param.split("=", 1)
+            existing_params[k] = v
+
+    existing_params.update(params)
+
+    if encode:
+        new_query = urlencode(existing_params, doseq=True)
+    else:
+        new_query = urlencode(existing_params, doseq=True, quote_via=_no_encode_quote)
+
+    return parsed._replace(query=new_query)
 
 
 def get_get_params(url):

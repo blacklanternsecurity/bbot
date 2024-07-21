@@ -382,7 +382,6 @@ class BBOTArgs:
             custom_cookies_dict[k] = v
         self.parsed.custom_cookies = custom_cookies_dict
 
-
     def validate(self):
         # validate config options
         sentinel = object()

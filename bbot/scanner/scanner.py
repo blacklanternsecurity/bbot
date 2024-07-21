@@ -207,7 +207,6 @@ class Scanner:
                 "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by httpx."
             )
 
-
         # url file extensions
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
         self.url_extension_httpx_only = set(e.lower() for e in self.config.get("url_extension_httpx_only", []))
