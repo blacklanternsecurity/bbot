@@ -7,7 +7,7 @@ class TestUnstructured(ModuleTestBase):
     modules_overrides = ["unstructured", "filedownload", "httpx", "excavate", "speculate"]
     config_overrides = {"web": {"spider_distance": 2, "spider_depth": 2}}
 
-    pdf_data = """%PDF-1.3
+    pdf_data = r"""%PDF-1.3
 %���� ReportLab Generated PDF document http://www.reportlab.com
 1 0 obj
 <<
