@@ -124,8 +124,13 @@ class WebHelper(EngineClient):
             >>>     if response is not None and response.status_code == 200:
             >>>         self.hugesuccess(response)
         """
-        async for _ in self.run_and_yield("request_batch", urls, *args, **kwargs):
-            yield _
+        agen = self.run_and_yield("request_batch", urls, *args, **kwargs)
+        while 1:
+            try:
+                yield await agen.__anext__()
+            except (StopAsyncIteration, GeneratorExit):
+                await agen.aclose()
+                break
 
     async def request_custom_batch(self, urls_and_kwargs):
         """
@@ -149,8 +154,13 @@ class WebHelper(EngineClient):
             >>>     if response is not None and response.status_code == 200:
             >>>         self.hugesuccess(response)
         """
-        async for _ in self.run_and_yield("request_custom_batch", urls_and_kwargs):
-            yield _
+        agen = self.run_and_yield("request_custom_batch", urls_and_kwargs)
+        while 1:
+            try:
+                yield await agen.__anext__()
+            except (StopAsyncIteration, GeneratorExit):
+                await agen.aclose()
+                break
 
     async def download(self, url, **kwargs):
         """

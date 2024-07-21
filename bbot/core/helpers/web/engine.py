@@ -85,13 +85,14 @@ class HTTPEngine(EngineServer):
 
     async def request_batch(self, urls, *args, threads=10, **kwargs):
         tasks = {}
+        client_id = self.client_id_var.get()
 
         urls = list(urls)
 
         def new_task():
             if urls:
                 url = urls.pop(0)
-                task = asyncio.create_task(self.request(url, *args, **kwargs))
+                task = self.new_child_task(client_id, self.request(url, *args, **kwargs))
                 tasks[task] = url
 
         for _ in range(threads):  # Start initial batch of tasks
@@ -99,9 +100,9 @@ class HTTPEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            finished = await self.finished_tasks(client_id)
 
-            for task in done:
+            for task in finished:
                 response = task.result()
                 url = tasks.pop(task)
                 yield (url, response)
@@ -109,12 +110,13 @@ class HTTPEngine(EngineServer):
 
     async def request_custom_batch(self, urls_and_kwargs, threads=10):
         tasks = {}
+        client_id = self.client_id_var.get()
         urls_and_kwargs = list(urls_and_kwargs)
 
         def new_task():
             if urls_and_kwargs:  # Ensure there are args to process
                 url, kwargs, custom_tracker = urls_and_kwargs.pop(0)
-                task = asyncio.create_task(self.request(url, **kwargs))
+                task = self.new_child_task(client_id, self.request(url, **kwargs))
                 tasks[task] = (url, kwargs, custom_tracker)
 
         for _ in range(threads):  # Start initial batch of tasks

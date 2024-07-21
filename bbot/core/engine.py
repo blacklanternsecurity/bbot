@@ -7,8 +7,11 @@ import logging
 import tempfile
 import threading
 import traceback
+import contextlib
+import contextvars
 import zmq.asyncio
 from pathlib import Path
+from concurrent.futures import CancelledError
 from contextlib import asynccontextmanager, suppress
 
 from bbot.core import CORE
@@ -161,6 +164,9 @@ class EngineClient(EngineBase):
         if message is error_sentinel:
             return
         async with self.new_socket() as socket:
+            # TODO: synchronize server-side generator by limiting qsize
+            # socket.setsockopt(zmq.RCVHWM, 1)
+            # socket.setsockopt(zmq.SNDHWM, 1)
             await socket.send(message)
             while 1:
                 try:
@@ -172,12 +178,30 @@ class EngineClient(EngineBase):
                     if self.check_error(message) or self.check_stop(message):
                         break
                     yield message
-                except GeneratorExit:
-                    # -1 == special "cancel" signal
-                    cancel_message = pickle.dumps({"c": -1})
-                    with suppress(Exception):
-                        await socket.send(cancel_message)
-                    raise
+                except (StopAsyncIteration, GeneratorExit) as e:
+                    exc_name = e.__class__.__name__
+                    self.log.debug(f"{self.name}.{command} got {exc_name}")
+                    try:
+                        await self.send_cancel_message(socket)
+                    except Exception:
+                        self.log.debug(f"{self.name}.{command} failed to send cancel message after {exc_name}")
+                        self.log.trace(traceback.format_exc())
+                    break
+
+    async def send_cancel_message(self, socket):
+        """
+        Send a cancel message and wait for confirmation from the server
+        """
+        # -1 == special "cancel" signal
+        message = pickle.dumps({"c": -1})
+        await self._infinite_retry(socket.send, message)
+        while 1:
+            response = await self._infinite_retry(socket.recv)
+            response = pickle.loads(response)
+            if isinstance(response, dict):
+                response = response.get("m", "")
+                if response == "CANCEL_OK":
+                    break
 
     def check_stop(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_s" in message:
@@ -236,7 +260,7 @@ class EngineClient(EngineBase):
                 future.result()
             else:
                 asyncio.run(engine_server.worker())
-        except (asyncio.CancelledError, KeyboardInterrupt):
+        except (asyncio.CancelledError, KeyboardInterrupt, CancelledError, RuntimeError):
             pass
         except Exception:
             import traceback
@@ -249,6 +273,7 @@ class EngineClient(EngineBase):
         if self._server_process is None:
             self._server_process = self.start_server()
             while not self.socket_path.exists():
+                self.log.debug(f"{self.name}: waiting for server process to start...")
                 await asyncio.sleep(0.1)
         socket = self.context.socket(zmq.DEALER)
         socket.setsockopt(zmq.LINGER, 0)
@@ -320,6 +345,9 @@ class EngineServer(EngineBase):
         super().__init__()
         self.name = f"EngineServer {self.__class__.__name__}"
         self.socket_path = socket_path
+        self.client_id_var = contextvars.ContextVar("client_id", default=None)
+        # child tasks spawned by top-level RPC calls
+        self.child_tasks = {}
         if self.socket_path is not None:
             # create ZeroMQ context
             self.context = zmq.asyncio.Context()
@@ -332,49 +360,65 @@ class EngineServer(EngineBase):
             # task <--> client id mapping
             self.tasks = dict()
 
-    async def run_and_return(self, client_id, command_fn, *args, **kwargs):
+    @contextlib.contextmanager
+    def client_id_context(self, value):
+        token = self.client_id_var.set(value)
         try:
-            self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
+            yield
+        finally:
+            self.client_id_var.reset(token)
+
+    async def run_and_return(self, client_id, command_fn, *args, **kwargs):
+        with self.client_id_context(client_id):
             try:
-                result = await command_fn(*args, **kwargs)
+                self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
+                try:
+                    result = await command_fn(*args, **kwargs)
+                except BaseException as e:
+                    error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                    self.log.debug(error)
+                    trace = traceback.format_exc()
+                    self.log.debug(trace)
+                    result = {"_e": (error, trace)}
+                finally:
+                    self.tasks.pop(client_id, None)
+                    self.log.debug(
+                        f"{self.name}: Sending response to {command_fn.__name__}({args}, {kwargs}): {result}"
+                    )
+                    await self.send_socket_multipart(client_id, result)
             except BaseException as e:
-                error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
-                self.log.debug(error)
-                trace = traceback.format_exc()
-                self.log.debug(trace)
-                result = {"_e": (error, trace)}
+                self.log.critical(
+                    f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
+                )
+                self.log.critical(traceback.format_exc())
             finally:
-                self.tasks.pop(client_id, None)
-                self.log.debug(f"{self.name}: Sending response to {command_fn.__name__}({args}, {kwargs}): {result}")
-                await self.send_socket_multipart(client_id, result)
-        except BaseException as e:
-            self.log.critical(
-                f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
-            )
-            self.log.critical(traceback.format_exc())
+                self.log.debug(f"{self.name} finished run-and-return {command_fn.__name__}({args}, {kwargs})")
 
     async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
-        try:
-            self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({args}, {kwargs})")
+        with self.client_id_context(client_id):
             try:
-                async for _ in command_fn(*args, **kwargs):
-                    await self.send_socket_multipart(client_id, _)
+                self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({args}, {kwargs})")
+                try:
+                    async for _ in command_fn(*args, **kwargs):
+                        await self.send_socket_multipart(client_id, _)
+                except BaseException as e:
+                    error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                    trace = traceback.format_exc()
+                    self.log.debug(error)
+                    self.log.debug(trace)
+                    result = {"_e": (error, trace)}
+                    await self.send_socket_multipart(client_id, result)
+                finally:
+                    # _s == special signal that means StopIteration
+                    await self.send_socket_multipart(client_id, {"_s": None})
+                    self.tasks.pop(client_id, None)
             except BaseException as e:
-                error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
-                trace = traceback.format_exc()
-                self.log.debug(error)
-                self.log.debug(trace)
-                result = {"_e": (error, trace)}
-                await self.send_socket_multipart(client_id, result)
+                self.log.critical(
+                    f"Unhandled exception in {self.name}.run_and_yield({client_id}, {command_fn}, {args}, {kwargs}): {e}"
+                )
+                self.log.critical(traceback.format_exc())
             finally:
-                # _s == special signal that means StopIteration
-                await self.send_socket_multipart(client_id, {"_s": None})
-                self.tasks.pop(client_id, None)
-        except BaseException as e:
-            self.log.critical(
-                f"Unhandled exception in {self.name}.run_and_yield({client_id}, {command_fn}, {args}, {kwargs}): {e}"
-            )
-            self.log.critical(traceback.format_exc())
+                self.log.debug(f"{self.name} finished run-and-yield {command_fn.__name__}({args}, {kwargs})")
 
     async def send_socket_multipart(self, client_id, message):
         try:
@@ -399,12 +443,14 @@ class EngineServer(EngineBase):
 
                 cmd = message.get("c", None)
                 if not isinstance(cmd, int):
-                    self.log.warning(f"No command sent in message: {message}")
+                    self.log.warning(f"{self.name}: no command sent in message: {message}")
                     continue
 
                 # -1 == cancel task
                 if cmd == -1:
+                    self.log.debug(f"{self.name} got cancel signal")
                     await self.cancel_task(client_id)
+                    await self.send_socket_multipart(client_id, {"m": "CANCEL_OK"})
                     continue
 
                 # -99 == shutdown task
@@ -436,8 +482,10 @@ class EngineServer(EngineBase):
                 task = asyncio.create_task(coroutine)
                 self.tasks[client_id] = task, command_fn, args, kwargs
         except Exception as e:
-            self.log.error(f"Error in EngineServer worker: {e}")
+            self.log.error(f"{self.name}: error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
+        finally:
+            self.log.debug(f"{self.name}: finished worker()")
 
     async def _shutdown(self):
         self.log.debug(f"{self.name}: shutting down...")
@@ -452,26 +500,50 @@ class EngineServer(EngineBase):
             self.log.trace(traceback.format_exc())
         self.log.debug(f"{self.name}: finished shutting down")
 
-    async def cancel_task(self, client_id):
-        task = self.tasks.get(client_id, None)
-        if task is None:
-            return
-        task, _cmd, _args, _kwargs = task
-        self.log.debug(f"Cancelling client id {client_id} (task: {task})")
-        task.cancel()
+    def new_child_task(self, client_id, coro):
+        task = asyncio.create_task(coro)
         try:
-            try:
-                await asyncio.wait_for(task, timeout=0.2)
-            except (TimeoutError, asyncio.TimeoutError):
-                self.log.debug(f"{self.name}: Timeout cancelling task")
+            self.child_tasks[client_id].add(task)
+        except KeyError:
+            self.child_tasks[client_id] = {task}
+        return task
+
+    async def finished_tasks(self, client_id):
+        child_tasks = self.child_tasks.get(client_id, set())
+        done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED)
+        self.child_tasks[client_id] = pending
+        return done
+
+    async def cancel_task(self, client_id):
+        parent_task = self.tasks.pop(client_id, None)
+        if parent_task is None:
+            return
+        parent_task, _cmd, _args, _kwargs = parent_task
+        self.log.debug(f"{self.name}: Cancelling client id {client_id} (task: {parent_task})")
+        parent_task.cancel()
+        child_tasks = self.child_tasks.pop(client_id, set())
+        if child_tasks:
+            self.log.debug(f"{self.name}: Cancelling {len(child_tasks):,} child tasks for client id {client_id}")
+            for child_task in child_tasks:
+                child_task.cancel()
+
+        for task in [parent_task] + list(child_tasks):
+            await self._cancel_task(task)
+
+    async def _cancel_task(self, task):
+        try:
+            await asyncio.wait_for(task, timeout=10)
+        except (TimeoutError, asyncio.TimeoutError):
+            self.log.debug(f"{self.name}: Timeout cancelling task")
         except (KeyboardInterrupt, asyncio.CancelledError):
             pass
         except BaseException as e:
-            self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
+            self.log.error(f"Unhandled error in {task.get_coro().__name__}(): {e}")
             self.log.trace(traceback.format_exc())
-        finally:
-            self.tasks.pop(client_id, None)
 
     async def cancel_all_tasks(self):
         for client_id in list(self.tasks):
             await self.cancel_task(client_id)
+        for client_id, tasks in self.child_tasks.items():
+            for task in tasks:
+                await self._cancel_task(task)

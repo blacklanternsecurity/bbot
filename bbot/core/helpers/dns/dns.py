@@ -86,12 +86,22 @@ class DNSHelper(EngineClient):
         return await self.run_and_return("resolve_raw", query=query, **kwargs)
 
     async def resolve_batch(self, queries, **kwargs):
-        async for _ in self.run_and_yield("resolve_batch", queries=queries, **kwargs):
-            yield _
+        agen = self.run_and_yield("resolve_batch", queries=queries, **kwargs)
+        while 1:
+            try:
+                yield await agen.__anext__()
+            except (StopAsyncIteration, GeneratorExit):
+                await agen.aclose()
+                break
 
     async def resolve_raw_batch(self, queries):
-        async for _ in self.run_and_yield("resolve_raw_batch", queries=queries):
-            yield _
+        agen = self.run_and_yield("resolve_raw_batch", queries=queries)
+        while 1:
+            try:
+                yield await agen.__anext__()
+            except (StopAsyncIteration, GeneratorExit):
+                await agen.aclose()
+                break
 
     @property
     def brute(self):

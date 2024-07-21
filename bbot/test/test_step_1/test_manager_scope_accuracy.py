@@ -26,7 +26,7 @@ def bbot_other_httpservers():
         ("127.0.0.33", 8889),
     ]
 
-    servers = [HTTPServer(host=host, port=port) for host, port in server_hosts]
+    servers = [HTTPServer(host=host, port=port, threaded=True) for host, port in server_hosts]
     for server in servers:
         server.start()
 

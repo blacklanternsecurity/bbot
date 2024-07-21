@@ -348,9 +348,10 @@ class DNSEngine(EngineServer):
             ('evilcorp.com', {'2.2.2.2'})
         """
         tasks = {}
+        client_id = self.client_id_var.get()
 
         def new_task(query):
-            task = asyncio.create_task(self.resolve(query, **kwargs))
+            task = self.new_child_task(client_id, self.resolve(query, **kwargs))
             tasks[task] = query
 
         queries = list(queries)
@@ -360,9 +361,9 @@ class DNSEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            finished = await self.finished_tasks(client_id)
 
-            for task in done:
+            for task in finished:
                 results = task.result()
                 query = tasks.pop(task)
 
@@ -374,9 +375,10 @@ class DNSEngine(EngineServer):
 
     async def resolve_raw_batch(self, queries, threads=10):
         tasks = {}
+        client_id = self.client_id_var.get()
 
         def new_task(query, rdtype):
-            task = asyncio.create_task(self.resolve_raw(query, type=rdtype))
+            task = self.new_child_task(client_id, self.resolve_raw(query, type=rdtype))
             tasks[task] = (query, rdtype)
 
         queries = list(queries)
@@ -386,9 +388,9 @@ class DNSEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            finished = await self.finished_tasks(client_id)
 
-            for task in done:
+            for task in finished:
                 answers, errors = task.result()
                 query, rdtype = tasks.pop(task)
                 for answer in answers:
