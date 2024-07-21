@@ -69,7 +69,7 @@ pytest-timeout = "^2.3.1"
 pytest-httpx = "^0.30.0"
 pytest-httpserver = "^1.0.11"
 pytest-asyncio = "0.23.5"
-pytest = "^8.2.2"
+pytest = "8.1.2"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"
