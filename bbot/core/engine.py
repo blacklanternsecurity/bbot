@@ -260,7 +260,7 @@ class EngineClient(EngineBase):
                 future.result()
             else:
                 asyncio.run(engine_server.worker())
-        except (asyncio.CancelledError, KeyboardInterrupt, CancelledError, RuntimeError):
+        except (asyncio.CancelledError, KeyboardInterrupt, CancelledError):
             pass
         except Exception:
             import traceback

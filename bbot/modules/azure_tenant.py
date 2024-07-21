@@ -93,7 +93,7 @@ class azure_tenant(BaseModule):
         self.debug(f"Retrieving tenant domains at {url}")
 
         autodiscover_task = self.helpers.create_task(
-            self.helpers.request(url, method="POST", headers=headers, data=data)
+            self.helpers.request(url, method="POST", headers=headers, content=data)
         )
         openid_url = f"https://login.windows.net/{domain}/.well-known/openid-configuration"
         openid_task = self.helpers.create_task(self.helpers.request(openid_url))
