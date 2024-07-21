@@ -818,10 +818,7 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
 
         web_parameter_emitted = False
         cmdi_interacttsh_finding_emitted = False
-        print("@@@@")
         for e in events:
-            print(e)
-            print(e.type)
             if e.type == "WEB_PARAMETER":
                 print(e.data["description"])
                 if "HTTP Extracted Parameter [search]" in e.data["description"]:

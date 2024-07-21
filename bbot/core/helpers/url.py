@@ -1,7 +1,7 @@
 import uuid
 import logging
 from contextlib import suppress
-from urllib.parse import urlparse, parse_qsl, urlencode, ParseResult
+from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 
 from .regexes import double_slash_regex
 
