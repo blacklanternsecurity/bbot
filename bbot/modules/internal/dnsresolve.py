@@ -208,7 +208,6 @@ class DNSResolve(InterceptModule):
             )
             # only emit the event if it's not already in the parent chain
             if parent_event is not None and (parent_event.always_emit or parent_event not in event.get_parents()):
-                parent_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     parent_event.add_tag("target")
                 await self.emit_event(

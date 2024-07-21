@@ -187,8 +187,6 @@ class speculate(BaseInternalModule):
                 self.org_stubs_seen.add(stub_hash)
                 stub_event = self.make_event(stub, "ORG_STUB", parent=event)
                 if stub_event:
-                    if event.scope_distance > 0:
-                        stub_event.scope_distance = event.scope_distance
                     await self.emit_event(stub_event, context="speculated {event.type}: {event.data}")
 
         # USERNAME --> EMAIL

@@ -47,7 +47,6 @@ class social(BaseModule):
                     "SOCIAL",
                     parent=event,
                 )
-                social_event.scope_distance = event.scope_distance
                 await self.emit_event(
                     social_event,
                     context=f"{{module}} detected {platform} {{event.type}} at {url}",
