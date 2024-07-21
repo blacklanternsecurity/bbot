@@ -30,7 +30,7 @@ class SQLiLightfuzz(BaseLightfuzz):
 
         cookies = self.event.data.get("assigned_cookies", {})
         if "original_value" in self.event.data and self.event.data["original_value"] is not None:
-            probe_value = urllib.parse.quote(self.event.data["original_value"], safe="")
+            probe_value = urllib.parse.quote(str(self.event.data["original_value"]), safe="")
 
         else:
             probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
