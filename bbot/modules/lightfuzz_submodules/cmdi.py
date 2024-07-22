@@ -10,7 +10,7 @@ class CmdILightFuzz(BaseLightfuzz):
 
         cookies = self.event.data.get("assigned_cookies", {})
         if (
-            "original_value" in self.event.data
+            "original_value" in self.event.data.keys()
             and self.event.data["original_value"] is not None
             and len(self.event.data["original_value"]) != 0
         ):
