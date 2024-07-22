@@ -9,7 +9,7 @@ class CmdILightFuzz(BaseLightfuzz):
     async def fuzz(self):
 
         cookies = self.event.data.get("assigned_cookies", {})
-        original_value = self.event.data.get("original_value", None)
+        original_value = str(self.event.data.get("original_value", ""))
         if original_value is not None and len(original_value) != 0:
             probe_value = original_value
         else:
