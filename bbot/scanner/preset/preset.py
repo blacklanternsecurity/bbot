@@ -146,9 +146,6 @@ class Preset:
         self._helpers = None
         self._module_loader = None
         self._yaml_str = ""
-        self._verbose = False
-        self._debug = False
-        self._silent = False
         self._baked = False
 
         self._default_output_modules = None
@@ -225,13 +222,10 @@ class Preset:
         self.core.merge_custom(config)
 
         # log verbosity
-        # setting these automatically sets the log level for all log handlers.
-        if verbose:
-            self.verbose = verbose
-        if debug:
-            self.debug = debug
-        if silent:
-            self.silent = silent
+        # actual log verbosity isn't set until .bake()
+        self.verbose = verbose
+        self.debug = debug
+        self.silent = silent
 
         # custom module directories
         self._module_dirs = set()
@@ -402,6 +396,9 @@ class Preset:
         # validate flags, config options
         baked_preset.validate()
 
+        # validate log level options
+        baked_preset.apply_log_level(apply_core=scan is not None)
+
         # assign baked preset to our scan
         if scan is not None:
             scan.preset = baked_preset
@@ -525,53 +522,28 @@ class Preset:
     def web_config(self):
         return self.core.config.get("web", {})
 
-    @property
-    def verbose(self):
-        return self._verbose
-
-    @verbose.setter
-    def verbose(self, value):
-        if value:
-            self._debug = False
-            self._silent = False
-            self.core.logger.log_level = "VERBOSE"
+    def apply_log_level(self, apply_core=False):
+        # silent takes precedence
+        if self.silent:
+            self.verbose = False
+            self.debug = False
+            if apply_core:
+                self.core.logger.log_level = "CRITICAL"
+                for key in ("verbose", "debug"):
+                    with suppress(omegaconf.errors.ConfigKeyError):
+                        del self.core.custom_config[key]
         else:
-            with suppress(omegaconf.errors.ConfigKeyError):
-                del self.core.custom_config["verbose"]
-            self.core.logger.log_level = "INFO"
-        self._verbose = value
-
-    @property
-    def debug(self):
-        return self._debug
-
-    @debug.setter
-    def debug(self, value):
-        if value:
-            self._verbose = False
-            self._silent = False
-            self.core.logger.log_level = "DEBUG"
-        else:
-            with suppress(omegaconf.errors.ConfigKeyError):
-                del self.core.custom_config["debug"]
-            self.core.logger.log_level = "INFO"
-        self._debug = value
-
-    @property
-    def silent(self):
-        return self._silent
-
-    @silent.setter
-    def silent(self, value):
-        if value:
-            self._verbose = False
-            self._debug = False
-            self.core.logger.log_level = "CRITICAL"
-        else:
-            with suppress(omegaconf.errors.ConfigKeyError):
-                del self.core.custom_config["silent"]
-            self.core.logger.log_level = "INFO"
-        self._silent = value
+            # then debug
+            if self.debug:
+                self.verbose = False
+                if apply_core:
+                    self.core.logger.log_level = "DEBUG"
+                    with suppress(omegaconf.errors.ConfigKeyError):
+                        del self.core.custom_config["verbose"]
+            else:
+                # finally verbose
+                if self.verbose and apply_core:
+                    self.core.logger.log_level = "VERBOSE"
 
     @property
     def helpers(self):

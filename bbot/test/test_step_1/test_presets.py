@@ -67,6 +67,9 @@ def test_core():
     assert "test456" in core_copy.config["test123"]
 
 
+
+
+
 def test_preset_yaml(clean_default_config):
 
     import yaml
@@ -359,26 +362,100 @@ def test_preset_scope():
 
 
 def test_preset_logging():
-    # test verbosity levels (conflicting verbose/debug/silent)
-    preset = Preset(verbose=True)
-    original_log_level = preset.core.logger.log_level
+
+    # test individual verbosity levels
+    original_log_level = CORE.logger.log_level
+
     try:
-        assert preset.verbose == True
-        assert preset.debug == False
-        assert preset.silent == False
-        assert preset.core.logger.log_level == logging.VERBOSE
-        preset.debug = True
-        assert preset.verbose == False
-        assert preset.debug == True
-        assert preset.silent == False
-        assert preset.core.logger.log_level == logging.DEBUG
-        preset.silent = True
-        assert preset.verbose == False
-        assert preset.debug == False
-        assert preset.silent == True
-        assert preset.core.logger.log_level == logging.CRITICAL
+        silent_preset = Preset(silent=True)
+        assert silent_preset.silent == True
+        assert silent_preset.debug == False
+        assert silent_preset.verbose == False
+        assert original_log_level == CORE.logger.log_level
+        debug_preset = Preset(debug=True)
+        assert debug_preset.silent == False
+        assert debug_preset.debug == True
+        assert debug_preset.verbose == False
+        assert original_log_level == CORE.logger.log_level
+        verbose_preset = Preset(verbose=True)
+        assert verbose_preset.silent == False
+        assert verbose_preset.debug == False
+        assert verbose_preset.verbose == True
+        assert original_log_level == CORE.logger.log_level
+
+        # test conflicting verbosity levels
+        silent_and_verbose = Preset(silent=True, verbose=True)
+        assert silent_and_verbose.silent == True
+        assert silent_and_verbose.debug == False
+        assert silent_and_verbose.verbose == True
+        baked = silent_and_verbose.bake()
+        assert baked.silent == True
+        assert baked.debug == False
+        assert baked.verbose == False
+        assert baked.core.logger.log_level == original_log_level
+        baked = silent_and_verbose.bake(scan=Scanner())
+        assert baked.core.logger.log_level == logging.CRITICAL
+        assert CORE.logger.log_level == logging.CRITICAL
+
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+
+        silent_and_debug = Preset(silent=True, debug=True)
+        assert silent_and_debug.silent == True
+        assert silent_and_debug.debug == True
+        assert silent_and_debug.verbose == False
+        baked = silent_and_debug.bake()
+        assert baked.silent == True
+        assert baked.debug == False
+        assert baked.verbose == False
+        assert baked.core.logger.log_level == original_log_level
+        baked = silent_and_debug.bake(scan=Scanner())
+        assert baked.core.logger.log_level == logging.CRITICAL
+        assert CORE.logger.log_level == logging.CRITICAL
+
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+
+        debug_and_verbose = Preset(verbose=True, debug=True)
+        assert debug_and_verbose.silent == False
+        assert debug_and_verbose.debug == True
+        assert debug_and_verbose.verbose == True
+        baked = debug_and_verbose.bake()
+        assert baked.silent == False
+        assert baked.debug == True
+        assert baked.verbose == False
+        assert baked.core.logger.log_level == original_log_level
+        baked = debug_and_verbose.bake(scan=Scanner())
+        assert baked.core.logger.log_level == logging.DEBUG
+        assert CORE.logger.log_level == logging.DEBUG
+
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+
+        all_preset = Preset(verbose=True, debug=True, silent=True)
+        assert all_preset.silent == True
+        assert all_preset.debug == True
+        assert all_preset.verbose == True
+        baked = all_preset.bake()
+        assert baked.silent == True
+        assert baked.debug == False
+        assert baked.verbose == False
+        assert baked.core.logger.log_level == original_log_level
+        baked = all_preset.bake(scan=Scanner())
+        assert baked.core.logger.log_level == logging.CRITICAL
+        assert CORE.logger.log_level == logging.CRITICAL
+
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+
+        # defaults
+        preset = Preset().bake()
+        assert preset.core.logger.log_level == original_log_level
+        assert CORE.logger.log_level == original_log_level
+
     finally:
-        preset.core.logger.log_level = original_log_level
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
 
 
 def test_preset_module_resolution(clean_default_config):

@@ -17,8 +17,6 @@ from bbot.core.helpers.interactsh import server_list as interactsh_servers
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
     os.environ["BBOT_DEBUG"] = "True"
-
-if test_config.get("debug", False):
     logging.getLogger("bbot").setLevel(logging.DEBUG)
 else:
     # silence stdout + trace
