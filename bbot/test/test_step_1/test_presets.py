@@ -67,9 +67,6 @@ def test_core():
     assert "test456" in core_copy.config["test123"]
 
 
-
-
-
 def test_preset_yaml(clean_default_config):
 
     import yaml
