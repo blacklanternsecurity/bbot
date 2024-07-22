@@ -9,11 +9,9 @@ class PathTraversalLightfuzz(BaseLightfuzz):
 
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
-        if (
-            "original_value" in self.event.data
-            and self.event.data["original_value"] is not None
-            and self.event.data["original_value"] != "1"
-        ):
+
+        original_value = self.event.data.get("original_value", None)
+        if original_value is not None and original_value != "1":
             probe_value = self.event.data["original_value"]
         else:
             self.lightfuzz.debug(
