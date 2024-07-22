@@ -362,6 +362,7 @@ def test_preset_logging():
 
     # test individual verbosity levels
     original_log_level = CORE.logger.log_level
+    assert original_log_level == logging.DEBUG
 
     try:
         silent_preset = Preset(silent=True)

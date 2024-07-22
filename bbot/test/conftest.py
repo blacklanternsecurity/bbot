@@ -18,6 +18,7 @@ test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
     os.environ["BBOT_DEBUG"] = "True"
     logging.getLogger("bbot").setLevel(logging.DEBUG)
+    CORE.logger.log_level = logging.DEBUG
 else:
     # silence stdout + trace
     root_logger = logging.getLogger()
