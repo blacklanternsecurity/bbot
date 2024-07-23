@@ -132,6 +132,8 @@ class EngineClient(EngineBase):
         return False
 
     async def run_and_return(self, command, *args, **kwargs):
+        fn_str = f"{command}({args}, {kwargs})"
+        self.log.debug(f"{self.name}: executing run-and-return {fn_str}")
         if self._shutdown and not command == "_shutdown":
             self.log.verbose(f"{self.name} has been shut down and is not accepting new tasks")
             return
@@ -143,20 +145,23 @@ class EngineClient(EngineBase):
                 await self._infinite_retry(socket.send, message)
                 binary = await self._infinite_retry(socket.recv)
             except BaseException:
-                # -1 == special "cancel" signal
-                cancel_message = pickle.dumps({"c": -1})
-                with suppress(Exception):
-                    await socket.send(cancel_message)
+                try:
+                    await self.send_cancel_message(socket)
+                except Exception:
+                    self.log.debug(f"{self.name}: {fn_str} failed to send cancel message after exception")
+                    self.log.trace(traceback.format_exc())
                 raise
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = self.unpickle(binary)
-        self.log.debug(f"{self.name}.{command}({args}, {kwargs}) got message: {message}")
+        self.log.debug(f"{self.name}: {fn_str} got return value: {message}")
         # error handling
         if self.check_error(message):
             return
         return message
 
     async def run_and_yield(self, command, *args, **kwargs):
+        fn_str = f"{command}({args}, {kwargs})"
+        self.log.debug(f"{self.name}: executing run-and-yield {fn_str}")
         if self._shutdown:
             self.log.verbose("Engine has been shut down and is not accepting new tasks")
             return
@@ -173,7 +178,7 @@ class EngineClient(EngineBase):
                     binary = await self._infinite_retry(socket.recv)
                     # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
                     message = self.unpickle(binary)
-                    self.log.debug(f"{self.name}.{command}({args}, {kwargs}) got message: {message}")
+                    self.log.debug(f"{self.name} {command} got iteration: {message}")
                     # error handling
                     if self.check_error(message) or self.check_stop(message):
                         break
@@ -369,22 +374,21 @@ class EngineServer(EngineBase):
             self.client_id_var.reset(token)
 
     async def run_and_return(self, client_id, command_fn, *args, **kwargs):
+        fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
+                self.log.debug(f"{self.name} run-and-return {fn_str}")
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
-                    error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                    error = f"Error in {self.name}.{fn_str}: {e}"
                     self.log.debug(error)
                     trace = traceback.format_exc()
                     self.log.debug(trace)
                     result = {"_e": (error, trace)}
                 finally:
                     self.tasks.pop(client_id, None)
-                    self.log.debug(
-                        f"{self.name}: Sending response to {command_fn.__name__}({args}, {kwargs}): {result}"
-                    )
+                    self.log.debug(f"{self.name}: Sending response to {fn_str}: {result}")
                     await self.send_socket_multipart(client_id, result)
             except BaseException as e:
                 self.log.critical(
@@ -395,20 +399,22 @@ class EngineServer(EngineBase):
                 self.log.debug(f"{self.name} finished run-and-return {command_fn.__name__}({args}, {kwargs})")
 
     async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
+        fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({args}, {kwargs})")
+                self.log.debug(f"{self.name} run-and-yield {fn_str}")
                 try:
                     async for _ in command_fn(*args, **kwargs):
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
-                    error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                    error = f"Error in {self.name}.{fn_str}: {e}"
                     trace = traceback.format_exc()
                     self.log.debug(error)
                     self.log.debug(trace)
                     result = {"_e": (error, trace)}
                     await self.send_socket_multipart(client_id, result)
                 finally:
+                    self.log.debug(f"{self.name} reached end of run-and-yield iteration for {command_fn.__name__}()")
                     # _s == special signal that means StopIteration
                     await self.send_socket_multipart(client_id, {"_s": None})
                     self.tasks.pop(client_id, None)
@@ -418,7 +424,7 @@ class EngineServer(EngineBase):
                 )
                 self.log.critical(traceback.format_exc())
             finally:
-                self.log.debug(f"{self.name} finished run-and-yield {command_fn.__name__}({args}, {kwargs})")
+                self.log.debug(f"{self.name} finished run-and-yield {command_fn.__name__}()")
 
     async def send_socket_multipart(self, client_id, message):
         try:

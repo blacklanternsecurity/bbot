@@ -250,7 +250,7 @@ async def _main():
 
                 asyncio.create_task(akeyboard_listen())
 
-        await scan.async_start_without_generator()
+            await scan.async_start_without_generator()
 
         return True
 
