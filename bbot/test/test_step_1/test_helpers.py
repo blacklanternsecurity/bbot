@@ -723,12 +723,13 @@ async def test_ratelimiter(helpers):
     assert 45 <= len(results) <= 55
 
 
-async def test_sync_to_async():
+def test_sync_to_async():
     from bbot.core.helpers.async_helpers import async_to_sync_gen
 
     # async to sync generator converter
     async def async_gen():
         for i in range(5):
+            await asyncio.sleep(0.1)
             yield i
 
     sync_gen = async_to_sync_gen(async_gen())

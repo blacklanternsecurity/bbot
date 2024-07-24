@@ -57,6 +57,8 @@ async def test_dns_engine(bbot_scanner):
         results.update(extract_targets(r))
     assert not results
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_dns_resolution(bbot_scanner):
@@ -166,6 +168,9 @@ async def test_dns_resolution(bbot_scanner):
     assert 1 == len(
         [e for e in events if e.type == "DNS_NAME" and e.data == "cloudprovider.com" and "affiliate" in e.tags]
     )
+
+    await scan._cleanup()
+    await scan2._cleanup()
 
 
 @pytest.mark.asyncio

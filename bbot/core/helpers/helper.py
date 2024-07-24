@@ -1,5 +1,4 @@
 import os
-import asyncio
 import logging
 from pathlib import Path
 import multiprocessing as mp
@@ -15,6 +14,7 @@ from .wordcloud import WordCloud
 from .interactsh import Interactsh
 from ...scanner.target import Target
 from .depsinstaller import DepsInstaller
+from .async_helpers import get_event_loop
 
 log = logging.getLogger("bbot.core.helpers")
 
@@ -176,7 +176,7 @@ class ConfigAwareHelper:
         Get the current event loop
         """
         if self._loop is None:
-            self._loop = asyncio.get_running_loop()
+            self._loop = get_event_loop()
         return self._loop
 
     def run_in_executor(self, callback, *args, **kwargs):

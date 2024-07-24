@@ -1,4 +1,5 @@
 import sys
+import atexit
 import asyncio
 import logging
 import traceback
@@ -15,8 +16,8 @@ from bbot.core.event import make_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
-from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.errors import BBOTError, ScanError, ValidationError
+from bbot.core.helpers.async_helpers import async_to_sync_gen, get_event_loop
 
 log = logging.getLogger("bbot.scanner")
 
@@ -804,19 +805,19 @@ class Scanner:
         Returns:
             None
         """
-        self.status = "CLEANING_UP"
-        # clean up dns engine
-        if self.helpers._dns is not None:
-            await self.helpers.dns.shutdown()
-        # clean up web engine
-        if self.helpers._web is not None:
-            await self.helpers.web.shutdown()
-        # clean up modules
-        for mod in self.modules.values():
-            await mod._cleanup()
         # clean up self
         if not self._cleanedup:
             self._cleanedup = True
+            self.status = "CLEANING_UP"
+            # clean up dns engine
+            if self.helpers._dns is not None:
+                await self.helpers.dns.shutdown()
+            # clean up web engine
+            if self.helpers._web is not None:
+                await self.helpers.web.shutdown()
+            # clean up modules
+            for mod in self.modules.values():
+                await mod._cleanup()
             with contextlib.suppress(Exception):
                 self.home.rmdir()
             self.helpers.clean_old_scans()

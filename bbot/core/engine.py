@@ -1,4 +1,5 @@
 import os
+import sys
 import zmq
 import pickle
 import asyncio
@@ -17,6 +18,7 @@ from contextlib import asynccontextmanager, suppress
 from bbot.core import CORE
 from bbot.errors import BBOTEngineError
 from bbot.core.helpers.misc import rand_string
+from bbot.core.helpers.async_helpers import get_event_loop
 
 
 error_sentinel = object()
@@ -32,7 +34,7 @@ class EngineBase:
     BBOT makes use of this by spawning a dedicated engine for DNS and HTTP tasks.
     This offloads I/O and helps free up the main event loop for other tasks.
 
-    To use of Engine, you must subclass both EngineClient and EngineServer.
+    To use Engine, you must subclass both EngineClient and EngineServer.
 
     See the respective EngineClient and EngineServer classes for usage examples.
     """
@@ -208,6 +210,19 @@ class EngineClient(EngineBase):
                 if response == "CANCEL_OK":
                     break
 
+    async def send_shutdown_message(self):
+        async with self.new_socket() as socket:
+            # -99 == special shutdown message
+            message = pickle.dumps({"c": -99})
+            await self._infinite_retry(socket.send, message)
+            while 1:
+                response = await self._infinite_retry(socket.recv)
+                response = pickle.loads(response)
+                if isinstance(response, dict):
+                    response = response.get("m", "")
+                    if response == "SHUTDOWN_OK":
+                        break
+
     def check_stop(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_s" in message:
             return True
@@ -238,7 +253,7 @@ class EngineClient(EngineBase):
             # if we're in tests, we use a single event loop to avoid weird race conditions
             # this allows us to more easily mock http, etc.
             if os.environ.get("BBOT_TESTING", "") == "True":
-                kwargs["_loop"] = asyncio.get_event_loop()
+                kwargs["_loop"] = get_event_loop()
             self.process = CORE.create_process(
                 target=self.server_process,
                 args=(
@@ -291,30 +306,29 @@ class EngineClient(EngineBase):
             with suppress(Exception):
                 socket.close()
 
+    def _shutdown_thread(self):
+        if not self._shutdown:
+            self._shutdown = True
+            # then terminate context
+            try:
+                self.context.destroy(linger=0)
+            except Exception:
+                print(traceback.format_exc(), file=sys.stderr)
+            try:
+                self.context.term()
+            except Exception:
+                print(traceback.format_exc(), file=sys.stderr)
+            # delete socket file on exit
+            self.socket_path.unlink(missing_ok=True)
+
     async def shutdown(self):
         self.log.debug(f"{self.name}: shutting down...")
         if not self._shutdown:
             self._shutdown = True
-            shutdown_msg = {"c": -99}
-            async with self.new_socket() as socket:
-                await self._infinite_retry(socket.send, pickle.dumps(shutdown_msg))
+            await self.send_shutdown_message()
 
-            def shutdown_daemon():
-                self.log.debug(f"{self.name}: entered shutdown thread")
-                # then terminate context
-                try:
-                    self.context.destroy(linger=0)
-                except Exception:
-                    self.log.trace(traceback.format_exc())
-                try:
-                    self.context.term()
-                except Exception:
-                    self.log.trace(traceback.format_exc())
-                # delete socket file on exit
-                self.socket_path.unlink(missing_ok=True)
-                self.log.debug(f"{self.name}: exiting shutdown thread")
-
-            threading.Thread(target=shutdown_daemon, daemon=True).start()
+    def __del__(self):
+        self._shutdown_thread()
 
 
 class EngineServer(EngineBase):
@@ -461,6 +475,8 @@ class EngineServer(EngineBase):
 
                 # -99 == shutdown task
                 if cmd == -99:
+                    self.log.debug(f"{self.name} got shutdown signal")
+                    await self.send_socket_multipart(client_id, {"m": "SHUTDOWN_OK"})
                     await self._shutdown()
                     return
 
