@@ -16,6 +16,7 @@ from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir
+from bbot.core.helpers.async_helpers import get_event_loop
 
 
 log = logging.getLogger(f"bbot.test.fixtures")
@@ -70,7 +71,10 @@ def scan():
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"])
-    return bbot_scan
+    yield bbot_scan
+
+    loop = get_event_loop()
+    loop.run_until_complete(bbot_scan._cleanup())
 
 
 @pytest.fixture
