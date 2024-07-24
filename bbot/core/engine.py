@@ -6,7 +6,6 @@ import asyncio
 import inspect
 import logging
 import tempfile
-import threading
 import traceback
 import contextlib
 import contextvars

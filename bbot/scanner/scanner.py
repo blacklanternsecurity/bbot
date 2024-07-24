@@ -1,5 +1,4 @@
 import sys
-import atexit
 import asyncio
 import logging
 import traceback
@@ -16,8 +15,8 @@ from bbot.core.event import make_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
+from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.errors import BBOTError, ScanError, ValidationError
-from bbot.core.helpers.async_helpers import async_to_sync_gen, get_event_loop
 
 log = logging.getLogger("bbot.scanner")
 
