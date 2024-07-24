@@ -490,12 +490,16 @@ class EngineServer(EngineBase):
                     continue
 
                 if inspect.isasyncgenfunction(command_fn):
+                    self.log.debug(f"{self.name}: creating run-and-yield coroutine for {command_name}()")
                     coroutine = self.run_and_yield(client_id, command_fn, *args, **kwargs)
                 else:
+                    self.log.debug(f"{self.name}: creating run-and-return coroutine for {command_name}()")
                     coroutine = self.run_and_return(client_id, command_fn, *args, **kwargs)
 
+                self.log.debug(f"{self.name}: creating task for {command_name}() coroutine")
                 task = asyncio.create_task(coroutine)
                 self.tasks[client_id] = task, command_fn, args, kwargs
+                self.log.debug(f"{self.name}: finished creating task for {command_name}() coroutine")
         except Exception as e:
             self.log.error(f"{self.name}: error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
