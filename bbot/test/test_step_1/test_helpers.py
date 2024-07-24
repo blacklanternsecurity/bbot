@@ -542,9 +542,13 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.integer_to_ordinal(113) == "113th"
     assert helpers.integer_to_ordinal(0) == "0th"
 
+    await scan._cleanup()
+
     scan1 = bbot_scanner(modules="ipneighbor")
     await scan1.load_modules()
     assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
+
+    await scan1._cleanup()
 
     # weighted shuffle (used for module queues)
     items = ["a", "b", "c", "d", "e"]
@@ -594,7 +598,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert test_ran
 
 
-def test_word_cloud(helpers, bbot_scanner):
+@pytest.mark.asyncio
+async def test_word_cloud(helpers, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
     assert "base0_p013" in number_mutations
     assert "base7_p013" in number_mutations
@@ -692,6 +697,8 @@ def test_word_cloud(helpers, bbot_scanner):
     )
     top_mutations = sorted(m.top_mutations().items(), key=lambda x: x[-1], reverse=True)
     assert top_mutations[:2] == [((None,), 4), ((None, "2"), 2)]
+
+    await scan1._cleanup()
 
 
 def test_names(helpers):

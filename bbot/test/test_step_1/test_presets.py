@@ -358,7 +358,10 @@ def test_preset_scope():
     assert set([e.data for e in preset_nowhitelist2_baked.whitelist]) == {"evilcorp.com", "evilcorp.de"}
 
 
-def test_preset_logging():
+@pytest.mark.asyncio
+async def test_preset_logging():
+
+    scan = Scanner()
 
     # test individual verbosity levels
     original_log_level = CORE.logger.log_level
@@ -391,7 +394,7 @@ def test_preset_logging():
         assert baked.debug == False
         assert baked.verbose == False
         assert baked.core.logger.log_level == original_log_level
-        baked = silent_and_verbose.bake(scan=Scanner())
+        baked = silent_and_verbose.bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -407,7 +410,7 @@ def test_preset_logging():
         assert baked.debug == False
         assert baked.verbose == False
         assert baked.core.logger.log_level == original_log_level
-        baked = silent_and_debug.bake(scan=Scanner())
+        baked = silent_and_debug.bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -423,7 +426,7 @@ def test_preset_logging():
         assert baked.debug == True
         assert baked.verbose == False
         assert baked.core.logger.log_level == original_log_level
-        baked = debug_and_verbose.bake(scan=Scanner())
+        baked = debug_and_verbose.bake(scan=scan)
         assert baked.core.logger.log_level == logging.DEBUG
         assert CORE.logger.log_level == logging.DEBUG
 
@@ -439,7 +442,7 @@ def test_preset_logging():
         assert baked.debug == False
         assert baked.verbose == False
         assert baked.core.logger.log_level == original_log_level
-        baked = all_preset.bake(scan=Scanner())
+        baked = all_preset.bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -454,6 +457,7 @@ def test_preset_logging():
     finally:
         CORE.logger.log_level = original_log_level
         assert CORE.logger.log_level == original_log_level
+        await scan._cleanup()
 
 
 def test_preset_module_resolution(clean_default_config):
@@ -729,7 +733,8 @@ config:
     assert preset.config.modules.testpreset5.test == "hjkl"
 
 
-def test_preset_conditions():
+@pytest.mark.asyncio
+async def test_preset_conditions():
     custom_preset_dir_1 = bbot_test_dir / "custom_preset_dir"
     custom_preset_dir_2 = custom_preset_dir_1 / "preset_subdir"
     mkdir(custom_preset_dir_1)
@@ -761,6 +766,8 @@ conditions:
 
     scan = Scanner(preset=preset)
     assert scan.preset.conditions
+
+    await scan._cleanup()
 
     preset2 = Preset(config={"web": {"spider_distance": 3, "spider_depth": 4}})
     preset.merge(preset2)

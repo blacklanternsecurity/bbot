@@ -370,3 +370,5 @@ async def test_regex_helper():
     assert len(matches) == 8
     for s in subdomains:
         assert matches.count(s) == 2
+
+    await scan._cleanup()

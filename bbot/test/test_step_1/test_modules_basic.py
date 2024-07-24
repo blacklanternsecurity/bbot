@@ -198,6 +198,8 @@ async def test_modules_basic_checks(events, httpx_mock):
         description = flag_descriptions.get(flag, "")
         assert description, f'Flag "{flag}" has no description in bbot/core/flags.py'
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_modules_basic_perhostonly(bbot_scanner):
@@ -284,6 +286,8 @@ async def test_modules_basic_perhostonly(bbot_scanner):
             assert valid_4 == False
             assert "per_domain_only=True" in reason_4
             assert valid_5 == True
+
+    await scan._cleanup()
 
 
 @pytest.mark.asyncio
@@ -445,3 +449,5 @@ async def test_module_loading(bbot_scanner):
                 log.error(f"{f.__qualname__}() is not async")
                 not_async.append(f)
     assert not any(not_async)
+
+    await scan2._cleanup()

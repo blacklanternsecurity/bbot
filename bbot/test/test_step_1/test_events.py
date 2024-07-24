@@ -515,6 +515,8 @@ async def test_events(events, helpers):
     assert str(parent_event_3.module) == "mymodule"
     assert str(parent_event_3.module_sequence) == "mymodule->mymodule->mymodule"
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_event_discovery_context():

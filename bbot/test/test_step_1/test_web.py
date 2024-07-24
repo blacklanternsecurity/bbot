@@ -336,6 +336,7 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
     headers_url = bbot_httpserver.url_for("/test-custom-http-headers-curl")
     curl_result = await helpers.curl(url=headers_url)
     assert curl_result == "curl_yep_headers"
+
     await scan._cleanup()
 
 
@@ -351,6 +352,7 @@ async def test_web_http_compare(httpx_mock, bbot_scanner):
     compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
     for mode in ("getparam", "header", "cookie"):
         assert await compare_helper.canary_check("http://www.example.com", mode=mode) == True
+
     await scan._cleanup()
 
 
