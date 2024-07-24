@@ -323,6 +323,7 @@ class EngineClient(EngineBase):
             # delete socket file on exit
             self.socket_path.unlink(missing_ok=True)
 
+
 class EngineServer(EngineBase):
     """
     The server portion of BBOT's RPC Engine.
