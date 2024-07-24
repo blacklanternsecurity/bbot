@@ -96,6 +96,8 @@ async def test_dns_resolution(bbot_scanner):
         responses += list(extract_targets(answer))
     assert ("PTR", "one.one.one.one") in responses
 
+    await dnsengine._shutdown()
+
     # high level functions
     dnsengine = DNSEngine(None)
     assert "1.1.1.1" in await dnsengine.resolve("one.one.one.one")
@@ -138,6 +140,8 @@ async def test_dns_resolution(bbot_scanner):
     await dnsengine.resolve("one.one.one.one", type="AAAA")
     assert hash(f"one.one.one.one:AAAA") in dnsengine._dns_cache
     assert not hash(f"one.one.one.one:A") in dnsengine._dns_cache
+
+    await dnsengine._shutdown()
 
     # Ensure events with hosts have resolved_hosts attribute populated
     await scan._prep()
@@ -213,6 +217,8 @@ async def test_wildcards(bbot_scanner):
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
 
+    await dnsengine._shutdown()
+
     # event resolution
     await scan._prep()
     dnsresolve = scan.modules["dnsresolve"]
@@ -242,6 +248,8 @@ async def test_wildcards(bbot_scanner):
         "evilcorp.org", module=scan._make_dummy_module_dns("A"), parent=event_distance_2
     )
     assert event_distance_3.dns_resolve_distance == 2
+
+    await scan._cleanup()
 
     from bbot.scanner import Scanner
 
