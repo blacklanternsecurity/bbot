@@ -358,6 +358,8 @@ class EngineServer(EngineBase):
         self.name = f"EngineServer {self.__class__.__name__}"
         self.socket_path = socket_path
         self.client_id_var = contextvars.ContextVar("client_id", default=None)
+        # task <--> client id mapping
+        self.tasks = dict()
         # child tasks spawned by top-level RPC calls
         self.child_tasks = {}
         if self.socket_path is not None:
@@ -369,8 +371,6 @@ class EngineServer(EngineBase):
             self.socket.setsockopt(zmq.LINGER, 0)
             # create socket file
             self.socket.bind(f"ipc://{self.socket_path}")
-            # task <--> client id mapping
-            self.tasks = dict()
 
     @contextlib.contextmanager
     def client_id_context(self, value):
