@@ -403,7 +403,7 @@ class excavate(BaseInternalModule):
 
         class HtmlTags(ParameterExtractorRule):
             name = "HTML Tags"
-            discovery_regex = r'/<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ nocase'
+            discovery_regex = r'/<[^>]+(href|src|action)=["\'][^"\']*["\'][^>]*>/ nocase'
             extraction_regex = bbot_regexes.tag_attribute_regex
             output_type = "GETPARAM"
 
@@ -445,6 +445,10 @@ class excavate(BaseInternalModule):
                             yield self.output_type, parameter_name, original_value, form_action, _exclude_key(
                                 form_parameters, parameter_name
                             )
+
+        class GenericForm(GetForm):
+            name = "Generic Form"
+            discovery_regex = r'/form[^>]*>.*<\/form>/s nocase'
 
         class PostForm(GetForm):
             name = "POST Form"
@@ -676,7 +680,7 @@ class excavate(BaseInternalModule):
     class URLExtractor(ExcavateRule):
         yara_rules = {
             "url_full": r'rule url_full { meta: tags = "spider-danger" description = "contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([:\/\w\.-]*)/ condition: $url_full }',
-            "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
+            "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src|action)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
         }
         full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
         full_url_regex_strict = re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$")
