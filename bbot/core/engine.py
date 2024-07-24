@@ -305,9 +305,12 @@ class EngineClient(EngineBase):
             with suppress(Exception):
                 socket.close()
 
-    def _shutdown_thread(self):
+    async def shutdown(self):
+        self.log.debug(f"{self.name}: shutting down...")
         if not self._shutdown:
             self._shutdown = True
+            # send shutdown signal
+            await self.send_shutdown_message()
             # then terminate context
             try:
                 self.context.destroy(linger=0)
@@ -319,16 +322,6 @@ class EngineClient(EngineBase):
                 print(traceback.format_exc(), file=sys.stderr)
             # delete socket file on exit
             self.socket_path.unlink(missing_ok=True)
-
-    async def shutdown(self):
-        self.log.debug(f"{self.name}: shutting down...")
-        if not self._shutdown:
-            self._shutdown = True
-            await self.send_shutdown_message()
-
-    def __del__(self):
-        self._shutdown_thread()
-
 
 class EngineServer(EngineBase):
     """
