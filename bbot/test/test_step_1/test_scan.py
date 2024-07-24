@@ -75,7 +75,7 @@ async def test_scan(
     event_data = [e.data for e in events]
     assert "one.one.one.one" not in event_data
 
-    for scan in (scan0, scan1, scan2, scan3, scan4, scan5):
+    for scan in (scan0, scan1, scan2, scan4, scan5):
         await scan._cleanup()
 
 
