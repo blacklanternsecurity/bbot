@@ -196,7 +196,7 @@ class ScanEgress(InterceptModule):
             if "target" in event.tags:
                 self.debug(f"Allowing omitted event: {event} because it's a target")
             else:
-                event.internal = True
+                event._omit = True
 
         # make event internal if it's above our configured report distance
         event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
