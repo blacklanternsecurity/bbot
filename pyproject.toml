@@ -83,7 +83,6 @@ livereload = "^2.6.3"
 [tool.pytest.ini_options]
 env = [
     "BBOT_TESTING = True",
-    "PYTHONASYNCIODEBUG = 1"
 ]
 
 [build-system]
