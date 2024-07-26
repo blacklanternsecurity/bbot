@@ -1906,13 +1906,13 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "pytest-mock (>=3.12)"]
 
 [[package]]
 name = "pytest-httpserver"
-version = "1.0.11"
+version = "1.0.12"
 description = "pytest-httpserver is a httpserver for pytest"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pytest_httpserver-1.0.11-py3-none-any.whl", hash = "sha256:87e0017aa563b4fb9688822827495dd84d5dd0cae189ef0fa533ba693471fe6e"},
-    {file = "pytest_httpserver-1.0.11.tar.gz", hash = "sha256:834531f278e99a22cf3920bc30fe06784518b742a189628b3b34953604ad83f6"},
+    {file = "pytest_httpserver-1.0.12-py3-none-any.whl", hash = "sha256:dae1c79ec7aeda83bfaaf4d0a400867a4b1bc6bf668244daaf13aa814e3022da"},
+    {file = "pytest_httpserver-1.0.12.tar.gz", hash = "sha256:c14600b8efb9ea8d7e63251a242ab987f13028b36d3d397ffaca3c929f67eb16"},
 ]
 
 [package.dependencies]
