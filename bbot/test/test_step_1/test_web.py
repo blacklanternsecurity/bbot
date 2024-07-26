@@ -64,12 +64,13 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
 @pytest.mark.asyncio
 async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, httpx_mock):
-
+    import time
     from werkzeug.wrappers import Response
 
     urls_requested = []
 
     def server_handler(request):
+        time.sleep(0.75)
         urls_requested.append(request.url.split("/")[-1])
         return Response(f"{request.url}: {request.headers}")
 
@@ -81,15 +82,17 @@ async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, httpx_m
     urls = [f"{base_url}{i}" for i in range(100)]
 
     # request_batch w/ cancellation
-    counter = 0
     agen = scan.helpers.request_batch(urls)
+    got_urls = []
+    start = time.time()
     async for url, response in agen:
         assert response.text.startswith(base_url)
-        if counter > 10:
+        got_urls.append(url)
+        if time.time() > start + 1:
             await agen.aclose()
             break
-        counter += 1
-        await asyncio.sleep(0.1)
+
+    assert 5 < len(got_urls) < 15
 
     await scan._cleanup()
 

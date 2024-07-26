@@ -978,7 +978,7 @@ class excavate(BaseInternalModule):
                                     reported_location_header = True
                                     await self.emit_event(
                                         url_event,
-                                        context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
+                                        context=f'excavate looked in "Location" header and found {url_event.type}: {url_event.data}',
                                     )
 
                         # Try to extract parameters from the redirect URL

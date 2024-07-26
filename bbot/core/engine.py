@@ -359,8 +359,8 @@ class EngineServer(EngineBase):
         self.socket_path = socket_path
         self.client_id_var = contextvars.ContextVar("client_id", default=None)
         # task <--> client id mapping
-        self.tasks = dict()
-        # child tasks spawned by top-level RPC calls
+        self.tasks = {}
+        # child tasks spawned by main tasks
         self.child_tasks = {}
         if self.socket_path is not None:
             # create ZeroMQ context
@@ -450,7 +450,7 @@ class EngineServer(EngineBase):
             while 1:
                 client_id, binary = await self.socket.recv_multipart()
                 message = self.unpickle(binary)
-                self.log.debug(f"{self.name} got message: {message}")
+                # self.log.debug(f"{self.name} got message: {message}")
                 if self.check_error(message):
                     continue
 
@@ -490,16 +490,16 @@ class EngineServer(EngineBase):
                     continue
 
                 if inspect.isasyncgenfunction(command_fn):
-                    self.log.debug(f"{self.name}: creating run-and-yield coroutine for {command_name}()")
+                    # self.log.debug(f"{self.name}: creating run-and-yield coroutine for {command_name}()")
                     coroutine = self.run_and_yield(client_id, command_fn, *args, **kwargs)
                 else:
-                    self.log.debug(f"{self.name}: creating run-and-return coroutine for {command_name}()")
+                    # self.log.debug(f"{self.name}: creating run-and-return coroutine for {command_name}()")
                     coroutine = self.run_and_return(client_id, command_fn, *args, **kwargs)
 
-                self.log.debug(f"{self.name}: creating task for {command_name}() coroutine")
+                # self.log.debug(f"{self.name}: creating task for {command_name}() coroutine")
                 task = asyncio.create_task(coroutine)
                 self.tasks[client_id] = task, command_fn, args, kwargs
-                self.log.debug(f"{self.name}: finished creating task for {command_name}() coroutine")
+                # self.log.debug(f"{self.name}: finished creating task for {command_name}() coroutine")
         except Exception as e:
             self.log.error(f"{self.name}: error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
