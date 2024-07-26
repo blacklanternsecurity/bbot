@@ -1,7 +1,8 @@
 from ..bbot_fixtures import *
 
 
-def test_depsinstaller(monkeypatch, bbot_scanner):
+@pytest.mark.asyncio
+async def test_depsinstaller(monkeypatch, bbot_scanner):
     scan = bbot_scanner(
         "127.0.0.1",
     )
@@ -20,3 +21,5 @@ def test_depsinstaller(monkeypatch, bbot_scanner):
     )
     assert test_file.is_file()
     test_file.unlink(missing_ok=True)
+
+    await scan._cleanup()

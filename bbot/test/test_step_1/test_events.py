@@ -517,6 +517,8 @@ async def test_events(events, helpers):
     assert str(parent_event_3.module) == "mymodule"
     assert str(parent_event_3.module_sequence) == "mymodule->mymodule->mymodule"
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_event_discovery_context():
@@ -664,6 +666,8 @@ async def test_event_discovery_context():
     j = final_event[0].json()
     assert [_[-1] for _ in j["discovery_path"]] == final_path
 
+    await scan._cleanup()
+
     # test to make sure this doesn't come back
     #  https://github.com/blacklanternsecurity/bbot/issues/1498
     scan = Scanner("http://blacklanternsecurity.com", config={"dns": {"minimal": False}})
@@ -674,3 +678,5 @@ async def test_event_discovery_context():
     blsops_event = [e for e in events if e.type == "DNS_NAME" and e.data == "blsops.com"]
     assert len(blsops_event) == 1
     assert blsops_event[0].discovery_path[1][-1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
+
+    await scan._cleanup()

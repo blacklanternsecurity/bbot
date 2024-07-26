@@ -1,5 +1,4 @@
 import os
-import asyncio
 import logging
 from pathlib import Path
 import multiprocessing as mp
@@ -15,6 +14,7 @@ from .wordcloud import WordCloud
 from .interactsh import Interactsh
 from ...scanner.target import Target
 from .depsinstaller import DepsInstaller
+from .async_helpers import get_event_loop
 
 log = logging.getLogger("bbot.core.helpers")
 
@@ -84,12 +84,18 @@ class ConfigAwareHelper:
         self._cloud = None
 
         self.re = RegexHelper(self)
-        self.dns = DNSHelper(self)
+        self._dns = None
         self._web = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
+
+    @property
+    def dns(self):
+        if self._dns is None:
+            self._dns = DNSHelper(self)
+        return self._dns
 
     @property
     def web(self):
@@ -170,7 +176,7 @@ class ConfigAwareHelper:
         Get the current event loop
         """
         if self._loop is None:
-            self._loop = asyncio.get_running_loop()
+            self._loop = get_event_loop()
         return self._loop
 
     def run_in_executor(self, callback, *args, **kwargs):

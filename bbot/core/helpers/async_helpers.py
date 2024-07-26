@@ -90,11 +90,16 @@ class TaskCounter:
             return f"{self.task_name} running for {running_for}"
 
 
-def async_to_sync_gen(async_gen):
+def get_event_loop():
     try:
-        loop = asyncio.get_running_loop()
+        return asyncio.get_running_loop()
     except RuntimeError:
-        loop = asyncio.new_event_loop()
+        log.verbose("Starting new event loop")
+        return asyncio.new_event_loop()
+
+
+def async_to_sync_gen(async_gen):
+    loop = get_event_loop()
     try:
         while True:
             yield loop.run_until_complete(async_gen.__anext__())

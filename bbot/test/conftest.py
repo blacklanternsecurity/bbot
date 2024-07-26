@@ -17,9 +17,8 @@ from bbot.core.helpers.interactsh import server_list as interactsh_servers
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
     os.environ["BBOT_DEBUG"] = "True"
-
-if test_config.get("debug", False):
     logging.getLogger("bbot").setLevel(logging.DEBUG)
+    CORE.logger.log_level = logging.DEBUG
 else:
     # silence stdout + trace
     root_logger = logging.getLogger()
@@ -189,7 +188,7 @@ def proxy_server():
     server_thread.join()
 
 
-def pytest_terminal_summary(terminalreporter, exitstatus, config):
+def pytest_terminal_summary(terminalreporter, exitstatus, config):  # pragma: no cover
     RED = "\033[1;31m"
     GREEN = "\033[1;32m"
     YELLOW = "\033[1;33m"
@@ -219,6 +218,82 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             print(f"{RED}Failure details:\n{item.longreprtext}{RESET}")
 
 
+import psutil
+import traceback
+import inspect
+
+
+def _print_detailed_info():  # pragma: no cover
+    """
+    Debugging pytests hanging
+    """
+    print("=== Detailed Thread and Process Information ===\n")
+    try:
+        print("=== Threads ===")
+        for thread in threading.enumerate():
+            print(f"Thread Name: {thread.name}")
+            print(f"Thread ID: {thread.ident}")
+            print(f"Is Alive: {thread.is_alive()}")
+            print(f"Daemon: {thread.daemon}")
+
+            if hasattr(thread, "_target"):
+                target = thread._target
+                if target:
+                    qualname = (
+                        f"{target.__module__}.{target.__qualname__}"
+                        if hasattr(target, "__qualname__")
+                        else str(target)
+                    )
+                    print(f"Target Function: {qualname}")
+
+                    if hasattr(thread, "_args"):
+                        args = thread._args
+                        kwargs = thread._kwargs if hasattr(thread, "_kwargs") else {}
+                        arg_spec = inspect.getfullargspec(target)
+
+                        all_args = list(args) + [f"{k}={v}" for k, v in kwargs.items()]
+
+                        if inspect.ismethod(target) and arg_spec.args[0] == "self":
+                            arg_spec.args.pop(0)
+
+                        named_args = list(zip(arg_spec.args, all_args))
+                        if arg_spec.varargs:
+                            named_args.extend((f"*{arg_spec.varargs}", arg) for arg in all_args[len(arg_spec.args) :])
+
+                        print("Arguments:")
+                        for name, value in named_args:
+                            print(f"  {name}: {value}")
+                else:
+                    print("Target Function: None")
+            else:
+                print("Target Function: Unknown")
+
+            print()
+
+        print("=== Processes ===")
+        current_process = psutil.Process()
+        for child in current_process.children(recursive=True):
+            print(f"Process ID: {child.pid}")
+            print(f"Name: {child.name()}")
+            print(f"Status: {child.status()}")
+            print(f"CPU Times: {child.cpu_times()}")
+            print(f"Memory Info: {child.memory_info()}")
+            print()
+
+        print("=== Current Process ===")
+        print(f"Process ID: {current_process.pid}")
+        print(f"Name: {current_process.name()}")
+        print(f"Status: {current_process.status()}")
+        print(f"CPU Times: {current_process.cpu_times()}")
+        print(f"Memory Info: {current_process.memory_info()}")
+        print()
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        print("Traceback:")
+        traceback.print_exc()
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_sessionfinish(session, exitstatus):
     # Remove handlers from all loggers to prevent logging errors at exit
@@ -232,3 +307,13 @@ def pytest_sessionfinish(session, exitstatus):
     shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
 
     yield
+
+    # temporarily suspend stdout capture and print detailed thread info
+    capmanager = session.config.pluginmanager.get_plugin("capturemanager")
+    if capmanager:
+        capmanager.suspend_global_capture(in_=True)
+
+    _print_detailed_info()
+
+    if capmanager:
+        capmanager.resume_global_capture()

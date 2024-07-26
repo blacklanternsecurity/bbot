@@ -1,11 +1,11 @@
 import os
+import sys
 import zmq
 import pickle
 import asyncio
 import inspect
 import logging
 import tempfile
-import threading
 import traceback
 import contextlib
 import contextvars
@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager, suppress
 from bbot.core import CORE
 from bbot.errors import BBOTEngineError
 from bbot.core.helpers.misc import rand_string
+from bbot.core.helpers.async_helpers import get_event_loop
 
 
 error_sentinel = object()
@@ -32,7 +33,7 @@ class EngineBase:
     BBOT makes use of this by spawning a dedicated engine for DNS and HTTP tasks.
     This offloads I/O and helps free up the main event loop for other tasks.
 
-    To use of Engine, you must subclass both EngineClient and EngineServer.
+    To use Engine, you must subclass both EngineClient and EngineServer.
 
     See the respective EngineClient and EngineServer classes for usage examples.
     """
@@ -132,6 +133,8 @@ class EngineClient(EngineBase):
         return False
 
     async def run_and_return(self, command, *args, **kwargs):
+        fn_str = f"{command}({args}, {kwargs})"
+        self.log.debug(f"{self.name}: executing run-and-return {fn_str}")
         if self._shutdown and not command == "_shutdown":
             self.log.verbose(f"{self.name} has been shut down and is not accepting new tasks")
             return
@@ -143,20 +146,23 @@ class EngineClient(EngineBase):
                 await self._infinite_retry(socket.send, message)
                 binary = await self._infinite_retry(socket.recv)
             except BaseException:
-                # -1 == special "cancel" signal
-                cancel_message = pickle.dumps({"c": -1})
-                with suppress(Exception):
-                    await socket.send(cancel_message)
+                try:
+                    await self.send_cancel_message(socket)
+                except Exception:
+                    self.log.debug(f"{self.name}: {fn_str} failed to send cancel message after exception")
+                    self.log.trace(traceback.format_exc())
                 raise
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = self.unpickle(binary)
-        self.log.debug(f"{self.name}.{command}({args}, {kwargs}) got message: {message}")
+        self.log.debug(f"{self.name}: {fn_str} got return value: {message}")
         # error handling
         if self.check_error(message):
             return
         return message
 
     async def run_and_yield(self, command, *args, **kwargs):
+        fn_str = f"{command}({args}, {kwargs})"
+        self.log.debug(f"{self.name}: executing run-and-yield {fn_str}")
         if self._shutdown:
             self.log.verbose("Engine has been shut down and is not accepting new tasks")
             return
@@ -173,7 +179,7 @@ class EngineClient(EngineBase):
                     binary = await self._infinite_retry(socket.recv)
                     # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
                     message = self.unpickle(binary)
-                    self.log.debug(f"{self.name}.{command}({args}, {kwargs}) got message: {message}")
+                    self.log.debug(f"{self.name} {command} got iteration: {message}")
                     # error handling
                     if self.check_error(message) or self.check_stop(message):
                         break
@@ -202,6 +208,19 @@ class EngineClient(EngineBase):
                 response = response.get("m", "")
                 if response == "CANCEL_OK":
                     break
+
+    async def send_shutdown_message(self):
+        async with self.new_socket() as socket:
+            # -99 == special shutdown message
+            message = pickle.dumps({"c": -99})
+            await self._infinite_retry(socket.send, message)
+            while 1:
+                response = await self._infinite_retry(socket.recv)
+                response = pickle.loads(response)
+                if isinstance(response, dict):
+                    response = response.get("m", "")
+                    if response == "SHUTDOWN_OK":
+                        break
 
     def check_stop(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_s" in message:
@@ -233,7 +252,7 @@ class EngineClient(EngineBase):
             # if we're in tests, we use a single event loop to avoid weird race conditions
             # this allows us to more easily mock http, etc.
             if os.environ.get("BBOT_TESTING", "") == "True":
-                kwargs["_loop"] = asyncio.get_event_loop()
+                kwargs["_loop"] = get_event_loop()
             self.process = CORE.create_process(
                 target=self.server_process,
                 args=(
@@ -260,7 +279,7 @@ class EngineClient(EngineBase):
                 future.result()
             else:
                 asyncio.run(engine_server.worker())
-        except (asyncio.CancelledError, KeyboardInterrupt, CancelledError, RuntimeError):
+        except (asyncio.CancelledError, KeyboardInterrupt, CancelledError):
             pass
         except Exception:
             import traceback
@@ -290,26 +309,19 @@ class EngineClient(EngineBase):
         self.log.debug(f"{self.name}: shutting down...")
         if not self._shutdown:
             self._shutdown = True
-            shutdown_msg = {"c": -99}
-            async with self.new_socket() as socket:
-                await self._infinite_retry(socket.send, pickle.dumps(shutdown_msg))
-
-            def shutdown_daemon():
-                self.log.debug(f"{self.name}: entered shutdown thread")
-                # then terminate context
-                try:
-                    self.context.destroy(linger=0)
-                except Exception:
-                    self.log.trace(traceback.format_exc())
-                try:
-                    self.context.term()
-                except Exception:
-                    self.log.trace(traceback.format_exc())
-                # delete socket file on exit
-                self.socket_path.unlink(missing_ok=True)
-                self.log.debug(f"{self.name}: exiting shutdown thread")
-
-            threading.Thread(target=shutdown_daemon, daemon=True).start()
+            # send shutdown signal
+            await self.send_shutdown_message()
+            # then terminate context
+            try:
+                self.context.destroy(linger=0)
+            except Exception:
+                print(traceback.format_exc(), file=sys.stderr)
+            try:
+                self.context.term()
+            except Exception:
+                print(traceback.format_exc(), file=sys.stderr)
+            # delete socket file on exit
+            self.socket_path.unlink(missing_ok=True)
 
 
 class EngineServer(EngineBase):
@@ -346,7 +358,9 @@ class EngineServer(EngineBase):
         self.name = f"EngineServer {self.__class__.__name__}"
         self.socket_path = socket_path
         self.client_id_var = contextvars.ContextVar("client_id", default=None)
-        # child tasks spawned by top-level RPC calls
+        # task <--> client id mapping
+        self.tasks = {}
+        # child tasks spawned by main tasks
         self.child_tasks = {}
         if self.socket_path is not None:
             # create ZeroMQ context
@@ -357,8 +371,6 @@ class EngineServer(EngineBase):
             self.socket.setsockopt(zmq.LINGER, 0)
             # create socket file
             self.socket.bind(f"ipc://{self.socket_path}")
-            # task <--> client id mapping
-            self.tasks = dict()
 
     @contextlib.contextmanager
     def client_id_context(self, value):
@@ -369,22 +381,21 @@ class EngineServer(EngineBase):
             self.client_id_var.reset(token)
 
     async def run_and_return(self, client_id, command_fn, *args, **kwargs):
+        fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
+                self.log.debug(f"{self.name} run-and-return {fn_str}")
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
-                    error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                    error = f"Error in {self.name}.{fn_str}: {e}"
                     self.log.debug(error)
                     trace = traceback.format_exc()
                     self.log.debug(trace)
                     result = {"_e": (error, trace)}
                 finally:
                     self.tasks.pop(client_id, None)
-                    self.log.debug(
-                        f"{self.name}: Sending response to {command_fn.__name__}({args}, {kwargs}): {result}"
-                    )
+                    self.log.debug(f"{self.name}: Sending response to {fn_str}: {result}")
                     await self.send_socket_multipart(client_id, result)
             except BaseException as e:
                 self.log.critical(
@@ -395,20 +406,22 @@ class EngineServer(EngineBase):
                 self.log.debug(f"{self.name} finished run-and-return {command_fn.__name__}({args}, {kwargs})")
 
     async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
+        fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({args}, {kwargs})")
+                self.log.debug(f"{self.name} run-and-yield {fn_str}")
                 try:
                     async for _ in command_fn(*args, **kwargs):
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
-                    error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                    error = f"Error in {self.name}.{fn_str}: {e}"
                     trace = traceback.format_exc()
                     self.log.debug(error)
                     self.log.debug(trace)
                     result = {"_e": (error, trace)}
                     await self.send_socket_multipart(client_id, result)
                 finally:
+                    self.log.debug(f"{self.name} reached end of run-and-yield iteration for {command_fn.__name__}()")
                     # _s == special signal that means StopIteration
                     await self.send_socket_multipart(client_id, {"_s": None})
                     self.tasks.pop(client_id, None)
@@ -418,7 +431,7 @@ class EngineServer(EngineBase):
                 )
                 self.log.critical(traceback.format_exc())
             finally:
-                self.log.debug(f"{self.name} finished run-and-yield {command_fn.__name__}({args}, {kwargs})")
+                self.log.debug(f"{self.name} finished run-and-yield {command_fn.__name__}()")
 
     async def send_socket_multipart(self, client_id, message):
         try:
@@ -437,7 +450,7 @@ class EngineServer(EngineBase):
             while 1:
                 client_id, binary = await self.socket.recv_multipart()
                 message = self.unpickle(binary)
-                self.log.debug(f"{self.name} got message: {message}")
+                # self.log.debug(f"{self.name} got message: {message}")
                 if self.check_error(message):
                     continue
 
@@ -455,6 +468,8 @@ class EngineServer(EngineBase):
 
                 # -99 == shutdown task
                 if cmd == -99:
+                    self.log.debug(f"{self.name} got shutdown signal")
+                    await self.send_socket_multipart(client_id, {"m": "SHUTDOWN_OK"})
                     await self._shutdown()
                     return
 
@@ -475,12 +490,16 @@ class EngineServer(EngineBase):
                     continue
 
                 if inspect.isasyncgenfunction(command_fn):
+                    # self.log.debug(f"{self.name}: creating run-and-yield coroutine for {command_name}()")
                     coroutine = self.run_and_yield(client_id, command_fn, *args, **kwargs)
                 else:
+                    # self.log.debug(f"{self.name}: creating run-and-return coroutine for {command_name}()")
                     coroutine = self.run_and_return(client_id, command_fn, *args, **kwargs)
 
+                # self.log.debug(f"{self.name}: creating task for {command_name}() coroutine")
                 task = asyncio.create_task(coroutine)
                 self.tasks[client_id] = task, command_fn, args, kwargs
+                # self.log.debug(f"{self.name}: finished creating task for {command_name}() coroutine")
         except Exception as e:
             self.log.error(f"{self.name}: error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())

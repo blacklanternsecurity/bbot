@@ -68,6 +68,8 @@ class TestCloudCheck(ModuleTestBase):
             assert "cloud-google" in event.tags, f"{event} was not properly cloud-tagged"
         assert "cloud-storage-bucket" in google_event3.tags
 
+        await scan._cleanup()
+
     def check(self, module_test, events):
         for e in events:
             self.log.debug(e)

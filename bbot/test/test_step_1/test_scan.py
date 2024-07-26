@@ -75,6 +75,9 @@ async def test_scan(
     event_data = [e.data for e in events]
     assert "one.one.one.one" not in event_data
 
+    for scan in (scan0, scan1, scan2, scan4, scan5):
+        await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_url_extension_handling(bbot_scanner):
@@ -96,6 +99,8 @@ async def test_url_extension_handling(bbot_scanner):
     result = await scan.ingress_module.handle_event(httpx_event, {})
     assert result == None
     assert "httpx-only" in httpx_event.tags
+
+    await scan._cleanup()
 
 
 @pytest.mark.asyncio
