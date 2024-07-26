@@ -26,7 +26,7 @@ def bbot_other_httpservers():
         ("127.0.0.33", 8889),
     ]
 
-    servers = [HTTPServer(host=host, port=port) for host, port in server_hosts]
+    servers = [HTTPServer(host=host, port=port, threaded=True) for host, port in server_hosts]
     for server in servers:
         server.start()
 
@@ -840,3 +840,5 @@ async def test_manager_scope_tagging(bbot_scanner):
     assert "affiliate" not in e2.tags
     distance_tags = [t for t in e2.tags if t.startswith("distance-")]
     assert not distance_tags
+
+    await scan._cleanup()

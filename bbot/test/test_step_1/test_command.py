@@ -143,3 +143,5 @@ async def test_command(bbot_scanner):
         if line.startswith("PATH="):
             path_parts = line.strip().split("=", 1)[-1].split(":")
             assert "/tmp/.bbot_test/tools" in path_parts
+
+    await scan1._cleanup()

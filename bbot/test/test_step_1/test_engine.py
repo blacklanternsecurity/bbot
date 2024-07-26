@@ -144,3 +144,5 @@ async def test_engine():
     assert return_finished == False
     assert return_cancelled == False
     assert return_errored == True
+
+    await test_engine.shutdown()

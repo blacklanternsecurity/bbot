@@ -409,7 +409,7 @@ async def test_events(events, helpers):
     db_event.scope_distance = 1
     assert db_event.discovery_context == "test context"
     assert db_event.discovery_path == ["test context"]
-    timestamp = db_event.timestamp.timestamp()
+    timestamp = db_event.timestamp.isoformat()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
     assert json_event["data"] == "evilcorp.com:80"
@@ -420,7 +420,7 @@ async def test_events(events, helpers):
     assert json_event["discovery_path"] == ["test context"]
     reconstituted_event = event_from_json(json_event)
     assert reconstituted_event.scope_distance == 1
-    assert reconstituted_event.timestamp.timestamp() == timestamp
+    assert reconstituted_event.timestamp.isoformat() == timestamp
     assert reconstituted_event.data == "evilcorp.com:80"
     assert reconstituted_event.type == "OPEN_TCP_PORT"
     assert reconstituted_event.host == "evilcorp.com"
@@ -442,7 +442,7 @@ async def test_events(events, helpers):
     assert json_event_siemfriendly["timestamp"] == timestamp
     reconstituted_event2 = event_from_json(json_event_siemfriendly, siem_friendly=True)
     assert reconstituted_event2.scope_distance == 1
-    assert reconstituted_event2.timestamp.timestamp() == timestamp
+    assert reconstituted_event2.timestamp.isoformat() == timestamp
     assert reconstituted_event2.data == "evilcorp.com:80"
     assert reconstituted_event2.type == "OPEN_TCP_PORT"
     assert reconstituted_event2.host == "evilcorp.com"
@@ -514,6 +514,8 @@ async def test_events(events, helpers):
     parent_event_3 = scan.make_event("127.0.0.3", module=module, parent=parent_event_2)
     assert str(parent_event_3.module) == "mymodule"
     assert str(parent_event_3.module_sequence) == "mymodule->mymodule->mymodule"
+
+    await scan._cleanup()
 
 
 @pytest.mark.asyncio
@@ -662,6 +664,8 @@ async def test_event_discovery_context():
     j = final_event[0].json()
     assert j["discovery_path"] == final_path
 
+    await scan._cleanup()
+
     # test to make sure this doesn't come back
     #  https://github.com/blacklanternsecurity/bbot/issues/1498
     scan = Scanner("http://blacklanternsecurity.com", config={"dns": {"minimal": False}})
@@ -672,3 +676,5 @@ async def test_event_discovery_context():
     blsops_event = [e for e in events if e.type == "DNS_NAME" and e.data == "blsops.com"]
     assert len(blsops_event) == 1
     assert blsops_event[0].discovery_path[1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
+
+    await scan._cleanup()

@@ -194,6 +194,7 @@ class ScanEgress(InterceptModule):
         # make event internal if it's above our configured report distance
         event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
         event_will_be_output = event.always_emit or event_in_report_distance
+
         if not event_will_be_output:
             log.debug(
                 f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
