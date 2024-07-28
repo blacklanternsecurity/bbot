@@ -90,13 +90,13 @@ async def test_url_extension_handling(bbot_scanner):
     httpx_event = scan.make_event("https://evilcorp.com/a.js", "URL", tags=["status-200"], parent=scan.root_event)
     assert "blacklisted" not in bad_event.tags
     assert "httpx-only" not in httpx_event.tags
-    result = await scan.ingress_module.handle_event(good_event, {})
+    result = await scan.ingress_module.handle_event(good_event)
     assert result == None
-    result, reason = await scan.ingress_module.handle_event(bad_event, {})
+    result, reason = await scan.ingress_module.handle_event(bad_event)
     assert result == False
     assert reason == "event is blacklisted"
     assert "blacklisted" in bad_event.tags
-    result = await scan.ingress_module.handle_event(httpx_event, {})
+    result = await scan.ingress_module.handle_event(httpx_event)
     assert result == None
     assert "httpx-only" in httpx_event.tags
 
