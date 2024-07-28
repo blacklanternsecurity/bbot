@@ -1,0 +1,14 @@
+description: Take screenshots of webpages
+
+flags:
+  - web-screenshots
+
+config:
+  modules:
+    gowitness:
+      resolution_x: 1440
+      resolution_y: 900
+      # folder to output web screenshots (default is inside ~/.bbot/scans/scan_name)
+      output_path: ""
+      # whether to take screenshots of social media pages
+      social: True

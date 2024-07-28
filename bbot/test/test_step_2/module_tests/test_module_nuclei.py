@@ -5,8 +5,10 @@ class TestNucleiManual(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "excavate", "nuclei"]
     config_overrides = {
-        "web_spider_distance": 1,
-        "web_spider_depth": 1,
+        "web": {
+            "spider_distance": 1,
+            "spider_depth": 1,
+        },
         "modules": {
             "nuclei": {
                 "version": "2.9.4",
@@ -152,3 +154,31 @@ class TestNucleiRetriesCustom(TestNucleiRetries):
     def check(self, module_test, events):
         with open(module_test.scan.home / "debug.log") as f:
             assert "-retries 1" in f.read()
+
+
+class TestNucleiCustomHeaders(TestNucleiManual):
+    custom_headers = {"testheader1": "test1", "testheader2": "test2"}
+    config_overrides = TestNucleiManual.config_overrides
+    config_overrides["web"]["http_headers"] = custom_headers
+
+    async def setup_after_prep(self, module_test):
+        expect_args = {"method": "GET", "uri": "/", "headers": self.custom_headers}
+        respond_args = {"response_data": self.test_html}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+        expect_args = {"method": "GET", "uri": "/testmultipleruns.html", "headers": {"nonexistent": "nope"}}
+        respond_args = {"response_data": "<html>Copyright 1984</html>"}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check(self, module_test, events):
+        first_run_detect = False
+        second_run_detect = False
+        for e in events:
+            if e.type == "FINDING":
+                if "Directory listing enabled" in e.data["description"]:
+                    first_run_detect = True
+                elif "Copyright" in e.data["description"]:
+                    second_run_detect = True
+        # we should find the first one because it requires our custom headers
+        assert first_run_detect
+        # the second one requires different headers, so we shouldn't find it
+        assert not second_run_detect

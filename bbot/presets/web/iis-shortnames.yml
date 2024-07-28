@@ -1,0 +1,10 @@
+description: Recursively enumerate IIS shortnames
+
+flags:
+  - iis-shortnames
+
+config:
+  modules:
+    iis_shortnames:
+      # exploit the vulnerability
+      detect_only: false

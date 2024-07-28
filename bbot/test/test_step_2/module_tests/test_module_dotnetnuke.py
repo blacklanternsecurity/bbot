@@ -150,7 +150,7 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
 
-        self.interactsh_mock_instance = module_test.request_fixture.getfixturevalue("interactsh_mock_instance")
+        self.interactsh_mock_instance = module_test.mock_interactsh("dotnetnuke_blindssrf")
         module_test.monkeypatch.setattr(
             module_test.scan.helpers, "interactsh", lambda *args, **kwargs: self.interactsh_mock_instance
         )

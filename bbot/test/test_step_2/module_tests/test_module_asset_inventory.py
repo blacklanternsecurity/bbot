@@ -4,11 +4,28 @@ from .base import ModuleTestBase
 class TestAsset_Inventory(ModuleTestBase):
     targets = ["127.0.0.1", "bbottest.notreal"]
     scan_name = "asset_inventory_test"
-    config_overrides = {"dns_resolution": True, "internal_modules": {"nmap": {"ports": "9999"}}}
-    modules_overrides = ["asset_inventory", "nmap", "sslcert"]
+    config_overrides = {"dns": {"minimal": False}, "modules": {"portscan": {"ports": "9999"}}}
+    modules_overrides = ["asset_inventory", "portscan", "sslcert"]
+
+    masscan_output = """{   "ip": "127.0.0.1",   "timestamp": "1680197558", "ports": [ {"port": 9999, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
 
     async def setup_before_prep(self, module_test):
-        module_test.mock_dns(
+
+        async def run_masscan(command, *args, **kwargs):
+            if "masscan" in command[:2]:
+                targets = open(command[11]).read().splitlines()
+                yield "["
+                for l in self.masscan_output.splitlines():
+                    if "127.0.0.1/32" in targets:
+                        yield self.masscan_output
+                yield "]"
+            else:
+                async for l in module_test.scan.helpers.run_live(command, *args, **kwargs):
+                    yield l
+
+        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", run_masscan)
+
+        await module_test.mock_dns(
             {
                 "1.0.0.127.in-addr.arpa": {"PTR": ["www.bbottest.notreal"]},
                 "www.bbottest.notreal": {"A": ["127.0.0.1"]},
@@ -32,7 +49,7 @@ class TestAsset_Inventory(ModuleTestBase):
 
 
 class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
-    config_overrides = {"dns_resolution": True, "output_modules": {"asset_inventory": {"use_previous": True}}}
+    config_overrides = {"dns": {"minimal": False}, "modules": {"asset_inventory": {"use_previous": True}}}
     modules_overrides = ["asset_inventory"]
 
     def check(self, module_test, events):
@@ -53,8 +70,8 @@ class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
 
 class TestAsset_InventoryRecheck(TestAsset_Inventory):
     config_overrides = {
-        "dns_resolution": True,
-        "output_modules": {"asset_inventory": {"use_previous": True, "recheck": True}},
+        "dns": {"minimal": False},
+        "modules": {"asset_inventory": {"use_previous": True, "recheck": True}},
     }
     modules_overrides = ["asset_inventory"]
 

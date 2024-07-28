@@ -11,16 +11,15 @@ class JSON(BaseOutputModule):
         "created_date": "2022-04-07",
         "author": "@TheTechromancer",
     }
-    options = {"output_file": "", "console": False, "siem_friendly": False}
+    options = {"output_file": "", "siem_friendly": False}
     options_desc = {
         "output_file": "Output to file",
-        "console": "Output to console",
         "siem_friendly": "Output JSON in a SIEM-friendly format for ingestion into Elastic, Splunk, etc.",
     }
     _preserve_graph = True
 
     async def setup(self):
-        self._prep_output_dir("output.ndjson")
+        self._prep_output_dir("output.json")
         self.siem_friendly = self.config.get("siem_friendly", False)
         return True
 
@@ -30,8 +29,6 @@ class JSON(BaseOutputModule):
         if self.file is not None:
             self.file.write(event_str + "\n")
             self.file.flush()
-        if self.config.get("console", False) or "human" not in self.scan.modules:
-            self.stdout(event_str)
 
     async def cleanup(self):
         if getattr(self, "_file", None) is not None:

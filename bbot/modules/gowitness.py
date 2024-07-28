@@ -20,7 +20,7 @@ class gowitness(BaseModule):
         "resolution_x": 1440,
         "resolution_y": 900,
         "output_path": "",
-        "social": True,
+        "social": False,
         "idle_timeout": 1800,
     }
     options_desc = {
@@ -33,45 +33,8 @@ class gowitness(BaseModule):
         "social": "Whether to screenshot social media webpages",
         "idle_timeout": "Skip the current gowitness batch if it stalls for longer than this many seconds",
     }
+    deps_common = ["chromium"]
     deps_ansible = [
-        {
-            "name": "Install Chromium (Non-Debian)",
-            "package": {"name": "chromium", "state": "present"},
-            "become": True,
-            "when": "ansible_facts['os_family'] != 'Debian'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Install Chromium dependencies (Debian)",
-            "package": {
-                "name": "libasound2,libatk-bridge2.0-0,libatk1.0-0,libcairo2,libcups2,libdrm2,libgbm1,libnss3,libpango-1.0-0,libxcomposite1,libxdamage1,libxfixes3,libxkbcommon0,libxrandr2",
-                "state": "present",
-            },
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'Debian'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Get latest Chromium version (Debian)",
-            "uri": {
-                "url": "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2FLAST_CHANGE?alt=media",
-                "return_content": True,
-            },
-            "register": "chromium_version",
-            "when": "ansible_facts['os_family'] == 'Debian'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Download Chromium (Debian)",
-            "unarchive": {
-                "src": "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F{{ chromium_version.content }}%2Fchrome-linux.zip?alt=media",
-                "remote_src": True,
-                "dest": "#{BBOT_TOOLS}",
-                "creates": "#{BBOT_TOOLS}/chrome-linux",
-            },
-            "when": "ansible_facts['os_family'] == 'Debian'",
-            "ignore_errors": True,
-        },
         {
             "name": "Download gowitness",
             "get_url": {
@@ -176,33 +139,47 @@ class gowitness(BaseModule):
         for filename, screenshot in self.new_screenshots.items():
             url = screenshot["url"]
             final_url = screenshot["final_url"]
-            filename = screenshot["filename"]
-            webscreenshot_data = {"filename": filename, "url": final_url}
-            source_event = event_dict[url]
-            await self.emit_event(webscreenshot_data, "WEBSCREENSHOT", source=source_event)
+            filename = self.screenshot_path / screenshot["filename"]
+            webscreenshot_data = {"filename": str(filename), "url": final_url}
+            parent_event = event_dict[url]
+            await self.emit_event(
+                webscreenshot_data,
+                "WEBSCREENSHOT",
+                parent=parent_event,
+                context=f"{{module}} visited {final_url} and saved {{event.type}} to {filename}",
+            )
 
         # emit URLs
         for url, row in self.new_network_logs.items():
             ip = row["ip"]
             status_code = row["status_code"]
-            tags = [f"status-{status_code}", f"ip-{ip}"]
+            tags = [f"status-{status_code}", f"ip-{ip}", "spider-danger"]
 
             _id = row["url_id"]
-            source_url = self.screenshots_taken[_id]
-            source_event = event_dict[source_url]
-            if self.helpers.is_spider_danger(source_event, url):
-                tags.append("spider-danger")
+            parent_url = self.screenshots_taken[_id]
+            parent_event = event_dict[parent_url]
             if url and url.startswith("http"):
-                await self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
+                await self.emit_event(
+                    url,
+                    "URL_UNVERIFIED",
+                    parent=parent_event,
+                    tags=tags,
+                    context=f"{{module}} visited {{event.type}}: {url}",
+                )
 
         # emit technologies
         for _, row in self.new_technologies.items():
-            source_id = row["url_id"]
-            source_url = self.screenshots_taken[source_id]
-            source_event = event_dict[source_url]
+            parent_id = row["url_id"]
+            parent_url = self.screenshots_taken[parent_id]
+            parent_event = event_dict[parent_url]
             technology = row["value"]
-            tech_data = {"technology": technology, "url": source_url, "host": str(source_event.host)}
-            await self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
+            tech_data = {"technology": technology, "url": parent_url, "host": str(parent_event.host)}
+            await self.emit_event(
+                tech_data,
+                "TECHNOLOGY",
+                parent=parent_event,
+                context=f"{{module}} visited {parent_url} and found {{event.type}}: {technology}",
+            )
 
     def construct_command(self):
         # base executable

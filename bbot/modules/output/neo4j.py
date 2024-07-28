@@ -1,3 +1,4 @@
+from contextlib import suppress
 from neo4j import AsyncGraphDatabase
 
 from bbot.modules.output.base import BaseOutputModule
@@ -52,7 +53,7 @@ class neo4j(BaseOutputModule):
 
     async def handle_event(self, event):
         # create events
-        src_id = await self.merge_event(event.get_source(), id_only=True)
+        src_id = await self.merge_event(event.get_parent(), id_only=True)
         dst_id = await self.merge_event(event)
         # create relationship
         cypher = f"""
@@ -78,5 +79,7 @@ class neo4j(BaseOutputModule):
         return (await result.single()).get("id(_)")
 
     async def cleanup(self):
-        await self.session.close()
-        await self.driver.close()
+        with suppress(Exception):
+            await self.session.close()
+        with suppress(Exception):
+            await self.driver.close()
