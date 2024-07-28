@@ -188,7 +188,7 @@ def proxy_server():
     server_thread.join()
 
 
-def pytest_terminal_summary(terminalreporter, exitstatus, config):
+def pytest_terminal_summary(terminalreporter, exitstatus, config):  # pragma: no cover
     RED = "\033[1;31m"
     GREEN = "\033[1;32m"
     YELLOW = "\033[1;33m"
@@ -223,7 +223,7 @@ import traceback
 import inspect
 
 
-def _print_detailed_info():
+def _print_detailed_info():  # pragma: no cover
     """
     Debugging pytests hanging
     """

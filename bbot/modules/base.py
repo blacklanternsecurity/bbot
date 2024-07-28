@@ -530,7 +530,8 @@ class BaseModule:
 
     def start(self):
         self._tasks = [
-            asyncio.create_task(self._worker(), name=f"{self.name}._worker()") for _ in range(self.module_threads)
+            asyncio.create_task(self._worker(), name=f"{self.scan.name}.{self.name}._worker()")
+            for _ in range(self.module_threads)
         ]
 
     async def _setup(self):

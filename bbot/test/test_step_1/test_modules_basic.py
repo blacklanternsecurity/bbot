@@ -330,6 +330,8 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
                 assert valid_1 == True
                 assert valid_2 == True
 
+    await per_domain_scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, monkeypatch):
