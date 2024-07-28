@@ -48,11 +48,11 @@ class TestCloudCheck(ModuleTestBase):
         other_event3._resolved_hosts = {"asdf.amazonaws.com"}
 
         for event in (ip_event, aws_event1, aws_event2, aws_event4, other_event2, other_event3):
-            await module.handle_event(event, {})
+            await module.handle_event(event)
             assert "cloud-amazon" in event.tags, f"{event} was not properly cloud-tagged"
 
         for event in (aws_event3, other_event1):
-            await module.handle_event(event, {})
+            await module.handle_event(event)
             assert "cloud-amazon" not in event.tags, f"{event} was improperly cloud-tagged"
             assert not any(
                 t for t in event.tags if t.startswith("cloud-") or t.startswith("cdn-")
@@ -64,7 +64,7 @@ class TestCloudCheck(ModuleTestBase):
         google_event3._resolved_hosts = {"asdf.storage.googleapis.com"}
 
         for event in (google_event1, google_event2, google_event3):
-            await module.handle_event(event, {})
+            await module.handle_event(event)
             assert "cloud-google" in event.tags, f"{event} was not properly cloud-tagged"
         assert "cloud-storage-bucket" in google_event3.tags
 
