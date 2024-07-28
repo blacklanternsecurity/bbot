@@ -23,12 +23,15 @@ class TestGeneric_SSRF(ModuleTestBase):
         elif request.method == "POST":
             subdomain_tag = extract_subdomain_tag(request.data.decode())
         if subdomain_tag:
-            self.interactsh_mock_instance.mock_interaction(subdomain_tag)
+            self.interactsh_mock_instance.mock_interaction(
+                subdomain_tag, msg=f"{request.method}: {request.data.decode()}"
+            )
 
         return Response("alive", status=200)
 
     async def setup_before_prep(self, module_test):
-        self.interactsh_mock_instance = module_test.request_fixture.getfixturevalue("interactsh_mock_instance")
+        self.interactsh_mock_instance = module_test.mock_interactsh("generic_ssrf")
+        self.interactsh_mock_instance.mock_interaction("asdf")
         module_test.monkeypatch.setattr(
             module_test.scan.helpers, "interactsh", lambda *args, **kwargs: self.interactsh_mock_instance
         )

@@ -39,4 +39,7 @@ class ipneighbor(BaseModule):
                     if ip_event:
                         # keep the scope distance low to give it one more hop for DNS resolution
                         # ip_event.scope_distance = max(1, event.scope_distance)
-                        await self.emit_event(ip_event)
+                        await self.emit_event(
+                            ip_event,
+                            context="{module} produced {event.type}: {event.data}",
+                        )

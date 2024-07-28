@@ -854,18 +854,38 @@ class TestTrufflehog(ModuleTestBase):
             and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
         ]
         assert 3 == len(vuln_events), "Failed to find secret in events"
-        github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].source
+        github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-        github_workflow_event = [e for e in vuln_events if "bbot" in e.data["description"]][0].source
-        file = Path(github_workflow_event.data["path"])
-        assert file.is_file(), "Destination file does not exist"
-        docker_source_event = [e for e in vuln_events if e.data["host"] == "hub.docker.com"][0].source
-        file = Path(docker_source_event.data["path"])
-        assert file.is_file(), "Destination image does not exist"
+        filesystem_events = [e.parent for e in vuln_events if "bbot" in e.data["description"]]
+        assert len(filesystem_events) == 3
+        assert all([e.type == "FILESYSTEM" for e in filesystem_events])
+        assert 1 == len(
+            [
+                e
+                for e in filesystem_events
+                if e.data["path"].endswith("/git_repos/test_keys") and Path(e.data["path"]).is_dir()
+            ]
+        ), "Test keys repo dir does not exist"
+        assert 1 == len(
+            [
+                e
+                for e in filesystem_events
+                if e.data["path"].endswith("/workflow_logs/blacklanternsecurity/bbot/test.txt")
+                and Path(e.data["path"]).is_file()
+            ]
+        ), "Workflow log file does not exist"
+        assert 1 == len(
+            [
+                e
+                for e in filesystem_events
+                if e.data["path"].endswith("/docker_images/blacklanternsecurity_helloworld_latest.tar")
+                and Path(e.data["path"]).is_file()
+            ]
+        ), "Docker image file does not exist"
 
 
 class TestTrufflehog_NonVerified(TestTrufflehog):
@@ -881,15 +901,35 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
         ]
         assert 3 == len(finding_events), "Failed to find secret in events"
-        github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].source
+        github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-        github_workflow_event = [e for e in finding_events if "bbot" in e.data["description"]][0].source
-        file = Path(github_workflow_event.data["path"])
-        assert file.is_file(), "Destination file does not exist"
-        docker_source_event = [e for e in finding_events if e.data["host"] == "hub.docker.com"][0].source
-        file = Path(docker_source_event.data["path"])
-        assert file.is_file(), "Destination image does not exist"
+        filesystem_events = [e.parent for e in finding_events if "bbot" in e.data["description"]]
+        assert len(filesystem_events) == 3
+        assert all([e.type == "FILESYSTEM" for e in filesystem_events])
+        assert 1 == len(
+            [
+                e
+                for e in filesystem_events
+                if e.data["path"].endswith("/git_repos/test_keys") and Path(e.data["path"]).is_dir()
+            ]
+        ), "Test keys repo dir does not exist"
+        assert 1 == len(
+            [
+                e
+                for e in filesystem_events
+                if e.data["path"].endswith("/workflow_logs/blacklanternsecurity/bbot/test.txt")
+                and Path(e.data["path"]).is_file()
+            ]
+        ), "Workflow log file does not exist"
+        assert 1 == len(
+            [
+                e
+                for e in filesystem_events
+                if e.data["path"].endswith("/docker_images/blacklanternsecurity_helloworld_latest.tar")
+                and Path(e.data["path"]).is_file()
+            ]
+        ), "Docker image file does not exist"

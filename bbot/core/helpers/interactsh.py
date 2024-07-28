@@ -11,7 +11,7 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 
-from bbot.core.errors import InteractshError
+from bbot.errors import InteractshError
 
 log = logging.getLogger("bbot.core.helpers.interactsh")
 

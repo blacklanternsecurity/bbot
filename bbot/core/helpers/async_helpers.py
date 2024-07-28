@@ -2,9 +2,7 @@ import uuid
 import random
 import asyncio
 import logging
-import threading
 from datetime import datetime
-from queue import Queue, Empty
 from cachetools import LRUCache
 from .misc import human_timedelta
 from contextlib import asynccontextmanager
@@ -92,35 +90,18 @@ class TaskCounter:
             return f"{self.task_name} running for {running_for}"
 
 
+def get_event_loop():
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        log.verbose("Starting new event loop")
+        return asyncio.new_event_loop()
+
+
 def async_to_sync_gen(async_gen):
-    # Queue to hold generated values
-    queue = Queue()
-
-    # Flag to indicate if the async generator is done
-    is_done = False
-
-    # Function to run in the separate thread
-    async def runner():
-        nonlocal is_done
-        try:
-            async for value in async_gen:
-                queue.put(value)
-        finally:
-            is_done = True
-
-    def generator():
+    loop = get_event_loop()
+    try:
         while True:
-            # Try to get a value from the queue
-            try:
-                yield queue.get(timeout=0.1)
-            except Empty:
-                # If the queue is empty, check if the async generator is done
-                if is_done:
-                    break
-
-    # Start the event loop in a separate thread
-    thread = threading.Thread(target=lambda: asyncio.run(runner()))
-    thread.start()
-
-    # Return the generator
-    return generator()
+            yield loop.run_until_complete(async_gen.__anext__())
+    except StopAsyncIteration:
+        pass

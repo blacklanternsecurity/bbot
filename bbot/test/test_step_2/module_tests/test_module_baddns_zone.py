@@ -5,7 +5,7 @@ from .base import ModuleTestBase
 class BaseTestBaddns_zone(ModuleTestBase):
     modules_overrides = ["baddns_zone"]
     targets = ["bad.dns"]
-    config_overrides = {"dns_resolution": True}
+    config_overrides = {"dns": {"minimal": False}}
 
     async def dispatchWHOIS(x):
         return None
@@ -31,7 +31,7 @@ zzzz 600 IN AAAA dead::beef
             zone = dns.zone.from_text(zone_text, origin="bad.dns.")
             return zone
 
-        module_test.mock_dns({"bad.dns": {"NS": ["ns1.bad.dns."]}, "ns1.bad.dns": {"A": ["127.0.0.1"]}})
+        await module_test.mock_dns({"bad.dns": {"NS": ["ns1.bad.dns."]}, "ns1.bad.dns": {"A": ["127.0.0.1"]}})
         module_test.monkeypatch.setattr("dns.zone.from_xfr", from_xfr)
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
@@ -46,9 +46,9 @@ class TestBaddns_zone_nsec(BaseTestBaddns_zone):
     async def setup_after_prep(self, module_test):
         from baddns.lib.whoismanager import WhoisManager
 
-        module_test.mock_dns(
+        await module_test.mock_dns(
             {
-                "bad.dns": {"NSEC": ["asdf.bad.dns"]},
+                "bad.dns": {"A": ["127.0.0.5"], "NSEC": ["asdf.bad.dns"]},
                 "asdf.bad.dns": {"NSEC": ["zzzz.bad.dns"]},
                 "zzzz.bad.dns": {"NSEC": ["xyz.bad.dns"]},
             }

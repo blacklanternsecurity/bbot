@@ -32,6 +32,8 @@ jobs:
     needs: lint
     runs-on: ubuntu-latest
     strategy:
+      # if one python version fails, let the others finish
+      fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
@@ -83,7 +85,7 @@ jobs:
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable')
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4

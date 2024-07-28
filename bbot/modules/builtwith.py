@@ -38,14 +38,25 @@ class builtwith(subdomain_enum_apikey):
         if subdomains:
             for s in subdomains:
                 if s != event:
-                    await self.emit_event(s, "DNS_NAME", source=event)
+                    await self.emit_event(
+                        s,
+                        "DNS_NAME",
+                        parent=event,
+                        context=f'{{module}} queried the BuiltWith API for "{query}" and found {{event.type}}: {{event.data}}',
+                    )
         # redirects
         if self.config.get("redirects", True):
             redirects = await self.query(query, parse_fn=self.parse_redirects, request_fn=self.request_redirects)
             if redirects:
                 for r in redirects:
                     if r != event:
-                        await self.emit_event(r, "DNS_NAME", source=event, tags=["affiliate"])
+                        await self.emit_event(
+                            r,
+                            "DNS_NAME",
+                            parent=event,
+                            tags=["affiliate"],
+                            context=f'{{module}} queried the BuiltWith redirect API for "{query}" and found redirect to {{event.type}}: {{event.data}}',
+                        )
 
     async def request_domains(self, query):
         url = f"{self.base_url}/v20/api.json?KEY={self.api_key}&LOOKUP={query}&NOMETA=yes&NOATTR=yes&HIDETEXT=yes&HIDEDL=yes"
