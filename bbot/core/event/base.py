@@ -354,7 +354,7 @@ class BaseEvent:
         This event's full discovery context, including those of all its parents
         """
         full_event_chain = list(reversed(self.get_parents())) + [self]
-        return [e.discovery_context for e in full_event_chain if e.type != "SCAN"]
+        return [[e.id, e.discovery_context] for e in full_event_chain if e.type != "SCAN"]
 
     @property
     def words(self):
