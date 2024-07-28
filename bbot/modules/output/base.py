@@ -42,11 +42,8 @@ class BaseOutputModule(BaseModule):
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
             return False, (f"Omitting {event} from output because it's marked as httpx-only")
 
-        if event._omit:
-            return False, "_omit is True"
-
         # omit certain event types
-        if event.type in self.scan.omitted_event_types:
+        if event._omit:
             if "target" in event.tags:
                 self.debug(f"Allowing omitted event: {event} because it's a target")
             elif event.type in self.get_watched_events():

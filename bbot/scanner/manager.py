@@ -208,6 +208,10 @@ class ScanEgress(InterceptModule):
             )
             event.internal = True
 
+        if event.type in self.scan.omitted_event_types:
+            log.debug(f"Omitting {event} because its type is omitted in the config")
+            event._omit = True
+
         # if we discovered something interesting from an internal event,
         # make sure we preserve its chain of parents
         parent = event.parent
