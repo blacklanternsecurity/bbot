@@ -215,13 +215,15 @@ class ScanEgress(InterceptModule):
         # if we discovered something interesting from an internal event,
         # make sure we preserve its chain of parents
         parent = event.parent
-        if parent.internal and ((not event.internal) or event._graph_important):
+        event_is_graph_worthy = (not event.internal) or event._graph_important
+        parent_is_graph_worthy = (not parent.internal) or parent._graph_important
+        if event_is_graph_worthy and not parent_is_graph_worthy:
             parent_in_report_distance = parent.scope_distance <= self.scan.scope_report_distance
             if parent_in_report_distance:
                 parent.internal = False
             if not parent._graph_important:
                 parent._graph_important = True
-                log.debug(f"Re-queuing internal event {parent} with parent {event}")
+                log.debug(f"Re-queuing internal event {parent} with parent {event} to prevent graph orphan")
                 await self.emit_event(parent)
 
         abort_result = False

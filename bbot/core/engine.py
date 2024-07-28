@@ -310,7 +310,7 @@ class EngineClient(EngineBase):
     async def shutdown(self):
         if not self._shutdown_status:
             self._shutdown_status = True
-            self.log.hugewarning(f"{self.name}: shutting down...")
+            self.log.verbose(f"{self.name}: shutting down...")
             # send shutdown signal
             await self.send_shutdown_message()
             # then terminate context
@@ -513,7 +513,7 @@ class EngineServer(EngineBase):
 
     async def _shutdown(self):
         if not self._shutdown_status:
-            self.log.critical(f"{self.name}: shutting down...")
+            self.log.verbose(f"{self.name}: shutting down...")
             self._shutdown_status = True
             await self.cancel_all_tasks()
             try:
