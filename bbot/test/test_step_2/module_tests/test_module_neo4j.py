@@ -10,9 +10,12 @@ class TestNeo4j(ModuleTestBase):
         self.neo4j_used = False
 
         class MockResult:
-            async def single(s):
+            async def data(s):
                 self.neo4j_used = True
-                return {"id(_)": 1}
+                return [{
+                    "neo4j_id": "4:ee79a477-5f5b-445a-9def-7c051b2a533c:115",
+                    "event_id": "DNS_NAME:c8fab50640cb87f8712d1998ecc78caf92b90f71",
+                }]
 
         class MockSession:
             async def run(s, *args, **kwargs):
