@@ -62,7 +62,7 @@ class ScanIngress(InterceptModule):
             await asyncio.sleep(0.1)
             self.scan._finished_init = True
 
-    async def handle_event(self, event, kwargs):
+    async def handle_event(self, event, **kwargs):
         # don't accept dummy events
         if event._dummy:
             return False, "cannot emit dummy event"
@@ -187,7 +187,7 @@ class ScanEgress(InterceptModule):
         # we are the lowest priority
         return 99
 
-    async def handle_event(self, event, kwargs):
+    async def handle_event(self, event, **kwargs):
         abort_if = kwargs.pop("abort_if", None)
         on_success_callback = kwargs.pop("on_success_callback", None)
 

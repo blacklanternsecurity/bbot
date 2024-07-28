@@ -18,6 +18,8 @@ async def test_modules_basic_checks(events, httpx_mock):
     scan = Scanner(config={"omit_event_types": ["URL_UNVERIFIED"]})
     assert "URL_UNVERIFIED" in scan.omitted_event_types
 
+    await scan.load_modules()
+
     # output module specific event filtering tests
     base_output_module_1 = BaseOutputModule(scan)
     base_output_module_1.watched_events = ["IP_ADDRESS", "URL_UNVERIFIED"]
@@ -35,21 +37,17 @@ async def test_modules_basic_checks(events, httpx_mock):
     result, reason = base_output_module_1._event_precheck(localhost)
     assert result == True
     assert reason == "precheck succeeded"
-    # omitted events should be rejected
-    localhost._omit = True
-    result, reason = base_output_module_1._event_precheck(localhost)
-    assert result == False
-    assert reason == "_omit is True"
-    # unwatched event types should be rejected
-    dns_name = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    # unwatched events should be rejected
+    dns_name = scan.make_event("evilcorp.com", parent=scan.root_event)
     result, reason = base_output_module_1._event_precheck(dns_name)
     assert result == False
     assert reason == "its type is not in watched_events"
-    # omitted event types matching watched events should be accepted
+    # omitted events matching watched types should be accepted
     url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
+    url_unverified._omit = True
     result, reason = base_output_module_1._event_precheck(url_unverified)
     assert result == True
-    assert reason == "precheck succeeded"
+    assert reason == "its type is explicitly in watched_events"
 
     base_output_module_2 = BaseOutputModule(scan)
     base_output_module_2.watched_events = ["*"]
@@ -72,11 +70,27 @@ async def test_modules_basic_checks(events, httpx_mock):
     result, reason = base_output_module_2._event_precheck(localhost)
     assert result == False
     assert reason == "_omit is True"
-    # omitted event types should be rejected
+    # normal event should be accepted
     url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
     result, reason = base_output_module_2._event_precheck(url_unverified)
+    assert result == True
+    assert reason == "precheck succeeded"
+    # omitted event types should be marked during scan egress
+    await scan.egress_module.handle_event(url_unverified)
+    result, reason = base_output_module_2._event_precheck(url_unverified)
     assert result == False
-    assert reason == "its type is omitted in the config"
+    assert reason == "_omit is True"
+    # omitted events that are targets should be accepted
+    dns_name = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    dns_name._omit = True
+    result, reason = base_output_module_2._event_precheck(dns_name)
+    assert result == False
+    assert reason == "_omit is True"
+    # omitted results that are targets should be accepted
+    dns_name.add_tag("target")
+    result, reason = base_output_module_2._event_precheck(dns_name)
+    assert result == True
+    assert reason == "it's a target"
 
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
