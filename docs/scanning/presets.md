@@ -3,7 +3,7 @@
 Once you start customizing BBOT, your commands can start to get really long. Presets let you put all your scan settings in a single file:
 
 ```bash
-bbot -t my_preset.yml
+bbot -p ./my_preset.yml
 ```
 
 A Preset is a YAML file that can include scan targets, modules, and config options like API keys.
@@ -69,7 +69,8 @@ modules:
 
 config:
   # global config options
-  http_proxy: http://127.0.0.1:8080
+  web:
+    http_proxy: http://127.0.0.1:8080
   # module config options
   modules:
     # api keys
