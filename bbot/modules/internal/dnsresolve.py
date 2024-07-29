@@ -65,22 +65,31 @@ class DNSResolve(InterceptModule):
 
     async def handle_event(self, event, **kwargs):
         dns_tags = set()
-        dns_children = dict()
         event_whitelisted = False
         event_blacklisted = False
-        emit_children = False
+
+        event_is_ip = self.helpers.is_ip(event.host)
+
+        # first thing we do is check for wildcards
+        if not event_is_ip:
+            if event.scope_distance <= self.scan.scope_search_distance:
+                await self.handle_wildcard_event(event)
 
         event_host = str(event.host)
-        event_host_hash = hash(str(event.host))
-        event_is_ip = self.helpers.is_ip(event.host)
+        event_host_hash = hash(event_host)
 
         # we do DNS resolution inside a lock to make sure we don't duplicate work
         # once the resolution happens, it will be cached so it doesn't need to happen again
         async with self._event_cache_locks.lock(event_host_hash):
             try:
                 # try to get from cache
-                dns_tags, dns_children, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
+                # the "main host event" is the original parent IP_ADDRESS or DNS_NAME
+                main_host_event, dns_tags, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
+                # dns_tags, dns_children, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
             except KeyError:
+
+                main_host_event = self.get_dns_parent(event)
+
                 rdtypes_to_resolve = ()
                 if event_is_ip:
                     if not self.minimal:
@@ -94,32 +103,37 @@ class DNSResolve(InterceptModule):
                 # if missing from cache, do DNS resolution
                 queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
                 error_rdtypes = []
+                raw_record_events = []
                 async for (query, rdtype), (answer, errors) in self.helpers.dns.resolve_raw_batch(queries):
                     if self.emit_raw_records and rdtype not in ("A", "AAAA", "CNAME", "PTR"):
-                        await self.emit_event(
+                        raw_record_event = self.make_event(
                             {"host": str(event_host), "type": rdtype, "answer": answer.to_text()},
                             "RAW_DNS_RECORD",
-                            parent=event,
+                            parent=main_host_event,
                             tags=[f"{rdtype.lower()}-record"],
                             context=f"{rdtype} lookup on {{event.parent.host}} produced {{event.type}}",
                         )
+                        raw_record_events.append(raw_record_event)
                     if errors:
                         error_rdtypes.append(rdtype)
                     for _rdtype, host in extract_targets(answer):
                         dns_tags.add(f"{rdtype.lower()}-record")
                         try:
-                            dns_children[_rdtype].add(host)
+                            main_host_event.dns_children[_rdtype].add(host)
                         except KeyError:
-                            dns_children[_rdtype] = {host}
+                            main_host_event.dns_children[_rdtype] = {host}
 
+                # if there were dns resolution errors, notify the user with tags
                 for rdtype in error_rdtypes:
-                    if rdtype not in dns_children:
+                    if rdtype not in main_host_event.dns_children:
                         dns_tags.add(f"{rdtype.lower()}-error")
 
-                if not dns_children and not event_is_ip:
+                # if there weren't any DNS children and it's not an IP address, tag as unresolved
+                if not main_host_event.dns_children and not event_is_ip:
                     dns_tags.add("unresolved")
 
-                for rdtype, children in dns_children.items():
+                # check DNS children against whitelists and blacklists
+                for rdtype, children in main_host_event.dns_children.items():
                     if event_blacklisted:
                         break
                     for host in children:
@@ -130,11 +144,14 @@ class DNSResolve(InterceptModule):
                                 with suppress(ValidationError):
                                     if self.scan.whitelisted(host):
                                         event_whitelisted = True
+                                        dns_tags.add(f"dns-whitelisted-{rdtype.lower()}")
                             # CNAME to a blacklisted resource, means you're blacklisted
                             with suppress(ValidationError):
                                 if self.scan.blacklisted(host):
                                     dns_tags.add("blacklisted")
+                                    dns_tags.add(f"dns-blacklisted-{rdtype.lower()}")
                                     event_blacklisted = True
+                                    event_whitelisted = False
                                     break
 
                         # check for private IPs
@@ -145,101 +162,79 @@ class DNSResolve(InterceptModule):
                         except ValueError:
                             continue
 
-                # only emit DNS children if we haven't seen this host before
-                emit_children = (not self.minimal) and (event_host_hash not in self._event_cache)
+                # add DNS tags to main host
+                for tag in dns_tags:
+                    main_host_event.add_tag(tag)
+
+                # set resolved_hosts attribute
+                for rdtype, children in main_host_event.dns_children.items():
+                    if rdtype in ("A", "AAAA", "CNAME"):
+                        for host in children:
+                            main_host_event._resolved_hosts.add(host)
+
+                # if we're not blacklisted, emit the main host event and all its raw records
+                if not event_blacklisted:
+                    if event_whitelisted:
+                        main_host_event.scope_distance = 0
+
+                    await self.emit_event(main_host_event)
+                    for raw_record_event in raw_record_events:
+                        await self.emit_event(raw_record_event)
+
+                    # kill runaway DNS chains
+                    dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
+                    if dns_resolve_distance >= self.helpers.dns.runaway_limit:
+                        self.debug(
+                            f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.runaway_limit})"
+                        )
+                        main_host_event.dns_children = {}
+
+                    # emit DNS children
+                    if not self.minimal:
+                        in_dns_scope = -1 < event.scope_distance < self._dns_search_distance
+                        for rdtype, records in main_host_event.dns_children.items():
+                            module = self.scan._make_dummy_module_dns(rdtype)
+                            for record in records:
+                                try:
+                                    child_event = self.scan.make_event(
+                                        record, "DNS_NAME", module=module, parent=main_host_event
+                                    )
+                                    child_event.discovery_context = f"{rdtype} record for {event.host} contains {child_event.type}: {child_event.host}"
+                                    # if it's a hostname and it's only one hop away, mark it as affiliate
+                                    if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
+                                        child_event.add_tag("affiliate")
+                                    if in_dns_scope or self.preset.in_scope(child_event):
+                                        self.debug(f"Queueing DNS child for {event}: {child_event}")
+                                        await self.emit_event(child_event)
+                                except ValidationError as e:
+                                    self.warning(
+                                        f'Event validation failed for DNS child of {main_host_event}: "{record}" ({rdtype}): {e}'
+                                    )
 
                 # store results in cache
-                self._event_cache[event_host_hash] = dns_tags, dns_children, event_whitelisted, event_blacklisted
+                self._event_cache[event_host_hash] = main_host_event, dns_tags, event_whitelisted, event_blacklisted
 
         # abort if the event resolves to something blacklisted
         if event_blacklisted:
-            event.add_tag("blacklisted")
             return False, f"it has a blacklisted DNS record"
 
-        # set resolved_hosts attribute
-        for rdtype, children in dns_children.items():
-            if rdtype in ("A", "AAAA", "CNAME"):
-                for host in children:
-                    event.resolved_hosts.add(host)
-
-        # set dns_children attribute
-        event.dns_children = dns_children
+        # set resolved_hosts and dns_children attributes to the same as the main host
+        event._resolved_hosts = main_host_event._resolved_hosts
+        event.dns_children = main_host_event.dns_children
 
         # if the event resolves to an in-scope IP, set its scope distance to 0
         if event_whitelisted:
             self.debug(f"Making {event} in-scope because it resolves to an in-scope resource")
             event.scope_distance = 0
 
-        # check for wildcards, only if the event resolves to something that isn't an IP
-        if (not event_is_ip) and (dns_children):
-            if event.scope_distance <= self.scan.scope_search_distance:
-                await self.handle_wildcard_event(event)
-
-        # kill runaway DNS chains
-        dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
-        if dns_resolve_distance >= self.helpers.dns.runaway_limit:
-            self.debug(
-                f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.runaway_limit})"
-            )
-            dns_children = {}
-
         # if the event is a DNS_NAME or IP, tag with "a-record", "ptr-record", etc.
-        if event.type in ("DNS_NAME", "IP_ADDRESS"):
+        if event.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
             for tag in dns_tags:
                 event.add_tag(tag)
 
         # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
         if event.type == "DNS_NAME" and "unresolved" in event.tags:
             event.type = "DNS_NAME_UNRESOLVED"
-
-        # speculate DNS_NAMES and IP_ADDRESSes from other event types
-        parent_event = event
-        if (
-            event.host
-            and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
-            and not ((event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate"))
-        ):
-            parent_event = self.scan.make_event(
-                event.host,
-                "DNS_NAME",
-                module=self.host_module,
-                parent=event,
-                context="{event.parent.type} has host {event.type}: {event.host}",
-            )
-            # only emit the event if it's not already in the parent chain
-            if parent_event is not None and (parent_event.always_emit or parent_event not in event.get_parents()):
-                parent_event.scope_distance = event.scope_distance
-                if "target" in event.tags:
-                    parent_event.add_tag("target")
-                await self.emit_event(
-                    parent_event,
-                )
-
-        # emit DNS children
-        if emit_children:
-            in_dns_scope = -1 < event.scope_distance < self._dns_search_distance
-            dns_child_events = []
-            if dns_children:
-                for rdtype, records in dns_children.items():
-                    module = self.scan._make_dummy_module_dns(rdtype)
-                    for record in records:
-                        try:
-                            child_event = self.scan.make_event(record, "DNS_NAME", module=module, parent=parent_event)
-                            child_event.discovery_context = (
-                                f"{rdtype} record for {event.host} contains {child_event.type}: {child_event.host}"
-                            )
-                            # if it's a hostname and it's only one hop away, mark it as affiliate
-                            if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
-                                child_event.add_tag("affiliate")
-                            if in_dns_scope or self.preset.in_scope(child_event):
-                                dns_child_events.append(child_event)
-                        except ValidationError as e:
-                            self.warning(
-                                f'Event validation failed for DNS child of {parent_event}: "{record}" ({rdtype}): {e}'
-                            )
-            for child_event in dns_child_events:
-                self.debug(f"Queueing DNS child for {event}: {child_event}")
-                await self.emit_event(child_event)
 
     async def handle_wildcard_event(self, event):
         self.debug(f"Entering handle_wildcard_event({event}, children={event.dns_children})")
@@ -279,3 +274,18 @@ class DNSResolve(InterceptModule):
 
         finally:
             self.debug(f"Finished handle_wildcard_event({event}, children={event.dns_children})")
+
+    def get_dns_parent(self, event):
+        """
+        Get the first parent DNS_NAME / IP_ADDRESS of an event. If one isn't found, create it.
+        """
+        for parent in event.get_parents():
+            if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
+                return parent
+        return self.scan.make_event(
+            event.host,
+            "DNS_NAME",
+            module=self.host_module,
+            parent=event,
+            context="{event.parent.type} has host {event.type}: {event.host}",
+        )
