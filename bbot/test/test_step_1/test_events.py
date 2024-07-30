@@ -166,7 +166,7 @@ async def test_events(events, helpers):
 
     javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", parent=scan.root_event)
     assert "extension-js" in javascript_event.tags
-    await scan.ingress_module.handle_event(javascript_event, {})
+    await scan.ingress_module.handle_event(javascript_event)
     assert "httpx-only" in javascript_event.tags
 
     # scope distance

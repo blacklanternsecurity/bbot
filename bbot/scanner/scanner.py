@@ -353,6 +353,8 @@ class Scanner:
                     events, finish = await self.modules["python"]._events_waiting(batch_size=-1)
                     for e in events:
                         yield e
+                    if events:
+                        continue
 
                 # break if initialization finished and the scan is no longer active
                 if self._finished_init and self.modules_finished:
@@ -386,7 +388,7 @@ class Scanner:
             for task in tasks:
                 # self.debug(f"Awaiting {task}")
                 with contextlib.suppress(BaseException):
-                    await task
+                    await asyncio.wait_for(task, timeout=0.1)
             self.debug(f"Awaited {len(tasks):,} tasks")
             await self._report()
             await self._cleanup()
