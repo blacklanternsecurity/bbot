@@ -310,11 +310,11 @@ def pytest_sessionfinish(session, exitstatus):
     yield
 
     # temporarily suspend stdout capture and print detailed thread info
-    capmanager = session.config.pluginmanager.get_plugin("capturemanager")
-    if capmanager:
-        capmanager.suspend_global_capture(in_=True)
+    # capmanager = session.config.pluginmanager.get_plugin("capturemanager")
+    # if capmanager:
+    #     capmanager.suspend_global_capture(in_=True)
 
-    _print_detailed_info()
+    # _print_detailed_info()
 
-    if capmanager:
-        capmanager.resume_global_capture()
+    # if capmanager:
+    #     capmanager.resume_global_capture()
