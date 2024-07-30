@@ -3,10 +3,15 @@ import random
 import ipaddress
 
 from ..bbot_fixtures import *
+from bbot.scanner import Scanner
 
 
 @pytest.mark.asyncio
-async def test_events(events, scan, helpers, bbot_config):
+async def test_events(events, helpers):
+
+    scan = Scanner()
+    await scan._prep()
+
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
     assert events.netv4.type == "IP_RANGE"
@@ -100,7 +105,7 @@ async def test_events(events, scan, helpers, bbot_config):
     # http response
     assert events.http_response.host == "example.com"
     assert events.http_response.port == 80
-    assert events.http_response.parsed.scheme == "http"
+    assert events.http_response.parsed_url.scheme == "http"
     assert events.http_response.with_port().geturl() == "http://example.com:80/"
 
     http_response = scan.make_event(
@@ -159,8 +164,9 @@ async def test_events(events, scan, helpers, bbot_config):
     assert events.ipv6_url_unverified.host == ipaddress.ip_address("2001:4860:4860::8888")
     assert events.ipv6_url_unverified.port == 443
 
-    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", dummy=True)
+    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", parent=scan.root_event)
     assert "extension-js" in javascript_event.tags
+    await scan.ingress_module.handle_event(javascript_event)
     assert "httpx-only" in javascript_event.tags
 
     # scope distance
@@ -168,70 +174,76 @@ async def test_events(events, scan, helpers, bbot_config):
     assert event1._scope_distance == -1
     event1.scope_distance = 0
     assert event1._scope_distance == 0
-    event2 = scan.make_event("2.3.4.5", source=event1)
+    event2 = scan.make_event("2.3.4.5", parent=event1)
     assert event2._scope_distance == 1
-    event3 = scan.make_event("3.4.5.6", source=event2)
+    event3 = scan.make_event("3.4.5.6", parent=event2)
     assert event3._scope_distance == 2
-    event4 = scan.make_event("3.4.5.6", source=event3)
+    event4 = scan.make_event("3.4.5.6", parent=event3)
     assert event4._scope_distance == 2
-    event5 = scan.make_event("4.5.6.7", source=event4)
+    event5 = scan.make_event("4.5.6.7", parent=event4)
     assert event5._scope_distance == 3
 
-    url_1 = scan.make_event("https://127.0.0.1/asdf", "URL_UNVERIFIED", source=scan.root_event)
+    url_1 = scan.make_event("https://127.0.0.1/asdf", "URL_UNVERIFIED", parent=scan.root_event)
     assert url_1.scope_distance == 1
-    url_2 = scan.make_event("https://127.0.0.1/test", "URL_UNVERIFIED", source=url_1)
+    url_2 = scan.make_event("https://127.0.0.1/test", "URL_UNVERIFIED", parent=url_1)
     assert url_2.scope_distance == 1
-    url_3 = scan.make_event("https://127.0.0.2/asdf", "URL_UNVERIFIED", source=url_1)
+    url_3 = scan.make_event("https://127.0.0.2/asdf", "URL_UNVERIFIED", parent=url_1)
     assert url_3.scope_distance == 2
 
-    org_stub_1 = scan.make_event("STUB1", "ORG_STUB", source=scan.root_event)
+    org_stub_1 = scan.make_event("STUB1", "ORG_STUB", parent=scan.root_event)
     org_stub_1.scope_distance == 1
-    org_stub_2 = scan.make_event("STUB2", "ORG_STUB", source=org_stub_1)
+    org_stub_2 = scan.make_event("STUB2", "ORG_STUB", parent=org_stub_1)
     org_stub_2.scope_distance == 2
 
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
-    internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)
+    internal_event1 = scan.make_event("1.2.3.4", parent=root_event, internal=True)
     assert internal_event1._internal == True
     assert "internal" in internal_event1.tags
 
     # tag inheritance
     for tag in ("affiliate", "mutation-1"):
-        affiliate_event = scan.make_event("1.2.3.4", source=root_event, tags=tag)
+        affiliate_event = scan.make_event("1.2.3.4", parent=root_event, tags=tag)
         assert tag in affiliate_event.tags
-        affiliate_event2 = scan.make_event("1.2.3.4:88", source=affiliate_event)
-        affiliate_event3 = scan.make_event("4.3.2.1:88", source=affiliate_event)
+        affiliate_event2 = scan.make_event("1.2.3.4:88", parent=affiliate_event)
+        affiliate_event3 = scan.make_event("4.3.2.1:88", parent=affiliate_event)
         assert tag in affiliate_event2.tags
         assert tag not in affiliate_event3.tags
 
+    # discovery context
+    event = scan.make_event(
+        "127.0.0.1", parent=scan.root_event, context="something discovered {event.type}: {event.data}"
+    )
+    assert event.discovery_context == "something discovered IP_ADDRESS: 127.0.0.1"
+
     # updating an already-created event with make_event()
     # updating tags
-    event1 = scan.make_event("127.0.0.1", source=scan.root_event)
+    event1 = scan.make_event("127.0.0.1", parent=scan.root_event)
     updated_event = scan.make_event(event1, tags="asdf")
     assert "asdf" not in event1.tags
     assert "asdf" in updated_event.tags
-    # updating source
-    event2 = scan.make_event("127.0.0.1", source=scan.root_event)
-    updated_event = scan.make_event(event2, source=event1)
-    assert event2.source == scan.root_event
-    assert updated_event.source == event1
+    # updating parent
+    event2 = scan.make_event("127.0.0.1", parent=scan.root_event)
+    updated_event = scan.make_event(event2, parent=event1)
+    assert event2.parent == scan.root_event
+    assert updated_event.parent == event1
     # updating module
-    event3 = scan.make_event("127.0.0.1", source=scan.root_event)
+    event3 = scan.make_event("127.0.0.1", parent=scan.root_event)
     updated_event = scan.make_event(event3, internal=True)
     assert event3.internal == False
     assert updated_event.internal == True
 
     # event sorting
-    parent1 = scan.make_event("127.0.0.1", source=scan.root_event)
-    parent2 = scan.make_event("127.0.0.1", source=scan.root_event)
-    parent2_child1 = scan.make_event("127.0.0.1", source=parent2)
-    parent1_child1 = scan.make_event("127.0.0.1", source=parent1)
-    parent1_child2 = scan.make_event("127.0.0.1", source=parent1)
-    parent1_child2_child1 = scan.make_event("127.0.0.1", source=parent1_child2)
-    parent1_child2_child2 = scan.make_event("127.0.0.1", source=parent1_child2)
-    parent1_child1_child1 = scan.make_event("127.0.0.1", source=parent1_child1)
-    parent2_child2 = scan.make_event("127.0.0.1", source=parent2)
-    parent1_child2_child1_child1 = scan.make_event("127.0.0.1", source=parent1_child2_child1)
+    parent1 = scan.make_event("127.0.0.1", parent=scan.root_event)
+    parent2 = scan.make_event("127.0.0.1", parent=scan.root_event)
+    parent2_child1 = scan.make_event("127.0.0.1", parent=parent2)
+    parent1_child1 = scan.make_event("127.0.0.1", parent=parent1)
+    parent1_child2 = scan.make_event("127.0.0.1", parent=parent1)
+    parent1_child2_child1 = scan.make_event("127.0.0.1", parent=parent1_child2)
+    parent1_child2_child2 = scan.make_event("127.0.0.1", parent=parent1_child2)
+    parent1_child1_child1 = scan.make_event("127.0.0.1", parent=parent1_child1)
+    parent2_child2 = scan.make_event("127.0.0.1", parent=parent2)
+    parent1_child2_child1_child1 = scan.make_event("127.0.0.1", parent=parent1_child2_child1)
 
     sortable_events = {
         "parent1": parent1,
@@ -392,64 +404,279 @@ async def test_events(events, scan, helpers, bbot_config):
     # test event serialization
     from bbot.core.event import event_from_json
 
-    db_event = scan.make_event("evilcorp.com", dummy=True)
+    db_event = scan.make_event("evilcorp.com:80", parent=scan.root_event, context="test context")
     db_event._resolved_hosts = {"127.0.0.1"}
     db_event.scope_distance = 1
-    timestamp = db_event.timestamp.timestamp()
+    assert db_event.discovery_context == "test context"
+    assert db_event.discovery_path == [["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]]
+    timestamp = db_event.timestamp.isoformat()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
-    assert json_event["data"] == "evilcorp.com"
-    assert json_event["type"] == "DNS_NAME"
+    assert json_event["data"] == "evilcorp.com:80"
+    assert json_event["type"] == "OPEN_TCP_PORT"
+    assert json_event["host"] == "evilcorp.com"
     assert json_event["timestamp"] == timestamp
+    assert json_event["discovery_context"] == "test context"
+    assert json_event["discovery_path"] == [["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]]
     reconstituted_event = event_from_json(json_event)
     assert reconstituted_event.scope_distance == 1
-    assert reconstituted_event.timestamp.timestamp() == timestamp
-    assert reconstituted_event.data == "evilcorp.com"
-    assert reconstituted_event.type == "DNS_NAME"
+    assert reconstituted_event.timestamp.isoformat() == timestamp
+    assert reconstituted_event.data == "evilcorp.com:80"
+    assert reconstituted_event.type == "OPEN_TCP_PORT"
+    assert reconstituted_event.host == "evilcorp.com"
+    assert reconstituted_event.discovery_context == "test context"
+    assert reconstituted_event.discovery_path == [
+        ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]
+    ]
     assert "127.0.0.1" in reconstituted_event.resolved_hosts
+    hostless_event = scan.make_event("asdf", "ASDF", dummy=True)
+    hostless_event_json = hostless_event.json()
+    assert hostless_event_json["type"] == "ASDF"
+    assert hostless_event_json["data"] == "asdf"
+    assert not "host" in hostless_event_json
 
     # SIEM-friendly serialize/deserialize
     json_event_siemfriendly = db_event.json(siem_friendly=True)
     assert json_event_siemfriendly["scope_distance"] == 1
-    assert json_event_siemfriendly["data"] == {"DNS_NAME": "evilcorp.com"}
-    assert json_event_siemfriendly["type"] == "DNS_NAME"
+    assert json_event_siemfriendly["data"] == {"OPEN_TCP_PORT": "evilcorp.com:80"}
+    assert json_event_siemfriendly["type"] == "OPEN_TCP_PORT"
+    assert json_event_siemfriendly["host"] == "evilcorp.com"
     assert json_event_siemfriendly["timestamp"] == timestamp
     reconstituted_event2 = event_from_json(json_event_siemfriendly, siem_friendly=True)
     assert reconstituted_event2.scope_distance == 1
-    assert reconstituted_event2.timestamp.timestamp() == timestamp
-    assert reconstituted_event2.data == "evilcorp.com"
-    assert reconstituted_event2.type == "DNS_NAME"
+    assert reconstituted_event2.timestamp.isoformat() == timestamp
+    assert reconstituted_event2.data == "evilcorp.com:80"
+    assert reconstituted_event2.type == "OPEN_TCP_PORT"
+    assert reconstituted_event2.host == "evilcorp.com"
     assert "127.0.0.1" in reconstituted_event2.resolved_hosts
 
-    http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
-    assert http_response.source_id == scan.root_event.id
+    http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
+    assert http_response.parent_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com:80"
     json_event = http_response.json(mode="graph")
     assert isinstance(json_event["data"], str)
     json_event = http_response.json()
     assert isinstance(json_event["data"], dict)
     assert json_event["type"] == "HTTP_RESPONSE"
-    assert json_event["source"] == scan.root_event.id
+    assert json_event["host"] == "example.com"
+    assert json_event["parent"] == scan.root_event.id
     reconstituted_event = event_from_json(json_event)
     assert isinstance(reconstituted_event.data, dict)
     assert reconstituted_event.data["input"] == "http://example.com:80"
+    assert reconstituted_event.host == "example.com"
     assert reconstituted_event.type == "HTTP_RESPONSE"
-    assert reconstituted_event.source_id == scan.root_event.id
+    assert reconstituted_event.parent_id == scan.root_event.id
 
-    event_1 = scan.make_event("127.0.0.1", source=scan.root_event)
-    event_2 = scan.make_event("127.0.0.2", source=event_1)
-    event_3 = scan.make_event("127.0.0.3", source=event_2)
+    event_1 = scan.make_event("127.0.0.1", parent=scan.root_event)
+    event_2 = scan.make_event("127.0.0.2", parent=event_1)
+    event_3 = scan.make_event("127.0.0.3", parent=event_2)
     event_3._omit = True
-    event_4 = scan.make_event("127.0.0.4", source=event_3)
-    event_5 = scan.make_event("127.0.0.5", source=event_4)
-    assert event_5.get_sources() == [event_4, event_3, event_2, event_1, scan.root_event]
-    assert event_5.get_sources(omit=True) == [event_4, event_2, event_1, scan.root_event]
+    event_4 = scan.make_event("127.0.0.4", parent=event_3)
+    event_5 = scan.make_event("127.0.0.5", parent=event_4)
+    assert event_5.get_parents() == [event_4, event_3, event_2, event_1, scan.root_event]
+    assert event_5.get_parents(omit=True) == [event_4, event_2, event_1, scan.root_event]
+
+    # test host backup
+    host_event = scan.make_event("asdf.evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    assert host_event.host_original == "asdf.evilcorp.com"
+    host_event.host = "_wildcard.evilcorp.com"
+    assert host_event.host == "_wildcard.evilcorp.com"
+    assert host_event.host_original == "asdf.evilcorp.com"
 
     # test storage bucket validation
     bucket_event = scan.make_event(
         {"name": "ASDF.s3.amazonaws.com", "url": "https://ASDF.s3.amazonaws.com"},
         "STORAGE_BUCKET",
-        source=scan.root_event,
+        parent=scan.root_event,
     )
     assert bucket_event.data["name"] == "asdf.s3.amazonaws.com"
     assert bucket_event.data["url"] == "https://asdf.s3.amazonaws.com/"
+
+    # test module sequence
+    module = scan._make_dummy_module("mymodule")
+    parent_event_1 = scan.make_event("127.0.0.1", module=module, parent=scan.root_event)
+    assert str(parent_event_1.module) == "mymodule"
+    assert str(parent_event_1.module_sequence) == "mymodule"
+    parent_event_2 = scan.make_event("127.0.0.2", module=module, parent=parent_event_1)
+    assert str(parent_event_2.module) == "mymodule"
+    assert str(parent_event_2.module_sequence) == "mymodule"
+    parent_event_3 = scan.make_event("127.0.0.3", module=module, parent=parent_event_2)
+    assert str(parent_event_3.module) == "mymodule"
+    assert str(parent_event_3.module_sequence) == "mymodule"
+
+    module = scan._make_dummy_module("mymodule")
+    parent_event_1 = scan.make_event("127.0.0.1", module=module, parent=scan.root_event)
+    parent_event_1._omit = True
+    assert str(parent_event_1.module) == "mymodule"
+    assert str(parent_event_1.module_sequence) == "mymodule"
+    parent_event_2 = scan.make_event("127.0.0.2", module=module, parent=parent_event_1)
+    parent_event_2._omit = True
+    assert str(parent_event_2.module) == "mymodule"
+    assert str(parent_event_2.module_sequence) == "mymodule->mymodule"
+    parent_event_3 = scan.make_event("127.0.0.3", module=module, parent=parent_event_2)
+    assert str(parent_event_3.module) == "mymodule"
+    assert str(parent_event_3.module_sequence) == "mymodule->mymodule->mymodule"
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_event_discovery_context():
+
+    from bbot.modules.base import BaseModule
+
+    scan = Scanner("evilcorp.com")
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {"A": ["1.2.3.4"]},
+            "one.evilcorp.com": {"A": ["1.2.3.4"]},
+            "two.evilcorp.com": {"A": ["1.2.3.4"]},
+            "three.evilcorp.com": {"A": ["1.2.3.4"]},
+            "four.evilcorp.com": {"A": ["1.2.3.4"]},
+        }
+    )
+    await scan._prep()
+
+    dummy_module_1 = scan._make_dummy_module("module_1")
+    dummy_module_2 = scan._make_dummy_module("module_2")
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            new_event = None
+            if event.data == "evilcorp.com":
+                new_event = scan.make_event(
+                    "one.evilcorp.com",
+                    "DNS_NAME",
+                    event,
+                    context="{module} invoked forbidden magick to discover {event.type} {event.data}",
+                    module=dummy_module_1,
+                )
+            elif event.data == "one.evilcorp.com":
+                new_event = scan.make_event(
+                    "two.evilcorp.com",
+                    "DNS_NAME",
+                    event,
+                    context="{module} pledged its allegiance to cthulu and was awarded {event.type} {event.data}",
+                    module=dummy_module_1,
+                )
+            elif event.data == "two.evilcorp.com":
+                new_event = scan.make_event(
+                    "three.evilcorp.com",
+                    "DNS_NAME",
+                    event,
+                    context="{module} asked nicely and was given {event.type} {event.data}",
+                    module=dummy_module_2,
+                )
+            elif event.data == "three.evilcorp.com":
+                new_event = scan.make_event(
+                    "four.evilcorp.com",
+                    "DNS_NAME",
+                    event,
+                    context="{module} used brute force to obtain {event.type} {event.data}",
+                    module=dummy_module_2,
+                )
+            if new_event is not None:
+                await self.emit_event(new_event)
+
+    dummy_module = DummyModule(scan)
+
+    scan.modules["dummy_module"] = dummy_module
+
+    test_event = dummy_module.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    assert test_event.discovery_context == "dummy_module discovered DNS_NAME: evilcorp.com"
+
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 6
+
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "evilcorp.com"
+            and e.discovery_context == f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"
+            and [_[-1] for _ in e.discovery_path] == [f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"]
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "one.evilcorp.com"
+            and e.discovery_context == "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com"
+            and [_[-1] for _ in e.discovery_path]
+            == [
+                f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+                "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+            ]
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "two.evilcorp.com"
+            and e.discovery_context
+            == "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com"
+            and [_[-1] for _ in e.discovery_path]
+            == [
+                f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+                "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+                "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com",
+            ]
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "three.evilcorp.com"
+            and e.discovery_context == "module_2 asked nicely and was given DNS_NAME three.evilcorp.com"
+            and [_[-1] for _ in e.discovery_path]
+            == [
+                f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+                "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+                "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com",
+                "module_2 asked nicely and was given DNS_NAME three.evilcorp.com",
+            ]
+        ]
+    )
+    final_path = [
+        f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+        "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+        "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com",
+        "module_2 asked nicely and was given DNS_NAME three.evilcorp.com",
+        "module_2 used brute force to obtain DNS_NAME four.evilcorp.com",
+    ]
+    final_event = [
+        e
+        for e in events
+        if e.type == "DNS_NAME"
+        and e.data == "four.evilcorp.com"
+        and e.discovery_context == "module_2 used brute force to obtain DNS_NAME four.evilcorp.com"
+        and [_[-1] for _ in e.discovery_path] == final_path
+    ]
+    assert 1 == len(final_event)
+    j = final_event[0].json()
+    assert [_[-1] for _ in j["discovery_path"]] == final_path
+
+    await scan._cleanup()
+
+    # test to make sure this doesn't come back
+    #  https://github.com/blacklanternsecurity/bbot/issues/1498
+    scan = Scanner("http://blacklanternsecurity.com", config={"dns": {"minimal": False}})
+    await scan.helpers.dns._mock_dns(
+        {"blacklanternsecurity.com": {"TXT": ["blsops.com"], "A": ["127.0.0.1"]}, "blsops.com": {"A": ["127.0.0.1"]}}
+    )
+    events = [e async for e in scan.async_start()]
+    blsops_event = [e for e in events if e.type == "DNS_NAME" and e.data == "blsops.com"]
+    assert len(blsops_event) == 1
+    assert blsops_event[0].discovery_path[1][-1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
+
+    await scan._cleanup()

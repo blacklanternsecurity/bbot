@@ -52,4 +52,15 @@ class Ipstack(BaseModule):
             if error_msg:
                 self.warning(error_msg)
         elif geo_data:
-            await self.emit_event(geo_data, "GEOLOCATION", event)
+            country = geo_data.get("country_name", "unknown country")
+            region = geo_data.get("region_name", "unknown region")
+            city = geo_data.get("city", "unknown city")
+            lat = geo_data.get("latitude", "")
+            long = geo_data.get("longitude", "")
+            description = f"{city}, {region}, {country} ({lat}, {long})"
+            await self.emit_event(
+                geo_data,
+                "GEOLOCATION",
+                event,
+                context=f'{{module}} queried ipstack.com\'s API for "{event.data}" and found {{event.type}}: {description}',
+            )

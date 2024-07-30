@@ -16,15 +16,29 @@ class subdomain_enum(BaseModule):
 
     # set module error state after this many failed requests in a row
     abort_after_failures = 5
+
     # whether to reject wildcard DNS_NAMEs
     reject_wildcards = "strict"
-    # this helps combat rate limiting by ensuring that a query doesn't execute
+
+    # set qsize to 1. this helps combat rate limiting by ensuring that a query doesn't execute
     # until the queue is ready to receive its results
     _qsize = 1
 
-    async def setup(self):
-        self.processed = set()
-        return True
+    # how to deduplicate incoming events
+    # options:
+    #   "highest_parent": dedupe by highest parent (highest parent of www.api.test.evilcorp.com is evilcorp.com)
+    #   "lowest_parent": dedupe by lowest parent (lowest parent of www.api.test.evilcorp.com is api.test.evilcorp.com)
+    dedup_strategy = "highest_parent"
+
+    @property
+    def source_pretty_name(self):
+        return f"{self.__class__.__name__} API"
+
+    def _incoming_dedup_hash(self, event):
+        """
+        Determines the criteria for what is considered to be a duplicate event if `accept_dupes` is False.
+        """
+        return hash(self.make_query(event)), f"dedup_strategy={self.dedup_strategy}"
 
     async def handle_event(self, event):
         query = self.make_query(event)
@@ -38,18 +52,36 @@ class subdomain_enum(BaseModule):
                         self.verbose(e)
                         continue
                     if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
-                        await self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
+                        await self.emit_event(
+                            hostname,
+                            "DNS_NAME",
+                            event,
+                            abort_if=self.abort_if,
+                            context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
+                        )
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
         return await self.request_with_fail_count(url)
 
     def make_query(self, event):
-        if "target" in event.tags:
-            query = str(event.data)
+        query = event.data
+        parents = list(self.helpers.domain_parents(event.data))
+        if self.dedup_strategy == "highest_parent":
+            parents = list(reversed(parents))
+        elif self.dedup_strategy == "lowest_parent":
+            pass
         else:
-            query = self.helpers.parent_domain(event.data).lower()
-        return ".".join([s for s in query.split(".") if s != "_wildcard"])
+            raise ValueError('self.dedup_strategy attribute must be set to either "highest_parent" or "lowest_parent"')
+        for p in parents:
+            if self.scan.in_scope(p):
+                query = p
+                break
+        try:
+            return ".".join([s for s in query.split(".") if s != "_wildcard"])
+        except Exception:
+            self.critical(query)
+            raise
 
     def parse_results(self, r, query=None):
         json = r.json()
@@ -74,7 +106,7 @@ class subdomain_enum(BaseModule):
                     self.info(
                         f'Error parsing results for query "{query}" (status code {response.status_code})', trace=True
                     )
-                    self.log.trace(response.text)
+                    self.log.trace(repr(response.text))
                 else:
                     self.info(f'Error parsing results for "{query}": {e}', trace=True)
                 return
@@ -92,20 +124,6 @@ class subdomain_enum(BaseModule):
         return False
 
     async def filter_event(self, event):
-        """
-        This filter_event is used across many modules
-        """
-        query = self.make_query(event)
-        # reject if already processed
-        if self.already_processed(query):
-            return False, "Event was already processed"
-        eligible, reason = await self.eligible_for_enumeration(event)
-        if eligible:
-            self.processed.add(hash(query))
-            return True, reason
-        return False, reason
-
-    async def eligible_for_enumeration(self, event):
         query = self.make_query(event)
         # check if wildcard
         is_wildcard = await self._is_wildcard(query)
@@ -127,12 +145,6 @@ class subdomain_enum(BaseModule):
                 if is_wildcard and is_cloud:
                     return False, "Event is both a cloud resource and a wildcard domain"
         return True, ""
-
-    def already_processed(self, hostname):
-        for parent in self.helpers.domain_parents(hostname, include_self=True):
-            if hash(parent) in self.processed:
-                return True
-        return False
 
     async def abort_if(self, event):
         # this helps weed out unwanted results when scanning IP_RANGES and wildcard domains

@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestAzure_Realm(ModuleTestBase):
     targets = ["evilcorp.com"]
-    config_overrides = {"scope_report_distance": 1}
+    config_overrides = {"scope": {"report_distance": 1}}
 
     response_json = {
         "State": 3,
@@ -20,6 +20,7 @@ class TestAzure_Realm(ModuleTestBase):
     }
 
     async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"evilcorp.com": {"A": ["127.0.0.5"]}})
         module_test.httpx_mock.add_response(
             url=f"https://login.microsoftonline.com/getuserrealm.srf?login=test@evilcorp.com",
             json=self.response_json,

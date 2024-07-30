@@ -28,7 +28,7 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
     config_overrides = {"speculate": True}
 
     async def setup_before_prep(self, module_test):
-        module_test.mock_dns(
+        await module_test.mock_dns(
             {
                 "evilcorp.com": {"A": ["127.0.254.1"]},
                 "asdf.evilcorp.com": {"A": ["127.0.254.2"]},
@@ -71,7 +71,7 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
 
 class TestSpeculate_OpenPorts_Portscanner(TestSpeculate_OpenPorts):
     targets = ["evilcorp.com"]
-    modules_overrides = ["speculate", "certspotter", "nmap"]
+    modules_overrides = ["speculate", "certspotter", "portscan"]
     config_overrides = {"speculate": True}
 
     def check(self, module_test, events):

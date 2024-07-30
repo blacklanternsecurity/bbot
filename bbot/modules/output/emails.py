@@ -1,8 +1,8 @@
+from bbot.modules.output.txt import TXT
 from bbot.modules.base import BaseModule
-from bbot.modules.output.human import Human
 
 
-class Emails(Human):
+class Emails(TXT):
     watched_events = ["EMAIL_ADDRESS"]
     flags = ["email-enum"]
     meta = {
@@ -13,6 +13,7 @@ class Emails(Human):
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to file"}
     in_scope_only = True
+    accept_dupes = False
 
     output_filename = "emails.txt"
 

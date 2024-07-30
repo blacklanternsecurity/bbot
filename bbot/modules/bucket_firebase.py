@@ -4,7 +4,7 @@ from bbot.modules.templates.bucket import bucket_template
 class bucket_firebase(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "cloud-enum", "web-basic"]
     meta = {
         "description": "Check for open Firebase databases related to target",
         "created_date": "2023-03-20",
@@ -25,9 +25,8 @@ class bucket_firebase(bucket_template):
             return False, "bucket belongs to a different cloud provider"
         return True, ""
 
-    async def check_bucket_exists(self, bucket_name, url):
-        url = url.strip("/") + "/.json"
-        return await super().check_bucket_exists(bucket_name, url)
+    def build_url(self, bucket_name, base_domain, region):
+        return f"https://{bucket_name}.{base_domain}/.json"
 
     async def check_bucket_open(self, bucket_name, url):
         url = url.strip("/") + "/.json"

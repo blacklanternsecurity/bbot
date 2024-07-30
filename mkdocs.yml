@@ -21,6 +21,9 @@ nav:
     - Comparison to Other Tools: comparison.md
   - Scanning:
     - Scanning Overview: scanning/index.md
+    - Presets:
+      - Overview: scanning/presets.md
+      - List of Presets: scanning/presets_list.md
     - Events: scanning/events.md
     - Output: scanning/output.md
     - Tips and Tricks: scanning/tips_and_tricks.md
@@ -30,23 +33,31 @@ nav:
     - List of Modules: modules/list_of_modules.md
     - Nuclei: modules/nuclei.md
   - Misc:
+    - Contribution: contribution.md
     - Release History: release_history.md
     - Troubleshooting: troubleshooting.md
 - Developer Manual:
-  - How to Write a Module: contribution.md
   - Development Overview: dev/index.md
-  - Scanner: dev/scanner.md
-  - Event: dev/event.md
-  - Target: dev/target.md
-  - BaseModule: dev/basemodule.md
-  - Helpers:
-    - Overview: dev/helpers/index.md
-    - Command: dev/helpers/command.md
-    - DNS: dev/helpers/dns.md
-    - Interactsh: dev/helpers/interactsh.md
-    - Miscellaneous: dev/helpers/misc.md
-    - Web: dev/helpers/web.md
-    - Word Cloud: dev/helpers/wordcloud.md
+  - BBOT Internal Architecture: dev/architecture.md
+  - How to Write a BBOT Module: dev/module_howto.md
+  - Unit Tests: dev/tests.md
+  - Discord Bot Example: dev/discord_bot.md
+  - Code Reference:
+    - Scanner: dev/scanner.md
+    - Presets: dev/presets.md
+    - Event: dev/event.md
+    - Target: dev/target.md
+    - BaseModule: dev/basemodule.md
+    - BBOTCore: dev/core.md
+    - Engine: dev/engine.md
+    - Helpers:
+      - Overview: dev/helpers/index.md
+      - Command: dev/helpers/command.md
+      - DNS: dev/helpers/dns.md
+      - Interactsh: dev/helpers/interactsh.md
+      - Miscellaneous: dev/helpers/misc.md
+      - Web: dev/helpers/web.md
+      - Word Cloud: dev/helpers/wordcloud.md
 
 theme:
   name: material
@@ -54,6 +65,7 @@ theme:
   favicon: favicon.png
   features:
     - content.code.copy
+    - content.tooltips
     - navigation.tabs
     - navigation.sections
     - navigation.expand
@@ -89,6 +101,7 @@ markdown_extensions:
   - attr_list
   - admonition
   - pymdownx.details
+  - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.highlight:
       use_pygments: True
@@ -101,5 +114,7 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 extra_javascript:
-  - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
   - javascripts/tablesort.js
+  - javascripts/vega@5.js
+  - javascripts/vega-lite@5.js
+  - javascripts/vega-embed@6.js

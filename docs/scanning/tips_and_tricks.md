@@ -10,6 +10,12 @@ Press enter during a BBOT scan to change the log level. This will allow you to s
 ## Kill Individual Module During Scan
 Sometimes a certain module can get stuck or slow down the scan. If this happens and you want to kill it, just type "`kill <module>`" in the terminal and press enter. This will kill and disable the module for the rest of the scan.
 
+You can also kill multiple modules at a time by specifying them in a space or comma-separated list:
+
+```bash
+kill httpx sslcert
+```
+
 <img src="https://github.com/blacklanternsecurity/bbot/assets/20261699/61ad7123-8879-4c86-afdd-e96d7264b67c" style="max-width: 45em !important"/>
 
 ## Common Config Changes
@@ -20,41 +26,43 @@ BBOT modules can be parallelized so that more than one instance runs at a time. 
 
 ```python
 class baddns(BaseModule):
-    max_event_handlers = 8
+    module_threads = 8
 ```
 
-To change the number of instances, you can set a module's `max_event_handlers` in the config:
+To override this, you can set a module's `module_threads` in the config:
 
 ```bash
-# increase the "baddns" module to 20 concurrent instances
-bbot -t evilcorp.com -m baddns -c modules.baddns.max_event_handlers=20
+# increase baddns threads to 20
+bbot -t evilcorp.com -m baddns -c modules.baddns.module_threads=20
 ```
 
-### Boost Massdns Thread Count
+### Boost DNS Brute-force Speed
 
 If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for `massdns`. The default is `1000`, which is about 1MB/s of DNS traffic:
 
 ```bash
 # massdns with 5000 resolvers, about 5MB/s
-bbot -t evilcorp.com -f subdomain-enum -c modules.massdns.max_resolvers=5000
+bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 ```
 
 ### Web Spider
 
-The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of `web_spider_distance`.
+The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of `web.spider_distance`.
 
 The web spider is controlled with three config values:
 
-- `web_spider_depth` (default: `1`: the maximum directory depth allowed. This is to prevent the spider from delving too deep into a website.
-- `web_spider_distance` (`0` == all spidering disabled, default: `0`): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where `web_spider_depth` fails (e.g. for an ecommerce website with thousands of base-level URLs).
-- `web_spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed. This is designed to save you in cases where a single page has hundreds or thousands of links.
+- `web.spider_depth` (default: `1`: the maximum directory depth allowed. This is to prevent the spider from delving too deep into a website.
+- `web.spider_distance` (`0` == all spidering disabled, default: `0`): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where `web.spider_depth` fails (e.g. for an ecommerce website with thousands of base-level URLs).
+- `web.spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed. This is designed to save you in cases where a single page has hundreds or thousands of links.
 
 Here is a typical example:
 
 ```yaml title="spider.yml"
-web_spider_depth: 2
-web_spider_distance: 2
-web_spider_links_per_page: 25
+config:
+  web:
+    spider_depth: 2
+    spider_distance: 2
+    spider_links_per_page: 25
 ```
 
 ```bash
@@ -74,7 +82,7 @@ bbot -t evilcorp.com -f subdomain-enum -c spider.yml
 If your goal is to feed BBOT data into a SIEM such as Elastic, be sure to enable this option when scanning:
 
 ```bash
-bbot -t evilcorp.com -c output_modules.json.siem_friendly=true
+bbot -t evilcorp.com -c modules.json.siem_friendly=true
 ```
 
 This nests the event's `.data` beneath its event type like so:
@@ -107,17 +115,26 @@ omit_event_types:
 ```
 
 ### Display Out-of-scope Events
-By default, BBOT only shows in-scope events (with a few exceptions for things like storage buckets). If you want to see events that BBOT is emitting internally (such as for DNS resolution, etc.), you can increase `scope_report_distance` in the config or on the command line like so:
+By default, BBOT only shows in-scope events (with a few exceptions for things like storage buckets). If you want to see events that BBOT is emitting internally (such as for DNS resolution, etc.), you can increase `scope.report_distance` in the config or on the command line like so:
 ~~~bash
 # display events up to scope distance 2 (default == 0)
-bbot -f subdomain-enum -t evilcorp.com -c scope_report_distance=2
+bbot -f subdomain-enum -t evilcorp.com -c scope.report_distance=2
 ~~~
 
 ### Speed Up Scans By Disabling DNS Resolution
-If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting `dns_resolution` to `false`.
+
+If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting `dns.disable` to `true`:
+
 ~~~bash
-# disable the creation of new events from DNS resoluion
-bbot -m httpx gowitness wappalyzer -t urls.txt -c dns_resolution=false
+# completely disable DNS resolution
+bbot -m httpx gowitness wappalyzer -t urls.txt -c dns.disable=true
+~~~
+
+Note that the above setting _completely_ disables DNS resolution, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use `dns.minimal` instead:
+
+~~~bash
+# only resolve A and AAAA records
+bbot -m httpx gowitness wappalyzer -t urls.txt -c dns.minimal=true
 ~~~
 
 ## FAQ
@@ -128,9 +145,9 @@ bbot -m httpx gowitness wappalyzer -t urls.txt -c dns_resolution=false
 
 For example, when [`excavate`](index.md/#types-of-modules) gets an `HTTP_RESPONSE` event, it extracts links from the raw HTTP response as `URL_UNVERIFIED`s and then passes them back to `httpx` to be visited.
 
-By default, `URL_UNVERIFIED`s are hidden from output. If you want to see all of them including the out-of-scope ones, you can do it by changing `omit_event_types` and `scope_report_distance` in the config like so:
+By default, `URL_UNVERIFIED`s are hidden from output. If you want to see all of them including the out-of-scope ones, you can do it by changing `omit_event_types` and `scope.report_distance` in the config like so:
 
 ```bash
 # visit www.evilcorp.com and extract all the links
-bbot -t www.evilcorp.com -m httpx -c omit_event_types=[] scope_report_distance=2
+bbot -t www.evilcorp.com -m httpx -c omit_event_types=[] scope.report_distance=2
 ```

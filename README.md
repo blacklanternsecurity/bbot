@@ -1,34 +1,14 @@
 [![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)](https://github.com/blacklanternsecurity/bbot)
 
-# BEE·bot
-
-### A Recursive Internet Scanner for Hackers.
-
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
-BBOT (Bighuge BLS OSINT Tool) is a recursive internet scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), but designed to be faster, more reliable, and friendlier to pentesters, bug bounty hunters, and developers.
+### **BEE·bot** is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your **Recon**, **Bug Bounties**, and **ASM**!
 
-Special features include:
-
-- Support for Multiple Targets
-- Web Screenshots
-- Suite of Offensive Web Modules
-- AI-powered Subdomain Mutations
-- Native Output to Neo4j (and more)
-- Python API + Developer [Documentation](https://www.blacklanternsecurity.com/bbot/)
-
-https://github.com/blacklanternsecurity/bbot/assets/20261699/742df3fe-5d1f-4aea-83f6-f990657bf695
+https://github.com/blacklanternsecurity/bbot/assets/20261699/e539e89b-92ea-46fa-b893-9cde94eebf81
 
 _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)_
 
-## Quick Start Guide
-
-Below are some short help sections to get you up and running.
-
-<details>
-<summary><b>Installation ( Pip )</b></summary>
-
-Note: BBOT's [PyPi package](https://pypi.org/project/bbot/) requires Linux and Python 3.9+.
+## Installation
 
 ```bash
 # stable version
@@ -36,88 +16,272 @@ pipx install bbot
 
 # bleeding edge (dev branch)
 pipx install --pip-args '\--pre' bbot
-
-bbot --help
 ```
 
-</details>
-
-<details>
-<summary><b>Installation ( Docker )</b></summary>
-
-[Docker images](https://hub.docker.com/r/blacklanternsecurity/bbot) are provided, along with helper script `bbot-docker.sh` to persist your scan data.
-
-```bash
-# bleeding edge (dev)
-docker run -it blacklanternsecurity/bbot --help
-
-# stable
-docker run -it blacklanternsecurity/bbot:stable --help
-
-# helper script
-git clone https://github.com/blacklanternsecurity/bbot && cd bbot
-./bbot-docker.sh --help
-```
-
-</details>
-
-<details>
-<summary><b>Example Usage</b></summary>
+_For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/)_
 
 ## Example Commands
 
-Scan output, logs, etc. are saved to `~/.bbot`. For more detailed examples and explanations, see [Scanning](https://www.blacklanternsecurity.com/bbot/scanning).
+### 1) Subdomain Finder
 
-<!-- BBOT EXAMPLE COMMANDS -->
-**Subdomains:**
-
-```bash
-# Perform a full subdomain enumeration on evilcorp.com
-bbot -t evilcorp.com -f subdomain-enum
-```
-
-**Subdomains (passive only):**
+Passive API sources plus a recursive DNS brute-force with target-specific subdomain mutations.
 
 ```bash
-# Perform a passive-only subdomain enumeration on evilcorp.com
-bbot -t evilcorp.com -f subdomain-enum -rf passive
+# find subdomains of evilcorp.com
+bbot -t evilcorp.com -p subdomain-enum
 ```
 
-**Subdomains + port scan + web screenshots:**
+<!-- BBOT SUBDOMAIN-ENUM PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>subdomain-enum.yml</code></b></summary>
+
+```yaml
+description: Enumerate subdomains via APIs, brute-force
+
+flags:
+  # enable every module with the subdomain-enum flag
+  - subdomain-enum
+
+output_modules:
+  # output unique subdomains to TXT file
+  - subdomains
+
+config:
+  dns:
+    threads: 25
+    brute_threads: 1000
+  # put your API keys here
+  modules:
+    github:
+      api_key: ""
+    chaos:
+      api_key: ""
+    securitytrails:
+      api_key: ""
+
+```
+
+</details>
+
+<!-- END BBOT SUBDOMAIN-ENUM PRESET EXPANDABLE -->
+
+BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
+
+![subdomain-stats-ebay](https://github.com/blacklanternsecurity/bbot/assets/20261699/de3e7f21-6f52-4ac4-8eab-367296cd385f)
+
+### 2) Web Spider
 
 ```bash
-# Port-scan every subdomain, screenshot every webpage, output to current directory
-bbot -t evilcorp.com -f subdomain-enum -m nmap gowitness -n my_scan -o .
+# crawl evilcorp.com, extracting emails and other goodies
+bbot -t evilcorp.com -p spider
 ```
 
-**Subdomains + basic web scan:**
+<!-- BBOT SPIDER PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>spider.yml</code></b></summary>
+
+```yaml
+description: Recursive web spider
+
+modules:
+  - httpx
+
+config:
+  web:
+    # how many links to follow in a row
+    spider_distance: 2
+    # don't follow links whose directory depth is higher than 4
+    spider_depth: 4
+    # maximum number of links to follow per page
+    spider_links_per_page: 25
+
+```
+
+</details>
+
+<!-- END BBOT SPIDER PRESET EXPANDABLE -->
+
+### 3) Email Gatherer
 
 ```bash
-# A basic web scan includes wappalyzer, robots.txt, and other non-intrusive web modules
-bbot -t evilcorp.com -f subdomain-enum web-basic
+# quick email enum with free APIs + scraping
+bbot -t evilcorp.com -p email-enum
+
+# pair with subdomain enum + web spider for maximum yield
+bbot -t evilcorp.com -p email-enum subdomain-enum spider
 ```
 
-**Web spider:**
+<!-- BBOT EMAIL-ENUM PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>email-enum.yml</code></b></summary>
+
+```yaml
+description: Enumerate email addresses from APIs, web crawling, etc.
+
+flags:
+  - email-enum
+
+output_modules:
+  - emails
+
+```
+
+</details>
+
+<!-- END BBOT EMAIL-ENUM PRESET EXPANDABLE -->
+
+### 4) Web Scanner
 
 ```bash
-# Crawl www.evilcorp.com up to a max depth of 2, automatically extracting emails, secrets, etc.
-bbot -t www.evilcorp.com -m httpx robots badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2
+# run a light web scan against www.evilcorp.com
+bbot -t www.evilcorp.com -p web-basic
+
+# run a heavy web scan against www.evilcorp.com
+bbot -t www.evilcorp.com -p web-thorough
 ```
 
-**Everything everywhere all at once:**
+<!-- BBOT WEB-BASIC PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>web-basic.yml</code></b></summary>
+
+```yaml
+description: Quick web scan
+
+include:
+  - iis-shortnames
+
+flags:
+  - web-basic
+
+```
+
+</details>
+
+<!-- END BBOT WEB-BASIC PRESET EXPANDABLE -->
+
+<!-- BBOT WEB-THOROUGH PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>web-thorough.yml</code></b></summary>
+
+```yaml
+description: Aggressive web scan
+
+include:
+  # include the web-basic preset
+  - web-basic
+
+flags:
+  - web-thorough
+
+```
+
+</details>
+
+<!-- END BBOT WEB-THOROUGH PRESET EXPANDABLE -->
+
+### 5) Everything Everywhere All at Once
 
 ```bash
-# Subdomains, emails, cloud buckets, port scan, basic web, web screenshots, nuclei
-bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly
+# everything everywhere all at once
+bbot -t evilcorp.com -p kitchen-sink
+
+# roughly equivalent to:
+bbot -t evilcorp.com -p subdomain-enum cloud-enum code-enum email-enum spider web-basic paramminer dirbust-light web-screenshots
 ```
-<!-- END BBOT EXAMPLE COMMANDS -->
+
+<!-- BBOT KITCHEN-SINK PRESET EXPANDABLE -->
+
+<details>
+<summary><b><code>kitchen-sink.yml</code></b></summary>
+
+```yaml
+description: Everything everywhere all at once
+
+include:
+  - subdomain-enum
+  - cloud-enum
+  - code-enum
+  - email-enum
+  - spider
+  - web-basic
+  - paramminer
+  - dirbust-light
+  - web-screenshots
+
+config:
+  modules:
+    baddns:
+      enable_references: True
+
+
+
+```
+
+</details>
+
+<!-- END BBOT KITCHEN-SINK PRESET EXPANDABLE -->
+
+## How it Works
+
+Click the graph below to explore the [inner workings](https://www.blacklanternsecurity.com/bbot/how_it_works/) of BBOT.
+
+[![image](https://github.com/blacklanternsecurity/bbot/assets/20261699/e55ba6bd-6d97-48a6-96f0-e122acc23513)](https://www.blacklanternsecurity.com/bbot/how_it_works/)
+
+## BBOT as a Python Library
+
+#### Synchronous
+```python
+from bbot.scanner import Scanner
+
+scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
+for event in scan.start():
+    print(event)
+```
+
+#### Asynchronous
+```python
+from bbot.scanner import Scanner
+
+async def main():
+    scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
+    async for event in scan.async_start():
+        print(event.json())
+
+import asyncio
+asyncio.run(main())
+```
+
+<details>
+<summary><b>SEE: This Nefarious Discord Bot</b></summary>
+
+A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/#discord-bot-example) that responds to the `/scan` command. Scan the internet from the comfort of your discord server!
+
+![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9)
+
+</details>
+
+## Feature Overview
+
+- Support for Multiple Targets
+- Web Screenshots
+- Suite of Offensive Web Modules
+- NLP-powered Subdomain Mutations
+- Native Output to Neo4j (and more)
+- Automatic dependency install with Ansible
+- Search entire attack surface with custom YARA rules
+- Python API + Developer Documentation
 
 ## Targets
 
 BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!):
 
 ```bash
-bbot -t evilcorp.com evilcorp.org 1.2.3.0/24 -f subdomain-enum
+bbot -t evilcorp.com evilcorp.org 1.2.3.0/24 -p subdomain-enum
 ```
 
 Targets can be any of the following:
@@ -134,7 +298,7 @@ For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/sc
 
 Similar to Amass or Subfinder, BBOT supports API keys for various third-party services such as SecurityTrails, etc.
 
-The standard way to do this is to enter your API keys in **`~/.config/bbot/secrets.yml`**:
+The standard way to do this is to enter your API keys in **`~/.config/bbot/bbot.yml`**:
 ```yaml
 modules:
   shodan_dns:
@@ -152,43 +316,17 @@ If you like, you can also specify them on the command line:
 bbot -c modules.virustotal.api_key=dd5f0eee2e4a99b71a939bded450b246
 ```
 
-For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/)
+For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/).
 
-## BBOT as a Python Library
+## Complete Lists of Modules, Flags, etc.
 
-BBOT exposes a Python API that allows it to be used for all kinds of fun and nefarious purposes, like a [Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/#bbot-python-library-advanced-usage#discord-bot-example) that responds to the `/scan` command.
+- Complete list of [Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules/).
+- Complete list of [Flags](https://www.blacklanternsecurity.com/bbot/scanning/#list-of-flags).
+- Complete list of [Presets](https://www.blacklanternsecurity.com/bbot/scanning/presets_list/).
+    - Complete list of [Global Config Options](https://www.blacklanternsecurity.com/bbot/scanning/configuration/#global-config-options).
+    - Complete list of [Module Config Options](https://www.blacklanternsecurity.com/bbot/scanning/configuration/#module-config-options).
 
-![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9)
-
-**Synchronous**
-
-```python
-from bbot.scanner import Scanner
-
-# any number of targets can be specified
-scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
-for event in scan.start():
-    print(event.json())
-```
-
-**Asynchronous**
-
-```python
-from bbot.scanner import Scanner
-
-async def main():
-    scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
-    async for event in scan.async_start():
-        print(event.json())
-
-import asyncio
-asyncio.run(main())
-```
-
-</details>
-
-<details>
-<summary><b>Documentation - Table of Contents</b></summary>
+## Documentation
 
 <!-- BBOT DOCS TOC -->
 - **User Manual**
@@ -198,6 +336,9 @@ asyncio.run(main())
         - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
     - **Scanning**
         - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/)
+        - **Presets**
+            - [Overview](https://www.blacklanternsecurity.com/bbot/scanning/presets)
+            - [List of Presets](https://www.blacklanternsecurity.com/bbot/scanning/presets_list)
         - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
         - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
         - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
@@ -207,31 +348,36 @@ asyncio.run(main())
         - [List of Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules)
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/modules/nuclei)
     - **Misc**
+        - [Contribution](https://www.blacklanternsecurity.com/bbot/contribution)
         - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
         - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
 - **Developer Manual**
-    - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
     - [Development Overview](https://www.blacklanternsecurity.com/bbot/dev/)
-    - [Scanner](https://www.blacklanternsecurity.com/bbot/dev/scanner)
-    - [Event](https://www.blacklanternsecurity.com/bbot/dev/event)
-    - [Target](https://www.blacklanternsecurity.com/bbot/dev/target)
-    - [BaseModule](https://www.blacklanternsecurity.com/bbot/dev/basemodule)
-    - **Helpers**
-        - [Overview](https://www.blacklanternsecurity.com/bbot/dev/helpers/)
-        - [Command](https://www.blacklanternsecurity.com/bbot/dev/helpers/command)
-        - [DNS](https://www.blacklanternsecurity.com/bbot/dev/helpers/dns)
-        - [Interactsh](https://www.blacklanternsecurity.com/bbot/dev/helpers/interactsh)
-        - [Miscellaneous](https://www.blacklanternsecurity.com/bbot/dev/helpers/misc)
-        - [Web](https://www.blacklanternsecurity.com/bbot/dev/helpers/web)
-        - [Word Cloud](https://www.blacklanternsecurity.com/bbot/dev/helpers/wordcloud)
+    - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/dev/architecture)
+    - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/dev/module_howto)
+    - [Unit Tests](https://www.blacklanternsecurity.com/bbot/dev/tests)
+    - [Discord Bot Example](https://www.blacklanternsecurity.com/bbot/dev/discord_bot)
+    - **Code Reference**
+        - [Scanner](https://www.blacklanternsecurity.com/bbot/dev/scanner)
+        - [Presets](https://www.blacklanternsecurity.com/bbot/dev/presets)
+        - [Event](https://www.blacklanternsecurity.com/bbot/dev/event)
+        - [Target](https://www.blacklanternsecurity.com/bbot/dev/target)
+        - [BaseModule](https://www.blacklanternsecurity.com/bbot/dev/basemodule)
+        - [BBOTCore](https://www.blacklanternsecurity.com/bbot/dev/core)
+        - [Engine](https://www.blacklanternsecurity.com/bbot/dev/engine)
+        - **Helpers**
+            - [Overview](https://www.blacklanternsecurity.com/bbot/dev/helpers/)
+            - [Command](https://www.blacklanternsecurity.com/bbot/dev/helpers/command)
+            - [DNS](https://www.blacklanternsecurity.com/bbot/dev/helpers/dns)
+            - [Interactsh](https://www.blacklanternsecurity.com/bbot/dev/helpers/interactsh)
+            - [Miscellaneous](https://www.blacklanternsecurity.com/bbot/dev/helpers/misc)
+            - [Web](https://www.blacklanternsecurity.com/bbot/dev/helpers/web)
+            - [Word Cloud](https://www.blacklanternsecurity.com/bbot/dev/helpers/wordcloud)
 <!-- END BBOT DOCS TOC -->
 
-</details>
+## Contribution
 
-<details>
-<summary><b>Contribution</b></summary>
-
-BBOT is constantly being improved by the community. Every day it grows more powerful!
+Some of the best BBOT modules were written by the community. BBOT is being constantly improved; every day it grows more powerful!
 
 We welcome contributions. Not just code, but ideas too! If you have an idea for a new feature, please let us know in [Discussions](https://github.com/blacklanternsecurity/bbot/discussions). If you want to get your hands dirty, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/). There you can find setup instructions and a simple tutorial on how to write a BBOT module. We also have extensive [Developer Documentation](https://www.blacklanternsecurity.com/bbot/dev/).
 
@@ -243,72 +389,12 @@ Thanks to these amazing people for contributing to BBOT! :heart:
 </a>
 </p>
 
-Special thanks to the following people who made BBOT possible:
+Special thanks to:
 
 - @TheTechromancer for creating [BBOT](https://github.com/blacklanternsecurity/bbot)
-- @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets)
+- @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets) and [baddns](https://github.com/blacklanternsecurity/baddns)
 - Steve Micallef (@smicallef) for creating Spiderfoot
 - @kerrymilan for his Neo4j and Ansible expertise
+- @domwhewell-sage for his family of badass code-looting modules
 - @aconite33 and @amiremami for their ruthless testing
-- Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
-
-</details>
-
-## Comparison to Other Tools
-
-BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
-
-![subdomain-stats-ebay](https://github.com/blacklanternsecurity/bbot/assets/20261699/53e07e9f-50b6-4b70-9e83-297dbfbcb436)
-
-## BBOT Modules By Flag
-For a full list of modules, including the data types consumed and emitted by each one, see [List of Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules/).
-
-<!-- BBOT MODULE FLAGS -->
-| Flag             | # Modules   | Description                                        | Modules                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-|------------------|-------------|----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| safe             | 84          | Non-intrusive, safe to run                         | affiliates, aggregate, ajaxpro, anubisdb, asn, azure_realm, azure_tenant, baddns, baddns_zone, badsecrets, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, builtwith, c99, censys, certspotter, chaos, code_repository, columbus, credshed, crobat, crt, dehashed, digitorus, dnscaa, dnscommonsrv, dnsdumpster, docker_pull, dockerhub, emailformat, filedownload, fingerprintx, fullhunt, git, git_clone, github_codesearch, github_org, github_workflows, gitlab, gowitness, hackertarget, httpx, hunt, hunterio, iis_shortnames, internetdb, ip2location, ipstack, leakix, myssl, newsletters, ntlm, oauth, otx, passivetotal, pgp, postman, rapiddns, riddler, robots, secretsdb, securitytrails, shodan_dns, sitedossier, skymem, social, sslcert, subdomaincenter, sublist3r, threatminer, trufflehog, unstructured, urlscan, viewdns, virustotal, wappalyzer, wayback, zoomeye |
-| passive          | 64          | Never connects to target systems                   | affiliates, aggregate, anubisdb, asn, azure_realm, azure_tenant, bevigil, binaryedge, bucket_file_enum, builtwith, c99, censys, certspotter, chaos, code_repository, columbus, credshed, crobat, crt, dehashed, digitorus, dnscaa, dnscommonsrv, dnsdumpster, docker_pull, dockerhub, emailformat, excavate, fullhunt, git_clone, github_codesearch, github_org, github_workflows, hackertarget, hunterio, internetdb, ip2location, ipneighbor, ipstack, leakix, massdns, myssl, otx, passivetotal, pgp, postman, rapiddns, riddler, securitytrails, shodan_dns, sitedossier, skymem, social, speculate, subdomaincenter, sublist3r, threatminer, trufflehog, unstructured, urlscan, viewdns, virustotal, wayback, zoomeye                                                                                                                                                                                                                                      |
-| subdomain-enum   | 46          | Enumerates subdomains                              | anubisdb, asn, azure_realm, azure_tenant, baddns_zone, bevigil, binaryedge, builtwith, c99, censys, certspotter, chaos, columbus, crt, digitorus, dnscaa, dnscommonsrv, dnsdumpster, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, internetdb, ipneighbor, leakix, massdns, myssl, oauth, otx, passivetotal, postman, rapiddns, riddler, securitytrails, shodan_dns, sitedossier, sslcert, subdomaincenter, subdomains, threatminer, urlscan, virustotal, wayback, zoomeye                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| active           | 43          | Makes active connections to target systems         | ajaxpro, baddns, baddns_zone, badsecrets, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, bypass403, dastardly, dotnetnuke, ffuf, ffuf_shortnames, filedownload, fingerprintx, generic_ssrf, git, gitlab, gowitness, host_header, httpx, hunt, iis_shortnames, masscan, newsletters, nmap, ntlm, nuclei, oauth, paramminer_cookies, paramminer_getparams, paramminer_headers, robots, secretsdb, smuggler, sslcert, telerik, url_manipulation, vhost, wafw00f, wappalyzer, wpscan                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| web-thorough     | 29          | More advanced web scanning functionality           | ajaxpro, azure_realm, badsecrets, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, bypass403, dastardly, dotnetnuke, ffuf_shortnames, filedownload, generic_ssrf, git, host_header, httpx, hunt, iis_shortnames, nmap, ntlm, oauth, robots, secretsdb, smuggler, sslcert, telerik, url_manipulation, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| aggressive       | 21          | Generates a large amount of network traffic        | bypass403, dastardly, dotnetnuke, ffuf, ffuf_shortnames, generic_ssrf, host_header, ipneighbor, masscan, massdns, nmap, nuclei, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler, telerik, url_manipulation, vhost, wafw00f, wpscan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| web-basic        | 17          | Basic, non-intrusive web scan functionality        | azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_firebase, bucket_google, filedownload, git, httpx, iis_shortnames, ntlm, oauth, robots, secretsdb, sslcert, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| cloud-enum       | 12          | Enumerates cloud resources                         | azure_realm, azure_tenant, baddns, baddns_zone, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, httpx, oauth                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| slow             | 10          | May take a long time to complete                   | bucket_digitalocean, dastardly, docker_pull, fingerprintx, git_clone, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler, vhost                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| affiliates       | 8           | Discovers affiliated hostnames/domains             | affiliates, azure_realm, azure_tenant, builtwith, oauth, sslcert, viewdns, zoomeye                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| email-enum       | 8           | Enumerates email addresses                         | dehashed, dnscaa, emailformat, emails, hunterio, pgp, skymem, sslcert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| deadly           | 4           | Highly aggressive                                  | dastardly, ffuf, nuclei, vhost                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| portscan         | 3           | Discovers open ports                               | internetdb, masscan, nmap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| web-paramminer   | 3           | Discovers HTTP parameters through brute-force      | paramminer_cookies, paramminer_getparams, paramminer_headers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| baddns           | 2           | Runs all modules from the DNS auditing tool BadDNS | baddns, baddns_zone                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| iis-shortnames   | 2           | Scans for IIS Shortname vulnerability              | ffuf_shortnames, iis_shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| report           | 2           | Generates a report at the end of the scan          | affiliates, asn                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| social-enum      | 2           | Enumerates social media                            | httpx, social                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| repo-enum        | 1           | Enumerates code repositories                       | code_repository                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| service-enum     | 1           | Identifies protocols running on open ports         | fingerprintx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| subdomain-hijack | 1           | Detects hijackable subdomains                      | baddns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| web-screenshots  | 1           | Takes screenshots of web pages                     | gowitness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-<!-- END BBOT MODULE FLAGS -->
-
-## BBOT Output Modules
-BBOT can save its data to TXT, CSV, JSON, and tons of other destinations including [Neo4j](https://www.blacklanternsecurity.com/bbot/scanning/output/#neo4j), [Splunk](https://www.blacklanternsecurity.com/bbot/scanning/output/#splunk), and [Discord](https://www.blacklanternsecurity.com/bbot/scanning/output/#discord-slack-teams). For instructions on how to use these, see [Output Modules](https://www.blacklanternsecurity.com/bbot/scanning/output). 
-
-<!-- BBOT OUTPUT MODULES -->
-| Module          | Type   | Needs API Key   | Description                                                                             | Flags          | Consumed Events                                                                                  | Produced Events           |
-|-----------------|--------|-----------------|-----------------------------------------------------------------------------------------|----------------|--------------------------------------------------------------------------------------------------|---------------------------|
-| asset_inventory | output | No              | Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV |                | DNS_NAME, FINDING, HTTP_RESPONSE, IP_ADDRESS, OPEN_TCP_PORT, TECHNOLOGY, URL, VULNERABILITY, WAF | IP_ADDRESS, OPEN_TCP_PORT |
-| csv             | output | No              | Output to CSV                                                                           |                | *                                                                                                |                           |
-| discord         | output | No              | Message a Discord channel when certain events are encountered                           |                | *                                                                                                |                           |
-| emails          | output | No              | Output any email addresses found belonging to the target domain                         | email-enum     | EMAIL_ADDRESS                                                                                    |                           |
-| http            | output | No              | Send every event to a custom URL via a web request                                      |                | *                                                                                                |                           |
-| human           | output | No              | Output to text                                                                          |                | *                                                                                                |                           |
-| json            | output | No              | Output to Newline-Delimited JSON (NDJSON)                                               |                | *                                                                                                |                           |
-| neo4j           | output | No              | Output to Neo4j                                                                         |                | *                                                                                                |                           |
-| python          | output | No              | Output via Python API                                                                   |                | *                                                                                                |                           |
-| slack           | output | No              | Message a Slack channel when certain events are encountered                             |                | *                                                                                                |                           |
-| splunk          | output | No              | Send every event to a splunk instance through HTTP Event Collector                      |                | *                                                                                                |                           |
-| subdomains      | output | No              | Output only resolved, in-scope subdomains                                               | subdomain-enum | DNS_NAME, DNS_NAME_UNRESOLVED                                                                    |                           |
-| teams           | output | No              | Message a Teams channel when certain events are encountered                             |                | *                                                                                                |                           |
-| web_report      | output | No              | Create a markdown report with web assets                                                |                | FINDING, TECHNOLOGY, URL, VHOST, VULNERABILITY                                                   |                           |
-| websocket       | output | No              | Output to websockets                                                                    |                | *                                                                                                |                           |
-<!-- END BBOT OUTPUT MODULES -->
+- Aleksei Kornev (@alekseiko) for granting us ownership of the bbot Pypi repository <3
