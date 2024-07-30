@@ -475,7 +475,7 @@ async def test_events(events, helpers):
     event_5 = scan.make_event("127.0.0.5", parent=event_4)
     assert event_5.get_parents() == [event_4, event_3, event_2, event_1, scan.root_event]
     assert event_5.get_parents(omit=True) == [event_4, event_2, event_1, scan.root_event]
-    assert event_5.get_parents(include_self=True) == [event5, event_4, event_3, event_2, event_1, scan.root_event]
+    assert event_5.get_parents(include_self=True) == [event_5, event_4, event_3, event_2, event_1, scan.root_event]
 
     # test host backup
     host_event = scan.make_event("asdf.evilcorp.com", "DNS_NAME", parent=scan.root_event)
