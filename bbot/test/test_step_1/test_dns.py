@@ -427,3 +427,31 @@ async def test_dns_raw_records(bbot_scanner):
             and e.discovery_context == "TXT lookup on one.one.one.one produced RAW_DNS_RECORD"
         ]
     )
+
+
+@pytest.mark.asyncio
+async def test_dns_graph_structure(bbot_scanner):
+    scan = bbot_scanner("https://evilcorp.com", config={"dns": {"search_distance": 1, "minimal": False}})
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {
+                "CNAME": [
+                    "www.evilcorp.com",
+                ]
+            },
+            "www.evilcorp.com": {"CNAME": ["test.evilcorp.com"]},
+            "test.evilcorp.com": {"A": ["127.0.0.1"]},
+        }
+    )
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 5
+    non_scan_events = [e for e in events if e.type != "SCAN"]
+    assert sorted([e.type for e in non_scan_events]) == ["DNS_NAME", "DNS_NAME", "DNS_NAME", "URL_UNVERIFIED"]
+    events_by_data = {e.data: e for e in non_scan_events}
+    assert set(events_by_data) == {"https://evilcorp.com/", "evilcorp.com", "www.evilcorp.com", "test.evilcorp.com"}
+    assert events_by_data["test.evilcorp.com"].parent.data == "www.evilcorp.com"
+    assert str(events_by_data["test.evilcorp.com"].module) == "CNAME"
+    assert events_by_data["www.evilcorp.com"].parent.data == "evilcorp.com"
+    assert str(events_by_data["www.evilcorp.com"].module) == "CNAME"
+    assert events_by_data["evilcorp.com"].parent.data == "https://evilcorp.com/"
+    assert str(events_by_data["evilcorp.com"].module) == "host"

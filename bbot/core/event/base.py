@@ -539,9 +539,11 @@ class BaseEvent:
             return self.parent.get_parent()
         return self.parent
 
-    def get_parents(self, omit=False):
+    def get_parents(self, omit=False, include_self=False):
         parents = []
         e = self
+        if include_self:
+            parents.append(self)
         while 1:
             if omit:
                 parent = e.get_parent()

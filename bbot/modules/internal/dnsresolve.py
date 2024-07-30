@@ -70,10 +70,14 @@ class DNSResolve(InterceptModule):
 
         event_is_ip = self.helpers.is_ip(event.host)
 
-        # first thing we do is check for wildcards
-        if not event_is_ip:
-            if event.scope_distance <= self.scan.scope_search_distance:
-                await self.handle_wildcard_event(event)
+        event_host = str(event.host)
+        event_host_hash = hash(event_host)
+
+        async with self._event_cache_locks.lock(event_host_hash):
+            # first thing we do is check for wildcards
+            if not event_is_ip:
+                if event.scope_distance <= self.scan.scope_search_distance:
+                    await self.handle_wildcard_event(event)
 
         event_host = str(event.host)
         event_host_hash = hash(event_host)
@@ -115,6 +119,7 @@ class DNSResolve(InterceptModule):
                         )
                         raw_record_events.append(raw_record_event)
                     if errors:
+                        self.critical(errors)
                         error_rdtypes.append(rdtype)
                     for _rdtype, host in extract_targets(answer):
                         dns_tags.add(f"{rdtype.lower()}-record")
@@ -176,8 +181,10 @@ class DNSResolve(InterceptModule):
                 if not event_blacklisted:
                     if event_whitelisted:
                         main_host_event.scope_distance = 0
+                        await self.handle_wildcard_event(main_host_event)
 
-                    await self.emit_event(main_host_event)
+                    if event != main_host_event:
+                        await self.emit_event(main_host_event)
                     for raw_record_event in raw_record_events:
                         await self.emit_event(raw_record_event)
 
@@ -226,6 +233,7 @@ class DNSResolve(InterceptModule):
         if event_whitelisted:
             self.debug(f"Making {event} in-scope because it resolves to an in-scope resource")
             event.scope_distance = 0
+            await self.handle_wildcard_event(event)
 
         # if the event is a DNS_NAME or IP, tag with "a-record", "ptr-record", etc.
         if event.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
@@ -237,28 +245,30 @@ class DNSResolve(InterceptModule):
             event.type = "DNS_NAME_UNRESOLVED"
 
     async def handle_wildcard_event(self, event):
-        self.debug(f"Entering handle_wildcard_event({event}, children={event.dns_children})")
+        self.debug(f"Entering handle_wildcard_event({event})")
         try:
             event_host = str(event.host)
             # check if the dns name itself is a wildcard entry
             wildcard_rdtypes = await self.helpers.is_wildcard(event_host)
             for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
-                wildcard_tag = "error"
-                if is_wildcard == True:
+                if is_wildcard == False:
+                    continue
+                elif is_wildcard == True:
                     event.add_tag("wildcard")
                     wildcard_tag = "wildcard"
+                elif is_wildcard == None:
+                    wildcard_tag = "error"
+
                 event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
 
             # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
             if wildcard_rdtypes and not "target" in event.tags:
-                # these are the rdtypes that successfully resolve
-                resolved_rdtypes = set([c.upper() for c in event.dns_children])
                 # these are the rdtypes that have wildcards
                 wildcard_rdtypes_set = set(wildcard_rdtypes)
                 # consider the event a full wildcard if all its records are wildcards
                 event_is_wildcard = False
-                if resolved_rdtypes:
-                    event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
+                if wildcard_rdtypes_set:
+                    event_is_wildcard = all(r[0] == True for r in wildcard_rdtypes.values())
 
                 if event_is_wildcard:
                     if event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
@@ -273,13 +283,13 @@ class DNSResolve(InterceptModule):
                             event.data = wildcard_data
 
         finally:
-            self.debug(f"Finished handle_wildcard_event({event}, children={event.dns_children})")
+            self.debug(f"Finished handle_wildcard_event({event})")
 
     def get_dns_parent(self, event):
         """
         Get the first parent DNS_NAME / IP_ADDRESS of an event. If one isn't found, create it.
         """
-        for parent in event.get_parents():
+        for parent in event.get_parents(include_self=True):
             if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
                 return parent
         return self.scan.make_event(
