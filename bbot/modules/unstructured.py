@@ -66,7 +66,32 @@ class unstructured(BaseModule):
         "ignore_folders": "Subfolders to ignore when crawling downloaded folders",
     }
 
-    deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
+    deps_ansible = [
+        {
+            "name": "Install Deps (Debian/Ubuntu)",
+            "package": {
+                "name": ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"],
+                "state": "present",
+            },
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Debian'",
+        },
+        {
+            "name": "Install Deps (Arch)",
+            "package": {"name": ["file", "poppler", "tesseract", "libreoffice-fresh", "pandoc"], "state": "present"},
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Archlinux'",
+        },
+        {
+            "name": "Install Deps (Fedora)",
+            "package": {
+                "name": ["file-devel", "poppler-utils", "tesseract", "libreoffice", "pandoc"],
+                "state": "present",
+            },
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Fedora'",
+        },
+    ]
     deps_pip = ["unstructured[all-docs]"]
 
     async def setup(self):
