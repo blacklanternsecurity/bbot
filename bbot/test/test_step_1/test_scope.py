@@ -72,8 +72,6 @@ class TestScopeWhitelist(TestScopeBlacklist):
     whitelist = ["255.255.255.255"]
 
     def check(self, module_test, events):
-        for e in events:
-            self.log.critical(f"{e} <-- {e.parent}")
         assert len(events) == 3
         assert not any(e.type == "URL" for e in events)
         assert 1 == len(

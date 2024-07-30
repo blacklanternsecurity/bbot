@@ -1480,11 +1480,12 @@ class InterceptModule(BaseModule):
                             with suppress(ValueError, TypeError):
                                 forward_event, forward_event_reason = forward_event
 
-                        if forward_event != False:
-                            self.debug(f"Forwarding {event}")
-                            await self.forward_event(event, kwargs)
-                        else:
+                        if forward_event is False:
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")
+                            continue
+
+                    self.debug(f"Forwarding {event}")
+                    await self.forward_event(event, kwargs)
 
             except asyncio.CancelledError:
                 # this trace was used for debugging leaked CancelledErrors from inside httpx
