@@ -119,7 +119,6 @@ class DNSResolve(InterceptModule):
                         )
                         raw_record_events.append(raw_record_event)
                     if errors:
-                        self.critical(errors)
                         error_rdtypes.append(rdtype)
                     for _rdtype, host in extract_targets(answer):
                         dns_tags.add(f"{rdtype.lower()}-record")
@@ -292,10 +291,14 @@ class DNSResolve(InterceptModule):
         for parent in event.get_parents(include_self=True):
             if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
                 return parent
+        tags = set()
+        if "target" in event.tags:
+            tags.add("target")
         return self.scan.make_event(
             event.host,
             "DNS_NAME",
             module=self.host_module,
             parent=event,
             context="{event.parent.type} has host {event.type}: {event.host}",
+            tags=tags,
         )

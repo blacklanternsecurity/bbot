@@ -1,10 +1,7 @@
 import asyncio
-import logging
 from contextlib import suppress
 
 from bbot.modules.base import InterceptModule
-
-log = logging.getLogger("bbot.scanner.manager")
 
 
 class ScanIngress(InterceptModule):
@@ -111,7 +108,7 @@ class ScanIngress(InterceptModule):
         # here is where we make sure in-scope events are set to their proper scope distance
         event_whitelisted = self.scan.whitelisted(event)
         if event.host and event_whitelisted:
-            log.debug(f"Making {event} in-scope because it matches the scan target")
+            self.debug(f"Making {event} in-scope because it matches the scan target")
             event.scope_distance = 0
 
         # nerf event's priority if it's not in scope
@@ -203,13 +200,13 @@ class ScanEgress(InterceptModule):
         event_will_be_output = event.always_emit or event_in_report_distance
 
         if not event_will_be_output:
-            log.debug(
+            self.debug(
                 f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
             )
             event.internal = True
 
         if event.type in self.scan.omitted_event_types:
-            log.debug(f"Omitting {event} because its type is omitted in the config")
+            self.debug(f"Omitting {event} because its type is omitted in the config")
             event._omit = True
 
         # if we discovered something interesting from an internal event,
@@ -223,7 +220,7 @@ class ScanEgress(InterceptModule):
                 parent.internal = False
             if not parent._graph_important:
                 parent._graph_important = True
-                log.debug(f"Re-queuing internal event {parent} with parent {event} to prevent graph orphan")
+                self.debug(f"Re-queuing internal event {parent} with parent {event} to prevent graph orphan")
                 await self.emit_event(parent)
 
         abort_result = False

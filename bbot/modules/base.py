@@ -1454,8 +1454,6 @@ class InterceptModule(BaseModule):
                             await self.finish()
                         continue
 
-                    self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-
                     acceptable = True
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
@@ -1482,13 +1480,11 @@ class InterceptModule(BaseModule):
                             with suppress(ValueError, TypeError):
                                 forward_event, forward_event_reason = forward_event
 
-                        self.debug(f"Finished intercepting {event}")
-
-                        if forward_event is False:
+                        if forward_event != False:
+                            self.debug(f"Forwarding {event}")
+                            await self.forward_event(event, kwargs)
+                        else:
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")
-                            continue
-
-                    await self.forward_event(event, kwargs)
 
             except asyncio.CancelledError:
                 # this trace was used for debugging leaked CancelledErrors from inside httpx
