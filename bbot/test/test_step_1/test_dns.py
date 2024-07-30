@@ -150,10 +150,10 @@ async def test_dns_resolution(bbot_scanner):
     dnsresolve = scan.modules["dnsresolve"]
     assert hash(resolved_hosts_event1.host) not in dnsresolve._event_cache
     assert hash(resolved_hosts_event2.host) not in dnsresolve._event_cache
-    await dnsresolve.handle_event(resolved_hosts_event1, {})
+    await dnsresolve.handle_event(resolved_hosts_event1)
     assert hash(resolved_hosts_event1.host) in dnsresolve._event_cache
     assert hash(resolved_hosts_event2.host) in dnsresolve._event_cache
-    await dnsresolve.handle_event(resolved_hosts_event2, {})
+    await dnsresolve.handle_event(resolved_hosts_event2)
     assert "1.1.1.1" in resolved_hosts_event2.resolved_hosts
     assert "1.1.1.1" in resolved_hosts_event2.dns_children["A"]
     assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
@@ -222,9 +222,9 @@ async def test_wildcards(bbot_scanner):
     # event resolution
     await scan._prep()
     dnsresolve = scan.modules["dnsresolve"]
-    await dnsresolve.handle_event(wildcard_event1, {})
-    await dnsresolve.handle_event(wildcard_event2, {})
-    await dnsresolve.handle_event(wildcard_event3, {})
+    await dnsresolve.handle_event(wildcard_event1)
+    await dnsresolve.handle_event(wildcard_event2)
+    await dnsresolve.handle_event(wildcard_event3)
     assert "wildcard" in wildcard_event1.tags
     assert "a-wildcard" in wildcard_event1.tags
     assert "srv-wildcard" not in wildcard_event1.tags

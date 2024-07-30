@@ -1478,7 +1478,7 @@ class InterceptModule(BaseModule):
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Intercepting {event}")
                         async with self.scan._acatch(context), self._task_counter.count(context):
-                            forward_event = await self.handle_event(event, kwargs)
+                            forward_event = await self.handle_event(event, **kwargs)
                             with suppress(ValueError, TypeError):
                                 forward_event, forward_event_reason = forward_event
 
