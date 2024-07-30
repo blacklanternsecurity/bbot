@@ -57,7 +57,7 @@ bbot -t evilcorp.com -m whois
 
 ### Debugging Your Module - BBOT's Colorful Log Functions
 
-You probably noticed the use of `self.hugesuccess()`. This function is part of BBOT's builtin logging capabilty, and it prints whatever you give it to the screen in bright green. These colorful log functions can be really useful for debugging.
+You probably noticed the use of `self.hugesuccess()`. This function is part of BBOT's builtin logging capabilty, and it prints whatever you give it in bright green. These colorful log functions can be useful for debugging.
 
 **BBOT log levels**:
 
