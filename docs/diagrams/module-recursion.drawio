@@ -1,0 +1,57 @@
+<mxfile host="app.diagrams.net" modified="2024-07-03T18:40:16.598Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" etag="4bIymJw_DavQpFF9U34j" version="24.6.4" type="device">
+  <diagram id="k5DHI0hYYEmeXv_8ftBP" name="Event Flow">
+    <mxGraphModel dx="1434" dy="774" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1100" pageHeight="850" background="#000000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="he0SLGXkaBVM0eI8LB2F-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=8;strokeColor=#FF8400;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;sketch=1;curveFitting=1;jiggle=2;" edge="1" parent="1" source="1yXzTcWmnBrHI3MBj5dw-16" target="1yXzTcWmnBrHI3MBj5dw-18">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="834" y="264" />
+              <mxPoint x="834" y="122" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="he0SLGXkaBVM0eI8LB2F-3" style="edgeStyle=orthogonalEdgeStyle;shape=connector;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#FF8400;strokeWidth=8;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classic;exitX=1;exitY=0.5;exitDx=0;exitDy=0;sketch=1;curveFitting=1;jiggle=2;" edge="1" parent="1" source="1yXzTcWmnBrHI3MBj5dw-16" target="he0SLGXkaBVM0eI8LB2F-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="835" y="264" />
+              <mxPoint x="835" y="406" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1yXzTcWmnBrHI3MBj5dw-16" value="&lt;span style=&quot;color: rgb(255, 255, 255); font-family: hack; font-size: 18px;&quot;&gt;portscan&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#000000;strokeColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="549" y="239" width="191" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="he0SLGXkaBVM0eI8LB2F-4" style="edgeStyle=orthogonalEdgeStyle;shape=connector;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00B3FF;strokeWidth=8;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classic;exitX=0;exitY=0.5;exitDx=0;exitDy=0;sketch=1;curveFitting=1;jiggle=2;" edge="1" parent="1" source="1yXzTcWmnBrHI3MBj5dw-18" target="1yXzTcWmnBrHI3MBj5dw-16">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="465" y="122" />
+              <mxPoint x="465" y="264" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1yXzTcWmnBrHI3MBj5dw-18" value="&lt;span style=&quot;color: rgb(255, 255, 255); font-family: hack; font-size: 18px;&quot;&gt;sslcert&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#000000;strokeColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="549" y="97" width="191" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="he0SLGXkaBVM0eI8LB2F-6" style="edgeStyle=orthogonalEdgeStyle;shape=connector;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#00B3FF;strokeWidth=8;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classic;exitX=0;exitY=0.5;exitDx=0;exitDy=0;sketch=1;curveFitting=1;jiggle=2;" edge="1" parent="1" source="he0SLGXkaBVM0eI8LB2F-1" target="1yXzTcWmnBrHI3MBj5dw-16">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="464" y="406" />
+              <mxPoint x="464" y="264" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="he0SLGXkaBVM0eI8LB2F-1" value="&lt;span style=&quot;color: rgb(255, 255, 255); font-family: hack; font-size: 18px;&quot;&gt;httpx&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;fillColor=#000000;strokeColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="549" y="381" width="191" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="he0SLGXkaBVM0eI8LB2F-7" value="&lt;font face=&quot;hack&quot; data-font-src=&quot;https://fonts.googleapis.com/css?family=hack&quot;&gt;OPEN_TCP_PORT&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=24;fontColor=#FF8400;labelBackgroundColor=none;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="826" y="253" width="201" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="he0SLGXkaBVM0eI8LB2F-8" value="&lt;font data-font-src=&quot;https://fonts.googleapis.com/css?family=hack&quot; face=&quot;hack&quot;&gt;DNS_NAME&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=24;fontColor=#00B3FF;labelBackgroundColor=none;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="330" y="249" width="136" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

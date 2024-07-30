@@ -36,24 +36,34 @@ class wafw00f(BaseModule):
             return False, f"Invalid HTTP status code: {http_status}"
         return True, ""
 
+    def _incoming_dedup_hash(self, event):
+        return hash(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/")
+
     async def handle_event(self, event):
-        url = f"{event.parsed.scheme}://{event.parsed.netloc}/"
-        WW = await self.scan.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
-        waf_detections = await self.scan.run_in_executor(WW.identwaf)
+        url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
+        WW = await self.helpers.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
+        waf_detections = await self.helpers.run_in_executor(WW.identwaf)
         if waf_detections:
             for waf in waf_detections:
-                await self.emit_event({"host": str(event.host), "url": url, "waf": waf}, "WAF", source=event)
+                await self.emit_event(
+                    {"host": str(event.host), "url": url, "waf": waf},
+                    "WAF",
+                    parent=event,
+                    context=f"{{module}} scanned {url} and identified {{event.type}}: {waf}",
+                )
         else:
             if self.config.get("generic_detect") == True:
-                generic = await self.scan.run_in_executor(WW.genericdetect)
+                generic = await self.helpers.run_in_executor(WW.genericdetect)
                 if generic:
+                    waf = "generic detection"
                     await self.emit_event(
                         {
                             "host": str(event.host),
                             "url": url,
-                            "waf": "generic detection",
+                            "waf": waf,
                             "info": WW.knowledge["generic"]["reason"],
                         },
                         "WAF",
-                        source=event,
+                        parent=event,
+                        context=f"{{module}} scanned {url} and identified {{event.type}}: {waf}",
                     )

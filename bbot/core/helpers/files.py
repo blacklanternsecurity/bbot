@@ -1,6 +1,5 @@
 import os
 import logging
-import threading
 import traceback
 from contextlib import suppress
 
@@ -104,7 +103,13 @@ def feed_pipe(self, pipe, content, text=True):
         text (bool, optional): If True, the content is decoded using smart_decode function.
             If False, smart_encode function is used. Defaults to True.
     """
-    t = threading.Thread(target=self._feed_pipe, args=(pipe, content), kwargs={"text": text}, daemon=True)
+    t = self.preset.core.create_thread(
+        target=self._feed_pipe,
+        args=(pipe, content),
+        kwargs={"text": text},
+        daemon=True,
+        custom_name="bbot feed_pipe()",
+    )
     t.start()
 
 
@@ -127,7 +132,9 @@ def tempfile_tail(self, callback):
     rm_at_exit(filename)
     try:
         os.mkfifo(filename)
-        t = threading.Thread(target=tail, args=(filename, callback), daemon=True)
+        t = self.preset.core.create_thread(
+            target=tail, args=(filename, callback), daemon=True, custom_name="bbot tempfile_tail()"
+        )
         t.start()
     except Exception as e:
         log.error(f"Error setting up tail for file {filename}: {e}")

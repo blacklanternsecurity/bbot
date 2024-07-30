@@ -5,7 +5,7 @@ import struct
 import logging
 import collections
 
-from bbot.core.errors import NTLMError
+from bbot.errors import NTLMError
 
 log = logging.getLogger("bbot.core.helpers.ntlm")
 

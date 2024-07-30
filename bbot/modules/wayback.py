@@ -29,7 +29,13 @@ class wayback(subdomain_enum):
     async def handle_event(self, event):
         query = self.make_query(event)
         for result, event_type in await self.query(query):
-            await self.emit_event(result, event_type, event, abort_if=self.abort_if)
+            await self.emit_event(
+                result,
+                event_type,
+                event,
+                abort_if=self.abort_if,
+                context=f'{{module}} queried archive.org for "{query}" and found {{event.type}}: {{event.data}}',
+            )
 
     async def query(self, query):
         results = set()
@@ -58,7 +64,9 @@ class wayback(subdomain_enum):
         dns_names = set()
         collapsed_urls = 0
         start_time = datetime.now()
-        parsed_urls = await self.scan.run_in_executor_mp(
+        # we consolidate URLs to cut down on garbage data
+        # this is CPU-intensive, so we do it in its own core.
+        parsed_urls = await self.helpers.run_in_executor_mp(
             self.helpers.validators.collapse_urls,
             urls,
             threshold=self.garbage_threshold,

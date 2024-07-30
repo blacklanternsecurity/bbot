@@ -8,7 +8,7 @@ class bucket_google(bucket_template):
 
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "cloud-enum", "web-basic"]
     meta = {
         "description": "Check for Google object storage related to target",
         "created_date": "2022-11-04",
@@ -60,8 +60,7 @@ class bucket_google(bucket_template):
             msg = f"Open permissions on storage bucket ({perms_str})"
         return (msg, set())
 
-    async def check_bucket_exists(self, bucket_name, url):
-        response = await self.helpers.request(url)
+    def check_bucket_exists(self, bucket_name, response):
         status_code = getattr(response, "status_code", 0)
         existent_bucket = status_code not in (0, 400, 404)
-        return existent_bucket, set(), bucket_name, url
+        return existent_bucket, set()

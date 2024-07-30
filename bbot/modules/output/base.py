@@ -8,8 +8,18 @@ class BaseOutputModule(BaseModule):
     _type = "output"
     scope_distance_modifier = None
     _stats_exclude = True
+    _shuffle_incoming_queue = False
+
+    def human_event_str(self, event):
+        event_type = f"[{event.type}]"
+        event_tags = ""
+        if getattr(event, "tags", []):
+            event_tags = f'\t({", ".join(sorted(getattr(event, "tags", [])))})'
+        event_str = f"{event_type:<20}\t{event.data_human}\t{event.module_sequence}{event_tags}"
+        return event_str
 
     def _event_precheck(self, event):
+        reason = "precheck succeeded"
         # special signal event types
         if event.type in ("FINISHED",):
             return True, "its type is FINISHED"
@@ -21,25 +31,35 @@ class BaseOutputModule(BaseModule):
         if self.target_only:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
-        # exclude certain URLs (e.g. javascript):
-        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
-            return False, "its extension was listed in url_extension_httpx_only"
 
-        # output module specific stuff
-        # omitted events such as HTTP_RESPONSE etc.
-        if event._omit and not event.type in self.get_watched_events():
-            return False, "_omit is True"
+        ### begin output-module specific ###
 
         # force-output certain events to the graph
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
+
+        # exclude certain URLs (e.g. javascript):
+        # TODO: revisit this after httpx rework
+        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
+            return False, (f"Omitting {event} from output because it's marked as httpx-only")
+
+        # omit certain event types
+        if event._omit:
+            if "target" in event.tags:
+                reason = "it's a target"
+                self.debug(f"Allowing omitted event: {event} because {reason}")
+            elif event.type in self.get_watched_events():
+                reason = "its type is explicitly in watched_events"
+                self.debug(f"Allowing omitted event: {event} because {reason}")
+            else:
+                return False, "_omit is True"
 
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance
         if event._internal:
             return False, "_internal is True"
 
-        return True, "precheck succeeded"
+        return True, reason
 
     async def _event_postcheck(self, event):
         acceptable, reason = await super()._event_postcheck(event)
@@ -72,13 +92,6 @@ class BaseOutputModule(BaseModule):
         if getattr(self, "_file", None) is None:
             self._file = open(self.output_file, mode="a")
         return self._file
-
-    @property
-    def config(self):
-        config = self.scan.config.get("output_modules", {}).get(self.name, {})
-        if config is None:
-            config = {}
-        return config
 
     @property
     def log(self):

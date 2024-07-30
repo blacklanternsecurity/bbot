@@ -5,9 +5,9 @@ from .base import ModuleTestBase
 class TestUnstructured(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["unstructured", "filedownload", "httpx", "excavate", "speculate"]
-    config_overrides = {"web_spider_distance": 2, "web_spider_depth": 2}
+    config_overrides = {"web": {"spider_distance": 2, "spider_depth": 2}}
 
-    pdf_data = """%PDF-1.3
+    pdf_data = r"""%PDF-1.3
 %���� ReportLab Generated PDF document http://www.reportlab.com
 1 0 obj
 <<

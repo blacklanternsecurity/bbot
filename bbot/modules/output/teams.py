@@ -14,7 +14,7 @@ class Teams(WebhookOutputModule):
         "event_types": "Types of events to send",
         "min_severity": "Only allow VULNERABILITY events of this severity or higher",
     }
-    _max_event_handlers = 5
+    _module_threads = 5
     good_status_code = 200
     content_key = "text"
 

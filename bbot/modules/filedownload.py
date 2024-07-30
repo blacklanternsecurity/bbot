@@ -14,7 +14,7 @@ class filedownload(BaseModule):
 
     watched_events = ["URL_UNVERIFIED", "HTTP_RESPONSE"]
     produced_events = ["FILESYSTEM"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {
         "description": "Download common filetypes such as PDF, DOCX, PPTX, etc.",
         "created_date": "2023-10-11",
@@ -142,7 +142,7 @@ class filedownload(BaseModule):
             self.files_downloaded += 1
             if source_event:
                 file_event = self.make_event(
-                    {"path": str(file_destination)}, "FILESYSTEM", tags=["filedownload", "file"], source=source_event
+                    {"path": str(file_destination)}, "FILESYSTEM", tags=["filedownload", "file"], parent=source_event
                 )
                 file_event.scope_distance = source_event.scope_distance
                 await self.emit_event(file_event)

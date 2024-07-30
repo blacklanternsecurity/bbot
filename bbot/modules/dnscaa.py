@@ -42,7 +42,7 @@ class dnscaa(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "URL_UNVERIFIED"]
     flags = ["subdomain-enum", "email-enum", "passive", "safe"]
-    meta = {"description": "Check for CAA records"}
+    meta = {"description": "Check for CAA records", "author": "@colin-stubbs", "created_date": "2024-05-26"}
     options = {
         "in_scope_only": True,
         "dns_names": True,
@@ -83,43 +83,37 @@ class dnscaa(BaseModule):
         if r:
             raw_results, errors = r
 
-            for rdtype, answers in raw_results:
-                for answer in answers:
-                    s = answer.to_text().strip().replace('" "', "")
+            for answer in raw_results:
+                s = answer.to_text().strip().replace('" "', "")
 
-                    # validate CAA record vi regex so that we can determine what to do with it.
-                    caa_match = caa_regex.search(s)
+                # validate CAA record vi regex so that we can determine what to do with it.
+                caa_match = caa_regex.search(s)
 
-                    if (
-                        caa_match
-                        and caa_match.group("flags")
-                        and caa_match.group("property")
-                        and caa_match.group("text")
-                    ):
-                        # it's legit.
-                        if caa_match.group("property").lower() == "iodef":
-                            if self._emails:
-                                for match in email_regex.finditer(caa_match.group("text")):
+                if caa_match and caa_match.group("flags") and caa_match.group("property") and caa_match.group("text"):
+                    # it's legit.
+                    if caa_match.group("property").lower() == "iodef":
+                        if self._emails:
+                            for match in email_regex.finditer(caa_match.group("text")):
+                                start, end = match.span()
+                                email = caa_match.group("text")[start:end]
+
+                                await self.emit_event(email, "EMAIL_ADDRESS", tags=tags, parent=event)
+
+                        if self._urls:
+                            for url_regex in url_regexes:
+                                for match in url_regex.finditer(caa_match.group("text")):
                                     start, end = match.span()
-                                    email = caa_match.group("text")[start:end]
+                                    url = caa_match.group("text")[start:end].strip('"').strip()
 
-                                    await self.emit_event(email, "EMAIL_ADDRESS", tags=tags, source=event)
+                                    await self.emit_event(url, "URL_UNVERIFIED", tags=tags, parent=event)
 
-                            if self._urls:
-                                for url_regex in url_regexes:
-                                    for match in url_regex.finditer(caa_match.group("text")):
-                                        start, end = match.span()
-                                        url = caa_match.group("text")[start:end].strip('"').strip()
+                    elif caa_match.group("property").lower().startswith("issue"):
+                        if self._dns_names:
+                            for match in dns_name_regex.finditer(caa_match.group("text")):
+                                start, end = match.span()
+                                name = caa_match.group("text")[start:end]
 
-                                        await self.emit_event(url, "URL_UNVERIFIED", tags=tags, source=event)
-
-                        elif caa_match.group("property").lower().startswith("issue"):
-                            if self._dns_names:
-                                for match in dns_name_regex.finditer(caa_match.group("text")):
-                                    start, end = match.span()
-                                    name = caa_match.group("text")[start:end]
-
-                                    await self.emit_event(name, "DNS_NAME", tags=tags, source=event)
+                                await self.emit_event(name, "DNS_NAME", tags=tags, parent=event)
 
 
 # EOF

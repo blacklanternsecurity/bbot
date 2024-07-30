@@ -117,18 +117,18 @@ class unstructured(BaseModule):
                 if not any(ignored_folder in str(file_path) for ignored_folder in self.ignored_folders):
                     if any(file_path.name.endswith(f".{ext}") for ext in self.extensions):
                         file_event = self.make_event(
-                            {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], source=event
+                            {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], parent=event
                         )
                         file_event.scope_distance = event.scope_distance
                         await self.emit_event(file_event)
         elif "file" in event.tags:
             file_path = event.data["path"]
-            content = await self.scan.run_in_executor_mp(extract_text, file_path)
+            content = await self.scan.helpers.run_in_executor_mp(extract_text, file_path)
             if content:
                 raw_text_event = self.make_event(
                     content,
                     "RAW_TEXT",
-                    source=event,
+                    parent=event,
                 )
                 await self.emit_event(raw_text_event)
 

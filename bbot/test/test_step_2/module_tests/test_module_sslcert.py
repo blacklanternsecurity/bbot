@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestSSLCert(ModuleTestBase):
     targets = ["127.0.0.1:9999", "bbottest.notreal"]
-    config_overrides = {"scope_report_distance": 1}
+    config_overrides = {"scope": {"report_distance": 1}}
 
     def check(self, module_test, events):
         assert len(events) == 6

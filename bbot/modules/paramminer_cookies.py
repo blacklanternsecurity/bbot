@@ -6,7 +6,8 @@ class paramminer_cookies(paramminer_headers):
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
-    watched_events = ["HTTP_RESPONSE"]
+    watched_events = ["HTTP_RESPONSE", "WEB_PARAMETER"]
+    produced_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {
@@ -16,18 +17,18 @@ class paramminer_cookies(paramminer_headers):
     }
     options = {
         "wordlist": "",  # default is defined within setup function
-        "http_extract": True,
+        "recycle_words": False,
         "skip_boring_words": True,
     }
     options_desc = {
         "wordlist": "Define the wordlist to be used to derive headers",
-        "http_extract": "Attempt to find additional wordlist words from the HTTP Response",
+        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
     }
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
     scanned_hosts = []
     boring_words = set()
-    _max_event_handlers = 12
+    _module_threads = 12
     in_scope_only = True
     compare_mode = "cookie"
     default_wordlist = "paramminer_parameters.txt"

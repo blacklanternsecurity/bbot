@@ -1,0 +1,22 @@
+description: Comprehensive scan for all IIS/.NET specific modules and module settings
+
+
+include:
+  - iis-shortnames
+
+modules:
+  - httpx
+  - badsecrets
+  - ffuf_shortnames
+  - ffuf
+  - telerik
+  - ajaxpro
+  - dotnetnuke
+
+config:
+  modules:
+    ffuf:
+      extensions: asp,aspx,ashx,asmx,ascx
+    telerik:
+      exploit_RAU_crypto: True
+

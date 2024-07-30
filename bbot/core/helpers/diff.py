@@ -3,19 +3,43 @@ import xmltodict
 from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
-from bbot.core.errors import HttpCompareError
+from bbot.errors import HttpCompareError
 
 log = logging.getLogger("bbot.core.helpers.diff")
 
 
 class HttpCompare:
-    def __init__(self, baseline_url, parent_helper, method="GET", allow_redirects=False, include_cache_buster=True):
+    def __init__(
+        self,
+        baseline_url,
+        parent_helper,
+        method="GET",
+        data=None,
+        allow_redirects=False,
+        include_cache_buster=True,
+        headers=None,
+        cookies=None,
+        timeout=15,
+    ):
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
         self.include_cache_buster = include_cache_buster
         self.method = method
+        self.data = data
         self.allow_redirects = allow_redirects
         self._baselined = False
+        self.headers = headers
+        self.cookies = cookies
+        self.timeout = 15
+
+    @staticmethod
+    def merge_dictionaries(headers1, headers2):
+        if headers2 is None:
+            return headers1
+        else:
+            merged_headers = headers1.copy()
+            merged_headers.update(headers2)
+            return merged_headers
 
     async def _baseline(self):
         if not self._baselined:
@@ -25,7 +49,14 @@ class HttpCompare:
             else:
                 url_1 = self.baseline_url
             baseline_1 = await self.parent_helper.request(
-                url_1, follow_redirects=self.allow_redirects, method=self.method
+                url_1,
+                follow_redirects=self.allow_redirects,
+                method=self.method,
+                data=self.data,
+                headers=self.headers,
+                cookies=self.cookies,
+                retries=2,
+                timeout=self.timeout,
             )
             await self.parent_helper.sleep(1)
             # put random parameters in URL, headers, and cookies
@@ -36,10 +67,17 @@ class HttpCompare:
             url_2 = self.parent_helper.add_get_params(self.baseline_url, get_params).geturl()
             baseline_2 = await self.parent_helper.request(
                 url_2,
-                headers={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
-                cookies={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
+                headers=self.merge_dictionaries(
+                    {self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)}, self.headers
+                ),
+                cookies=self.merge_dictionaries(
+                    {self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)}, self.cookies
+                ),
                 follow_redirects=self.allow_redirects,
                 method=self.method,
+                data=self.data,
+                retries=2,
+                timeout=self.timeout,
             )
 
             self.baseline = baseline_1
@@ -79,6 +117,7 @@ class HttpCompare:
                     "ETag",
                     "X-Pad",
                     "X-Backside-Transport",
+                    "keep-alive",
                 ]
             ]
             dynamic_headers = self.compare_headers(baseline_1.headers, baseline_2.headers)
@@ -123,7 +162,15 @@ class HttpCompare:
             return False
 
     async def compare(
-        self, subject, headers=None, cookies=None, check_reflection=False, method="GET", allow_redirects=False
+        self,
+        subject,
+        headers=None,
+        cookies=None,
+        check_reflection=False,
+        method="GET",
+        data=None,
+        allow_redirects=False,
+        timeout=None,
     ):
         """
         Compares a URL with the baseline, with optional headers or cookies added
@@ -133,7 +180,11 @@ class HttpCompare:
                 "reason" is the location of the change ("code", "body", "header", or None), and
                 "reflection" is whether the value was reflected in the HTTP response
         """
+
         await self._baseline()
+
+        if timeout == None:
+            timeout = self.timeout
 
         reflection = False
         if self.include_cache_buster:
@@ -142,7 +193,13 @@ class HttpCompare:
         else:
             url = subject
         subject_response = await self.parent_helper.request(
-            url, headers=headers, cookies=cookies, follow_redirects=allow_redirects, method=method
+            url,
+            headers=headers,
+            cookies=cookies,
+            follow_redirects=allow_redirects,
+            method=method,
+            data=data,
+            timeout=timeout,
         )
 
         if subject_response is None:
@@ -159,7 +216,7 @@ class HttpCompare:
 
             subject_params = self.parent_helper.get_get_params(subject)
             for k, v in subject_params.items():
-                if k != cache_key:
+                if self.include_cache_buster and k != cache_key:
                     for item in v:
                         if item in subject_response.text:
                             reflection = True
@@ -190,11 +247,11 @@ class HttpCompare:
             diff_reasons.append("body")
 
         if not diff_reasons:
-            return (True, [], False, None)
+            return (True, [], reflection, subject_response)
         else:
             return (False, diff_reasons, reflection, subject_response)
 
-    async def canary_check(self, url, mode, rounds=6):
+    async def canary_check(self, url, mode, rounds=3):
         """
         test detection using a canary to find hosts giving bad results
         """
@@ -202,7 +259,7 @@ class HttpCompare:
         headers = None
         cookies = None
         for i in range(0, rounds):
-            random_params = {self.parent_helper.rand_string(7): self.parent_helper.rand_string(6)}
+            random_params = {self.parent_helper.rand_string(7): self.parent_helper.rand_string(7)}
             new_url = str(url)
             if mode == "getparam":
                 new_url = self.parent_helper.add_get_params(url, random_params).geturl()
@@ -214,10 +271,10 @@ class HttpCompare:
                 raise ValueError(f'Invalid mode: "{mode}", choose from: getparam, header, cookie')
 
             match, reasons, reflection, subject_response = await self.compare(
-                new_url, headers=headers, cookies=cookies
+                new_url, headers=headers, cookies=cookies, check_reflection=True
             )
 
-            # a nonsense header "caused" a difference, we need to abort
-            if match == False:
+            # if a nonsense header "caused" a difference, we need to abort. We also need to abort if our canary was reflected
+            if match == False or reflection == True:
                 return False
         return True
