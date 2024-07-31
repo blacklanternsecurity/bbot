@@ -155,9 +155,11 @@ async def test_dns_resolution(bbot_scanner):
     assert hash(resolved_hosts_event2.host) in dnsresolve._event_cache
     await dnsresolve.handle_event(resolved_hosts_event2)
     assert "1.1.1.1" in resolved_hosts_event2.resolved_hosts
-    assert "1.1.1.1" in resolved_hosts_event2.dns_children["A"]
+    # URL event should not have dns_children
+    assert not resolved_hosts_event2.dns_children
     assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
-    assert resolved_hosts_event1.dns_children == resolved_hosts_event2.dns_children
+    # DNS_NAME event should have dns_children
+    assert "1.1.1.1" in resolved_hosts_event1.dns_children["A"]
     assert "a-record" in resolved_hosts_event1.tags
     assert not "a-record" in resolved_hosts_event2.tags
 

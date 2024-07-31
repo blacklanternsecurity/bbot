@@ -210,12 +210,12 @@ class BaseEvent:
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
 
+        # inherit web spider distance from parent
+        self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
+
         self.parent = parent
         if (not self.parent) and (not self._dummy):
             raise ValidationError(f"Must specify event parent")
-
-        # inherit web spider distance from parent
-        self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
 
         if tags is not None:
             for tag in tags:
@@ -503,8 +503,8 @@ class BaseEvent:
             # inherit certain tags
             if hosts_are_same:
                 for t in parent.tags:
-                    if t == "affiliate":
-                        self.add_tag("affiliate")
+                    if t in ("affiliate", "spider-danger", "spider-max"):
+                        self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
         elif not self._dummy:
@@ -1104,8 +1104,8 @@ class URL_UNVERIFIED(BaseEvent):
             # increment the web spider distance
             if self.type == "URL_UNVERIFIED":
                 self.web_spider_distance += 1
-            if self.is_spider_max:
-                self.add_tag("spider-max")
+                if self.is_spider_max:
+                    self.add_tag("spider-max")
         super().add_tag(tag)
 
     @property
