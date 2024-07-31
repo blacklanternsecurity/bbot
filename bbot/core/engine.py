@@ -63,13 +63,14 @@ class EngineBase:
 
     async def _infinite_retry(self, callback, *args, **kwargs):
         interval = kwargs.pop("_interval", 10)
+        context = kwargs.pop("_context", "")
+        if not context:
+            context = f"{callback.__name__}({args}, {kwargs})"
         while not self._shutdown_status:
             try:
                 return await asyncio.wait_for(callback(*args, **kwargs), timeout=interval)
             except (TimeoutError, asyncio.TimeoutError):
-                self.log.debug(
-                    f"{self.name}: Timeout waiting for response for {callback.__name__}({args}, {kwargs}), retrying..."
-                )
+                self.log.debug(f"{self.name}: Timeout waiting for response for {context}, retrying...")
 
 
 class EngineClient(EngineBase):
@@ -144,10 +145,10 @@ class EngineClient(EngineBase):
                 if message is error_sentinel:
                     return
                 await self._infinite_retry(socket.send, message)
-                binary = await self._infinite_retry(socket.recv)
+                binary = await self._infinite_retry(socket.recv, _context=f"waiting for return value from {fn_str}")
             except BaseException:
                 try:
-                    await self.send_cancel_message(socket)
+                    await self.send_cancel_message(socket, fn_str)
                 except Exception:
                     self.log.debug(f"{self.name}: {fn_str} failed to send cancel message after exception")
                     self.log.trace(traceback.format_exc())
@@ -176,7 +177,9 @@ class EngineClient(EngineBase):
             await socket.send(message)
             while 1:
                 try:
-                    binary = await self._infinite_retry(socket.recv)
+                    binary = await self._infinite_retry(
+                        socket.recv, _context=f"waiting for new iteration from {fn_str}"
+                    )
                     # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
                     message = self.unpickle(binary)
                     self.log.debug(f"{self.name} {command} got iteration: {message}")
@@ -188,13 +191,13 @@ class EngineClient(EngineBase):
                     exc_name = e.__class__.__name__
                     self.log.debug(f"{self.name}.{command} got {exc_name}")
                     try:
-                        await self.send_cancel_message(socket)
+                        await self.send_cancel_message(socket, fn_str)
                     except Exception:
                         self.log.debug(f"{self.name}.{command} failed to send cancel message after {exc_name}")
                         self.log.trace(traceback.format_exc())
                     break
 
-    async def send_cancel_message(self, socket):
+    async def send_cancel_message(self, socket, context):
         """
         Send a cancel message and wait for confirmation from the server
         """
@@ -202,7 +205,7 @@ class EngineClient(EngineBase):
         message = pickle.dumps({"c": -1})
         await self._infinite_retry(socket.send, message)
         while 1:
-            response = await self._infinite_retry(socket.recv)
+            response = await self._infinite_retry(socket.recv, _context=f"waiting for CANCEL_OK from {context}")
             response = pickle.loads(response)
             if isinstance(response, dict):
                 response = response.get("m", "")

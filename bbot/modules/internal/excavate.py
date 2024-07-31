@@ -252,8 +252,8 @@ class ExcavateRule:
             event_data["description"] = f"{discovery_context} {yara_rule_settings['self.description']}"
         subject = ""
         if isinstance(event_data, str):
-            subject = f" event_data"
-        context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {discovery_context} {yara_rule_settings.description}"
+            subject = f" {event_data}"
+        context = f"Excavate's {self.__class__.__name__} emitted {event_type}{subject}, because {discovery_context} {yara_rule_settings.description}"
         tags = yara_rule_settings.tags
         event_draft = await self.report_prep(event_data, event_type, event, tags, **kwargs)
         if event_draft:
