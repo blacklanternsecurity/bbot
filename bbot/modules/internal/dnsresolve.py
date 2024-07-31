@@ -63,7 +63,7 @@ class DNSResolve(InterceptModule):
             return False, "event does not have host attribute"
         return True
 
-    async def handle_event(self, event, kwargs):
+    async def handle_event(self, event, **kwargs):
         dns_tags = set()
         dns_children = dict()
         event_whitelisted = False

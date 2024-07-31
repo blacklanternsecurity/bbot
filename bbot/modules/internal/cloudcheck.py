@@ -21,7 +21,7 @@ class CloudCheck(InterceptModule):
             return False, "event does not have host attribute"
         return True
 
-    async def handle_event(self, event, kwargs):
+    async def handle_event(self, event, **kwargs):
         # don't hold up the event loop loading cloud IPs etc.
         if self.dummy_modules is None:
             self.make_dummy_modules()

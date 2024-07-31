@@ -62,7 +62,7 @@ class ScanIngress(InterceptModule):
             await asyncio.sleep(0.1)
             self.scan._finished_init = True
 
-    async def handle_event(self, event, kwargs):
+    async def handle_event(self, event, **kwargs):
         # don't accept dummy events
         if event._dummy:
             return False, "cannot emit dummy event"
@@ -187,9 +187,16 @@ class ScanEgress(InterceptModule):
         # we are the lowest priority
         return 99
 
-    async def handle_event(self, event, kwargs):
+    async def handle_event(self, event, **kwargs):
         abort_if = kwargs.pop("abort_if", None)
         on_success_callback = kwargs.pop("on_success_callback", None)
+
+        # omit certain event types
+        if event.type in self.scan.omitted_event_types:
+            if "target" in event.tags:
+                self.debug(f"Allowing omitted event: {event} because it's a target")
+            else:
+                event._omit = True
 
         # make event internal if it's above our configured report distance
         event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
@@ -201,16 +208,22 @@ class ScanEgress(InterceptModule):
             )
             event.internal = True
 
+        if event.type in self.scan.omitted_event_types:
+            log.debug(f"Omitting {event} because its type is omitted in the config")
+            event._omit = True
+
         # if we discovered something interesting from an internal event,
         # make sure we preserve its chain of parents
         parent = event.parent
-        if parent.internal and ((not event.internal) or event._graph_important):
+        event_is_graph_worthy = (not event.internal) or event._graph_important
+        parent_is_graph_worthy = (not parent.internal) or parent._graph_important
+        if event_is_graph_worthy and not parent_is_graph_worthy:
             parent_in_report_distance = parent.scope_distance <= self.scan.scope_report_distance
             if parent_in_report_distance:
                 parent.internal = False
             if not parent._graph_important:
                 parent._graph_important = True
-                log.debug(f"Re-queuing internal event {parent} with parent {event}")
+                log.debug(f"Re-queuing internal event {parent} with parent {event} to prevent graph orphan")
                 await self.emit_event(parent)
 
         abort_result = False
