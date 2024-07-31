@@ -224,20 +224,14 @@ class DNSResolve(InterceptModule):
         if event_blacklisted:
             return False, f"it has a blacklisted DNS record"
 
-        # set resolved_hosts and dns_children attributes to the same as the main host
-        event._resolved_hosts = main_host_event._resolved_hosts
-        event.dns_children = main_host_event.dns_children
-
         # if the event resolves to an in-scope IP, set its scope distance to 0
         if event_whitelisted:
             self.debug(f"Making {event} in-scope because it resolves to an in-scope resource")
             event.scope_distance = 0
             await self.handle_wildcard_event(event)
 
-        # if the event is a DNS_NAME or IP, tag with "a-record", "ptr-record", etc.
-        if event.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
-            for tag in dns_tags:
-                event.add_tag(tag)
+        # transfer resolved hosts
+        event._resolved_hosts = main_host_event._resolved_hosts
 
         # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
         if event.type == "DNS_NAME" and "unresolved" in event.tags:
