@@ -494,7 +494,7 @@ class BaseEvent:
         if is_event(parent):
             self._parent = parent
             hosts_are_same = self.host and (self.host == parent.host)
-            if parent.scope_distance >= 0:
+            if self.host and parent.scope_distance >= 0:
                 new_scope_distance = int(parent.scope_distance)
                 # only increment the scope distance if the host changes
                 if self._scope_distance_increment_same_host or not hosts_are_same:

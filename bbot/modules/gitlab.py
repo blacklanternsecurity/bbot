@@ -99,7 +99,6 @@ class gitlab(BaseModule):
             project_url = project.get("web_url", "")
             if project_url:
                 code_event = self.make_event({"url": project_url}, "CODE_REPOSITORY", tags="git", parent=event)
-                code_event.scope_distance = event.scope_distance
                 await self.emit_event(
                     code_event, context=f"{{module}} enumerated projects and found {{event.type}} at {project_url}"
                 )
