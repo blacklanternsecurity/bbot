@@ -1,3 +1,4 @@
+import json
 from contextlib import suppress
 from neo4j import AsyncGraphDatabase
 
@@ -53,7 +54,6 @@ class neo4j(BaseOutputModule):
         return True
 
     async def handle_batch(self, *all_events):
-        await self.helpers.sleep(5)
         # group events by type, since cypher doesn't allow dynamic labels
         events_by_type = {}
         parents_by_type = {}
@@ -87,7 +87,7 @@ class neo4j(BaseOutputModule):
                 src_id = all_ids[parent.id]
                 dst_id = all_ids[event.id]
             except KeyError as e:
-                self.critical(f'Error "{e}" correlating {parent.id}:{parent.data} --> {event.id}:{event.data}')
+                self.error(f'Error "{e}" correlating {parent.id}:{parent.data} --> {event.id}:{event.data}')
                 continue
             rel_ids.append((src_id, module, timestamp, dst_id))
 
@@ -103,21 +103,28 @@ class neo4j(BaseOutputModule):
                 # we pop the timestamp because it belongs on the relationship
                 event_json.pop("timestamp")
                 # nested data types aren't supported in neo4j
-                event_json.pop("dns_children", None)
+                for key in ("dns_children", "discovery_path"):
+                    if key in event_json:
+                        event_json[key] = json.dumps(event_json[key])
                 insert_data.append(event_json)
 
         cypher = f"""UNWIND $events AS event
         MERGE (_:{event_type} {{ id: event.id }})
         SET _ += event
         RETURN event.data as event_data, event.id as event_id, elementId(_) as neo4j_id"""
-        # insert events
-        results = await self.session.run(cypher, events=insert_data)
-        # get Neo4j ids
         neo4j_ids = {}
-        for result in await results.data():
-            event_id = result["event_id"]
-            neo4j_id = result["neo4j_id"]
-            neo4j_ids[event_id] = neo4j_id
+        # insert events
+        try:
+            results = await self.session.run(cypher, events=insert_data)
+            # get Neo4j ids
+            for result in await results.data():
+                event_id = result["event_id"]
+                neo4j_id = result["neo4j_id"]
+                neo4j_ids[event_id] = neo4j_id
+        except Exception as e:
+            self.error(f"Error inserting Neo4j nodes (label:{event_type}): {e}")
+            self.trace(insert_data)
+            self.trace(cypher)
         return neo4j_ids
 
     async def merge_relationships(self, relationships):
@@ -138,7 +145,11 @@ class neo4j(BaseOutputModule):
             MATCH (b) WHERE elementId(b) = rel.dst_id
             MERGE (a)-[_:{module}]->(b)
             SET _.timestamp = rel.timestamp"""
-            await self.session.run(cypher, rels=rels)
+            try:
+                await self.session.run(cypher, rels=rels)
+            except Exception as e:
+                self.error(f"Error inserting Neo4j relationship (label:{module}): {e}")
+                self.trace(cypher)
 
     async def cleanup(self):
         with suppress(Exception):

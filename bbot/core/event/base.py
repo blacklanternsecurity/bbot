@@ -168,6 +168,7 @@ class BaseEvent:
         self._resolved_hosts = set()
         self.dns_children = dict()
         self._discovery_context = ""
+        self.web_spider_distance = 0
 
         # for creating one-off events without enforcing parent requirement
         self._dummy = _dummy
@@ -209,9 +210,6 @@ class BaseEvent:
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
-
-        # inherit web spider distance from parent
-        self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
 
         self.parent = parent
         if (not self.parent) and (not self._dummy):
@@ -502,11 +500,18 @@ class BaseEvent:
                 self.scope_distance = new_scope_distance
             # inherit certain tags
             if hosts_are_same:
+                # inherit web spider distance from parent
+                self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
+                event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate", "spider-danger", "spider-max"):
+                    if t in ("affiliate",):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
+                    # only add these tags if the event has a URL
+                    if event_has_url:
+                        if t in ("spider-danger", "spider-max"):
+                            self.add_tag(t)
         elif not self._dummy:
             log.warning(f"Tried to set invalid parent on {self}: (got: {parent})")
 
@@ -1100,7 +1105,8 @@ class URL_UNVERIFIED(BaseEvent):
         return data
 
     def add_tag(self, tag):
-        if tag == "spider-danger":
+        host_same_as_parent = self.parent and self.host == self.parent.host
+        if tag == "spider-danger" and host_same_as_parent and not "spider-danger" in self.tags:
             # increment the web spider distance
             if self.type == "URL_UNVERIFIED":
                 self.web_spider_distance += 1

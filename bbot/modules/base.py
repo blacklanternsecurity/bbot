@@ -1211,7 +1211,7 @@ class BaseModule:
         return table
 
     def _is_graph_important(self, event):
-        return self.preserve_graph and getattr(event, "_graph_important", False)
+        return self.preserve_graph and getattr(event, "_graph_important", False) and not getattr(event, "_omit", False)
 
     @property
     def preserve_graph(self):
@@ -1380,7 +1380,7 @@ class BaseModule:
         if trace:
             self.trace()
 
-    def trace(self):
+    def trace(self, msg=None):
         """Logs the stack trace of the most recently caught exception.
 
         This method captures the type, value, and traceback of the most recent exception and logs it using the trace level. It is typically used for debugging purposes.
@@ -1393,9 +1393,12 @@ class BaseModule:
             >>> except ZeroDivisionError:
             >>>     self.trace()
         """
-        e_type, e_val, e_traceback = exc_info()
-        if e_type is not None:
-            self.log.trace(traceback.format_exc())
+        if msg is None:
+            e_type, e_val, e_traceback = exc_info()
+            if e_type is not None:
+                self.log.trace(traceback.format_exc())
+        else:
+            self.log.trace(msg)
 
     def critical(self, *args, trace=True, **kwargs):
         """Logs a whole message in emboldened red text, and optionally the stack trace of the most recent exception.

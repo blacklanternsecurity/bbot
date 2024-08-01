@@ -717,3 +717,42 @@ async def test_event_web_spider_distance(bbot_scanner):
     assert url_event_5.web_spider_distance == 3
     assert "spider-danger" in url_event_5.tags
     assert "spider-max" in url_event_5.tags
+
+    url_event = scan.make_event("http://www.evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event)
+    assert url_event.web_spider_distance == 0
+    assert not "spider-danger" in url_event.tags
+    assert not "spider-max" in url_event.tags
+    url_event_2 = scan.make_event(
+        "http://www.evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event, tags="spider-danger"
+    )
+    # spider distance shouldn't increment because it's not the same host
+    assert url_event_2.web_spider_distance == 0
+    assert "spider-danger" in url_event_2.tags
+    assert not "spider-max" in url_event_2.tags
+    url_event_3 = scan.make_event(
+        "http://www.evilcorp.com/3", "URL_UNVERIFIED", parent=url_event_2, tags="spider-danger"
+    )
+    assert url_event_3.web_spider_distance == 1
+    assert "spider-danger" in url_event_3.tags
+    assert not "spider-max" in url_event_3.tags
+    url_event_4 = scan.make_event("http://evilcorp.com", "URL_UNVERIFIED", parent=url_event_3)
+    assert url_event_4.web_spider_distance == 0
+    assert not "spider-danger" in url_event_4.tags
+    assert not "spider-max" in url_event_4.tags
+    url_event_4.add_tag("spider-danger")
+    assert url_event_4.web_spider_distance == 0
+    assert "spider-danger" in url_event_4.tags
+    assert not "spider-max" in url_event_4.tags
+    url_event_4.remove_tag("spider-danger")
+    assert url_event_4.web_spider_distance == 0
+    assert not "spider-danger" in url_event_4.tags
+    assert not "spider-max" in url_event_4.tags
+    url_event_5 = scan.make_event("http://evilcorp.com/5", "URL_UNVERIFIED", parent=url_event_4)
+    assert url_event_5.web_spider_distance == 0
+    assert not "spider-danger" in url_event_5.tags
+    assert not "spider-max" in url_event_5.tags
+    url_event_5.add_tag("spider-danger")
+    # if host is the same as parent, web spider distance should auto-increment after adding spider-danger tag
+    assert url_event_5.web_spider_distance == 1
+    assert "spider-danger" in url_event_5.tags
+    assert not "spider-max" in url_event_5.tags

@@ -23,9 +23,6 @@ class postman(subdomain_enum):
 
     reject_wildcards = False
 
-    # wait until outgoing queue is empty to help avoid rate limits
-    _qsize = 1
-
     async def handle_event(self, event):
         query = self.make_query(event)
         self.verbose(f"Searching for any postman workspaces, collections, requests belonging to {query}")
