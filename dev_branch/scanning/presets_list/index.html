@@ -1,0 +1,1122 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/scanning/presets_list/" rel="canonical"/>
+<link href="../presets/" rel="prev"/>
+<link href="../events/" rel="next"/>
+<link href="../../favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.0, mkdocs-material-9.5.26" name="generator"/>
+<title>List of Presets - BBOT Docs</title>
+<link href="../../assets/stylesheets/main.6543a935.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.53nvghr4.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#cloud-enum">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              List of Presets
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_0" name="__palette" type="radio"/>
+</form>
+<script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../..">
+          
+  
+  User Manual
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../dev/">
+          
+  
+  Developer Manual
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-ellipsis">
+    User Manual
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            User Manual
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="">
+<span class="md-ellipsis">
+    Basics
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_1_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_1">
+<span class="md-nav__icon md-icon"></span>
+            Basics
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Getting Started
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../how_it_works/">
+<span class="md-ellipsis">
+    How it Works
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../comparison/">
+<span class="md-ellipsis">
+    Comparison to Other Tools
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="">
+<span class="md-ellipsis">
+    Scanning
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_2_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_2">
+<span class="md-nav__icon md-icon"></span>
+            Scanning
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    Scanning Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Presets
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            Presets
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../presets/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    List of Presets
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    List of Presets
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cloud-enum">
+<span class="md-ellipsis">
+      cloud-enum
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#code-enum">
+<span class="md-ellipsis">
+      code-enum
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dirbust-heavy">
+<span class="md-ellipsis">
+      dirbust-heavy
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dirbust-light">
+<span class="md-ellipsis">
+      dirbust-light
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dotnet-audit">
+<span class="md-ellipsis">
+      dotnet-audit
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#email-enum">
+<span class="md-ellipsis">
+      email-enum
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#iis-shortnames">
+<span class="md-ellipsis">
+      iis-shortnames
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#kitchen-sink">
+<span class="md-ellipsis">
+      kitchen-sink
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#paramminer">
+<span class="md-ellipsis">
+      paramminer
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#spider">
+<span class="md-ellipsis">
+      spider
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#subdomain-enum">
+<span class="md-ellipsis">
+      subdomain-enum
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#web-basic">
+<span class="md-ellipsis">
+      web-basic
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#web-screenshots">
+<span class="md-ellipsis">
+      web-screenshots
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#web-thorough">
+<span class="md-ellipsis">
+      web-thorough
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#table-of-default-presets">
+<span class="md-ellipsis">
+      Table of Default Presets
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../events/">
+<span class="md-ellipsis">
+    Events
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../output/">
+<span class="md-ellipsis">
+    Output
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../tips_and_tricks/">
+<span class="md-ellipsis">
+    Tips and Tricks
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../advanced/">
+<span class="md-ellipsis">
+    Advanced Usage
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../configuration/">
+<span class="md-ellipsis">
+    Configuration
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="">
+<span class="md-ellipsis">
+    Modules
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_3">
+<span class="md-nav__icon md-icon"></span>
+            Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/list_of_modules/">
+<span class="md-ellipsis">
+    List of Modules
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/nuclei/">
+<span class="md-ellipsis">
+    Nuclei
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    Misc
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            Misc
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+<span class="md-ellipsis">
+    Contribution
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../release_history/">
+<span class="md-ellipsis">
+    Release History
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+<span class="md-ellipsis">
+    Troubleshooting
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Developer Manual
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Developer Manual
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/">
+<span class="md-ellipsis">
+    Development Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/architecture/">
+<span class="md-ellipsis">
+    BBOT Internal Architecture
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/module_howto/">
+<span class="md-ellipsis">
+    How to Write a BBOT Module
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/tests/">
+<span class="md-ellipsis">
+    Unit Tests
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/discord_bot/">
+<span class="md-ellipsis">
+    Discord Bot Example
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_6" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+<span class="md-ellipsis">
+    Code Reference
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_6_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_6">
+<span class="md-nav__icon md-icon"></span>
+            Code Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/scanner/">
+<span class="md-ellipsis">
+    Scanner
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/presets/">
+<span class="md-ellipsis">
+    Presets
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/event/">
+<span class="md-ellipsis">
+    Event
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/target/">
+<span class="md-ellipsis">
+    Target
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/basemodule/">
+<span class="md-ellipsis">
+    BaseModule
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core/">
+<span class="md-ellipsis">
+    BBOTCore
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/engine/">
+<span class="md-ellipsis">
+    Engine
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_6_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_6_8" id="__nav_2_6_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Helpers
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_6_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_6_8">
+<span class="md-nav__icon md-icon"></span>
+            Helpers
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/command/">
+<span class="md-ellipsis">
+    Command
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/dns/">
+<span class="md-ellipsis">
+    DNS
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/interactsh/">
+<span class="md-ellipsis">
+    Interactsh
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/misc/">
+<span class="md-ellipsis">
+    Miscellaneous
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/web/">
+<span class="md-ellipsis">
+    Web
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/wordcloud/">
+<span class="md-ellipsis">
+    Word Cloud
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1>List of Presets</h1>
+<p>Below is a list of every default BBOT preset, including its YAML.</p>
+<!-- BBOT PRESET YAML -->
+<h2 id="cloud-enum"><strong>cloud-enum</strong></h2>
+<p>Enumerate cloud resources such as storage buckets, etc.</p>
+<details class="note">
+<summary><code>cloud-enum.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/cloud-enum.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Enumerate cloud resources such as storage buckets, etc.</span>
+
+<span style="color: #7ee787">include</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">subdomain-enum</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">cloud-enum</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="anubisdb, asn, azure_realm, azure_tenant, baddns_zone, baddns, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, builtwith, c99, censys, certspotter, chaos, columbus, crt, digitorus, dnsbrute_mutations, dnsbrute, dnscaa, dnscommonsrv, dnsdumpster, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, internetdb, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, rapiddns, riddler, securitytrails, shodan_dns, sitedossier, social, sslcert, subdomaincenter, threatminer, urlscan, virustotal, wayback, zoomeye">54</a></p>
+<h2 id="code-enum"><strong>code-enum</strong></h2>
+<p>Enumerate Git repositories, Docker images, etc.</p>
+<details class="note">
+<summary><code>code-enum.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/code-enum.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Enumerate Git repositories, Docker images, etc.</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">code-enum</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="code_repository, dockerhub, git, github_codesearch, github_org, gitlab, httpx, postman, social, trufflehog">10</a></p>
+<h2 id="dirbust-heavy"><strong>dirbust-heavy</strong></h2>
+<p>Recursive web directory brute-force (aggressive)</p>
+<details class="note">
+<summary><code>dirbust-heavy.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/dirbust-heavy.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Recursive web directory brute-force (aggressive)</span>
+
+<span style="color: #7ee787">include</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">spider</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">iis-shortnames</span>
+
+<span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">ffuf</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">wayback</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">iis_shortnames</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #8b949e; font-style: italic"># we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by ffuf_shortnames</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">detect_only</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">False</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">ffuf</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">depth</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">3</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">lines</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">5000</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">extensions</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">php</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">asp</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">aspx</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">ashx</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">asmx</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">jsp</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">jspx</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">cfm</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">zip</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">conf</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">config</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">xml</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">json</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">yml</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">yaml</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># emit URLs from wayback</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">wayback</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">urls</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">True</span>
+</code></pre></div>
+</details>
+<p>Category: web</p>
+<p>Modules: <a href="" title="ffuf_shortnames, ffuf, httpx, iis_shortnames, wayback">5</a></p>
+<h2 id="dirbust-light"><strong>dirbust-light</strong></h2>
+<p>Basic web directory brute-force (surface-level directories only)</p>
+<details class="note">
+<summary><code>dirbust-light.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/dirbust-light.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Basic web directory brute-force (surface-level directories only)</span>
+
+<span style="color: #7ee787">include</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">iis-shortnames</span>
+
+<span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">ffuf</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">ffuf</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #8b949e; font-style: italic"># wordlist size = 1000</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">lines</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1000</span>
+</code></pre></div>
+</details>
+<p>Category: web</p>
+<p>Modules: <a href="" title="ffuf_shortnames, ffuf, httpx, iis_shortnames">4</a></p>
+<h2 id="dotnet-audit"><strong>dotnet-audit</strong></h2>
+<p>Comprehensive scan for all IIS/.NET specific modules and module settings</p>
+<details class="note">
+<summary><code>dotnet-audit.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/dotnet-audit.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Comprehensive scan for all IIS/.NET specific modules and module settings</span>
+
+
+<span style="color: #7ee787">include</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">iis-shortnames</span>
+
+<span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">httpx</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">badsecrets</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">ffuf_shortnames</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">ffuf</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">telerik</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">ajaxpro</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">dotnetnuke</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">ffuf</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">extensions</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">asp,aspx,ashx,asmx,ascx</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">telerik</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">exploit_RAU_crypto</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">True</span>
+</code></pre></div>
+</details>
+<p>Category: web</p>
+<p>Modules: <a href="" title="ajaxpro, badsecrets, dotnetnuke, ffuf_shortnames, ffuf, httpx, iis_shortnames, telerik">8</a></p>
+<h2 id="email-enum"><strong>email-enum</strong></h2>
+<p>Enumerate email addresses from APIs, web crawling, etc.</p>
+<details class="note">
+<summary><code>email-enum.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/email-enum.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Enumerate email addresses from APIs, web crawling, etc.</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">email-enum</span>
+
+<span style="color: #7ee787">output_modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">emails</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="dehashed, dnscaa, emailformat, hunterio, pgp, skymem, sslcert">7</a></p>
+<h2 id="iis-shortnames"><strong>iis-shortnames</strong></h2>
+<p>Recursively enumerate IIS shortnames</p>
+<details class="note">
+<summary><code>iis-shortnames.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/iis-shortnames.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Recursively enumerate IIS shortnames</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">iis-shortnames</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">iis_shortnames</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #8b949e; font-style: italic"># exploit the vulnerability</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">detect_only</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">false</span>
+</code></pre></div>
+</details>
+<p>Category: web</p>
+<p>Modules: <a href="" title="ffuf_shortnames, httpx, iis_shortnames">3</a></p>
+<h2 id="kitchen-sink"><strong>kitchen-sink</strong></h2>
+<p>Everything everywhere all at once</p>
+<details class="note">
+<summary><code>kitchen-sink.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/kitchen-sink.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Everything everywhere all at once</span>
+
+<span style="color: #7ee787">include</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">subdomain-enum</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">cloud-enum</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">code-enum</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">email-enum</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">spider</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">web-basic</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">paramminer</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">dirbust-light</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">web-screenshots</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">baddns</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">enable_references</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">True</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="anubisdb, asn, azure_realm, azure_tenant, baddns_zone, baddns, badsecrets, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, builtwith, c99, censys, certspotter, chaos, code_repository, columbus, crt, dehashed, digitorus, dnsbrute_mutations, dnsbrute, dnscaa, dnscommonsrv, dnsdumpster, dockerhub, emailformat, ffuf_shortnames, ffuf, filedownload, fullhunt, git, github_codesearch, github_org, gitlab, gowitness, hackertarget, httpx, hunterio, iis_shortnames, internetdb, ipneighbor, leakix, myssl, ntlm, oauth, otx, paramminer_cookies, paramminer_getparams, paramminer_headers, passivetotal, pgp, postman, rapiddns, riddler, robots, secretsdb, securitytrails, shodan_dns, sitedossier, skymem, social, sslcert, subdomaincenter, threatminer, trufflehog, urlscan, virustotal, wappalyzer, wayback, zoomeye">76</a></p>
+<h2 id="paramminer"><strong>paramminer</strong></h2>
+<p>Discover new web parameters via brute-force</p>
+<details class="note">
+<summary><code>paramminer.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/paramminer.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Discover new web parameters via brute-force</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">web-paramminer</span>
+
+<span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">httpx</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">web</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">spider_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">spider_depth</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">4</span>
+</code></pre></div>
+</details>
+<p>Category: web</p>
+<p>Modules: <a href="" title="httpx, paramminer_cookies, paramminer_getparams, paramminer_headers">4</a></p>
+<h2 id="spider"><strong>spider</strong></h2>
+<p>Recursive web spider</p>
+<details class="note">
+<summary><code>spider.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/spider.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Recursive web spider</span>
+
+<span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">httpx</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">web</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># how many links to follow in a row</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">spider_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">2</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># don't follow links whose directory depth is higher than 4</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">spider_depth</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">4</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># maximum number of links to follow per page</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">spider_links_per_page</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">25</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="httpx">1</a></p>
+<h2 id="subdomain-enum"><strong>subdomain-enum</strong></h2>
+<p>Enumerate subdomains via APIs, brute-force</p>
+<details class="note">
+<summary><code>subdomain-enum.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/subdomain-enum.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Enumerate subdomains via APIs, brute-force</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># enable every module with the subdomain-enum flag</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">subdomain-enum</span>
+
+<span style="color: #7ee787">output_modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># output unique subdomains to TXT file</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">subdomains</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">dns</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">threads</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">25</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">brute_threads</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1000</span>
+<span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># put your API keys here</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">github</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">api_key</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">""</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">chaos</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">api_key</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">""</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">securitytrails</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">api_key</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">""</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="anubisdb, asn, azure_realm, azure_tenant, baddns_zone, bevigil, binaryedge, builtwith, c99, censys, certspotter, chaos, columbus, crt, digitorus, dnsbrute_mutations, dnsbrute, dnscaa, dnscommonsrv, dnsdumpster, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, internetdb, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, rapiddns, riddler, securitytrails, shodan_dns, sitedossier, social, sslcert, subdomaincenter, threatminer, urlscan, virustotal, wayback, zoomeye">47</a></p>
+<h2 id="web-basic"><strong>web-basic</strong></h2>
+<p>Quick web scan</p>
+<details class="note">
+<summary><code>web-basic.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web-basic.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Quick web scan</span>
+
+<span style="color: #7ee787">include</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">iis-shortnames</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">web-basic</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_firebase, bucket_google, ffuf_shortnames, filedownload, git, httpx, iis_shortnames, ntlm, oauth, robots, secretsdb, sslcert, wappalyzer">18</a></p>
+<h2 id="web-screenshots"><strong>web-screenshots</strong></h2>
+<p>Take screenshots of webpages</p>
+<details class="note">
+<summary><code>web-screenshots.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web-screenshots.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Take screenshots of webpages</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">web-screenshots</span>
+
+<span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">gowitness</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">resolution_x</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1440</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">resolution_y</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">900</span>
+<span style="color: #6e7681">      </span><span style="color: #8b949e; font-style: italic"># folder to output web screenshots (default is inside ~/.bbot/scans/scan_name)</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">output_path</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">""</span>
+<span style="color: #6e7681">      </span><span style="color: #8b949e; font-style: italic"># whether to take screenshots of social media pages</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">social</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">True</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="gowitness, httpx, social">3</a></p>
+<h2 id="web-thorough"><strong>web-thorough</strong></h2>
+<p>Aggressive web scan</p>
+<details class="note">
+<summary><code>web-thorough.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web-thorough.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Aggressive web scan</span>
+
+<span style="color: #7ee787">include</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># include the web-basic preset</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">web-basic</span>
+
+<span style="color: #7ee787">flags</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">web-thorough</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="ajaxpro, azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, bypass403, dastardly, dotnetnuke, ffuf_shortnames, filedownload, generic_ssrf, git, host_header, httpx, hunt, iis_shortnames, ntlm, oauth, robots, secretsdb, smuggler, sslcert, telerik, url_manipulation, wappalyzer">29</a></p>
+<!-- END BBOT PRESET YAML -->
+<h2 id="table-of-default-presets">Table of Default Presets</h2>
+<p>Here is a the same data, but in a table:</p>
+<!-- BBOT PRESETS -->
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Category</th>
+<th>Description</th>
+<th># Modules</th>
+<th>Modules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cloud-enum</td>
+<td></td>
+<td>Enumerate cloud resources such as storage buckets, etc.</td>
+<td>54</td>
+<td>anubisdb, asn, azure_realm, azure_tenant, baddns, baddns_zone, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, builtwith, c99, censys, certspotter, chaos, columbus, crt, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, internetdb, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, rapiddns, riddler, securitytrails, shodan_dns, sitedossier, social, sslcert, subdomaincenter, threatminer, urlscan, virustotal, wayback, zoomeye</td>
+</tr>
+<tr>
+<td>code-enum</td>
+<td></td>
+<td>Enumerate Git repositories, Docker images, etc.</td>
+<td>10</td>
+<td>code_repository, dockerhub, git, github_codesearch, github_org, gitlab, httpx, postman, social, trufflehog</td>
+</tr>
+<tr>
+<td>dirbust-heavy</td>
+<td>web</td>
+<td>Recursive web directory brute-force (aggressive)</td>
+<td>5</td>
+<td>ffuf, ffuf_shortnames, httpx, iis_shortnames, wayback</td>
+</tr>
+<tr>
+<td>dirbust-light</td>
+<td>web</td>
+<td>Basic web directory brute-force (surface-level directories only)</td>
+<td>4</td>
+<td>ffuf, ffuf_shortnames, httpx, iis_shortnames</td>
+</tr>
+<tr>
+<td>dotnet-audit</td>
+<td>web</td>
+<td>Comprehensive scan for all IIS/.NET specific modules and module settings</td>
+<td>8</td>
+<td>ajaxpro, badsecrets, dotnetnuke, ffuf, ffuf_shortnames, httpx, iis_shortnames, telerik</td>
+</tr>
+<tr>
+<td>email-enum</td>
+<td></td>
+<td>Enumerate email addresses from APIs, web crawling, etc.</td>
+<td>7</td>
+<td>dehashed, dnscaa, emailformat, hunterio, pgp, skymem, sslcert</td>
+</tr>
+<tr>
+<td>iis-shortnames</td>
+<td>web</td>
+<td>Recursively enumerate IIS shortnames</td>
+<td>3</td>
+<td>ffuf_shortnames, httpx, iis_shortnames</td>
+</tr>
+<tr>
+<td>kitchen-sink</td>
+<td></td>
+<td>Everything everywhere all at once</td>
+<td>76</td>
+<td>anubisdb, asn, azure_realm, azure_tenant, baddns, baddns_zone, badsecrets, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, builtwith, c99, censys, certspotter, chaos, code_repository, columbus, crt, dehashed, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dockerhub, emailformat, ffuf, ffuf_shortnames, filedownload, fullhunt, git, github_codesearch, github_org, gitlab, gowitness, hackertarget, httpx, hunterio, iis_shortnames, internetdb, ipneighbor, leakix, myssl, ntlm, oauth, otx, paramminer_cookies, paramminer_getparams, paramminer_headers, passivetotal, pgp, postman, rapiddns, riddler, robots, secretsdb, securitytrails, shodan_dns, sitedossier, skymem, social, sslcert, subdomaincenter, threatminer, trufflehog, urlscan, virustotal, wappalyzer, wayback, zoomeye</td>
+</tr>
+<tr>
+<td>paramminer</td>
+<td>web</td>
+<td>Discover new web parameters via brute-force</td>
+<td>4</td>
+<td>httpx, paramminer_cookies, paramminer_getparams, paramminer_headers</td>
+</tr>
+<tr>
+<td>spider</td>
+<td></td>
+<td>Recursive web spider</td>
+<td>1</td>
+<td>httpx</td>
+</tr>
+<tr>
+<td>subdomain-enum</td>
+<td></td>
+<td>Enumerate subdomains via APIs, brute-force</td>
+<td>47</td>
+<td>anubisdb, asn, azure_realm, azure_tenant, baddns_zone, bevigil, binaryedge, builtwith, c99, censys, certspotter, chaos, columbus, crt, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, internetdb, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, rapiddns, riddler, securitytrails, shodan_dns, sitedossier, social, sslcert, subdomaincenter, threatminer, urlscan, virustotal, wayback, zoomeye</td>
+</tr>
+<tr>
+<td>web-basic</td>
+<td></td>
+<td>Quick web scan</td>
+<td>18</td>
+<td>azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_firebase, bucket_google, ffuf_shortnames, filedownload, git, httpx, iis_shortnames, ntlm, oauth, robots, secretsdb, sslcert, wappalyzer</td>
+</tr>
+<tr>
+<td>web-screenshots</td>
+<td></td>
+<td>Take screenshots of webpages</td>
+<td>3</td>
+<td>gowitness, httpx, social</td>
+</tr>
+<tr>
+<td>web-thorough</td>
+<td></td>
+<td>Aggressive web scan</td>
+<td>29</td>
+<td>ajaxpro, azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, bypass403, dastardly, dotnetnuke, ffuf_shortnames, filedownload, generic_ssrf, git, host_header, httpx, hunt, iis_shortnames, ntlm, oauth, robots, secretsdb, smuggler, sslcert, telerik, url_manipulation, wappalyzer</td>
+</tr>
+</tbody>
+</table>
+<!-- END BBOT PRESETS -->
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+<script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
+<script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/vega@5.js"></script>
+<script src="../../javascripts/vega-lite@5.js"></script>
+<script src="../../javascripts/vega-embed@6.js"></script>
+</body>
+</html>

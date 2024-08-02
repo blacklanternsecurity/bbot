@@ -1,0 +1,793 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/scanning/tips_and_tricks/" rel="canonical"/>
+<link href="../output/" rel="prev"/>
+<link href="../advanced/" rel="next"/>
+<link href="../../favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.0, mkdocs-material-9.5.26" name="generator"/>
+<title>Tips and Tricks - BBOT Docs</title>
+<link href="../../assets/stylesheets/main.6543a935.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.53nvghr4.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#tips-and-tricks">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Tips and Tricks
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_0" name="__palette" type="radio"/>
+</form>
+<script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../..">
+          
+  
+  User Manual
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../dev/">
+          
+  
+  Developer Manual
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-ellipsis">
+    User Manual
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            User Manual
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="">
+<span class="md-ellipsis">
+    Basics
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_1_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_1">
+<span class="md-nav__icon md-icon"></span>
+            Basics
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Getting Started
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../how_it_works/">
+<span class="md-ellipsis">
+    How it Works
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../comparison/">
+<span class="md-ellipsis">
+    Comparison to Other Tools
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="">
+<span class="md-ellipsis">
+    Scanning
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_2_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_2">
+<span class="md-nav__icon md-icon"></span>
+            Scanning
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    Scanning Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Presets
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            Presets
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../presets/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../presets_list/">
+<span class="md-ellipsis">
+    List of Presets
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../events/">
+<span class="md-ellipsis">
+    Events
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../output/">
+<span class="md-ellipsis">
+    Output
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Tips and Tricks
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    Tips and Tricks
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#change-verbosity-during-scan">
+<span class="md-ellipsis">
+      Change Verbosity During Scan
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#kill-individual-module-during-scan">
+<span class="md-ellipsis">
+      Kill Individual Module During Scan
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#common-config-changes">
+<span class="md-ellipsis">
+      Common Config Changes
+    </span>
+</a>
+<nav aria-label="Common Config Changes" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#speed-up-slow-modules">
+<span class="md-ellipsis">
+      Speed Up Slow Modules
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#boost-dns-brute-force-speed">
+<span class="md-ellipsis">
+      Boost DNS Brute-force Speed
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#web-spider">
+<span class="md-ellipsis">
+      Web Spider
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ingesting-bbot-data-into-siem-elastic-splunk">
+<span class="md-ellipsis">
+      Ingesting BBOT Data Into SIEM (Elastic, Splunk)
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#custom-http-proxy">
+<span class="md-ellipsis">
+      Custom HTTP Proxy
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#display-http_response-events">
+<span class="md-ellipsis">
+      Display HTTP_RESPONSE Events
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#display-out-of-scope-events">
+<span class="md-ellipsis">
+      Display Out-of-scope Events
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#speed-up-scans-by-disabling-dns-resolution">
+<span class="md-ellipsis">
+      Speed Up Scans By Disabling DNS Resolution
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#faq">
+<span class="md-ellipsis">
+      FAQ
+    </span>
+</a>
+<nav aria-label="FAQ" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#what-is-url_unverified">
+<span class="md-ellipsis">
+      What is URL_UNVERIFIED?
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../advanced/">
+<span class="md-ellipsis">
+    Advanced Usage
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../configuration/">
+<span class="md-ellipsis">
+    Configuration
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="">
+<span class="md-ellipsis">
+    Modules
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_3">
+<span class="md-nav__icon md-icon"></span>
+            Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/list_of_modules/">
+<span class="md-ellipsis">
+    List of Modules
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/nuclei/">
+<span class="md-ellipsis">
+    Nuclei
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    Misc
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            Misc
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+<span class="md-ellipsis">
+    Contribution
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../release_history/">
+<span class="md-ellipsis">
+    Release History
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+<span class="md-ellipsis">
+    Troubleshooting
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Developer Manual
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Developer Manual
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/">
+<span class="md-ellipsis">
+    Development Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/architecture/">
+<span class="md-ellipsis">
+    BBOT Internal Architecture
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/module_howto/">
+<span class="md-ellipsis">
+    How to Write a BBOT Module
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/tests/">
+<span class="md-ellipsis">
+    Unit Tests
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/discord_bot/">
+<span class="md-ellipsis">
+    Discord Bot Example
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_6" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+<span class="md-ellipsis">
+    Code Reference
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_6_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_6">
+<span class="md-nav__icon md-icon"></span>
+            Code Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/scanner/">
+<span class="md-ellipsis">
+    Scanner
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/presets/">
+<span class="md-ellipsis">
+    Presets
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/event/">
+<span class="md-ellipsis">
+    Event
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/target/">
+<span class="md-ellipsis">
+    Target
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/basemodule/">
+<span class="md-ellipsis">
+    BaseModule
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core/">
+<span class="md-ellipsis">
+    BBOTCore
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/engine/">
+<span class="md-ellipsis">
+    Engine
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_6_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_6_8" id="__nav_2_6_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Helpers
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_6_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_6_8">
+<span class="md-nav__icon md-icon"></span>
+            Helpers
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/command/">
+<span class="md-ellipsis">
+    Command
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/dns/">
+<span class="md-ellipsis">
+    DNS
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/interactsh/">
+<span class="md-ellipsis">
+    Interactsh
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/misc/">
+<span class="md-ellipsis">
+    Miscellaneous
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/web/">
+<span class="md-ellipsis">
+    Web
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/wordcloud/">
+<span class="md-ellipsis">
+    Word Cloud
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="tips-and-tricks">Tips and Tricks</h1>
+<p>Below are some helpful tricks to help you in your adventures.</p>
+<h2 id="change-verbosity-during-scan">Change Verbosity During Scan</h2>
+<p>Press enter during a BBOT scan to change the log level. This will allow you to see debugging messages, etc.</p>
+<p><img src="https://user-images.githubusercontent.com/20261699/224358855-9411cdc6-68a9-4cc4-828f-e30e4766101a.gif" style="max-width: 45em !important"/></p>
+<h2 id="kill-individual-module-during-scan">Kill Individual Module During Scan</h2>
+<p>Sometimes a certain module can get stuck or slow down the scan. If this happens and you want to kill it, just type "<code>kill &lt;module&gt;</code>" in the terminal and press enter. This will kill and disable the module for the rest of the scan.</p>
+<p>You can also kill multiple modules at a time by specifying them in a space or comma-separated list:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">kill</span><span style="color: #6e7681"> </span>httpx<span style="color: #6e7681"> </span>sslcert
+</code></pre></div>
+<p><img src="https://github.com/blacklanternsecurity/bbot/assets/20261699/61ad7123-8879-4c86-afdd-e96d7264b67c" style="max-width: 45em !important"/></p>
+<h2 id="common-config-changes">Common Config Changes</h2>
+<h3 id="speed-up-slow-modules">Speed Up Slow Modules</h3>
+<p>BBOT modules can be parallelized so that more than one instance runs at a time. By default, many modules are already set to reasonable defaults:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">baddns</span><span style="color: #e6edf3">(BaseModule):</span>
+    <span style="color: #e6edf3">module_threads</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">8</span>
+</code></pre></div>
+<p>To override this, you can set a module's <code>module_threads</code> in the config:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># increase baddns threads to 20</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>baddns<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>modules.baddns.module_threads<span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">20</span>
+</code></pre></div>
+<h3 id="boost-dns-brute-force-speed">Boost DNS Brute-force Speed</h3>
+<p>If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for <code>massdns</code>. The default is <code>1000</code>, which is about 1MB/s of DNS traffic:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># massdns with 5000 resolvers, about 5MB/s</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>dns.brute_threads<span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">5000</span>
+</code></pre></div>
+<h3 id="web-spider">Web Spider</h3>
+<p>The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of <code>web.spider_distance</code>.</p>
+<p>The web spider is controlled with three config values:</p>
+<ul>
+<li><code>web.spider_depth</code> (default: <code>1</code>: the maximum directory depth allowed. This is to prevent the spider from delving too deep into a website.</li>
+<li><code>web.spider_distance</code> (<code>0</code> == all spidering disabled, default: <code>0</code>): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where <code>web.spider_depth</code> fails (e.g. for an ecommerce website with thousands of base-level URLs).</li>
+<li><code>web.spider_links_per_page</code> (default: <code>25</code>): the maximum number of links per page that can be followed. This is designed to save you in cases where a single page has hundreds or thousands of links.</li>
+</ul>
+<p>Here is a typical example:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">spider.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">config</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">web</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">spider_depth</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">2</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">spider_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">2</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">spider_links_per_page</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">25</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># run the web spider against www.evilcorp.com</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>www.evilcorp.com<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>httpx<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>spider.yml
+</code></pre></div>
+<p>You can also pair the web spider with subdomain enumeration:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># spider every subdomain of evilcorp.com</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>spider.yml
+</code></pre></div>
+<h3 id="ingesting-bbot-data-into-siem-elastic-splunk">Ingesting BBOT Data Into SIEM (Elastic, Splunk)</h3>
+<p>If your goal is to feed BBOT data into a SIEM such as Elastic, be sure to enable this option when scanning:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>modules.json.siem_friendly<span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">true</span>
+</code></pre></div>
+<p>This nests the event's <code>.data</code> beneath its event type like so:
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">{</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"type"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"data"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">{</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">"DNS_NAME"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"blacklanternsecurity.com"</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">}</span>
+<span style="color: #e6edf3">}</span>
+</code></pre></div></p>
+<h3 id="custom-http-proxy">Custom HTTP Proxy</h3>
+<p>Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the <code>web.http_proxy</code> config option like so:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># enumerate subdomains, take web screenshots, proxy through Burp</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>gowitness<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>web.http_proxy<span style="color: #ff7b72; font-weight: bold">=</span>http://127.0.0.1:8080
+</code></pre></div>
+<h3 id="display-http_response-events">Display <code>HTTP_RESPONSE</code> Events</h3>
+<p>BBOT's <code>httpx</code> module emits <code>HTTP_RESPONSE</code> events, but by default they're hidden from output. These events contain the full raw HTTP body along with headers, etc. If you want to see them, you can modify <code>omit_event_types</code> in the config:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">omit_event_types</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">URL_UNVERIFIED</span>
+<span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># - HTTP_RESPONSE</span>
+</code></pre></div>
+<h3 id="display-out-of-scope-events">Display Out-of-scope Events</h3>
+<p>By default, BBOT only shows in-scope events (with a few exceptions for things like storage buckets). If you want to see events that BBOT is emitting internally (such as for DNS resolution, etc.), you can increase <code>scope.report_distance</code> in the config or on the command line like so:
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># display events up to scope distance 2 (default == 0)</span>
+bbot<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>scope.report_distance<span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">2</span>
+</code></pre></div></p>
+<h3 id="speed-up-scans-by-disabling-dns-resolution">Speed Up Scans By Disabling DNS Resolution</h3>
+<p>If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting <code>dns.disable</code> to <code>true</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># completely disable DNS resolution</span>
+bbot<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>httpx<span style="color: #6e7681"> </span>gowitness<span style="color: #6e7681"> </span>wappalyzer<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>urls.txt<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>dns.disable<span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">true</span>
+</code></pre></div>
+<p>Note that the above setting <em>completely</em> disables DNS resolution, meaning even <code>A</code> and <code>AAAA</code> records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use <code>dns.minimal</code> instead:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># only resolve A and AAAA records</span>
+bbot<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>httpx<span style="color: #6e7681"> </span>gowitness<span style="color: #6e7681"> </span>wappalyzer<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>urls.txt<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>dns.minimal<span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">true</span>
+</code></pre></div>
+<h2 id="faq">FAQ</h2>
+<h3 id="what-is-url_unverified">What is <code>URL_UNVERIFIED</code>?</h3>
+<p><code>URL_UNVERIFIED</code> events are URLs that haven't yet been visited by <code>httpx</code>. Once <code>httpx</code> visits them, it reraises them as <code>URL</code>s, tagged with their resulting status code.</p>
+<p>For example, when <a href="../#types-of-modules"><code>excavate</code></a> gets an <code>HTTP_RESPONSE</code> event, it extracts links from the raw HTTP response as <code>URL_UNVERIFIED</code>s and then passes them back to <code>httpx</code> to be visited.</p>
+<p>By default, <code>URL_UNVERIFIED</code>s are hidden from output. If you want to see all of them including the out-of-scope ones, you can do it by changing <code>omit_event_types</code> and <code>scope.report_distance</code> in the config like so:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># visit www.evilcorp.com and extract all the links</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>www.evilcorp.com<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>httpx<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span><span style="color: #79c0ff">omit_event_types</span><span style="color: #ff7b72; font-weight: bold">=[]</span><span style="color: #6e7681"> </span>scope.report_distance<span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">2</span>
+</code></pre></div>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+<script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
+<script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/vega@5.js"></script>
+<script src="../../javascripts/vega-lite@5.js"></script>
+<script src="../../javascripts/vega-embed@6.js"></script>
+</body>
+</html>
