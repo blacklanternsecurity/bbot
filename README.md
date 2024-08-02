@@ -330,6 +330,8 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scann
 
 ## Documentation
 
+Also see: [Bleeding-Edge Documentation (`dev` branch)](https://www.blacklanternsecurity.com/bbot/dev_branch)
+
 <!-- BBOT DOCS TOC -->
 - **User Manual**
     - **Basics**
@@ -393,7 +395,7 @@ Thanks to these amazing people for contributing to BBOT! :heart:
 
 Special thanks to:
 
-- @TheTechromancer for creating [BBOT](https://github.com/blacklanternsecurity/bbot)
+- @TheTechromancer for creating BBOT
 - @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets) and [baddns](https://github.com/blacklanternsecurity/baddns)
 - Steve Micallef (@smicallef) for creating Spiderfoot
 - @kerrymilan for his Neo4j and Ansible expertise
