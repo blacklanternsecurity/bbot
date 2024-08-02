@@ -417,6 +417,7 @@ class EngineServer(EngineBase):
                 self.log.debug(f"{self.name} run-and-yield {fn_str}")
                 try:
                     async for _ in command_fn(*args, **kwargs):
+                        self.log.debug(f"{self.name}: sending iteration for {command_fn.__name__}(): {_}")
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
                     error = f"Error in {self.name}.{fn_str}: {e}"
