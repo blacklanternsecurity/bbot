@@ -195,5 +195,4 @@ class speculate(BaseInternalModule):
             if validators.soft_validate(email, "email"):
                 email_event = self.make_event(email, "EMAIL_ADDRESS", parent=event, tags=["affiliate"])
                 if email_event:
-                    email_event.scope_distance = event.scope_distance
                     await self.emit_event(email_event, context="detected {event.type}: {event.data}")

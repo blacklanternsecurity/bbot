@@ -164,6 +164,7 @@ class BaseEvent:
         self._priority = None
         self._parent_id = None
         self._host_original = None
+        self._scope_distance = None
         self._module_priority = None
         self._resolved_hosts = set()
         self.dns_children = dict()
@@ -199,8 +200,6 @@ class BaseEvent:
             self.scans = scans
         if self.scan:
             self.scans = list(set([self.scan.id] + self.scans))
-
-        self._scope_distance = -1
 
         try:
             self.data = self._sanitize_data(data)
@@ -433,29 +432,29 @@ class BaseEvent:
         Note:
             The method will automatically update the relevant 'distance-' tags associated with the event.
         """
-        if scope_distance >= 0:
-            new_scope_distance = None
-            # ensure scope distance does not increase (only allow setting to smaller values)
-            if self.scope_distance == -1:
-                new_scope_distance = scope_distance
+        if scope_distance < 0:
+            raise ValueError(f"Invalid scope distance: {scope_distance}")
+        # ensure scope distance does not increase (only allow setting to smaller values)
+        if self.scope_distance is None:
+            new_scope_distance = scope_distance
+        else:
+            new_scope_distance = min(self.scope_distance, scope_distance)
+        if self._scope_distance != new_scope_distance:
+            # remove old scope distance tags
+            for t in list(self.tags):
+                if t.startswith("distance-"):
+                    self.remove_tag(t)
+            if scope_distance == 0:
+                self.add_tag("in-scope")
+                self.remove_tag("affiliate")
             else:
-                new_scope_distance = min(self.scope_distance, scope_distance)
-            if self._scope_distance != new_scope_distance:
-                # remove old scope distance tags
-                for t in list(self.tags):
-                    if t.startswith("distance-"):
-                        self.remove_tag(t)
-                if scope_distance == 0:
-                    self.add_tag("in-scope")
-                    self.remove_tag("affiliate")
-                else:
-                    self.remove_tag("in-scope")
-                    self.add_tag(f"distance-{new_scope_distance}")
-                self._scope_distance = new_scope_distance
-            # apply recursively to parent events
-            parent_scope_distance = getattr(self.parent, "scope_distance", -1)
-            if parent_scope_distance >= 0 and self != self.parent:
-                self.parent.scope_distance = scope_distance + 1
+                self.remove_tag("in-scope")
+                self.add_tag(f"distance-{new_scope_distance}")
+            self._scope_distance = new_scope_distance
+        # apply recursively to parent events
+        parent_scope_distance = getattr(self.parent, "scope_distance", None)
+        if parent_scope_distance is not None and self != self.parent:
+            self.parent.scope_distance = scope_distance + 1
 
     @property
     def scope_description(self):
@@ -491,13 +490,13 @@ class BaseEvent:
         """
         if is_event(parent):
             self._parent = parent
-            hosts_are_same = self.host and (self.host == parent.host)
-            if self.host and parent.scope_distance >= 0:
-                new_scope_distance = int(parent.scope_distance)
+            hosts_are_same = (self.host and parent.host) and (self.host == parent.host)
+            new_scope_distance = int(parent.scope_distance)
+            if self.host and parent.scope_distance is not None:
                 # only increment the scope distance if the host changes
                 if self._scope_distance_increment_same_host or not hosts_are_same:
                     new_scope_distance += 1
-                self.scope_distance = new_scope_distance
+            self.scope_distance = new_scope_distance
             # inherit certain tags
             if hosts_are_same:
                 # inherit web spider distance from parent

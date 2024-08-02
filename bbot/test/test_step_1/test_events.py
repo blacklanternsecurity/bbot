@@ -171,7 +171,7 @@ async def test_events(events, helpers):
 
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
-    assert event1._scope_distance == -1
+    assert event1._scope_distance == None
     event1.scope_distance = 0
     assert event1._scope_distance == 0
     event2 = scan.make_event("2.3.4.5", parent=event1)
@@ -197,6 +197,7 @@ async def test_events(events, helpers):
 
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
+    root_event.scope_distance = 0
     internal_event1 = scan.make_event("1.2.3.4", parent=root_event, internal=True)
     assert internal_event1._internal == True
     assert "internal" in internal_event1.tags

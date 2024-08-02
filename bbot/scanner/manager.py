@@ -106,10 +106,11 @@ class ScanIngress(InterceptModule):
 
         # Scope shepherding
         # here is where we make sure in-scope events are set to their proper scope distance
-        event_whitelisted = self.scan.whitelisted(event)
-        if event.host and event_whitelisted:
-            self.debug(f"Making {event} in-scope because it matches the scan target")
-            event.scope_distance = 0
+        if event.host:
+            event_whitelisted = self.scan.whitelisted(event)
+            if event_whitelisted:
+                self.debug(f"Making {event} in-scope because its main host matches the scan target")
+                event.scope_distance = 0
 
         # nerf event's priority if it's not in scope
         event.module_priority += event.scope_distance

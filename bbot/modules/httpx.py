@@ -44,7 +44,7 @@ class httpx(BaseModule):
         }
     ]
 
-    scope_distance_modifier = 1
+    scope_distance_modifier = 2
     _shuffle_incoming_queue = False
     _batch_size = 500
     _priority = 2
@@ -72,8 +72,10 @@ class httpx(BaseModule):
 
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
-        safe_to_visit = "httpx-safe" in event.tags
-        if not safe_to_visit and (in_scope_only and not self.scan.in_scope(event)):
+        if "httpx-safe" in event.tags:
+            return True
+        max_scope_distance = 0 if in_scope_only else 1
+        if event.scope_distance > max_scope_distance:
             return False, "event is not in scope"
         return True
 

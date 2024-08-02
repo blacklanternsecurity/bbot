@@ -144,7 +144,7 @@ class DNSResolve(InterceptModule):
                         # whitelisting / blacklisting based on resolved hosts
                         if rdtype in ("A", "AAAA", "CNAME"):
                             # having a CNAME to an in-scope resource doesn't make you in-scope
-                            if not event_whitelisted and rdtype != "CNAME":
+                            if (not event_whitelisted) and rdtype != "CNAME":
                                 with suppress(ValidationError):
                                     if self.scan.whitelisted(host):
                                         event_whitelisted = True
@@ -179,6 +179,9 @@ class DNSResolve(InterceptModule):
                 # if we're not blacklisted, emit the main host event and all its raw records
                 if not event_blacklisted:
                     if event_whitelisted:
+                        self.debug(
+                            f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
+                        )
                         main_host_event.scope_distance = 0
                         await self.handle_wildcard_event(main_host_event)
 

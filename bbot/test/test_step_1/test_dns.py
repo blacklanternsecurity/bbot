@@ -215,9 +215,12 @@ async def test_wildcards(bbot_scanner):
     assert not hash("asdf.asdf.github.io") in dnsengine._wildcard_cache
     assert not hash("asdf.asdf.asdf.github.io") in dnsengine._wildcard_cache
     assert len(dnsengine._wildcard_cache[hash("github.io")]) > 0
-    wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
-    wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
-    wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
+    wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event1.scope_distance = 0
+    wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event2.scope_distance = 0
+    wildcard_event3 = scan.make_event("github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event3.scope_distance = 0
 
     await dnsengine._shutdown()
 

@@ -132,7 +132,6 @@ class gitlab(BaseModule):
                 "SOCIAL",
                 parent=event,
             )
-            social_event.scope_distance = event.scope_distance
             await self.emit_event(
                 social_event,
                 context=f'{{module}} found GitLab namespace ({{event.type}}) "{namespace_name}" at {namespace_url}',
