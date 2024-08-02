@@ -75,7 +75,7 @@ class DNSEngine(EngineServer):
             self.wildcard_ignore = []
         self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
         self.wildcard_tests = self.dns_config.get("wildcard_tests", 5)
-        self._wildcard_cache = dict()
+        self._wildcard_cache = LRUCache(maxsize=50000)
         # since wildcard detection takes some time, This is to prevent multiple
         # modules from kicking off wildcard detection for the same domain at the same time
         self._wildcard_lock = NamedLock()
@@ -193,6 +193,7 @@ class DNSEngine(EngineServer):
             >>> results, errors = await _resolve_hostname("google.com")
             (<dns.resolver.Answer object at 0x7f4a4b2caf50>, [])
         """
+        log.critical(query)
         self.debug(f"Resolving {query} with kwargs={kwargs}")
         results = []
         errors = []
@@ -432,7 +433,7 @@ class DNSEngine(EngineServer):
             log.trace(traceback.format_exc())
         return []
 
-    async def is_wildcard(self, query, ips=None, rdtype=None):
+    async def is_wildcard(self, query, dns_children=None, rdtype=None):
         """
         Use this method to check whether a *host* is a wildcard entry
 
@@ -442,7 +443,7 @@ class DNSEngine(EngineServer):
 
         Args:
             query (str): The hostname to check for a wildcard entry.
-            ips (list, optional): List of IPs to compare against, typically obtained from a previous DNS resolution of the query.
+            dns_children (dict, optional): Dictionary of {RDTYPE: [ip1, ip2]} to compare against, typically obtained from a previous DNS resolution of the query.
             rdtype (str, optional): The DNS record type (e.g., "A", "AAAA") to consider during the check.
 
         Returns:
@@ -452,18 +453,19 @@ class DNSEngine(EngineServer):
                 and the second element is the wildcard parent if it's a wildcard.
 
         Raises:
-            ValueError: If only one of `ips` or `rdtype` is specified or if no valid IPs are specified.
+            ValueError: If only one of `dns_children` or `rdtype` is specified or if no valid IPs are specified.
 
         Examples:
             >>> is_wildcard("www.github.io")
             {"A": (True, "github.io"), "AAAA": (True, "github.io")}
 
-            >>> is_wildcard("www.evilcorp.com", ips=["93.184.216.34"], rdtype="A")
+            >>> is_wildcard("www.evilcorp.com", dns_children=["93.184.216.34"], rdtype="A")
             {"A": (False, "evilcorp.com")}
 
         Note:
             `is_wildcard` can be True, False, or None (indicating that wildcard detection was inconclusive)
         """
+        log.critical(query)
         result = {}
 
         parent = parent_domain(query)
@@ -478,7 +480,7 @@ class DNSEngine(EngineServer):
 
         query_baseline = dict()
         # if the caller hasn't already done the work of resolving the IPs
-        if ips is None:
+        if dns_children is None:
             # then resolve the query for all rdtypes
             queries = [(query, t) for t in rdtypes_to_check]
             async for (query, _rdtype), (answers, errors) in self.resolve_raw_batch(queries):
@@ -491,11 +493,12 @@ class DNSEngine(EngineServer):
                         result[_rdtype] = (None, parent)
                         continue
         else:
-            # otherwise, we can skip all that
-            cleaned_ips = set([clean_dns_record(ip) for ip in ips])
-            if not cleaned_ips:
-                raise ValueError("Valid IPs must be specified")
-            query_baseline[rdtype] = cleaned_ips
+            for _rdtype, ips in dns_children.items():
+                # otherwise, we can skip all that
+                cleaned_ips = set([clean_dns_record(ip) for ip in ips])
+                if not cleaned_ips:
+                    raise ValueError("Valid IPs must be specified")
+                query_baseline[_rdtype] = cleaned_ips
         if not query_baseline:
             return result
 
@@ -506,7 +509,7 @@ class DNSEngine(EngineServer):
         try:
             for host in parents[::-1]:
                 # make sure we've checked that domain for wildcards
-                await self.is_wildcard_domain(host)
+                await self.is_wildcard_domain(host, )
 
                 # for every rdtype
                 for _rdtype in list(query_baseline):
@@ -545,7 +548,7 @@ class DNSEngine(EngineServer):
 
         return result
 
-    async def is_wildcard_domain(self, domain, log_info=False):
+    async def is_wildcard_domain(self, domain, log_info=False, rdtype=None):
         """
         Check whether a given host or its children make use of wildcard DNS entries. Wildcard DNS can have
         various implications, particularly in subdomain enumeration and subdomain takeovers.
@@ -566,59 +569,124 @@ class DNSEngine(EngineServer):
             >>> is_wildcard_domain("example.com")
             {}
         """
+        # TODO: combine wildcard_domain_results and wildcard_rdtypes
         wildcard_domain_results = {}
+        log.critical(domain)
 
-        rdtypes_to_check = set(all_rdtypes)
+        if rdtype is not None:
+            if isinstance(rdtype, str):
+                rdtype = [rdtype]
+            rdtypes_to_check = rdtype
+        else:
+            rdtypes_to_check = set(all_rdtypes)
 
         # make a list of its parents
         parents = list(domain_parents(domain, include_self=True))
         # and check each of them, beginning with the highest parent (i.e. the root domain)
+        wildcard_rdtypes = []
         for i, host in enumerate(parents[::-1]):
-            # have we checked this host before?
-            host_hash = hash(host)
-            async with self._wildcard_lock.lock(host_hash):
-                # if we've seen this host before
-                if host_hash in self._wildcard_cache:
-                    wildcard_domain_results[host] = self._wildcard_cache[host_hash]
+
+            for _rdtype in rdtypes_to_check:
+                # don't check this rdtype if it's a known wildcard at a higher level
+                if _rdtype in wildcard_rdtypes:
                     continue
 
-                log.verbose(f"Checking if {host} is a wildcard")
+                hash_key = hash(f"{host}:{_rdtype}")
 
-                # determine if this is a wildcard domain
+                # because we cache results, we only want one execution at a time for this host:rdtype
+                async with self._wildcard_lock.lock(hash_key):
 
-                # resolve a bunch of random subdomains of the same parent
-                is_wildcard = False
-                wildcard_results = dict()
+                    # if we've seen this host before, load it from cache
+                    if hash_key in self._wildcard_cache:
+                        wildcard_hosts = self._wildcard_cache[hash_key]
+                        # if this rdtype is a wildcard, we can skip any further checks on it
+                        if wildcard_hosts:
+                            wildcard_rdtypes.append(_rdtype)
+                        wildcard_domain_results[host] = wildcard_hosts
+                        log.hugesuccess(f"{host}:{_rdtype} was in cache: {wildcard_hosts}")
+                        continue
 
-                rand_queries = []
-                for rdtype in rdtypes_to_check:
+                    log.hugewarning(f"Checking if {host}:{_rdtype} is a wildcard")
+
+                    # resolve a bunch of random subdomains of the same parent
+                    wildcard_results = set()
+                    rand_queries = []
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        rand_queries.append((rand_query, rdtype))
+                        rand_queries.append(rand_query)
+                    async for (query, results) in self.resolve_batch(rand_queries, type=_rdtype, use_cache=False):
+                        wildcard_results.update(results)
+                        if results:
+                            # we know this rdtype is a wildcard
+                            # so we don't need to check it anymore
+                            wildcard_rdtypes.append(_rdtype)
 
-                async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(rand_queries, use_cache=False):
-                    answers = extract_targets(answers)
-                    if answers:
-                        is_wildcard = True
-                        if not rdtype in wildcard_results:
-                            wildcard_results[rdtype] = set()
-                        wildcard_results[rdtype].update(set(a[1] for a in answers))
-                        # we know this rdtype is a wildcard
-                        # so we don't need to check it anymore
-                        with suppress(KeyError):
-                            rdtypes_to_check.remove(rdtype)
+                    self._wildcard_cache[hash_key] = wildcard_results
+                    try:
+                        wildcard_domain_result = wildcard_domain_results[host]
+                    except KeyError:
+                        wildcard_domain_result = {}
+                        wildcard_domain_results[host] = wildcard_domain_result
+                    wildcard_domain_result[_rdtype] = wildcard_results
 
-                self._wildcard_cache.update({host_hash: wildcard_results})
-                wildcard_domain_results.update({host: wildcard_results})
-                if is_wildcard:
-                    wildcard_rdtypes_str = ",".join(sorted([t.upper() for t, r in wildcard_results.items() if r]))
-                    log_fn = log.verbose
-                    if log_info:
-                        log_fn = log.info
-                    log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
-                else:
-                    log.verbose(f"Finished checking {host}, it is not a wildcard")
+            if wildcard_domain_result:
+                wildcard_rdtypes_str = ",".join(sorted([t.upper() for t, r in wildcard_domain_result.items() if r]))
+                # log_fn = log.verbose
+                # if log_info:
+                #     log_fn = log.info
+                log_fn = log.critical
+                log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
+            else:
+                log.hugesuccess(f"Finished checking {host}, it is not a wildcard")
 
+            # async with self._wildcard_lock.lock(host_hash):
+            #     # if we've seen this host before
+            #     if host_hash in self._wildcard_cache:
+            #         wildcard_domain_results[host] = self._wildcard_cache[host_hash]
+            #         continue
+
+            #     log.verbose(f"Checking if {host} is a wildcard")
+
+            #     # determine if this is a wildcard domain
+
+            #     # resolve a bunch of random subdomains of the same parent
+            #     is_wildcard = False
+            #     wildcard_results = dict()
+
+            #     rand_queries = []
+            #     for rdtype in rdtypes_to_check:
+            #         host_hash = hash(f"{host}:{rdtype}")
+            #         if host_hash in self._wildcard_cache:
+            #             wildcard_results[rdtype].update(self._wildcard_cache[host_hash])
+            #             continue
+            #         for _ in range(self.wildcard_tests):
+            #             rand_query = f"{rand_string(digits=False, length=10)}.{host}"
+            #             rand_queries.append((rand_query, rdtype))
+
+            #     async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(rand_queries, use_cache=False):
+            #         answers = extract_targets(answers)
+            #         if answers:
+            #             is_wildcard = True
+            #             if not rdtype in wildcard_results:
+            #                 wildcard_results[rdtype] = set()
+            #             wildcard_results[rdtype].update(set(a[1] for a in answers))
+            #             # we know this rdtype is a wildcard
+            #             # so we don't need to check it anymore
+            #             with suppress(KeyError):
+            #                 rdtypes_to_check.remove(rdtype)
+
+            #     self._wildcard_cache.update({host_hash: wildcard_results})
+            #     wildcard_domain_results.update({host: wildcard_results})
+            #     if is_wildcard:
+            #         wildcard_rdtypes_str = ",".join(sorted([t.upper() for t, r in wildcard_results.items() if r]))
+            #         log_fn = log.verbose
+            #         if log_info:
+            #             log_fn = log.info
+            #         log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
+            #     else:
+            #         log.verbose(f"Finished checking {host}, it is not a wildcard")
+
+        log.hugeinfo(wildcard_domain_results)
         return wildcard_domain_results
 
     @property

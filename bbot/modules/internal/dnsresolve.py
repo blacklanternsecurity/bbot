@@ -65,6 +65,7 @@ class DNSResolve(InterceptModule):
 
     async def handle_event(self, event, **kwargs):
         dns_tags = set()
+        raw_record_events = []
         event_whitelisted = False
         event_blacklisted = False
 
@@ -73,17 +74,8 @@ class DNSResolve(InterceptModule):
         event_host = str(event.host)
         event_host_hash = hash(event_host)
 
-        async with self._event_cache_locks.lock(event_host_hash):
-            # first thing we do is check for wildcards
-            if not event_is_ip:
-                if event.scope_distance <= self.scan.scope_search_distance:
-                    await self.handle_wildcard_event(event)
-
-        event_host = str(event.host)
-        event_host_hash = hash(event_host)
-
         # we do DNS resolution inside a lock to make sure we don't duplicate work
-        # once the resolution happens, it will be cached so it doesn't need to happen again
+        # once the resolution happens, its results will be cached so it doesn't need to happen again
         async with self._event_cache_locks.lock(event_host_hash):
             try:
                 # try to get from cache
@@ -104,10 +96,9 @@ class DNSResolve(InterceptModule):
                     else:
                         rdtypes_to_resolve = all_rdtypes
 
-                # if missing from cache, do DNS resolution
+                # first, we do DNS resolution
                 queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
                 error_rdtypes = []
-                raw_record_events = []
                 async for (query, rdtype), (answer, errors) in self.helpers.dns.resolve_raw_batch(queries):
                     if self.emit_raw_records and rdtype not in ("A", "AAAA", "CNAME", "PTR"):
                         raw_record_event = self.make_event(
@@ -176,50 +167,6 @@ class DNSResolve(InterceptModule):
                         for host in children:
                             main_host_event._resolved_hosts.add(host)
 
-                # if we're not blacklisted, emit the main host event and all its raw records
-                if not event_blacklisted:
-                    if event_whitelisted:
-                        self.debug(
-                            f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
-                        )
-                        main_host_event.scope_distance = 0
-                        await self.handle_wildcard_event(main_host_event)
-
-                    if event != main_host_event:
-                        await self.emit_event(main_host_event)
-                    for raw_record_event in raw_record_events:
-                        await self.emit_event(raw_record_event)
-
-                    # kill runaway DNS chains
-                    dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
-                    if dns_resolve_distance >= self.helpers.dns.runaway_limit:
-                        self.debug(
-                            f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.runaway_limit})"
-                        )
-                        main_host_event.dns_children = {}
-
-                    # emit DNS children
-                    if not self.minimal:
-                        in_dns_scope = -1 < event.scope_distance < self._dns_search_distance
-                        for rdtype, records in main_host_event.dns_children.items():
-                            module = self.scan._make_dummy_module_dns(rdtype)
-                            for record in records:
-                                try:
-                                    child_event = self.scan.make_event(
-                                        record, "DNS_NAME", module=module, parent=main_host_event
-                                    )
-                                    child_event.discovery_context = f"{rdtype} record for {event.host} contains {child_event.type}: {child_event.host}"
-                                    # if it's a hostname and it's only one hop away, mark it as affiliate
-                                    if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
-                                        child_event.add_tag("affiliate")
-                                    if in_dns_scope or self.preset.in_scope(child_event):
-                                        self.debug(f"Queueing DNS child for {event}: {child_event}")
-                                        await self.emit_event(child_event)
-                                except ValidationError as e:
-                                    self.warning(
-                                        f'Event validation failed for DNS child of {main_host_event}: "{record}" ({rdtype}): {e}'
-                                    )
-
                 # store results in cache
                 self._event_cache[event_host_hash] = main_host_event, dns_tags, event_whitelisted, event_blacklisted
 
@@ -229,9 +176,56 @@ class DNSResolve(InterceptModule):
 
         # if the event resolves to an in-scope IP, set its scope distance to 0
         if event_whitelisted:
-            self.debug(f"Making {event} in-scope because it resolves to an in-scope resource")
-            event.scope_distance = 0
-            await self.handle_wildcard_event(event)
+            self.debug(
+                f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
+            )
+            main_host_event.scope_distance = 0
+            if event != main_host_event:
+                self.debug(f"Making {event} in-scope because it resolves to an in-scope resource (A/AAAA)")
+                event.scope_distance = 0
+
+        # if the event is within our scan's search distance, handle wildcard
+        if event.scope_distance <= self.scan.scope_search_distance:
+            rdtypes_to_check = list(main_host_event.dns_children)
+            self.hugeinfo(f"Checking {rdtypes_to_check}")
+            await self.handle_wildcard_event(main_host_event)
+
+        # emit the main host and its raw records
+        if event != main_host_event:
+            await self.emit_event(main_host_event)
+        for raw_record_event in raw_record_events:
+            await self.emit_event(raw_record_event)
+
+        # kill runaway DNS chains
+        dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
+        if dns_resolve_distance >= self.helpers.dns.runaway_limit:
+            self.debug(
+                f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.runaway_limit})"
+            )
+            main_host_event.dns_children = {}
+
+        # emit DNS children
+        if not self.minimal:
+            in_dns_scope = -1 < event.scope_distance < self._dns_search_distance
+            for rdtype, records in main_host_event.dns_children.items():
+                module = self.scan._make_dummy_module_dns(rdtype)
+                for record in records:
+                    try:
+                        child_event = self.scan.make_event(
+                            record, "DNS_NAME", module=module, parent=main_host_event
+                        )
+                        child_event.discovery_context = f"{rdtype} record for {event.host} contains {child_event.type}: {child_event.host}"
+                        # if it's a hostname and it's only one hop away, mark it as affiliate
+                        if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
+                            child_event.add_tag("affiliate")
+                        if in_dns_scope or self.preset.in_scope(child_event):
+                            self.debug(f"Queueing DNS child for {event}: {child_event}")
+                            await self.emit_event(child_event)
+                    except ValidationError as e:
+                        self.warning(
+                            f'Event validation failed for DNS child of {main_host_event}: "{record}" ({rdtype}): {e}'
+                        )
+
 
         # transfer resolved hosts
         event._resolved_hosts = main_host_event._resolved_hosts
@@ -242,20 +236,25 @@ class DNSResolve(InterceptModule):
 
     async def handle_wildcard_event(self, event):
         self.debug(f"Entering handle_wildcard_event({event})")
+        tags = set()
+        rdtypes_to_check = list(event.dns_children)
+        if not rdtypes_to_check:
+            return False, "", tags
+        self.hugeinfo(f'{event.host}: Checking rdtypes {rdtypes_to_check}')
         try:
             event_host = str(event.host)
             # check if the dns name itself is a wildcard entry
-            wildcard_rdtypes = await self.helpers.is_wildcard(event_host)
+            wildcard_rdtypes = await self.helpers.is_wildcard(event_host, dns_children=event.dns_children, rdtype=rdtypes_to_check)
             for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
                 if is_wildcard == False:
                     continue
                 elif is_wildcard == True:
-                    event.add_tag("wildcard")
+                    tags.add("wildcard")
                     wildcard_tag = "wildcard"
                 elif is_wildcard == None:
                     wildcard_tag = "error"
 
-                event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
+                tags.add(f"{rdtype.lower()}-{wildcard_tag}")
 
             # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
             if wildcard_rdtypes and not "target" in event.tags:
@@ -275,11 +274,10 @@ class DNSResolve(InterceptModule):
                                 break
                         wildcard_data = f"_wildcard.{wildcard_parent}"
                         if wildcard_data != event.data:
-                            self.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
-                            event.data = wildcard_data
-
+                            return event_is_wildcard, wildcard_data, tags
         finally:
             self.debug(f"Finished handle_wildcard_event({event})")
+        return False, "", tags
 
     def get_dns_parent(self, event):
         """

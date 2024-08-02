@@ -111,40 +111,9 @@ class DNSHelper(EngineClient):
             self._brute = DNSBrute(self.parent_helper)
         return self._brute
 
-    async def is_wildcard(self, query, ips=None, rdtype=None):
-        """
-        Use this method to check whether a *host* is a wildcard entry
-
-        This can reliably tell the difference between a valid DNS record and a wildcard within a wildcard domain.
-
-        If you want to know whether a domain is using wildcard DNS, use `is_wildcard_domain()` instead.
-
-        Args:
-            query (str): The hostname to check for a wildcard entry.
-            ips (list, optional): List of IPs to compare against, typically obtained from a previous DNS resolution of the query.
-            rdtype (str, optional): The DNS record type (e.g., "A", "AAAA") to consider during the check.
-
-        Returns:
-            dict: A dictionary indicating if the query is a wildcard for each checked DNS record type.
-                Keys are DNS record types like "A", "AAAA", etc.
-                Values are tuples where the first element is a boolean indicating if the query is a wildcard,
-                and the second element is the wildcard parent if it's a wildcard.
-
-        Raises:
-            ValueError: If only one of `ips` or `rdtype` is specified or if no valid IPs are specified.
-
-        Examples:
-            >>> is_wildcard("www.github.io")
-            {"A": (True, "github.io"), "AAAA": (True, "github.io")}
-
-            >>> is_wildcard("www.evilcorp.com", ips=["93.184.216.34"], rdtype="A")
-            {"A": (False, "evilcorp.com")}
-
-        Note:
-            `is_wildcard` can be True, False, or None (indicating that wildcard detection was inconclusive)
-        """
-        if [ips, rdtype].count(None) == 1:
-            raise ValueError("Both ips and rdtype must be specified")
+    async def is_wildcard(self, query, dns_children=None, rdtype=None):
+        if [dns_children, rdtype].count(None) == 1:
+            raise ValueError("Both dns_children and rdtype must be specified")
 
         query = self._wildcard_prevalidation(query)
         if not query:
@@ -154,14 +123,14 @@ class DNSHelper(EngineClient):
         if is_domain(query):
             return {}
 
-        return await self.run_and_return("is_wildcard", query=query, ips=ips, rdtype=rdtype)
+        return await self.run_and_return("is_wildcard", query=query, dns_children=dns_children, rdtype=rdtype)
 
-    async def is_wildcard_domain(self, domain, log_info=False):
+    async def is_wildcard_domain(self, domain, dns_children=None, log_info=False):
         domain = self._wildcard_prevalidation(domain)
         if not domain:
             return {}
 
-        return await self.run_and_return("is_wildcard_domain", domain=domain, log_info=False)
+        return await self.run_and_return("is_wildcard_domain", domain=domain, dns_children=dns_children, log_info=False)
 
     def _wildcard_prevalidation(self, host):
         if self.wildcard_disable:
