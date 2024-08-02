@@ -94,7 +94,6 @@ class unstructured(BaseModule):
                         file_event = self.make_event(
                             {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], parent=event
                         )
-                        file_event.scope_distance = event.scope_distance
                         await self.emit_event(file_event)
         elif "file" in event.tags:
             file_path = event.data["path"]

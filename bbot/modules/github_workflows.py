@@ -58,7 +58,6 @@ class github_workflows(github):
                         tags=["textfile"],
                         parent=event,
                     )
-                    logfile_event.scope_distance = event.scope_distance
                     await self.emit_event(
                         logfile_event,
                         context=f"{{module}} downloaded workflow run logs from {workflow_url} to {{event.type}}: {log}",

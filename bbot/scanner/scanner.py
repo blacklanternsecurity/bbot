@@ -172,10 +172,6 @@ class Scanner:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
 
-        from .stats import ScanStats
-
-        self.stats = ScanStats(self)
-
         # scope distance
         self.scope_config = self.config.get("scope", {})
         self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
@@ -214,6 +210,10 @@ class Scanner:
 
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)
+
+        from .stats import ScanStats
+
+        self.stats = ScanStats(self)
 
         self._prepped = False
         self._finished_init = False
@@ -642,11 +642,11 @@ class Scanner:
             num_queued_events = self.num_queued_events
             if num_queued_events:
                 self.info(
-                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds)"
                 )
             else:
                 self.info(
-                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds)"
                 )
 
             if self.log_level <= logging.DEBUG:

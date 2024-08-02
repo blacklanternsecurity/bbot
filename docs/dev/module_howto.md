@@ -55,6 +55,23 @@ After saving the module, you can run it with `-m`:
 bbot -t evilcorp.com -m whois
 ```
 
+### Debugging Your Module - BBOT's Colorful Log Functions
+
+You probably noticed the use of `self.hugesuccess()`. This function is part of BBOT's builtin logging capabilty, and it prints whatever you give it in bright green. These colorful log functions can be useful for debugging.
+
+**BBOT log levels**:
+
+- `critical`: bright red
+- `hugesuccess`: bright green
+- `hugewarning`: bright orange
+- `hugeinfo`: bright blue
+- `error`: red
+- `warning`: orange
+- `info`: blue
+- `verbose`: grey (must use `-v` to see)
+- `debug`: grey (must use `-d` to see)
+
+
 For details on how tests are written, see [Unit Tests](./tests.md).
 
 ## `handle_event()` and `emit_event()`

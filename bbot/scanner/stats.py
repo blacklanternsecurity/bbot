@@ -41,7 +41,7 @@ class ScanStats:
         self.scan = scan
         self.module_stats = {}
         self.events_emitted_by_type = {}
-        self.speedometer = SpeedCounter(60)
+        self.speedometer = SpeedCounter(scan.status_frequency)
 
     def event_produced(self, event):
         _increment(self.events_emitted_by_type, event.type)
