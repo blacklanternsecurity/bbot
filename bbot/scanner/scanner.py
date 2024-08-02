@@ -172,10 +172,6 @@ class Scanner:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
 
-        from .stats import ScanStats
-
-        self.stats = ScanStats(self)
-
         # scope distance
         self.scope_config = self.config.get("scope", {})
         self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
@@ -214,6 +210,10 @@ class Scanner:
 
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)
+
+        from .stats import ScanStats
+
+        self.stats = ScanStats(self)
 
         self._prepped = False
         self._finished_init = False
