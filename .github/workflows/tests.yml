@@ -113,6 +113,7 @@ jobs:
           poetry run mkdocs build -f mkdocs.yml -d site/dev_branch
           git config user.name github-actions
           git config user.email github-actions@github.com
+          git fetch --all
           git checkout gh-pages
           mv site/dev_branch .
           git add dev_branch
