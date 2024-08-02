@@ -537,9 +537,20 @@ class EngineServer(EngineBase):
             self.child_tasks[client_id] = {task}
         return task
 
-    async def finished_tasks(self, client_id):
+    async def finished_tasks(self, client_id, timeout=None):
         child_tasks = self.child_tasks.get(client_id, set())
-        done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED)
+        try:
+            done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+        except BaseException as e:
+            if isinstance(e, (TimeoutError, asyncio.TimeoutError)):
+                done = set()
+                self.log.warning(f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({child_tasks})")
+                for task in child_tasks:
+                    task.cancel()
+            else:
+                self.log.error(f"{self.name}: Unhandled exception in finished_tasks({child_tasks}): {e}")
+                self.log.trace(traceback.format_exc())
+                raise
         self.child_tasks[client_id] = pending
         return done
 
