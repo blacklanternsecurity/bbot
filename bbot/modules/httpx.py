@@ -74,7 +74,7 @@ class httpx(BaseModule):
         in_scope_only = self.config.get("in_scope_only", True)
         if "httpx-safe" in event.tags:
             return True
-        max_scope_distance = 0 if in_scope_only else 1
+        max_scope_distance = 0 if in_scope_only else (self.scan.scope_search_distance + 1)
         if event.scope_distance > max_scope_distance:
             return False, "event is not in scope"
         return True
@@ -95,7 +95,6 @@ class httpx(BaseModule):
         return url, url_hash
 
     def _incoming_dedup_hash(self, event):
-
         url, url_hash = self.make_url_metadata(event)
         return url_hash
 
