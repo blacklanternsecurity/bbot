@@ -4,29 +4,28 @@ Below you can find some advanced uses of BBOT.
 
 ## BBOT as a Python library
 
-**Synchronous**
-
+#### Synchronous
 ```python
 from bbot.scanner import Scanner
 
-# any number of targets can be specified
-scan = Scanner("example.com", "scanme.nmap.org", modules=["portscan", "sslcert"])
-for event in scan.start():
-    print(event.json())
+if __name__ == "__main__":
+    scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
+    for event in scan.start():
+        print(event)
 ```
 
-**Asynchronous**
-
+#### Asynchronous
 ```python
 from bbot.scanner import Scanner
 
 async def main():
-    scan = Scanner("example.com", "scanme.nmap.org", modules=["portscan", "sslcert"])
+    scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
     async for event in scan.async_start():
         print(event.json())
 
-import asyncio
-asyncio.run(main())
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
 ```
 
 ## Command-Line Help
