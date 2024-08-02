@@ -388,7 +388,7 @@ class DNSEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            finished = self.finished_tasks(client_id, timeout=120)
+            finished = await self.finished_tasks(client_id, timeout=120)
 
             for task in finished:
                 answers, errors = task.result()
