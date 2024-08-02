@@ -110,7 +110,7 @@ jobs:
       - name: Publish docs (dev branch)
         if: github.ref == 'refs/heads/dev'
         run: |
-          poetry run mkdocs build -f mkdocs-dev.yml -d site/dev_branch
+          poetry run mkdocs build -f mkdocs.yml -d site/dev_branch
           git config user.name github-actions
           git config user.email github-actions@github.com
           git checkout gh-pages
