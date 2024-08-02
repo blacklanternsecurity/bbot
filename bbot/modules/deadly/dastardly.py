@@ -94,9 +94,9 @@ class dastardly(BaseModule):
                 for testsuite in et.iter("testsuite"):
                     yield TestSuite(testsuite)
         except FileNotFoundError:
-            self.debug(f'Could not find Dastardly XML file at {xml_file}')
+            self.debug(f"Could not find Dastardly XML file at {xml_file}")
         except OSError as e:
-            self.verbose(f'Error opening Dastardly XML file at {xml_file}: {e}')
+            self.verbose(f"Error opening Dastardly XML file at {xml_file}: {e}")
         except etree.ParseError as e:
             self.warning(f"Error parsing Dastardly XML at {xml_file}: {e}")
 
