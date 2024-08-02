@@ -4,6 +4,7 @@ on:
     branches:
       - stable
       - dev
+      - readme-updates
   pull_request:
 
 concurrency:
@@ -58,7 +59,7 @@ jobs:
   update_docs:
     # needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/readme-updates'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/readme-updates')
     steps:
       - uses: actions/checkout@v3
         with:
