@@ -642,11 +642,11 @@ class Scanner:
             num_queued_events = self.num_queued_events
             if num_queued_events:
                 self.info(
-                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed since the last message)"
                 )
             else:
                 self.info(
-                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed since the last message)"
                 )
 
             if self.log_level <= logging.DEBUG:
