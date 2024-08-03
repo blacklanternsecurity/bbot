@@ -62,15 +62,24 @@ class EngineBase:
         return error_sentinel
 
     async def _infinite_retry(self, callback, *args, **kwargs):
-        interval = kwargs.pop("_interval", 10)
+        interval = kwargs.pop("_interval", 15)
         context = kwargs.pop("_context", "")
+        # default overall timeout of 5 minutes (15 second interval * 20 iterations)
+        max_retries = kwargs.pop("_max_retries", 4 * 5)
         if not context:
             context = f"{callback.__name__}({args}, {kwargs})"
+        retries = 0
         while not self._shutdown_status:
             try:
                 return await asyncio.wait_for(callback(*args, **kwargs), timeout=interval)
-            except (TimeoutError, asyncio.TimeoutError):
+            except TimeoutError:
                 self.log.debug(f"{self.name}: Timeout waiting for response for {context}, retrying...")
+                retries += 1
+                if max_retries is not None and retries > max_retries:
+                    self.log.error(f"{self.name}: Timed out after {max_retries:,} waiting for {context}")
+                    raise TimeoutError(
+                        f"Timed out after {max_retries:,} {interval:,}-second iterations waiting for {context}"
+                    )
 
 
 class EngineClient(EngineBase):
@@ -205,7 +214,9 @@ class EngineClient(EngineBase):
         message = pickle.dumps({"c": -1})
         await self._infinite_retry(socket.send, message)
         while 1:
-            response = await self._infinite_retry(socket.recv, _context=f"waiting for CANCEL_OK from {context}")
+            response = await self._infinite_retry(
+                socket.recv, _context=f"waiting for CANCEL_OK from {context}", _max_retries=4
+            )
             response = pickle.loads(response)
             if isinstance(response, dict):
                 response = response.get("m", "")
@@ -549,8 +560,9 @@ class EngineServer(EngineBase):
                 for task in child_tasks:
                     task.cancel()
             else:
-                self.log.error(f"{self.name}: Unhandled exception in finished_tasks({child_tasks}): {e}")
-                self.log.trace(traceback.format_exc())
+                if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                    self.log.error(f"{self.name}: Unhandled exception in finished_tasks({child_tasks}): {e}")
+                    self.log.trace(traceback.format_exc())
                 raise
         self.child_tasks[client_id] = pending
         return done
