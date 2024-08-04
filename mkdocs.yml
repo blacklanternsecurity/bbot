@@ -118,3 +118,4 @@ extra_javascript:
   - javascripts/vega@5.js
   - javascripts/vega-lite@5.js
   - javascripts/vega-embed@6.js
+  - data/chord_graph/vega.json
