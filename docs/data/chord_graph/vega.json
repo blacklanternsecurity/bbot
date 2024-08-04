@@ -70,7 +70,7 @@
     },
     {
       "name": "rels",
-      "url": "../data/chord_graph/entities.json",
+      "url": "../data/chord_graph/rels.json",
       "transform": [
         {
           "type": "formula",
