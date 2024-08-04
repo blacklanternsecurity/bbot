@@ -1,0 +1,141 @@
+<mxfile host="app.diagrams.net" modified="2024-08-04T06:23:53.917Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" etag="w5didNOiEfSwq2JuZR3w" version="24.6.4" type="device" pages="2">
+  <diagram name="BBOT v2" id="CYm00DzaAoosW-GoV3mZ">
+    <mxGraphModel dx="3006" dy="1591" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" background="#000000" math="0" shadow="0">
+      <root>
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-0" />
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-1" parent="kyhkx-pfrwEc4V8tyoMn-0" />
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-2" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#00A1FC;fillColor=none;strokeWidth=10;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="-607" y="102" width="495" height="383" as="geometry" />
+        </mxCell>
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-3" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#ff8400;fillColor=none;strokeWidth=10;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="-573" y="134.5" width="431" height="319.5" as="geometry" />
+        </mxCell>
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-5" value="&lt;font style=&quot;font-size: 27px;&quot; face=&quot;Hack&quot; data-font-src=&quot;https://fonts.googleapis.com/css?family=Hack&quot;&gt;Scanner&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=5;fontStyle=1;strokeColor=none;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="-532" y="170" width="350" height="246" as="geometry" />
+        </mxCell>
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-7" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#00A1FC;strokeWidth=20;" edge="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="122.5" y="796" as="sourcePoint" />
+            <mxPoint x="231.5" y="796" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-8" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#FF8400;strokeWidth=20;" edge="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="123.5" y="844.44" as="sourcePoint" />
+            <mxPoint x="232.5" y="844.44" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-9" value="&lt;font style=&quot;font-size: 30px;&quot; color=&quot;#ffffff&quot;&gt;Python Process&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Hack;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DHack;fontStyle=1;fontSize=30;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="259.5" y="779" width="263" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="kyhkx-pfrwEc4V8tyoMn-10" value="&lt;font style=&quot;font-size: 30px;&quot; color=&quot;#ffffff&quot;&gt;Asyncio Loop&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Hack;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DHack;fontStyle=1;fontSize=30;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="243.5" y="830" width="263" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-5" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#00A1FC;fillColor=none;strokeWidth=10;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="80" y="-61" width="497" height="314" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-6" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#ff8400;fillColor=none;strokeWidth=10;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="113" y="-28.5" width="431" height="249.5" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-7" value="&lt;font face=&quot;Hack&quot;&gt;&lt;span style=&quot;font-size: 27px;&quot;&gt;DNS Engine&lt;/span&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#FFFFFF;fillColor=default;strokeWidth=5;fontStyle=1" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="154" y="7" width="347" height="177" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-14" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#00A1FC;fillColor=none;strokeWidth=10;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="79" y="329" width="498" height="314" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-15" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#ff8400;fillColor=none;strokeWidth=10;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="113" y="361.5" width="431" height="249.5" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-16" value="&lt;font face=&quot;Hack&quot;&gt;&lt;span style=&quot;font-size: 27px;&quot;&gt;Web Engine&lt;/span&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#FFFFFF;fillColor=default;strokeWidth=5;fontStyle=1" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="154" y="397" width="347" height="177" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-17" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#FF0000;strokeWidth=20;" edge="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="123.5" y="897.44" as="sourcePoint" />
+            <mxPoint x="232.5" y="897.44" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-18" value="&lt;font style=&quot;font-size: 30px;&quot; color=&quot;#ffffff&quot;&gt;ZeroMQ Channel&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Hack;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DHack;fontStyle=1;fontSize=30;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="243.5" y="883" width="296" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-20" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF0000;strokeWidth=10;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;startArrow=none;startFill=0;endArrow=none;endFill=0;" edge="1" parent="kyhkx-pfrwEc4V8tyoMn-1" source="kyhkx-pfrwEc4V8tyoMn-5" target="siLabTlhFQZNY1ANVoXX-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="siLabTlhFQZNY1ANVoXX-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF0000;strokeWidth=10;startArrow=none;startFill=0;endArrow=none;endFill=0;" edge="1" parent="kyhkx-pfrwEc4V8tyoMn-1" source="kyhkx-pfrwEc4V8tyoMn-5" target="siLabTlhFQZNY1ANVoXX-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dvh9hE-SPl_ji0UdCgXU-0" value="" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeColor=none;fillColor=#4F598F;" vertex="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry x="659" y="-327" width="1007" height="1130" as="geometry" />
+        </mxCell>
+        <mxCell id="dvh9hE-SPl_ji0UdCgXU-3" value="" style="shape=flexArrow;endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=none;strokeWidth=50;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;fillColor=#7887D9;" edge="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry width="100" height="100" relative="1" as="geometry">
+            <mxPoint x="575" y="94.71000000000001" as="sourcePoint" />
+            <mxPoint x="1060" y="95.71000000000001" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dvh9hE-SPl_ji0UdCgXU-4" value="" style="shape=flexArrow;endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=none;strokeWidth=50;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;fillColor=#7887D9;" edge="1" parent="kyhkx-pfrwEc4V8tyoMn-1">
+          <mxGeometry width="100" height="100" relative="1" as="geometry">
+            <mxPoint x="585" y="485.46" as="sourcePoint" />
+            <mxPoint x="1070" y="486.46" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="v2H8g8E64pLNHM-R6JJn" name="BBOT v1">
+    <mxGraphModel dx="2193" dy="968" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" background="#000000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-4" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#00A1FC;fillColor=none;strokeWidth=10;" vertex="1" parent="1">
+          <mxGeometry x="-61" y="226" width="524" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-14" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#ff8400;fillColor=none;strokeWidth=10;" vertex="1" parent="1">
+          <mxGeometry x="-30" y="258.5" width="463" height="338" as="geometry" />
+        </mxCell>
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-17" value="&lt;span style=&quot;font-family: Hack; font-size: 27px; font-weight: 700;&quot;&gt;Web Engine&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=none;fillColor=default;strokeWidth=5;" vertex="1" parent="1">
+          <mxGeometry x="182" y="438" width="219" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-18" value="&lt;font style=&quot;font-size: 27px;&quot; face=&quot;Hack&quot; data-font-src=&quot;https://fonts.googleapis.com/css?family=Hack&quot;&gt;Scanner&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=none;fillColor=default;strokeWidth=5;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="4" y="293" width="148" height="268" as="geometry" />
+        </mxCell>
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-20" value="&lt;span style=&quot;font-family: Hack; font-size: 27px; font-weight: 700;&quot;&gt;DNS Engine&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=none;fillColor=default;strokeWidth=5;" vertex="1" parent="1">
+          <mxGeometry x="180" y="293" width="221" height="117" as="geometry" />
+        </mxCell>
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-21" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#00A1FC;strokeWidth=20;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="349" y="797" as="sourcePoint" />
+            <mxPoint x="458" y="797" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-22" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#FF8400;strokeWidth=20;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="350" y="845.44" as="sourcePoint" />
+            <mxPoint x="459" y="845.44" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-24" value="&lt;font style=&quot;font-size: 30px;&quot; color=&quot;#ffffff&quot;&gt;Python Process&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Hack;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DHack;fontStyle=1;fontSize=30;" vertex="1" parent="1">
+          <mxGeometry x="486" y="780" width="263" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="MtkY13v3bzQyVWEOSrXk-25" value="&lt;font style=&quot;font-size: 30px;&quot; color=&quot;#ffffff&quot;&gt;Asyncio Loop&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Hack;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DHack;fontStyle=1;fontSize=30;" vertex="1" parent="1">
+          <mxGeometry x="470" y="831" width="263" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="QpgU4F9l_Nf0A0S1747V-1" value="" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeColor=none;fillColor=#4F598F;" vertex="1" parent="1">
+          <mxGeometry x="554" y="48" width="711" height="704" as="geometry" />
+        </mxCell>
+        <mxCell id="QpgU4F9l_Nf0A0S1747V-2" value="" style="shape=flexArrow;endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=none;strokeWidth=10;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;fillColor=#7887D9;" edge="1" parent="1">
+          <mxGeometry width="100" height="100" relative="1" as="geometry">
+            <mxPoint x="480" y="350.75" as="sourcePoint" />
+            <mxPoint x="711" y="351.75" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QpgU4F9l_Nf0A0S1747V-4" value="" style="shape=flexArrow;endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=none;strokeWidth=10;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;fillColor=#7887D9;" edge="1" parent="1">
+          <mxGeometry width="100" height="100" relative="1" as="geometry">
+            <mxPoint x="482" y="499.75" as="sourcePoint" />
+            <mxPoint x="713" y="500.75" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
