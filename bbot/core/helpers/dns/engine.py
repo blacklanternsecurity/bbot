@@ -239,6 +239,7 @@ class DNSEngine(EngineServer):
                 dns.exception.Timeout,
                 dns.resolver.LifetimeTimeout,
                 TimeoutError,
+                asyncio.exceptions.TimeoutError,
             ) as e:
                 try:
                     self._errors[parent_hash] += 1
@@ -307,10 +308,11 @@ class DNSEngine(EngineServer):
                         self._dns_cache[dns_cache_hash] = results
                 break
             except (
+                dns.resolver.NoNameservers,
                 dns.exception.Timeout,
                 dns.resolver.LifetimeTimeout,
-                dns.resolver.NoNameservers,
                 TimeoutError,
+                asyncio.exceptions.TimeoutError,
             ) as e:
                 errors.append(e)
                 # don't retry if we get a SERVFAIL

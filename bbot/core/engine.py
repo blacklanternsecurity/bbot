@@ -72,8 +72,8 @@ class EngineBase:
         while not self._shutdown_status:
             try:
                 return await asyncio.wait_for(callback(*args, **kwargs), timeout=interval)
-            except TimeoutError:
-                self.log.debug(f"{self.name}: Timeout after {interval:,} seconds {context}, retrying...")
+            except (TimeoutError, asyncio.exceptions.TimeoutError):
+                self.log.debug(f"{self.name}: Timeout after {interval:,} seconds{context}, retrying...")
                 retries += 1
                 if max_retries is not None and retries > max_retries:
                     raise TimeoutError(f"Timed out after {max_retries*interval:,} seconds {context}")
@@ -224,9 +224,9 @@ class EngineClient(EngineBase):
         async with self.new_socket() as socket:
             # -99 == special shutdown message
             message = pickle.dumps({"c": -99})
-            with suppress(TimeoutError, asyncio.TimeoutError):
+            with suppress(TimeoutError, asyncio.exceptions.TimeoutError):
                 await asyncio.wait_for(socket.send(message), 0.5)
-            with suppress(TimeoutError, asyncio.TimeoutError):
+            with suppress(TimeoutError, asyncio.exceptions.TimeoutError):
                 while 1:
                     response = await asyncio.wait_for(socket.recv(), 0.5)
                     response = pickle.loads(response)
@@ -551,7 +551,7 @@ class EngineServer(EngineBase):
         try:
             done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
         except BaseException as e:
-            if isinstance(e, (TimeoutError, asyncio.TimeoutError)):
+            if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):
                 done = set()
                 self.log.warning(f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({child_tasks})")
                 for task in child_tasks:
@@ -583,7 +583,7 @@ class EngineServer(EngineBase):
     async def _cancel_task(self, task):
         try:
             await asyncio.wait_for(task, timeout=10)
-        except (TimeoutError, asyncio.TimeoutError):
+        except (TimeoutError, asyncio.exceptions.TimeoutError):
             self.log.debug(f"{self.name}: Timeout cancelling task")
             return
         except (KeyboardInterrupt, asyncio.CancelledError):
