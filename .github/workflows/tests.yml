@@ -116,6 +116,7 @@ jobs:
           git config user.email github-actions@github.com
           git fetch --all
           git checkout gh-pages
+          rm -r site/dev_branch
           mv site/dev_branch .
           git add dev_branch
           git commit -m "Update dev documentation"
