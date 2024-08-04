@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.53nvghr4.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.ibw73__n.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -584,7 +584,7 @@
 <article class="md-content__inner md-typeset">
 <h1 id="how-it-works">How it Works</h1>
 <h2 id="bbots-recursive-philosophy">BBOT's Recursive Philosophy</h2>
-<p>It is well-known that if you're doing recon, it's best to do it recursively. However, there are very few recursive tools out there, mainly because making a recursive tool (and keeping it stable) is pretty hard. BBOT manages this with extensive <a href="../dev/tests/">Unit Tests</a>.</p>
+<p>It's well-known that when you're doing recon, it's best to do it recursively. However, there are very few recursive tools, and the main reason for this is because making a recursive tool is hard. In particular, it's very difficult to build a large-scale recursive system that interacts with the internet, and to keep it stable. BBOT manages this with extensive <a href="../dev/tests/">Unit Tests</a>.</p>
 <p>BBOT inherits its recursive philosophy from <a href="https://github.com/smicallef/spiderfoot">Spiderfoot</a>, which means it is also <strong><em>event-driven</em></strong>. Each of BBOT's 100+ modules <strong><em>consume</em></strong> a certain type of <a href="../scanning/events/">Event</a>, use it to discover something new, and <strong><em>produce</em></strong> new events, which get distributed to all the other modules. This happens again and again -- thousands of times during a scan -- spidering outwards in a recursive web of discovery.</p>
 <p>Below is an interactive graph showing the relationships between modules and the event types they produce and consume.</p>
 <!-- BBOT CHORD GRAPH -->
