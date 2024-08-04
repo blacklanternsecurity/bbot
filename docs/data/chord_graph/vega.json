@@ -23,7 +23,7 @@
   "data": [
     {
       "name": "entities",
-      "url": "/bbot/data/chord_graph/entities.json",
+      "url": "../data/chord_graph/entities.json",
       "transform": [
         {
           "type": "stratify",
@@ -70,7 +70,7 @@
     },
     {
       "name": "rels",
-      "url": "/bbot/data/chord_graph/rels.json",
+      "url": "../data/chord_graph/entities.json",
       "transform": [
         {
           "type": "formula",
