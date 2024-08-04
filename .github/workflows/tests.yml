@@ -79,7 +79,9 @@ jobs:
         uses: EndBug/add-and-commit@v9
         continue-on-error: true
         with:
-          add: "*.md"
+          add: |
+            - *.md
+            - docs/data/chord_graph/*.json
           author_name: "BBOT Docs Autopublish"
           author_email: info@blacklanternsecurity.com
           message: "Refresh module docs"
