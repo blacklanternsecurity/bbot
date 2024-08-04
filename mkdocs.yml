@@ -38,6 +38,7 @@ nav:
     - Troubleshooting: troubleshooting.md
 - Developer Manual:
   - Development Overview: dev/index.md
+  - How to Set Up a BBOT Dev Environment: dev/dev_environment.md
   - BBOT Internal Architecture: dev/architecture.md
   - How to Write a BBOT Module: dev/module_howto.md
   - Unit Tests: dev/tests.md

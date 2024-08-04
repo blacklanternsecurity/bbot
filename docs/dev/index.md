@@ -4,6 +4,18 @@ BBOT exposes a Python API that allows you to create, start, and stop scans.
 
 Documented in this section are commonly-used classes and functions within BBOT, along with usage examples.
 
+## Adding BBOT to Your Python Project
+
+If you are using Poetry, you can add BBOT to your python environment like this:
+
+```bash
+# stable
+poetry add bbot
+
+# bleeding-edge (dev branch)
+poetry add bbot --allow-prereleases
+```
+
 ## Running a BBOT Scan from Python
 
 #### Synchronous

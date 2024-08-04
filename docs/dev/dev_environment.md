@@ -1,5 +1,7 @@
 ## Setting Up a Dev Environment
 
+The following will show you how to set up a fully functioning python environment for devving on BBOT.
+
 ### Installation (Poetry)
 
 [Poetry](https://python-poetry.org/) is the recommended method of installation if you want to dev on BBOT. To set up a dev environment with Poetry, you can follow these steps:
