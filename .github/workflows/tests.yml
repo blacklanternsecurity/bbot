@@ -111,7 +111,7 @@ jobs:
       - name: Publish docs (dev branch)
         if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/readme-updates')
         run: |
-          rm -r site/dev_branch
+          rm -r dev_branch || true
           poetry run mkdocs build -f mkdocs.yml -d site/dev_branch
           git config user.name github-actions
           git config user.email github-actions@github.com
