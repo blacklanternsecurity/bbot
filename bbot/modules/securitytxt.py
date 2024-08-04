@@ -74,8 +74,6 @@ class securitytxt(BaseModule):
         "emails": "emit EMAIL_ADDRESS events",
         "urls": "emit URL_UNVERIFIED events",
     }
-    # accept DNS_NAMEs out to 2 hops if in_scope_only is False
-    scope_distance_modifier = 2
 
     async def setup(self):
         self.in_scope_only = self.config.get("in_scope_only", True)
