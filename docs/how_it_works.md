@@ -16,7 +16,7 @@ Below is an interactive graph showing the relationships between modules and the 
     function() {
       vegaEmbed(
         '#vis',
-        '/bbot/data/chord_graph/vega.json',
+        '../data/chord_graph/vega.json',
         {renderer: 'svg'}
       );
     }
