@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.xve4u6z3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.31ykv4vj.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -31,8 +31,6 @@
         </a>
 </div>
 <div data-md-component="announce">
-</div>
-<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
 </div>
 <header class="md-header" data-md-component="header">
 <nav aria-label="Header" class="md-header__inner md-grid">
@@ -388,7 +386,7 @@
 <li class="md-nav__item">
 <a class="md-nav__link" href="../dev_environment/">
 <span class="md-ellipsis">
-    Setting Up a Dev Environment
+    How to Set Up a BBOT Dev Environment
   </span>
 </a>
 </li>
@@ -624,7 +622,13 @@ This offloads I/O and helps free up the main event loop for other tasks.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">70</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">71</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">72</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">73</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">EngineBase</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">73</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">74</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">75</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">76</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">77</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">78</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">79</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">EngineBase</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Base Engine class for Server and Client.</span>
 
@@ -663,15 +667,21 @@ This offloads I/O and helps free up the main event loop for other tasks.</p>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">error_sentinel</span>
 
     <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_infinite_retry</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">callback,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
-        <span style="color: #e6edf3">interval</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"_interval"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">10</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">interval</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"_interval"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">15</span><span style="color: #e6edf3">)</span>
         <span style="color: #e6edf3">context</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"_context"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">""</span><span style="color: #e6edf3">)</span>
+        <span style="color: #8b949e; font-style: italic"># default overall timeout of 5 minutes (15 second interval * 20 iterations)</span>
+        <span style="color: #e6edf3">max_retries</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"_max_retries"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">4</span> <span style="color: #ff7b72; font-weight: bold">*</span> <span style="color: #a5d6ff">5</span><span style="color: #e6edf3">)</span>
         <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">context:</span>
             <span style="color: #e6edf3">context</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">callback</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__name__</span><span style="color: #a5d6ff">}({</span><span style="color: #e6edf3">args</span><span style="color: #a5d6ff">}, {</span><span style="color: #e6edf3">kwargs</span><span style="color: #a5d6ff">})"</span>
+        <span style="color: #e6edf3">retries</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">0</span>
         <span style="color: #ff7b72">while</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_shutdown_status:</span>
             <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
                 <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">wait_for(callback(</span><span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs),</span> <span style="color: #e6edf3">timeout</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">interval)</span>
-            <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError):</span>
-                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">debug(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: Timeout waiting for response for {</span><span style="color: #e6edf3">context</span><span style="color: #a5d6ff">}, retrying..."</span><span style="color: #e6edf3">)</span>
+            <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">exceptions</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError):</span>
+                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">debug(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: Timeout after {</span><span style="color: #e6edf3">interval</span><span style="color: #a5d6ff">:,} seconds{</span><span style="color: #e6edf3">context</span><span style="color: #a5d6ff">}, retrying..."</span><span style="color: #e6edf3">)</span>
+                <span style="color: #e6edf3">retries</span> <span style="color: #ff7b72; font-weight: bold">+=</span> <span style="color: #a5d6ff">1</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">max_retries</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">retries</span> <span style="color: #ff7b72; font-weight: bold">&gt;</span> <span style="color: #e6edf3">max_retries:</span>
+                    <span style="color: #ff7b72">raise</span> <span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Timed out after {</span><span style="color: #e6edf3">max_retries</span><span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">interval</span><span style="color: #a5d6ff">:,} seconds {</span><span style="color: #e6edf3">context</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
 </code></pre></div></td></tr></table></div>
 </details>
 <div class="doc doc-children">
@@ -709,13 +719,7 @@ define methods for each of your desired functions.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 76</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 77</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 78</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 79</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 80</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 81</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 82</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 82</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 83</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 84</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 85</span>
@@ -962,7 +966,15 @@ define methods for each of your desired functions.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">326</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">327</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">328</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">329</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">EngineClient</span><span style="color: #e6edf3">(EngineBase):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">329</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">331</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">EngineClient</span><span style="color: #e6edf3">(EngineBase):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    The client portion of BBOT's RPC Engine.</span>
 
@@ -1094,7 +1106,9 @@ define methods for each of your desired functions.</p>
         <span style="color: #e6edf3">message</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">pickle</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dumps({</span><span style="color: #a5d6ff">"c"</span><span style="color: #e6edf3">:</span> <span style="color: #ff7b72; font-weight: bold">-</span><span style="color: #a5d6ff">1</span><span style="color: #e6edf3">})</span>
         <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_infinite_retry(socket</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">send,</span> <span style="color: #e6edf3">message)</span>
         <span style="color: #ff7b72">while</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_infinite_retry(socket</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">recv,</span> <span style="color: #e6edf3">_context</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"waiting for CANCEL_OK from {</span><span style="color: #e6edf3">context</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
+            <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_infinite_retry(</span>
+                <span style="color: #e6edf3">socket</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">recv,</span> <span style="color: #e6edf3">_context</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"waiting for CANCEL_OK from {</span><span style="color: #e6edf3">context</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">_max_retries</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">4</span>
+            <span style="color: #e6edf3">)</span>
             <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">pickle</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">loads(response)</span>
             <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(response,</span> <span style="color: #e6edf3">dict):</span>
                 <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">response</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"m"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">""</span><span style="color: #e6edf3">)</span>
@@ -1105,9 +1119,9 @@ define methods for each of your desired functions.</p>
         <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">with</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">new_socket()</span> <span style="color: #ff7b72">as</span> <span style="color: #e6edf3">socket:</span>
             <span style="color: #8b949e; font-style: italic"># -99 == special shutdown message</span>
             <span style="color: #e6edf3">message</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">pickle</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dumps({</span><span style="color: #a5d6ff">"c"</span><span style="color: #e6edf3">:</span> <span style="color: #ff7b72; font-weight: bold">-</span><span style="color: #a5d6ff">99</span><span style="color: #e6edf3">})</span>
-            <span style="color: #ff7b72">with</span> <span style="color: #e6edf3">suppress(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError):</span>
+            <span style="color: #ff7b72">with</span> <span style="color: #e6edf3">suppress(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">exceptions</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError):</span>
                 <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">wait_for(socket</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">send(message),</span> <span style="color: #a5d6ff">0.5</span><span style="color: #e6edf3">)</span>
-            <span style="color: #ff7b72">with</span> <span style="color: #e6edf3">suppress(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError):</span>
+            <span style="color: #ff7b72">with</span> <span style="color: #e6edf3">suppress(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">exceptions</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError):</span>
                 <span style="color: #ff7b72">while</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
                     <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">wait_for(socket</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">recv(),</span> <span style="color: #a5d6ff">0.5</span><span style="color: #e6edf3">)</span>
                     <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">pickle</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">loads(response)</span>
@@ -1232,20 +1246,22 @@ define methods for each of your desired functions.</p>
 <p>Send a cancel message and wait for confirmation from the server</p>
 <details class="quote">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">200</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">201</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">202</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">203</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">204</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">205</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">206</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">206</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">207</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">208</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">209</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">210</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">211</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">212</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">213</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">send_cancel_message</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">socket,</span> <span style="color: #e6edf3">context):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">213</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">214</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">215</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">216</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">217</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">218</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">219</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">220</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">221</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">send_cancel_message</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">socket,</span> <span style="color: #e6edf3">context):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Send a cancel message and wait for confirmation from the server</span>
 <span style="color: #a5d6ff">    """</span>
@@ -1253,7 +1269,9 @@ define methods for each of your desired functions.</p>
     <span style="color: #e6edf3">message</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">pickle</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dumps({</span><span style="color: #a5d6ff">"c"</span><span style="color: #e6edf3">:</span> <span style="color: #ff7b72; font-weight: bold">-</span><span style="color: #a5d6ff">1</span><span style="color: #e6edf3">})</span>
     <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_infinite_retry(socket</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">send,</span> <span style="color: #e6edf3">message)</span>
     <span style="color: #ff7b72">while</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
-        <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_infinite_retry(socket</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">recv,</span> <span style="color: #e6edf3">_context</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"waiting for CANCEL_OK from {</span><span style="color: #e6edf3">context</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_infinite_retry(</span>
+            <span style="color: #e6edf3">socket</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">recv,</span> <span style="color: #e6edf3">_context</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"waiting for CANCEL_OK from {</span><span style="color: #e6edf3">context</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">_max_retries</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">4</span>
+        <span style="color: #e6edf3">)</span>
         <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">pickle</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">loads(response)</span>
         <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(response,</span> <span style="color: #e6edf3">dict):</span>
             <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">response</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"m"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">""</span><span style="color: #e6edf3">)</span>
@@ -1296,15 +1314,7 @@ define methods for each of your desired functions.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">338</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">339</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">340</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">340</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">341</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">342</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">343</span>
@@ -1543,7 +1553,28 @@ define methods for each of your desired functions.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">576</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">577</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">578</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">579</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">EngineServer</span><span style="color: #e6edf3">(EngineBase):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">579</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">580</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">581</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">582</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">583</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">584</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">585</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">586</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">587</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">588</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">589</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">590</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">591</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">593</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">595</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">596</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">597</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">598</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">599</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">600</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">EngineServer</span><span style="color: #e6edf3">(EngineBase):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    The server portion of BBOT's RPC Engine.</span>
 
@@ -1631,6 +1662,7 @@ define methods for each of your desired functions.</p>
                 <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">debug(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">} run-and-yield {</span><span style="color: #e6edf3">fn_str</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
                 <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
                     <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">_</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">command_fn(</span><span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
+                        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">debug(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: sending iteration for {</span><span style="color: #e6edf3">command_fn</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__name__</span><span style="color: #a5d6ff">}(): {</span><span style="color: #e6edf3">_</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
                         <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">send_socket_multipart(client_id,</span> <span style="color: #e6edf3">_)</span>
                 <span style="color: #ff7b72">except</span> <span style="color: #f0883e; font-weight: bold">BaseException</span> <span style="color: #ff7b72">as</span> <span style="color: #e6edf3">e:</span>
                     <span style="color: #e6edf3">error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Error in {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}.{</span><span style="color: #e6edf3">fn_str</span><span style="color: #a5d6ff">}: {</span><span style="color: #e6edf3">e</span><span style="color: #a5d6ff">}"</span>
@@ -1751,9 +1783,21 @@ define methods for each of your desired functions.</p>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">child_tasks[client_id]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">{task}</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">task</span>
 
-    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">finished_tasks</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">client_id):</span>
+    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">finished_tasks</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">client_id,</span> <span style="color: #e6edf3">timeout</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
         <span style="color: #e6edf3">child_tasks</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">child_tasks</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(client_id,</span> <span style="color: #e6edf3">set())</span>
-        <span style="color: #e6edf3">done,</span> <span style="color: #e6edf3">pending</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">wait(child_tasks,</span> <span style="color: #e6edf3">return_when</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">FIRST_COMPLETED)</span>
+        <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">done,</span> <span style="color: #e6edf3">pending</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">wait(child_tasks,</span> <span style="color: #e6edf3">return_when</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">FIRST_COMPLETED,</span> <span style="color: #e6edf3">timeout</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">timeout)</span>
+        <span style="color: #ff7b72">except</span> <span style="color: #f0883e; font-weight: bold">BaseException</span> <span style="color: #ff7b72">as</span> <span style="color: #e6edf3">e:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(e,</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">exceptions</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError)):</span>
+                <span style="color: #e6edf3">done</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
+                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">warning(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: Timeout after {</span><span style="color: #e6edf3">timeout</span><span style="color: #a5d6ff">:,} seconds in finished_tasks({</span><span style="color: #e6edf3">child_tasks</span><span style="color: #a5d6ff">})"</span><span style="color: #e6edf3">)</span>
+                <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">task</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">child_tasks:</span>
+                    <span style="color: #e6edf3">task</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">cancel()</span>
+            <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">in_exception_chain(e,</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">KeyboardInterrupt</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">CancelledError)):</span>
+                    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">error(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: Unhandled exception in finished_tasks({</span><span style="color: #e6edf3">child_tasks</span><span style="color: #a5d6ff">}): {</span><span style="color: #e6edf3">e</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
+                    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(traceback</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">format_exc())</span>
+                <span style="color: #ff7b72">raise</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">child_tasks[client_id]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">pending</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">done</span>
 
@@ -1776,7 +1820,7 @@ define methods for each of your desired functions.</p>
     <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_cancel_task</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">task):</span>
         <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
             <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">wait_for(task,</span> <span style="color: #e6edf3">timeout</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">10</span><span style="color: #e6edf3">)</span>
-        <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError):</span>
+        <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">TimeoutError</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">exceptions</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">TimeoutError):</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">debug(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: Timeout cancelling task"</span><span style="color: #e6edf3">)</span>
             <span style="color: #ff7b72">return</span>
         <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">KeyboardInterrupt</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">CancelledError):</span>
@@ -1820,15 +1864,11 @@ define methods for each of your desired functions.</p>
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
 <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
-<script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>
 <script src="../../javascripts/vega-lite@5.js"></script>
 <script src="../../javascripts/vega-embed@6.js"></script>
-<script src="../../data/chord_graph/vega.json"></script>
-<script src="../../data/chord_graph/rels.json"></script>
-<script src="../../data/chord_graph/entities.json"></script>
 </body>
 </html>

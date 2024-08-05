@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.xve4u6z3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.31ykv4vj.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -31,8 +31,6 @@
         </a>
 </div>
 <div data-md-component="announce">
-</div>
-<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
 </div>
 <header class="md-header" data-md-component="header">
 <nav aria-label="Header" class="md-header__inner md-grid">
@@ -435,7 +433,7 @@
 <li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/dev_environment/">
 <span class="md-ellipsis">
-    Setting Up a Dev Environment
+    How to Set Up a BBOT Dev Environment
   </span>
 </a>
 </li>
@@ -663,14 +661,14 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: trickest,chaos,dnscommonsrv,iis_shortnames,virustotal,git,sitedossier,dastardly,ip2location,anubisdb,gitlab,filedownload,robots,certspotter,oauth,hunt,github_codesearch,trufflehog,baddns,shodan_dns,unstructured,social,bypass403,myssl,pgp,censys,nuclei,code_repository,builtwith,bucket_file_enum,dockerhub,paramminer_cookies,telerik,url_manipulation,wayback,hunterio,ffuf,digitorus,dotnetnuke,portscan,paramminer_headers,postman,github_org,bevigil,dnscaa,credshed,internetdb,binaryedge,docker_pull,bucket_azure,subdomaincenter,ntlm,sslcert,ajaxpro,leakix,secretsdb,git_clone,baddns_zone,azure_tenant,wpscan,rapiddns,otx,dnsbrute_mutations,paramminer_getparams,wafw00f,c99,bucket_google,httpx,zoomeye,newsletters,asn,dnsdumpster,ipstack,passivetotal,dehashed,badsecrets,skymem,azure_realm,fingerprintx,urlscan,host_header,ipneighbor,vhost,github_workflows,fullhunt,affiliates,securitytrails,viewdns,crt,bucket_amazon,gowitness,generic_ssrf,bucket_firebase,bucket_digitalocean,columbus,hackertarget,wappalyzer,smuggler,emailformat,dnsbrute,ffuf_shortnames
+                        Modules to enable. Choices: gitlab,rapiddns,url_manipulation,certspotter,censys,unstructured,chaos,bucket_amazon,crt,trufflehog,fingerprintx,securitytrails,azure_realm,asn,code_repository,git,credshed,bucket_google,vhost,ipstack,portscan,badsecrets,wappalyzer,skymem,affiliates,secretsdb,wayback,ntlm,wafw00f,hunterio,leakix,ffuf_shortnames,baddns_zone,bevigil,wpscan,dockerhub,telerik,iis_shortnames,columbus,myssl,passivetotal,trickest,ffuf,hunt,dnsbrute_mutations,robots,sitedossier,nuclei,newsletters,digitorus,bucket_file_enum,dnscommonsrv,shodan_dns,filedownload,github_codesearch,sslcert,internetdb,dnsbrute,zoomeye,binaryedge,baddns,docker_pull,generic_ssrf,paramminer_headers,fullhunt,ajaxpro,emailformat,smuggler,github_org,dnsdumpster,viewdns,otx,host_header,anubisdb,paramminer_cookies,dnscaa,bucket_firebase,builtwith,c99,urlscan,virustotal,httpx,oauth,dotnetnuke,dehashed,azure_tenant,bucket_digitalocean,paramminer_getparams,hackertarget,github_workflows,dastardly,ipneighbor,social,gowitness,subdomaincenter,bypass403,bucket_azure,pgp,postman,ip2location,git_clone
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: aggressive,passive,code-enum,deadly,subdomain-hijack,baddns,slow,web-thorough,subdomain-enum,cloud-enum,service-enum,safe,active,web-basic,portscan,social-enum,iis-shortnames,web-paramminer,report,web-screenshots,email-enum,affiliates
+                        Enable modules by flag. Choices: portscan,aggressive,web-basic,affiliates,email-enum,deadly,passive,slow,subdomain-enum,iis-shortnames,active,web-screenshots,web-thorough,cloud-enum,report,baddns,web-paramminer,service-enum,subdomain-hijack,code-enum,social-enum,safe
   -lf, --list-flags     List available flags.
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
@@ -695,7 +693,7 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: csv,websocket,subdomains,teams,web_report,python,txt,discord,emails,stdout,splunk,slack,http,asset_inventory,neo4j,json
+                        Output module(s). Choices: discord,emails,splunk,teams,neo4j,websocket,asset_inventory,http,csv,json,slack,python,txt,web_report,subdomains,stdout
   --json, -j            Output scan data in JSON format
   --brief, -br          Output only the data itself
   --event-types EVENT_TYPES [EVENT_TYPES ...]
@@ -770,15 +768,11 @@ EXAMPLES
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
 <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
-<script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>
 <script src="../../javascripts/vega-lite@5.js"></script>
 <script src="../../javascripts/vega-embed@6.js"></script>
-<script src="../../data/chord_graph/vega.json"></script>
-<script src="../../data/chord_graph/rels.json"></script>
-<script src="../../data/chord_graph/entities.json"></script>
 </body>
 </html>
