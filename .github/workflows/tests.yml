@@ -117,6 +117,7 @@ jobs:
         run: |
           poetry run mike deploy Dev
       - name: Publish docs
+        run: |
           git switch gh-pages
           git push
   publish_code:
