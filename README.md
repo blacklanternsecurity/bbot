@@ -330,8 +330,6 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scann
 
 ## Documentation
 
-(NOTE: Bleeding-edge documentation can be found [here](https://www.blacklanternsecurity.com/bbot/dev_branch/))
-
 <!-- BBOT DOCS TOC -->
 - **User Manual**
     - **Basics**
