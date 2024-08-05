@@ -1,0 +1,1921 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Dev/dev/target/" rel="canonical"/>
+<link href="../event/" rel="prev"/>
+<link href="../basemodule/" rel="next"/>
+<link href="../../favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.0, mkdocs-material-9.5.26" name="generator"/>
+<title>Target - BBOT Docs</title>
+<link href="../../assets/stylesheets/main.6543a935.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.q5j2ukby.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#bbot.scanner.target.Target">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Target
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_0" name="__palette" type="radio"/>
+</form>
+<script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+          
+  
+  User Manual
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../">
+          
+  
+  Developer Manual
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+<span class="md-ellipsis">
+    User Manual
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            User Manual
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="0">
+<span class="md-ellipsis">
+    Basics
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_1_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_1">
+<span class="md-nav__icon md-icon"></span>
+            Basics
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Getting Started
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../how_it_works/">
+<span class="md-ellipsis">
+    How it Works
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../comparison/">
+<span class="md-ellipsis">
+    Comparison to Other Tools
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Scanning
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_2">
+<span class="md-nav__icon md-icon"></span>
+            Scanning
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/">
+<span class="md-ellipsis">
+    Scanning Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Presets
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            Presets
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/presets/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/presets_list/">
+<span class="md-ellipsis">
+    List of Presets
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/events/">
+<span class="md-ellipsis">
+    Events
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/output/">
+<span class="md-ellipsis">
+    Output
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/tips_and_tricks/">
+<span class="md-ellipsis">
+    Tips and Tricks
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/advanced/">
+<span class="md-ellipsis">
+    Advanced Usage
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/configuration/">
+<span class="md-ellipsis">
+    Configuration
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="0">
+<span class="md-ellipsis">
+    Modules
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_3">
+<span class="md-nav__icon md-icon"></span>
+            Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/list_of_modules/">
+<span class="md-ellipsis">
+    List of Modules
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/nuclei/">
+<span class="md-ellipsis">
+    Nuclei
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="0">
+<span class="md-ellipsis">
+    Misc
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            Misc
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+<span class="md-ellipsis">
+    Contribution
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../release_history/">
+<span class="md-ellipsis">
+    Release History
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+<span class="md-ellipsis">
+    Troubleshooting
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-ellipsis">
+    Developer Manual
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Developer Manual
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    Development Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../dev_environment/">
+<span class="md-ellipsis">
+    Setting Up a Dev Environment
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../architecture/">
+<span class="md-ellipsis">
+    BBOT Internal Architecture
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../module_howto/">
+<span class="md-ellipsis">
+    How to Write a BBOT Module
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../tests/">
+<span class="md-ellipsis">
+    Unit Tests
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../discord_bot/">
+<span class="md-ellipsis">
+    Discord Bot Example
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="">
+<span class="md-ellipsis">
+    Code Reference
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_7">
+<span class="md-nav__icon md-icon"></span>
+            Code Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scanner/">
+<span class="md-ellipsis">
+    Scanner
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../presets/">
+<span class="md-ellipsis">
+    Presets
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../event/">
+<span class="md-ellipsis">
+    Event
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Target
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    Target
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.target.Target.events">
+<span class="md-ellipsis">
+      events
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.target.Target.__init__">
+<span class="md-ellipsis">
+      __init__
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.target.Target.add">
+<span class="md-ellipsis">
+      add
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.target.Target.copy">
+<span class="md-ellipsis">
+      copy
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.target.Target.get">
+<span class="md-ellipsis">
+      get
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.target.Target.get_host">
+<span class="md-ellipsis">
+      get_host
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../basemodule/">
+<span class="md-ellipsis">
+    BaseModule
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../core/">
+<span class="md-ellipsis">
+    BBOTCore
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../engine/">
+<span class="md-ellipsis">
+    Engine
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Helpers
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_7_8">
+<span class="md-nav__icon md-icon"></span>
+            Helpers
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../helpers/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../helpers/command/">
+<span class="md-ellipsis">
+    Command
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../helpers/dns/">
+<span class="md-ellipsis">
+    DNS
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../helpers/interactsh/">
+<span class="md-ellipsis">
+    Interactsh
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../helpers/misc/">
+<span class="md-ellipsis">
+    Miscellaneous
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../helpers/web/">
+<span class="md-ellipsis">
+    Web
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../helpers/wordcloud/">
+<span class="md-ellipsis">
+    Word Cloud
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<div class="doc doc-object doc-class">
+<h1 class="doc doc-heading" id="bbot.scanner.target.Target">
+<span class="doc doc-object-name doc-class-name">Target</span>
+</h1>
+<div class="doc doc-contents first">
+<p>A class representing a target. Can contain an unlimited number of hosts, IP or IP ranges, URLs, etc.</p>
+<p><span class="doc-section-title">Attributes:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code><span title="bbot.scanner.target.Target.strict_scope">strict_scope</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+          –
+          <div class="doc-md-description">
+<p>Flag indicating whether to consider child domains in-scope.
+If set to True, only the exact hosts specified and not their children are considered part of the target.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code><span title="bbot.scanner.target.Target._radix">_radix</span></code></b>
+              (<code>RadixTree</code>)
+          –
+          <div class="doc-md-description">
+<p>Radix tree for quick IP/DNS lookups.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code><span title="bbot.scanner.target.Target._events">_events</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+          –
+          <div class="doc-md-description">
+<p>Flat set of contained events.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<p>Basic usage</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Target(scan,</span> <span style="color: #a5d6ff">"evilcorp.com"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"1.2.3.0/24"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">len(target)</span>
+<span style="color: #8b949e">257</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">list(t</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events)</span>
+<span style="color: #8b949e">[</span>
+<span style="color: #8b949e">    DNS_NAME("evilcorp.com", module=TARGET, tags={'domain', 'distance-1', 'target'}),</span>
+<span style="color: #8b949e">    IP_RANGE("1.2.3.0/24", module=TARGET, tags={'ipv4', 'distance-1', 'target'})</span>
+<span style="color: #8b949e">]</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #a5d6ff">"www.evilcorp.com"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">target</span>
+<span style="color: #8b949e">True</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #a5d6ff">"1.2.3.4"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">target</span>
+<span style="color: #8b949e">True</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #a5d6ff">"4.3.2.1"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">target</span>
+<span style="color: #8b949e">False</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #a5d6ff">"https://admin.evilcorp.com"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">target</span>
+<span style="color: #8b949e">True</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #a5d6ff">"bob@evilcorp.com"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">target</span>
+<span style="color: #8b949e">True</span>
+</code></pre></div>
+<p>Event correlation</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"www.evilcorp.com"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">DNS_NAME("evilcorp.com", module=TARGET, tags={'domain', 'distance-1', 'target'})</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"1.2.3.4"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">IP_RANGE("1.2.3.0/24", module=TARGET, tags={'ipv4', 'distance-1', 'target'})</span>
+</code></pre></div>
+<p>Target comparison</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target2</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Targets(scan,</span> <span style="color: #a5d6ff">"www.evilcorp.com"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target2</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #e6edf3">target</span>
+<span style="color: #8b949e">False</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target2</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">target</span>
+<span style="color: #8b949e">True</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">target2</span>
+<span style="color: #8b949e">False</span>
+</code></pre></div>
+<details class="notes" open="">
+<summary>Notes</summary>
+<ul>
+<li>Targets are only precise down to the individual host. Ports and protocols are not considered in scope calculations.</li>
+<li>If you specify "https://evilcorp.com:8443" as a target, all of evilcorp.com (including subdomains and other ports and protocols) will be considered part of the target</li>
+<li>If you do not want to include child subdomains, use <code>strict_scope=True</code></li>
+</ul>
+</details>
+<details class="quote">
+<summary>Source code in <code>bbot/scanner/target.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">208</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">209</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">210</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">211</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">212</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">213</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">214</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">215</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">216</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">217</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">218</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">219</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">220</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">221</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">222</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">223</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">224</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">225</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">226</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">227</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">228</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">229</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">230</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">231</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">232</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">233</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">234</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">235</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">236</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">237</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">238</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">239</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">240</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">241</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">242</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">243</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">244</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">245</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">246</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">247</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">248</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">249</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">250</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">251</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">252</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">253</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">254</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">255</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">256</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">257</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">258</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">259</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">260</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">261</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">262</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">263</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">264</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">265</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">266</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">267</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">268</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">269</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">270</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">271</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">272</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">273</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">274</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">275</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">276</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">277</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">278</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">279</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">280</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">281</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">282</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">283</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">284</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">285</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">286</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">287</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">288</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">289</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">290</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">291</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">292</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">293</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">294</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">295</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">296</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">297</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">298</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">299</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">300</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">301</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">302</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">303</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">304</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">305</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">306</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">307</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">308</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">309</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">310</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">311</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">312</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">313</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">314</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">315</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">316</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">317</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">318</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">319</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">320</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">321</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">322</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">323</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">324</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">325</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">326</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">327</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">328</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">329</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">331</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">338</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">339</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">340</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">341</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">342</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">343</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">344</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">345</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">346</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">347</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">348</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">349</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">350</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">351</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">352</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">353</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">354</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">355</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">356</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">357</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">358</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">359</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">360</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">361</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">362</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">363</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">364</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">365</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">366</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">367</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">368</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">369</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">370</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">371</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">372</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">373</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">374</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">375</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">376</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">377</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">378</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">379</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">380</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">381</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">382</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">383</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">384</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">385</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">386</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">387</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">388</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">389</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">390</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">391</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">392</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">393</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">394</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">395</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">396</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">397</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">398</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">399</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">400</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">401</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">402</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">403</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">404</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">405</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">406</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">407</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">408</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">409</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">410</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">411</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">412</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">413</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">414</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">415</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">416</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">418</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">419</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">420</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">421</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">422</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">423</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">424</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">425</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">426</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">427</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">428</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">429</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">430</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">431</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">432</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">433</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">434</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">435</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">436</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">437</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">438</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">439</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">440</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">441</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">442</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">443</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">444</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">445</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">446</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">447</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">448</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">449</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">450</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">451</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">452</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">453</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">454</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">455</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">456</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">457</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">458</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">459</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">460</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">461</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">462</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">463</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">464</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">465</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">466</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">467</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">468</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">469</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">470</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">471</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">472</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">473</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">474</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">475</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">476</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">477</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">478</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">479</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">480</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">481</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">482</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">483</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">484</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">485</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">486</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">487</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">488</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">489</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">490</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">491</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">492</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">493</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">494</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">495</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">496</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">497</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">498</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">499</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">500</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">508</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">509</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">510</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">511</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">512</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">513</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">514</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">515</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">516</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">517</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">518</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">519</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">520</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">521</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">522</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">523</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">524</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">525</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">526</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">527</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">528</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">529</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">530</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">531</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">532</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">533</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">534</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">535</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">Target</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    A class representing a target. Can contain an unlimited number of hosts, IP or IP ranges, URLs, etc.</span>
+
+<span style="color: #a5d6ff">    Attributes:</span>
+<span style="color: #a5d6ff">        strict_scope (bool): Flag indicating whether to consider child domains in-scope.</span>
+<span style="color: #a5d6ff">            If set to True, only the exact hosts specified and not their children are considered part of the target.</span>
+
+<span style="color: #a5d6ff">        _radix (RadixTree): Radix tree for quick IP/DNS lookups.</span>
+<span style="color: #a5d6ff">        _events (set): Flat set of contained events.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        Basic usage</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target = Target(scan, "evilcorp.com", "1.2.3.0/24")</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; len(target)</span>
+<span style="color: #a5d6ff">        257</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; list(t.events)</span>
+<span style="color: #a5d6ff">        [</span>
+<span style="color: #a5d6ff">            DNS_NAME("evilcorp.com", module=TARGET, tags={'domain', 'distance-1', 'target'}),</span>
+<span style="color: #a5d6ff">            IP_RANGE("1.2.3.0/24", module=TARGET, tags={'ipv4', 'distance-1', 'target'})</span>
+<span style="color: #a5d6ff">        ]</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; "www.evilcorp.com" in target</span>
+<span style="color: #a5d6ff">        True</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; "1.2.3.4" in target</span>
+<span style="color: #a5d6ff">        True</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; "4.3.2.1" in target</span>
+<span style="color: #a5d6ff">        False</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; "https://admin.evilcorp.com" in target</span>
+<span style="color: #a5d6ff">        True</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; "bob@evilcorp.com" in target</span>
+<span style="color: #a5d6ff">        True</span>
+
+<span style="color: #a5d6ff">        Event correlation</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target.get("www.evilcorp.com")</span>
+<span style="color: #a5d6ff">        DNS_NAME("evilcorp.com", module=TARGET, tags={'domain', 'distance-1', 'target'})</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target.get("1.2.3.4")</span>
+<span style="color: #a5d6ff">        IP_RANGE("1.2.3.0/24", module=TARGET, tags={'ipv4', 'distance-1', 'target'})</span>
+
+<span style="color: #a5d6ff">        Target comparison</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target2 = Targets(scan, "www.evilcorp.com")</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target2 == target</span>
+<span style="color: #a5d6ff">        False</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target2 in target</span>
+<span style="color: #a5d6ff">        True</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target in target2</span>
+<span style="color: #a5d6ff">        False</span>
+
+<span style="color: #a5d6ff">    Notes:</span>
+<span style="color: #a5d6ff">        - Targets are only precise down to the individual host. Ports and protocols are not considered in scope calculations.</span>
+<span style="color: #a5d6ff">        - If you specify "https://evilcorp.com:8443" as a target, all of evilcorp.com (including subdomains and other ports and protocols) will be considered part of the target</span>
+<span style="color: #a5d6ff">        - If you do not want to include child subdomains, use `strict_scope=True`</span>
+<span style="color: #a5d6ff">    """</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__init__</span><span style="color: #e6edf3">(self,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span> <span style="color: #e6edf3">strict_scope</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">acl_mode</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        Initialize a Target object.</span>
+
+<span style="color: #a5d6ff">        Args:</span>
+<span style="color: #a5d6ff">            *targets: One or more targets (e.g., domain names, IP ranges) to be included in this Target.</span>
+<span style="color: #a5d6ff">            strict_scope (bool): Whether to consider subdomains of target domains in-scope</span>
+<span style="color: #a5d6ff">            scan (Scan): Reference to the Scan object that instantiated the Target.</span>
+<span style="color: #a5d6ff">            acl_mode (bool): Stricter deduplication for more efficient checks</span>
+
+<span style="color: #a5d6ff">        Notes:</span>
+<span style="color: #a5d6ff">            - If you are instantiating a target from within a BBOT module, use `self.helpers.make_target()` instead. (this removes the need to pass in a scan object.)</span>
+<span style="color: #a5d6ff">            - The strict_scope flag can be set to restrict scope calculation to only exactly-matching hosts and not their child subdomains.</span>
+<span style="color: #a5d6ff">            - Each target is processed and stored as an `Event` in the '_events' dictionary.</span>
+<span style="color: #a5d6ff">        """</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">scan</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strict_scope</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">strict_scope</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">acl_mode</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">acl_mode</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">special_event_types</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">{</span>
+            <span style="color: #a5d6ff">"ORG_STUB"</span><span style="color: #e6edf3">:</span> <span style="color: #e6edf3">re</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">compile(</span><span style="color: #79c0ff">r</span><span style="color: #a5d6ff">"^ORG:(.*)"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">re</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">IGNORECASE),</span>
+            <span style="color: #a5d6ff">"ASN"</span><span style="color: #e6edf3">:</span> <span style="color: #e6edf3">re</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">compile(</span><span style="color: #79c0ff">r</span><span style="color: #a5d6ff">"^ASN:(.*)"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">re</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">IGNORECASE),</span>
+        <span style="color: #e6edf3">}</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">RadixTarget()</span>
+
+        <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">target_event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_make_events(targets):</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_add_event(target_event)</span>
+
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_hash</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">add</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">t,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        Add a target or merge events from another Target object into this Target.</span>
+
+<span style="color: #a5d6ff">        Args:</span>
+<span style="color: #a5d6ff">            t: The target to be added. It can be either a string, an event object, or another Target object.</span>
+
+<span style="color: #a5d6ff">        Attributes Modified:</span>
+<span style="color: #a5d6ff">            _events (dict): The dictionary is updated to include the new target's events.</span>
+
+<span style="color: #a5d6ff">        Examples:</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; target.add('example.com')</span>
+
+<span style="color: #a5d6ff">        Notes:</span>
+<span style="color: #a5d6ff">            - If `t` is of the same class as this Target, all its events are merged.</span>
+<span style="color: #a5d6ff">            - If `t` is an event, it is directly added to `_events`.</span>
+<span style="color: #a5d6ff">        """</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">isinstance(t,</span> <span style="color: #e6edf3">(list,</span> <span style="color: #e6edf3">tuple,</span> <span style="color: #e6edf3">set)):</span>
+            <span style="color: #e6edf3">t</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[t]</span>
+        <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">single_target</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">t:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(single_target,</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__class__</span><span style="color: #e6edf3">):</span>
+                <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">single_target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events:</span>
+                    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_add_event(event)</span>
+            <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">is_event(single_target):</span>
+                    <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">single_target</span>
+                <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                    <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
+                        <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">make_event(</span>
+                            <span style="color: #e6edf3">single_target,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">event_type,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">tags</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"target"</span><span style="color: #e6edf3">],</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan</span>
+                        <span style="color: #e6edf3">)</span>
+                    <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">ValidationError</span> <span style="color: #ff7b72">as</span> <span style="color: #e6edf3">e:</span>
+                        <span style="color: #8b949e; font-style: italic"># allow commented lines</span>
+                        <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">str(t)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">startswith(</span><span style="color: #a5d6ff">"#"</span><span style="color: #e6edf3">):</span>
+                            <span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(traceback</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">format_exc())</span>
+                            <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">ValidationError(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Could not add target "{</span><span style="color: #e6edf3">t</span><span style="color: #a5d6ff">}": {</span><span style="color: #e6edf3">e</span><span style="color: #a5d6ff">}'</span><span style="color: #e6edf3">)</span>
+                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_add_event(event)</span>
+
+    <span style="color: #d2a8ff; font-weight: bold">@property</span>
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">events</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        Returns all events in the target.</span>
+
+<span style="color: #a5d6ff">        Yields:</span>
+<span style="color: #a5d6ff">            Event object: One of the Event objects stored in the `_events` dictionary.</span>
+
+<span style="color: #a5d6ff">        Examples:</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; target = Target(scan, "example.com")</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; for event in target.events:</span>
+<span style="color: #a5d6ff">            ...     print(event)</span>
+
+<span style="color: #a5d6ff">        Notes:</span>
+<span style="color: #a5d6ff">            - This property is read-only.</span>
+<span style="color: #a5d6ff">        """</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events</span>
+
+    <span style="color: #d2a8ff; font-weight: bold">@property</span>
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">hosts</span><span style="color: #e6edf3">(self):</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">[e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">e</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events]</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">copy</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        Creates and returns a copy of the Target object, including a shallow copy of the `_events` and `_radix` attributes.</span>
+
+<span style="color: #a5d6ff">        Returns:</span>
+<span style="color: #a5d6ff">            Target: A new Target object with the sameattributes as the original.</span>
+<span style="color: #a5d6ff">                    A shallow copy of the `_events` dictionary is made.</span>
+
+<span style="color: #a5d6ff">        Examples:</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; original_target = Target(scan, "example.com")</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; copied_target = original_target.copy()</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; copied_target is original_target</span>
+<span style="color: #a5d6ff">            False</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; copied_target == original_target</span>
+<span style="color: #a5d6ff">            True</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; copied_target in original_target</span>
+<span style="color: #a5d6ff">            True</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; original_target in copied_target</span>
+<span style="color: #a5d6ff">            True</span>
+
+<span style="color: #a5d6ff">        Notes:</span>
+<span style="color: #a5d6ff">            - The `scan` object reference is kept intact in the copied Target object.</span>
+<span style="color: #a5d6ff">        """</span>
+        <span style="color: #e6edf3">self_copy</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__class__</span><span style="color: #e6edf3">()</span>
+        <span style="color: #e6edf3">self_copy</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events)</span>
+        <span style="color: #e6edf3">self_copy</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">copy</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">copy(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix)</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self_copy</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">get</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">single</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        Gets the event associated with the specified host from the target's radix tree.</span>
+
+<span style="color: #a5d6ff">        Args:</span>
+<span style="color: #a5d6ff">            host (Event, Target, or str): The hostname, IP, URL, or event to look for.</span>
+<span style="color: #a5d6ff">            single (bool): Whether to return a single event. If False, return all events matching the host</span>
+
+<span style="color: #a5d6ff">        Returns:</span>
+<span style="color: #a5d6ff">            Event or None: Returns the Event object associated with the given host if it exists, otherwise returns None.</span>
+
+<span style="color: #a5d6ff">        Examples:</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; target = Target(scan, "evilcorp.com", "1.2.3.0/24")</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; target.get("www.evilcorp.com")</span>
+<span style="color: #a5d6ff">            DNS_NAME("evilcorp.com", module=TARGET, tags={'domain', 'distance-1', 'target'})</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; target.get("1.2.3.4")</span>
+<span style="color: #a5d6ff">            IP_RANGE("1.2.3.0/24", module=TARGET, tags={'ipv4', 'distance-1', 'target'})</span>
+
+<span style="color: #a5d6ff">        Notes:</span>
+<span style="color: #a5d6ff">            - The method returns the first event that matches the given host.</span>
+<span style="color: #a5d6ff">            - If `strict_scope` is False, it will also consider parent domains and IP ranges.</span>
+<span style="color: #a5d6ff">        """</span>
+        <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">make_event(host,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)</span>
+        <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">ValidationError:</span>
+            <span style="color: #ff7b72">return</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host:</span>
+            <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get_host(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">single</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">single)</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">get_host</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">single</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        A more efficient version of .get() that only accepts hostnames and IP addresses</span>
+<span style="color: #a5d6ff">        """</span>
+        <span style="color: #e6edf3">host</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">make_ip_type(host)</span>
+        <span style="color: #ff7b72">with</span> <span style="color: #e6edf3">suppress(</span><span style="color: #f0883e; font-weight: bold">KeyError</span><span style="color: #e6edf3">,</span> <span style="color: #f0883e; font-weight: bold">StopIteration</span><span style="color: #e6edf3">):</span>
+            <span style="color: #e6edf3">result</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">search(host)</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">result</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+                <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
+                <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">result:</span>
+                    <span style="color: #8b949e; font-style: italic"># if the result is a dns name and strict scope is enabled</span>
+                    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">str)</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strict_scope:</span>
+                        <span style="color: #8b949e; font-style: italic"># if the result doesn't exactly equal the host, abort</span>
+                        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span> <span style="color: #ff7b72; font-weight: bold">!=</span> <span style="color: #e6edf3">host:</span>
+                            <span style="color: #ff7b72">return</span>
+                    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">single:</span>
+                        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">event</span>
+                    <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                        <span style="color: #e6edf3">ret</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(event)</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">single:</span>
+                    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">ret</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_sort_events</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">events):</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">sorted(events,</span> <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">x:</span> <span style="color: #e6edf3">x</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_host_size)</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_make_events</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">targets):</span>
+        <span style="color: #e6edf3">events</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[]</span>
+        <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">target</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">targets:</span>
+            <span style="color: #e6edf3">event_type</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">eventtype,</span> <span style="color: #e6edf3">regex</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">special_event_types</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">items():</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(target,</span> <span style="color: #e6edf3">str):</span>
+                    <span style="color: #e6edf3">match</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">regex</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">match(target)</span>
+                    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">match:</span>
+                        <span style="color: #e6edf3">target</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">match</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">groups()[</span><span style="color: #a5d6ff">0</span><span style="color: #e6edf3">]</span>
+                        <span style="color: #e6edf3">event_type</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">eventtype</span>
+                        <span style="color: #ff7b72">break</span>
+            <span style="color: #e6edf3">events</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(make_event(target,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">event_type,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan))</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_sort_events(events)</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_add_event</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">event):</span>
+        <span style="color: #e6edf3">skip</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host:</span>
+            <span style="color: #e6edf3">radix_data</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">search(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host)</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">acl_mode:</span>
+                <span style="color: #8b949e; font-style: italic"># skip if the hostname/IP/subnet (or its parent) has already been added</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">radix_data</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strict_scope:</span>
+                    <span style="color: #e6edf3">skip</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
+                <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                    <span style="color: #e6edf3">event_type</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"IP_RANGE"</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">type</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"IP_RANGE"</span> <span style="color: #ff7b72">else</span> <span style="color: #a5d6ff">"DNS_NAME"</span>
+                    <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">make_event(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">event_type,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan)</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">skip:</span>
+                <span style="color: #8b949e; font-style: italic"># if strict scope is enabled and it's not an exact host match, we add a whole new entry</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">radix_data</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span> <span style="color: #ff7b72; font-weight: bold">or</span> <span style="color: #e6edf3">(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strict_scope</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">radix_data):</span>
+                    <span style="color: #e6edf3">radix_data</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">{event}</span>
+                    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">insert(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">radix_data)</span>
+                <span style="color: #8b949e; font-style: italic"># otherwise, we add the event to the set</span>
+                <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                    <span style="color: #e6edf3">radix_data</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(event)</span>
+                <span style="color: #8b949e; font-style: italic"># clear hash</span>
+                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_hash</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #ff7b72">elif</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">acl_mode</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strict_scope:</span>
+            <span style="color: #8b949e; font-style: italic"># skip if we're in ACL mode and there's no host</span>
+            <span style="color: #e6edf3">skip</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">skip:</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(event)</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_contains</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">other):</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(other)</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #ff7b72">return</span> <span style="color: #79c0ff">True</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #79c0ff">False</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__str__</span><span style="color: #e6edf3">(self):</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #a5d6ff">","</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">join([str(e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data)</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">e</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events][:</span><span style="color: #a5d6ff">5</span><span style="color: #e6edf3">])</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__iter__</span><span style="color: #e6edf3">(self):</span>
+        <span style="color: #ff7b72">yield from</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__contains__</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">other):</span>
+        <span style="color: #8b949e; font-style: italic"># if "other" is a Target</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(other,</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__class__</span><span style="color: #e6edf3">):</span>
+            <span style="color: #e6edf3">contained_in_self</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_contains(e)</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">e</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">other</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events]</span>
+            <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">all(contained_in_self)</span>
+        <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+            <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_contains(other)</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__bool__</span><span style="color: #e6edf3">(self):</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">bool(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events)</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__eq__</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">other):</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hash</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #e6edf3">other</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hash</span>
+
+    <span style="color: #d2a8ff; font-weight: bold">@property</span>
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">hash</span><span style="color: #e6edf3">(self):</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_hash</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #8b949e; font-style: italic"># Create a new SHA-1 hash object</span>
+            <span style="color: #e6edf3">sha1_hash</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">sha1()</span>
+            <span style="color: #8b949e; font-style: italic"># Update the SHA-1 object with the hash values of each object</span>
+            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event_type,</span> <span style="color: #e6edf3">event_hash</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">sorted([(e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">type</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">encode(),</span> <span style="color: #e6edf3">e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data_hash)</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">e</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events]):</span>
+                <span style="color: #e6edf3">sha1_hash</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">update(event_type)</span>
+                <span style="color: #e6edf3">sha1_hash</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">update(event_hash)</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strict_scope:</span>
+                <span style="color: #e6edf3">sha1_hash</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">update(</span><span style="color: #79c0ff">b</span><span style="color: #a5d6ff">"</span><span style="color: #79c0ff">\x00</span><span style="color: #a5d6ff">"</span><span style="color: #e6edf3">)</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_hash</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">sha1_hash</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">digest()</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_hash</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__len__</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        Calculates and returns the total number of hosts within this target, not counting duplicate events.</span>
+
+<span style="color: #a5d6ff">        Returns:</span>
+<span style="color: #a5d6ff">            int: The total number of unique hosts present within the target's `_events`.</span>
+
+<span style="color: #a5d6ff">        Examples:</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; target = Target(scan, "evilcorp.com", "1.2.3.0/24")</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; len(target)</span>
+<span style="color: #a5d6ff">            257</span>
+
+<span style="color: #a5d6ff">        Notes:</span>
+<span style="color: #a5d6ff">            - If a host is represented as an IP network, all individual IP addresses in that network are counted.</span>
+<span style="color: #a5d6ff">            - For other types of hosts, each unique event is counted as one.</span>
+<span style="color: #a5d6ff">        """</span>
+        <span style="color: #e6edf3">num_hosts</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">0</span>
+        <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">(ipaddress</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">IPv4Network,</span> <span style="color: #e6edf3">ipaddress</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">IPv6Network)):</span>
+                <span style="color: #e6edf3">num_hosts</span> <span style="color: #ff7b72; font-weight: bold">+=</span> <span style="color: #e6edf3">event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">num_addresses</span>
+            <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                <span style="color: #e6edf3">num_hosts</span> <span style="color: #ff7b72; font-weight: bold">+=</span> <span style="color: #a5d6ff">1</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">num_hosts</span>
+</code></pre></div></td></tr></table></div>
+</details>
+<div class="doc doc-children">
+<div class="doc doc-object doc-attribute">
+<h2 class="doc doc-heading" id="bbot.scanner.target.Target.events">
+<span class="doc doc-object-name doc-attribute-name">events</span>
+<span class="doc doc-labels">
+<small class="doc doc-label doc-label-property"><code>property</code></small>
+</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">events</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Returns all events in the target.</p>
+<p><span class="doc-section-title">Yields:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+          –
+          <div class="doc-md-description">
+<p>Event object: One of the Event objects stored in the <code>_events</code> dictionary.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Target(scan,</span> <span style="color: #a5d6ff">"example.com"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events:</span>
+<span style="color: #8b949e">... </span>    <span style="color: #e6edf3">print(event)</span>
+</code></pre></div>
+<details class="notes" open="">
+<summary>Notes</summary>
+<ul>
+<li>This property is read-only.</li>
+</ul>
+</details> </div>
+</div>
+<div class="doc doc-object doc-function">
+<h2 class="doc doc-heading" id="bbot.scanner.target.Target.__init__">
+<span class="doc doc-object-name doc-function-name">__init__</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #d2a8ff; font-weight: bold">__init__</span><span style="color: #e6edf3">(</span>
+    <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span> <span style="color: #e6edf3">strict_scope</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">acl_mode</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span>
+<span style="color: #e6edf3">)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Initialize a Target object.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>*targets</code></b>
+          –
+          <div class="doc-md-description">
+<p>One or more targets (e.g., domain names, IP ranges) to be included in this Target.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code>strict_scope</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+<p>Whether to consider subdomains of target domains in-scope</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code>scan</code></b>
+              (<code>Scan</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+<p>Reference to the Scan object that instantiated the Target.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code>acl_mode</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+<p>Stricter deduplication for more efficient checks</p>
+</div>
+</li>
+</ul>
+<details class="notes" open="">
+<summary>Notes</summary>
+<ul>
+<li>If you are instantiating a target from within a BBOT module, use <code>self.helpers.make_target()</code> instead. (this removes the need to pass in a scan object.)</li>
+<li>The strict_scope flag can be set to restrict scope calculation to only exactly-matching hosts and not their child subdomains.</li>
+<li>Each target is processed and stored as an <code>Event</code> in the '_events' dictionary.</li>
+</ul>
+</details>
+<details class="quote">
+<summary>Source code in <code>bbot/scanner/target.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">261</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">262</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">263</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">264</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">265</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">266</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">267</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">268</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">269</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">270</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">271</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">272</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">273</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">274</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">275</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">276</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">277</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">278</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">279</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">280</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">281</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">282</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">283</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">284</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">285</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">286</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">287</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">288</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">289</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__init__</span><span style="color: #e6edf3">(self,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span> <span style="color: #e6edf3">strict_scope</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">acl_mode</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Initialize a Target object.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        *targets: One or more targets (e.g., domain names, IP ranges) to be included in this Target.</span>
+<span style="color: #a5d6ff">        strict_scope (bool): Whether to consider subdomains of target domains in-scope</span>
+<span style="color: #a5d6ff">        scan (Scan): Reference to the Scan object that instantiated the Target.</span>
+<span style="color: #a5d6ff">        acl_mode (bool): Stricter deduplication for more efficient checks</span>
+
+<span style="color: #a5d6ff">    Notes:</span>
+<span style="color: #a5d6ff">        - If you are instantiating a target from within a BBOT module, use `self.helpers.make_target()` instead. (this removes the need to pass in a scan object.)</span>
+<span style="color: #a5d6ff">        - The strict_scope flag can be set to restrict scope calculation to only exactly-matching hosts and not their child subdomains.</span>
+<span style="color: #a5d6ff">        - Each target is processed and stored as an `Event` in the '_events' dictionary.</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">scan</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strict_scope</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">strict_scope</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">acl_mode</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">acl_mode</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">special_event_types</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">{</span>
+        <span style="color: #a5d6ff">"ORG_STUB"</span><span style="color: #e6edf3">:</span> <span style="color: #e6edf3">re</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">compile(</span><span style="color: #79c0ff">r</span><span style="color: #a5d6ff">"^ORG:(.*)"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">re</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">IGNORECASE),</span>
+        <span style="color: #a5d6ff">"ASN"</span><span style="color: #e6edf3">:</span> <span style="color: #e6edf3">re</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">compile(</span><span style="color: #79c0ff">r</span><span style="color: #a5d6ff">"^ASN:(.*)"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">re</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">IGNORECASE),</span>
+    <span style="color: #e6edf3">}</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">RadixTarget()</span>
+
+    <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">target_event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_make_events(targets):</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_add_event(target_event)</span>
+
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_hash</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h2 class="doc doc-heading" id="bbot.scanner.target.Target.add">
+<span class="doc doc-object-name doc-function-name">add</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">add(t,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Add a target or merge events from another Target object into this Target.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>t</code></b>
+          –
+          <div class="doc-md-description">
+<p>The target to be added. It can be either a string, an event object, or another Target object.</p>
+</div>
+</li>
+</ul>
+<details class="attributes-modified" open="">
+<summary>Attributes Modified</summary>
+<p>_events (dict): The dictionary is updated to include the new target's events.</p>
+</details>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(</span><span style="color: #a5d6ff">'example.com'</span><span style="color: #e6edf3">)</span>
+</code></pre></div>
+<details class="notes" open="">
+<summary>Notes</summary>
+<ul>
+<li>If <code>t</code> is of the same class as this Target, all its events are merged.</li>
+<li>If <code>t</code> is an event, it is directly added to <code>_events</code>.</li>
+</ul>
+</details>
+<details class="quote">
+<summary>Source code in <code>bbot/scanner/target.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">291</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">292</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">293</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">294</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">295</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">296</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">297</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">298</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">299</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">300</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">301</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">302</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">303</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">304</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">305</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">306</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">307</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">308</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">309</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">310</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">311</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">312</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">313</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">314</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">315</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">316</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">317</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">318</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">319</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">320</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">321</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">322</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">323</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">324</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">325</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">326</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">327</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">add</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">t,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Add a target or merge events from another Target object into this Target.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        t: The target to be added. It can be either a string, an event object, or another Target object.</span>
+
+<span style="color: #a5d6ff">    Attributes Modified:</span>
+<span style="color: #a5d6ff">        _events (dict): The dictionary is updated to include the new target's events.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target.add('example.com')</span>
+
+<span style="color: #a5d6ff">    Notes:</span>
+<span style="color: #a5d6ff">        - If `t` is of the same class as this Target, all its events are merged.</span>
+<span style="color: #a5d6ff">        - If `t` is an event, it is directly added to `_events`.</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">isinstance(t,</span> <span style="color: #e6edf3">(list,</span> <span style="color: #e6edf3">tuple,</span> <span style="color: #e6edf3">set)):</span>
+        <span style="color: #e6edf3">t</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[t]</span>
+    <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">single_target</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">t:</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(single_target,</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__class__</span><span style="color: #e6edf3">):</span>
+            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">single_target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">events:</span>
+                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_add_event(event)</span>
+        <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">is_event(single_target):</span>
+                <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">single_target</span>
+            <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
+                    <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">make_event(</span>
+                        <span style="color: #e6edf3">single_target,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">event_type,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">tags</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"target"</span><span style="color: #e6edf3">],</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan</span>
+                    <span style="color: #e6edf3">)</span>
+                <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">ValidationError</span> <span style="color: #ff7b72">as</span> <span style="color: #e6edf3">e:</span>
+                    <span style="color: #8b949e; font-style: italic"># allow commented lines</span>
+                    <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">str(t)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">startswith(</span><span style="color: #a5d6ff">"#"</span><span style="color: #e6edf3">):</span>
+                        <span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(traceback</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">format_exc())</span>
+                        <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">ValidationError(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Could not add target "{</span><span style="color: #e6edf3">t</span><span style="color: #a5d6ff">}": {</span><span style="color: #e6edf3">e</span><span style="color: #a5d6ff">}'</span><span style="color: #e6edf3">)</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_add_event(event)</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h2 class="doc doc-heading" id="bbot.scanner.target.Target.copy">
+<span class="doc doc-object-name doc-function-name">copy</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">copy()</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Creates and returns a copy of the Target object, including a shallow copy of the <code>_events</code> and <code>_radix</code> attributes.</p>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>Target</code></b>          –
+          <div class="doc-md-description">
+<p>A new Target object with the sameattributes as the original.
+    A shallow copy of the <code>_events</code> dictionary is made.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">original_target</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Target(scan,</span> <span style="color: #a5d6ff">"example.com"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">copied_target</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">original_target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">copy()</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">copied_target</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #e6edf3">original_target</span>
+<span style="color: #8b949e">False</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">copied_target</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #e6edf3">original_target</span>
+<span style="color: #8b949e">True</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">copied_target</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">original_target</span>
+<span style="color: #8b949e">True</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">original_target</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">copied_target</span>
+<span style="color: #8b949e">True</span>
+</code></pre></div>
+<details class="notes" open="">
+<summary>Notes</summary>
+<ul>
+<li>The <code>scan</code> object reference is kept intact in the copied Target object.</li>
+</ul>
+</details>
+<details class="quote">
+<summary>Source code in <code>bbot/scanner/target.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">351</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">352</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">353</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">354</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">355</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">356</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">357</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">358</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">359</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">360</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">361</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">362</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">363</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">364</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">365</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">366</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">367</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">368</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">369</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">370</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">371</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">372</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">373</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">374</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">375</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">376</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">377</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">copy</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Creates and returns a copy of the Target object, including a shallow copy of the `_events` and `_radix` attributes.</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        Target: A new Target object with the sameattributes as the original.</span>
+<span style="color: #a5d6ff">                A shallow copy of the `_events` dictionary is made.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; original_target = Target(scan, "example.com")</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; copied_target = original_target.copy()</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; copied_target is original_target</span>
+<span style="color: #a5d6ff">        False</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; copied_target == original_target</span>
+<span style="color: #a5d6ff">        True</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; copied_target in original_target</span>
+<span style="color: #a5d6ff">        True</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; original_target in copied_target</span>
+<span style="color: #a5d6ff">        True</span>
+
+<span style="color: #a5d6ff">    Notes:</span>
+<span style="color: #a5d6ff">        - The `scan` object reference is kept intact in the copied Target object.</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">self_copy</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__class__</span><span style="color: #e6edf3">()</span>
+    <span style="color: #e6edf3">self_copy</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_events)</span>
+    <span style="color: #e6edf3">self_copy</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">copy</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">copy(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix)</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self_copy</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h2 class="doc doc-heading" id="bbot.scanner.target.Target.get">
+<span class="doc doc-object-name doc-function-name">get</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">get(host,</span> <span style="color: #e6edf3">single</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Gets the event associated with the specified host from the target's radix tree.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>host</code></b>
+              (<code>Event, Target, or str</code>)
+          –
+          <div class="doc-md-description">
+<p>The hostname, IP, URL, or event to look for.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code>single</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+                  <code>True</code>
+)
+          –
+          <div class="doc-md-description">
+<p>Whether to return a single event. If False, return all events matching the host</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+          –
+          <div class="doc-md-description">
+<p>Event or None: Returns the Event object associated with the given host if it exists, otherwise returns None.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Target(scan,</span> <span style="color: #a5d6ff">"evilcorp.com"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"1.2.3.0/24"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"www.evilcorp.com"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">DNS_NAME("evilcorp.com", module=TARGET, tags={'domain', 'distance-1', 'target'})</span>
+<span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"1.2.3.4"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">IP_RANGE("1.2.3.0/24", module=TARGET, tags={'ipv4', 'distance-1', 'target'})</span>
+</code></pre></div>
+<details class="notes" open="">
+<summary>Notes</summary>
+<ul>
+<li>The method returns the first event that matches the given host.</li>
+<li>If <code>strict_scope</code> is False, it will also consider parent domains and IP ranges.</li>
+</ul>
+</details>
+<details class="quote">
+<summary>Source code in <code>bbot/scanner/target.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">379</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">380</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">381</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">382</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">383</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">384</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">385</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">386</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">387</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">388</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">389</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">390</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">391</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">392</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">393</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">394</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">395</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">396</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">397</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">398</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">399</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">400</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">401</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">402</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">403</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">404</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">405</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">406</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">get</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">single</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Gets the event associated with the specified host from the target's radix tree.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        host (Event, Target, or str): The hostname, IP, URL, or event to look for.</span>
+<span style="color: #a5d6ff">        single (bool): Whether to return a single event. If False, return all events matching the host</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        Event or None: Returns the Event object associated with the given host if it exists, otherwise returns None.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target = Target(scan, "evilcorp.com", "1.2.3.0/24")</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target.get("www.evilcorp.com")</span>
+<span style="color: #a5d6ff">        DNS_NAME("evilcorp.com", module=TARGET, tags={'domain', 'distance-1', 'target'})</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; target.get("1.2.3.4")</span>
+<span style="color: #a5d6ff">        IP_RANGE("1.2.3.0/24", module=TARGET, tags={'ipv4', 'distance-1', 'target'})</span>
+
+<span style="color: #a5d6ff">    Notes:</span>
+<span style="color: #a5d6ff">        - The method returns the first event that matches the given host.</span>
+<span style="color: #a5d6ff">        - If `strict_scope` is False, it will also consider parent domains and IP ranges.</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
+        <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">make_event(host,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)</span>
+    <span style="color: #ff7b72">except</span> <span style="color: #e6edf3">ValidationError:</span>
+        <span style="color: #ff7b72">return</span>
+    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host:</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get_host(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">single</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">single)</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h2 class="doc doc-heading" id="bbot.scanner.target.Target.get_host">
+<span class="doc doc-object-name doc-function-name">get_host</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">get_host(host,</span> <span style="color: #e6edf3">single</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>A more efficient version of .get() that only accepts hostnames and IP addresses</p>
+<details class="quote">
+<summary>Source code in <code>bbot/scanner/target.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">408</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">409</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">410</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">411</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">412</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">413</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">414</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">415</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">416</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">418</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">419</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">420</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">421</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">422</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">423</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">424</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">425</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">426</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">427</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">428</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">get_host</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">single</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    A more efficient version of .get() that only accepts hostnames and IP addresses</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">host</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">make_ip_type(host)</span>
+    <span style="color: #ff7b72">with</span> <span style="color: #e6edf3">suppress(</span><span style="color: #f0883e; font-weight: bold">KeyError</span><span style="color: #e6edf3">,</span> <span style="color: #f0883e; font-weight: bold">StopIteration</span><span style="color: #e6edf3">):</span>
+        <span style="color: #e6edf3">result</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_radix</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">search(host)</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">result</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
+            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">result:</span>
+                <span style="color: #8b949e; font-style: italic"># if the result is a dns name and strict scope is enabled</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">str)</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strict_scope:</span>
+                    <span style="color: #8b949e; font-style: italic"># if the result doesn't exactly equal the host, abort</span>
+                    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span> <span style="color: #ff7b72; font-weight: bold">!=</span> <span style="color: #e6edf3">host:</span>
+                        <span style="color: #ff7b72">return</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">single:</span>
+                    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">event</span>
+                <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+                    <span style="color: #e6edf3">ret</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(event)</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">single:</span>
+                <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">ret</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
+<script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/vega@5.js"></script>
+<script src="../../javascripts/vega-lite@5.js"></script>
+<script src="../../javascripts/vega-embed@6.js"></script>
+<script src="../../data/chord_graph/vega.json"></script>
+</body>
+</html>

@@ -1,0 +1,1272 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/scanning/configuration/" rel="canonical"/>
+<link href="../advanced/" rel="prev"/>
+<link href="../list_of_modules/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.4.3, mkdocs-material-9.1.17" name="generator"/>
+<title>Configuration - BBOT Docs</title>
+<link href="../../assets/stylesheets/main.26e3688c.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ecc896b0.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.bft70rkg.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#configuration-overview">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+</form>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+          Basics
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+          Basics
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+        Getting Started
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../how_it_works/">
+        How it Works
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../comparison/">
+        Comparison to Other Tools
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          Scanning
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+          Scanning
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+        Scanning Overview
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../events/">
+        Events
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../output/">
+        Output
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../tips_and_tricks/">
+        Tips and Tricks
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../advanced/">
+        Advanced Usage
+      </a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+          Configuration
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+        Configuration
+      </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration-files">
+    Configuration Files
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#yaml-config-vs-command-line">
+    YAML Config vs Command Line
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#global-config-options">
+    Global Config Options
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#module-config-options">
+    Module Config Options
+  </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../list_of_modules/">
+        List of Modules
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Contribution
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+          Contribution
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+        How to Write a Module
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          Misc
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+          Misc
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../release_history/">
+        Release History
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+        Troubleshooting
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="configuration-overview">Configuration Overview</h1>
+<p>BBOT has a YAML config at <code>~/.config/bbot</code>. This config is different from the command-line arguments. This is where you change settings such as BBOT's <strong>HTTP proxy</strong>, <strong>rate limits</strong>, or global <strong>User-Agent</strong>. It's also where you put modules' <strong>API keys</strong>.</p>
+<p>For a list of all possible config options, see:</p>
+<ul>
+<li><a href="#global-config-options">Global Options</a></li>
+<li><a href="#module-config-options">Module Options</a></li>
+</ul>
+<p>For examples of common config changes, see <a href="../tips_and_tricks/">Tips and Tricks</a>.</p>
+<h2 id="configuration-files">Configuration Files</h2>
+<p>BBOT loads its config from the following files, in this order:</p>
+<ul>
+<li><code>~/.config/bbot/bbot.yml</code>     &lt;-- Use this one as your main config</li>
+<li><code>~/.config/bbot/secrets.yml</code>  &lt;-- Use this one for sensitive stuff like API keys</li>
+<li>command line (<code>--config</code>)     &lt;-- Use this to specify a custom config file or override individual config options</li>
+</ul>
+<p>These config files will be automatically created for you when you first run BBOT.</p>
+<h2 id="yaml-config-vs-command-line">YAML Config vs Command Line</h2>
+<p>You can specify config options either via the command line or the config. For example, if you want to proxy your BBOT scan through a local proxy like <a href="https://portswigger.net/burp">Burp Suite</a>, you could either do:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># send BBOT traffic through an HTTP proxy</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>--config<span style="color: #6e7681"> </span><span style="color: #79c0ff">http_proxy</span><span style="color: #ff7b72; font-weight: bold">=</span>http://127.0.0.1:8080
+</code></pre></div>
+<p>Or, in <code>~/.config/bbot/config.yml</code>:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">http_proxy</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">http://127.0.0.1:8080</span>
+</code></pre></div>
+<p>These two are equivalent.</p>
+<p>Config options specified via the command-line take precedence over all others. You can give BBOT a custom config file with <code>--config myconf.yml</code>, or individual arguments like this: <code>--config modules.shodan_dns.api_key=deadbeef</code>. To display the full and current BBOT config, including any command-line arguments, use <code>bbot --current-config</code>.</p>
+<p>Note that placing the following in <code>bbot.yml</code>:
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">shodan_dns</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">api_key</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">deadbeef</span>
+</code></pre></div>
+Is the same as:
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>--config<span style="color: #6e7681"> </span>modules.shodan_dns.api_key<span style="color: #ff7b72; font-weight: bold">=</span>deadbeef
+</code></pre></div></p>
+<h2 id="global-config-options">Global Config Options</h2>
+<p>Below is a full list of the config options supported, along with their defaults.</p>
+<!-- BBOT DEFAULT CONFIG -->
+<div class="highlight" style="background: #0d1117"><span class="filename">defaults.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic">### BASIC OPTIONS ###</span>
+
+<span style="color: #8b949e; font-style: italic"># BBOT working directory</span>
+<span style="color: #7ee787">home</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">~/.bbot</span>
+<span style="color: #8b949e; font-style: italic"># Don't output events that are further than this from the main scope</span>
+<span style="color: #8b949e; font-style: italic"># 1 == 1 hope away from main scope</span>
+<span style="color: #8b949e; font-style: italic"># 0 == in scope only</span>
+<span style="color: #7ee787">scope_report_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">0</span>
+<span style="color: #8b949e; font-style: italic"># Generate new DNS_NAME and IP_ADDRESS events through DNS resolution</span>
+<span style="color: #7ee787">dns_resolution</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">true</span>
+<span style="color: #8b949e; font-style: italic"># Limit the number of BBOT threads</span>
+<span style="color: #7ee787">max_threads</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">25</span>
+<span style="color: #8b949e; font-style: italic"># Rate-limit DNS</span>
+<span style="color: #7ee787">dns_queries_per_second</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1000</span>
+<span style="color: #8b949e; font-style: italic"># Rate-limit HTTP</span>
+<span style="color: #7ee787">web_requests_per_second</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">100</span>
+<span style="color: #8b949e; font-style: italic"># Interval for displaying status messages</span>
+<span style="color: #7ee787">status_frequency</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">15</span>
+<span style="color: #8b949e; font-style: italic"># HTTP proxy</span>
+<span style="color: #7ee787">http_proxy</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span>
+<span style="color: #8b949e; font-style: italic"># Web user-agent</span>
+<span style="color: #7ee787">user_agent</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36</span>
+
+
+<span style="color: #8b949e; font-style: italic">### ADVANCED OPTIONS ###</span>
+
+<span style="color: #8b949e; font-style: italic"># How far out from the main scope to search</span>
+<span style="color: #7ee787">scope_search_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">0</span>
+<span style="color: #8b949e; font-style: italic"># How far out from the main scope to resolve DNS names / IPs</span>
+<span style="color: #7ee787">scope_dns_search_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">2</span>
+<span style="color: #8b949e; font-style: italic"># Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)</span>
+<span style="color: #7ee787">dns_resolve_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">5</span>
+
+<span style="color: #8b949e; font-style: italic"># Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.</span>
+<span style="color: #7ee787">speculate</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">True</span>
+<span style="color: #8b949e; font-style: italic"># Passively search event data for URLs, hostnames, emails, etc.</span>
+<span style="color: #7ee787">excavate</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">True</span>
+<span style="color: #8b949e; font-style: italic"># Summarize activity at the end of a scan</span>
+<span style="color: #7ee787">aggregate</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">True</span>
+
+<span style="color: #8b949e; font-style: italic"># HTTP timeout (for Python requests; API calls, etc.)</span>
+<span style="color: #7ee787">http_timeout</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">10</span>
+<span style="color: #8b949e; font-style: italic"># HTTP timeout (for httpx)</span>
+<span style="color: #7ee787">httpx_timeout</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">5</span>
+<span style="color: #8b949e; font-style: italic"># Custom HTTP headers (e.g. cookies, etc.)</span>
+<span style="color: #8b949e; font-style: italic"># in the format { "Header-Key": "header_value" }</span>
+<span style="color: #8b949e; font-style: italic"># These are attached to all in-scope HTTP requests</span>
+<span style="color: #8b949e; font-style: italic"># Note that some modules (e.g. github) may end up sending these to out-of-scope resources</span>
+<span style="color: #7ee787">http_headers</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">{}</span>
+<span style="color: #8b949e; font-style: italic"># HTTP retries (for Python requests; API calls, etc.)</span>
+<span style="color: #7ee787">http_retries</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1</span>
+<span style="color: #8b949e; font-style: italic"># HTTP retries (for httpx)</span>
+<span style="color: #7ee787">httpx_retries</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1</span>
+<span style="color: #8b949e; font-style: italic"># Enable/disable debug messages for web requests/responses</span>
+<span style="color: #7ee787">http_debug</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">false</span>
+<span style="color: #8b949e; font-style: italic"># Maximum number of HTTP redirects to follow</span>
+<span style="color: #7ee787">http_max_redirects</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">5</span>
+<span style="color: #8b949e; font-style: italic"># Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)</span>
+<span style="color: #7ee787">web_spider_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">0</span>
+<span style="color: #8b949e; font-style: italic"># Set the maximum directory depth for the web spider</span>
+<span style="color: #7ee787">web_spider_depth</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1</span>
+<span style="color: #8b949e; font-style: italic"># Set the maximum number of links that can be followed per page</span>
+<span style="color: #7ee787">web_spider_links_per_page</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">25</span>
+<span style="color: #8b949e; font-style: italic"># DNS query timeout</span>
+<span style="color: #7ee787">dns_timeout</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">5</span>
+<span style="color: #8b949e; font-style: italic"># How many times to retry DNS queries</span>
+<span style="color: #7ee787">dns_retries</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1</span>
+<span style="color: #8b949e; font-style: italic"># Disable BBOT's smart DNS wildcard handling for select domains</span>
+<span style="color: #7ee787">dns_wildcard_ignore</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[]</span>
+<span style="color: #8b949e; font-style: italic"># How many sanity checks to make when verifying wildcard DNS</span>
+<span style="color: #8b949e; font-style: italic"># Increase this value if BBOT's wildcard detection isn't working</span>
+<span style="color: #7ee787">dns_wildcard_tests</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">10</span>
+<span style="color: #8b949e; font-style: italic"># Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs</span>
+<span style="color: #8b949e; font-style: italic"># This helps prevent faulty DNS servers from hanging up the scan</span>
+<span style="color: #7ee787">dns_abort_threshold</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">10</span>
+<span style="color: #8b949e; font-style: italic"># Don't show PTR records containing IP addresses</span>
+<span style="color: #7ee787">dns_filter_ptrs</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">true</span>
+<span style="color: #8b949e; font-style: italic"># Enable/disable debug messages for dns queries</span>
+<span style="color: #7ee787">dns_debug</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">false</span>
+<span style="color: #8b949e; font-style: italic"># Whether to verify SSL certificates</span>
+<span style="color: #7ee787">ssl_verify</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">false</span>
+<span style="color: #8b949e; font-style: italic"># How many scan results to keep before cleaning up the older ones</span>
+<span style="color: #7ee787">keep_scans</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">20</span>
+<span style="color: #8b949e; font-style: italic"># Completely ignore URLs with these extensions</span>
+<span style="color: #7ee787">url_extension_blacklist</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># images</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">png</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">jpg</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">bmp</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">ico</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">jpeg</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">gif</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">svg</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># web/fonts</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">css</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">woff</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">woff2</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">ttf</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># audio</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">mp3</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">m4a</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">wav</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">flac</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># video</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">mp4</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">mkv</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">avi</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">wmv</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">mov</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">flv</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">webm</span>
+<span style="color: #8b949e; font-style: italic"># Distribute URLs with these extensions only to httpx (these are omitted from output)</span>
+<span style="color: #7ee787">url_extension_httpx_only</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">js</span>
+<span style="color: #8b949e; font-style: italic"># Don't output these types of events (they are still distributed to modules)</span>
+<span style="color: #7ee787">omit_event_types</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">HTTP_RESPONSE</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">URL_UNVERIFIED</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># - DNS_NAME_UNRESOLVED</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># - IP_ADDRESS</span>
+<span style="color: #8b949e; font-style: italic"># URL of BBOT server</span>
+<span style="color: #7ee787">agent_url</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">''</span>
+<span style="color: #8b949e; font-style: italic"># Agent Bearer authentication token</span>
+<span style="color: #7ee787">agent_token</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">''</span>
+
+<span style="color: #8b949e; font-style: italic"># Custom interactsh server settings</span>
+<span style="color: #7ee787">interactsh_server</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">null</span>
+<span style="color: #7ee787">interactsh_token</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">null</span>
+<span style="color: #7ee787">interactsh_disable</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">false</span>
+</code></pre></div>
+<!-- END BBOT DEFAULT CONFIG -->
+<h2 id="module-config-options">Module Config Options</h2>
+<p>Many modules accept their own configuration options. These options have the ability to change their behavior. For example, the <code>nmap</code> module accepts options for <code>ports</code>, <code>timing</code>, etc. Below is a list of all possible module config options.</p>
+<!-- BBOT MODULE OPTIONS -->
+<table>
+<thead>
+<tr>
+<th>Config Option</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>modules.bucket_aws.permutations</td>
+<td>bool</td>
+<td>Whether to try permutations</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.bucket_azure.permutations</td>
+<td>bool</td>
+<td>Whether to try permutations</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.bucket_digitalocean.permutations</td>
+<td>bool</td>
+<td>Whether to try permutations</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.bucket_firebase.permutations</td>
+<td>bool</td>
+<td>Whether to try permutations</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.bucket_gcp.permutations</td>
+<td>bool</td>
+<td>Whether to try permutations</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.dnszonetransfer.timeout</td>
+<td>int</td>
+<td>Max seconds to wait before timing out</td>
+<td>10</td>
+</tr>
+<tr>
+<td>modules.ffuf.extensions</td>
+<td>str</td>
+<td>Optionally include a list of extensions to extend the keyword with (comma separated)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.ffuf.lines</td>
+<td>int</td>
+<td>take only the first N lines from the wordlist when finding directories</td>
+<td>5000</td>
+</tr>
+<tr>
+<td>modules.ffuf.max_depth</td>
+<td>int</td>
+<td>the maximum directory depth to attempt to solve</td>
+<td>0</td>
+</tr>
+<tr>
+<td>modules.ffuf.version</td>
+<td>str</td>
+<td>ffuf version</td>
+<td>2.0.0</td>
+</tr>
+<tr>
+<td>modules.ffuf.wordlist</td>
+<td>str</td>
+<td>Specify wordlist to use when finding directories</td>
+<td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt</td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.extensions</td>
+<td>str</td>
+<td>Optionally include a list of extensions to extend the keyword with (comma separated)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.find_common_prefixes</td>
+<td>bool</td>
+<td>Attempt to automatically detect common prefixes and make additional ffuf runs against them</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.find_delimiters</td>
+<td>bool</td>
+<td>Attempt to detect common delimiters and make additional ffuf runs against them</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.ignore_redirects</td>
+<td>bool</td>
+<td>Explicitly ignore redirects (301,302)</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.lines</td>
+<td>int</td>
+<td>take only the first N lines from the wordlist when finding directories</td>
+<td>1000000</td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.max_depth</td>
+<td>int</td>
+<td>the maximum directory depth to attempt to solve</td>
+<td>1</td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.version</td>
+<td>str</td>
+<td>ffuf version</td>
+<td>2.0.0</td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.wordlist</td>
+<td>str</td>
+<td>Specify wordlist to use when finding directories</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.ffuf_shortnames.wordlist_extensions</td>
+<td>str</td>
+<td>Specify wordlist to use when making extension lists</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.fingerprintx.version</td>
+<td>str</td>
+<td>fingerprintx version</td>
+<td>1.1.4</td>
+</tr>
+<tr>
+<td>modules.gowitness.output_path</td>
+<td>str</td>
+<td>where to save screenshots</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.gowitness.resolution_x</td>
+<td>int</td>
+<td>screenshot resolution x</td>
+<td>1440</td>
+</tr>
+<tr>
+<td>modules.gowitness.resolution_y</td>
+<td>int</td>
+<td>screenshot resolution y</td>
+<td>900</td>
+</tr>
+<tr>
+<td>modules.gowitness.threads</td>
+<td>int</td>
+<td>threads used to run</td>
+<td>4</td>
+</tr>
+<tr>
+<td>modules.gowitness.timeout</td>
+<td>int</td>
+<td>preflight check timeout</td>
+<td>10</td>
+</tr>
+<tr>
+<td>modules.gowitness.version</td>
+<td>str</td>
+<td>gowitness version</td>
+<td>2.4.2</td>
+</tr>
+<tr>
+<td>modules.httpx.in_scope_only</td>
+<td>bool</td>
+<td>Only visit web resources that are in scope.</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.httpx.max_response_size</td>
+<td>int</td>
+<td>Max response size in bytes</td>
+<td>5242880</td>
+</tr>
+<tr>
+<td>modules.httpx.threads</td>
+<td>int</td>
+<td>Number of httpx threads to use</td>
+<td>50</td>
+</tr>
+<tr>
+<td>modules.httpx.version</td>
+<td>str</td>
+<td>httpx version</td>
+<td>1.2.5</td>
+</tr>
+<tr>
+<td>modules.iis_shortnames.detect_only</td>
+<td>bool</td>
+<td>Only detect the vulnerability and do not run the shortname scanner</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.iis_shortnames.max_node_count</td>
+<td>int</td>
+<td>Limit how many nodes to attempt to resolve on any given recursion branch</td>
+<td>30</td>
+</tr>
+<tr>
+<td>modules.masscan.ping_first</td>
+<td>bool</td>
+<td>Only portscan hosts that reply to pings</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.masscan.ports</td>
+<td>str</td>
+<td>Ports to scan</td>
+<td>80,443</td>
+</tr>
+<tr>
+<td>modules.masscan.rate</td>
+<td>int</td>
+<td>Rate in packets per second</td>
+<td>600</td>
+</tr>
+<tr>
+<td>modules.masscan.use_cache</td>
+<td>bool</td>
+<td>Instead of scanning, use the results from the previous scan</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.masscan.wait</td>
+<td>int</td>
+<td>Seconds to wait for replies after scan is complete</td>
+<td>10</td>
+</tr>
+<tr>
+<td>modules.naabu.ports</td>
+<td>str</td>
+<td>ports to scan</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.naabu.skip_host_discovery</td>
+<td>bool</td>
+<td>skip host discovery (-Pn)</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.naabu.top_ports</td>
+<td>int</td>
+<td>top ports to scan</td>
+<td>100</td>
+</tr>
+<tr>
+<td>modules.naabu.version</td>
+<td>str</td>
+<td>naabu version</td>
+<td>2.1.1</td>
+</tr>
+<tr>
+<td>modules.nmap.ports</td>
+<td>str</td>
+<td>ports to scan</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nmap.skip_host_discovery</td>
+<td>bool</td>
+<td>skip host discovery (-Pn)</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.nmap.timing</td>
+<td>str</td>
+<td><code>-T&lt;0-5&gt;: Set timing template (higher is faster)</code></td>
+<td>T4</td>
+</tr>
+<tr>
+<td>modules.nmap.top_ports</td>
+<td>int</td>
+<td>top ports to scan</td>
+<td>100</td>
+</tr>
+<tr>
+<td>modules.ntlm.try_all</td>
+<td>bool</td>
+<td>Try every NTLM endpoint</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.nuclei.budget</td>
+<td>int</td>
+<td>Used in budget mode to set the number of requests which will be allotted to the nuclei scan</td>
+<td>1</td>
+</tr>
+<tr>
+<td>modules.nuclei.concurrency</td>
+<td>int</td>
+<td>maximum number of templates to be executed in parallel (default 25)</td>
+<td>25</td>
+</tr>
+<tr>
+<td>modules.nuclei.directory_only</td>
+<td>bool</td>
+<td>Filter out 'file' URL event (default True)</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.nuclei.etags</td>
+<td>str</td>
+<td>tags to exclude from the scan</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.mode</td>
+<td>str</td>
+<td>manual</td>
+<td>technology</td>
+</tr>
+<tr>
+<td>modules.nuclei.ratelimit</td>
+<td>int</td>
+<td>maximum number of requests to send per second (default 150)</td>
+<td>150</td>
+</tr>
+<tr>
+<td>modules.nuclei.severity</td>
+<td>str</td>
+<td>Filter based on severity field available in the template.</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.tags</td>
+<td>str</td>
+<td>execute a subset of templates that contain the provided tags</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.templates</td>
+<td>str</td>
+<td>template or template directory paths to include in the scan</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.version</td>
+<td>str</td>
+<td>nuclei version</td>
+<td>2.9.4</td>
+</tr>
+<tr>
+<td>modules.paramminer_cookies.wordlist</td>
+<td>str</td>
+<td>Define the wordlist to be used to derive cookies</td>
+<td>https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params</td>
+</tr>
+<tr>
+<td>modules.paramminer_getparams.wordlist</td>
+<td>str</td>
+<td>Define the wordlist to be used to derive GET params</td>
+<td>https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params</td>
+</tr>
+<tr>
+<td>modules.paramminer_headers.wordlist</td>
+<td>str</td>
+<td>Define the wordlist to be used to derive headers</td>
+<td>https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers</td>
+</tr>
+<tr>
+<td>modules.robots.include_allow</td>
+<td>bool</td>
+<td>Include 'Allow' Entries</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.robots.include_disallow</td>
+<td>bool</td>
+<td>Include 'Disallow' Entries</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.robots.include_sitemap</td>
+<td>bool</td>
+<td>Include 'sitemap' entries</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.secretsdb.min_confidence</td>
+<td>int</td>
+<td>Only use signatures with this confidence score or higher</td>
+<td>99</td>
+</tr>
+<tr>
+<td>modules.secretsdb.signatures</td>
+<td>str</td>
+<td>File path or URL to YAML signatures</td>
+<td>https://raw.githubusercontent.com/blacklanternsecurity/secrets-patterns-db/master/db/rules-stable.yml</td>
+</tr>
+<tr>
+<td>modules.sslcert.skip_non_ssl</td>
+<td>bool</td>
+<td>Don't try common non-SSL ports</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.sslcert.timeout</td>
+<td>float</td>
+<td>Socket connect timeout in seconds</td>
+<td>5.0</td>
+</tr>
+<tr>
+<td>modules.subdomain_hijack.fingerprints</td>
+<td>str</td>
+<td>URL or path to fingerprints.json</td>
+<td>https://raw.githubusercontent.com/EdOverflow/can-i-take-over-xyz/master/fingerprints.json</td>
+</tr>
+<tr>
+<td>modules.telerik.exploit_RAU_crypto</td>
+<td>bool</td>
+<td>Attempt to confirm any RAU AXD detections are vulnerable</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.url_manipulation.allow_redirects</td>
+<td>bool</td>
+<td>Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default.</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.vhost.force_basehost</td>
+<td>str</td>
+<td>Use a custom base host (e.g. evilcorp.com) instead of the default behavior of using the current URL</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.vhost.lines</td>
+<td>int</td>
+<td>take only the first N lines from the wordlist when finding directories</td>
+<td>5000</td>
+</tr>
+<tr>
+<td>modules.vhost.wordlist</td>
+<td>str</td>
+<td>Wordlist containing subdomains</td>
+<td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt</td>
+</tr>
+<tr>
+<td>modules.wafw00f.generic_detect</td>
+<td>bool</td>
+<td>When no specific WAF detections are made, try to perform a generic detect</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.bevigil.api_key</td>
+<td>str</td>
+<td>BeVigil OSINT API Key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.bevigil.urls</td>
+<td>bool</td>
+<td>Emit URLs in addition to DNS_NAMEs</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.binaryedge.api_key</td>
+<td>str</td>
+<td>BinaryEdge API key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.binaryedge.max_records</td>
+<td>int</td>
+<td>Limit results to help prevent exceeding API quota</td>
+<td>1000</td>
+</tr>
+<tr>
+<td>modules.builtwith.api_key</td>
+<td>str</td>
+<td>Builtwith API key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.builtwith.redirects</td>
+<td>bool</td>
+<td>Also look up inbound and outbound redirects</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.c99.api_key</td>
+<td>str</td>
+<td>c99.nl API key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.censys.api_id</td>
+<td>str</td>
+<td>Censys.io API ID</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.censys.api_secret</td>
+<td>str</td>
+<td>Censys.io API Secret</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.columbus.limit</td>
+<td>int</td>
+<td>Max number of subdomains to retrieve</td>
+<td>500</td>
+</tr>
+<tr>
+<td>modules.fullhunt.api_key</td>
+<td>str</td>
+<td>FullHunt API Key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.github.api_key</td>
+<td>str</td>
+<td>Github token</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.hunterio.api_key</td>
+<td>str</td>
+<td>Hunter.IO API key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.ipneighbor.num_bits</td>
+<td>int</td>
+<td>Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)</td>
+<td>4</td>
+</tr>
+<tr>
+<td>modules.ipstack.api_key</td>
+<td>str</td>
+<td>IPStack GeoIP API Key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.leakix.api_key</td>
+<td>str</td>
+<td>LeakIX API Key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.massdns.max_mutations</td>
+<td>int</td>
+<td>Max number of smart mutations per subdomain</td>
+<td>500</td>
+</tr>
+<tr>
+<td>modules.massdns.max_resolvers</td>
+<td>int</td>
+<td>Number of concurrent massdns resolvers</td>
+<td>1000</td>
+</tr>
+<tr>
+<td>modules.massdns.wordlist</td>
+<td>str</td>
+<td>Subdomain wordlist URL</td>
+<td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt</td>
+</tr>
+<tr>
+<td>modules.passivetotal.api_key</td>
+<td>str</td>
+<td>RiskIQ API Key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.passivetotal.username</td>
+<td>str</td>
+<td>RiskIQ Username</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.pgp.search_urls</td>
+<td>list</td>
+<td>PGP key servers to search</td>
+<td><code>['https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&amp;op=vindex&amp;search=&lt;query&gt;', 'http://the.earth.li:11371/pks/lookup?fingerprint=on&amp;op=vindex&amp;search=&lt;query&gt;']</code></td>
+</tr>
+<tr>
+<td>modules.securitytrails.api_key</td>
+<td>str</td>
+<td>SecurityTrails API key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.shodan_dns.api_key</td>
+<td>str</td>
+<td>Shodan API key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.urlscan.urls</td>
+<td>bool</td>
+<td>Emit URLs in addition to DNS_NAMEs</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.virustotal.api_key</td>
+<td>str</td>
+<td>VirusTotal API Key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.wayback.garbage_threshold</td>
+<td>int</td>
+<td>Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)</td>
+<td>10</td>
+</tr>
+<tr>
+<td>modules.wayback.urls</td>
+<td>bool</td>
+<td>emit URLs in addition to DNS_NAMEs</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.zoomeye.api_key</td>
+<td>str</td>
+<td>ZoomEye API key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.zoomeye.include_related</td>
+<td>bool</td>
+<td>Include domains which may be related to the target</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.zoomeye.max_pages</td>
+<td>int</td>
+<td>How many pages of results to fetch</td>
+<td>20</td>
+</tr>
+<tr>
+<td>output_modules.asset_inventory.output_file</td>
+<td>str</td>
+<td>Set a custom output file</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.asset_inventory.summary_netmask</td>
+<td>int</td>
+<td>Subnet mask to use when summarizing IP addresses at end of scan</td>
+<td>16</td>
+</tr>
+<tr>
+<td>output_modules.asset_inventory.use_previous</td>
+<td>bool</td>
+<td><code>Emit previous asset inventory as new events (use in conjunction with -n &lt;old_scan_name&gt;)</code></td>
+<td>False</td>
+</tr>
+<tr>
+<td>output_modules.csv.output_file</td>
+<td>str</td>
+<td>Output to CSV file</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.http.bearer</td>
+<td>str</td>
+<td>Authorization Bearer token</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.http.method</td>
+<td>str</td>
+<td>HTTP method</td>
+<td>POST</td>
+</tr>
+<tr>
+<td>output_modules.http.password</td>
+<td>str</td>
+<td>Password (basic auth)</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.http.timeout</td>
+<td>int</td>
+<td>HTTP timeout</td>
+<td>10</td>
+</tr>
+<tr>
+<td>output_modules.http.url</td>
+<td>str</td>
+<td>Web URL</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.http.username</td>
+<td>str</td>
+<td>Username (basic auth)</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.human.console</td>
+<td>bool</td>
+<td>Output to console</td>
+<td>True</td>
+</tr>
+<tr>
+<td>output_modules.human.output_file</td>
+<td>str</td>
+<td>Output to file</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.json.console</td>
+<td>bool</td>
+<td>Output to console</td>
+<td>False</td>
+</tr>
+<tr>
+<td>output_modules.json.output_file</td>
+<td>str</td>
+<td>Output to file</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.neo4j.password</td>
+<td>str</td>
+<td>Neo4j password</td>
+<td>bbotislife</td>
+</tr>
+<tr>
+<td>output_modules.neo4j.uri</td>
+<td>str</td>
+<td>Neo4j server + port</td>
+<td>bolt://localhost:7687</td>
+</tr>
+<tr>
+<td>output_modules.neo4j.username</td>
+<td>str</td>
+<td>Neo4j username</td>
+<td>neo4j</td>
+</tr>
+<tr>
+<td>output_modules.web_report.css_theme_file</td>
+<td>str</td>
+<td>CSS theme URL for HTML output</td>
+<td>https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css</td>
+</tr>
+<tr>
+<td>output_modules.web_report.output_file</td>
+<td>str</td>
+<td>Output to file</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.websocket.token</td>
+<td>str</td>
+<td>Authorization Bearer token</td>
+<td></td>
+</tr>
+<tr>
+<td>output_modules.websocket.url</td>
+<td>str</td>
+<td>Web URL</td>
+<td></td>
+</tr>
+<tr>
+<td>internal_modules.speculate.max_hosts</td>
+<td>int</td>
+<td>Max number of IP_RANGE hosts to convert into IP_ADDRESS events</td>
+<td>65536</td>
+</tr>
+<tr>
+<td>internal_modules.speculate.ports</td>
+<td>list</td>
+<td>The set of ports to speculate on</td>
+<td>[80, 443]</td>
+</tr>
+</tbody>
+</table>
+<!-- END BBOT MODULE OPTIONS -->
+</article>
+</div>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+<script src="../../assets/javascripts/bundle.b425cdc4.min.js"></script>
+<script src="https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js"></script>
+<script src="../../javascripts/tablesort.js"></script>
+</body>
+</html>

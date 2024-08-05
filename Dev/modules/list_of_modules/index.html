@@ -1,0 +1,1993 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Dev/modules/list_of_modules/" rel="canonical"/>
+<link href="../../scanning/configuration/" rel="prev"/>
+<link href="../nuclei/" rel="next"/>
+<link href="../../favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.0, mkdocs-material-9.5.26" name="generator"/>
+<title>List of Modules - BBOT Docs</title>
+<link href="../../assets/stylesheets/main.6543a935.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.q5j2ukby.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#list-of-modules">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              List of Modules
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_0" name="__palette" type="radio"/>
+</form>
+<script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../..">
+          
+  
+  User Manual
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../dev/">
+          
+  
+  Developer Manual
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-ellipsis">
+    User Manual
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            User Manual
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="">
+<span class="md-ellipsis">
+    Basics
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_1_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_1">
+<span class="md-nav__icon md-icon"></span>
+            Basics
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Getting Started
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../how_it_works/">
+<span class="md-ellipsis">
+    How it Works
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../comparison/">
+<span class="md-ellipsis">
+    Comparison to Other Tools
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="">
+<span class="md-ellipsis">
+    Scanning
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_2">
+<span class="md-nav__icon md-icon"></span>
+            Scanning
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/">
+<span class="md-ellipsis">
+    Scanning Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Presets
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            Presets
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/presets/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/presets_list/">
+<span class="md-ellipsis">
+    List of Presets
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/events/">
+<span class="md-ellipsis">
+    Events
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/output/">
+<span class="md-ellipsis">
+    Output
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/tips_and_tricks/">
+<span class="md-ellipsis">
+    Tips and Tricks
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/advanced/">
+<span class="md-ellipsis">
+    Advanced Usage
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/configuration/">
+<span class="md-ellipsis">
+    Configuration
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="">
+<span class="md-ellipsis">
+    Modules
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_3">
+<span class="md-nav__icon md-icon"></span>
+            Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    List of Modules
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../nuclei/">
+<span class="md-ellipsis">
+    Nuclei
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    Misc
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            Misc
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+<span class="md-ellipsis">
+    Contribution
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../release_history/">
+<span class="md-ellipsis">
+    Release History
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+<span class="md-ellipsis">
+    Troubleshooting
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Developer Manual
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Developer Manual
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/">
+<span class="md-ellipsis">
+    Development Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/dev_environment/">
+<span class="md-ellipsis">
+    Setting Up a Dev Environment
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/architecture/">
+<span class="md-ellipsis">
+    BBOT Internal Architecture
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/module_howto/">
+<span class="md-ellipsis">
+    How to Write a BBOT Module
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/tests/">
+<span class="md-ellipsis">
+    Unit Tests
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/discord_bot/">
+<span class="md-ellipsis">
+    Discord Bot Example
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<span class="md-ellipsis">
+    Code Reference
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_7">
+<span class="md-nav__icon md-icon"></span>
+            Code Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/scanner/">
+<span class="md-ellipsis">
+    Scanner
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/presets/">
+<span class="md-ellipsis">
+    Presets
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/event/">
+<span class="md-ellipsis">
+    Event
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/target/">
+<span class="md-ellipsis">
+    Target
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/basemodule/">
+<span class="md-ellipsis">
+    BaseModule
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core/">
+<span class="md-ellipsis">
+    BBOTCore
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/engine/">
+<span class="md-ellipsis">
+    Engine
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Helpers
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_7_8">
+<span class="md-nav__icon md-icon"></span>
+            Helpers
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/command/">
+<span class="md-ellipsis">
+    Command
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/dns/">
+<span class="md-ellipsis">
+    DNS
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/interactsh/">
+<span class="md-ellipsis">
+    Interactsh
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/misc/">
+<span class="md-ellipsis">
+    Miscellaneous
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/web/">
+<span class="md-ellipsis">
+    Web
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/wordcloud/">
+<span class="md-ellipsis">
+    Word Cloud
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="list-of-modules">List of Modules</h1>
+<!-- BBOT MODULES -->
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Type</th>
+<th>Needs API Key</th>
+<th>Description</th>
+<th>Flags</th>
+<th>Consumed Events</th>
+<th>Produced Events</th>
+<th>Author</th>
+<th>Created Date</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ajaxpro</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for potentially vulnerable Ajaxpro instances</td>
+<td>active, safe, web-thorough</td>
+<td>HTTP_RESPONSE, URL</td>
+<td>FINDING, VULNERABILITY</td>
+<td>@liquidsec</td>
+<td>2024-01-18</td>
+</tr>
+<tr>
+<td>baddns</td>
+<td>scan</td>
+<td>No</td>
+<td>Check hosts for domain/subdomain takeovers</td>
+<td>active, baddns, cloud-enum, safe, subdomain-hijack, web-basic</td>
+<td>DNS_NAME, DNS_NAME_UNRESOLVED</td>
+<td>FINDING, VULNERABILITY</td>
+<td>@liquidsec</td>
+<td>2024-01-18</td>
+</tr>
+<tr>
+<td>baddns_zone</td>
+<td>scan</td>
+<td>No</td>
+<td>Check hosts for DNS zone transfers and NSEC walks</td>
+<td>active, baddns, cloud-enum, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>FINDING, VULNERABILITY</td>
+<td>@liquidsec</td>
+<td>2024-01-29</td>
+</tr>
+<tr>
+<td>badsecrets</td>
+<td>scan</td>
+<td>No</td>
+<td>Library for detecting known or weak secrets across many web frameworks</td>
+<td>active, safe, web-basic</td>
+<td>HTTP_RESPONSE</td>
+<td>FINDING, TECHNOLOGY, VULNERABILITY</td>
+<td>@liquidsec</td>
+<td>2022-11-19</td>
+</tr>
+<tr>
+<td>bucket_amazon</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for S3 buckets related to target</td>
+<td>active, cloud-enum, safe, web-basic</td>
+<td>DNS_NAME, STORAGE_BUCKET</td>
+<td>FINDING, STORAGE_BUCKET</td>
+<td>@TheTechromancer</td>
+<td>2022-11-04</td>
+</tr>
+<tr>
+<td>bucket_azure</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for Azure storage blobs related to target</td>
+<td>active, cloud-enum, safe, web-basic</td>
+<td>DNS_NAME, STORAGE_BUCKET</td>
+<td>FINDING, STORAGE_BUCKET</td>
+<td>@TheTechromancer</td>
+<td>2022-11-04</td>
+</tr>
+<tr>
+<td>bucket_digitalocean</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for DigitalOcean spaces related to target</td>
+<td>active, cloud-enum, safe, slow, web-thorough</td>
+<td>DNS_NAME, STORAGE_BUCKET</td>
+<td>FINDING, STORAGE_BUCKET</td>
+<td>@TheTechromancer</td>
+<td>2022-11-08</td>
+</tr>
+<tr>
+<td>bucket_firebase</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for open Firebase databases related to target</td>
+<td>active, cloud-enum, safe, web-basic</td>
+<td>DNS_NAME, STORAGE_BUCKET</td>
+<td>FINDING, STORAGE_BUCKET</td>
+<td>@TheTechromancer</td>
+<td>2023-03-20</td>
+</tr>
+<tr>
+<td>bucket_google</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for Google object storage related to target</td>
+<td>active, cloud-enum, safe, web-basic</td>
+<td>DNS_NAME, STORAGE_BUCKET</td>
+<td>FINDING, STORAGE_BUCKET</td>
+<td>@TheTechromancer</td>
+<td>2022-11-04</td>
+</tr>
+<tr>
+<td>bypass403</td>
+<td>scan</td>
+<td>No</td>
+<td>Check 403 pages for common bypasses</td>
+<td>active, aggressive, web-thorough</td>
+<td>URL</td>
+<td>FINDING</td>
+<td>@liquidsec</td>
+<td>2022-07-05</td>
+</tr>
+<tr>
+<td>dastardly</td>
+<td>scan</td>
+<td>No</td>
+<td>Lightweight web application security scanner</td>
+<td>active, aggressive, deadly, slow, web-thorough</td>
+<td>HTTP_RESPONSE</td>
+<td>FINDING, VULNERABILITY</td>
+<td>@domwhewell-sage</td>
+<td>2023-12-11</td>
+</tr>
+<tr>
+<td>dotnetnuke</td>
+<td>scan</td>
+<td>No</td>
+<td>Scan for critical DotNetNuke (DNN) vulnerabilities</td>
+<td>active, aggressive, web-thorough</td>
+<td>HTTP_RESPONSE</td>
+<td>TECHNOLOGY, VULNERABILITY</td>
+<td>@liquidsec</td>
+<td>2023-11-21</td>
+</tr>
+<tr>
+<td>ffuf</td>
+<td>scan</td>
+<td>No</td>
+<td>A fast web fuzzer written in Go</td>
+<td>active, aggressive, deadly</td>
+<td>URL</td>
+<td>URL_UNVERIFIED</td>
+<td>@pmueller</td>
+<td>2022-04-10</td>
+</tr>
+<tr>
+<td>ffuf_shortnames</td>
+<td>scan</td>
+<td>No</td>
+<td>Use ffuf in combination IIS shortnames</td>
+<td>active, aggressive, iis-shortnames, web-thorough</td>
+<td>URL_HINT</td>
+<td>URL_UNVERIFIED</td>
+<td>@liquidsec</td>
+<td>2022-07-05</td>
+</tr>
+<tr>
+<td>filedownload</td>
+<td>scan</td>
+<td>No</td>
+<td>Download common filetypes such as PDF, DOCX, PPTX, etc.</td>
+<td>active, safe, web-basic</td>
+<td>HTTP_RESPONSE, URL_UNVERIFIED</td>
+<td>FILESYSTEM</td>
+<td>@TheTechromancer</td>
+<td>2023-10-11</td>
+</tr>
+<tr>
+<td>fingerprintx</td>
+<td>scan</td>
+<td>No</td>
+<td>Fingerprint exposed services like RDP, SSH, MySQL, etc.</td>
+<td>active, safe, service-enum, slow</td>
+<td>OPEN_TCP_PORT</td>
+<td>PROTOCOL</td>
+<td>@TheTechromancer</td>
+<td>2023-01-30</td>
+</tr>
+<tr>
+<td>generic_ssrf</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for generic SSRFs</td>
+<td>active, aggressive, web-thorough</td>
+<td>URL</td>
+<td>VULNERABILITY</td>
+<td>@liquidsec</td>
+<td>2022-07-30</td>
+</tr>
+<tr>
+<td>git</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for exposed .git repositories</td>
+<td>active, code-enum, safe, web-basic</td>
+<td>URL</td>
+<td>FINDING</td>
+<td>@TheTechromancer</td>
+<td>2023-05-30</td>
+</tr>
+<tr>
+<td>gitlab</td>
+<td>scan</td>
+<td>No</td>
+<td>Detect GitLab instances and query them for repositories</td>
+<td>active, code-enum, safe</td>
+<td>HTTP_RESPONSE, SOCIAL, TECHNOLOGY</td>
+<td>CODE_REPOSITORY, FINDING, SOCIAL, TECHNOLOGY</td>
+<td>@TheTechromancer</td>
+<td>2024-03-11</td>
+</tr>
+<tr>
+<td>gowitness</td>
+<td>scan</td>
+<td>No</td>
+<td>Take screenshots of webpages</td>
+<td>active, safe, web-screenshots</td>
+<td>SOCIAL, URL</td>
+<td>TECHNOLOGY, URL, URL_UNVERIFIED, WEBSCREENSHOT</td>
+<td>@TheTechromancer</td>
+<td>2022-07-08</td>
+</tr>
+<tr>
+<td>host_header</td>
+<td>scan</td>
+<td>No</td>
+<td>Try common HTTP Host header spoofing techniques</td>
+<td>active, aggressive, web-thorough</td>
+<td>HTTP_RESPONSE</td>
+<td>FINDING</td>
+<td>@liquidsec</td>
+<td>2022-07-27</td>
+</tr>
+<tr>
+<td>httpx</td>
+<td>scan</td>
+<td>No</td>
+<td>Visit webpages. Many other modules rely on httpx</td>
+<td>active, cloud-enum, safe, social-enum, subdomain-enum, web-basic</td>
+<td>OPEN_TCP_PORT, URL, URL_UNVERIFIED</td>
+<td>HTTP_RESPONSE, URL</td>
+<td>@TheTechromancer</td>
+<td>2022-07-08</td>
+</tr>
+<tr>
+<td>hunt</td>
+<td>scan</td>
+<td>No</td>
+<td>Watch for commonly-exploitable HTTP parameters</td>
+<td>active, safe, web-thorough</td>
+<td>WEB_PARAMETER</td>
+<td>FINDING</td>
+<td>@liquidsec</td>
+<td>2022-07-20</td>
+</tr>
+<tr>
+<td>iis_shortnames</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for IIS shortname vulnerability</td>
+<td>active, iis-shortnames, safe, web-basic</td>
+<td>URL</td>
+<td>URL_HINT</td>
+<td>@pmueller</td>
+<td>2022-04-15</td>
+</tr>
+<tr>
+<td>newsletters</td>
+<td>scan</td>
+<td>No</td>
+<td>Searches for Newsletter Submission Entry Fields on Websites</td>
+<td>active, safe</td>
+<td>HTTP_RESPONSE</td>
+<td>FINDING</td>
+<td>@stryker2k2</td>
+<td>2024-02-02</td>
+</tr>
+<tr>
+<td>ntlm</td>
+<td>scan</td>
+<td>No</td>
+<td>Watch for HTTP endpoints that support NTLM authentication</td>
+<td>active, safe, web-basic</td>
+<td>HTTP_RESPONSE, URL</td>
+<td>DNS_NAME, FINDING</td>
+<td>@liquidsec</td>
+<td>2022-07-25</td>
+</tr>
+<tr>
+<td>nuclei</td>
+<td>scan</td>
+<td>No</td>
+<td>Fast and customisable vulnerability scanner</td>
+<td>active, aggressive, deadly</td>
+<td>URL</td>
+<td>FINDING, TECHNOLOGY, VULNERABILITY</td>
+<td>@TheTechromancer</td>
+<td>2022-03-12</td>
+</tr>
+<tr>
+<td>oauth</td>
+<td>scan</td>
+<td>No</td>
+<td>Enumerate OAUTH and OpenID Connect services</td>
+<td>active, affiliates, cloud-enum, safe, subdomain-enum, web-basic</td>
+<td>DNS_NAME, URL_UNVERIFIED</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2023-07-12</td>
+</tr>
+<tr>
+<td>paramminer_cookies</td>
+<td>scan</td>
+<td>No</td>
+<td>Smart brute-force to check for common HTTP cookie parameters</td>
+<td>active, aggressive, slow, web-paramminer</td>
+<td>HTTP_RESPONSE, WEB_PARAMETER</td>
+<td>FINDING, WEB_PARAMETER</td>
+<td>@liquidsec</td>
+<td>2022-06-27</td>
+</tr>
+<tr>
+<td>paramminer_getparams</td>
+<td>scan</td>
+<td>No</td>
+<td>Use smart brute-force to check for common HTTP GET parameters</td>
+<td>active, aggressive, slow, web-paramminer</td>
+<td>HTTP_RESPONSE, WEB_PARAMETER</td>
+<td>FINDING, WEB_PARAMETER</td>
+<td>@liquidsec</td>
+<td>2022-06-28</td>
+</tr>
+<tr>
+<td>paramminer_headers</td>
+<td>scan</td>
+<td>No</td>
+<td>Use smart brute-force to check for common HTTP header parameters</td>
+<td>active, aggressive, slow, web-paramminer</td>
+<td>HTTP_RESPONSE, WEB_PARAMETER</td>
+<td>WEB_PARAMETER</td>
+<td>@pmueller</td>
+<td>2022-04-15</td>
+</tr>
+<tr>
+<td>portscan</td>
+<td>scan</td>
+<td>No</td>
+<td>Port scan with masscan. By default, scans top 100 ports.</td>
+<td>active, portscan, safe</td>
+<td>DNS_NAME, IP_ADDRESS, IP_RANGE</td>
+<td>OPEN_TCP_PORT</td>
+<td>@TheTechromancer</td>
+<td>2024-05-15</td>
+</tr>
+<tr>
+<td>robots</td>
+<td>scan</td>
+<td>No</td>
+<td>Look for and parse robots.txt</td>
+<td>active, safe, web-basic</td>
+<td>URL</td>
+<td>URL_UNVERIFIED</td>
+<td>@liquidsec</td>
+<td>2023-02-01</td>
+</tr>
+<tr>
+<td>secretsdb</td>
+<td>scan</td>
+<td>No</td>
+<td>Detect common secrets with secrets-patterns-db</td>
+<td>active, safe, web-basic</td>
+<td>HTTP_RESPONSE</td>
+<td>FINDING</td>
+<td>@TheTechromancer</td>
+<td>2023-03-17</td>
+</tr>
+<tr>
+<td>smuggler</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for HTTP smuggling</td>
+<td>active, aggressive, slow, web-thorough</td>
+<td>URL</td>
+<td>FINDING</td>
+<td>@liquidsec</td>
+<td>2022-07-06</td>
+</tr>
+<tr>
+<td>sslcert</td>
+<td>scan</td>
+<td>No</td>
+<td>Visit open ports and retrieve SSL certificates</td>
+<td>active, affiliates, email-enum, safe, subdomain-enum, web-basic</td>
+<td>OPEN_TCP_PORT</td>
+<td>DNS_NAME, EMAIL_ADDRESS</td>
+<td>@TheTechromancer</td>
+<td>2022-03-30</td>
+</tr>
+<tr>
+<td>telerik</td>
+<td>scan</td>
+<td>No</td>
+<td>Scan for critical Telerik vulnerabilities</td>
+<td>active, aggressive, web-thorough</td>
+<td>HTTP_RESPONSE, URL</td>
+<td>FINDING, VULNERABILITY</td>
+<td>@liquidsec</td>
+<td>2022-04-10</td>
+</tr>
+<tr>
+<td>url_manipulation</td>
+<td>scan</td>
+<td>No</td>
+<td>Attempt to identify URL parsing/routing based vulnerabilities</td>
+<td>active, aggressive, web-thorough</td>
+<td>URL</td>
+<td>FINDING</td>
+<td>@liquidsec</td>
+<td>2022-09-27</td>
+</tr>
+<tr>
+<td>vhost</td>
+<td>scan</td>
+<td>No</td>
+<td>Fuzz for virtual hosts</td>
+<td>active, aggressive, deadly, slow</td>
+<td>URL</td>
+<td>DNS_NAME, VHOST</td>
+<td>@liquidsec</td>
+<td>2022-05-02</td>
+</tr>
+<tr>
+<td>wafw00f</td>
+<td>scan</td>
+<td>No</td>
+<td>Web Application Firewall Fingerprinting Tool</td>
+<td>active, aggressive</td>
+<td>URL</td>
+<td>WAF</td>
+<td>@liquidsec</td>
+<td>2023-02-15</td>
+</tr>
+<tr>
+<td>wappalyzer</td>
+<td>scan</td>
+<td>No</td>
+<td>Extract technologies from web responses</td>
+<td>active, safe, web-basic</td>
+<td>HTTP_RESPONSE</td>
+<td>TECHNOLOGY</td>
+<td>@liquidsec</td>
+<td>2022-04-15</td>
+</tr>
+<tr>
+<td>wpscan</td>
+<td>scan</td>
+<td>No</td>
+<td>Wordpress security scanner. Highly recommended to use an API key for better results.</td>
+<td>active, aggressive</td>
+<td>HTTP_RESPONSE, TECHNOLOGY</td>
+<td>FINDING, TECHNOLOGY, URL_UNVERIFIED, VULNERABILITY</td>
+<td>@domwhewell-sage</td>
+<td>2024-05-29</td>
+</tr>
+<tr>
+<td>affiliates</td>
+<td>scan</td>
+<td>No</td>
+<td>Summarize affiliate domains at the end of a scan</td>
+<td>affiliates, passive, report, safe</td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-07-25</td>
+</tr>
+<tr>
+<td>anubisdb</td>
+<td>scan</td>
+<td>No</td>
+<td>Query jldc.me's database for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-10-04</td>
+</tr>
+<tr>
+<td>asn</td>
+<td>scan</td>
+<td>No</td>
+<td>Query ripe and bgpview.io for ASNs</td>
+<td>passive, report, safe, subdomain-enum</td>
+<td>IP_ADDRESS</td>
+<td>ASN</td>
+<td>@TheTechromancer</td>
+<td>2022-07-25</td>
+</tr>
+<tr>
+<td>azure_realm</td>
+<td>scan</td>
+<td>No</td>
+<td>Retrieves the "AuthURL" from login.microsoftonline.com/getuserrealm</td>
+<td>affiliates, cloud-enum, passive, safe, subdomain-enum, web-basic</td>
+<td>DNS_NAME</td>
+<td>URL_UNVERIFIED</td>
+<td>@TheTechromancer</td>
+<td>2023-07-12</td>
+</tr>
+<tr>
+<td>azure_tenant</td>
+<td>scan</td>
+<td>No</td>
+<td>Query Azure for tenant sister domains</td>
+<td>affiliates, cloud-enum, passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2024-07-04</td>
+</tr>
+<tr>
+<td>bevigil</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Retrieve OSINT data from mobile applications using BeVigil</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME, URL_UNVERIFIED</td>
+<td>@alt-glitch</td>
+<td>2022-10-26</td>
+</tr>
+<tr>
+<td>binaryedge</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query the BinaryEdge API</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2024-08-18</td>
+</tr>
+<tr>
+<td>bucket_file_enum</td>
+<td>scan</td>
+<td>No</td>
+<td>Works in conjunction with the filedownload module to download files from open storage buckets. Currently supported cloud providers: AWS, DigitalOcean</td>
+<td>cloud-enum, passive, safe</td>
+<td>STORAGE_BUCKET</td>
+<td>URL_UNVERIFIED</td>
+<td>@TheTechromancer</td>
+<td>2023-11-14</td>
+</tr>
+<tr>
+<td>builtwith</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query Builtwith.com for subdomains</td>
+<td>affiliates, passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-23</td>
+</tr>
+<tr>
+<td>c99</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query the C99 API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-07-08</td>
+</tr>
+<tr>
+<td>censys</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query the Censys API</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-04</td>
+</tr>
+<tr>
+<td>certspotter</td>
+<td>scan</td>
+<td>No</td>
+<td>Query Certspotter's API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-07-28</td>
+</tr>
+<tr>
+<td>chaos</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query ProjectDiscovery's Chaos API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-14</td>
+</tr>
+<tr>
+<td>code_repository</td>
+<td>scan</td>
+<td>No</td>
+<td>Look for code repository links in webpages</td>
+<td>code-enum, passive, safe</td>
+<td>URL_UNVERIFIED</td>
+<td>CODE_REPOSITORY</td>
+<td>@domwhewell-sage</td>
+<td>2024-05-15</td>
+</tr>
+<tr>
+<td>columbus</td>
+<td>scan</td>
+<td>No</td>
+<td>Query the Columbus Project API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2023-06-01</td>
+</tr>
+<tr>
+<td>credshed</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Send queries to your own credshed server to check for known credentials of your targets</td>
+<td>passive, safe</td>
+<td>DNS_NAME</td>
+<td>EMAIL_ADDRESS, HASHED_PASSWORD, PASSWORD, USERNAME</td>
+<td>@SpamFaux</td>
+<td>2023-10-12</td>
+</tr>
+<tr>
+<td>crobat</td>
+<td>scan</td>
+<td>No</td>
+<td>Query Project Crobat for subdomains</td>
+<td>passive, safe</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@j3tj3rk</td>
+<td>2022-06-03</td>
+</tr>
+<tr>
+<td>crt</td>
+<td>scan</td>
+<td>No</td>
+<td>Query crt.sh (certificate transparency) for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-05-13</td>
+</tr>
+<tr>
+<td>dehashed</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Execute queries against dehashed.com for exposed credentials</td>
+<td>email-enum, passive, safe</td>
+<td>DNS_NAME</td>
+<td>EMAIL_ADDRESS, HASHED_PASSWORD, PASSWORD, USERNAME</td>
+<td>@SpamFaux</td>
+<td>2023-10-12</td>
+</tr>
+<tr>
+<td>digitorus</td>
+<td>scan</td>
+<td>No</td>
+<td>Query certificatedetails.com for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2023-07-25</td>
+</tr>
+<tr>
+<td>dnsbrute</td>
+<td>scan</td>
+<td>No</td>
+<td>Brute-force subdomains with massdns + static wordlist</td>
+<td>aggressive, passive, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2024-04-24</td>
+</tr>
+<tr>
+<td>dnsbrute_mutations</td>
+<td>scan</td>
+<td>No</td>
+<td>Brute-force subdomains with massdns + target-specific mutations</td>
+<td>aggressive, passive, slow, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2024-04-25</td>
+</tr>
+<tr>
+<td>dnscaa</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for CAA records</td>
+<td>email-enum, passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME, EMAIL_ADDRESS, URL_UNVERIFIED</td>
+<td>@colin-stubbs</td>
+<td>2024-05-26</td>
+</tr>
+<tr>
+<td>dnscommonsrv</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for common SRV records</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-05-15</td>
+</tr>
+<tr>
+<td>dnsdumpster</td>
+<td>scan</td>
+<td>No</td>
+<td>Query dnsdumpster for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-03-12</td>
+</tr>
+<tr>
+<td>docker_pull</td>
+<td>scan</td>
+<td>No</td>
+<td>Download images from a docker repository</td>
+<td>passive, safe, slow</td>
+<td>CODE_REPOSITORY</td>
+<td>FILESYSTEM</td>
+<td>@domwhewell-sage</td>
+<td>2024-03-24</td>
+</tr>
+<tr>
+<td>dockerhub</td>
+<td>scan</td>
+<td>No</td>
+<td>Search for docker repositories of discovered orgs/usernames</td>
+<td>code-enum, passive, safe</td>
+<td>ORG_STUB, SOCIAL</td>
+<td>CODE_REPOSITORY, SOCIAL, URL_UNVERIFIED</td>
+<td>@domwhewell-sage</td>
+<td>2024-03-12</td>
+</tr>
+<tr>
+<td>emailformat</td>
+<td>scan</td>
+<td>No</td>
+<td>Query email-format.com for email addresses</td>
+<td>email-enum, passive, safe</td>
+<td>DNS_NAME</td>
+<td>EMAIL_ADDRESS</td>
+<td>@TheTechromancer</td>
+<td>2022-07-11</td>
+</tr>
+<tr>
+<td>fullhunt</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query the fullhunt.io API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-24</td>
+</tr>
+<tr>
+<td>git_clone</td>
+<td>scan</td>
+<td>No</td>
+<td>Clone code github repositories</td>
+<td>passive, safe, slow</td>
+<td>CODE_REPOSITORY</td>
+<td>FILESYSTEM</td>
+<td>@domwhewell-sage</td>
+<td>2024-03-08</td>
+</tr>
+<tr>
+<td>github_codesearch</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query Github's API for code containing the target domain name</td>
+<td>code-enum, passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>CODE_REPOSITORY, URL_UNVERIFIED</td>
+<td>@domwhewell-sage</td>
+<td>2023-12-14</td>
+</tr>
+<tr>
+<td>github_org</td>
+<td>scan</td>
+<td>No</td>
+<td>Query Github's API for organization and member repositories</td>
+<td>code-enum, passive, safe, subdomain-enum</td>
+<td>ORG_STUB, SOCIAL</td>
+<td>CODE_REPOSITORY</td>
+<td>@domwhewell-sage</td>
+<td>2023-12-14</td>
+</tr>
+<tr>
+<td>github_workflows</td>
+<td>scan</td>
+<td>No</td>
+<td>Download a github repositories workflow logs</td>
+<td>passive, safe</td>
+<td>CODE_REPOSITORY</td>
+<td>FILESYSTEM</td>
+<td>@domwhewell-sage</td>
+<td>2024-04-29</td>
+</tr>
+<tr>
+<td>hackertarget</td>
+<td>scan</td>
+<td>No</td>
+<td>Query the hackertarget.com API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-07-28</td>
+</tr>
+<tr>
+<td>hunterio</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query hunter.io for emails</td>
+<td>email-enum, passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME, EMAIL_ADDRESS, URL_UNVERIFIED</td>
+<td>@TheTechromancer</td>
+<td>2022-04-25</td>
+</tr>
+<tr>
+<td>internetdb</td>
+<td>scan</td>
+<td>No</td>
+<td>Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities</td>
+<td>passive, portscan, safe, subdomain-enum</td>
+<td>DNS_NAME, IP_ADDRESS</td>
+<td>DNS_NAME, FINDING, OPEN_TCP_PORT, TECHNOLOGY, VULNERABILITY</td>
+<td>@TheTechromancer</td>
+<td>2023-12-22</td>
+</tr>
+<tr>
+<td>ip2location</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query IP2location.io's API for geolocation information.</td>
+<td>passive, safe</td>
+<td>IP_ADDRESS</td>
+<td>GEOLOCATION</td>
+<td>@TheTechromancer</td>
+<td>2023-09-12</td>
+</tr>
+<tr>
+<td>ipneighbor</td>
+<td>scan</td>
+<td>No</td>
+<td>Look beside IPs in their surrounding subnet</td>
+<td>aggressive, passive, subdomain-enum</td>
+<td>IP_ADDRESS</td>
+<td>IP_ADDRESS</td>
+<td>@TheTechromancer</td>
+<td>2022-06-08</td>
+</tr>
+<tr>
+<td>ipstack</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query IPStack's GeoIP API</td>
+<td>passive, safe</td>
+<td>IP_ADDRESS</td>
+<td>GEOLOCATION</td>
+<td>@tycoonslive</td>
+<td>2022-11-26</td>
+</tr>
+<tr>
+<td>leakix</td>
+<td>scan</td>
+<td>No</td>
+<td>Query leakix.net for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-07-11</td>
+</tr>
+<tr>
+<td>myssl</td>
+<td>scan</td>
+<td>No</td>
+<td>Query myssl.com's API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2023-07-10</td>
+</tr>
+<tr>
+<td>otx</td>
+<td>scan</td>
+<td>No</td>
+<td>Query otx.alienvault.com for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-24</td>
+</tr>
+<tr>
+<td>passivetotal</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query the PassiveTotal API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-08</td>
+</tr>
+<tr>
+<td>pgp</td>
+<td>scan</td>
+<td>No</td>
+<td>Query common PGP servers for email addresses</td>
+<td>email-enum, passive, safe</td>
+<td>DNS_NAME</td>
+<td>EMAIL_ADDRESS</td>
+<td>@TheTechromancer</td>
+<td>2022-08-10</td>
+</tr>
+<tr>
+<td>postman</td>
+<td>scan</td>
+<td>No</td>
+<td>Query Postman's API for related workspaces, collections, requests</td>
+<td>code-enum, passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>URL_UNVERIFIED</td>
+<td>@domwhewell-sage</td>
+<td>2023-12-23</td>
+</tr>
+<tr>
+<td>rapiddns</td>
+<td>scan</td>
+<td>No</td>
+<td>Query rapiddns.io for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-24</td>
+</tr>
+<tr>
+<td>riddler</td>
+<td>scan</td>
+<td>No</td>
+<td>Query riddler.io for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-25</td>
+</tr>
+<tr>
+<td>securitytrails</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query the SecurityTrails API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-07-03</td>
+</tr>
+<tr>
+<td>shodan_dns</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query Shodan for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-07-03</td>
+</tr>
+<tr>
+<td>sitedossier</td>
+<td>scan</td>
+<td>No</td>
+<td>Query sitedossier.com for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2023-08-04</td>
+</tr>
+<tr>
+<td>skymem</td>
+<td>scan</td>
+<td>No</td>
+<td>Query skymem.info for email addresses</td>
+<td>email-enum, passive, safe</td>
+<td>DNS_NAME</td>
+<td>EMAIL_ADDRESS</td>
+<td>@TheTechromancer</td>
+<td>2022-07-11</td>
+</tr>
+<tr>
+<td>social</td>
+<td>scan</td>
+<td>No</td>
+<td>Look for social media links in webpages</td>
+<td>passive, safe, social-enum</td>
+<td>URL_UNVERIFIED</td>
+<td>SOCIAL</td>
+<td>@TheTechromancer</td>
+<td>2023-03-28</td>
+</tr>
+<tr>
+<td>subdomaincenter</td>
+<td>scan</td>
+<td>No</td>
+<td>Query subdomain.center's API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2023-07-26</td>
+</tr>
+<tr>
+<td>sublist3r</td>
+<td>scan</td>
+<td>No</td>
+<td>Query sublist3r's API for subdomains</td>
+<td>passive, safe</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@Want-EyeTea</td>
+<td>2022-03-29</td>
+</tr>
+<tr>
+<td>threatminer</td>
+<td>scan</td>
+<td>No</td>
+<td>Query threatminer's API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-07-28</td>
+</tr>
+<tr>
+<td>trufflehog</td>
+<td>scan</td>
+<td>No</td>
+<td>TruffleHog is a tool for finding credentials</td>
+<td>code-enum, passive, safe</td>
+<td>FILESYSTEM</td>
+<td>FINDING, VULNERABILITY</td>
+<td>@domwhewell-sage</td>
+<td>2024-03-12</td>
+</tr>
+<tr>
+<td>unstructured</td>
+<td>scan</td>
+<td>No</td>
+<td>Module to extract data from files</td>
+<td>passive, safe</td>
+<td>FILESYSTEM</td>
+<td>FILESYSTEM, RAW_TEXT</td>
+<td>@domwhewell-sage</td>
+<td>2024-06-03</td>
+</tr>
+<tr>
+<td>urlscan</td>
+<td>scan</td>
+<td>No</td>
+<td>Query urlscan.io for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME, URL_UNVERIFIED</td>
+<td>@TheTechromancer</td>
+<td>2022-06-09</td>
+</tr>
+<tr>
+<td>viewdns</td>
+<td>scan</td>
+<td>No</td>
+<td>Query viewdns.info's reverse whois for related domains</td>
+<td>affiliates, passive, safe</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-07-04</td>
+</tr>
+<tr>
+<td>virustotal</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query VirusTotal's API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-25</td>
+</tr>
+<tr>
+<td>wayback</td>
+<td>scan</td>
+<td>No</td>
+<td>Query archive.org's API for subdomains</td>
+<td>passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME, URL_UNVERIFIED</td>
+<td>@pmueller</td>
+<td>2022-04-01</td>
+</tr>
+<tr>
+<td>zoomeye</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Query ZoomEye's API for subdomains</td>
+<td>affiliates, passive, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-08-03</td>
+</tr>
+<tr>
+<td>asset_inventory</td>
+<td>output</td>
+<td>No</td>
+<td>Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV</td>
+<td></td>
+<td>DNS_NAME, FINDING, HTTP_RESPONSE, IP_ADDRESS, OPEN_TCP_PORT, TECHNOLOGY, URL, VULNERABILITY, WAF</td>
+<td>IP_ADDRESS, OPEN_TCP_PORT</td>
+<td>@liquidsec</td>
+<td>2022-09-30</td>
+</tr>
+<tr>
+<td>csv</td>
+<td>output</td>
+<td>No</td>
+<td>Output to CSV</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-04-07</td>
+</tr>
+<tr>
+<td>discord</td>
+<td>output</td>
+<td>No</td>
+<td>Message a Discord channel when certain events are encountered</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2023-08-14</td>
+</tr>
+<tr>
+<td>emails</td>
+<td>output</td>
+<td>No</td>
+<td>Output any email addresses found belonging to the target domain</td>
+<td>email-enum</td>
+<td>EMAIL_ADDRESS</td>
+<td></td>
+<td>@domwhewell-sage</td>
+<td>2023-12-23</td>
+</tr>
+<tr>
+<td>http</td>
+<td>output</td>
+<td>No</td>
+<td>Send every event to a custom URL via a web request</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-04-13</td>
+</tr>
+<tr>
+<td>json</td>
+<td>output</td>
+<td>No</td>
+<td>Output to Newline-Delimited JSON (NDJSON)</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-04-07</td>
+</tr>
+<tr>
+<td>neo4j</td>
+<td>output</td>
+<td>No</td>
+<td>Output to Neo4j</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-04-07</td>
+</tr>
+<tr>
+<td>python</td>
+<td>output</td>
+<td>No</td>
+<td>Output via Python API</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-09-13</td>
+</tr>
+<tr>
+<td>slack</td>
+<td>output</td>
+<td>No</td>
+<td>Message a Slack channel when certain events are encountered</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2023-08-14</td>
+</tr>
+<tr>
+<td>splunk</td>
+<td>output</td>
+<td>No</td>
+<td>Send every event to a splunk instance through HTTP Event Collector</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@w0Tx</td>
+<td>2024-02-17</td>
+</tr>
+<tr>
+<td>stdout</td>
+<td>output</td>
+<td>No</td>
+<td>Output to text</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>subdomains</td>
+<td>output</td>
+<td>No</td>
+<td>Output only resolved, in-scope subdomains</td>
+<td>subdomain-enum</td>
+<td>DNS_NAME, DNS_NAME_UNRESOLVED</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2023-07-31</td>
+</tr>
+<tr>
+<td>teams</td>
+<td>output</td>
+<td>No</td>
+<td>Message a Teams channel when certain events are encountered</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2023-08-14</td>
+</tr>
+<tr>
+<td>txt</td>
+<td>output</td>
+<td>No</td>
+<td>Output to text</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>web_report</td>
+<td>output</td>
+<td>No</td>
+<td>Create a markdown report with web assets</td>
+<td></td>
+<td>FINDING, TECHNOLOGY, URL, VHOST, VULNERABILITY</td>
+<td></td>
+<td>@liquidsec</td>
+<td>2023-02-08</td>
+</tr>
+<tr>
+<td>websocket</td>
+<td>output</td>
+<td>No</td>
+<td>Output to websockets</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-04-15</td>
+</tr>
+<tr>
+<td>cloudcheck</td>
+<td>internal</td>
+<td>No</td>
+<td>Tag events by cloud provider, identify cloud resources like storage buckets</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>dnsresolve</td>
+<td>internal</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>aggregate</td>
+<td>internal</td>
+<td>No</td>
+<td>Summarize statistics at the end of a scan</td>
+<td>passive, safe</td>
+<td></td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-07-25</td>
+</tr>
+<tr>
+<td>excavate</td>
+<td>internal</td>
+<td>No</td>
+<td>Passively extract juicy tidbits from scan data</td>
+<td>passive</td>
+<td>HTTP_RESPONSE</td>
+<td>URL_UNVERIFIED, WEB_PARAMETER</td>
+<td>@liquidsec</td>
+<td>2022-06-27</td>
+</tr>
+<tr>
+<td>speculate</td>
+<td>internal</td>
+<td>No</td>
+<td>Derive certain event types from others by common sense</td>
+<td>passive</td>
+<td>AZURE_TENANT, DNS_NAME, DNS_NAME_UNRESOLVED, HTTP_RESPONSE, IP_ADDRESS, IP_RANGE, SOCIAL, STORAGE_BUCKET, URL, URL_UNVERIFIED, USERNAME</td>
+<td>DNS_NAME, FINDING, IP_ADDRESS, OPEN_TCP_PORT, ORG_STUB</td>
+<td>@liquidsec</td>
+<td>2022-05-03</td>
+</tr>
+</tbody>
+</table>
+<!-- END BBOT MODULES -->
+<p>For a list of module config options, see <a href="../../scanning/configuration/#module-config-options">Module Options</a>.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
+<script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/vega@5.js"></script>
+<script src="../../javascripts/vega-lite@5.js"></script>
+<script src="../../javascripts/vega-embed@6.js"></script>
+<script src="../../data/chord_graph/vega.json"></script>
+</body>
+</html>

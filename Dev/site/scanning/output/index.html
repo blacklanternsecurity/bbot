@@ -1,0 +1,497 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/scanning/output/" rel="canonical"/>
+<link href="../events/" rel="prev"/>
+<link href="../tips_and_tricks/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.4.3, mkdocs-material-9.1.17" name="generator"/>
+<title>Output - BBOT Docs</title>
+<link href="../../assets/stylesheets/main.26e3688c.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ecc896b0.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.bft70rkg.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#output">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Output
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+</form>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+          Basics
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+          Basics
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+        Getting Started
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../how_it_works/">
+        How it Works
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../comparison/">
+        Comparison to Other Tools
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          Scanning
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+          Scanning
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+        Scanning Overview
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../events/">
+        Events
+      </a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+          Output
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+        Output
+      </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#output-modules">
+    Output Modules
+  </a>
+<nav aria-label="Output Modules" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#human">
+    Human
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#csv">
+    CSV
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#json">
+    JSON
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#http">
+    HTTP
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#asset-inventory">
+    Asset Inventory
+  </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#neo4j">
+    Neo4j
+  </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../tips_and_tricks/">
+        Tips and Tricks
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../advanced/">
+        Advanced Usage
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../configuration/">
+        Configuration
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../list_of_modules/">
+        List of Modules
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Contribution
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+          Contribution
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+        How to Write a Module
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          Misc
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+          Misc
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../release_history/">
+        Release History
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+        Troubleshooting
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="output">Output</h1>
+<p>By default, BBOT saves its output in TXT, JSON, and CSV formats:
+<img alt="image" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/779207f4-1c2f-4f65-a132-794ca8bd2f8a"/></p>
+<p>Every BBOT scan gets a unique and mildly-entertaining name like <strong><code>demonic_jimmy</code></strong>. Output for that scan, including scan stats and any web screenshots, etc., are saved to a folder by that name in <code>~/.bbot/scans</code>. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with <code>--output</code>, and you can also pick a custom scan name with <code>--name</code>.</p>
+<p>If you reuse a scan name, it will append to its original output files and leverage the previous.</p>
+<h2 id="output-modules">Output Modules</h2>
+<p>Multiple simultaneous output formats are possible because of <strong>output modules</strong>. Output modules are similar to normal modules except they are enabled with <code>-om</code>.</p>
+<h3 id="human">Human</h3>
+<p><code>human</code> output is tab-delimited, so it's easy to grep:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># grep out only the DNS_NAMEs</span>
+cat<span style="color: #6e7681"> </span>~/.bbot/scans/extreme_johnny/output.txt<span style="color: #6e7681"> </span><span style="color: #e6edf3">|</span><span style="color: #6e7681"> </span>grep<span style="color: #6e7681"> </span><span style="color: #a5d6ff">'[DNS_NAME]'</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">|</span><span style="color: #6e7681"> </span>cut<span style="color: #6e7681"> </span>-f2
+evilcorp.com
+www.evilcorp.com
+mail.evilcorp.com
+</code></pre></div>
+<h3 id="csv">CSV</h3>
+<p>The <code>csv</code> output module produces a CSV like this:</p>
+<table>
+<thead>
+<tr>
+<th>Event type</th>
+<th>Event data</th>
+<th>IP Address</th>
+<th>Source Module</th>
+<th>Scope Distance</th>
+<th>Event Tags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DNS_NAME</td>
+<td>evilcorp.com</td>
+<td>1.2.3.4</td>
+<td>TARGET</td>
+<td>0</td>
+<td>a-record,cdn-github,distance-0,domain,in-scope,mx-record,ns-record,resolved,soa-record,target,txt-record</td>
+</tr>
+<tr>
+<td>DNS_NAME</td>
+<td>www.evilcorp.com</td>
+<td>2.3.4.5</td>
+<td>certspotter</td>
+<td>0</td>
+<td>a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>http://www.evilcorp.com</td>
+<td>2.3.4.5</td>
+<td>httpx</td>
+<td>0</td>
+<td>a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain</td>
+</tr>
+<tr>
+<td>DNS_NAME</td>
+<td>admin.evilcorp.com</td>
+<td>5.6.7.8</td>
+<td>otx</td>
+<td>0</td>
+<td>a-record,aaaa-record,cloud-azure,cname-record,distance-0,in-scope,resolved,subdomain</td>
+</tr>
+</tbody>
+</table>
+<h3 id="json">JSON</h3>
+<p>If you manually enable the <code>json</code> output module, it will go to stdout:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>json<span style="color: #6e7681"> </span><span style="color: #e6edf3">|</span><span style="color: #6e7681"> </span>jq
+</code></pre></div>
+<p>You will then see <a href="./events">events</a> like this:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">{</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"type"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"IP_ADDRESS"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"id"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"IP_ADDRESS:13cd09c2adf0860a582240229cd7ad1dccdb5eb1"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"data"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"1.2.3.4"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"scope_distance"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"scan"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"SCAN:64c0e076516ae7aa6502fd99489693d0d5ec26cc"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"timestamp"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1688518967.740472</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"resolved_hosts"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"1.2.3.4"</span><span style="color: #e6edf3">],</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"source"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:2da045542abbf86723f22383d04eb453e573723c"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"tags"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"distance-1"</span><span style="color: #e6edf3">,</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"ipv4"</span><span style="color: #e6edf3">,</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"internal"</span><span style="color: #e6edf3">],</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"module"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"A"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"module_sequence"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"A"</span>
+<span style="color: #e6edf3">}</span>
+</code></pre></div>
+<p>You can filter on the JSON output with <code>jq</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># pull out only the .data attribute of every DNS_NAME</span>
+$<span style="color: #6e7681"> </span>jq<span style="color: #6e7681"> </span>-r<span style="color: #6e7681"> </span><span style="color: #a5d6ff">'select(.type=="DNS_NAME") | .data'</span><span style="color: #6e7681"> </span>~/.bbot/scans/extreme_johnny/output.json
+evilcorp.com
+www.evilcorp.com
+mail.evilcorp.com
+</code></pre></div>
+<h3 id="http">HTTP</h3>
+<p>The <code>http</code> output module sends <a href="./events">events</a> in JSON format to a desired HTTP endpoint.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># POST scan results to localhost</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>http<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>output_modules.http.url<span style="color: #ff7b72; font-weight: bold">=</span>http://localhost:8000
+</code></pre></div>
+<p>You can customize the HTTP method if needed. Authentication is also supported:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">output_modules</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">http</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">url</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">https://localhost:8000</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">method</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">PUT</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># Authorization: Bearer</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">bearer</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">&lt;bearer_token&gt;</span>
+<span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># OR</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">username</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">bob</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">password</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">P@ssw0rd</span>
+</code></pre></div>
+<h3 id="asset-inventory">Asset Inventory</h3>
+<p>The <code>asset_inventory</code> module produces a CSV like this:</p>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Provider</th>
+<th>IP(s)</th>
+<th>Status</th>
+<th>Open Ports</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>evilcorp.com</td>
+<td>cdn-github</td>
+<td>1.2.3.4</td>
+<td>Active</td>
+<td>80,443</td>
+</tr>
+<tr>
+<td>www.evilcorp.com</td>
+<td>cdn-github</td>
+<td>2.3.4.5</td>
+<td>Active</td>
+<td>22,80,443</td>
+</tr>
+<tr>
+<td>admin.evilcorp.com</td>
+<td>cloud-azure</td>
+<td>5.6.7.8</td>
+<td>N/A</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="neo4j">Neo4j</h2>
+<p>Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.</p>
+<p><img alt="neo4j" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/0192d548-5c60-42b6-9a1e-32ba7b921cdf"/></p>
+<ul>
+<li>You can get Neo4j up and running with a single docker command:</li>
+</ul>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># start Neo4j in the background with docker</span>
+docker<span style="color: #6e7681"> </span>run<span style="color: #6e7681"> </span>-d<span style="color: #6e7681"> </span>-p<span style="color: #6e7681"> </span><span style="color: #a5d6ff">7687</span>:7687<span style="color: #6e7681"> </span>-p<span style="color: #6e7681"> </span><span style="color: #a5d6ff">7474</span>:7474<span style="color: #6e7681"> </span>-v<span style="color: #6e7681"> </span><span style="color: #a5d6ff">"</span><span style="color: #ff7b72">$(</span><span style="color: #e6edf3">pwd</span><span style="color: #ff7b72">)</span><span style="color: #a5d6ff">/neo4j/:/data/"</span><span style="color: #6e7681"> </span>-e<span style="color: #6e7681"> </span><span style="color: #79c0ff">NEO4J_AUTH</span><span style="color: #ff7b72; font-weight: bold">=</span>neo4j/bbotislife<span style="color: #6e7681"> </span>neo4j
+</code></pre></div>
+<ul>
+<li>After that, run bbot with <code>-om neo4j</code></li>
+</ul>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>neo4j
+</code></pre></div>
+<ul>
+<li>Browse data at <a href="http://localhost:7474">http://localhost:7474</a></li>
+</ul>
+</article>
+</div>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+<script src="../../assets/javascripts/bundle.b425cdc4.min.js"></script>
+<script src="https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js"></script>
+<script src="../../javascripts/tablesort.js"></script>
+</body>
+</html>
