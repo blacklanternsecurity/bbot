@@ -396,6 +396,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "SCAN": 1,
         "DNS_NAME": 3,
         "URL": 1,
+        "ORG_STUB": 1,
         "URL_UNVERIFIED": 1,
         "FINDING": 1,
         "ORG_STUB": 1,
@@ -416,11 +417,12 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "DNS_NAME": 2,
         "FINDING": 1,
         "OPEN_TCP_PORT": 1,
+        "ORG_STUB": 1,
         "SCAN": 1,
         "URL": 1,
         "URL_UNVERIFIED": 1,
     }
-    assert dummy_stats.consumed_total == 7
+    assert dummy_stats.consumed_total == 8
 
     python_stats = scan.stats.module_stats["python"]
     assert python_stats.produced == {}

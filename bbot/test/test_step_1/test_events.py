@@ -171,7 +171,7 @@ async def test_events(events, helpers):
 
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
-    assert event1._scope_distance == -1
+    assert event1._scope_distance == None
     event1.scope_distance = 0
     assert event1._scope_distance == 0
     event2 = scan.make_event("2.3.4.5", parent=event1)
@@ -197,6 +197,7 @@ async def test_events(events, helpers):
 
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
+    root_event.scope_distance = 0
     internal_event1 = scan.make_event("1.2.3.4", parent=root_event, internal=True)
     assert internal_event1._internal == True
     assert "internal" in internal_event1.tags
@@ -475,6 +476,7 @@ async def test_events(events, helpers):
     event_5 = scan.make_event("127.0.0.5", parent=event_4)
     assert event_5.get_parents() == [event_4, event_3, event_2, event_1, scan.root_event]
     assert event_5.get_parents(omit=True) == [event_4, event_2, event_1, scan.root_event]
+    assert event_5.get_parents(include_self=True) == [event_5, event_4, event_3, event_2, event_1, scan.root_event]
 
     # test host backup
     host_event = scan.make_event("asdf.evilcorp.com", "DNS_NAME", parent=scan.root_event)
@@ -680,3 +682,78 @@ async def test_event_discovery_context():
     assert blsops_event[0].discovery_path[1][-1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
 
     await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_event_web_spider_distance(bbot_scanner):
+    # make sure web spider distance inheritance works as intended
+    # and we don't have any runaway situations with SOCIAL events + URLs
+    scan = bbot_scanner(config={"web": {"spider_distance": 1}})
+    url_event_1 = scan.make_event("http://www.evilcorp.com/test1", "URL_UNVERIFIED", parent=scan.root_event)
+    assert url_event_1.web_spider_distance == 0
+    url_event_2 = scan.make_event("http://www.evilcorp.com/test2", "URL_UNVERIFIED", parent=url_event_1)
+    assert url_event_2.web_spider_distance == 0
+    url_event_3 = scan.make_event(
+        "http://www.evilcorp.com/test3", "URL_UNVERIFIED", parent=url_event_2, tags=["spider-danger"]
+    )
+    assert url_event_3.web_spider_distance == 1
+    assert "spider-danger" in url_event_3.tags
+    assert not "spider-max" in url_event_3.tags
+    social_event = scan.make_event(
+        {"platform": "github", "url": "http://www.evilcorp.com/test4"}, "SOCIAL", parent=url_event_3
+    )
+    assert social_event.web_spider_distance == 1
+    assert "spider-danger" in social_event.tags
+    url_event_4 = scan.make_event("http://www.evilcorp.com/test4", "URL_UNVERIFIED", parent=social_event)
+    assert url_event_4.web_spider_distance == 2
+    assert "spider-danger" in url_event_4.tags
+    assert "spider-max" in url_event_4.tags
+    social_event_2 = scan.make_event(
+        {"platform": "github", "url": "http://www.evilcorp.com/test5"}, "SOCIAL", parent=url_event_4
+    )
+    assert social_event_2.web_spider_distance == 2
+    assert "spider-danger" in social_event_2.tags
+    assert "spider-max" in social_event_2.tags
+    url_event_5 = scan.make_event("http://www.evilcorp.com/test5", "URL_UNVERIFIED", parent=social_event_2)
+    assert url_event_5.web_spider_distance == 3
+    assert "spider-danger" in url_event_5.tags
+    assert "spider-max" in url_event_5.tags
+
+    url_event = scan.make_event("http://www.evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event)
+    assert url_event.web_spider_distance == 0
+    assert not "spider-danger" in url_event.tags
+    assert not "spider-max" in url_event.tags
+    url_event_2 = scan.make_event(
+        "http://www.evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event, tags="spider-danger"
+    )
+    # spider distance shouldn't increment because it's not the same host
+    assert url_event_2.web_spider_distance == 0
+    assert "spider-danger" in url_event_2.tags
+    assert not "spider-max" in url_event_2.tags
+    url_event_3 = scan.make_event(
+        "http://www.evilcorp.com/3", "URL_UNVERIFIED", parent=url_event_2, tags="spider-danger"
+    )
+    assert url_event_3.web_spider_distance == 1
+    assert "spider-danger" in url_event_3.tags
+    assert not "spider-max" in url_event_3.tags
+    url_event_4 = scan.make_event("http://evilcorp.com", "URL_UNVERIFIED", parent=url_event_3)
+    assert url_event_4.web_spider_distance == 0
+    assert not "spider-danger" in url_event_4.tags
+    assert not "spider-max" in url_event_4.tags
+    url_event_4.add_tag("spider-danger")
+    assert url_event_4.web_spider_distance == 0
+    assert "spider-danger" in url_event_4.tags
+    assert not "spider-max" in url_event_4.tags
+    url_event_4.remove_tag("spider-danger")
+    assert url_event_4.web_spider_distance == 0
+    assert not "spider-danger" in url_event_4.tags
+    assert not "spider-max" in url_event_4.tags
+    url_event_5 = scan.make_event("http://evilcorp.com/5", "URL_UNVERIFIED", parent=url_event_4)
+    assert url_event_5.web_spider_distance == 0
+    assert not "spider-danger" in url_event_5.tags
+    assert not "spider-max" in url_event_5.tags
+    url_event_5.add_tag("spider-danger")
+    # if host is the same as parent, web spider distance should auto-increment after adding spider-danger tag
+    assert url_event_5.web_spider_distance == 1
+    assert "spider-danger" in url_event_5.tags
+    assert not "spider-max" in url_event_5.tags

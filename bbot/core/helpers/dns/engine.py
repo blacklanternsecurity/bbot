@@ -373,12 +373,12 @@ class DNSEngine(EngineServer):
                 if queries:  # Start a new task for each one completed, if URLs remain
                     new_task(queries.pop(0))
 
-    async def resolve_raw_batch(self, queries, threads=10):
+    async def resolve_raw_batch(self, queries, threads=10, **kwargs):
         tasks = {}
         client_id = self.client_id_var.get()
 
         def new_task(query, rdtype):
-            task = self.new_child_task(client_id, self.resolve_raw(query, type=rdtype))
+            task = self.new_child_task(client_id, self.resolve_raw(query, type=rdtype, **kwargs))
             tasks[task] = (query, rdtype)
 
         queries = list(queries)
@@ -469,7 +469,12 @@ class DNSEngine(EngineServer):
         parent = parent_domain(query)
         parents = list(domain_parents(query))
 
-        rdtypes_to_check = [rdtype] if rdtype is not None else all_rdtypes
+        if rdtype is not None:
+            if isinstance(rdtype, str):
+                rdtype = [rdtype]
+            rdtypes_to_check = rdtype
+        else:
+            rdtypes_to_check = all_rdtypes
 
         query_baseline = dict()
         # if the caller hasn't already done the work of resolving the IPs
@@ -534,6 +539,10 @@ class DNSEngine(EngineServer):
         except DNSWildcardBreak:
             pass
 
+        for _rdtype, answers in query_baseline.items():
+            if answers and _rdtype not in result:
+                result[_rdtype] = (False, query)
+
         return result
 
     async def is_wildcard_domain(self, domain, log_info=False):
@@ -581,13 +590,13 @@ class DNSEngine(EngineServer):
                 is_wildcard = False
                 wildcard_results = dict()
 
-                queries = []
+                rand_queries = []
                 for rdtype in rdtypes_to_check:
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        queries.append((rand_query, rdtype))
+                        rand_queries.append((rand_query, rdtype))
 
-                async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(queries):
+                async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(rand_queries, use_cache=False):
                     answers = extract_targets(answers)
                     if answers:
                         is_wildcard = True

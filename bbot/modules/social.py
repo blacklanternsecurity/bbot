@@ -42,13 +42,15 @@ class social(BaseModule):
                     url = url.lower()
                     profile_name = profile_name.lower()
                 url = f"https://{url}"
-                social_event = self.make_event(
-                    {"platform": platform, "url": url, "profile_name": profile_name},
-                    "SOCIAL",
-                    parent=event,
-                )
-                social_event.scope_distance = event.scope_distance
-                await self.emit_event(
-                    social_event,
-                    context=f"{{module}} detected {platform} {{event.type}} at {url}",
-                )
+                event_data = {"platform": platform, "url": url, "profile_name": profile_name}
+                # only emit if the same event isn't already in the parent chain
+                if not any([e.type == "SOCIAL" and e.data == event_data for e in event.get_parents()]):
+                    social_event = self.make_event(
+                        event_data,
+                        "SOCIAL",
+                        parent=event,
+                    )
+                    await self.emit_event(
+                        social_event,
+                        context=f"{{module}} detected {platform} {{event.type}} at {url}",
+                    )

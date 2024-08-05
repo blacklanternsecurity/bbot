@@ -5,7 +5,7 @@ class TestGithub_Codesearch(ModuleTestBase):
     config_overrides = {
         "modules": {"github_codesearch": {"api_key": "asdf", "limit": 1}},
         "omit_event_types": [],
-        "scope": {"report_distance": 1},
+        "scope": {"report_distance": 2},
     }
     modules_overrides = ["github_codesearch", "httpx", "secretsdb"]
 
@@ -57,7 +57,7 @@ class TestGithub_Codesearch(ModuleTestBase):
             [
                 e
                 for e in events
-                if e.type == "URL_UNVERIFIED" and e.data == self.github_file_url and e.scope_distance == 1
+                if e.type == "URL_UNVERIFIED" and e.data == self.github_file_url and e.scope_distance == 2
             ]
         ), "Failed to emit URL_UNVERIFIED"
         assert 1 == len(
@@ -71,13 +71,13 @@ class TestGithub_Codesearch(ModuleTestBase):
             ]
         ), "Failed to emit CODE_REPOSITORY"
         assert 1 == len(
-            [e for e in events if e.type == "URL" and e.data == self.github_file_url and e.scope_distance == 1]
+            [e for e in events if e.type == "URL" and e.data == self.github_file_url and e.scope_distance == 2]
         ), "Failed to visit URL"
         assert 1 == len(
             [
                 e
                 for e in events
-                if e.type == "HTTP_RESPONSE" and e.data["url"] == self.github_file_url and e.scope_distance == 1
+                if e.type == "HTTP_RESPONSE" and e.data["url"] == self.github_file_url and e.scope_distance == 2
             ]
         ), "Failed to visit URL"
         assert [

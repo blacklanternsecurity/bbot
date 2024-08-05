@@ -155,9 +155,11 @@ async def test_dns_resolution(bbot_scanner):
     assert hash(resolved_hosts_event2.host) in dnsresolve._event_cache
     await dnsresolve.handle_event(resolved_hosts_event2)
     assert "1.1.1.1" in resolved_hosts_event2.resolved_hosts
-    assert "1.1.1.1" in resolved_hosts_event2.dns_children["A"]
+    # URL event should not have dns_children
+    assert not resolved_hosts_event2.dns_children
     assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
-    assert resolved_hosts_event1.dns_children == resolved_hosts_event2.dns_children
+    # DNS_NAME event should have dns_children
+    assert "1.1.1.1" in resolved_hosts_event1.dns_children["A"]
     assert "a-record" in resolved_hosts_event1.tags
     assert not "a-record" in resolved_hosts_event2.tags
 
@@ -213,9 +215,12 @@ async def test_wildcards(bbot_scanner):
     assert not hash("asdf.asdf.github.io") in dnsengine._wildcard_cache
     assert not hash("asdf.asdf.asdf.github.io") in dnsengine._wildcard_cache
     assert len(dnsengine._wildcard_cache[hash("github.io")]) > 0
-    wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
-    wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
-    wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
+    wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event1.scope_distance = 0
+    wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event2.scope_distance = 0
+    wildcard_event3 = scan.make_event("github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event3.scope_distance = 0
 
     await dnsengine._shutdown()
 
@@ -427,3 +432,31 @@ async def test_dns_raw_records(bbot_scanner):
             and e.discovery_context == "TXT lookup on one.one.one.one produced RAW_DNS_RECORD"
         ]
     )
+
+
+@pytest.mark.asyncio
+async def test_dns_graph_structure(bbot_scanner):
+    scan = bbot_scanner("https://evilcorp.com", config={"dns": {"search_distance": 1, "minimal": False}})
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {
+                "CNAME": [
+                    "www.evilcorp.com",
+                ]
+            },
+            "www.evilcorp.com": {"CNAME": ["test.evilcorp.com"]},
+            "test.evilcorp.com": {"A": ["127.0.0.1"]},
+        }
+    )
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 5
+    non_scan_events = [e for e in events if e.type != "SCAN"]
+    assert sorted([e.type for e in non_scan_events]) == ["DNS_NAME", "DNS_NAME", "DNS_NAME", "URL_UNVERIFIED"]
+    events_by_data = {e.data: e for e in non_scan_events}
+    assert set(events_by_data) == {"https://evilcorp.com/", "evilcorp.com", "www.evilcorp.com", "test.evilcorp.com"}
+    assert events_by_data["test.evilcorp.com"].parent.data == "www.evilcorp.com"
+    assert str(events_by_data["test.evilcorp.com"].module) == "CNAME"
+    assert events_by_data["www.evilcorp.com"].parent.data == "evilcorp.com"
+    assert str(events_by_data["www.evilcorp.com"].module) == "CNAME"
+    assert events_by_data["evilcorp.com"].parent.data == "https://evilcorp.com/"
+    assert str(events_by_data["evilcorp.com"].module) == "host"
