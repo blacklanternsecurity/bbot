@@ -103,14 +103,22 @@ jobs:
         run: |
           pip install poetry
           poetry install --only=docs
+      - name: Configure Git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
       - name: Publish docs (stable branch)
         if: github.ref == 'refs/heads/stable'
         run: |
           poetry run mike deploy Stable
+          git checkout gh-pages
+          git push
       - name: Publish docs (dev branch)
         if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/readme-updates')
         run: |
           poetry run mike deploy Dev
+          git checkout gh-pages
+          git push
   publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
