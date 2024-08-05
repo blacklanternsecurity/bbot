@@ -107,8 +107,12 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git fetch origin gh-pages:gh-pages
-          git branch --track gh-pages origin/gh-pages
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git branch -f gh-pages origin/gh-pages
+          else
+            git branch --track gh-pages origin/gh-pages
+          fi
       - name: Generate docs (stable branch)
         if: github.ref == 'refs/heads/stable'
         run: |
