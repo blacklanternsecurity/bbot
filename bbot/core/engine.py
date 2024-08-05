@@ -398,6 +398,7 @@ class EngineServer(EngineBase):
         with self.client_id_context(client_id):
             try:
                 self.log.debug(f"{self.name} run-and-return {fn_str}")
+                result = error_sentinel
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
@@ -409,8 +410,9 @@ class EngineServer(EngineBase):
                         result = {"_e": (error, trace)}
                 finally:
                     self.tasks.pop(client_id, None)
-                    self.log.debug(f"{self.name}: Sending response to {fn_str}: {result}")
-                    await self.send_socket_multipart(client_id, result)
+                    if result is not error_sentinel:
+                        self.log.debug(f"{self.name}: Sending response to {fn_str}: {result}")
+                        await self.send_socket_multipart(client_id, result)
             except BaseException as e:
                 self.log.critical(
                     f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
