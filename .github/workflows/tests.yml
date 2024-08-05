@@ -4,7 +4,6 @@ on:
     branches:
       - stable
       - dev
-      - readme-updates
   pull_request:
 
 concurrency:
@@ -12,54 +11,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: psf/black@stable
-  #       with:
-  #         options: "--check"
-  #     - name: Install Python 3
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: "3.x"
-  #     - name: Install dependencies
-  #       run: |
-  #         pip install flake8
-  #     - name: flake8
-  #       run: |
-  #         flake8 --select F,E722 --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
-  # test:
-  #   needs: lint
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     # if one python version fails, let the others finish
-  #     fail-fast: false
-  #     matrix:
-  #       python-version: ["3.9", "3.10", "3.11", "3.12"]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: ${{ matrix.python-version }}
-  #     - name: Install dependencies
-  #       run: |
-  #         pip install poetry
-  #         poetry install
-  #     - name: Run tests
-  #       run: |
-  #         poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
-  #     - name: Upload Code Coverage
-  #       uses: codecov/codecov-action@v3
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-  #         files: ./cov.xml
-  #         verbose: true
-  update_docs:
-    # needs: test
+  lint:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/readme-updates')
+    steps:
+      - uses: actions/checkout@v3
+      - uses: psf/black@stable
+        with:
+          options: "--check"
+      - name: Install Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: |
+          pip install flake8
+      - name: flake8
+        run: |
+          flake8 --select F,E722 --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      # if one python version fails, let the others finish
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+      - name: Run tests
+        run: |
+          poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+      - name: Upload Code Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./cov.xml
+          verbose: true
+  update_docs:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     steps:
       - uses: actions/checkout@v3
         with:
@@ -86,7 +85,7 @@ jobs:
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/readme-updates')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev' )
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -118,7 +117,7 @@ jobs:
         run: |
           poetry run mike deploy Stable
       - name: Generate docs (dev branch)
-        if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/readme-updates')
+        if: github.ref == 'refs/heads/dev'
         run: |
           poetry run mike deploy Dev
       - name: Publish docs
