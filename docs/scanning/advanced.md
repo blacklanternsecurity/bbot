@@ -61,14 +61,14 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: trickest,chaos,dnscommonsrv,iis_shortnames,virustotal,git,sitedossier,dastardly,ip2location,anubisdb,gitlab,filedownload,robots,certspotter,oauth,hunt,github_codesearch,trufflehog,baddns,shodan_dns,unstructured,social,bypass403,myssl,pgp,censys,nuclei,code_repository,builtwith,bucket_file_enum,dockerhub,paramminer_cookies,telerik,url_manipulation,wayback,hunterio,ffuf,digitorus,dotnetnuke,portscan,paramminer_headers,postman,github_org,bevigil,dnscaa,credshed,internetdb,binaryedge,docker_pull,bucket_azure,subdomaincenter,ntlm,sslcert,ajaxpro,leakix,secretsdb,git_clone,baddns_zone,azure_tenant,wpscan,rapiddns,otx,dnsbrute_mutations,paramminer_getparams,wafw00f,c99,bucket_google,httpx,zoomeye,newsletters,asn,dnsdumpster,ipstack,passivetotal,dehashed,badsecrets,skymem,azure_realm,fingerprintx,urlscan,host_header,ipneighbor,vhost,github_workflows,fullhunt,affiliates,securitytrails,viewdns,crt,bucket_amazon,gowitness,generic_ssrf,bucket_firebase,bucket_digitalocean,columbus,hackertarget,wappalyzer,smuggler,emailformat,dnsbrute,ffuf_shortnames
+                        Modules to enable. Choices: viewdns,postman,baddns_zone,dehashed,bucket_file_enum,asn,generic_ssrf,github_codesearch,columbus,azure_realm,dotnetnuke,dockerhub,credshed,passivetotal,certspotter,builtwith,otx,ipneighbor,fingerprintx,oauth,robots,dnsbrute_mutations,httpx,paramminer_headers,digitorus,gitlab,hunt,hunterio,trufflehog,ffuf,nuclei,badsecrets,git,bucket_firebase,ffuf_shortnames,urlscan,docker_pull,ip2location,subdomaincenter,telerik,pgp,zoomeye,shodan_dns,trickest,dnscommonsrv,ntlm,myssl,internetdb,emailformat,dastardly,azure_tenant,github_workflows,crt,affiliates,wayback,ajaxpro,wafw00f,iis_shortnames,sslcert,chaos,newsletters,host_header,bucket_amazon,vhost,paramminer_cookies,virustotal,rapiddns,leakix,dnsbrute,baddns,url_manipulation,code_repository,smuggler,bevigil,paramminer_getparams,unstructured,skymem,securitytrails,sitedossier,git_clone,bucket_azure,bucket_google,bypass403,wpscan,dnsdumpster,wappalyzer,dnscaa,social,hackertarget,github_org,fullhunt,filedownload,binaryedge,gowitness,anubisdb,portscan,ipstack,secretsdb,c99,censys,bucket_digitalocean
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: aggressive,passive,code-enum,deadly,subdomain-hijack,baddns,slow,web-thorough,subdomain-enum,cloud-enum,service-enum,safe,active,web-basic,portscan,social-enum,iis-shortnames,web-paramminer,report,web-screenshots,email-enum,affiliates
+                        Enable modules by flag. Choices: subdomain-hijack,web-paramminer,subdomain-enum,code-enum,cloud-enum,iis-shortnames,web-thorough,baddns,portscan,slow,social-enum,affiliates,safe,web-screenshots,deadly,report,web-basic,email-enum,active,service-enum,aggressive,passive
   -lf, --list-flags     List available flags.
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
@@ -93,7 +93,7 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: csv,websocket,subdomains,teams,web_report,python,txt,discord,emails,stdout,splunk,slack,http,asset_inventory,neo4j,json
+                        Output module(s). Choices: subdomains,emails,web_report,json,txt,websocket,slack,asset_inventory,neo4j,splunk,csv,stdout,http,python,discord,teams
   --json, -j            Output scan data in JSON format
   --brief, -br          Output only the data itself
   --event-types EVENT_TYPES [EVENT_TYPES ...]
