@@ -1436,7 +1436,8 @@ class FILESYSTEM(DictPathEvent):
 
 
 class RAW_DNS_RECORD(DictHostEvent):
-    pass
+    # don't emit raw DNS records for affiliates
+    _always_emit_tags = ["target"]
 
 
 def make_event(
