@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.ttfuu_ts.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.bh_vflrr.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -452,6 +452,13 @@
 <nav aria-label="Example: Writing a Module Test" class="md-nav">
 <ul class="md-nav__list">
 <li class="md-nav__item">
+<a class="md-nav__link" href="#debugging-a-test">
+<span class="md-ellipsis">
+      Debugging a test
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#more-advanced-tests">
 <span class="md-ellipsis">
       More advanced tests
@@ -671,8 +678,24 @@ poetry<span style="color: #6e7681"> </span>run<span style="color: #6e7681"> </sp
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">check</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">module_test,</span> <span style="color: #e6edf3">events):</span>
         <span style="color: #8b949e; font-style: italic"># here is where we check to make sure it worked</span>
         <span style="color: #e6edf3">dns_names</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">e</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">events</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">type</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"DNS_NAME"</span><span style="color: #e6edf3">]</span>
+        <span style="color: #8b949e; font-style: italic"># temporary log messages for debugging</span>
+        <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">e</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">dns_names:</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">critical(e)</span>
         <span style="color: #ff7b72">assert</span> <span style="color: #a5d6ff">"www.blacklanternsecurity.com"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">dns_names,</span> <span style="color: #a5d6ff">"failed to find subdomain #1"</span>
         <span style="color: #ff7b72">assert</span> <span style="color: #a5d6ff">"dev.blacklanternsecurity.com"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">dns_names,</span> <span style="color: #a5d6ff">"failed to find subdomain #2"</span>
+</code></pre></div>
+<h3 id="debugging-a-test">Debugging a test</h3>
+<p>Similar to debugging from within a module, you can debug from within a test using <code>self.log.critical()</code>, etc:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">check</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">module_test,</span> <span style="color: #e6edf3">events):</span>
+        <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">e</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">events:</span>
+            <span style="color: #8b949e; font-style: italic"># bright red</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">critical(e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">type)</span>
+            <span style="color: #8b949e; font-style: italic"># bright green</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugesuccess(e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data)</span>
+            <span style="color: #8b949e; font-style: italic"># bright orange</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugewarning(e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">tags)</span>
+            <span style="color: #8b949e; font-style: italic"># bright blue</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugeinfo(e</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">parent)</span>
 </code></pre></div>
 <h3 id="more-advanced-tests">More advanced tests</h3>
 <p>If you have questions about tests or need to write a more advanced test, come talk to us on <a href="https://github.com/blacklanternsecurity/bbot/discussions">GitHub</a> or <a href="https://discord.com/invite/PZqkgxu5SA">Discord</a>.</p>
@@ -703,9 +726,12 @@ poetry<span style="color: #6e7681"> </span>run<span style="color: #6e7681"> </sp
 <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
 <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>
 <script src="../../javascripts/vega-lite@5.js"></script>
 <script src="../../javascripts/vega-embed@6.js"></script>
 <script src="../../data/chord_graph/vega.json"></script>
+<script src="../../data/chord_graph/rels.json"></script>
+<script src="../../data/chord_graph/entities.json"></script>
 </body>
 </html>

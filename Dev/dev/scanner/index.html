@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.ttfuu_ts.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.bh_vflrr.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -2202,10 +2202,6 @@
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dispatcher</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">dispatcher</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dispatcher</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">set_scan(self)</span>
 
-        <span style="color: #ff7b72">from</span> <span style="color: #ff7b72">.stats</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">ScanStats</span>
-
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stats</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">ScanStats(self)</span>
-
         <span style="color: #8b949e; font-style: italic"># scope distance</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scope_config</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"scope"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">{})</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scope_search_distance</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">max(</span><span style="color: #a5d6ff">0</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">int(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scope_config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"search_distance"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">0</span><span style="color: #e6edf3">)))</span>
@@ -2244,6 +2240,10 @@
 
         <span style="color: #8b949e; font-style: italic"># how often to print scan status</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status_frequency</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"status_frequency"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">15</span><span style="color: #e6edf3">)</span>
+
+        <span style="color: #ff7b72">from</span> <span style="color: #ff7b72">.stats</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">ScanStats</span>
+
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stats</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">ScanStats(self)</span>
 
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_prepped</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finished_init</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
@@ -2672,11 +2672,11 @@
             <span style="color: #e6edf3">num_queued_events</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">num_queued_events</span>
             <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">num_queued_events:</span>
                 <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">info(</span>
-                    <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: {</span><span style="color: #e6edf3">num_queued_events</span><span style="color: #a5d6ff">:,} events in queue ({</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stats</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">speedometer</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">speed</span><span style="color: #a5d6ff">:,} processed in the past minute)"</span>
+                    <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: {</span><span style="color: #e6edf3">num_queued_events</span><span style="color: #a5d6ff">:,} events in queue ({</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stats</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">speedometer</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">speed</span><span style="color: #a5d6ff">:,} processed in the past {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status_frequency</span><span style="color: #a5d6ff">} seconds)"</span>
                 <span style="color: #e6edf3">)</span>
             <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
                 <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">info(</span>
-                    <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: No events in queue ({</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stats</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">speedometer</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">speed</span><span style="color: #a5d6ff">:,} processed in the past minute)"</span>
+                    <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}: No events in queue ({</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stats</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">speedometer</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">speed</span><span style="color: #a5d6ff">:,} processed in the past {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status_frequency</span><span style="color: #a5d6ff">} seconds)"</span>
                 <span style="color: #e6edf3">)</span>
 
             <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">log_level</span> <span style="color: #ff7b72; font-weight: bold">&lt;=</span> <span style="color: #e6edf3">logging</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">DEBUG:</span>
@@ -3628,10 +3628,6 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dispatcher</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">dispatcher</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dispatcher</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">set_scan(self)</span>
 
-    <span style="color: #ff7b72">from</span> <span style="color: #ff7b72">.stats</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">ScanStats</span>
-
-    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stats</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">ScanStats(self)</span>
-
     <span style="color: #8b949e; font-style: italic"># scope distance</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scope_config</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"scope"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">{})</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scope_search_distance</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">max(</span><span style="color: #a5d6ff">0</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">int(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scope_config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"search_distance"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">0</span><span style="color: #e6edf3">)))</span>
@@ -3670,6 +3666,10 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 
     <span style="color: #8b949e; font-style: italic"># how often to print scan status</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status_frequency</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"status_frequency"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">15</span><span style="color: #e6edf3">)</span>
+
+    <span style="color: #ff7b72">from</span> <span style="color: #ff7b72">.stats</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">ScanStats</span>
+
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stats</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">ScanStats(self)</span>
 
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_prepped</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finished_init</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
@@ -4494,9 +4494,12 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
 <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>
 <script src="../../javascripts/vega-lite@5.js"></script>
 <script src="../../javascripts/vega-embed@6.js"></script>
 <script src="../../data/chord_graph/vega.json"></script>
+<script src="../../data/chord_graph/rels.json"></script>
+<script src="../../data/chord_graph/entities.json"></script>
 </body>
 </html>

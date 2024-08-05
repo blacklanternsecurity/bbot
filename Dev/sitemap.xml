@@ -31,6 +31,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://blacklanternsecurity.github.io/bbot/Dev/data/chord_graph/frontend_notes/</loc>
+         <lastmod>2024-08-05</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://blacklanternsecurity.github.io/bbot/Dev/dev/</loc>
          <lastmod>2024-08-05</lastmod>
          <changefreq>daily</changefreq>
