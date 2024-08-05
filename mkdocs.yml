@@ -38,6 +38,7 @@ nav:
     - Troubleshooting: troubleshooting.md
 - Developer Manual:
   - Development Overview: dev/index.md
+  - Setting Up a Dev Environment: dev/dev_environment.md
   - BBOT Internal Architecture: dev/architecture.md
   - How to Write a BBOT Module: dev/module_howto.md
   - Unit Tests: dev/tests.md
@@ -76,6 +77,7 @@ theme:
       accent: deep orange
 
 plugins:
+  - mike
   - search
   - extra-sass
   - mkdocstrings:
@@ -96,6 +98,11 @@ plugins:
           import:
             - https://docs.python.org/3.11/objects.inv
             - https://omegaconf.readthedocs.io/en/latest/objects.inv
+
+extra:
+  version:
+    provider: mike
+    default: Stable
 
 markdown_extensions:
   - attr_list

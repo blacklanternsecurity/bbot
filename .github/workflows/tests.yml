@@ -106,21 +106,11 @@ jobs:
       - name: Publish docs (stable branch)
         if: github.ref == 'refs/heads/stable'
         run: |
-          poetry run mkdocs build -f mkdocs.yml
-          poetry run mkdocs gh-deploy --force --dir=site
+          poetry run mike deploy Stable
       - name: Publish docs (dev branch)
         if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/readme-updates')
         run: |
-          poetry run mkdocs build -f mkdocs.yml -d site/dev_branch
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git fetch --all
-          git checkout gh-pages
-          rm -r dev_branch || true
-          mv site/dev_branch .
-          git add dev_branch
-          git commit -m "Update dev documentation"
-          git push
+          poetry run mike deploy Dev
   publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
