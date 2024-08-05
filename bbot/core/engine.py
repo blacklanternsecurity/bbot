@@ -401,11 +401,12 @@ class EngineServer(EngineBase):
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
-                    error = f"Error in {self.name}.{fn_str}: {e}"
-                    self.log.debug(error)
-                    trace = traceback.format_exc()
-                    self.log.debug(trace)
-                    result = {"_e": (error, trace)}
+                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        error = f"Error in {self.name}.{fn_str}: {e}"
+                        self.log.debug(error)
+                        trace = traceback.format_exc()
+                        self.log.debug(trace)
+                        result = {"_e": (error, trace)}
                 finally:
                     self.tasks.pop(client_id, None)
                     self.log.debug(f"{self.name}: Sending response to {fn_str}: {result}")
@@ -428,12 +429,13 @@ class EngineServer(EngineBase):
                         self.log.debug(f"{self.name}: sending iteration for {command_fn.__name__}(): {_}")
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
-                    error = f"Error in {self.name}.{fn_str}: {e}"
-                    trace = traceback.format_exc()
-                    self.log.debug(error)
-                    self.log.debug(trace)
-                    result = {"_e": (error, trace)}
-                    await self.send_socket_multipart(client_id, result)
+                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        error = f"Error in {self.name}.{fn_str}: {e}"
+                        trace = traceback.format_exc()
+                        self.log.debug(error)
+                        self.log.debug(trace)
+                        result = {"_e": (error, trace)}
+                        await self.send_socket_multipart(client_id, result)
                 finally:
                     self.log.debug(f"{self.name} reached end of run-and-yield iteration for {command_fn.__name__}()")
                     # _s == special signal that means StopIteration
