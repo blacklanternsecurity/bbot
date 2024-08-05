@@ -355,6 +355,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/Stable/troubleshooting)
 - **Developer Manual**
     - [Development Overview](https://www.blacklanternsecurity.com/bbot/Stable/dev/)
+    - [Setting Up a Dev Environment](https://www.blacklanternsecurity.com/bbot/Stable/dev/dev_environment)
     - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/Stable/dev/architecture)
     - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/Stable/dev/module_howto)
     - [Unit Tests](https://www.blacklanternsecurity.com/bbot/Stable/dev/tests)
