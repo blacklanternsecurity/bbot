@@ -112,13 +112,13 @@ jobs:
         run: |
           poetry run mike deploy Stable
           git checkout gh-pages
-          git push
+          git push --set-upstream origin gh-pages
       - name: Publish docs (dev branch)
         if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/readme-updates')
         run: |
           poetry run mike deploy Dev
           git checkout gh-pages
-          git push
+          git push --set-upstream origin gh-pages
   publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
