@@ -85,7 +85,7 @@ jobs:
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev' )
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
