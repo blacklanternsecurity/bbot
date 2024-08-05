@@ -1,0 +1,648 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/scanning/" rel="canonical"/>
+<link href="../comparison/" rel="prev"/>
+<link href="events/" rel="next"/>
+<link href="../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.4.3, mkdocs-material-9.1.17" name="generator"/>
+<title>Scanning Overview - BBOT Docs</title>
+<link href="../assets/stylesheets/main.26e3688c.min.css" rel="stylesheet"/>
+<link href="../assets/stylesheets/palette.ecc896b0.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../assets/stylesheets/extra-style.bft70rkg.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#scanning-overview">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href=".." title="BBOT Docs">
+<img alt="logo" src="../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Scanning Overview
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+</form>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href=".." title="BBOT Docs">
+<img alt="logo" src="../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+          Basics
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+          Basics
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="..">
+        Getting Started
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../how_it_works/">
+        How it Works
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../comparison/">
+        Comparison to Other Tools
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          Scanning
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+          Scanning
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+          Scanning Overview
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+        Scanning Overview
+      </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scan-names">
+    Scan Names
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#targets-t">
+    Targets (-t)
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#modules-m">
+    Modules (-m)
+  </a>
+<nav aria-label="Modules (-m)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#types-of-modules">
+    Types of Modules
+  </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#flags-f">
+    Flags (-f)
+  </a>
+<nav aria-label="Flags (-f)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#filtering-by-flag">
+    Filtering by Flag
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#list-of-flags">
+    List of Flags
+  </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dependencies">
+    Dependencies
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scope">
+    Scope
+  </a>
+<nav aria-label="Scope" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scope-distance">
+    Scope Distance
+  </a>
+<nav aria-label="Scope Distance" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#displaying-out-of-scope-events">
+    Displaying Out-of-scope Events
+  </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strict-scope">
+    Strict Scope
+  </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#whitelists-and-blacklists">
+    Whitelists and Blacklists
+  </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dns-wildcards">
+    DNS Wildcards
+  </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="events/">
+        Events
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="output/">
+        Output
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="tips_and_tricks/">
+        Tips and Tricks
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="advanced/">
+        Advanced Usage
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="configuration/">
+        Configuration
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="list_of_modules/">
+        List of Modules
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Contribution
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+          Contribution
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../contribution/">
+        How to Write a Module
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          Misc
+          <span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+          Misc
+        </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../release_history/">
+        Release History
+      </a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../troubleshooting/">
+        Troubleshooting
+      </a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="scanning-overview">Scanning Overview</h1>
+<h2 id="scan-names">Scan Names</h2>
+<p>Every BBOT scan gets a random and mildly-entertaining name like <strong><code>demonic_jimmy</code></strong>. Output for that scan, including scan stats and any web screenshots, are saved to a folder by that name in <code>~/.bbot/scans</code>. The most recent 20 scans are kept, and older ones are removed.</p>
+<p>If you don't want a random name, you can change it with <code>-n</code>. You can also change the location of BBOT's output with <code>-o</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># save everything to the folder "my_scan" in the current directory</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>gowitness<span style="color: #6e7681"> </span>-n<span style="color: #6e7681"> </span>my_scan<span style="color: #6e7681"> </span>-o<span style="color: #6e7681"> </span>.
+</code></pre></div>
+<p>If you reuse a scan name, BBOT will automatically append to your previous output files.</p>
+<h2 id="targets-t">Targets (<code>-t</code>)</h2>
+<p>Targets declare what's in-scope, and seed a scan with initial data. BBOT accepts an unlimited number of targets. They can be any of the following:</p>
+<ul>
+<li><code>DNS_NAME</code> (<code>evilcorp.com</code>)</li>
+<li><code>IP_ADDRESS</code> (<code>1.2.3.4</code>)</li>
+<li><code>IP_RANGE</code> (<code>1.2.3.0/24</code>)</li>
+<li><code>URL</code> (<code>https://www.evilcorp.com</code>)</li>
+</ul>
+<p>You can specify targets directly on the command line, load them from files, or both! For example:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #6e7681"> </span>cat<span style="color: #6e7681"> </span>targets.txt
+<span style="color: #a5d6ff">4</span>.3.2.1
+<span style="color: #a5d6ff">1</span>.2.3.0/24
+evilcorp.com
+evilcorp.co.uk
+https://www.evilcorp.co.uk
+
+<span style="color: #8b949e; font-style: italic"># load targets from a file and from the command-line</span>
+$<span style="color: #6e7681"> </span>bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>targets.txt<span style="color: #6e7681"> </span>fsociety.com<span style="color: #6e7681"> </span><span style="color: #a5d6ff">5</span>.6.7.0/24<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>nmap
+</code></pre></div>
+<p>On start, BBOT automatically converts Targets into <a href="./events/">Events</a>.</p>
+<h2 id="modules-m">Modules (<code>-m</code>)</h2>
+<p>To see a full list of modules and their descriptions, use <code>bbot -l</code> or see <a href="./list_of_modules/">List of Modules</a>.</p>
+<p>Modules are the part of BBOT that does the work -- port scanning, subdomain brute-forcing, API querying, etc. Modules consume <a href="./events/">Events</a> (<code>IP_ADDRESS</code>, <code>DNS_NAME</code>, etc.) from each other, process the data in a useful way, then emit the results as new events. You can enable individual modules with <code>-m</code>.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># Enable modules: nmap, sslcert, and httpx</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>www.evilcorp.com<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>nmap<span style="color: #6e7681"> </span>sslcert<span style="color: #6e7681"> </span>httpx
+</code></pre></div>
+<h3 id="types-of-modules">Types of Modules</h3>
+<p>Modules fall into three categories:</p>
+<ul>
+<li><strong>Scan Modules</strong>:</li>
+<li>These make up the majority of modules. Examples are <code>nmap</code>, <code>sslcert</code>, <code>httpx</code>, etc. Enable with <code>-m</code>.</li>
+<li><strong>Output Modules</strong>:</li>
+<li>These output scan data to different formats/destinations. <code>human</code>, <code>json</code>, and <code>csv</code> are enabled by default. Enable others with <code>-om</code>. (See: <a href="./output/">Output</a>)</li>
+<li><strong>Internal Modules</strong>:</li>
+<li>These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disabled via the config (e.g. <code>-c speculate=false</code>).<ul>
+<li><code>aggregate</code>: Summarizes results at the end of a scan</li>
+<li><code>excavate</code>: Extracts useful data such as subdomains from webpages, etc.</li>
+<li><code>speculate</code>: Intelligently infers new events, e.g. <code>OPEN_TCP_PORT</code> from <code>URL</code> or <code>IP_ADDRESS</code> from <code>IP_NETWORK</code>.</li>
+</ul>
+</li>
+</ul>
+<p>For details in the inner workings of modules, see <a href="../contribution/#creating-a-module">Creating a Module</a>.</p>
+<h2 id="flags-f">Flags (<code>-f</code>)</h2>
+<p>Flags are how BBOT categorizes its modules. In a way, you can think of them as groups. Flags let you enable a bunch of similar modules at the same time without having to specify them each individually. For example, <code>-f subdomain-enum</code> would enable every module with the <code>subdomain-enum</code> flag.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># list all subdomain-enum modules</span>
+bbot<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-l
+</code></pre></div>
+<h3 id="filtering-by-flag">Filtering by Flag</h3>
+<p>Modules can be easily filtered based on their flags:</p>
+<ul>
+<li><code>-f</code> Enable modules with this flag</li>
+<li><code>-rf</code> Require modules to have this flag</li>
+<li><code>-ef</code> Exclude modules with this flag</li>
+<li><code>-em</code> Exclude these individual modules</li>
+<li><code>-lf</code> List all available flags</li>
+</ul>
+<p>Every module is either <code>safe</code> or <code>aggressive</code>, and either <code>active</code> or <code>passive</code>. These can be useful for filtering. For example, if you wanted to enable all the <code>safe</code> modules, but exclude active ones, you could do:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># Enable safe modules but exclude active ones</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>safe<span style="color: #6e7681"> </span>-ef<span style="color: #6e7681"> </span>active
+</code></pre></div>
+<p>This is equivalent to requiring the passive flag:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># Enable safe modules but only if they're also passive</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>safe<span style="color: #6e7681"> </span>-rf<span style="color: #6e7681"> </span>passive
+</code></pre></div>
+<p>A single module can have multiple flags. For example, the <code>securitytrails</code> module is <code>passive</code>, <code>safe</code>, <code>subdomain-enum</code>. Below is a full list of flags and their associated modules.</p>
+<h3 id="list-of-flags">List of Flags</h3>
+<!-- BBOT MODULE FLAGS -->
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th># Modules</th>
+<th>Description</th>
+<th>Modules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>safe</td>
+<td>58</td>
+<td></td>
+<td>affiliates, aggregate, anubisdb, asn, azure_tenant, badsecrets, bevigil, binaryedge, bucket_aws, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_gcp, builtwith, c99, censys, certspotter, columbus, crobat, crt, dnscommonsrv, dnsdumpster, dnszonetransfer, emailformat, fingerprintx, fullhunt, git, github, gowitness, hackertarget, httpx, hunt, hunterio, iis_shortnames, ipstack, leakix, ntlm, otx, passivetotal, pgp, rapiddns, riddler, robots, secretsdb, securitytrails, shodan_dns, skymem, social, sslcert, subdomain_hijack, sublist3r, threatminer, urlscan, viewdns, virustotal, wappalyzer, wayback, zoomeye</td>
+</tr>
+<tr>
+<td>passive</td>
+<td>43</td>
+<td></td>
+<td>affiliates, aggregate, anubisdb, asn, azure_tenant, bevigil, binaryedge, builtwith, c99, censys, certspotter, columbus, crobat, crt, dnscommonsrv, dnsdumpster, emailformat, excavate, fullhunt, github, hackertarget, hunterio, ipneighbor, ipstack, leakix, massdns, mymodule, otx, passivetotal, pgp, rapiddns, riddler, securitytrails, shodan_dns, skymem, speculate, sublist3r, threatminer, urlscan, viewdns, virustotal, wayback, zoomeye</td>
+</tr>
+<tr>
+<td>active</td>
+<td>37</td>
+<td></td>
+<td>badsecrets, bucket_aws, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_gcp, bypass403, dnszonetransfer, ffuf, ffuf_shortnames, fingerprintx, generic_ssrf, git, gowitness, host_header, httpx, hunt, iis_shortnames, masscan, naabu, nmap, ntlm, nuclei, paramminer_cookies, paramminer_getparams, paramminer_headers, robots, secretsdb, smuggler, social, sslcert, subdomain_hijack, telerik, url_manipulation, vhost, wafw00f, wappalyzer</td>
+</tr>
+<tr>
+<td>subdomain-enum</td>
+<td>35</td>
+<td></td>
+<td>anubisdb, asn, azure_tenant, bevigil, binaryedge, builtwith, c99, censys, certspotter, columbus, crt, dnscommonsrv, dnsdumpster, dnszonetransfer, fullhunt, github, hackertarget, httpx, hunterio, ipneighbor, leakix, massdns, otx, passivetotal, rapiddns, riddler, securitytrails, shodan_dns, sslcert, subdomain_hijack, threatminer, urlscan, virustotal, wayback, zoomeye</td>
+</tr>
+<tr>
+<td>web-thorough</td>
+<td>25</td>
+<td></td>
+<td>badsecrets, bucket_aws, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_gcp, bypass403, ffuf_shortnames, generic_ssrf, git, host_header, httpx, hunt, iis_shortnames, naabu, nmap, ntlm, robots, secretsdb, smuggler, sslcert, subdomain_hijack, telerik, url_manipulation, wappalyzer</td>
+</tr>
+<tr>
+<td>aggressive</td>
+<td>19</td>
+<td></td>
+<td>bypass403, ffuf, ffuf_shortnames, generic_ssrf, host_header, ipneighbor, masscan, massdns, naabu, nmap, nuclei, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler, telerik, url_manipulation, vhost, wafw00f</td>
+</tr>
+<tr>
+<td>web-basic</td>
+<td>15</td>
+<td></td>
+<td>badsecrets, bucket_aws, bucket_azure, bucket_firebase, bucket_gcp, git, httpx, hunt, iis_shortnames, ntlm, robots, secretsdb, sslcert, subdomain_hijack, wappalyzer</td>
+</tr>
+<tr>
+<td>slow</td>
+<td>9</td>
+<td></td>
+<td>bucket_digitalocean, fingerprintx, massdns, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler, telerik, vhost</td>
+</tr>
+<tr>
+<td>cloud-enum</td>
+<td>7</td>
+<td></td>
+<td>bucket_aws, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_gcp, httpx, subdomain_hijack</td>
+</tr>
+<tr>
+<td>affiliates</td>
+<td>6</td>
+<td></td>
+<td>affiliates, azure_tenant, builtwith, sslcert, viewdns, zoomeye</td>
+</tr>
+<tr>
+<td>email-enum</td>
+<td>6</td>
+<td></td>
+<td>censys, emailformat, hunterio, pgp, skymem, sslcert</td>
+</tr>
+<tr>
+<td>deadly</td>
+<td>3</td>
+<td></td>
+<td>ffuf, nuclei, vhost</td>
+</tr>
+<tr>
+<td>web-paramminer</td>
+<td>3</td>
+<td></td>
+<td>paramminer_cookies, paramminer_getparams, paramminer_headers</td>
+</tr>
+<tr>
+<td>portscan</td>
+<td>3</td>
+<td></td>
+<td>masscan, naabu, nmap</td>
+</tr>
+<tr>
+<td>report</td>
+<td>2</td>
+<td></td>
+<td>affiliates, asn</td>
+</tr>
+<tr>
+<td>social-enum</td>
+<td>2</td>
+<td></td>
+<td>httpx, social</td>
+</tr>
+<tr>
+<td>iis-shortnames</td>
+<td>2</td>
+<td></td>
+<td>ffuf_shortnames, iis_shortnames</td>
+</tr>
+<tr>
+<td>web-screenshots</td>
+<td>1</td>
+<td></td>
+<td>gowitness</td>
+</tr>
+<tr>
+<td>service-enum</td>
+<td>1</td>
+<td></td>
+<td>fingerprintx</td>
+</tr>
+<tr>
+<td>subdomain-hijack</td>
+<td>1</td>
+<td></td>
+<td>subdomain_hijack</td>
+</tr>
+</tbody>
+</table>
+<!-- END BBOT MODULE FLAGS -->
+<h2 id="dependencies">Dependencies</h2>
+<p>BBOT modules have external dependencies ranging from OS packages (<code>openssl</code>) to binaries (<code>nmap</code>) to Python libraries (<code>wappalyzer</code>). When a module is enabled, installation of its dependencies happens at runtime with <a href="https://github.com/ansible/ansible">Ansible</a>. BBOT provides several command-line flags to control how dependencies are installed.</p>
+<ul>
+<li><code>--no-deps</code> - Don't install module dependencies</li>
+<li><code>--force-deps</code> - Force install all module dependencies</li>
+<li><code>--retry-deps</code> - Try again to install failed module dependencies</li>
+<li><code>--ignore-failed-deps</code> - Run modules even if they have failed dependencies</li>
+<li><code>--install-all-deps</code> - Install dependencies for all modules (useful if you are provisioning a pentest system and want to install everything ahead of time)</li>
+</ul>
+<p>For details on how Ansible playbooks are attached to BBOT modules, see <a href="../contribution/#module-dependencies">How to Write a Module</a>.</p>
+<h2 id="scope">Scope</h2>
+<p>For pentesters and bug bounty hunters, staying in scope is extremely important. BBOT takes this seriously, meaning that active modules (e.g. <code>nuclei</code>) will only touch in-scope resources.</p>
+<p>By default, scope is whatever you specify with <code>-t</code>. This includes child subdomains. For example, if you specify <code>-t evilcorp.com</code>, all its subdomains (<code>www.evilcorp.com</code>, <code>mail.evilcorp.com</code>, etc.) also become in-scope.</p>
+<h3 id="scope-distance">Scope Distance</h3>
+<p>Since BBOT is recursive, it would quickly resort to scannning the entire internet without some kind of restraining mechanism. To solve this problem, every <a href="./events/">event</a> discovered by BBOT is assigned a <strong>Scope Distance</strong>. Scope distance represents how far out from the main scope that data was discovered.</p>
+<p>For example, if your target is <code>evilcorp.com</code>, <code>www.evilcorp.com</code> would have a scope distance of <code>0</code> (i.e. in-scope). If BBOT discovers that <code>www.evilcorp.com</code> resolves to <code>1.2.3.4</code>, <code>1.2.3.4</code> is one hop away, which means it would have a scope distance of <code>1</code>. If <code>1.2.3.4</code> has a PTR record that points to <code>ecorp.blob.core.windows.net</code>, <code>ecorp.blob.core.windows.net</code> is two hops away, so its scope distance is <code>2</code>.</p>
+<p>Scope distance continues to increase the further out you get. Most modules (e.g. <code>nuclei</code> and <code>nmap</code>) only consume in-scope events. Certain other passive modules such as <code>asn</code> accept out to distance <code>1</code>. By default, DNS resolution happens out to a distance of <code>2</code>. Upon its discovery, any <a href="./events/">event</a> that's determined to be in-scope (e.g. <code>www.evilcorp.com</code>) immediately becomes distance <code>0</code>, and the cycle starts over.</p>
+<h4 id="displaying-out-of-scope-events">Displaying Out-of-scope Events</h4>
+<p>By default, BBOT only displayed in-scope events (with a few exceptions such as <code>STORAGE_BUCKET</code>s). If you want to see more, you must increase the <a href="./configuration/">config</a> value of <code>scope_report_distance</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># display out-of-scope events up to one hop away from the main scope</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span><span style="color: #79c0ff">scope_report_distance</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">1</span>
+</code></pre></div>
+<h3 id="strict-scope">Strict Scope</h3>
+<p>If you want to scan <strong><em>only</em></strong> that specific target hostname and none of its children, you can specify <code>--strict-scope</code>.</p>
+<p>Note that <code>--strict-scope</code> only applies to targets and whitelists, but not blacklists. This means that if you put <code>internal.evilcorp.com</code> in your blacklist, you can be sure none of its subdomains will be scanned, even when using <code>--strict-scope</code>.</p>
+<h3 id="whitelists-and-blacklists">Whitelists and Blacklists</h3>
+<p>BBOT allows precise control over scope with whitelists and blacklists. These both use the same syntax as <code>--target</code>, meaning they accept the same event types, and you can specify an unlimited number of them, via a file, the CLI, or both.</p>
+<p><code>--whitelist</code> enables you to override what's in scope. For example, if you want to run nuclei against <code>evilcorp.com</code>, but stay only inside their corporate IP range of <code>1.2.3.0/24</code>, you can accomplish this like so:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># Seed scan with evilcorp.com, but restrict scope to 1.2.3.0/24</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>--whitelist<span style="color: #6e7681"> </span><span style="color: #a5d6ff">1</span>.2.3.0/24<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>nmap<span style="color: #6e7681"> </span>nuclei<span style="color: #6e7681"> </span>--allow-deadly
+</code></pre></div>
+<p><code>--blacklist</code> takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it's in the whitelist.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># Scan evilcorp.com, but exclude internal.evilcorp.com and its children</span>
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>--blacklist<span style="color: #6e7681"> </span>internal.evilcorp.com<span style="color: #6e7681"> </span>-f<span style="color: #6e7681"> </span>subdomain-enum<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>nmap<span style="color: #6e7681"> </span>nuclei<span style="color: #6e7681"> </span>--allow-deadly
+</code></pre></div>
+<h2 id="dns-wildcards">DNS Wildcards</h2>
+<p>BBOT has robust wildcard detection built-in. It can reliably detect wildcard domains, and will tag them accordingly:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[DNS_NAME]      github.io   TARGET  (a-record, a-wildcard-domain, aaaa-wildcard-domain, wildcard-domain)
+                                               ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+</code></pre></div>
+<p>Wildcard hosts are collapsed into a single host beginning with <code>_wildcard</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[DNS_NAME]      _wildcard.github.io     TARGET  (a-record, a-wildcard, a-wildcard-domain, aaaa-record, aaaa-wildcard, aaaa-wildcard-domain, wildcard, wildcard-domain)
+                ^^^^^^^^^
+</code></pre></div>
+<p>If you don't want this, you can disable wildcard detection on a domain-to-domain basis in the <a href="./configuration/">config</a>:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">dns_wildcard_ignore</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">evilcorp.com</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">evilcorp.co.uk</span>
+</code></pre></div>
+<p>There are certain edge cases (such as with dynamic DNS rules) where BBOT's wildcard detection fails. In these cases, you can try increasing the number of wildcard checks in the config:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># default == 10</span>
+<span style="color: #7ee787">dns_wildcard_tests</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">20</span>
+</code></pre></div>
+<p>If that doesn't work you can consider <a href="#whitelists-and-blacklists">blacklisting</a> the offending domain.</p>
+</article>
+</div>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+<script src="../assets/javascripts/bundle.b425cdc4.min.js"></script>
+<script src="https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js"></script>
+<script src="../javascripts/tablesort.js"></script>
+</body>
+</html>

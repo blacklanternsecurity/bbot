@@ -8,5 +8,10 @@
     "version": "Dev",
     "title": "Dev",
     "aliases": []
+  },
+  {
+    "version": "1.x",
+    "title": "1.x",
+    "aliases": []
   }
 ]
