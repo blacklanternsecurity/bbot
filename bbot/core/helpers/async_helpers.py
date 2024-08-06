@@ -34,7 +34,7 @@ class NamedLock:
     E.g. simultaneous DNS lookups on the same hostname
     """
 
-    def __init__(self, max_size=1000):
+    def __init__(self, max_size=10000):
         self._cache = LRUCache(maxsize=max_size)
 
     @asynccontextmanager

@@ -64,12 +64,7 @@ class DNSResolve(InterceptModule):
         return True
 
     async def handle_event(self, event, **kwargs):
-        dns_tags = set()
-        event_whitelisted = False
-        event_blacklisted = False
-
         event_is_ip = self.helpers.is_ip(event.host)
-
         event_host = str(event.host)
         event_host_hash = hash(event_host)
 
@@ -92,89 +87,9 @@ class DNSResolve(InterceptModule):
                 # dns_tags, dns_children, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
             except KeyError:
 
-                main_host_event = self.get_dns_parent(event)
-
-                rdtypes_to_resolve = ()
-                if event_is_ip:
-                    if not self.minimal:
-                        rdtypes_to_resolve = ("PTR",)
-                else:
-                    if self.minimal:
-                        rdtypes_to_resolve = ("A", "AAAA", "CNAME")
-                    else:
-                        rdtypes_to_resolve = all_rdtypes
-
-                # if missing from cache, do DNS resolution
-                queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
-                error_rdtypes = []
-                raw_record_events = []
-                async for (query, rdtype), (answer, errors) in self.helpers.dns.resolve_raw_batch(queries):
-                    if self.emit_raw_records and rdtype not in ("A", "AAAA", "CNAME", "PTR"):
-                        raw_record_event = self.make_event(
-                            {"host": str(event_host), "type": rdtype, "answer": answer.to_text()},
-                            "RAW_DNS_RECORD",
-                            parent=main_host_event,
-                            tags=[f"{rdtype.lower()}-record"],
-                            context=f"{rdtype} lookup on {{event.parent.host}} produced {{event.type}}",
-                        )
-                        raw_record_events.append(raw_record_event)
-                    if errors:
-                        error_rdtypes.append(rdtype)
-                    for _rdtype, host in extract_targets(answer):
-                        dns_tags.add(f"{rdtype.lower()}-record")
-                        try:
-                            main_host_event.dns_children[_rdtype].add(host)
-                        except KeyError:
-                            main_host_event.dns_children[_rdtype] = {host}
-
-                # if there were dns resolution errors, notify the user with tags
-                for rdtype in error_rdtypes:
-                    if rdtype not in main_host_event.dns_children:
-                        dns_tags.add(f"{rdtype.lower()}-error")
-
-                # if there weren't any DNS children and it's not an IP address, tag as unresolved
-                if not main_host_event.dns_children and not event_is_ip:
-                    dns_tags.add("unresolved")
-
-                # check DNS children against whitelists and blacklists
-                for rdtype, children in main_host_event.dns_children.items():
-                    if event_blacklisted:
-                        break
-                    for host in children:
-                        # whitelisting / blacklisting based on resolved hosts
-                        if rdtype in ("A", "AAAA", "CNAME"):
-                            # having a CNAME to an in-scope resource doesn't make you in-scope
-                            if (not event_whitelisted) and rdtype != "CNAME":
-                                with suppress(ValidationError):
-                                    if self.scan.whitelisted(host):
-                                        event_whitelisted = True
-                                        dns_tags.add(f"dns-whitelisted-{rdtype.lower()}")
-                            # CNAME to a blacklisted resource, means you're blacklisted
-                            with suppress(ValidationError):
-                                if self.scan.blacklisted(host):
-                                    dns_tags.add("blacklisted")
-                                    dns_tags.add(f"dns-blacklisted-{rdtype.lower()}")
-                                    event_blacklisted = True
-                                    event_whitelisted = False
-                                    break
-
-                        # check for private IPs
-                        try:
-                            ip = ipaddress.ip_address(host)
-                            if ip.is_private:
-                                dns_tags.add("private-ip")
-                        except ValueError:
-                            continue
-
-                # add DNS tags to main host
-                for tag in dns_tags:
-                    main_host_event.add_tag(tag)
-
-                # set resolved_hosts attribute
-                for rdtype, children in main_host_event.dns_children.items():
-                    if rdtype in ("A", "AAAA", "CNAME"):
-                        for host in children:
-                            main_host_event._resolved_hosts.add(host)
+                main_host_event, dns_tags, event_whitelisted, event_blacklisted, raw_record_events = (
+                    await self.resolve_event(event)
+                )
 
                 # if we're not blacklisted, emit the main host event and all its raw records
                 if not event_blacklisted:
@@ -202,8 +117,19 @@ class DNSResolve(InterceptModule):
                     if not self.minimal:
                         in_dns_scope = -1 < event.scope_distance < self._dns_search_distance
                         for rdtype, records in main_host_event.dns_children.items():
-                            module = self.scan._make_dummy_module_dns(rdtype)
+                            module = self._make_dummy_module(rdtype)
                             for record in records:
+                                parents = main_host_event.get_parents()
+                                for e in parents:
+                                    e_is_host = e.type in ("DNS_NAME", "IP_ADDRESS")
+                                    e_parent_matches = str(e.parent.host) == str(main_host_event.host)
+                                    e_host_matches = str(e.data) == str(record)
+                                    e_module_matches = str(e.module) == str(module)
+                                    if e_is_host and e_parent_matches and e_host_matches and e_module_matches:
+                                        self.critical(
+                                            f"TRYING TO EMIT ALREADY-EMITTED {record}:{rdtype} CHILD OF {main_host_event}, parents: {parents}"
+                                        )
+                                        return
                                 try:
                                     child_event = self.scan.make_event(
                                         record, "DNS_NAME", module=module, parent=main_host_event
@@ -239,6 +165,99 @@ class DNSResolve(InterceptModule):
         # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
         if event.type == "DNS_NAME" and "unresolved" in event.tags:
             event.type = "DNS_NAME_UNRESOLVED"
+
+    async def resolve_event(self, event):
+        dns_tags = set()
+        event_whitelisted = False
+        event_blacklisted = False
+
+        main_host_event = self.get_dns_parent(event)
+        event_host = str(event.host)
+        event_is_ip = self.helpers.is_ip(event.host)
+
+        rdtypes_to_resolve = ()
+        if event_is_ip:
+            if not self.minimal:
+                rdtypes_to_resolve = ("PTR",)
+        else:
+            if self.minimal:
+                rdtypes_to_resolve = ("A", "AAAA", "CNAME")
+            else:
+                rdtypes_to_resolve = all_rdtypes
+
+        # if missing from cache, do DNS resolution
+        queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
+        error_rdtypes = []
+        raw_record_events = []
+        async for (query, rdtype), (answer, errors) in self.helpers.dns.resolve_raw_batch(queries):
+            if self.emit_raw_records and rdtype not in ("A", "AAAA", "CNAME", "PTR"):
+                raw_record_event = self.make_event(
+                    {"host": str(event_host), "type": rdtype, "answer": answer.to_text()},
+                    "RAW_DNS_RECORD",
+                    parent=main_host_event,
+                    tags=[f"{rdtype.lower()}-record"],
+                    context=f"{rdtype} lookup on {{event.parent.host}} produced {{event.type}}",
+                )
+                raw_record_events.append(raw_record_event)
+            if errors:
+                error_rdtypes.append(rdtype)
+            dns_tags.add(f"{rdtype.lower()}-record")
+            for _rdtype, host in extract_targets(answer):
+                try:
+                    main_host_event.dns_children[_rdtype].add(host)
+                except KeyError:
+                    main_host_event.dns_children[_rdtype] = {host}
+
+        # if there were dns resolution errors, notify the user with tags
+        for rdtype in error_rdtypes:
+            if rdtype not in main_host_event.dns_children:
+                dns_tags.add(f"{rdtype.lower()}-error")
+
+        # if there weren't any DNS children and it's not an IP address, tag as unresolved
+        if not main_host_event.dns_children and not event_is_ip:
+            dns_tags.add("unresolved")
+
+        # check DNS children against whitelists and blacklists
+        for rdtype, children in main_host_event.dns_children.items():
+            if event_blacklisted:
+                break
+            for host in children:
+                # whitelisting / blacklisting based on resolved hosts
+                if rdtype in ("A", "AAAA", "CNAME"):
+                    # having a CNAME to an in-scope resource doesn't make you in-scope
+                    if (not event_whitelisted) and rdtype != "CNAME":
+                        with suppress(ValidationError):
+                            if self.scan.whitelisted(host):
+                                event_whitelisted = True
+                                dns_tags.add(f"dns-whitelisted-{rdtype.lower()}")
+                    # CNAME to a blacklisted resource, means you're blacklisted
+                    with suppress(ValidationError):
+                        if self.scan.blacklisted(host):
+                            dns_tags.add("blacklisted")
+                            dns_tags.add(f"dns-blacklisted-{rdtype.lower()}")
+                            event_blacklisted = True
+                            event_whitelisted = False
+                            break
+
+                # check for private IPs
+                try:
+                    ip = ipaddress.ip_address(host)
+                    if ip.is_private:
+                        dns_tags.add("private-ip")
+                except ValueError:
+                    continue
+
+        # add DNS tags to main host
+        for tag in dns_tags:
+            main_host_event.add_tag(tag)
+
+        # set resolved_hosts attribute
+        for rdtype, children in main_host_event.dns_children.items():
+            if rdtype in ("A", "AAAA", "CNAME"):
+                for host in children:
+                    main_host_event._resolved_hosts.add(host)
+
+        return main_host_event, dns_tags, event_whitelisted, event_blacklisted, raw_record_events
 
     async def handle_wildcard_event(self, event):
         self.debug(f"Entering handle_wildcard_event({event})")
@@ -299,3 +318,24 @@ class DNSResolve(InterceptModule):
             context="{event.parent.type} has host {event.type}: {event.host}",
             tags=tags,
         )
+
+    def _make_dummy_module(self, name):
+        try:
+            dummy_module = self.scan.dummy_modules[name]
+        except KeyError:
+            dummy_module = self.scan._make_dummy_module(name=name, _type="DNS")
+            dummy_module._priority = 4
+            dummy_module.suppress_dupes = False
+            self.scan.dummy_modules[name] = dummy_module
+        return dummy_module
+
+    def _dns_child_dedup_hash(self, parent_host, host, rdtype):
+        # we deduplicate NS records by their parent domain
+        # because otherwise every DNS_NAME has one, and it gets super messy
+        if rdtype == "NS":
+            _, parent_domain = self.helpers.split_domain(parent_host)
+            return hash(f"{parent_domain}:{host}")
+        return hash(f"{parent_host}:{host}:{rdtype}")
+
+    def _main_outgoing_dedup_hash(self, event):
+        return hash(f"{event.host}")

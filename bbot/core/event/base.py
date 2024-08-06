@@ -350,8 +350,10 @@ class BaseEvent:
         """
         This event's full discovery context, including those of all its parents
         """
-        full_event_chain = list(reversed(self.get_parents())) + [self]
-        return [[e.id, e.discovery_context] for e in full_event_chain if e.type != "SCAN"]
+        parent_path = []
+        if self.parent is not None and self != self.parent:
+            parent_path = self.parent.discovery_path
+        return parent_path + [[self.id, self.discovery_context]]
 
     @property
     def words(self):
@@ -869,6 +871,10 @@ class BaseEvent:
 class SCAN(BaseEvent):
     def _data_human(self):
         return f"{self.data['name']} ({self.data['id']})"
+
+    @property
+    def discovery_path(self):
+        return []
 
 
 class FINISHED(BaseEvent):
