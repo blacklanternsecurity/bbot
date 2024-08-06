@@ -1,6 +1,6 @@
 import ipaddress
 from contextlib import suppress
-from cachetools import LRUCache
+from cachetools import LFUCache
 
 from bbot.errors import ValidationError
 from bbot.core.helpers.dns.engine import all_rdtypes
@@ -10,6 +10,13 @@ from bbot.core.helpers.dns.helpers import extract_targets
 
 
 class DNSResolve(InterceptModule):
+    """
+    TODO:
+        - scrap event cache in favor of the parent backtracking method
+        - don't duplicate resolution on the same host
+        - clean up wildcard checking to only happen once, and re-emit/abort if one is detected
+    """
+
     watched_events = ["*"]
     _priority = 1
     scope_distance_modifier = None
@@ -36,7 +43,7 @@ class DNSResolve(InterceptModule):
         self._emit_raw_records = None
 
         # event resolution cache
-        self._event_cache = LRUCache(maxsize=10000)
+        self._event_cache = LFUCache(maxsize=10000)
         self._event_cache_locks = NamedLock()
 
         self.host_module = self.HostModule(self.scan)
@@ -91,8 +98,9 @@ class DNSResolve(InterceptModule):
                     await self.resolve_event(event)
                 )
 
-                # if we're not blacklisted, emit the main host event and all its raw records
-                if not event_blacklisted:
+                # if we're not blacklisted and we haven't already done it, emit the main host event and all its raw records
+                main_host_resolved = getattr(main_host_event, "_resolved", False)
+                if not event_blacklisted and not main_host_resolved:
                     if event_whitelisted:
                         self.debug(
                             f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
@@ -126,7 +134,7 @@ class DNSResolve(InterceptModule):
                                     e_host_matches = str(e.data) == str(record)
                                     e_module_matches = str(e.module) == str(module)
                                     if e_is_host and e_parent_matches and e_host_matches and e_module_matches:
-                                        self.critical(
+                                        self.trace(
                                             f"TRYING TO EMIT ALREADY-EMITTED {record}:{rdtype} CHILD OF {main_host_event}, parents: {parents}"
                                         )
                                         return
@@ -145,6 +153,9 @@ class DNSResolve(InterceptModule):
                                     self.warning(
                                         f'Event validation failed for DNS child of {main_host_event}: "{record}" ({rdtype}): {e}'
                                     )
+
+                # mark the host as resolved
+                main_host_event._resolved = True
 
                 # store results in cache
                 self._event_cache[event_host_hash] = main_host_event, dns_tags, event_whitelisted, event_blacklisted
