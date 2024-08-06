@@ -889,7 +889,7 @@ class TestExcavateHeaders(ModuleTestBase):
 
 
 class TestExcavateRAWTEXT(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/"]
+    targets = ["http://127.0.0.1:8888/", "test.notreal", "http://localhost:8888/admin_panel.php"]
     modules_overrides = ["excavate", "httpx", "filedownload", "unstructured"]
     config_overrides = {"web": {"spider_distance": 2, "spider_depth": 2}}
 
