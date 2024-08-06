@@ -102,6 +102,7 @@ class unstructured(BaseModule):
                 raw_text_event = self.make_event(
                     content,
                     "RAW_TEXT",
+                    context=f"Extracted text from {file_path}",
                     parent=event,
                 )
                 await self.emit_event(raw_text_event)
