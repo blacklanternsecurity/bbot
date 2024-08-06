@@ -110,7 +110,7 @@ bbot -t evilcorp.com -p spider ./my_spider.yml
 
 ## Validating Presets
 
-To make sure BBOT is configured the way you expect, you can always check the `--current-preset` to show the final verison of the config that will be used when BBOT executes:
+To make sure BBOT is configured the way you expect, you can always check the `--current-preset` to show the final version of the config that will be used when BBOT executes:
 
 ```bash
 # verify the preset is what you want
