@@ -1,7 +1,9 @@
 from bbot.modules.base import BaseModule
 from .base import ModuleTestBase, tempwordlist
+
 from bbot.modules.internal.excavate import ExcavateRule
 
+from pathlib import Path
 import yara
 
 
@@ -884,3 +886,107 @@ class TestExcavateHeaders(ModuleTestBase):
 
         assert found_first_cookie == True
         assert found_second_cookie == True
+
+
+class TestExcavateRAWTEXT(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["excavate", "httpx", "filedownload", "unstructured"]
+    config_overrides = {"web": {"spider_distance": 2, "spider_depth": 2}}
+
+    pdf_data = r"""%PDF-1.3
+%���� ReportLab Generated PDF document http://www.reportlab.com
+1 0 obj
+<<
+/F1 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/Contents 7 0 R /MediaBox [ 0 0 612 792 ] /Parent 6 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+4 0 obj
+<<
+/PageMode /UseNone /Pages 6 0 R /Type /Catalog
+>>
+endobj
+5 0 obj
+<<
+/Author (anonymous) /CreationDate (D:20240806124041+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240806124041+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+  /Subject (unspecified) /Title (Test_PDF) /Trapped /False
+>>
+endobj
+6 0 obj
+<<
+/Count 1 /Kids [ 3 0 R ] /Type /Pages
+>>
+endobj
+7 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 202
+>>
+stream
+GarWq\IQJ1&-U?D?SNj'pjaJ`3fp",koMimP^kF+Mp1AE!!NP<dMAV*>7"/-^@0_UHNek_O@uN&ABekf('dj)>^i_O#]/&nb$ij2rXK:^*p0G-Zj,3*Bcr&".&MajS22CRM"s<2d?a)N4D54IK3J2J=!)`iqRmbTV\^"I//umgp*!;>/]78#%K7'L2jVEHrg9WjGBH&A~>endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000073 00000 n 
+0000000104 00000 n 
+0000000211 00000 n 
+0000000404 00000 n 
+0000000472 00000 n 
+0000000768 00000 n 
+0000000827 00000 n 
+trailer
+<<
+/ID 
+[<197f3c02ab226c58c0edb7d6f675b20d><197f3c02ab226c58c0edb7d6f675b20d>]
+% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+
+/Info 5 0 R
+/Root 4 0 R
+/Size 8
+>>
+startxref
+1119
+%%EOF"""
+    unstructured_response = """Link to an example website https://www.test.notreal/about
+
+Another link http://localhost:8888/admin_panel.php"""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            dict(uri="/"),
+            dict(response_data='<a href="/Test_PDF"/>'),
+        )
+        module_test.set_expect_requests(
+            dict(uri="/Test_PDF"),
+            dict(response_data=self.pdf_data, headers={"Content-Type": "application/pdf"}),
+        )
+
+    def check(self, module_test, events):
+        filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
+        assert 1 == len(filesystem_events), filesystem_events
+        filesystem_event = filesystem_events[0]
+        file = Path(filesystem_event.data["path"])
+        assert file.is_file(), "Destination file doesn't exist"
+        assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
+        raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
+        assert 1 == len(raw_text_events), "Failed to emmit RAW_TEXT event"
+        assert (
+            raw_text_events[0].data == self.unstructured_response
+        ), f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
+        event_data = [e.data for e in events]
+        assert "https://www.test.notreal/about" in event_data
+        assert "http://localhost:8888/admin_panel.php" in event_data
