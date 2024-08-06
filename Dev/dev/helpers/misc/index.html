@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.ixno2bvb.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.n2ickqiv.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1281,14 +1281,7 @@ It runs a command with sudo and checks the return code to determine this.</p>
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.chain_lists">
 <span class="doc doc-object-name doc-function-name">chain_lists</span>
 </h1>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">chain_lists(</span>
-    <span style="color: #e6edf3">l,</span>
-    <span style="color: #e6edf3">try_files</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">msg</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">remove_blank</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">validate</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">validate_chars</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">'&lt;&gt;:"/</span><span style="color: #79c0ff">\\</span><span style="color: #a5d6ff">|?*)'</span><span style="color: #e6edf3">,</span>
-<span style="color: #e6edf3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">chain_lists(l,</span> <span style="color: #e6edf3">try_files</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">msg</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">remove_blank</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">validate</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">validate_chars</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">'&lt;&gt;:"/</span><span style="color: #79c0ff">\\</span><span style="color: #a5d6ff">|?*)'</span><span style="color: #e6edf3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Chains together list elements, allowing for entries separated by commas.</p>
@@ -1509,13 +1502,7 @@ It also allows you to optionally open entries as files and add their contents to
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.clean_dict">
 <span class="doc doc-object-name doc-function-name">clean_dict</span>
 </h1>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">clean_dict(</span>
-    <span style="color: #e6edf3">d,</span>
-    <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">key_names,</span>
-    <span style="color: #e6edf3">fuzzy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">exclude_keys</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">_prev_key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span>
-<span style="color: #e6edf3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">clean_dict(d,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">key_names,</span> <span style="color: #e6edf3">fuzzy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">exclude_keys</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">_prev_key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Recursively clean unwanted keys from a dictionary.
@@ -1738,14 +1725,7 @@ It also removes any trailing dots and converts the record to lowercase.</p>
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.clean_old">
 <span class="doc doc-object-name doc-function-name">clean_old</span>
 </h1>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">clean_old(</span>
-    <span style="color: #e6edf3">d,</span>
-    <span style="color: #e6edf3">keep</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">10</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">filter</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">x:</span> <span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">latest_mtime,</span>
-    <span style="color: #e6edf3">reverse</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">raise_error</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span>
-<span style="color: #e6edf3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">clean_old(d,</span> <span style="color: #e6edf3">keep</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">10</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">filter</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">x:</span> <span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">latest_mtime,</span> <span style="color: #e6edf3">reverse</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">raise_error</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Clean up old files and directories within a given directory based on various filtering and sorting options.</p>
@@ -3007,14 +2987,7 @@ regular expressions for email pattern matching.</p>
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.extract_words">
 <span class="doc doc-object-name doc-function-name">extract_words</span>
 </h1>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">extract_words(</span>
-    <span style="color: #e6edf3">data,</span>
-    <span style="color: #e6edf3">acronyms</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">wordninja</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">model</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">max_length</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">100</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">word_regexes</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span>
-<span style="color: #e6edf3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">extract_words(data,</span> <span style="color: #e6edf3">acronyms</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">wordninja</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">model</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">max_length</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">100</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">word_regexes</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Intelligently extracts words from given data.</p>
@@ -3292,13 +3265,7 @@ does not point to a file, the function returns 0.</p>
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.filter_dict">
 <span class="doc doc-object-name doc-function-name">filter_dict</span>
 </h1>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">filter_dict(</span>
-    <span style="color: #e6edf3">d,</span>
-    <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">key_names,</span>
-    <span style="color: #e6edf3">fuzzy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">exclude_keys</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span>
-    <span style="color: #e6edf3">_prev_key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span>
-<span style="color: #e6edf3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">filter_dict(d,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">key_names,</span> <span style="color: #e6edf3">fuzzy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">exclude_keys</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">_prev_key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Recursively filter a dictionary based on key names.</p>
