@@ -78,7 +78,7 @@ jobs:
         uses: EndBug/add-and-commit@v9
         continue-on-error: true
         with:
-          add: "*.md"
+          add: '["*.md", "docs/data/chord_graph/*.json"]'
           author_name: "BBOT Docs Autopublish"
           author_email: info@blacklanternsecurity.com
           message: "Refresh module docs"
@@ -102,21 +102,27 @@ jobs:
         run: |
           pip install poetry
           poetry install --only=docs
-      - name: Publish docs (stable branch)
-        if: github.ref == 'refs/heads/stable'
+      - name: Configure Git
         run: |
-          poetry run mkdocs build -f mkdocs.yml
-          poetry run mkdocs gh-deploy --force --dir=site
-      - name: Publish docs (dev branch)
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          poetry run mkdocs build -f mkdocs.yml -d site/dev_branch
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git checkout gh-pages
-          mv site/dev_branch .
-          git add dev_branch
-          git commit -m "Update dev documentation"
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git branch -f gh-pages origin/gh-pages
+          else
+            git branch --track gh-pages origin/gh-pages
+          fi
+      - name: Generate docs (stable branch)
+        if: github.ref == 'refs/heads/stable'
+        run: |
+          poetry run mike deploy Stable
+      - name: Generate docs (dev branch)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          poetry run mike deploy Dev
+      - name: Publish docs
+        run: |
+          git switch gh-pages
           git push
   publish_code:
     needs: update_docs

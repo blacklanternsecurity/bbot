@@ -1,0 +1,197 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "BBOT",
+  "padding": 20,
+  "width": 800,
+  "height": 800,
+  "autosize": "none",
+
+  "signals": [
+    { "name": "producesColor", "value": "#ff8400" },
+    { "name": "consumesColor", "value": "white" },
+    { "name": "originX", "update": "width / 2" },
+    { "name": "originY", "update": "height / 2" },
+    {
+      "name": "active", "value": "{id: 555555555, consumes: []}",
+      "on": [
+        { "events": "text:pointerover", "update": "datum" },
+        { "events": "pointerover[!event.item]", "update": "{id: 555555555, consumes: []}" }
+      ]
+    }
+  ],
+
+  "data": [
+    {
+      "name": "entities",
+      "url": "../data/chord_graph/entities.json",
+      "transform": [
+        {
+          "type": "stratify",
+          "key": "id",
+          "parentKey": "parent"
+        },
+        {
+          "type": "tree",
+          "method": "cluster",
+          "size": [1, 1],
+          "as": ["alpha", "beta", "depth", "children"]
+        },
+        {
+          "type": "formula",
+          "expr": "(360 * datum.alpha + 270) % 360",
+          "as":   "angle"
+        },
+        {
+          "type": "formula",
+          "expr": "inrange(datum.angle, [90, 270])",
+          "as":   "leftside"
+        },
+        {
+          "type": "formula",
+          "expr": "originX + 280 * datum.beta * cos(PI * datum.angle / 180)",
+          "as":   "x"
+        },
+        {
+          "type": "formula",
+          "expr": "originY + 280 * datum.beta * sin(PI * datum.angle / 180)",
+          "as":   "y"
+        }
+      ]
+    },
+    {
+      "name": "leaves",
+      "source": "entities",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "!datum.children"
+        }
+      ]
+    },
+    {
+      "name": "rels",
+      "url": "../data/chord_graph/rels.json",
+      "transform": [
+        {
+          "type": "formula",
+          "expr": "treePath('entities', datum.source, datum.target)",
+          "as":   "treepath",
+          "initonly": true
+        }
+      ]
+    },
+    {
+      "name": "selected_rels",
+      "source": "rels",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.source === active.id || datum.target === active.id"
+        }
+      ]
+    },
+    {
+        "name": "selected_entities",
+        "source": "entities",
+        "transform": [
+          {
+            "type": "filter",
+            "expr": "datum.id "
+          }
+        ]
+      }
+  ],
+
+  "marks": [
+    {
+      "type": "text",
+      "from": {"data": "leaves"},
+      "encode": {
+        "enter": {
+          "text": {"field": "name"},
+          "baseline": {"value": "middle"}
+        },
+        "update": {
+          "x": {"field": "x"},
+          "y": {"field": "y"},
+          "dx": {"signal": "2 * (datum.leftside ? -1 : 1)"},
+          "angle": {"signal": "datum.leftside ? datum.angle - 180 : datum.angle"},
+          "align": {"signal": "datum.leftside ? 'right' : 'left'"},
+          "fontSize": [
+            {"test": "indata('selected_rels', 'source', datum.id)", "value": 15},
+            {"test": "indata('selected_rels', 'target', datum.id)", "value": 15},
+            {"value": 11}
+          ],
+          "fontWeight": [
+            {"test": "indata('selected_rels', 'source', datum.id)", "value": "bold"},
+            {"test": "indata('selected_rels', 'target', datum.id)", "value": "bold"},
+            {"value": null}
+          ],
+          "fill": [
+            {"test": "datum.id === active.id", "value": "white"},
+            {"test": "if(active && active.produces, active.produces.length > 0 && indexof(active.produces, datum.id) >= 0, false)", "signal": "producesColor"},
+            {"test": "if(active && active.consumes, active.consumes.length > 0 && indexof(active.consumes, datum.id) >= 0, false)", "signal": "consumesColor"},
+            {"value": "#aaa"}
+          ]
+        }
+      }
+    },
+    {
+      "type": "group",
+      "from": {
+        "facet": {
+          "name":  "path",
+          "data":  "rels",
+          "field": "treepath"
+        }
+      },
+      "marks": [
+        {
+          "type": "line",
+          "interactive": false,
+          "from": {"data": "path"},
+          "encode": {
+            "enter": {
+              "interpolate": {"value": "bundle"},
+              "strokeWidth": {"value": 3}
+            },
+            "update": {
+              "stroke": [
+                {"test": "(parent.source === active.id || parent.target === active.id) && parent.type === 'consumes'", "signal": "consumesColor"},
+                {"test": "(parent.source === active.id || parent.target === active.id) && parent.type === 'produces'", "signal": "producesColor"},
+                {"value": "#ff8400"}
+              ],
+              "strokeOpacity": [
+                {"test": "parent.source === active.id || parent.target === active.id", "value": 1},
+                {"value": 0.2}
+              ],
+              "tension": {"value": 0.7},
+              "x": {"field": "x"},
+              "y": {"field": "y"}
+            }
+          }
+        }
+      ]
+    }
+  ],
+
+  "scales": [
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": ["consumes", "produces"],
+      "range": [{"signal": "consumesColor"}, {"signal": "producesColor"}]
+    }
+  ],
+
+  "legends": [
+    {
+      "stroke": "color",
+      "labelColor": "white",
+      "labelFontSize": 20,
+      "symbolStrokeWidth": 20,
+      "orient": "bottom-right",
+      "symbolType": "stroke"
+    }
+  ]
+}

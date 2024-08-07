@@ -27,7 +27,7 @@ p img {
 }
 
 a.md-source,
-.md-header__topic,
+.md-header__topic > span,
 a:hover {
   color: var(--bbot-orange);
 }
