@@ -889,7 +889,7 @@ class TestExcavateHeaders(ModuleTestBase):
 
 
 class TestExcavateRAWTEXT(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/", "test.notreal", "http://localhost:8888/admin_panel.php"]
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
     modules_overrides = ["excavate", "httpx", "filedownload", "unstructured"]
     config_overrides = {"web": {"spider_distance": 2, "spider_depth": 2}}
 
@@ -907,7 +907,7 @@ endobj
 endobj
 3 0 obj
 <<
-/Contents 7 0 R /MediaBox [ 0 0 612 792 ] /Parent 6 0 R /Resources <<
+/Contents 7 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 6 0 R /Resources <<
 /Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
 >> /Rotate 0 /Trans <<
 
@@ -922,8 +922,8 @@ endobj
 endobj
 5 0 obj
 <<
-/Author (anonymous) /CreationDate (D:20240806124041+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240806124041+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
-  /Subject (unspecified) /Title (Test_PDF) /Trapped /False
+/Author (anonymous) /CreationDate (D:20240807182842+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240807182842+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+  /Subject (unspecified) /Title (untitled) /Trapped /False
 >>
 endobj
 6 0 obj
@@ -933,10 +933,10 @@ endobj
 endobj
 7 0 obj
 <<
-/Filter [ /ASCII85Decode /FlateDecode ] /Length 202
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 742
 >>
 stream
-GarWq\IQJ1&-U?D?SNj'pjaJ`3fp",koMimP^kF+Mp1AE!!NP<dMAV*>7"/-^@0_UHNek_O@uN&ABekf('dj)>^i_O#]/&nb$ij2rXK:^*p0G-Zj,3*Bcr&".&MajS22CRM"s<2d?a)N4D54IK3J2J=!)`iqRmbTV\^"I//umgp*!;>/]78#%K7'L2jVEHrg9WjGBH&A~>endstream
+Gas2F;0/Hc'SYHA/+V9II1V!>b>-epMEjN4$Udfu3WXha!?H`crq_UNGP5IS$'WT'SF]Hm/eEhd_JY>@!1knV$j`L/E!kN:0EQJ+FF:uKph>GV#ju48hu\;DS#c\h,:/udaV^[@;X>;"'ep>>)(B?I-n?2pLTEZKb$BFgKRF(b#Pc?SYeqN_Q<+X%64E)"g-fPCbq][OcNlQLW_hs%Z%g83]3b]0V$sluS:l]fd*^-UdD=#bCpInTen.cfe189iIh6\.p.U0GF:oK9b'->\lOqObp&ppaGMoCcp"4SVDq!<>6ZV]FD>,rrdc't<[N2!Ai12-2<OHlF74n#8(/WCG7Tai2$(/r@ULUNdEZ3Op<HV;A-c0GnY'M+s]&p&%@CgEr<@Bc.Uf<HojGCuBU=*pA.;2`iCVN!R2W:7h`/$bDaRRVeOY>bU`S*gNOt?NS4WgtN@KuL)HOb>`9L>S$_ert"UNW*,("+*>]m)4`k"8SUOCpM7`cEe!(7?`JV*GMajff(^atd&EX#qdMBmI'Q(YYb&m.O>0MYJ4XfJH@("`jPF^W5.*84$HY?2JY[WU48,IqkD_]b:_615)BA3RM*]q4>2Gf_1aMGFGu.Zt]!p5h;`XYO/FCmQ4/3ZX09kH$X+QI/JJh`lb\dBu:d$%Ld1=H=-UbKXP_&26H00T.?":f@40#m]NM5JYq@VFSk+#OR+sc4eX`Oq]N([T/;kQ>>WZOJNWnM"#msq:#?Km~>endstream
 endobj
 xref
 0 8
@@ -944,14 +944,14 @@ xref
 0000000073 00000 n 
 0000000104 00000 n 
 0000000211 00000 n 
-0000000404 00000 n 
-0000000472 00000 n 
-0000000768 00000 n 
-0000000827 00000 n 
+0000000414 00000 n 
+0000000482 00000 n 
+0000000778 00000 n 
+0000000837 00000 n 
 trailer
 <<
 /ID 
-[<197f3c02ab226c58c0edb7d6f675b20d><197f3c02ab226c58c0edb7d6f675b20d>]
+[<3c7340500fa2fe72523c5e6f07511599><3c7340500fa2fe72523c5e6f07511599>]
 % ReportLab generated PDF document -- digest (http://www.reportlab.com)
 
 /Info 5 0 R
@@ -959,11 +959,17 @@ trailer
 /Size 8
 >>
 startxref
-1119
+1669
 %%EOF"""
-    unstructured_response = """Link to an example website https://www.test.notreal/about
+    unstructured_response = """This is an email example@blacklanternsecurity.notreal
 
-Another link http://localhost:8888/admin_panel.php"""
+An example JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+A serialized DOTNET object AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA==
+
+A full url https://www.test.notreal/about
+
+A href <a href='/donot_detect.js'>Click me</a>"""
 
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests(
@@ -988,5 +994,14 @@ Another link http://localhost:8888/admin_panel.php"""
             raw_text_events[0].data == self.unstructured_response
         ), f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
         event_data = [e.data for e in events]
+        assert "example@blacklanternsecurity.notreal" in event_data
+        assert (
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+            in event_data
+        )
+        assert (
+            "AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA=="
+            in event_data
+        )
         assert "https://www.test.notreal/about" in event_data
-        assert "http://localhost:8888/admin_panel.php" in event_data
+        assert "/donot_detect.js" not in event_data
