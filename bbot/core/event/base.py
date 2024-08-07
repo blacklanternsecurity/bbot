@@ -1435,10 +1435,6 @@ class FILESYSTEM(DictPathEvent):
     pass
 
 
-class RAW_TEXT(DictEvent):
-    pass
-
-
 class RAW_DNS_RECORD(DictHostEvent):
     pass
 

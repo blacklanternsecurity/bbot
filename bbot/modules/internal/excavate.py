@@ -1034,7 +1034,7 @@ class excavate(BaseInternalModule):
             )
         else:
             await self.search(
-                event.data.get("content", ""),
+                event.data,
                 event,
                 content_type="",
                 discovery_context="Parsed file content",
