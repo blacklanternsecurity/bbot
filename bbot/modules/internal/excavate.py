@@ -706,6 +706,7 @@ class excavate(BaseInternalModule):
 
             for identifier, results in yara_results.items():
                 urls_found = 0
+                final_url = ""
                 for url_str in results:
                     if identifier == "url_full":
                         if not await self.helpers.re.search(self.full_url_regex, url_str):
@@ -734,18 +735,19 @@ class excavate(BaseInternalModule):
                         self.excavate.debug(
                             f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )
+                    
+                    if final_url:
+                        if self.excavate.scan.in_scope(final_url):
+                            urls_found += 1
 
-                    if self.excavate.scan.in_scope(final_url):
-                        urls_found += 1
-
-                    await self.report(
-                        final_url,
-                        event,
-                        yara_rule_settings,
-                        discovery_context,
-                        event_type="URL_UNVERIFIED",
-                        urls_found=urls_found,
-                    )
+                        await self.report(
+                            final_url,
+                            event,
+                            yara_rule_settings,
+                            discovery_context,
+                            event_type="URL_UNVERIFIED",
+                            urls_found=urls_found,
+                        )
 
         async def report_prep(self, event_data, event_type, event, tags, **kwargs):
             event_draft = self.excavate.make_event(event_data, event_type, parent=event)
