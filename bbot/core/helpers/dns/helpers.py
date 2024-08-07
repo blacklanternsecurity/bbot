@@ -60,6 +60,7 @@ def extract_targets(record):
         log.warning(f'Unknown DNS record type "{rdtype}"')
     return results
 
+
 def service_record(host, rdtype=None):
     """
     Indicates that the provided host name and optional rdtype is an SRV or related service record.
