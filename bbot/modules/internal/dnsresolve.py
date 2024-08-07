@@ -15,6 +15,7 @@ class DNSResolve(InterceptModule):
         - scrap event cache in favor of the parent backtracking method
         - don't duplicate resolution on the same host
         - clean up wildcard checking to only happen once, and re-emit/abort if one is detected
+        - same thing with main_host_event. we should never be processing two events - only one.
     """
 
     watched_events = ["*"]
