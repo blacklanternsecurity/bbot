@@ -181,7 +181,12 @@ class ExcavateRule:
         """
         for identifier, results in yara_results.items():
             for result in results:
-                event_data = {"host": str(event.host), "url": event.data.get("url", "")}
+                if isinstance(event.data, dict):
+                    url = event.data.get("url", "")
+                else:
+                    url = ""
+
+                event_data = {"host": str(event.host), "url": url}
                 event_data["description"] = f"{discovery_context} {yara_rule_settings.description}"
                 if yara_rule_settings.emit_match:
                     event_data["description"] += f" [{result}]"
@@ -268,7 +273,12 @@ class CustomExtractor(ExcavateRule):
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
         for identifier, results in yara_results.items():
             for result in results:
-                event_data = {"host": str(event.host), "url": event.data.get("url", "")}
+                if isinstance(event.data, dict):
+                    url = event.data.get("url", "")
+                else:
+                    url = ""
+
+                event_data = {"host": str(event.host), "url": url}
                 description_string = (
                     f" with description: [{yara_rule_settings.description}]" if yara_rule_settings.description else ""
                 )
@@ -582,9 +592,14 @@ class excavate(BaseInternalModule):
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
+                    if isinstance(event.data, dict):
+                        url = event.data.get("url", "")
+                    else:
+                        url = ""
+
                     event_data = {
                         "host": str(event.host),
-                        "url": event.data.get("url", ""),
+                        "url": url,
                         "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})",
                     }
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
@@ -614,9 +629,14 @@ class excavate(BaseInternalModule):
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
+                    if isinstance(event.data, dict):
+                        url = event.data.get("url", "")
+                    else:
+                        url = ""
+
                     event_data = {
                         "host": str(event.host),
-                        "url": event.data.get("url", ""),
+                        "url": url,
                         "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})",
                     }
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
@@ -696,7 +716,7 @@ class excavate(BaseInternalModule):
                         final_url = url_str
 
                         self.excavate.debug(f"Discovered Full URL [{final_url}]")
-                    elif identifier == "url_attr":
+                    elif identifier == "url_attr" and hasattr(event, "parsed_url"):
                         m = await self.helpers.re.search(self.tag_attribute_regex, url_str)
                         if not m:
                             self.excavate.debug(
