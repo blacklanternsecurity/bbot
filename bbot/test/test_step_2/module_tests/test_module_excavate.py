@@ -891,7 +891,7 @@ class TestExcavateHeaders(ModuleTestBase):
 class TestExcavateRAWTEXT(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/", "test.notreal"]
     modules_overrides = ["excavate", "httpx", "filedownload", "unstructured"]
-    config_overrides = {"web": {"spider_distance": 2, "spider_depth": 2}}
+    config_overrides = {"scope": {"report_distance": 1}, "web": {"spider_distance": 2, "spider_depth": 2}}
 
     pdf_data = r"""%PDF-1.3
 %���� ReportLab Generated PDF document http://www.reportlab.com
