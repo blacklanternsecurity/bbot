@@ -330,8 +330,6 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
 
 ## Documentation
 
-Also see: [Bleeding-Edge Documentation (`dev` branch)](https://www.blacklanternsecurity.com/bbot/dev_branch)
-
 <!-- BBOT DOCS TOC -->
 - **User Manual**
     - **Basics**
