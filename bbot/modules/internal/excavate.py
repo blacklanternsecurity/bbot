@@ -735,7 +735,7 @@ class excavate(BaseInternalModule):
                         self.excavate.debug(
                             f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )
-                    
+
                     if final_url:
                         if self.excavate.scan.in_scope(final_url):
                             urls_found += 1
