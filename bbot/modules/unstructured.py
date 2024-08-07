@@ -98,11 +98,13 @@ class unstructured(BaseModule):
                         )
                         await self.emit_event(file_event)
         elif "file" in event.tags:
-            file_path = event.data["path"]
-            content = await self.scan.helpers.run_in_executor_mp(extract_text, file_path)
+            file_path = Path(event.data["path"])
+            filename = file_path.name
+            content = await self.scan.helpers.run_in_executor_mp(extract_text, str(file_path))
+            event_data = {"filename": filename, "content": content}
             if content:
                 raw_text_event = self.make_event(
-                    content,
+                    event_data,
                     "RAW_TEXT",
                     context=f"Extracted text from {file_path}",
                     parent=event,
