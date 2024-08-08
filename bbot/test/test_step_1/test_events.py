@@ -591,11 +591,18 @@ async def test_event_discovery_context():
     test_event = dummy_module.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
     assert test_event.discovery_context == "dummy_module discovered DNS_NAME: evilcorp.com"
 
-    test_event2 = dummy_module.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event, context="{module} {found} {event.host}")
+    test_event2 = dummy_module.make_event(
+        "evilcorp.com", "DNS_NAME", parent=scan.root_event, context="{module} {found} {event.host}"
+    )
     assert test_event2.discovery_context == "dummy_module {found} evilcorp.com"
     # jank input
-    test_event3 = dummy_module.make_event("http://evilcorp.com/{http://evilcorp.org!@#%@#$:,,,}", "URL_UNVERIFIED", parent=scan.root_event)
-    assert test_event3.discovery_context == "dummy_module discovered URL_UNVERIFIED: http://evilcorp.com/{http:/evilcorp.org!@"
+    test_event3 = dummy_module.make_event(
+        "http://evilcorp.com/{http://evilcorp.org!@#%@#$:,,,}", "URL_UNVERIFIED", parent=scan.root_event
+    )
+    assert (
+        test_event3.discovery_context
+        == "dummy_module discovered URL_UNVERIFIED: http://evilcorp.com/{http:/evilcorp.org!@"
+    )
 
     events = [e async for e in scan.async_start()]
     assert len(events) == 6

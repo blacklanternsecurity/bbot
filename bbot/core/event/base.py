@@ -169,7 +169,7 @@ class BaseEvent:
         self._resolved_hosts = set()
         self.dns_children = dict()
         self._discovery_context = ""
-        self._discovery_context_regex = re.compile(r'\{(?:event|module)[^}]*\}')
+        self._discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
         self.web_spider_distance = 0
 
         # for creating one-off events without enforcing parent requirement
