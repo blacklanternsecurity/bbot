@@ -62,15 +62,21 @@ class EngineBase:
         return error_sentinel
 
     async def _infinite_retry(self, callback, *args, **kwargs):
-        interval = kwargs.pop("_interval", 10)
+        interval = kwargs.pop("_interval", 15)
         context = kwargs.pop("_context", "")
+        # default overall timeout of 5 minutes (15 second interval * 20 iterations)
+        max_retries = kwargs.pop("_max_retries", 4 * 5)
         if not context:
             context = f"{callback.__name__}({args}, {kwargs})"
+        retries = 0
         while not self._shutdown_status:
             try:
                 return await asyncio.wait_for(callback(*args, **kwargs), timeout=interval)
-            except (TimeoutError, asyncio.TimeoutError):
-                self.log.debug(f"{self.name}: Timeout waiting for response for {context}, retrying...")
+            except (TimeoutError, asyncio.exceptions.TimeoutError):
+                self.log.debug(f"{self.name}: Timeout after {interval:,} seconds{context}, retrying...")
+                retries += 1
+                if max_retries is not None and retries > max_retries:
+                    raise TimeoutError(f"Timed out after {max_retries*interval:,} seconds {context}")
 
 
 class EngineClient(EngineBase):
@@ -205,7 +211,9 @@ class EngineClient(EngineBase):
         message = pickle.dumps({"c": -1})
         await self._infinite_retry(socket.send, message)
         while 1:
-            response = await self._infinite_retry(socket.recv, _context=f"waiting for CANCEL_OK from {context}")
+            response = await self._infinite_retry(
+                socket.recv, _context=f"waiting for CANCEL_OK from {context}", _max_retries=4
+            )
             response = pickle.loads(response)
             if isinstance(response, dict):
                 response = response.get("m", "")
@@ -216,9 +224,9 @@ class EngineClient(EngineBase):
         async with self.new_socket() as socket:
             # -99 == special shutdown message
             message = pickle.dumps({"c": -99})
-            with suppress(TimeoutError, asyncio.TimeoutError):
+            with suppress(TimeoutError, asyncio.exceptions.TimeoutError):
                 await asyncio.wait_for(socket.send(message), 0.5)
-            with suppress(TimeoutError, asyncio.TimeoutError):
+            with suppress(TimeoutError, asyncio.exceptions.TimeoutError):
                 while 1:
                     response = await asyncio.wait_for(socket.recv(), 0.5)
                     response = pickle.loads(response)
@@ -390,18 +398,21 @@ class EngineServer(EngineBase):
         with self.client_id_context(client_id):
             try:
                 self.log.debug(f"{self.name} run-and-return {fn_str}")
+                result = error_sentinel
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
-                    error = f"Error in {self.name}.{fn_str}: {e}"
-                    self.log.debug(error)
-                    trace = traceback.format_exc()
-                    self.log.debug(trace)
-                    result = {"_e": (error, trace)}
+                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        error = f"Error in {self.name}.{fn_str}: {e}"
+                        self.log.debug(error)
+                        trace = traceback.format_exc()
+                        self.log.debug(trace)
+                        result = {"_e": (error, trace)}
                 finally:
                     self.tasks.pop(client_id, None)
-                    self.log.debug(f"{self.name}: Sending response to {fn_str}: {result}")
-                    await self.send_socket_multipart(client_id, result)
+                    if result is not error_sentinel:
+                        self.log.debug(f"{self.name}: Sending response to {fn_str}: {result}")
+                        await self.send_socket_multipart(client_id, result)
             except BaseException as e:
                 self.log.critical(
                     f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
@@ -417,14 +428,16 @@ class EngineServer(EngineBase):
                 self.log.debug(f"{self.name} run-and-yield {fn_str}")
                 try:
                     async for _ in command_fn(*args, **kwargs):
+                        self.log.debug(f"{self.name}: sending iteration for {command_fn.__name__}(): {_}")
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
-                    error = f"Error in {self.name}.{fn_str}: {e}"
-                    trace = traceback.format_exc()
-                    self.log.debug(error)
-                    self.log.debug(trace)
-                    result = {"_e": (error, trace)}
-                    await self.send_socket_multipart(client_id, result)
+                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        error = f"Error in {self.name}.{fn_str}: {e}"
+                        trace = traceback.format_exc()
+                        self.log.debug(error)
+                        self.log.debug(trace)
+                        result = {"_e": (error, trace)}
+                        await self.send_socket_multipart(client_id, result)
                 finally:
                     self.log.debug(f"{self.name} reached end of run-and-yield iteration for {command_fn.__name__}()")
                     # _s == special signal that means StopIteration
@@ -537,9 +550,21 @@ class EngineServer(EngineBase):
             self.child_tasks[client_id] = {task}
         return task
 
-    async def finished_tasks(self, client_id):
+    async def finished_tasks(self, client_id, timeout=None):
         child_tasks = self.child_tasks.get(client_id, set())
-        done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED)
+        try:
+            done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+        except BaseException as e:
+            if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):
+                done = set()
+                self.log.warning(f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({child_tasks})")
+                for task in child_tasks:
+                    task.cancel()
+            else:
+                if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                    self.log.error(f"{self.name}: Unhandled exception in finished_tasks({child_tasks}): {e}")
+                    self.log.trace(traceback.format_exc())
+                raise
         self.child_tasks[client_id] = pending
         return done
 
@@ -562,7 +587,7 @@ class EngineServer(EngineBase):
     async def _cancel_task(self, task):
         try:
             await asyncio.wait_for(task, timeout=10)
-        except (TimeoutError, asyncio.TimeoutError):
+        except (TimeoutError, asyncio.exceptions.TimeoutError):
             self.log.debug(f"{self.name}: Timeout cancelling task")
             return
         except (KeyboardInterrupt, asyncio.CancelledError):

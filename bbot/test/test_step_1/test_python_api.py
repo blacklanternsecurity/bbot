@@ -56,6 +56,10 @@ async def test_python_api():
     events = [e async for e in custom_target_scan.async_start()]
     assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp" and "target" in e.tags])
 
+    # presets
+    scan6 = Scanner("evilcorp.com", presets=["subdomain-enum"])
+    assert "sslcert" in scan6.preset.modules
+
 
 def test_python_api_sync():
     from bbot.scanner import Scanner

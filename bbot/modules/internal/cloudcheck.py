@@ -14,7 +14,9 @@ class CloudCheck(InterceptModule):
     def make_dummy_modules(self):
         self.dummy_modules = {}
         for provider_name, provider in self.helpers.cloud.providers.items():
-            self.dummy_modules[provider_name] = self.scan._make_dummy_module(f"cloud_{provider_name}", _type="scan")
+            module = self.scan._make_dummy_module(f"cloud_{provider_name}", _type="scan")
+            module.default_discovery_context = "{module} derived {event.type}: {event.host}"
+            self.dummy_modules[provider_name] = module
 
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):
@@ -27,6 +29,7 @@ class CloudCheck(InterceptModule):
             self.make_dummy_modules()
         # cloud tagging by hosts
         hosts_to_check = set(str(s) for s in event.resolved_hosts)
+        # we use the original host, since storage buckets hostnames might be collapsed to _wildcard
         hosts_to_check.add(str(event.host_original))
         for host in hosts_to_check:
             for provider, provider_type, subnet in self.helpers.cloudcheck(host):

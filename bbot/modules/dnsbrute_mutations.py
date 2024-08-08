@@ -106,7 +106,7 @@ class dnsbrute_mutations(BaseModule):
 
                     # skip if there's hardly any mutations
                     if len(mutations) < 10:
-                        self.debug(
+                        self.verbose(
                             f"Skipping {len(mutations):,} mutations against {domain} because there are less than 10"
                         )
                         break
