@@ -340,8 +340,8 @@ class BaseEvent:
     @discovery_context.setter
     def discovery_context(self, context):
         try:
-            context = context.replace("{", "{{").replace("}", "}}")
-            self._discovery_context = context.format(module=self.module, event=self)
+            cleaned_context = context.replace("{", "{{").replace("}", "}}")
+            self._discovery_context = cleaned_context.format(module=self.module, event=self)
         except Exception as e:
             log.trace(f"Error formatting discovery context for {self}: {e} (context: '{context}')")
             self._discovery_context = context
