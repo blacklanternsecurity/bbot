@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.n2ickqiv.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.7pyjke_r.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -398,6 +398,13 @@
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
 <li class="md-nav__item">
+<a class="md-nav__link" href="#adding-bbot-to-your-python-project">
+<span class="md-ellipsis">
+      Adding BBOT to Your Python Project
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#running-a-bbot-scan-from-python">
 <span class="md-ellipsis">
       Running a BBOT Scan from Python
@@ -619,6 +626,14 @@
 <h1 id="bbot-developer-reference">BBOT Developer Reference</h1>
 <p>BBOT exposes a Python API that allows you to create, start, and stop scans.</p>
 <p>Documented in this section are commonly-used classes and functions within BBOT, along with usage examples.</p>
+<h2 id="adding-bbot-to-your-python-project">Adding BBOT to Your Python Project</h2>
+<p>If you are using Poetry, you can add BBOT to your python environment like this:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># stable</span>
+poetry<span style="color: #6e7681"> </span>add<span style="color: #6e7681"> </span>bbot
+
+<span style="color: #8b949e; font-style: italic"># bleeding-edge (dev branch)</span>
+poetry<span style="color: #6e7681"> </span>add<span style="color: #6e7681"> </span>bbot<span style="color: #6e7681"> </span>--allow-prereleases
+</code></pre></div>
 <h2 id="running-a-bbot-scan-from-python">Running a BBOT Scan from Python</h2>
 <h4 id="synchronous">Synchronous</h4>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">from</span> <span style="color: #ff7b72">bbot.scanner</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">Scanner</span>

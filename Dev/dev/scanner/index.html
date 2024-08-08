@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.n2ickqiv.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.7pyjke_r.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -2041,17 +2041,7 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1206</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1207</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1208</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1209</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1210</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1211</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1212</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1213</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1214</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1215</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1216</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1217</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1218</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1219</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">Scanner</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1209</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">Scanner</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""A class representing a single BBOT scan</span>
 
 <span style="color: #a5d6ff">    Examples:</span>
@@ -3237,16 +3227,6 @@
             <span style="color: #e6edf3">dummy</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">DummyModule(scan</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self,</span> <span style="color: #e6edf3">name</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">name,</span> <span style="color: #e6edf3">_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">_type)</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dummy_modules[name]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">dummy</span>
             <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">dummy</span>
-
-    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_make_dummy_module_dns</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">name):</span>
-        <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">dummy_module</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dummy_modules[name]</span>
-        <span style="color: #ff7b72">except</span> <span style="color: #f0883e; font-weight: bold">KeyError</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">dummy_module</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_make_dummy_module(name</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">name,</span> <span style="color: #e6edf3">_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"DNS"</span><span style="color: #e6edf3">)</span>
-            <span style="color: #e6edf3">dummy_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">suppress_dupes</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
-            <span style="color: #e6edf3">dummy_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_priority</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">4</span>
-            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dummy_modules[name]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">dummy_module</span>
-        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">dummy_module</span>
 </code></pre></div></td></tr></table></div>
 </details>
 <div class="doc doc-children">
