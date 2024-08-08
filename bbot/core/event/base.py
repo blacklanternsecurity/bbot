@@ -169,6 +169,7 @@ class BaseEvent:
         self._resolved_hosts = set()
         self.dns_children = dict()
         self._discovery_context = ""
+        self._discovery_context_regex = re.compile(r'\{(?:event|module)[^}]*\}')
         self.web_spider_distance = 0
 
         # for creating one-off events without enforcing parent requirement
@@ -339,9 +340,12 @@ class BaseEvent:
 
     @discovery_context.setter
     def discovery_context(self, context):
+        def replace(match):
+            s = match.group()
+            return s.format(module=self.module, event=self)
+
         try:
-            cleaned_context = context.replace("{", "{{").replace("}", "}}")
-            self._discovery_context = cleaned_context.format(module=self.module, event=self)
+            self._discovery_context = self._discovery_context_regex.sub(replace, context)
         except Exception as e:
             log.trace(f"Error formatting discovery context for {self}: {e} (context: '{context}')")
             self._discovery_context = context
