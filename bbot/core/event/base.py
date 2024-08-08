@@ -113,6 +113,9 @@ class BaseEvent:
     _data_validator = None
     # Whether to increment scope distance if the child and parent hosts are the same
     _scope_distance_increment_same_host = False
+    # Don't allow duplicates to occur within a parent chain
+    # In other words, don't emit the event if the same one already exists in its discovery context
+    _suppress_chain_dupes = False
 
     def __init__(
         self,
@@ -1176,6 +1179,7 @@ class URL(URL_UNVERIFIED):
 
 class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
     _always_emit = True
+    _suppress_chain_dupes = True
 
     class _data_validator(BaseModel):
         name: str

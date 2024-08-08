@@ -53,7 +53,7 @@ class bucket_template(BaseModule):
                 bucket_name = d.join(split)
                 buckets.add(bucket_name)
         async for bucket_name, url, tags, num_buckets in self.brute_buckets(buckets, permutations=self.permutations):
-            await self.emit_event(
+            await self.emit_storage_bucket(
                 {"name": bucket_name, "url": url},
                 "STORAGE_BUCKET",
                 parent=event,
@@ -79,13 +79,24 @@ class bucket_template(BaseModule):
         async for bucket_name, new_url, tags, num_buckets in self.brute_buckets(
             [bucket_name], permutations=self.permutations, omit_base=True
         ):
-            await self.emit_event(
+            await self.emit_storage_bucket(
                 {"name": bucket_name, "url": new_url},
                 "STORAGE_BUCKET",
                 parent=event,
                 tags=tags,
                 context=f"{{module}} tried {num_buckets:,} variations of {url} and found {{event.type}} at {new_url}",
             )
+
+    async def emit_storage_bucket(self, event_data, event_type, parent, tags, context):
+        event_data["url"] = self.clean_bucket_url(event_data["url"])
+        self.hugewarning(event_data)
+        await self.emit_event(
+            event_data,
+            event_type,
+            parent=parent,
+            tags=tags,
+            context=context,
+        )
 
     async def brute_buckets(self, buckets, permutations=False, omit_base=False):
         buckets = set(buckets)
@@ -111,6 +122,10 @@ class bucket_template(BaseModule):
             existent_bucket, tags = self._check_bucket_exists(bucket_name, response)
             if existent_bucket:
                 yield bucket_name, url, tags, num_buckets
+
+    def clean_bucket_url(self, url):
+        # if needed, modify the bucket url before emitting it
+        return url
 
     def build_bucket_request(self, bucket_name, base_domain, region):
         url = self.build_url(bucket_name, base_domain, region)
