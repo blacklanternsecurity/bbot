@@ -122,7 +122,7 @@ class ConfigAwareHelper:
         cookies=None,
         method="GET",
         data=None,
-        timeout=15,
+        timeout=10,
     ):
         return HttpCompare(
             url,

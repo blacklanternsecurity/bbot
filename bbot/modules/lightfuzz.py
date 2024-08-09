@@ -64,7 +64,7 @@ class lightfuzz(BaseModule):
 
         for m in self.enabled_submodules:
             if m not in self.submodules:
-                self.hugewarning(f"Invalid Lightfuzz submodule ({m}) specified in enabeld_modules")
+                self.hugewarning(f"Invalid Lightfuzz submodule ({m}) specified in enabled_modules")
                 return False
 
         for submodule, submodule_dict in self.submodules.items():
@@ -174,10 +174,17 @@ class lightfuzz(BaseModule):
                 await self.emit_event(data, "WEB_PARAMETER", event)
 
         elif event.type == "WEB_PARAMETER":
-            for submodule, submodule_dict in self.submodules.items():
-                if getattr(self, submodule):
-                    self.debug(f"Starting {submodule_dict['description']} fuzz()")
-                    await self.run_submodule(submodule_dict["module"], event)
+
+            # check connectivity to url
+            connectivity_test = await self.helpers.request(event.data["url"], timeout=10)
+
+            if connectivity_test:
+                for submodule, submodule_dict in self.submodules.items():
+                    if getattr(self, submodule):
+                        self.debug(f"Starting {submodule_dict['description']} fuzz()")
+                        await self.run_submodule(submodule_dict["module"], event)
+            else:
+                self.debug(f'WEB_PARAMETER URL {event.data["url"]} failed connectivity test, aborting')
 
     async def cleanup(self):
         if self.interactsh_instance:

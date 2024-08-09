@@ -19,7 +19,7 @@ class HttpCompare:
         include_cache_buster=True,
         headers=None,
         cookies=None,
-        timeout=15,
+        timeout=10,
     ):
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
@@ -30,7 +30,7 @@ class HttpCompare:
         self._baselined = False
         self.headers = headers
         self.cookies = cookies
-        self.timeout = 15
+        self.timeout = 10
 
     @staticmethod
     def merge_dictionaries(headers1, headers2):

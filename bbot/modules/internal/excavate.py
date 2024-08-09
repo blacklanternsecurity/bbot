@@ -448,7 +448,7 @@ class excavate(BaseInternalModule):
 
         class GenericForm(GetForm):
             name = "Generic Form"
-            discovery_regex = r'/form[^>]*>.*<\/form>/s nocase'
+            discovery_regex = r"/form[^>]*>.*<\/form>/s nocase"
 
         class PostForm(GetForm):
             name = "POST Form"

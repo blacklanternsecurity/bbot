@@ -77,7 +77,6 @@ class BaseLightfuzz:
         additional_params_override={},
         speculative_mode="GETPARAM",
     ):
-
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
         if additional_params_override:
             for k, v in additional_params_override.items():

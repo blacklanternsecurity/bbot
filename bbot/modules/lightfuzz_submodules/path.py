@@ -12,7 +12,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
 
         original_value = str(self.event.data.get("original_value", ""))
         if original_value is not None and original_value != "1":
-            probe_value = original_value
+            probe_value = urllib.parse.quote(original_value)
         else:
             self.lightfuzz.debug(
                 f"Path Traversal detection requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
@@ -54,9 +54,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             confirmations = 0
             while iterations > 0:
                 try:
-
                     http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
-
                     singledot_probe = await self.compare_probe(
                         http_compare, self.event.data["type"], payloads["singledot_payload"], cookies
                     )
@@ -70,7 +68,6 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                         and doubledot_probe[3] != None
                         and doubledot_probe[1] != ["header"]
                     ):
-
                         confirmations += 1
                         self.lightfuzz.verbose(
                             f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations"
