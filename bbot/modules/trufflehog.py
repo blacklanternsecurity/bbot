@@ -45,20 +45,22 @@ class trufflehog(BaseModule):
         self.deleted_forks = self.config.get("deleted_forks", False)
         self.github_token = ""
         if self.deleted_forks:
-            self.warning(f"Deleted forks is enabled. Scanning for deleted forks is slooooooowwwww. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.")
+            self.warning(
+                f"Deleted forks is enabled. Scanning for deleted forks is slooooooowwwww. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours."
+            )
             for module_name in ("github", "github_codesearch", "github_org", "git_clone"):
                 module_config = self.scan.config.get("modules", {}).get(module_name, {})
                 api_key = module_config.get("api_key", "")
                 if api_key:
                     self.github_token = api_key
                     break
-            
+
             # soft-fail if we don't have a github token as well
             if not self.github_token:
                 self.deleted_forks = False
                 return None, "A github api_key must be provided to the github modules for deleted forks to be scanned"
         return True
-    
+
     async def filter_event(self, event):
         if event.type == "CODE_REPOSITORY":
             if self.deleted_forks:
@@ -142,7 +144,7 @@ class trufflehog(BaseModule):
             command.append("--repo=" + path)
             command.append("--object-discovery")
             command.append("--delete-cached-data")
-            command.append("--token="+ self.github_token)
+            command.append("--token=" + self.github_token)
 
         stats_file = self.helpers.tempfile_tail(callback=self.log_trufflehog_status)
         try:
