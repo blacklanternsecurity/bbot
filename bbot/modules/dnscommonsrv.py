@@ -1,4 +1,4 @@
-from bbot.modules.base import BaseModule
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 # the following are the result of a 1-day internet survey to find the top SRV records
 # the scan resulted in 36,282 SRV records. the count for each one is shown.
@@ -147,35 +147,36 @@ common_srvs = [
     "_imap",  # 1
     "_iax",  # 1
 ]
+num_srvs = len(common_srvs)
 
 
-class dnscommonsrv(BaseModule):
+class dnscommonsrv(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Check for common SRV records", "created_date": "2022-05-15", "author": "@TheTechromancer"}
-    options = {"top": 50, "max_event_handlers": 10}
-    options_desc = {
-        "top": "How many of the top SRV records to check",
-        "max_event_handlers": "How many instances of the module to run concurrently",
-    }
-    _max_event_handlers = 10
+    dedup_strategy = "lowest_parent"
 
-    def _incoming_dedup_hash(self, event):
-        # dedupe by parent
-        parent_domain = self.helpers.parent_domain(event.data)
-        return hash(parent_domain), "already processed parent domain"
+    options = {"max_depth": 2}
+    options_desc = {"max_depth": "The maximum subdomain depth to brute-force SRV records"}
+
+    async def setup(self):
+        self.max_subdomain_depth = self.config.get("max_depth", 2)
+        return True
 
     async def filter_event(self, event):
-        # skip SRV wildcards
-        if "SRV" in await self.helpers.is_wildcard(event.host):
-            return False
+        subdomain_depth = self.helpers.subdomain_depth(event.host)
+        if subdomain_depth > self.max_subdomain_depth:
+            return False, f"its subdomain depth ({subdomain_depth}) exceeds max_depth={self.max_subdomain_depth}"
         return True
 
     async def handle_event(self, event):
-        top = int(self.config.get("top", 50))
-        parent_domain = self.helpers.parent_domain(event.data)
-        queries = [f"{srv}.{parent_domain}" for srv in common_srvs[:top]]
-        async for query, results in self.helpers.resolve_batch(queries, type="srv"):
-            if results:
-                await self.emit_event(query, "DNS_NAME", tags=["srv-record"], source=event)
+        query = self.make_query(event)
+        self.verbose(f'Brute-forcing {num_srvs:,} SRV records for "{query}"')
+        for hostname in await self.helpers.dns.brute(self, query, common_srvs, type="SRV"):
+            await self.emit_event(
+                hostname,
+                "DNS_NAME",
+                parent=event,
+                context=f'{{module}} tried {num_srvs:,} common SRV records against "{query}" and found {{event.type}}: {{event.data}}',
+            )

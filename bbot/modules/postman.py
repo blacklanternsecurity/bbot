@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class postman(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["passive", "subdomain-enum", "safe"]
+    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
     meta = {
         "description": "Query Postman's API for related workspaces, collections, requests",
         "created_date": "2023-12-23",
@@ -23,14 +23,11 @@ class postman(subdomain_enum):
 
     reject_wildcards = False
 
-    # wait until outgoing queue is empty to help avoid rate limits
-    _qsize = 1
-
     async def handle_event(self, event):
         query = self.make_query(event)
         self.verbose(f"Searching for any postman workspaces, collections, requests belonging to {query}")
-        for url in await self.query(query):
-            await self.emit_event(url, "URL_UNVERIFIED", source=event, tags="httpx-safe")
+        for url, context in await self.query(query):
+            await self.emit_event(url, "URL_UNVERIFIED", parent=event, tags="httpx-safe", context=context)
 
     async def query(self, query):
         interesting_urls = []
@@ -78,16 +75,46 @@ class postman(subdomain_enum):
             tldextract = self.helpers.tldextract(query)
             if tldextract.domain.lower() in name.lower():
                 self.verbose(f"Discovered workspace {name} ({id})")
-                interesting_urls.append(f"{self.base_url}/workspace/{id}")
+                workspace_url = f"{self.base_url}/workspace/{id}"
+                interesting_urls.append(
+                    (
+                        workspace_url,
+                        f'{{module}} searched postman.com for "{query}" and found matching workspace "{name}" at {{event.type}}: {workspace_url}',
+                    )
+                )
                 environments, collections = await self.search_workspace(id)
-                interesting_urls.append(f"{self.base_url}/workspace/{id}/globals")
+                globals_url = f"{self.base_url}/workspace/{id}/globals"
+                interesting_urls.append(
+                    (
+                        globals_url,
+                        f'{{module}} searched postman.com for "{query}", found matching workspace "{name}" at {workspace_url}, and found globals at {{event.type}}: {globals_url}',
+                    )
+                )
                 for e_id in environments:
-                    interesting_urls.append(f"{self.base_url}/environment/{e_id}")
+                    env_url = f"{self.base_url}/environment/{e_id}"
+                    interesting_urls.append(
+                        (
+                            env_url,
+                            f'{{module}} searched postman.com for "{query}", found matching workspace "{name}" at {workspace_url}, enumerated environments, and found {{event.type}}: {env_url}',
+                        )
+                    )
                 for c_id in collections:
-                    interesting_urls.append(f"{self.base_url}/collection/{c_id}")
+                    collection_url = f"{self.base_url}/collection/{c_id}"
+                    interesting_urls.append(
+                        (
+                            collection_url,
+                            f'{{module}} searched postman.com for "{query}", found matching workspace "{name}" at {workspace_url}, enumerated collections, and found {{event.type}}: {collection_url}',
+                        )
+                    )
                 requests = await self.search_collections(id)
                 for r_id in requests:
-                    interesting_urls.append(f"{self.base_url}/request/{r_id}")
+                    request_url = f"{self.base_url}/request/{r_id}"
+                    interesting_urls.append(
+                        (
+                            request_url,
+                            f'{{module}} searched postman.com for "{query}", found matching workspace "{name}" at {workspace_url}, enumerated requests, and found {{event.type}}: {request_url}',
+                        )
+                    )
             else:
                 self.verbose(f"Skipping workspace {name} ({id}) as it does not appear to be in scope")
         return interesting_urls

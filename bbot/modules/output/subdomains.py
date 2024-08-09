@@ -1,8 +1,8 @@
+from bbot.modules.output.txt import TXT
 from bbot.modules.base import BaseModule
-from bbot.modules.output.human import Human
 
 
-class Subdomains(Human):
+class Subdomains(TXT):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
     flags = ["subdomain-enum"]
     meta = {

@@ -40,6 +40,8 @@ class speculate(BaseInternalModule):
     scope_distance_modifier = 1
     _priority = 4
 
+    default_discovery_context = "speculated {event.type}: {event.data}"
+
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in scan_modules])
@@ -49,7 +51,7 @@ class speculate(BaseInternalModule):
         )
         self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         self.range_to_ip = True
-        self.dns_resolution = self.scan.config.get("dns_resolution", True)
+        self.dns_disable = self.scan.config.get("dns", {}).get("disable", False)
         self.org_stubs_seen = set()
 
         port_string = self.config.get("ports", "80,443")
@@ -67,7 +69,7 @@ class speculate(BaseInternalModule):
                 self.hugewarning(
                     f"Selected target ({target_len:,} hosts) is too large, skipping IP_RANGE --> IP_ADDRESS speculation"
                 )
-                self.hugewarning(f"Enabling a port scanner (nmap or masscan) module is highly recommended")
+                self.hugewarning(f'Enabling the "portscan" module is highly recommended')
             self.range_to_ip = False
 
         return True
@@ -79,13 +81,21 @@ class speculate(BaseInternalModule):
             ips = list(net)
             random.shuffle(ips)
             for ip in ips:
-                await self.emit_event(ip, "IP_ADDRESS", source=event, internal=True)
+                await self.emit_event(
+                    ip,
+                    "IP_ADDRESS",
+                    parent=event,
+                    internal=True,
+                    context=f"speculate converted range into individual IP_ADDRESS: {ip}",
+                )
 
         # parent domains
-        if event.type == "DNS_NAME":
+        if event.type.startswith("DNS_NAME"):
             parent = self.helpers.parent_domain(event.data)
             if parent != event.data:
-                await self.emit_event(parent, "DNS_NAME", source=event, internal=True)
+                await self.emit_event(
+                    parent, "DNS_NAME", parent=event, context=f"speculated parent {{event.type}}: {{event.data}}"
+                )
 
         # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
@@ -98,42 +108,48 @@ class speculate(BaseInternalModule):
                 await self.emit_event(
                     self.helpers.make_netloc(event.host, event.port),
                     "OPEN_TCP_PORT",
-                    source=event,
+                    parent=event,
                     internal=True,
                     quick=(event.type == "URL"),
+                    context=f"speculated {{event.type}} from {event.type}: {{event.data}}",
                 )
 
         # speculate sub-directory URLS from URLS
         if event.type == "URL":
             url_parents = self.helpers.url_parents(event.data)
             for up in url_parents:
-                url_event = self.make_event(f"{up}/", "URL_UNVERIFIED", source=event)
+                url_event = self.make_event(f"{up}/", "URL_UNVERIFIED", parent=event)
                 if url_event is not None:
                     # inherit web spider distance from parent (don't increment)
-                    source_web_spider_distance = getattr(event, "web_spider_distance", 0)
-                    url_event.web_spider_distance = source_web_spider_distance
-                    await self.emit_event(url_event)
+                    parent_web_spider_distance = getattr(event, "web_spider_distance", 0)
+                    url_event.web_spider_distance = parent_web_spider_distance
+                    await self.emit_event(url_event, context="speculated web sub-directory {event.type}: {event.data}")
 
         # speculate URL_UNVERIFIED from URL or any event with "url" attribute
         event_is_url = event.type == "URL"
         event_has_url = isinstance(event.data, dict) and "url" in event.data
+        event_tags = ["httpx-safe"] if event.type in ("CODE_REPOSITORY", "SOCIAL") else []
         if event_is_url or event_has_url:
             if event_is_url:
                 url = event.data
             else:
                 url = event.data["url"]
-            if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_sources()):
-                tags = None
-                if self.helpers.is_spider_danger(event.source, url):
-                    tags = ["spider-danger"]
-                await self.emit_event(url, "URL_UNVERIFIED", tags=tags, source=event)
+            # only emit the url if it's not already in the event's history
+            if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_parents()):
+                await self.emit_event(
+                    url,
+                    "URL_UNVERIFIED",
+                    tags=event_tags,
+                    parent=event,
+                    context="speculated {event.type}: {event.data}",
+                )
 
-        # from hosts
+        # IP_ADDRESS / DNS_NAME --> OPEN_TCP_PORT
         if speculate_open_ports:
             # don't act on unresolved DNS_NAMEs
             usable_dns = False
             if event.type == "DNS_NAME":
-                if (not self.dns_resolution) or ("a-record" in event.tags or "aaaa-record" in event.tags):
+                if self.dns_disable or ("a-record" in event.tags or "aaaa-record" in event.tags):
                     usable_dns = True
 
             if event.type == "IP_ADDRESS" or usable_dns:
@@ -141,13 +157,11 @@ class speculate(BaseInternalModule):
                     await self.emit_event(
                         self.helpers.make_netloc(event.data, port),
                         "OPEN_TCP_PORT",
-                        source=event,
+                        parent=event,
                         internal=True,
                         quick=True,
+                        context="speculated {event.type}: {event.data}",
                     )
-
-        # storage buckets etc.
-        self.helpers.cloud.speculate(event)
 
         # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
         org_stubs = set()
@@ -171,23 +185,14 @@ class speculate(BaseInternalModule):
             stub_hash = hash(stub)
             if stub_hash not in self.org_stubs_seen:
                 self.org_stubs_seen.add(stub_hash)
-                stub_event = self.make_event(stub, "ORG_STUB", source=event)
+                stub_event = self.make_event(stub, "ORG_STUB", parent=event)
                 if stub_event:
-                    if event.scope_distance > 0:
-                        stub_event.scope_distance = event.scope_distance
-                    await self.emit_event(stub_event)
+                    await self.emit_event(stub_event, context="speculated {event.type}: {event.data}")
 
         # USERNAME --> EMAIL
         if event.type == "USERNAME":
             email = event.data.split(":", 1)[-1]
             if validators.soft_validate(email, "email"):
-                email_event = self.make_event(email, "EMAIL_ADDRESS", source=event, tags=["affiliate"])
+                email_event = self.make_event(email, "EMAIL_ADDRESS", parent=event, tags=["affiliate"])
                 if email_event:
-                    email_event.scope_distance = event.scope_distance
-                    await self.emit_event(email_event)
-
-    async def filter_event(self, event):
-        # don't accept errored DNS_NAMEs
-        if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
-            return False, "there were errors resolving this hostname"
-        return True
+                    await self.emit_event(email_event, context="detected {event.type}: {event.data}")

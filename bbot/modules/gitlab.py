@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class gitlab(BaseModule):
     watched_events = ["HTTP_RESPONSE", "TECHNOLOGY", "SOCIAL"]
     produced_events = ["TECHNOLOGY", "SOCIAL", "CODE_REPOSITORY", "FINDING"]
-    flags = ["active", "safe"]
+    flags = ["active", "safe", "code-enum"]
     meta = {
         "description": "Detect GitLab instances and query them for repositories",
         "created_date": "2024-03-11",
@@ -51,14 +51,19 @@ class gitlab(BaseModule):
         # HTTP_RESPONSE --> FINDING
         headers = event.data.get("header", {})
         if "x_gitlab_meta" in headers:
-            url = event.parsed._replace(path="/").geturl()
+            url = event.parsed_url._replace(path="/").geturl()
             await self.emit_event(
-                {"host": str(event.host), "technology": "GitLab", "url": url}, "TECHNOLOGY", source=event
+                {"host": str(event.host), "technology": "GitLab", "url": url},
+                "TECHNOLOGY",
+                parent=event,
+                context=f"{{module}} detected {{event.type}}: GitLab at {url}",
             )
+            description = f"GitLab server at {event.host}"
             await self.emit_event(
-                {"host": str(event.host), "description": f"GitLab server at {event.host}"},
+                {"host": str(event.host), "description": description},
                 "FINDING",
-                source=event,
+                parent=event,
+                context=f"{{module}} detected {{event.type}}: {description}",
             )
 
     async def handle_technology(self, event):
@@ -93,9 +98,10 @@ class gitlab(BaseModule):
         for project in await self.gitlab_json_request(projects_url):
             project_url = project.get("web_url", "")
             if project_url:
-                code_event = self.make_event({"url": project_url}, "CODE_REPOSITORY", tags="git", source=event)
-                code_event.scope_distance = event.scope_distance
-                await self.emit_event(code_event)
+                code_event = self.make_event({"url": project_url}, "CODE_REPOSITORY", tags="git", parent=event)
+                await self.emit_event(
+                    code_event, context=f"{{module}} enumerated projects and found {{event.type}} at {project_url}"
+                )
             namespace = project.get("namespace", {})
             if namespace:
                 await self.handle_namespace(namespace, event)
@@ -124,10 +130,12 @@ class gitlab(BaseModule):
             social_event = self.make_event(
                 {"platform": "gitlab", "profile_name": namespace_path, "url": namespace_url},
                 "SOCIAL",
-                source=event,
+                parent=event,
             )
-            social_event.scope_distance = event.scope_distance
-            await self.emit_event(social_event)
+            await self.emit_event(
+                social_event,
+                context=f'{{module}} found GitLab namespace ({{event.type}}) "{namespace_name}" at {namespace_url}',
+            )
 
     def get_base_url(self, event):
         base_url = event.data.get("url", "")

@@ -48,17 +48,20 @@ class github_workflows(github):
                 run_id = run.get("id")
                 self.log.debug(f"Downloading logs for {workflow_name}/{run_id} in {owner}/{repo}")
                 for log in await self.download_run_logs(owner, repo, run_id):
+                    workflow_url = f"https://github.com/{owner}/{repo}/actions/runs/{run_id}"
                     logfile_event = self.make_event(
                         {
                             "path": str(log),
-                            "description": f"Workflow run logs from https://github.com/{owner}/{repo}/actions/runs/{run_id}",
+                            "description": f"Workflow run logs from {workflow_url}",
                         },
                         "FILESYSTEM",
                         tags=["textfile"],
-                        source=event,
+                        parent=event,
                     )
-                    logfile_event.scope_distance = event.scope_distance
-                    await self.emit_event(logfile_event)
+                    await self.emit_event(
+                        logfile_event,
+                        context=f"{{module}} downloaded workflow run logs from {workflow_url} to {{event.type}}: {log}",
+                    )
 
     async def get_workflows(self, owner, repo):
         workflows = []

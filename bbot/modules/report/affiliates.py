@@ -28,7 +28,7 @@ class affiliates(BaseReportModule):
             count = stats["count"]
             weight = stats["weight"]
             table.append([domain, f"{weight:.2f}", f"{count:,}"])
-        self.log_table(table, header, table_name="affiliates")
+        self.log_table(table, header, table_name="affiliates", max_log_entries=50)
 
     def add_affiliate(self, event):
         if event.scope_distance > 0 and event.host and isinstance(event.host, str):

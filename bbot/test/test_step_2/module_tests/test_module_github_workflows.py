@@ -448,7 +448,7 @@ class TestGithub_Workflows(ModuleTestBase):
             ]
         ), "Failed to emit target DNS_NAME"
         assert 1 == len(
-            [e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity" and e.scope_distance == 1]
+            [e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity" and e.scope_distance == 0]
         ), "Failed to find ORG_STUB"
         assert 1 == len(
             [
@@ -457,7 +457,8 @@ class TestGithub_Workflows(ModuleTestBase):
                 if e.type == "SOCIAL"
                 and e.data["platform"] == "github"
                 and e.data["profile_name"] == "blacklanternsecurity"
-                and "github-org" in e.tags
+                and e.data["url"] == "https://github.com/blacklanternsecurity"
+                and str(e.module) == "github_org"
                 and e.scope_distance == 1
             ]
         ), "Failed to find blacklanternsecurity github"
