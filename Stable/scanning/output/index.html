@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.xrba8u6m.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.c5k7f2d4.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -117,7 +117,7 @@
         </a>
 </li>
 <li class="md-tabs__item">
-<a class="md-tabs__link" href="../../contribution/">
+<a class="md-tabs__link" href="../../dev/">
           
   
   Developer Manual
@@ -223,6 +223,37 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Presets
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            Presets
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../presets/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../presets_list/">
+<span class="md-ellipsis">
+    List of Presets
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../events/">
 <span class="md-ellipsis">
@@ -258,9 +289,16 @@
 <nav aria-label="Output Modules" class="md-nav">
 <ul class="md-nav__list">
 <li class="md-nav__item">
-<a class="md-nav__link" href="#human">
+<a class="md-nav__link" href="#stdout">
 <span class="md-ellipsis">
-      Human
+      STDOUT
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#txt">
+<span class="md-ellipsis">
+      TXT
     </span>
 </a>
 </li>
@@ -407,6 +445,13 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+<span class="md-ellipsis">
+    Contribution
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../release_history/">
 <span class="md-ellipsis">
     Release History
@@ -441,13 +486,6 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../contribution/">
-<span class="md-ellipsis">
-    How to Write a Module
-  </span>
-</a>
-</li>
-<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/">
 <span class="md-ellipsis">
     Development Overview
@@ -455,9 +493,65 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/dev_environment/">
+<span class="md-ellipsis">
+    Setting Up a Dev Environment
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/architecture/">
+<span class="md-ellipsis">
+    BBOT Internal Architecture
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/module_howto/">
+<span class="md-ellipsis">
+    How to Write a BBOT Module
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/tests/">
+<span class="md-ellipsis">
+    Unit Tests
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/discord_bot/">
+<span class="md-ellipsis">
+    Discord Bot Example
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<span class="md-ellipsis">
+    Code Reference
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_7">
+<span class="md-nav__icon md-icon"></span>
+            Code Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/scanner/">
 <span class="md-ellipsis">
     Scanner
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/presets/">
+<span class="md-ellipsis">
+    Presets
   </span>
 </a>
 </li>
@@ -482,16 +576,30 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core/">
+<span class="md-ellipsis">
+    BBOTCore
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/engine/">
+<span class="md-ellipsis">
+    Engine
+  </span>
+</a>
+</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
 <span class="md-ellipsis">
     Helpers
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_7_8">
 <span class="md-nav__icon md-icon"></span>
             Helpers
           </label>
@@ -553,6 +661,9 @@
 </li>
 </ul>
 </nav>
+</li>
+</ul>
+</nav>
 </div>
 </div>
 </div>
@@ -565,8 +676,54 @@
 <p>If you reuse a scan name, it will append to its original output files and leverage the previous.</p>
 <h2 id="output-modules">Output Modules</h2>
 <p>Multiple simultaneous output formats are possible because of <strong>output modules</strong>. Output modules are similar to normal modules except they are enabled with <code>-om</code>.</p>
-<h3 id="human">Human</h3>
-<p><code>human</code> output is tab-delimited, so it's easy to grep:</p>
+<h3 id="stdout">STDOUT</h3>
+<p>The <code>stdout</code> output module is what you see when you execute BBOT in the terminal. By default it looks the same as the <a href="#txt"><code>txt</code></a> module, but it has options you can customize. You can filter by event type, choose the data format (<code>text</code>, <code>json</code>), and which fields you want to see:</p>
+<!-- BBOT MODULE OPTIONS STDOUT -->
+<table>
+<thead>
+<tr>
+<th>Config Option</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>modules.stdout.accept_dupes</td>
+<td>bool</td>
+<td>Whether to show duplicate events, default True</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.stdout.event_fields</td>
+<td>list</td>
+<td>Which event fields to display</td>
+<td>[]</td>
+</tr>
+<tr>
+<td>modules.stdout.event_types</td>
+<td>list</td>
+<td>Which events to display, default all event types</td>
+<td>[]</td>
+</tr>
+<tr>
+<td>modules.stdout.format</td>
+<td>str</td>
+<td>Which text format to display, choices: text,json</td>
+<td>text</td>
+</tr>
+<tr>
+<td>modules.stdout.in_scope_only</td>
+<td>bool</td>
+<td>Whether to only show in-scope events</td>
+<td>False</td>
+</tr>
+</tbody>
+</table>
+<!-- END BBOT MODULE OPTIONS STDOUT -->
+<h3 id="txt">TXT</h3>
+<p><code>txt</code> output is tab-delimited, so it's easy to grep:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># grep out only the DNS_NAMEs</span>
 cat<span style="color: #6e7681"> </span>~/.bbot/scans/extreme_johnny/output.txt<span style="color: #6e7681"> </span><span style="color: #e6edf3">|</span><span style="color: #6e7681"> </span>grep<span style="color: #6e7681"> </span><span style="color: #a5d6ff">'[DNS_NAME]'</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">|</span><span style="color: #6e7681"> </span>cut<span style="color: #6e7681"> </span>-f2
 evilcorp.com
@@ -634,7 +791,7 @@ mail.evilcorp.com
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"scan"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"SCAN:64c0e076516ae7aa6502fd99489693d0d5ec26cc"</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"timestamp"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1688518967.740472</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"resolved_hosts"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"1.2.3.4"</span><span style="color: #e6edf3">],</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"source"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:2da045542abbf86723f22383d04eb453e573723c"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"parent"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:2da045542abbf86723f22383d04eb453e573723c"</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"tags"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"distance-1"</span><span style="color: #e6edf3">,</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"ipv4"</span><span style="color: #e6edf3">,</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"internal"</span><span style="color: #e6edf3">],</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"module"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"A"</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"module_sequence"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"A"</span>
@@ -642,7 +799,7 @@ mail.evilcorp.com
 </code></pre></div>
 <p>You can filter on the JSON output with <code>jq</code>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># pull out only the .data attribute of every DNS_NAME</span>
-$<span style="color: #6e7681"> </span>jq<span style="color: #6e7681"> </span>-r<span style="color: #6e7681"> </span><span style="color: #a5d6ff">'select(.type=="DNS_NAME") | .data'</span><span style="color: #6e7681"> </span>~/.bbot/scans/extreme_johnny/output.ndjson
+$<span style="color: #6e7681"> </span>jq<span style="color: #6e7681"> </span>-r<span style="color: #6e7681"> </span><span style="color: #a5d6ff">'select(.type=="DNS_NAME") | .data'</span><span style="color: #6e7681"> </span>~/.bbot/scans/extreme_johnny/output.json
 evilcorp.com
 www.evilcorp.com
 mail.evilcorp.com
@@ -650,15 +807,15 @@ mail.evilcorp.com
 <h3 id="discord-slack-teams">Discord / Slack / Teams</h3>
 <p><img alt="bbot-discord" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/6d88045c-8eac-43b6-8de9-c621ecf60c2d"/></p>
 <p>BBOT supports output via webhooks to <code>discord</code>, <code>slack</code>, and <code>teams</code>. To use them, you must specify a webhook URL either in the config:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">output_modules</span><span style="color: #e6edf3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">discord</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #7ee787">webhook_url</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">https://discord.com/api/webhooks/1234/deadbeef</span>
 </code></pre></div>
 <p>...or on the command line:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>discord<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>output_modules.discord.webhook_url<span style="color: #ff7b72; font-weight: bold">=</span>https://discord.com/api/webhooks/1234/deadbeef
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>discord<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>modules.discord.webhook_url<span style="color: #ff7b72; font-weight: bold">=</span>https://discord.com/api/webhooks/1234/deadbeef
 </code></pre></div></p>
 <p>By default, only <code>VULNERABILITY</code> and <code>FINDING</code> events are sent, but this can be customized by setting <code>event_types</code> in the config like so:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">output_modules</span><span style="color: #e6edf3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">discord</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #7ee787">event_types</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">      </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">VULNERABILITY</span>
@@ -666,20 +823,20 @@ mail.evilcorp.com
 <span style="color: #6e7681">      </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">STORAGE_BUCKET</span>
 </code></pre></div>
 <p>...or on the command line:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>discord<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>output_modules.discord.event_types<span style="color: #ff7b72; font-weight: bold">=[</span><span style="color: #a5d6ff">"STORAGE_BUCKET"</span>,<span style="color: #a5d6ff">"FINDING"</span>,<span style="color: #a5d6ff">"VULNERABILITY"</span><span style="color: #ff7b72; font-weight: bold">]</span>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>discord<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>modules.discord.event_types<span style="color: #ff7b72; font-weight: bold">=[</span><span style="color: #a5d6ff">"STORAGE_BUCKET"</span>,<span style="color: #a5d6ff">"FINDING"</span>,<span style="color: #a5d6ff">"VULNERABILITY"</span><span style="color: #ff7b72; font-weight: bold">]</span>
 </code></pre></div></p>
 <p>You can also filter on the severity of <code>VULNERABILITY</code> events by setting <code>min_severity</code>:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">output_modules</span><span style="color: #e6edf3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">discord</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #7ee787">min_severity</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">HIGH</span>
 </code></pre></div>
 <h3 id="http">HTTP</h3>
 <p>The <code>http</code> output module sends <a href="../events/">events</a> in JSON format to a desired HTTP endpoint.</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># POST scan results to localhost</span>
-bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>http<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>output_modules.http.url<span style="color: #ff7b72; font-weight: bold">=</span>http://localhost:8000
+bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-om<span style="color: #6e7681"> </span>http<span style="color: #6e7681"> </span>-c<span style="color: #6e7681"> </span>modules.http.url<span style="color: #ff7b72; font-weight: bold">=</span>http://localhost:8000
 </code></pre></div>
 <p>You can customize the HTTP method if needed. Authentication is also supported:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">output_modules</span><span style="color: #e6edf3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">http</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #7ee787">url</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">https://localhost:8000</span>
 <span style="color: #6e7681">    </span><span style="color: #7ee787">method</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">PUT</span>
@@ -692,7 +849,7 @@ bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>
 <h3 id="splunk">Splunk</h3>
 <p>The <code>splunk</code> output module sends <a href="../events/">events</a> in JSON format to a desired splunk instance via <a href="https://docs.splunk.com/Documentation/Splunk/9.2.0/Data/UsetheHTTPEventCollector">HEC</a>.</p>
 <p>You can customize this output with the following config options:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">output_modules</span><span style="color: #e6edf3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">modules</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">splunk</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #8b949e; font-style: italic"># The full URL with the URI `/services/collector/event`</span>
 <span style="color: #6e7681">    </span><span style="color: #7ee787">url</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">https://localhost:8088/services/collector/event</span>
@@ -820,9 +977,15 @@ docker<span style="color: #6e7681"> </span>run<span style="color: #6e7681"> </sp
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
 <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
-<script src="https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/tablesort.min.js"></script>
+<script src="../../javascripts/vega@5.js"></script>
+<script src="../../javascripts/vega-lite@5.js"></script>
+<script src="../../javascripts/vega-embed@6.js"></script>
+<script src="../../data/chord_graph/vega.json"></script>
+<script src="../../data/chord_graph/rels.json"></script>
+<script src="../../data/chord_graph/entities.json"></script>
 </body>
 </html>

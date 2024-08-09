@@ -20,13 +20,13 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.xrba8u6m.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.c5k7f2d4.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
-<a class="md-skip" href="#what-is-bbot">
+<a class="md-skip" href="#how-it-works">
           Skip to content
         </a>
 </div>
@@ -117,7 +117,7 @@
         </a>
 </li>
 <li class="md-tabs__item">
-<a class="md-tabs__link" href="../contribution/">
+<a class="md-tabs__link" href="../dev/">
           
   
   Developer Manual
@@ -205,23 +205,16 @@
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="#what-it-isnt">
+<a class="md-nav__link" href="#bbots-recursive-philosophy">
 <span class="md-ellipsis">
-      What It Isn't
+      BBOT's Recursive Philosophy
     </span>
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#recursion">
+<a class="md-nav__link" href="#how-bbot-modules-work-together">
 <span class="md-ellipsis">
-      Recursion
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#module-example">
-<span class="md-ellipsis">
-      Module Example
+      How BBOT Modules Work Together
     </span>
 </a>
 </li>
@@ -258,6 +251,37 @@
     Scanning Overview
   </span>
 </a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Presets
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            Presets
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scanning/presets/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scanning/presets_list/">
+<span class="md-ellipsis">
+    List of Presets
+  </span>
+</a>
+</li>
+</ul>
+</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../scanning/events/">
@@ -343,6 +367,13 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
+<a class="md-nav__link" href="../contribution/">
+<span class="md-ellipsis">
+    Contribution
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../release_history/">
 <span class="md-ellipsis">
     Release History
@@ -377,13 +408,6 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="../contribution/">
-<span class="md-ellipsis">
-    How to Write a Module
-  </span>
-</a>
-</li>
-<li class="md-nav__item">
 <a class="md-nav__link" href="../dev/">
 <span class="md-ellipsis">
     Development Overview
@@ -391,9 +415,65 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../dev/dev_environment/">
+<span class="md-ellipsis">
+    Setting Up a Dev Environment
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../dev/architecture/">
+<span class="md-ellipsis">
+    BBOT Internal Architecture
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../dev/module_howto/">
+<span class="md-ellipsis">
+    How to Write a BBOT Module
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../dev/tests/">
+<span class="md-ellipsis">
+    Unit Tests
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../dev/discord_bot/">
+<span class="md-ellipsis">
+    Discord Bot Example
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<span class="md-ellipsis">
+    Code Reference
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_7">
+<span class="md-nav__icon md-icon"></span>
+            Code Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
 <a class="md-nav__link" href="../dev/scanner/">
 <span class="md-ellipsis">
     Scanner
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../dev/presets/">
+<span class="md-ellipsis">
+    Presets
   </span>
 </a>
 </li>
@@ -418,16 +498,30 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../dev/core/">
+<span class="md-ellipsis">
+    BBOTCore
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../dev/engine/">
+<span class="md-ellipsis">
+    Engine
+  </span>
+</a>
+</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
 <span class="md-ellipsis">
     Helpers
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_7_8">
 <span class="md-nav__icon md-icon"></span>
             Helpers
           </label>
@@ -489,38 +583,40 @@
 </li>
 </ul>
 </nav>
+</li>
+</ul>
+</nav>
 </div>
 </div>
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1 id="what-is-bbot">What is BBOT?</h1>
-<p>BBOT is a system of individual modules that interchange data <strong>recursively</strong>. Every module (e.g. <code>nmap</code>) <em>consumes</em> a type of data (e.g. a <code>DNS_NAME</code>) and <em>emits</em> another kind, (an <code>OPEN_TCP_PORT</code>). These bits of data, called <a href="../scanning/events/">events</a>, become the output of the tool, but are also redistributed to all the other modules, prompting them to dig deeper, and feeding the recursive cycle of discovery.</p>
-<p><img alt="recursion" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/7b2edfca-2692-463b-939b-ab9d52d2fe00"/></p>
-<h2 id="what-it-isnt">What It <strong><em>Isn't</em></strong></h2>
-<p>It's important to understand that BBOT has a fundamentally different philosophy from most tools. Its discovery process does not have "phases", or "stages"; i.e. it does not work like this:</p>
-<p><img alt="how_it_doesnt_work" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/67c4e332-f181-47e7-b884-2112bda347a4"/></p>
-<p>This is a traditional OSINT process, where you start with a target and you work in stages. Each stage gets you a little more data and requires more cleaning/deduplication, until finally you reach the end. The problem with this approach is that it <strong>misses things</strong>. </p>
-<p>Imagine if on the last step of this process, you discovered a new subdomain. Awesome! But shouldn't you go back and check that one the same way you did the others? Shouldn't you port-scan it and SSL-mine it, extract its web contents, and so on? Let's assume you do that, and maybe during that process you even discover another subdomain! What about this time? Should you start over again for that one? You see the dilemma.</p>
-<p><img alt="traditional-workflow" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/aa7cb6ac-6f88-464a-8069-0d534cecfd2b"/></p>
-<h2 id="recursion">Recursion</h2>
-<p>Recursion is at the heart of BBOT's design. Each newly-discovered piece of data is fed it back into the machine, fueling the discovery process. This continues until there is no new data to discover.</p>
-<p><img alt="bbot-workflow" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/1b56c472-c2c4-41b5-b711-4b7296ec7b20"/></p>
-<h2 id="module-example">Module Example</h2>
-<p>In a simple example, we run a BBOT scan with <strong>three modules</strong>: <code>nmap</code>, <code>sslcert</code>, and <code>httpx</code>. Each of these modules "consume" a certain type of data:</p>
-<ul>
-<li><strong><code>nmap</code></strong> consumes <code>DNS_NAME</code>s, port-scans them, and outputs <code>OPEN_TCP_PORT</code>s</li>
-<li><strong><code>sslcert</code></strong> consumes <code>OPEN_TCP_PORT</code>s, grabs certs, and extracts <code>DNS_NAME</code>s</li>
-<li><strong><code>httpx</code></strong> consumes <code>OPEN_TCP_PORT</code>s and visits any web services, ultimately producing new <code>DNS_NAME</code>s</li>
-</ul>
-<pre class="mermaid"><code>graph TD
-  nmap --&gt;|OPEN_TCP_PORT| sslcert;
-  nmap --&gt;|OPEN_TCP_PORT| httpx;
-  sslcert --&gt; |DNS_NAME| nmap;
-  httpx --&gt; |DNS_NAME| nmap;</code></pre>
-<p>This allows for some interesting chains of events. Given a single target such as <code>evilcorp.com</code>, <code>nmap</code> may start by discovering an <code>OPEN_TCP_PORT</code> <code>evilcorp.com:443</code>. <code>sslcert</code> and <code>httpx</code> will then visit that port and extract more hostnames, which are in turn scanned by <code>nmap</code> to produce more open ports which are visited by <code>sslcert</code> and <code>httpx</code>, which discover more hostnames, which are again passed to <code>nmap</code>, and so on...</p>
-<p>This is a simple example with only a few modules, but you can being to see how if 30 or 40 modules were enabled, they could feed each other exponentially to produce an immense amount of data. This recursion is exactly how BBOT is able to outperform other tools.</p>
-<p>For a full list of event types and which modules consume/produce them, see <a href="../scanning/events/#list-of-event-types">List of Event Types</a>.</p>
+<h1 id="how-it-works">How it Works</h1>
+<h2 id="bbots-recursive-philosophy">BBOT's Recursive Philosophy</h2>
+<p>It's well-known that when you're doing recon, it's best to do it recursively. However, there are very few recursive tools, and the main reason for this is because making a recursive tool is hard. In particular, it's very difficult to build a large-scale recursive system that interacts with the internet, and to keep it stable. When we first set out to make BBOT, we didn't know this, and it was definitely a lesson we learned the hard way. BBOT's stability is thanks to its extensive <a href="../dev/tests/">Unit Tests</a>.</p>
+<p>BBOT inherits its recursive philosophy from <a href="https://github.com/smicallef/spiderfoot">Spiderfoot</a>, which means it is also <strong><em>event-driven</em></strong>. Each of BBOT's 100+ modules <strong><em>consume</em></strong> a certain type of <a href="../scanning/events/">Event</a>, use it to discover something new, and <strong><em>produce</em></strong> new events, which get distributed to all the other modules. This happens again and again -- thousands of times during a scan -- spidering outwards in a recursive web of discovery.</p>
+<p>Below is an interactive graph showing the relationships between modules and the event types they produce and consume.</p>
+<!-- BBOT CHORD GRAPH -->
+<div id="vis"></div>
+<script type="text/javascript">
+  window.addEventListener(
+    'load',
+    function() {
+      vegaEmbed(
+        '#vis',
+        '../data/chord_graph/vega.json',
+        {renderer: 'svg'}
+      );
+    }
+  );
+</script>
+<!-- END BBOT CHORD GRAPH -->
+<h2 id="how-bbot-modules-work-together">How BBOT Modules Work Together</h2>
+<p>Each BBOT module does one specific task, such as querying an API for subdomains, or running a tool like <code>nuclei</code>, and is carefully designed to work together with other modules inside BBOT's recursive system.</p>
+<p>For example, the <code>portscan</code> module consumes <code>DNS_NAME</code>, and produces <code>OPEN_TCP_PORT</code>. The <code>sslcert</code> module consumes <code>OPEN_TCP_PORT</code> and produces <code>DNS_NAME</code>. You can see how even these two modules, when enabled together, will feed each other recursively.</p>
+<p><img alt="module-recursion" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/10ff5fb4-b3e7-453d-9772-7a26808b071e"/></p>
+<p>Because of this, enabling even one module has the potential to increase your results exponentially. This is exactly how BBOT is able to outperform other tools.</p>
+<p>To learn more about how events flow inside BBOT, see <a href="../dev/architecture/">BBOT Internal Architecture</a>.</p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
@@ -544,9 +640,15 @@
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
 <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
-<script src="https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js"></script>
 <script src="../javascripts/tablesort.js"></script>
+<script src="../javascripts/tablesort.min.js"></script>
+<script src="../javascripts/vega@5.js"></script>
+<script src="../javascripts/vega-lite@5.js"></script>
+<script src="../javascripts/vega-embed@6.js"></script>
+<script src="../data/chord_graph/vega.json"></script>
+<script src="../data/chord_graph/rels.json"></script>
+<script src="../data/chord_graph/entities.json"></script>
 </body>
 </html>

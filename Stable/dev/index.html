@@ -8,8 +8,8 @@
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/dev/" rel="canonical"/>
-<link href="../contribution/" rel="prev"/>
-<link href="scanner/" rel="next"/>
+<link href="../troubleshooting/" rel="prev"/>
+<link href="dev_environment/" rel="next"/>
 <link href="../favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.0, mkdocs-material-9.5.26" name="generator"/>
 <title>Development Overview - BBOT Docs</title>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.xrba8u6m.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.c5k7f2d4.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -117,7 +117,7 @@
         </a>
 </li>
 <li class="md-tabs__item md-tabs__item--active">
-<a class="md-tabs__link" href="../contribution/">
+<a class="md-tabs__link" href="./">
           
   
   Developer Manual
@@ -223,6 +223,37 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Presets
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            Presets
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scanning/presets/">
+<span class="md-ellipsis">
+    Overview
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scanning/presets_list/">
+<span class="md-ellipsis">
+    List of Presets
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../scanning/events/">
 <span class="md-ellipsis">
@@ -307,6 +338,13 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
+<a class="md-nav__link" href="../contribution/">
+<span class="md-ellipsis">
+    Contribution
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../release_history/">
 <span class="md-ellipsis">
     Release History
@@ -340,13 +378,6 @@
             Developer Manual
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="../contribution/">
-<span class="md-ellipsis">
-    How to Write a Module
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--active">
 <input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
 <label class="md-nav__link md-nav__link--active" for="__toc">
@@ -367,19 +398,114 @@
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="#discord-bot-example">
+<a class="md-nav__link" href="#adding-bbot-to-your-python-project">
 <span class="md-ellipsis">
-      Discord Bot Example
+      Adding BBOT to Your Python Project
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#running-a-bbot-scan-from-python">
+<span class="md-ellipsis">
+      Running a BBOT Scan from Python
+    </span>
+</a>
+<nav aria-label="Running a BBOT Scan from Python" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#synchronous">
+<span class="md-ellipsis">
+      Synchronous
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#asynchronous">
+<span class="md-ellipsis">
+      Asynchronous
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#multiple-targets">
+<span class="md-ellipsis">
+      Multiple Targets
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#other-custom-options">
+<span class="md-ellipsis">
+      Other Custom Options
     </span>
 </a>
 </li>
 </ul>
 </nav>
 </li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="dev_environment/">
+<span class="md-ellipsis">
+    Setting Up a Dev Environment
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="architecture/">
+<span class="md-ellipsis">
+    BBOT Internal Architecture
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="module_howto/">
+<span class="md-ellipsis">
+    How to Write a BBOT Module
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="tests/">
+<span class="md-ellipsis">
+    Unit Tests
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="discord_bot/">
+<span class="md-ellipsis">
+    Discord Bot Example
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="">
+<span class="md-ellipsis">
+    Code Reference
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_7">
+<span class="md-nav__icon md-icon"></span>
+            Code Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
 <a class="md-nav__link" href="scanner/">
 <span class="md-ellipsis">
     Scanner
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="presets/">
+<span class="md-ellipsis">
+    Presets
   </span>
 </a>
 </li>
@@ -404,16 +530,30 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item md-nav__item--section md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="core/">
+<span class="md-ellipsis">
+    BBOTCore
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="engine/">
+<span class="md-ellipsis">
+    Engine
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
 <span class="md-ellipsis">
     Helpers
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_7_8">
 <span class="md-nav__icon md-icon"></span>
             Helpers
           </label>
@@ -475,99 +615,92 @@
 </li>
 </ul>
 </nav>
+</li>
+</ul>
+</nav>
 </div>
 </div>
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
 <h1 id="bbot-developer-reference">BBOT Developer Reference</h1>
-<p>BBOT exposes a convenient API that allows you to create, start, and stop scans using Python code.</p>
+<p>BBOT exposes a Python API that allows you to create, start, and stop scans.</p>
 <p>Documented in this section are commonly-used classes and functions within BBOT, along with usage examples.</p>
-<h2 id="discord-bot-example">Discord Bot Example</h2>
-<p><img alt="bbot-discord" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9"/></p>
-<p>Below is a simple Discord bot designed to run BBOT scans.</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">import</span> <span style="color: #ff7b72">asyncio</span>
-<span style="color: #ff7b72">import</span> <span style="color: #ff7b72">discord</span>
-<span style="color: #ff7b72">from</span> <span style="color: #ff7b72">discord.ext</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">commands</span>
+<h2 id="adding-bbot-to-your-python-project">Adding BBOT to Your Python Project</h2>
+<p>If you are using Poetry, you can add BBOT to your python environment like this:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># stable</span>
+poetry<span style="color: #6e7681"> </span>add<span style="color: #6e7681"> </span>bbot
 
-<span style="color: #ff7b72">from</span> <span style="color: #ff7b72">bbot.scanner</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">Scanner</span>
-<span style="color: #ff7b72">from</span> <span style="color: #ff7b72">bbot.modules</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">module_loader</span>
-<span style="color: #ff7b72">from</span> <span style="color: #ff7b72">bbot.modules.output.discord</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">Discord</span>
-
-
-<span style="color: #8b949e; font-style: italic"># make list of BBOT modules to enable for the scan</span>
-<span style="color: #e6edf3">bbot_modules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"excavate"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"speculate"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"aggregate"</span><span style="color: #e6edf3">]</span>
-<span style="color: #ff7b72">for</span> <span style="color: #e6edf3">module_name,</span> <span style="color: #e6edf3">preloaded</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">module_loader</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preloaded()</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">items():</span>
-    <span style="color: #e6edf3">flags</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">preloaded[</span><span style="color: #a5d6ff">"flags"</span><span style="color: #e6edf3">]</span>
-    <span style="color: #ff7b72">if</span> <span style="color: #a5d6ff">"subdomain-enum"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">flags</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #a5d6ff">"passive"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">flags</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #a5d6ff">"slow"</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">flags:</span>
-        <span style="color: #e6edf3">bbot_modules</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(module_name)</span>
-
-
-<span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">BBOTDiscordBot</span><span style="color: #e6edf3">(commands</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">Cog):</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
-<span style="color: #a5d6ff">    A simple Discord bot capable of running a BBOT scan.</span>
-
-<span style="color: #a5d6ff">    To set up:</span>
-<span style="color: #a5d6ff">        1. Go to Discord Developer Portal (https://discord.com/developers)</span>
-<span style="color: #a5d6ff">        2. Create a new application</span>
-<span style="color: #a5d6ff">        3. Create an invite link for the bot, visit the link to invite it to your server</span>
-<span style="color: #a5d6ff">            - Your Application --&gt; OAuth2 --&gt; URL Generator</span>
-<span style="color: #a5d6ff">                - For Scopes, select "bot""</span>
-<span style="color: #a5d6ff">                - For Bot Permissions, select:</span>
-<span style="color: #a5d6ff">                    - Read Messages/View Channels</span>
-<span style="color: #a5d6ff">                    - Send Messages</span>
-<span style="color: #a5d6ff">        4. Turn on "Message Content Intent"</span>
-<span style="color: #a5d6ff">            - Your Application --&gt; Bot --&gt; Privileged Gateway Intents --&gt; Message Content Intent</span>
-<span style="color: #a5d6ff">        5. Copy your Discord Bot Token and put it at the top this file</span>
-<span style="color: #a5d6ff">            - Your Application --&gt; Bot --&gt; Reset Token</span>
-<span style="color: #a5d6ff">        6. Run this script</span>
-
-<span style="color: #a5d6ff">    To scan evilcorp.com, you would type:</span>
-
-<span style="color: #a5d6ff">        /scan evilcorp.com</span>
-
-<span style="color: #a5d6ff">    Results will be output to the same channel.</span>
-<span style="color: #a5d6ff">    """</span>
-    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__init__</span><span style="color: #e6edf3">(self):</span>
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">current_scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
-
-    <span style="color: #d2a8ff; font-weight: bold">@commands</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">command(name</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"scan"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">description</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"Scan a target with BBOT."</span><span style="color: #e6edf3">)</span>
-    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">scan</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">ctx,</span> <span style="color: #e6edf3">target:</span> <span style="color: #e6edf3">str):</span>
-        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">current_scan</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">current_scan</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stop()</span>
-        <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">ctx</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">send(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Starting scan against {</span><span style="color: #e6edf3">target</span><span style="color: #a5d6ff">}."</span><span style="color: #e6edf3">)</span>
-
-        <span style="color: #8b949e; font-style: italic"># creates scan instance</span>
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">current_scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Scanner(target,</span> <span style="color: #e6edf3">modules</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">bbot_modules)</span>
-        <span style="color: #e6edf3">discord_module</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Discord(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">current_scan)</span>
-
-        <span style="color: #e6edf3">seen</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
-        <span style="color: #e6edf3">num_events</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">0</span>
-        <span style="color: #8b949e; font-style: italic"># start scan and iterate through results</span>
-        <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">current_scan</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">async_start():</span>
-            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">hash(event)</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">seen:</span>
-                <span style="color: #ff7b72">continue</span>
-            <span style="color: #e6edf3">seen</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(hash(event))</span>
-            <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">ctx</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">send(discord_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">format_message(event))</span>
-            <span style="color: #e6edf3">num_events</span> <span style="color: #ff7b72; font-weight: bold">+=</span> <span style="color: #a5d6ff">1</span>
-
-        <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">ctx</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">send(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Finished scan against {</span><span style="color: #e6edf3">target</span><span style="color: #a5d6ff">}. {</span><span style="color: #e6edf3">num_events</span><span style="color: #a5d6ff">:,} results."</span><span style="color: #e6edf3">)</span>
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">current_scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
-
+<span style="color: #8b949e; font-style: italic"># bleeding-edge (dev branch)</span>
+poetry<span style="color: #6e7681"> </span>add<span style="color: #6e7681"> </span>bbot<span style="color: #6e7681"> </span>--allow-prereleases
+</code></pre></div>
+<h2 id="running-a-bbot-scan-from-python">Running a BBOT Scan from Python</h2>
+<h4 id="synchronous">Synchronous</h4>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">from</span> <span style="color: #ff7b72">bbot.scanner</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">Scanner</span>
 
 <span style="color: #ff7b72">if</span> <span style="color: #79c0ff">__name__</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"__main__"</span><span style="color: #e6edf3">:</span>
-    <span style="color: #e6edf3">intents</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">discord</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">Intents</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">default()</span>
-    <span style="color: #e6edf3">intents</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">message_content</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
-    <span style="color: #e6edf3">bot</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">commands</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">Bot(command_prefix</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"/"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">intents</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">intents)</span>
-
-    <span style="color: #d2a8ff; font-weight: bold">@bot</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">event</span>
-    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">on_ready</span><span style="color: #e6edf3">():</span>
-        <span style="color: #e6edf3">print(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"We have logged in as {</span><span style="color: #e6edf3">bot</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">user</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
-        <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">bot</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add_cog(BBOTDiscordBot())</span>
-
-    <span style="color: #e6edf3">bot</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run(</span><span style="color: #a5d6ff">"DISCORD_BOT_TOKEN_HERE"</span><span style="color: #e6edf3">)</span>
+    <span style="color: #e6edf3">scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Scanner(</span><span style="color: #a5d6ff">"evilcorp.com"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">presets</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"subdomain-enum"</span><span style="color: #e6edf3">])</span>
+    <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start():</span>
+        <span style="color: #e6edf3">print(event)</span>
 </code></pre></div>
-<p><a class="md-button md-button--primary" href="scanner/">Next Up: Scanner --&gt;</a></p>
+<h4 id="asynchronous">Asynchronous</h4>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">from</span> <span style="color: #ff7b72">bbot.scanner</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">Scanner</span>
+
+<span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">main</span><span style="color: #e6edf3">():</span>
+    <span style="color: #e6edf3">scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Scanner(</span><span style="color: #a5d6ff">"evilcorp.com"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">presets</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"subdomain-enum"</span><span style="color: #e6edf3">])</span>
+    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">event</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">async_start():</span>
+        <span style="color: #e6edf3">print(event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">json())</span>
+
+<span style="color: #ff7b72">if</span> <span style="color: #79c0ff">__name__</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"__main__"</span><span style="color: #e6edf3">:</span>
+    <span style="color: #ff7b72">import</span> <span style="color: #ff7b72">asyncio</span>
+    <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run(main())</span>
+</code></pre></div>
+<p>For a full listing of <code>Scanner</code> attributes and functions, see the <a href="scanner/"><code>Scanner</code> Code Reference</a>.</p>
+<h4 id="multiple-targets">Multiple Targets</h4>
+<p>You can specify any number of targets:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># create a scan against multiple targets</span>
+<span style="color: #e6edf3">scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Scanner(</span>
+    <span style="color: #a5d6ff">"evilcorp.com"</span><span style="color: #e6edf3">,</span>
+    <span style="color: #a5d6ff">"evilcorp.org"</span><span style="color: #e6edf3">,</span>
+    <span style="color: #a5d6ff">"evilcorp.ce"</span><span style="color: #e6edf3">,</span>
+    <span style="color: #a5d6ff">"4.3.2.1"</span><span style="color: #e6edf3">,</span>
+    <span style="color: #a5d6ff">"1.2.3.4/24"</span><span style="color: #e6edf3">,</span>
+    <span style="color: #e6edf3">presets</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"subdomain-enum"</span><span style="color: #e6edf3">]</span>
+<span style="color: #e6edf3">)</span>
+
+<span style="color: #8b949e; font-style: italic"># this is the same as:</span>
+<span style="color: #e6edf3">targets</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"evilcorp.com"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"evilcorp.org"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"evilcorp.ce"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"4.3.2.1"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"1.2.3.4/24"</span><span style="color: #e6edf3">]</span>
+<span style="color: #e6edf3">scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Scanner(</span><span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span> <span style="color: #e6edf3">presets</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"subdomain-enum"</span><span style="color: #e6edf3">])</span>
+</code></pre></div>
+<p>For more details, including which types of targets are valid, see <a href="../scanning/#targets">Targets</a></p>
+<h4 id="other-custom-options">Other Custom Options</h4>
+<p>In many cases, using a <a href="../scanning/presets/">Preset</a> like <code>subdomain-enum</code> is sufficient. However, the <code>Scanner</code> is flexible and accepts many other arguments that can override the default functionality. You can specify <a href="../#flags"><code>flags</code></a>, <a href="../#modules"><code>modules</code></a>, <a href="../output.md"><code>output_modules</code></a>, a <a href="../scanning/#whitelists-and-blacklists"><code>whitelist</code> or <code>blacklist</code></a>, and custom <a href="../scanning/configuration/"><code>config</code> options</a>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># create a scan against multiple targets</span>
+<span style="color: #e6edf3">scan</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Scanner(</span>
+    <span style="color: #8b949e; font-style: italic"># targets</span>
+    <span style="color: #a5d6ff">"evilcorp.com"</span><span style="color: #e6edf3">,</span>
+    <span style="color: #a5d6ff">"4.3.2.1"</span><span style="color: #e6edf3">,</span>
+    <span style="color: #8b949e; font-style: italic"># enable these presets</span>
+    <span style="color: #e6edf3">presets</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"subdomain-enum"</span><span style="color: #e6edf3">],</span>
+    <span style="color: #8b949e; font-style: italic"># whitelist these hosts</span>
+    <span style="color: #e6edf3">whitelist</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"evilcorp.com"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"evilcorp.org"</span><span style="color: #e6edf3">],</span>
+    <span style="color: #8b949e; font-style: italic"># blacklist these hosts</span>
+    <span style="color: #e6edf3">blacklist</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"prod.evilcorp.com"</span><span style="color: #e6edf3">],</span>
+    <span style="color: #8b949e; font-style: italic"># also enable these individual modules</span>
+    <span style="color: #e6edf3">modules</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"nuclei"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"ipstack"</span><span style="color: #e6edf3">],</span>
+    <span style="color: #8b949e; font-style: italic"># exclude modules with these flags</span>
+    <span style="color: #e6edf3">exclude_flags</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">[</span><span style="color: #a5d6ff">"slow"</span><span style="color: #e6edf3">],</span>
+    <span style="color: #8b949e; font-style: italic"># custom config options</span>
+    <span style="color: #e6edf3">config</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">{</span>
+        <span style="color: #a5d6ff">"modules"</span><span style="color: #e6edf3">:</span> <span style="color: #e6edf3">{</span>
+            <span style="color: #a5d6ff">"nuclei"</span><span style="color: #e6edf3">:</span> <span style="color: #e6edf3">{</span>
+                <span style="color: #a5d6ff">"tags"</span><span style="color: #e6edf3">:</span> <span style="color: #a5d6ff">"apache,nginx"</span>
+            <span style="color: #e6edf3">}</span>
+        <span style="color: #e6edf3">}</span>
+    <span style="color: #e6edf3">}</span>
+<span style="color: #e6edf3">)</span>
+</code></pre></div>
+<p>For a list of all the possible scan options, see the <a href="presets/"><code>Presets</code> Code Reference</a></p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
@@ -591,9 +724,15 @@
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
 <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
-<script src="https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js"></script>
 <script src="../javascripts/tablesort.js"></script>
+<script src="../javascripts/tablesort.min.js"></script>
+<script src="../javascripts/vega@5.js"></script>
+<script src="../javascripts/vega-lite@5.js"></script>
+<script src="../javascripts/vega-embed@6.js"></script>
+<script src="../data/chord_graph/vega.json"></script>
+<script src="../data/chord_graph/rels.json"></script>
+<script src="../data/chord_graph/entities.json"></script>
 </body>
 </html>
