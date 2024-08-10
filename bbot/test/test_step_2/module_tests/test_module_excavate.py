@@ -456,14 +456,21 @@ class TestExcavateParameterExtraction(TestExcavate):
         <p>Use the form below to submit a GET request:</p>
         <form action="/search" method="get">
             <label for="searchQuery">Search Query:</label>
-            <input type="text" id="searchQuery" name="q" value="flowers"><br><br>
+            <input type="text" id="searchQuery" name="q1" value="flowers"><br><br>
             <input type="submit" value="Search">
         </form>
         <h1>Simple POST Form</h1>
         <p>Use the form below to submit a POST request:</p>
         <form action="/search" method="post">
             <label for="searchQuery">Search Query:</label>
-            <input type="text" id="searchQuery" name="q" value="boats"><br><br>
+            <input type="text" id="searchQuery" name="q2" value="boats"><br><br>
+            <input type="submit" value="Search">
+        </form>
+        <h1>Simple Generic Form</h1>
+        <p>Use the form below to submit a request:</p>
+        <form action="/search">
+            <label for="searchQuery">Search Query:</label>
+            <input type="text" id="searchQuery" name="q3" value="candles"><br><br>
             <input type="submit" value="Search">
         </form>
         <p>Links</p>
@@ -482,15 +489,19 @@ class TestExcavateParameterExtraction(TestExcavate):
         found_jquery_post = False
         found_form_get = False
         found_form_post = False
+        found_form_generic = False
         found_jquery_get_original_value = False
         found_jquery_post_original_value = False
         found_form_get_original_value = False
         found_form_post_original_value = False
+        found_form_generic_original_value = False
         found_htmltags_a = False
         found_htmltags_img = False
 
         for e in events:
+
             if e.type == "WEB_PARAMETER":
+
                 if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
                     found_jquery_get = True
                     if e.data["original_value"] == "value1":
@@ -501,15 +512,20 @@ class TestExcavateParameterExtraction(TestExcavate):
                     if e.data["original_value"] == "value2":
                         found_jquery_post_original_value = True
 
-                if e.data["description"] == "HTTP Extracted Parameter [q] (GET Form Submodule)":
+                if e.data["description"] == "HTTP Extracted Parameter [q1] (GET Form Submodule)":
                     found_form_get = True
                     if e.data["original_value"] == "flowers":
                         found_form_get_original_value = True
 
-                if e.data["description"] == "HTTP Extracted Parameter [q] (POST Form Submodule)":
+                if e.data["description"] == "HTTP Extracted Parameter [q2] (POST Form Submodule)":
                     found_form_post = True
                     if e.data["original_value"] == "boats":
                         found_form_post_original_value = True
+
+                if e.data["description"] == "HTTP Extracted Parameter [q3] (Generic Form Submodule)":
+                    found_form_generic = True
+                    if e.data["original_value"] == "candles":
+                        found_form_generic_original_value = True
 
                 if e.data["description"] == "HTTP Extracted Parameter [age] (HTML Tags Submodule)":
                     if e.data["original_value"] == "456":
@@ -525,10 +541,12 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_jquery_post, "Did not extract Jquery POST parameters"
         assert found_form_get, "Did not extract Form GET parameters"
         assert found_form_post, "Did not extract Form POST parameters"
+        assert found_form_generic, "Did not extract Form (Generic) parameters"
         assert found_jquery_get_original_value, "Did not extract Jquery GET parameter original_value"
         assert found_jquery_post_original_value, "Did not extract Jquery POST parameter original_value"
         assert found_form_get_original_value, "Did not extract Form GET parameter original_value"
         assert found_form_post_original_value, "Did not extract Form POST parameter original_value"
+        assert found_form_generic_original_value, "Did not extract Form (Generic) parameter original_value"
         assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
 

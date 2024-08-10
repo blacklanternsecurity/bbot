@@ -446,15 +446,25 @@ class excavate(BaseInternalModule):
                                 form_parameters, parameter_name
                             )
 
-        class GenericForm(GetForm):
-            name = "Generic Form"
-            discovery_regex = r"/form[^>]*>.*<\/form>/s nocase"
+        class GetForm2(GetForm):
+            extraction_regex = bbot_regexes.get_form_regex2
 
         class PostForm(GetForm):
             name = "POST Form"
             discovery_regex = r'/<form[^>]*\bmethod=["\']?post["\']?[^>]*>.*<\/form>/s nocase'
             extraction_regex = bbot_regexes.post_form_regex
             output_type = "POSTPARAM"
+
+        class PostForm2(PostForm):
+            extraction_regex = bbot_regexes.post_form_regex2
+
+        # underscore ensure generic forms runs last, so it doesn't cause dedupe to stop full form detection
+        class _GenericForm(GetForm):
+            name = "Generic Form"
+            discovery_regex = r"/<form[^>]*>.*<\/form>/s nocase"
+
+            extraction_regex = bbot_regexes.generic_form_regex
+            output_type = "GETPARAM"
 
         def __init__(self, excavate):
             super().__init__(excavate)
@@ -467,11 +477,13 @@ class excavate(BaseInternalModule):
                 regexes_component_list.append(f"${r.__name__} = {r.discovery_regex}")
             regexes_component = " ".join(regexes_component_list)
             self.yara_rules[f"parameter_extraction"] = (
-                rf'rule parameter_extraction {{meta: description = "contains POST form" strings: {regexes_component} condition: any of them}}'
+                rf'rule parameter_extraction {{meta: description = "contains Parameter" strings: {regexes_component} condition: any of them}}'
             )
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier, results in yara_results.items():
+                print("AAAAAAAAAAAAAAAAA")
+                print(identifier)
                 for result in results:
                     if identifier not in self.parameterExtractorCallbackDict.keys():
                         raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
@@ -829,7 +841,7 @@ class excavate(BaseInternalModule):
 
                 rule_match = await self.helpers.re.search(self.yara_rule_name_regex, rule_content)
                 if not rule_match:
-                    self.hugewarning(f"Custom Yara formatted incorrectly: could not find rule name")
+                    self.hugewarning(f"Custom Yara rule formatted incorrectly: could not find rule name")
                     return False
 
                 rule_name = rule_match.groups(1)[0]
