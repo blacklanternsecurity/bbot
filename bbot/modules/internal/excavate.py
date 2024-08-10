@@ -482,8 +482,6 @@ class excavate(BaseInternalModule):
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier, results in yara_results.items():
-                print("AAAAAAAAAAAAAAAAA")
-                print(identifier)
                 for result in results:
                     if identifier not in self.parameterExtractorCallbackDict.keys():
                         raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
