@@ -1,10 +1,7 @@
 import asyncio
-import logging
 from contextlib import suppress
 
 from bbot.modules.base import InterceptModule
-
-log = logging.getLogger("bbot.scanner.manager")
 
 
 class ScanIngress(InterceptModule):
@@ -62,7 +59,7 @@ class ScanIngress(InterceptModule):
             await asyncio.sleep(0.1)
             self.scan._finished_init = True
 
-    async def handle_event(self, event, kwargs):
+    async def handle_event(self, event, **kwargs):
         # don't accept dummy events
         if event._dummy:
             return False, "cannot emit dummy event"
@@ -109,10 +106,11 @@ class ScanIngress(InterceptModule):
 
         # Scope shepherding
         # here is where we make sure in-scope events are set to their proper scope distance
-        event_whitelisted = self.scan.whitelisted(event)
-        if event.host and event_whitelisted:
-            log.debug(f"Making {event} in-scope because it matches the scan target")
-            event.scope_distance = 0
+        if event.host:
+            event_whitelisted = self.scan.whitelisted(event)
+            if event_whitelisted:
+                self.debug(f"Making {event} in-scope because its main host matches the scan target")
+                event.scope_distance = 0
 
         # nerf event's priority if it's not in scope
         event.module_priority += event.scope_distance
@@ -187,31 +185,51 @@ class ScanEgress(InterceptModule):
         # we are the lowest priority
         return 99
 
-    async def handle_event(self, event, kwargs):
+    async def handle_event(self, event, **kwargs):
         abort_if = kwargs.pop("abort_if", None)
         on_success_callback = kwargs.pop("on_success_callback", None)
+
+        # omit certain event types
+        if event.type in self.scan.omitted_event_types:
+            if "target" in event.tags:
+                self.debug(f"Allowing omitted event: {event} because it's a target")
+            else:
+                event._omit = True
 
         # make event internal if it's above our configured report distance
         event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
         event_will_be_output = event.always_emit or event_in_report_distance
+
         if not event_will_be_output:
-            log.debug(
+            self.debug(
                 f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
             )
             event.internal = True
 
+        if event.type in self.scan.omitted_event_types:
+            self.debug(f"Omitting {event} because its type is omitted in the config")
+            event._omit = True
+
         # if we discovered something interesting from an internal event,
         # make sure we preserve its chain of parents
         parent = event.parent
-        if parent.internal and ((not event.internal) or event._graph_important):
+        event_is_graph_worthy = (not event.internal) or event._graph_important
+        parent_is_graph_worthy = (not parent.internal) or parent._graph_important
+        if event_is_graph_worthy and not parent_is_graph_worthy:
             parent_in_report_distance = parent.scope_distance <= self.scan.scope_report_distance
             if parent_in_report_distance:
                 parent.internal = False
             if not parent._graph_important:
                 parent._graph_important = True
-                log.debug(f"Re-queuing internal event {parent} with parent {event}")
+                self.debug(f"Re-queuing internal event {parent} with parent {event} to prevent graph orphan")
                 await self.emit_event(parent)
 
+        if event._suppress_chain_dupes:
+            for parent in event.get_parents():
+                if parent == event:
+                    return False, f"an identical parent {event} was found, and _suppress_chain_dupes=True"
+
+        # custom callback - abort event emission it returns true
         abort_result = False
         if callable(abort_if):
             async with self.scan._acatch(context=abort_if):

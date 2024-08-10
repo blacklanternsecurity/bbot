@@ -1,9 +1,11 @@
 import time
+import pytest
 import string
 import random
 
 
-def test_bloom_filter():
+@pytest.mark.asyncio
+async def test_bloom_filter():
 
     def generate_random_strings(n, length=10):
         """Generate a list of n random strings."""
@@ -63,3 +65,5 @@ def test_bloom_filter():
 
     # ensure false positives are less than .02 percent
     assert false_positive_percent < 0.02
+
+    await scan._cleanup()

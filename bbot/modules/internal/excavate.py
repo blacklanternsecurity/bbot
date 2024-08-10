@@ -252,8 +252,8 @@ class ExcavateRule:
             event_data["description"] = f"{discovery_context} {yara_rule_settings['self.description']}"
         subject = ""
         if isinstance(event_data, str):
-            subject = f" event_data"
-        context = f"Excavate's [{self.__class__.__name__}] submodule emitted [{event_type}]{subject}, because {discovery_context} {yara_rule_settings.description}"
+            subject = f" {event_data}"
+        context = f"Excavate's {self.__class__.__name__} emitted {event_type}{subject}, because {discovery_context} {yara_rule_settings.description}"
         tags = yara_rule_settings.tags
         event_draft = await self.report_prep(event_data, event_type, event, tags, **kwargs)
         if event_draft:
@@ -802,7 +802,7 @@ class excavate(BaseInternalModule):
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
-                    self.verbose(f"Including Submodule {e.__name__}")
+                    self.debug(f"Including Submodule {e.__name__}")
                     if e.__name__ == "ParameterExtractor":
                         message = (
                             "Parameter Extraction disabled because no modules consume WEB_PARAMETER events"
@@ -1029,7 +1029,7 @@ class excavate(BaseInternalModule):
                                     reported_location_header = True
                                     await self.emit_event(
                                         url_event,
-                                        context=f'evcavate looked in "Location" header and found {url_event.type}: {url_event.data}',
+                                        context=f'excavate looked in "Location" header and found {url_event.type}: {url_event.data}',
                                     )
 
                         # Try to extract parameters from the redirect URL

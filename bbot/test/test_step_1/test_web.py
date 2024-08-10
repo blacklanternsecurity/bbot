@@ -59,6 +59,46 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
     with pytest.raises(WebError):
         await scan.helpers.request("http://www.example.com/", raise_error=True)
 
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, httpx_mock):
+    import time
+    from werkzeug.wrappers import Response
+
+    urls_requested = []
+
+    def server_handler(request):
+        time.sleep(0.75)
+        urls_requested.append(request.url.split("/")[-1])
+        return Response(f"{request.url}: {request.headers}")
+
+    base_url = bbot_httpserver.url_for("/test/")
+    bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
+
+    scan = bbot_scanner()
+
+    urls = [f"{base_url}{i}" for i in range(100)]
+
+    # request_batch w/ cancellation
+    agen = scan.helpers.request_batch(urls)
+    got_urls = []
+    start = time.time()
+    async for url, response in agen:
+        assert response.text.startswith(base_url)
+        got_urls.append(url)
+        if time.time() > start + 1:
+            await agen.aclose()
+            break
+
+    assert 5 < len(got_urls) < 15
+
+    await scan._cleanup()
+
+    # TODO: enforce qsize limits on zmq to help prevent runaway generators
+    # assert 10 <= len(urls_requested) <= 20
+
 
 @pytest.mark.asyncio
 async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
@@ -78,6 +118,8 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
     assert j["body"] == "hello\nworld"
     assert j["content_type"] == "text/plain"
     assert j["url"] == "http://www.evilcorp.com/json_test?a=b"
+
+    await scan._cleanup()
 
     scan1 = bbot_scanner("8.8.8.8")
     scan2 = bbot_scanner("127.0.0.1")
@@ -199,6 +241,9 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
         await agen.aclose()
     assert [r.text for r in results] == ["page1", "page2", "page3"]
 
+    await scan1._cleanup()
+    await scan2._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_web_interactsh(bbot_scanner, bbot_httpserver):
@@ -260,6 +305,8 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     assert sync_correct_url, f"Data content was not correct for {url2}"
     assert async_correct_url, f"Data content was not correct for {url}"
 
+    await scan1._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_web_curl(bbot_scanner, bbot_httpserver):
@@ -293,9 +340,13 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
     curl_result = await helpers.curl(url=headers_url)
     assert curl_result == "curl_yep_headers"
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
-async def test_web_http_compare(httpx_mock, helpers):
+async def test_web_http_compare(httpx_mock, bbot_scanner):
+    scan = bbot_scanner()
+    helpers = scan.helpers
     httpx_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
     compare_helper = helpers.http_compare("http://www.example.com")
     await compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
@@ -304,6 +355,8 @@ async def test_web_http_compare(httpx_mock, helpers):
     compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
     for mode in ("getparam", "header", "cookie"):
         assert await compare_helper.canary_check("http://www.example.com", mode=mode) == True
+
+    await scan._cleanup()
 
 
 @pytest.mark.asyncio
@@ -328,6 +381,8 @@ async def test_http_proxy(bbot_scanner, bbot_httpserver, proxy_server):
     assert visited_url.endswith(endpoint), f"There was a problem with request to {url}: {visited_url}"
     assert r.status_code == 200 and r.text == "test_http_proxy_yep"
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
@@ -344,6 +399,9 @@ async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
     r2 = await scan2.helpers.request(url)
     assert r2 is not None, "Request to self-signed SSL server failed even with ssl_verify=False"
     assert r2.status_code == 200 and r2.text == "test_http_ssl_yep"
+
+    await scan1._cleanup()
+    await scan2._cleanup()
 
 
 @pytest.mark.asyncio
@@ -365,6 +423,8 @@ async def test_web_cookies(bbot_scanner, httpx_mock):
     r = await scan.helpers.request(url="http://www.evilcorp.com/cookies/test2", cookies={"asdf": "wat"})
     assert client.cookies["wat"] == "asdf"
 
+    await scan._cleanup()
+
     # make sure they don't when they're not
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies", headers=[("set-cookie", "wats=fdsa; path=/")])
     scan = bbot_scanner()
@@ -380,3 +440,5 @@ async def test_web_cookies(bbot_scanner, httpx_mock):
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test2", match_headers={"Cookie": "fdsa=wats"})
     r = await client2.get(url="http://www2.evilcorp.com/cookies/test2", cookies={"fdsa": "wats"})
     assert not client2.cookies
+
+    await scan._cleanup()

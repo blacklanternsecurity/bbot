@@ -21,7 +21,7 @@ class dnsbrute_mutations(BaseModule):
 
     async def setup(self):
         self.found = {}
-        self.parent_events = self.helpers.make_target()
+        self.parent_events = {}
         self.max_mutations = self.config.get("max_mutations", 500)
         # 800M bits == 100MB bloom filter == 10M entries before false positives start emerging
         self.mutations_tried = self.helpers.bloom_filter(800000000)
@@ -29,12 +29,9 @@ class dnsbrute_mutations(BaseModule):
         return True
 
     async def handle_event(self, event):
-        # here we don't brute-force, we just add the subdomain to our end-of-scan TODO
-        self.add_found(event)
-
-    def add_found(self, event):
-        self.parent_events.add(event)
+        # here we don't brute-force, we just add the subdomain to our end-of-scan
         host = str(event.host)
+        self.parent_events[host] = event
         if self.helpers.is_subdomain(host):
             subdomain, domain = host.split(".", 1)
             if not self.helpers.dns.brute.has_excessive_digits(subdomain):
@@ -42,6 +39,10 @@ class dnsbrute_mutations(BaseModule):
                     self.found[domain].add(subdomain)
                 except KeyError:
                     self.found[domain] = {subdomain}
+
+    def get_parent_event(self, subdomain):
+        parent_host = self.helpers.closest_match(subdomain, self.parent_events)
+        return self.parent_events[parent_host]
 
     async def finish(self):
         found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
@@ -103,6 +104,13 @@ class dnsbrute_mutations(BaseModule):
                     ):
                         add_mutation(subdomain)
 
+                    # skip if there's hardly any mutations
+                    if len(mutations) < 10:
+                        self.verbose(
+                            f"Skipping {len(mutations):,} mutations against {domain} because there are less than 10"
+                        )
+                        break
+
                     if mutations:
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(trimmed_found)})")
                         results = await self.helpers.dns.brute(self, query, mutations)
@@ -112,10 +120,7 @@ class dnsbrute_mutations(BaseModule):
                             self._mutation_run_counter[domain] = mutation_run = 1
                         self._mutation_run_counter[domain] += 1
                         for hostname in results:
-                            parent_event = self.parent_events.get_host(hostname)
-                            if parent_event is None:
-                                self.warning(f"Could not correlate parent event from: {hostname}")
-                                parent_event = self.scan.root_event
+                            parent_event = self.get_parent_event(hostname)
                             mutation_run_ordinal = self.helpers.integer_to_ordinal(mutation_run)
                             await self.emit_event(
                                 hostname,
@@ -123,7 +128,7 @@ class dnsbrute_mutations(BaseModule):
                                 parent=parent_event,
                                 tags=[f"mutation-{mutation_run}"],
                                 abort_if=self.abort_if,
-                                context=f'{{module}} found a mutated subdomain of "{domain}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.data}}',
+                                context=f'{{module}} found a mutated subdomain of "{parent_event.host}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.data}}',
                             )
                         if results:
                             continue

@@ -24,13 +24,6 @@ if multiprocessing.current_process().name == "MainProcess":
 www.blacklanternsecurity.com/bbot
 """
         print(ascii_art, file=sys.stderr)
-        log_to_stderr(
-            "This is a pre-release of BBOT 2.0. If you upgraded from version 1, we recommend cleaning your old configs etc. before running this version!",
-            level="WARNING",
-        )
-        log_to_stderr(
-            "For details, see https://github.com/blacklanternsecurity/bbot/discussions/1540", level="WARNING"
-        )
 
 scan_name = ""
 
@@ -219,7 +212,7 @@ async def _main():
 
                 reader = asyncio.StreamReader()
                 protocol = asyncio.StreamReaderProtocol(reader)
-                await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
+                await asyncio.get_running_loop().connect_read_pipe(lambda: protocol, sys.stdin)
 
                 # set stdout and stderr to blocking mode
                 # this is needed to prevent BlockingIOErrors in logging etc.
@@ -250,7 +243,7 @@ async def _main():
 
                 asyncio.create_task(akeyboard_listen())
 
-        await scan.async_start_without_generator()
+            await scan.async_start_without_generator()
 
         return True
 

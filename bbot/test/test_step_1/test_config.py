@@ -21,3 +21,5 @@ async def test_config(bbot_scanner):
     assert scan1.modules["ipneighbor"].config.test_option == "ipneighbor"
     assert scan1.modules["python"].config.test_option == "asdf"
     assert scan1.modules["speculate"].config.test_option == "speculate"
+
+    await scan1._cleanup()

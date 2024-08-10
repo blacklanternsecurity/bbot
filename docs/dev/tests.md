@@ -74,8 +74,28 @@ class TestMyModule(ModuleTestBase):
     def check(self, module_test, events):
         # here is where we check to make sure it worked
         dns_names = [e.data for e in events if e.type == "DNS_NAME"]
+        # temporary log messages for debugging
+        for e in dns_names:
+            self.log.critical(e)
         assert "www.blacklanternsecurity.com" in dns_names, "failed to find subdomain #1"
         assert "dev.blacklanternsecurity.com" in dns_names, "failed to find subdomain #2"
+```
+
+### Debugging a test
+
+Similar to debugging from within a module, you can debug from within a test using `self.log.critical()`, etc:
+
+```python
+    def check(self, module_test, events):
+        for e in events:
+            # bright red
+            self.log.critical(e.type)
+            # bright green
+            self.log.hugesuccess(e.data)
+            # bright orange
+            self.log.hugewarning(e.tags)
+            # bright blue
+            self.log.hugeinfo(e.parent)
 ```
 
 ### More advanced tests
