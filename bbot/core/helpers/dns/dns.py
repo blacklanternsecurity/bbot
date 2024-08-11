@@ -2,10 +2,12 @@ import dns
 import logging
 import dns.exception
 import dns.asyncresolver
+from cachetools import LFUCache
 from radixtarget import RadixTarget
 
 from bbot.errors import DNSError
 from bbot.core.engine import EngineClient
+from bbot.core.helpers.async_helpers import async_cachedmethod
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name
 
 from .engine import DNSEngine
@@ -79,6 +81,9 @@ class DNSHelper(EngineClient):
         # brute force helper
         self._brute = None
 
+        self._is_wildcard_cache = LFUCache(maxsize=1000)
+        self._is_wildcard_domain_cache = LFUCache(maxsize=1000)
+
     async def resolve(self, query, **kwargs):
         return await self.run_and_return("resolve", query=query, **kwargs)
 
@@ -111,6 +116,7 @@ class DNSHelper(EngineClient):
             self._brute = DNSBrute(self.parent_helper)
         return self._brute
 
+    @async_cachedmethod(lambda self: self._is_wildcard_cache)
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """
         Use this method to check whether a *host* is a wildcard entry
@@ -156,6 +162,7 @@ class DNSHelper(EngineClient):
 
         return await self.run_and_return("is_wildcard", query=query, ips=ips, rdtype=rdtype)
 
+    @async_cachedmethod(lambda self: self._is_wildcard_domain_cache)
     async def is_wildcard_domain(self, domain, log_info=False):
         domain = self._wildcard_prevalidation(domain)
         if not domain:

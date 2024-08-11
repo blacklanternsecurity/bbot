@@ -224,6 +224,12 @@ class ScanEgress(InterceptModule):
                 self.debug(f"Re-queuing internal event {parent} with parent {event} to prevent graph orphan")
                 await self.emit_event(parent)
 
+        if event._suppress_chain_dupes:
+            for parent in event.get_parents():
+                if parent == event:
+                    return False, f"an identical parent {event} was found, and _suppress_chain_dupes=True"
+
+        # custom callback - abort event emission it returns true
         abort_result = False
         if callable(abort_if):
             async with self.scan._acatch(context=abort_if):

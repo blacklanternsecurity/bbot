@@ -113,6 +113,9 @@ class BaseEvent:
     _data_validator = None
     # Whether to increment scope distance if the child and parent hosts are the same
     _scope_distance_increment_same_host = False
+    # Don't allow duplicates to occur within a parent chain
+    # In other words, don't emit the event if the same one already exists in its discovery context
+    _suppress_chain_dupes = False
 
     def __init__(
         self,
@@ -169,6 +172,7 @@ class BaseEvent:
         self._resolved_hosts = set()
         self.dns_children = dict()
         self._discovery_context = ""
+        self._discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
         self.web_spider_distance = 0
 
         # for creating one-off events without enforcing parent requirement
@@ -339,10 +343,14 @@ class BaseEvent:
 
     @discovery_context.setter
     def discovery_context(self, context):
+        def replace(match):
+            s = match.group()
+            return s.format(module=self.module, event=self)
+
         try:
-            self._discovery_context = context.format(module=self.module, event=self)
+            self._discovery_context = self._discovery_context_regex.sub(replace, context)
         except Exception as e:
-            log.warning(f"Error formatting discovery context for {self}: {e} (context: '{context}')")
+            log.trace(f"Error formatting discovery context for {self}: {e} (context: '{context}')")
             self._discovery_context = context
 
     @property
@@ -350,8 +358,10 @@ class BaseEvent:
         """
         This event's full discovery context, including those of all its parents
         """
-        full_event_chain = list(reversed(self.get_parents())) + [self]
-        return [[e.id, e.discovery_context] for e in full_event_chain if e.type != "SCAN"]
+        parent_path = []
+        if self.parent is not None and self != self.parent:
+            parent_path = self.parent.discovery_path
+        return parent_path + [[self.id, self.discovery_context]]
 
     @property
     def words(self):
@@ -870,6 +880,10 @@ class SCAN(BaseEvent):
     def _data_human(self):
         return f"{self.data['name']} ({self.data['id']})"
 
+    @property
+    def discovery_path(self):
+        return []
+
 
 class FINISHED(BaseEvent):
     """
@@ -1165,6 +1179,7 @@ class URL(URL_UNVERIFIED):
 
 class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
     _always_emit = True
+    _suppress_chain_dupes = True
 
     class _data_validator(BaseModel):
         name: str
@@ -1436,7 +1451,8 @@ class FILESYSTEM(DictPathEvent):
 
 
 class RAW_DNS_RECORD(DictHostEvent):
-    pass
+    # don't emit raw DNS records for affiliates
+    _always_emit_tags = ["target"]
 
 
 def make_event(

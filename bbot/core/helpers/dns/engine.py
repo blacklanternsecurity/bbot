@@ -119,8 +119,8 @@ class DNSEngine(EngineServer):
                 for _, host in extract_targets(answer):
                     results.add(host)
         except BaseException:
-            log.trace(f"Caught exception in resolve({query}, {kwargs}):")
-            log.trace(traceback.format_exc())
+            self.log.trace(f"Caught exception in resolve({query}, {kwargs}):")
+            self.log.trace(traceback.format_exc())
             raise
 
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
@@ -165,8 +165,8 @@ class DNSEngine(EngineServer):
             else:
                 return await self._resolve_hostname(query, rdtype=rdtype, **kwargs)
         except BaseException:
-            log.trace(f"Caught exception in resolve_raw({query}, {kwargs}):")
-            log.trace(traceback.format_exc())
+            self.log.trace(f"Caught exception in resolve_raw({query}, {kwargs}):")
+            self.log.trace(traceback.format_exc())
             raise
 
     async def _resolve_hostname(self, query, **kwargs):
@@ -219,11 +219,11 @@ class DNSEngine(EngineServer):
                     if error_count >= self.abort_threshold:
                         connectivity = await self._connectivity_check()
                         if connectivity:
-                            log.verbose(
+                            self.log.verbose(
                                 f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                             )
                             if parent_hash not in self._dns_warnings:
-                                log.verbose(
+                                self.log.verbose(
                                     f'Aborting future {rdtype} queries to "{parent}" because error count ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                                 )
                             self._dns_warnings.add(parent_hash)
@@ -239,6 +239,7 @@ class DNSEngine(EngineServer):
                 dns.exception.Timeout,
                 dns.resolver.LifetimeTimeout,
                 TimeoutError,
+                asyncio.exceptions.TimeoutError,
             ) as e:
                 try:
                     self._errors[parent_hash] += 1
@@ -257,7 +258,7 @@ class DNSEngine(EngineServer):
                     self.debug(err_msg)
                     self.debug(f"Retry (#{retry_num}) resolving {query} with kwargs={kwargs}")
                 else:
-                    log.verbose(err_msg)
+                    self.log.verbose(err_msg)
 
         if results:
             self._last_dns_success = time.time()
@@ -307,10 +308,11 @@ class DNSEngine(EngineServer):
                         self._dns_cache[dns_cache_hash] = results
                 break
             except (
+                dns.resolver.NoNameservers,
                 dns.exception.Timeout,
                 dns.resolver.LifetimeTimeout,
-                dns.resolver.NoNameservers,
                 TimeoutError,
+                asyncio.exceptions.TimeoutError,
             ) as e:
                 errors.append(e)
                 # don't retry if we get a SERVFAIL
@@ -361,7 +363,7 @@ class DNSEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            finished = await self.finished_tasks(client_id)
+            finished = await self.finished_tasks(client_id, timeout=120)
 
             for task in finished:
                 results = task.result()
@@ -388,7 +390,7 @@ class DNSEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            finished = await self.finished_tasks(client_id)
+            finished = await self.finished_tasks(client_id, timeout=120)
 
             for task in finished:
                 answers, errors = task.result()
@@ -423,13 +425,13 @@ class DNSEngine(EngineServer):
         except dns.resolver.NoNameservers:
             raise
         except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, TimeoutError):
-            log.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
+            self.log.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
             raise
         except dns.exception.DNSException as e:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception as e:
-            log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}: {e}")
-            log.trace(traceback.format_exc())
+            self.log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}: {e}")
+            self.log.trace(traceback.format_exc())
         return []
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
@@ -531,7 +533,7 @@ class DNSEngine(EngineServer):
                     base_query_rdtypes = set(query_baseline)
                     wildcard_rdtypes_set = set([k for k, v in result.items() if v[0] is True])
                     if base_query_rdtypes and wildcard_rdtypes_set and base_query_rdtypes == wildcard_rdtypes_set:
-                        log.debug(
+                        self.log.debug(
                             f"Breaking from wildcard detection for {query} at {host} because base query rdtypes ({base_query_rdtypes}) == wildcard rdtypes ({wildcard_rdtypes_set})"
                         )
                         raise DNSWildcardBreak()
@@ -582,7 +584,7 @@ class DNSEngine(EngineServer):
                     wildcard_domain_results[host] = self._wildcard_cache[host_hash]
                     continue
 
-                log.verbose(f"Checking if {host} is a wildcard")
+                self.log.verbose(f"Checking if {host} is a wildcard")
 
                 # determine if this is a wildcard domain
 
@@ -612,12 +614,12 @@ class DNSEngine(EngineServer):
                 wildcard_domain_results.update({host: wildcard_results})
                 if is_wildcard:
                     wildcard_rdtypes_str = ",".join(sorted([t.upper() for t, r in wildcard_results.items() if r]))
-                    log_fn = log.verbose
+                    log_fn = self.log.verbose
                     if log_info:
-                        log_fn = log.info
+                        log_fn = self.log.info
                     log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
                 else:
-                    log.verbose(f"Finished checking {host}, it is not a wildcard")
+                    self.log.verbose(f"Finished checking {host}, it is not a wildcard")
 
         return wildcard_domain_results
 
@@ -653,14 +655,14 @@ class DNSEngine(EngineServer):
                     self._last_dns_success = time.time()
                     return True
         if time.time() - self._last_connectivity_warning > interval:
-            log.warning(f"DNS queries are failing, please check your internet connection")
+            self.log.warning(f"DNS queries are failing, please check your internet connection")
             self._last_connectivity_warning = time.time()
         self._errors.clear()
         return False
 
     def debug(self, *args, **kwargs):
         if self._debug:
-            log.trace(*args, **kwargs)
+            self.log.trace(*args, **kwargs)
 
     @property
     def in_tests(self):

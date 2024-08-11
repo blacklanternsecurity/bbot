@@ -2,9 +2,10 @@ import uuid
 import random
 import asyncio
 import logging
+import functools
 from datetime import datetime
-from cachetools import LRUCache
 from .misc import human_timedelta
+from cachetools import keys, LRUCache
 from contextlib import asynccontextmanager
 
 log = logging.getLogger("bbot.core.helpers.async_helpers")
@@ -33,7 +34,7 @@ class NamedLock:
     E.g. simultaneous DNS lookups on the same hostname
     """
 
-    def __init__(self, max_size=1000):
+    def __init__(self, max_size=10000):
         self._cache = LRUCache(maxsize=max_size)
 
     @asynccontextmanager
@@ -105,3 +106,24 @@ def async_to_sync_gen(async_gen):
             yield loop.run_until_complete(async_gen.__anext__())
     except StopAsyncIteration:
         pass
+
+
+def async_cachedmethod(cache, key=keys.hashkey):
+    def decorator(method):
+        async def wrapper(self, *args, **kwargs):
+            method_cache = cache(self)
+            k = key(*args, **kwargs)
+            try:
+                return method_cache[k]
+            except KeyError:
+                pass
+            ret = await method(self, *args, **kwargs)
+            try:
+                method_cache[k] = ret
+            except ValueError:
+                pass
+            return ret
+
+        return functools.wraps(method)(wrapper)
+
+    return decorator

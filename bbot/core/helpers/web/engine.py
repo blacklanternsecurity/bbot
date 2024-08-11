@@ -100,7 +100,7 @@ class HTTPEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            finished = await self.finished_tasks(client_id)
+            finished = await self.finished_tasks(client_id, timeout=120)
 
             for task in finished:
                 response = task.result()
