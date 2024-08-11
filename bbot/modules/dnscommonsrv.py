@@ -135,7 +135,6 @@ common_srvs = [
     "_afpovertcp._tcp",  # 10
     "_collab-edge._tls",  # 6
     "_tcp",  # 5
-    "_wildcard",  # 3
     "_client._smtp",  # 3
     "_udp",  # 2
     "_tls",  # 2
@@ -153,7 +152,7 @@ num_srvs = len(common_srvs)
 class dnscommonsrv(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["subdomain-enum", "active", "safe"]
     meta = {"description": "Check for common SRV records", "created_date": "2022-05-15", "author": "@TheTechromancer"}
     dedup_strategy = "lowest_parent"
 
