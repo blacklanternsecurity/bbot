@@ -106,10 +106,14 @@ class securitytxt(BaseModule):
             # it doesn't look like we got a valid response...
             return
 
-        s = r.text
+        try:
+            s = r.text
+        except Exception:
+            s = ""
 
         # avoid parsing the response unless it looks, at a very basic level, like an actual security.txt
-        if "contact: " in s.lower() or "expires: " in s.lower():
+        s_lower = s.lower()
+        if "contact: " in s_lower or "expires: " in s_lower:
             for securitytxt_match in securitytxt_regex.finditer(s):
                 v = securitytxt_match.group("v")
 
