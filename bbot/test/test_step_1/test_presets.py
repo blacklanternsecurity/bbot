@@ -255,18 +255,15 @@ def test_preset_scope():
     preset_whitelist_baked = preset_whitelist.bake()
 
     assert preset_nowhitelist_baked.to_dict(include_target=True) == {
-        "output_modules": ["csv", "json", "python", "txt"],
         "target": ["evilcorp.com"],
     }
     assert preset_whitelist_baked.to_dict(include_target=True) == {
-        "output_modules": ["csv", "json", "python", "txt"],
         "target": ["evilcorp.org"],
         "whitelist": ["1.2.3.0/24", "evilcorp.net"],
         "blacklist": ["evilcorp.co.uk"],
         "config": {"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
     }
     assert preset_whitelist_baked.to_dict(include_target=True, redact_secrets=True) == {
-        "output_modules": ["csv", "json", "python", "txt"],
         "target": ["evilcorp.org"],
         "whitelist": ["1.2.3.0/24", "evilcorp.net"],
         "blacklist": ["evilcorp.co.uk"],
@@ -361,27 +358,106 @@ def test_preset_scope():
     assert set([e.data for e in preset_nowhitelist2_baked.whitelist]) == {"evilcorp.com", "evilcorp.de"}
 
 
-def test_preset_logging():
-    # test verbosity levels (conflicting verbose/debug/silent)
-    preset = Preset(verbose=True)
-    original_log_level = preset.core.logger.log_level
+@pytest.mark.asyncio
+async def test_preset_logging():
+
+    scan = Scanner()
+
+    # test individual verbosity levels
+    original_log_level = CORE.logger.log_level
+    assert original_log_level == logging.DEBUG
+
     try:
-        assert preset.verbose == True
-        assert preset.debug == False
-        assert preset.silent == False
-        assert preset.core.logger.log_level == logging.VERBOSE
-        preset.debug = True
-        assert preset.verbose == False
-        assert preset.debug == True
-        assert preset.silent == False
-        assert preset.core.logger.log_level == logging.DEBUG
-        preset.silent = True
-        assert preset.verbose == False
-        assert preset.debug == False
-        assert preset.silent == True
-        assert preset.core.logger.log_level == logging.CRITICAL
+        silent_preset = Preset(silent=True)
+        assert silent_preset.silent == True
+        assert silent_preset.debug == False
+        assert silent_preset.verbose == False
+        assert original_log_level == CORE.logger.log_level
+        debug_preset = Preset(debug=True)
+        assert debug_preset.silent == False
+        assert debug_preset.debug == True
+        assert debug_preset.verbose == False
+        assert original_log_level == CORE.logger.log_level
+        verbose_preset = Preset(verbose=True)
+        assert verbose_preset.silent == False
+        assert verbose_preset.debug == False
+        assert verbose_preset.verbose == True
+        assert original_log_level == CORE.logger.log_level
+
+        # test conflicting verbosity levels
+        silent_and_verbose = Preset(silent=True, verbose=True)
+        assert silent_and_verbose.silent == True
+        assert silent_and_verbose.debug == False
+        assert silent_and_verbose.verbose == True
+        baked = silent_and_verbose.bake()
+        assert baked.silent == True
+        assert baked.debug == False
+        assert baked.verbose == False
+        assert baked.core.logger.log_level == original_log_level
+        baked = silent_and_verbose.bake(scan=scan)
+        assert baked.core.logger.log_level == logging.CRITICAL
+        assert CORE.logger.log_level == logging.CRITICAL
+
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+
+        silent_and_debug = Preset(silent=True, debug=True)
+        assert silent_and_debug.silent == True
+        assert silent_and_debug.debug == True
+        assert silent_and_debug.verbose == False
+        baked = silent_and_debug.bake()
+        assert baked.silent == True
+        assert baked.debug == False
+        assert baked.verbose == False
+        assert baked.core.logger.log_level == original_log_level
+        baked = silent_and_debug.bake(scan=scan)
+        assert baked.core.logger.log_level == logging.CRITICAL
+        assert CORE.logger.log_level == logging.CRITICAL
+
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+
+        debug_and_verbose = Preset(verbose=True, debug=True)
+        assert debug_and_verbose.silent == False
+        assert debug_and_verbose.debug == True
+        assert debug_and_verbose.verbose == True
+        baked = debug_and_verbose.bake()
+        assert baked.silent == False
+        assert baked.debug == True
+        assert baked.verbose == False
+        assert baked.core.logger.log_level == original_log_level
+        baked = debug_and_verbose.bake(scan=scan)
+        assert baked.core.logger.log_level == logging.DEBUG
+        assert CORE.logger.log_level == logging.DEBUG
+
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+
+        all_preset = Preset(verbose=True, debug=True, silent=True)
+        assert all_preset.silent == True
+        assert all_preset.debug == True
+        assert all_preset.verbose == True
+        baked = all_preset.bake()
+        assert baked.silent == True
+        assert baked.debug == False
+        assert baked.verbose == False
+        assert baked.core.logger.log_level == original_log_level
+        baked = all_preset.bake(scan=scan)
+        assert baked.core.logger.log_level == logging.CRITICAL
+        assert CORE.logger.log_level == logging.CRITICAL
+
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+
+        # defaults
+        preset = Preset().bake()
+        assert preset.core.logger.log_level == original_log_level
+        assert CORE.logger.log_level == original_log_level
+
     finally:
-        preset.core.logger.log_level = original_log_level
+        CORE.logger.log_level = original_log_level
+        assert CORE.logger.log_level == original_log_level
+        await scan._cleanup()
 
 
 def test_preset_module_resolution(clean_default_config):
@@ -649,6 +725,7 @@ config:
 """
         )
 
+    # with include=
     preset = Preset(include=[str(custom_preset_dir_1 / "preset1")])
     assert preset.config.modules.testpreset1.test == "asdf"
     assert preset.config.modules.testpreset2.test == "fdsa"
@@ -656,8 +733,21 @@ config:
     assert preset.config.modules.testpreset4.test == "zxcv"
     assert preset.config.modules.testpreset5.test == "hjkl"
 
+    # same thing but with presets= (an alias to include)
+    preset = Preset(presets=[str(custom_preset_dir_1 / "preset1")])
+    assert preset.config.modules.testpreset1.test == "asdf"
+    assert preset.config.modules.testpreset2.test == "fdsa"
+    assert preset.config.modules.testpreset3.test == "qwerty"
+    assert preset.config.modules.testpreset4.test == "zxcv"
+    assert preset.config.modules.testpreset5.test == "hjkl"
 
-def test_preset_conditions():
+    # can't use both include= and presets= at the same time
+    with pytest.raises(ValueError):
+        preset = Preset(presets=["subdomain-enum"], include=["dirbust-light"])
+
+
+@pytest.mark.asyncio
+async def test_preset_conditions():
     custom_preset_dir_1 = bbot_test_dir / "custom_preset_dir"
     custom_preset_dir_2 = custom_preset_dir_1 / "preset_subdir"
     mkdir(custom_preset_dir_1)
@@ -689,6 +779,8 @@ conditions:
 
     scan = Scanner(preset=preset)
     assert scan.preset.conditions
+
+    await scan._cleanup()
 
     preset2 = Preset(config={"web": {"spider_distance": 3, "spider_depth": 4}})
     preset.merge(preset2)

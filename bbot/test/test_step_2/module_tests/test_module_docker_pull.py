@@ -439,7 +439,7 @@ class TestDockerPull(ModuleTestBase):
                 or "blacklanternsecurity_testimage_latest.tar" in e.data["path"]
             )
             and "docker" in e.tags
-            and e.scope_distance == 2
+            and e.scope_distance == 1
         ]
         assert 2 == len(filesystem_events), "Failed to download docker images"
         filesystem_event = filesystem_events[0]

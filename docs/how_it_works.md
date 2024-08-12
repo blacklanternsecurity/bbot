@@ -2,7 +2,7 @@
 
 ## BBOT's Recursive Philosophy
 
-It is well-known that if you're doing recon, it's best to do it recursively. However, there are very few recursive tools out there, mainly because making a recursive tool (and keeping it stable) is pretty hard. BBOT manages this with extensive [Unit Tests](./dev/tests.md).
+It's well-known that when you're doing recon, it's best to do it recursively. However, there are very few recursive tools, and the main reason for this is because making a recursive tool is hard. In particular, it's very difficult to build a large-scale recursive system that interacts with the internet, and to keep it stable. When we first set out to make BBOT, we didn't know this, and it was definitely a lesson we learned the hard way. BBOT's stability is thanks to its extensive [Unit Tests](./dev/tests.md).
 
 BBOT inherits its recursive philosophy from [Spiderfoot](https://github.com/smicallef/spiderfoot), which means it is also ***event-driven***. Each of BBOT's 100+ modules ***consume*** a certain type of [Event](./scanning/events.md), use it to discover something new, and ***produce*** new events, which get distributed to all the other modules. This happens again and again -- thousands of times during a scan -- spidering outwards in a recursive web of discovery.
 
@@ -16,7 +16,7 @@ Below is an interactive graph showing the relationships between modules and the 
     function() {
       vegaEmbed(
         '#vis',
-        '/bbot/data/chord_graph/vega.json',
+        '../data/chord_graph/vega.json',
         {renderer: 'svg'}
       );
     }

@@ -18,6 +18,8 @@ async def test_modules_basic_checks(events, httpx_mock):
     scan = Scanner(config={"omit_event_types": ["URL_UNVERIFIED"]})
     assert "URL_UNVERIFIED" in scan.omitted_event_types
 
+    await scan.load_modules()
+
     # output module specific event filtering tests
     base_output_module_1 = BaseOutputModule(scan)
     base_output_module_1.watched_events = ["IP_ADDRESS", "URL_UNVERIFIED"]
@@ -35,21 +37,17 @@ async def test_modules_basic_checks(events, httpx_mock):
     result, reason = base_output_module_1._event_precheck(localhost)
     assert result == True
     assert reason == "precheck succeeded"
-    # omitted events should be rejected
-    localhost._omit = True
-    result, reason = base_output_module_1._event_precheck(localhost)
-    assert result == False
-    assert reason == "_omit is True"
-    # unwatched event types should be rejected
-    dns_name = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    # unwatched events should be rejected
+    dns_name = scan.make_event("evilcorp.com", parent=scan.root_event)
     result, reason = base_output_module_1._event_precheck(dns_name)
     assert result == False
     assert reason == "its type is not in watched_events"
-    # omitted event types matching watched events should be accepted
+    # omitted events matching watched types should be accepted
     url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
+    url_unverified._omit = True
     result, reason = base_output_module_1._event_precheck(url_unverified)
     assert result == True
-    assert reason == "precheck succeeded"
+    assert reason == "its type is explicitly in watched_events"
 
     base_output_module_2 = BaseOutputModule(scan)
     base_output_module_2.watched_events = ["*"]
@@ -72,11 +70,27 @@ async def test_modules_basic_checks(events, httpx_mock):
     result, reason = base_output_module_2._event_precheck(localhost)
     assert result == False
     assert reason == "_omit is True"
-    # omitted event types should be rejected
+    # normal event should be accepted
     url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
     result, reason = base_output_module_2._event_precheck(url_unverified)
+    assert result == True
+    assert reason == "precheck succeeded"
+    # omitted event types should be marked during scan egress
+    await scan.egress_module.handle_event(url_unverified)
+    result, reason = base_output_module_2._event_precheck(url_unverified)
     assert result == False
-    assert reason == "its type is omitted in the config"
+    assert reason == "_omit is True"
+    # omitted events that are targets should be accepted
+    dns_name = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    dns_name._omit = True
+    result, reason = base_output_module_2._event_precheck(dns_name)
+    assert result == False
+    assert reason == "_omit is True"
+    # omitted results that are targets should be accepted
+    dns_name.add_tag("target")
+    result, reason = base_output_module_2._event_precheck(dns_name)
+    assert result == True
+    assert reason == "it's a target"
 
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
@@ -198,6 +212,8 @@ async def test_modules_basic_checks(events, httpx_mock):
         description = flag_descriptions.get(flag, "")
         assert description, f'Flag "{flag}" has no description in bbot/core/flags.py'
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_modules_basic_perhostonly(bbot_scanner):
@@ -285,6 +301,8 @@ async def test_modules_basic_perhostonly(bbot_scanner):
             assert "per_domain_only=True" in reason_4
             assert valid_5 == True
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
@@ -325,6 +343,8 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
             else:
                 assert valid_1 == True
                 assert valid_2 == True
+
+    await per_domain_scan._cleanup()
 
 
 @pytest.mark.asyncio
@@ -376,6 +396,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "SCAN": 1,
         "DNS_NAME": 3,
         "URL": 1,
+        "ORG_STUB": 1,
         "URL_UNVERIFIED": 1,
         "FINDING": 1,
         "ORG_STUB": 1,
@@ -396,11 +417,12 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "DNS_NAME": 2,
         "FINDING": 1,
         "OPEN_TCP_PORT": 1,
+        "ORG_STUB": 1,
         "SCAN": 1,
         "URL": 1,
         "URL_UNVERIFIED": 1,
     }
-    assert dummy_stats.consumed_total == 7
+    assert dummy_stats.consumed_total == 8
 
     python_stats = scan.stats.module_stats["python"]
     assert python_stats.produced == {}
@@ -445,3 +467,5 @@ async def test_module_loading(bbot_scanner):
                 log.error(f"{f.__qualname__}() is not async")
                 not_async.append(f)
     assert not any(not_async)
+
+    await scan2._cleanup()

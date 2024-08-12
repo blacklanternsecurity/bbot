@@ -20,3 +20,5 @@ async def test_files(bbot_scanner):
         f.write("asdf\n")
     await asyncio.sleep(0.1)
     assert "asdf" in results
+
+    await scan1._cleanup()

@@ -4,29 +4,28 @@ Below you can find some advanced uses of BBOT.
 
 ## BBOT as a Python library
 
-**Synchronous**
-
+#### Synchronous
 ```python
 from bbot.scanner import Scanner
 
-# any number of targets can be specified
-scan = Scanner("example.com", "scanme.nmap.org", modules=["portscan", "sslcert"])
-for event in scan.start():
-    print(event.json())
+if __name__ == "__main__":
+    scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
+    for event in scan.start():
+        print(event)
 ```
 
-**Asynchronous**
-
+#### Asynchronous
 ```python
 from bbot.scanner import Scanner
 
 async def main():
-    scan = Scanner("example.com", "scanme.nmap.org", modules=["portscan", "sslcert"])
+    scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
     async for event in scan.async_start():
         print(event.json())
 
-import asyncio
-asyncio.run(main())
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
 ```
 
 ## Command-Line Help
@@ -62,14 +61,14 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: trufflehog,asn,crobat,hackertarget,ffuf,sublist3r,crt,myssl,pgp,smuggler,gitlab,azure_tenant,paramminer_cookies,wayback,badsecrets,binaryedge,vhost,robots,ipneighbor,dnscaa,wappalyzer,generic_ssrf,newsletters,hunterio,filedownload,builtwith,ip2location,paramminer_getparams,viewdns,host_header,github_org,oauth,c99,bucket_amazon,telerik,credshed,github_codesearch,virustotal,skymem,otx,nuclei,ffuf_shortnames,httpx,urlscan,secretsdb,dastardly,dnsdumpster,ajaxpro,wafw00f,sslcert,emailformat,ipstack,portscan,anubisdb,wpscan,code_repository,chaos,iis_shortnames,bucket_google,zoomeye,securitytrails,paramminer_headers,bucket_file_enum,hunt,dehashed,azure_realm,git,censys,docker_pull,bucket_digitalocean,bypass403,dnsbrute,dockerhub,fullhunt,bucket_firebase,columbus,sitedossier,baddns,passivetotal,dnsbrute_mutations,github_workflows,digitorus,fingerprintx,postman,ntlm,unstructured,dnscommonsrv,dotnetnuke,bevigil,social,affiliates,shodan_dns,url_manipulation,leakix,internetdb,rapiddns,threatminer,bucket_azure,baddns_zone,certspotter,subdomaincenter,git_clone,gowitness,riddler
+                        Modules to enable. Choices: viewdns,postman,baddns_zone,dehashed,bucket_file_enum,asn,generic_ssrf,github_codesearch,columbus,azure_realm,dotnetnuke,dockerhub,credshed,passivetotal,certspotter,builtwith,otx,ipneighbor,fingerprintx,oauth,robots,dnsbrute_mutations,httpx,paramminer_headers,digitorus,gitlab,hunt,hunterio,trufflehog,ffuf,nuclei,badsecrets,git,bucket_firebase,ffuf_shortnames,urlscan,docker_pull,ip2location,subdomaincenter,telerik,pgp,zoomeye,shodan_dns,trickest,dnscommonsrv,ntlm,myssl,internetdb,emailformat,dastardly,azure_tenant,github_workflows,crt,affiliates,wayback,ajaxpro,wafw00f,iis_shortnames,sslcert,chaos,newsletters,host_header,bucket_amazon,vhost,paramminer_cookies,virustotal,rapiddns,leakix,dnsbrute,baddns,url_manipulation,code_repository,smuggler,bevigil,paramminer_getparams,unstructured,skymem,securitytrails,sitedossier,git_clone,bucket_azure,bucket_google,bypass403,wpscan,dnsdumpster,wappalyzer,dnscaa,social,hackertarget,github_org,fullhunt,filedownload,binaryedge,gowitness,anubisdb,portscan,ipstack,secretsdb,c99,censys,bucket_digitalocean
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: web-paramminer,safe,web-basic,iis-shortnames,report,aggressive,social-enum,email-enum,affiliates,code-enum,deadly,baddns,passive,cloud-enum,web-screenshots,portscan,subdomain-enum,web-thorough,slow,subdomain-hijack,service-enum,active
+                        Enable modules by flag. Choices: subdomain-hijack,web-paramminer,subdomain-enum,code-enum,cloud-enum,iis-shortnames,web-thorough,baddns,portscan,slow,social-enum,affiliates,safe,web-screenshots,deadly,report,web-basic,email-enum,active,service-enum,aggressive,passive
   -lf, --list-flags     List available flags.
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
@@ -94,7 +93,7 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: emails,subdomains,splunk,csv,websocket,asset_inventory,slack,stdout,http,discord,json,teams,python,txt,web_report,neo4j
+                        Output module(s). Choices: subdomains,emails,web_report,json,txt,websocket,slack,asset_inventory,neo4j,splunk,csv,stdout,http,python,discord,teams
   --json, -j            Output scan data in JSON format
   --brief, -br          Output only the data itself
   --event-types EVENT_TYPES [EVENT_TYPES ...]

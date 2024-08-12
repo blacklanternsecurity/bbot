@@ -254,7 +254,7 @@ Modules: [{num_modules:,}]("{modules}")"""
     update_md_files("BBOT DEFAULT CONFIG", default_config_yml)
 
     # Table of Contents
-    base_url = "https://www.blacklanternsecurity.com/bbot"
+    base_url = "https://www.blacklanternsecurity.com/bbot/Stable"
 
     def format_section(section_title, section_path):
         path = section_path.split("index.md")[0]

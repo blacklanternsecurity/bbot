@@ -3,7 +3,7 @@
 Once you start customizing BBOT, your commands can start to get really long. Presets let you put all your scan settings in a single file:
 
 ```bash
-bbot -t my_preset.yml
+bbot -p ./my_preset.yml
 ```
 
 A Preset is a YAML file that can include scan targets, modules, and config options like API keys.
@@ -69,7 +69,8 @@ modules:
 
 config:
   # global config options
-  http_proxy: http://127.0.0.1:8080
+  web:
+    http_proxy: http://127.0.0.1:8080
   # module config options
   modules:
     # api keys
@@ -109,7 +110,7 @@ bbot -t evilcorp.com -p spider ./my_spider.yml
 
 ## Validating Presets
 
-To make sure BBOT is configured the way you expect, you can always check the `--current-preset` to show the final verison of the config that will be used when BBOT executes:
+To make sure BBOT is configured the way you expect, you can always check the `--current-preset` to show the final version of the config that will be used when BBOT executes:
 
 ```bash
 # verify the preset is what you want

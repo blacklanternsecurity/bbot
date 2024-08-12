@@ -97,11 +97,11 @@ This nests the event's `.data` beneath its event type like so:
 
 ### Custom HTTP Proxy
 
-Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `http_proxy` config option like so:
+Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `web.http_proxy` config option like so:
 
 ```bash
 # enumerate subdomains, take web screenshots, proxy through Burp
-bbot -t evilcorp.com -f subdomain-enum -m gowitness -c http_proxy=http://127.0.0.1:8080
+bbot -t evilcorp.com -f subdomain-enum -m gowitness -c web.http_proxy=http://127.0.0.1:8080
 ```
 
 ### Display `HTTP_RESPONSE` Events

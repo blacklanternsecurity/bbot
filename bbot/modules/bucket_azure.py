@@ -30,3 +30,7 @@ class bucket_azure(bucket_template):
         status_code = getattr(response, "status_code", 0)
         existent_bucket = status_code != 0
         return existent_bucket, set()
+
+    def clean_bucket_url(self, url):
+        # only return root URL
+        return "/".join(url.split("/")[:3])

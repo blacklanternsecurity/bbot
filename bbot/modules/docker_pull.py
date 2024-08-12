@@ -60,7 +60,6 @@ class docker_pull(BaseModule):
                 parent=event,
             )
             if codebase_event:
-                codebase_event.scope_distance = event.scope_distance
                 await self.emit_event(
                     codebase_event, context=f"{{module}} downloaded Docker image to {{event.type}}: {repo_path}"
                 )
