@@ -438,7 +438,6 @@ async def test_dns_raw_records(bbot_scanner):
     )
 
 
-<<<<<<< Updated upstream
 @pytest.mark.asyncio
 async def test_dns_graph_structure(bbot_scanner):
     scan = bbot_scanner("https://evilcorp.com", config={"dns": {"search_distance": 1, "minimal": False}})
@@ -465,7 +464,8 @@ async def test_dns_graph_structure(bbot_scanner):
     assert str(events_by_data["www.evilcorp.com"].module) == "CNAME"
     assert events_by_data["evilcorp.com"].parent.data == "https://evilcorp.com/"
     assert str(events_by_data["evilcorp.com"].module) == "host"
-=======
+
+
 def test_dns_helpers():
     assert service_record("") == False
     assert service_record("localhost") == False
@@ -477,4 +477,3 @@ def test_dns_helpers():
     for srv_record in common_srvs[:100]:
         hostname = f"{srv_record}.example.com"
         assert service_record(hostname) == True
->>>>>>> Stashed changes
