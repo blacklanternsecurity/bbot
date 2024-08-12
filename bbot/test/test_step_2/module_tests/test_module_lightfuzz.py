@@ -690,6 +690,194 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
         assert sqldelay_finding_emitted, "SQLi Delay FINDING not emitted"
 
 
+# Serialization Module (Error Resolution)
+class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["serial"],
+            }
+        },
+    }
+
+    async def setup_after_prep(self, module_test):
+
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def request_handler(self, request):
+
+        dotnet_serial_error = """
+            <html>
+            <b> Description: </b>An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information about the error and where it originated in the code.
+
+            <br><br>
+
+            <b> Exception Details: </b>System.Runtime.Serialization.SerializationException: End of Stream encountered before parsing was completed.<br><br>
+            </html>
+            """
+
+        dotnet_serial_error_resolved = (
+            "<html><body>Deserialization successful! Object type: System.String</body></html>"
+        )
+
+        dotnet_serial_html = """
+        <!DOCTYPE html>
+        <html>
+        <head><title>
+            Deserialization RCE Example
+        </title></head>
+        <body>
+            <form method="post" action="./deser.aspx" id="form1">
+        <div class="aspNetHidden">
+        <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP" />
+        </div>
+
+        <div class="aspNetHidden">
+
+            <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="AD6F025C" />
+            <input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAANdCjkiIFhjCB8ta8aO/EhuESCFkFW/RuhzY1oLb/NUVM34O/GfAV4V4n0wgFZHr3czZjft8VgObR/WUivai7w4kfR1wg==" />
+        </div>
+                <div>
+                    <h2>Deserialization Test</h2>
+                    <span id="Label1">Enter serialized data:</span><br />
+                    <textarea name="TextBox1" rows="2" cols="20" id="TextBox1" style="height:100px;width:400px;">
+        </textarea><br /><br />
+                    <input type="submit" name="Button1" value="Submit" id="Button1" /><br /><br />
+                </div>
+            </form>
+
+            
+        </body>
+        </html>
+        """
+
+        post_params = request.form
+
+        if "TextBox1" not in post_params.keys():
+            return Response(dotnet_serial_html, status=200)
+
+        else:
+            if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
+                return Response(dotnet_serial_error, status=500)
+            if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
+
+                return Response(dotnet_serial_error_resolved, status=200)
+            else:
+                return Response(dotnet_serial_error, status=500)
+
+    def check(self, module_test, events):
+
+        excavate_extracted_form_parameter = False
+        excavate_extracted_form_parameter_details = False
+        lightfuzz_serial_detect_errorresolution = False
+        lightfuzz_serial_detect_errordifferential = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if e.data["name"] == "TextBox1":
+                    excavate_extracted_form_parameter = True
+                    if (
+                        e.data["url"] == "http://127.0.0.1:8888/deser.aspx"
+                        and e.data["host"] == "127.0.0.1"
+                        and e.data["additional_params"]
+                        == {
+                            "__VIEWSTATE": "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP",
+                            "__VIEWSTATEGENERATOR": "AD6F025C",
+                            "__EVENTVALIDATION": "/wEdAANdCjkiIFhjCB8ta8aO/EhuESCFkFW/RuhzY1oLb/NUVM34O/GfAV4V4n0wgFZHr3czZjft8VgObR/WUivai7w4kfR1wg==",
+                            "Button1": "Submit",
+                        }
+                    ):
+                        excavate_extracted_form_parameter_details = True
+            if e.type == "FINDING":
+                if (
+                    e.data["description"]
+                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Technique: [Error Resolution] Serialization Payload: [dotnet_base64]"
+                ):
+                    lightfuzz_serial_detect_errorresolution = True
+
+        assert excavate_extracted_form_parameter, "WEB_PARAMETER for POST form was not emitted"
+        assert excavate_extracted_form_parameter_details, "WEB_PARAMETER for POST form did not have correct data"
+        assert (
+            lightfuzz_serial_detect_errorresolution
+        ), "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
+
+
+# Serialization Module (Error Differential)
+class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolution):
+
+    def request_handler(self, request):
+
+        java_serial_error = """
+            <html>
+                   <h4>Internal Server Error</h4>
+                    <p class=is-warning>java.io.StreamCorruptedException: invalid stream header: 0C400304</p>
+            </html>
+            """
+
+        java_serial_error_keyword = """
+        <html>
+                    <h4>Internal Server Error</h4>
+                    <p class=is-warning>java.lang.ClassCastException: Cannot cast java.lang.String to lab.actions.common.serializable.AccessTokenUser</p>
+        </html>
+        """
+
+        java_serial_html = """
+        <!DOCTYPE html>
+        <html>
+        <head><title>
+            Deserialization RCE Example
+        </title></head>
+        <body>
+            Please log in to continue.
+        </body>
+        </html>
+        """
+
+        cookies = request.cookies
+
+        if "session" not in cookies.keys():
+
+            response = Response(java_serial_html, status=200)
+            response.set_cookie("session", value="", max_age=3600, httponly=True)
+            return response
+
+        else:
+            if cookies["session"] == "rO0ABXQABHRlc3Q=":
+
+                return Response(java_serial_error_keyword, status=500)
+            else:
+
+                return Response(java_serial_error, status=500)
+
+    def check(self, module_test, events):
+        excavate_extracted_cookie_parameter = False
+        lightfuzz_serial_detect_errordifferential = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+
+                if e.data["description"] == "Set-Cookie Assigned Cookie [session]" and e.data["type"] == "COOKIE":
+                    excavate_extracted_cookie_parameter = True
+
+            if e.type == "FINDING":
+                print(e.data["description"])
+
+                if (
+                    e.data["description"]
+                    == "POSSIBLE Unsafe Deserialization. Parameter: [session] Parameter Type: [COOKIE] Technique: [Differential Error Analysis] Error-String: [cannot cast java.lang.string] Payload: [java_base64_string_error]"
+                ):
+                    lightfuzz_serial_detect_errordifferential = True
+
+        assert excavate_extracted_cookie_parameter, "WEB_PARAMETER for cookie was not emitted"
+        assert (
+            lightfuzz_serial_detect_errordifferential
+        ), "Lightfuzz Serial module failed to detect Java error differential based deserialization"
+
+
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]

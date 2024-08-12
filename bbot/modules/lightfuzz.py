@@ -8,12 +8,13 @@ import urllib.parse
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, unquote
 from bbot.errors import InteractshError, HttpCompareError
 
-from .lightfuzz_submodules.cmdi import CmdILightFuzz
+from .lightfuzz_submodules.cmdi import CmdILightfuzz
 from .lightfuzz_submodules.crypto import CryptoLightfuzz
 from .lightfuzz_submodules.path import PathTraversalLightfuzz
 from .lightfuzz_submodules.sqli import SQLiLightfuzz
 from .lightfuzz_submodules.ssti import SSTILightfuzz
 from .lightfuzz_submodules.xss import XSSLightfuzz
+from .lightfuzz_submodules.serial import SerialLightfuzz
 
 
 class lightfuzz(BaseModule):
@@ -23,11 +24,12 @@ class lightfuzz(BaseModule):
 
     submodules = {
         "sqli": {"description": "SQL Injection", "module": SQLiLightfuzz},
-        "cmdi": {"description": "Command Injection", "module": CmdILightFuzz},
+        "cmdi": {"description": "Command Injection", "module": CmdILightfuzz},
         "xss": {"description": "Cross-site Scripting", "module": XSSLightfuzz},
         "path": {"description": "Path Traversal", "module": PathTraversalLightfuzz},
         "ssti": {"description": "Server-side Template Injection", "module": SSTILightfuzz},
         "crypto": {"description": "Cryptography Probe", "module": CryptoLightfuzz},
+        "serial": {"description": "Unsafe Deserialization Probe", "module": SerialLightfuzz},
     }
 
     options = {"force_common_headers": False, "enabled_submodules": []}

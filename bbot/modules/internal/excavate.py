@@ -7,7 +7,7 @@ from pathlib import Path
 from bbot.errors import ExcavateError
 import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.internal.base import BaseInternalModule
-from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
+from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, quote
 
 
 def find_subclasses(obj, base_class):
@@ -391,7 +391,7 @@ class excavate(BaseInternalModule):
                     for action, extracted_parameters in extracted_results:
                         extracted_parameters_dict = self.convert_to_dict(extracted_parameters)
                         for parameter_name, original_value in extracted_parameters_dict.items():
-                            yield self.output_type, parameter_name, original_value, action, _exclude_key(
+                            yield self.output_type, parameter_name, original_value.strip(), action, _exclude_key(
                                 extracted_parameters_dict, parameter_name
                             )
 
@@ -416,7 +416,7 @@ class excavate(BaseInternalModule):
                         k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in query_strings.items()
                     }
                     for parameter_name, original_value in query_strings_dict.items():
-                        yield self.output_type, parameter_name, original_value, url, _exclude_key(
+                        yield self.output_type, parameter_name, original_value.strip(), url, _exclude_key(
                             query_strings_dict, parameter_name
                         )
 
@@ -434,12 +434,16 @@ class excavate(BaseInternalModule):
             def extract(self):
                 forms = self.extraction_regex.findall(str(self.result))
                 for form_action, form_content in forms:
+
+                    if form_action.startswith("./"):
+                        form_action = form_action.lstrip(".")
+
                     form_parameters = {}
                     for form_content_regex in self.form_content_regexes:
                         input_tags = form_content_regex.findall(form_content)
 
                         for parameter_name, original_value in input_tags:
-                            form_parameters[parameter_name] = original_value
+                            form_parameters[parameter_name] = original_value.strip()
 
                         for parameter_name, original_value in form_parameters.items():
                             yield self.output_type, parameter_name, original_value, form_action, _exclude_key(

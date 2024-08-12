@@ -4,7 +4,7 @@ from .base import BaseLightfuzz
 import urllib.parse
 
 
-class CmdILightFuzz(BaseLightfuzz):
+class CmdILightfuzz(BaseLightfuzz):
 
     async def fuzz(self):
 
