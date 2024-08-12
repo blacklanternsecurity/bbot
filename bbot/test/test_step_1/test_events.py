@@ -805,4 +805,4 @@ def test_event_confidence():
     # 100 confidence resets
     event8 = scan.make_event("evilcorp.com", "DNS_NAME", confidence=100, parent=event7)
     assert event8.confidence == 100
-    assert event8.cumulative_confidence == 22
+    assert event8.cumulative_confidence == 100
