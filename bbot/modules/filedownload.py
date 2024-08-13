@@ -144,7 +144,6 @@ class filedownload(BaseModule):
                 file_event = self.make_event(
                     {"path": str(file_destination)}, "FILESYSTEM", tags=["filedownload", "file"], parent=source_event
                 )
-                file_event.scope_distance = source_event.scope_distance
                 await self.emit_event(file_event)
         self.urls_downloaded.add(hash(url))
 

@@ -38,6 +38,7 @@ nav:
     - Troubleshooting: troubleshooting.md
 - Developer Manual:
   - Development Overview: dev/index.md
+  - Setting Up a Dev Environment: dev/dev_environment.md
   - BBOT Internal Architecture: dev/architecture.md
   - How to Write a BBOT Module: dev/module_howto.md
   - Unit Tests: dev/tests.md
@@ -76,6 +77,7 @@ theme:
       accent: deep orange
 
 plugins:
+  - mike
   - search
   - extra-sass
   - mkdocstrings:
@@ -97,7 +99,13 @@ plugins:
             - https://docs.python.org/3.11/objects.inv
             - https://omegaconf.readthedocs.io/en/latest/objects.inv
 
+extra:
+  version:
+    provider: mike
+    default: Stable
+
 markdown_extensions:
+  - tables
   - attr_list
   - admonition
   - pymdownx.details
@@ -115,6 +123,10 @@ markdown_extensions:
 
 extra_javascript:
   - javascripts/tablesort.js
+  - javascripts/tablesort.min.js
   - javascripts/vega@5.js
   - javascripts/vega-lite@5.js
   - javascripts/vega-embed@6.js
+  - data/chord_graph/vega.json
+  - data/chord_graph/rels.json
+  - data/chord_graph/entities.json

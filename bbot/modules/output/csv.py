@@ -54,6 +54,8 @@ class CSV(BaseOutputModule):
 
     async def handle_event(self, event):
         # ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
+        discovery_path = getattr(event, "discovery_path", [])
+        discovery_path = [e[-1] for e in discovery_path]
         self.writerow(
             {
                 "Event type": getattr(event, "type", ""),
@@ -64,7 +66,7 @@ class CSV(BaseOutputModule):
                 "Source Module": str(getattr(event, "module_sequence", "")),
                 "Scope Distance": str(getattr(event, "scope_distance", "")),
                 "Event Tags": ",".join(sorted(list(getattr(event, "tags", [])))),
-                "Discovery Path": " --> ".join(getattr(event, "discovery_path", [])),
+                "Discovery Path": " --> ".join(discovery_path),
             }
         )
 

@@ -90,26 +90,48 @@ class ntlm(BaseModule):
             url = event.data
         else:
             url = event.data["url"]
-        agen = self.handle_url(url, event)
-        if found_hash not in self.found:
-            async for result, request_url, num_urls in agen:
-                if result and request_url:
-                    self.found.add(found_hash)
-                    await self.emit_event(
-                        {
-                            "host": str(event.host),
-                            "url": request_url,
-                            "description": f"NTLM AUTH: {result}",
-                        },
-                        "FINDING",
-                        parent=event,
-                        context=f"{{module}} tried {num_urls:,} NTLM endpoints against {url} and identified NTLM auth ({{event.type}}): {result}",
-                    )
-                    fqdn = result.get("FQDN", "")
-                    if fqdn:
-                        await self.emit_event(fqdn, "DNS_NAME", parent=event)
-                    await agen.aclose()
-                    break
+        if found_hash in self.found:
+            return
+
+        urls = {url}
+        if self.try_all:
+            for endpoint in ntlm_discovery_endpoints:
+                urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
+
+        num_urls = len(urls)
+        agen = self.helpers.request_batch(
+            urls, headers=NTLM_test_header, allow_redirects=False, timeout=self.http_timeout
+        )
+        async for url, response in agen:
+            ntlm_resp = response.headers.get("WWW-Authenticate", "")
+            if not ntlm_resp:
+                continue
+            ntlm_resp_b64 = max(ntlm_resp.split(","), key=lambda x: len(x)).split()[-1]
+            try:
+                ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
+                if not ntlm_resp_decoded:
+                    continue
+
+                await agen.aclose()
+                self.found.add(found_hash)
+                fqdn = ntlm_resp_decoded.get("FQDN", "")
+                await self.emit_event(
+                    {
+                        "host": str(event.host),
+                        "url": url,
+                        "description": f"NTLM AUTH: {ntlm_resp_decoded}",
+                    },
+                    "FINDING",
+                    parent=event,
+                    context=f"{{module}} tried {num_urls:,} NTLM endpoints against {url} and identified NTLM auth ({{event.type}}): {fqdn}",
+                )
+                fqdn = ntlm_resp_decoded.get("FQDN", "")
+                if fqdn:
+                    await self.emit_event(fqdn, "DNS_NAME", parent=event)
+                break
+
+            except NTLMError as e:
+                self.verbose(str(e))
 
     async def filter_event(self, event):
         if self.try_all:
@@ -120,23 +142,3 @@ class ntlm(BaseModule):
                 if "ntlm" in header_value or "negotiate" in header_value:
                     return True
         return False
-
-    async def handle_url(self, url, event):
-        urls = {url}
-        if self.try_all:
-            for endpoint in ntlm_discovery_endpoints:
-                urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
-
-        num_urls = len(urls)
-        async for url, response in self.helpers.request_batch(
-            urls, headers=NTLM_test_header, allow_redirects=False, timeout=self.http_timeout
-        ):
-            ntlm_resp = response.headers.get("WWW-Authenticate", "")
-            if ntlm_resp:
-                ntlm_resp_b64 = max(ntlm_resp.split(","), key=lambda x: len(x)).split()[-1]
-                try:
-                    ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
-                    if ntlm_resp_decoded:
-                        yield ntlm_resp_decoded, url, num_urls
-                except NTLMError as e:
-                    self.verbose(str(e))

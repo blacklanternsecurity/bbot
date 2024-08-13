@@ -32,7 +32,7 @@ class HTTPEngine(EngineServer):
         self.target = target
         self.config = config
         self.web_config = self.config.get("web", {})
-        self.http_debug = self.web_config.get("http_debug", False)
+        self.http_debug = self.web_config.get("debug", False)
         self._ssl_context_noverify = None
         self.web_client = self.AsyncClient(persist_cookies=False)
 
@@ -85,13 +85,14 @@ class HTTPEngine(EngineServer):
 
     async def request_batch(self, urls, *args, threads=10, **kwargs):
         tasks = {}
+        client_id = self.client_id_var.get()
 
         urls = list(urls)
 
         def new_task():
             if urls:
                 url = urls.pop(0)
-                task = asyncio.create_task(self.request(url, *args, **kwargs))
+                task = self.new_child_task(client_id, self.request(url, *args, **kwargs))
                 tasks[task] = url
 
         for _ in range(threads):  # Start initial batch of tasks
@@ -99,9 +100,9 @@ class HTTPEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            finished = await self.finished_tasks(client_id, timeout=120)
 
-            for task in done:
+            for task in finished:
                 response = task.result()
                 url = tasks.pop(task)
                 yield (url, response)
@@ -109,12 +110,13 @@ class HTTPEngine(EngineServer):
 
     async def request_custom_batch(self, urls_and_kwargs, threads=10):
         tasks = {}
+        client_id = self.client_id_var.get()
         urls_and_kwargs = list(urls_and_kwargs)
 
         def new_task():
             if urls_and_kwargs:  # Ensure there are args to process
                 url, kwargs, custom_tracker = urls_and_kwargs.pop(0)
-                task = asyncio.create_task(self.request(url, **kwargs))
+                task = self.new_child_task(client_id, self.request(url, **kwargs))
                 tasks[task] = (url, kwargs, custom_tracker)
 
         for _ in range(threads):  # Start initial batch of tasks
@@ -135,7 +137,10 @@ class HTTPEngine(EngineServer):
         filename = kwargs.pop("filename")
         raise_error = kwargs.get("raise_error", False)
         try:
-            content, response = await self.stream_request(url, **kwargs)
+            result = await self.stream_request(url, **kwargs)
+            if result is None:
+                raise httpx.HTTPError(f"No response from {url}")
+            content, response = result
             log.debug(f"Download result: HTTP {response.status_code}")
             response.raise_for_status()
             with open(filename, "wb") as f:

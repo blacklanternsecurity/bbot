@@ -181,7 +181,3 @@ omit_event_types:
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
-
-# temporary fix to boost scan performance
-# TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
-target_dns_regex_disable: false

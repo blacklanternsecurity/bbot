@@ -62,7 +62,6 @@ class github_org(github):
                 repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", parent=event)
                 if not repo_event:
                     continue
-                repo_event.scope_distance = event.scope_distance
                 await self.emit_event(
                     repo_event,
                     context=f"{{module}} listed repos for GitHub profile and discovered {{event.type}}: {repo_url}",
@@ -97,7 +96,6 @@ class github_org(github):
             event_data = {"platform": "github", "profile_name": user, "url": user_url}
             github_org_event = self.make_event(event_data, "SOCIAL", tags="github-org", parent=event)
             if github_org_event:
-                github_org_event.scope_distance = event.scope_distance
                 await self.emit_event(
                     github_org_event,
                     context=f'{{module}} tried "{user}" as GitHub profile and discovered {{event.type}}: {user_url}',

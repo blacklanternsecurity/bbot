@@ -100,15 +100,21 @@ class ModuleTestBase:
     async def module_test(
         self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
     ):
+        self.log.info(f"Starting {self.name} module test")
         module_test = self.ModuleTest(
             self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
         )
-        module_test.log.info(f"Starting {self.name} module test")
+        self.log.debug(f"Mocking DNS")
         await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
+        self.log.debug(f"Executing setup_before_prep()")
         await self.setup_before_prep(module_test)
+        self.log.debug(f"Executing scan._prep()")
         await module_test.scan._prep()
+        self.log.debug(f"Executing setup_after_prep()")
         await self.setup_after_prep(module_test)
+        self.log.debug(f"Starting scan")
         module_test.events = [e async for e in module_test.scan.async_start()]
+        self.log.debug(f"Finished {module_test.name} module test")
         yield module_test
 
     @pytest.mark.asyncio
@@ -117,8 +123,10 @@ class ModuleTestBase:
         module_test.log.info(f"Finished {self.name} module test")
         current_task = asyncio.current_task()
         tasks = [t for t in asyncio.all_tasks() if t != current_task]
-        if len(tasks) > 0:
+        if len(tasks):
             module_test.log.info(f"Unfinished tasks detected: {tasks}")
+        else:
+            module_test.log.info(f"No unfinished tasks detected")
 
     def check(self, module_test, events):
         assert False, f"Must override {self.name}.check()"

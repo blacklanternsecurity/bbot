@@ -4,15 +4,28 @@ BBOT exposes a Python API that allows you to create, start, and stop scans.
 
 Documented in this section are commonly-used classes and functions within BBOT, along with usage examples.
 
+## Adding BBOT to Your Python Project
+
+If you are using Poetry, you can add BBOT to your python environment like this:
+
+```bash
+# stable
+poetry add bbot
+
+# bleeding-edge (dev branch)
+poetry add bbot --allow-prereleases
+```
+
 ## Running a BBOT Scan from Python
 
 #### Synchronous
 ```python
 from bbot.scanner import Scanner
 
-scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
-for event in scan.start():
-    print(event)
+if __name__ == "__main__":
+    scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
+    for event in scan.start():
+        print(event)
 ```
 
 #### Asynchronous
@@ -24,8 +37,9 @@ async def main():
     async for event in scan.async_start():
         print(event.json())
 
-import asyncio
-asyncio.run(main())
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
 ```
 
 For a full listing of `Scanner` attributes and functions, see the [`Scanner` Code Reference](./scanner.md).

@@ -172,10 +172,6 @@ class Scanner:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
 
-        from .stats import ScanStats
-
-        self.stats = ScanStats(self)
-
         # scope distance
         self.scope_config = self.config.get("scope", {})
         self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
@@ -215,6 +211,10 @@ class Scanner:
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)
 
+        from .stats import ScanStats
+
+        self.stats = ScanStats(self)
+
         self._prepped = False
         self._finished_init = False
         self._new_activity = False
@@ -231,9 +231,6 @@ class Scanner:
 
         self._dns_strings = None
         self._dns_regexes = None
-        # temporary fix to boost scan performance
-        # TODO: remove this when https://github.com/blacklanternsecurity/bbot/issues/1252 is merged
-        self._target_dns_regex_disable = self.config.get("target_dns_regex_disable", False)
 
         self.__log_handlers = None
         self._log_handler_backup = []
@@ -313,12 +310,16 @@ class Scanner:
 
             self._start_log_handlers()
             self.trace(f'Ran BBOT {__version__} at {scan_start_time}, command: {" ".join(sys.argv)}')
+            self.trace(f"Target: {self.preset.target.json}")
+            self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 
             if not self.target:
                 self.warning(f"No scan targets specified")
 
             # start status ticker
-            self.ticker_task = asyncio.create_task(self._status_ticker(self.status_frequency))
+            self.ticker_task = asyncio.create_task(
+                self._status_ticker(self.status_frequency), name=f"{self.name}._status_ticker()"
+            )
 
             self.status = "STARTING"
 
@@ -336,7 +337,9 @@ class Scanner:
             self.verbose(f"{len(self.modules):,} modules started")
 
             # distribute seed events
-            self.init_events_task = asyncio.create_task(self.ingress_module.init_events(self.target.events))
+            self.init_events_task = asyncio.create_task(
+                self.ingress_module.init_events(self.target.events), name=f"{self.name}.ingress_module.init_events()"
+            )
 
             # main scan loop
             while 1:
@@ -350,6 +353,8 @@ class Scanner:
                     events, finish = await self.modules["python"]._events_waiting(batch_size=-1)
                     for e in events:
                         yield e
+                    if events:
+                        continue
 
                 # break if initialization finished and the scan is no longer active
                 if self._finished_init and self.modules_finished:
@@ -383,7 +388,7 @@ class Scanner:
             for task in tasks:
                 # self.debug(f"Awaiting {task}")
                 with contextlib.suppress(BaseException):
-                    await task
+                    await asyncio.wait_for(task, timeout=0.1)
             self.debug(f"Awaited {len(tasks):,} tasks")
             await self._report()
             await self._cleanup()
@@ -637,11 +642,11 @@ class Scanner:
             num_queued_events = self.num_queued_events
             if num_queued_events:
                 self.info(
-                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds)"
                 )
             else:
                 self.info(
-                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past minute)"
+                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds)"
                 )
 
             if self.log_level <= logging.DEBUG:
@@ -805,17 +810,19 @@ class Scanner:
         Returns:
             None
         """
-        self.status = "CLEANING_UP"
-        # clean up dns engine
-        await self.helpers.dns.shutdown()
-        # clean up web engine
-        await self.helpers.web.shutdown()
-        # clean up modules
-        for mod in self.modules.values():
-            await mod._cleanup()
         # clean up self
         if not self._cleanedup:
             self._cleanedup = True
+            self.status = "CLEANING_UP"
+            # clean up dns engine
+            if self.helpers._dns is not None:
+                await self.helpers.dns.shutdown()
+            # clean up web engine
+            if self.helpers._web is not None:
+                await self.helpers.web.shutdown()
+            # clean up modules
+            for mod in self.modules.values():
+                await mod._cleanup()
             with contextlib.suppress(Exception):
                 self.home.rmdir()
             self.helpers.clean_old_scans()
@@ -901,7 +908,10 @@ class Scanner:
                     self._status = status
                     self._status_code = self._status_codes[status]
                     self.dispatcher_tasks.append(
-                        asyncio.create_task(self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id))
+                        asyncio.create_task(
+                            self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id),
+                            name=f"{self.name}.dispatcher.on_status({status})",
+                        )
                     )
                 else:
                     self.debug(f'Scan status is already "{status}"')
@@ -990,8 +1000,6 @@ class Scanner:
             ...     for match in regex.finditer(response.text):
             ...         hostname = match.group().lower()
         """
-        if self._target_dns_regex_disable:
-            return []
         if not self._dns_regexes:
             self._dns_regexes = self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
         return self._dns_regexes
@@ -1177,12 +1185,15 @@ class Scanner:
         elif isinstance(e, asyncio.CancelledError):
             raise
         elif isinstance(e, Exception):
+            traceback_str = getattr(e, "engine_traceback", None)
+            if traceback_str is None:
+                traceback_str = traceback.format_exc()
             if unhandled_is_critical:
                 log.critical(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
-                log.critical(traceback.format_exc())
+                log.critical(traceback_str)
             else:
                 log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
-                log.trace(traceback.format_exc())
+                log.trace(traceback_str)
         if callable(finally_callback):
             finally_callback(e)
 
@@ -1196,16 +1207,6 @@ class Scanner:
             dummy = DummyModule(scan=self, name=name, _type=_type)
             self.dummy_modules[name] = dummy
             return dummy
-
-    def _make_dummy_module_dns(self, name):
-        try:
-            dummy_module = self.dummy_modules[name]
-        except KeyError:
-            dummy_module = self._make_dummy_module(name=name, _type="DNS")
-            dummy_module.suppress_dupes = False
-            dummy_module._priority = 4
-            self.dummy_modules[name] = dummy_module
-        return dummy_module
 
 
 from bbot.modules.base import BaseModule

@@ -20,9 +20,10 @@ class subdomain_enum(BaseModule):
     # whether to reject wildcard DNS_NAMEs
     reject_wildcards = "strict"
 
-    # set qsize to 1. this helps combat rate limiting by ensuring that a query doesn't execute
+    # set qsize to 10. this helps combat rate limiting by ensuring that a query doesn't execute
     # until the queue is ready to receive its results
-    _qsize = 1
+    # we don't use 1 because it causes delays due to the asyncio.sleep; 10 gives us reasonable buffer room
+    _qsize = 10
 
     # how to deduplicate incoming events
     # options:

@@ -530,7 +530,8 @@ class BaseModule:
 
     def start(self):
         self._tasks = [
-            asyncio.create_task(self._worker(), name=f"{self.name}._worker()") for _ in range(self.module_threads)
+            asyncio.create_task(self._worker(), name=f"{self.scan.name}.{self.name}._worker()")
+            for _ in range(self.module_threads)
         ]
 
     async def _setup(self):
@@ -1210,7 +1211,7 @@ class BaseModule:
         return table
 
     def _is_graph_important(self, event):
-        return self.preserve_graph and getattr(event, "_graph_important", False)
+        return self.preserve_graph and getattr(event, "_graph_important", False) and not getattr(event, "_omit", False)
 
     @property
     def preserve_graph(self):
@@ -1379,7 +1380,7 @@ class BaseModule:
         if trace:
             self.trace()
 
-    def trace(self):
+    def trace(self, msg=None):
         """Logs the stack trace of the most recently caught exception.
 
         This method captures the type, value, and traceback of the most recent exception and logs it using the trace level. It is typically used for debugging purposes.
@@ -1392,9 +1393,12 @@ class BaseModule:
             >>> except ZeroDivisionError:
             >>>     self.trace()
         """
-        e_type, e_val, e_traceback = exc_info()
-        if e_type is not None:
-            self.log.trace(traceback.format_exc())
+        if msg is None:
+            e_type, e_val, e_traceback = exc_info()
+            if e_type is not None:
+                self.log.trace(traceback.format_exc())
+        else:
+            self.log.trace(msg)
 
     def critical(self, *args, trace=True, **kwargs):
         """Logs a whole message in emboldened red text, and optionally the stack trace of the most recent exception.
@@ -1453,8 +1457,6 @@ class InterceptModule(BaseModule):
                             await self.finish()
                         continue
 
-                    self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-
                     acceptable = True
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
@@ -1477,16 +1479,15 @@ class InterceptModule(BaseModule):
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Intercepting {event}")
                         async with self.scan._acatch(context), self._task_counter.count(context):
-                            forward_event = await self.handle_event(event, kwargs)
+                            forward_event = await self.handle_event(event, **kwargs)
                             with suppress(ValueError, TypeError):
                                 forward_event, forward_event_reason = forward_event
-
-                        self.debug(f"Finished intercepting {event}")
 
                         if forward_event is False:
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")
                             continue
 
+                    self.debug(f"Forwarding {event}")
                     await self.forward_event(event, kwargs)
 
             except asyncio.CancelledError:

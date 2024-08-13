@@ -114,13 +114,13 @@ class portscan(BaseModule):
             async for ip, port, parent_event in self.masscan(syn_targets, syn_correlator):
                 await self.emit_open_port(ip, port, parent_event)
         else:
-            self.verbose("Only ping sweep was requested, skipping TCP SYN scan")
+            self.debug("Only ping sweep was requested, skipping TCP SYN scan")
 
     async def masscan(self, targets, correlator, ping=False):
         scan_type = "ping" if ping else "SYN"
-        self.verbose(f"Starting masscan {scan_type} scan")
+        self.debug(f"Starting masscan {scan_type} scan")
         if not targets:
-            self.verbose("No targets specified, aborting.")
+            self.debug("No targets specified, aborting.")
             return
 
         target_file = self.helpers.tempfile(targets, pipe=False)
