@@ -44,7 +44,7 @@ jobs:
         if: steps.update-version.outcome == 'success'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           commit-message: "Update nuclei"
           title: "Update nuclei to ${{ env.latest_version }}"
           body: |
@@ -94,7 +94,7 @@ jobs:
         if: steps.update-version.outcome == 'success'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           commit-message: "Update trufflehog"
           title: "Update trufflehog to ${{ env.latest_version }}"
           body: |
