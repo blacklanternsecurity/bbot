@@ -6,7 +6,7 @@ from bbot.modules.templates.github import github
 class git_clone(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow"]
+    flags = ["passive", "safe", "slow", "code-enum"]
     meta = {
         "description": "Clone code github repositories",
         "created_date": "2024-03-08",
