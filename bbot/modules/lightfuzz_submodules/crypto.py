@@ -133,10 +133,11 @@ class CryptoLightfuzz(BaseLightfuzz):
     async def padding_oracle_execute(self, original_data, encoding, cookies, possible_first_byte=False):
 
         possible_block_sizes = self.possible_block_sizes(len(original_data))
-        for block_size in possible_block_sizes:
 
+        for block_size in possible_block_sizes:
             ivblock = b"\x00" * block_size
-            datablock = b"\x00" * block_size
+            paddingblock = b"\x00" * block_size
+            datablock = original_data[-block_size:]
             if possible_first_byte:
                 baseline_byte = b"\xFF"
                 starting_pos = 0
@@ -145,16 +146,15 @@ class CryptoLightfuzz(BaseLightfuzz):
                 starting_pos = 1
 
             baseline = self.compare_baseline(
-                self.event.data["type"], ivblock[:-1] + baseline_byte + datablock, cookies
+                self.event.data["type"], ivblock + paddingblock[:-1] + baseline_byte + datablock, cookies
             )
             differ_count = 0
             for i in range(starting_pos, starting_pos + 254):
-
                 byte = bytes([i])
                 oracle_probe = await self.compare_probe(
                     baseline,
                     self.event.data["type"],
-                    self.format_agnostic_encode(ivblock[:-1] + byte + datablock, encoding),
+                    self.format_agnostic_encode(ivblock + paddingblock[:-1] + byte + datablock, encoding),
                     cookies,
                 )
 
@@ -288,7 +288,9 @@ class CryptoLightfuzz(BaseLightfuzz):
             {"truncate value": truncate_probe[3].text, "mutate value": mutate_probe[3].text}
         )
 
-        if confirmed_techniques:
+        if confirmed_techniques or (
+            "padding" in truncate_probe[3].text.lower() or "padding" in mutate_probe[3].text.lower()
+        ):
 
             # Padding Oracle Test
 
