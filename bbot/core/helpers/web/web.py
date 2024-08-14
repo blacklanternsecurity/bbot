@@ -57,7 +57,11 @@ class WebHelper(EngineClient):
         self.web_spider_distance = self.web_config.get("spider_distance", 0)
         self.target = self.preset.target
         self.ssl_verify = self.config.get("ssl_verify", False)
-        super().__init__(server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.radix_only})
+        engine_debug = self.config.get("engine", {}).get("debug", False)
+        super().__init__(
+            server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.radix_only},
+            debug=engine_debug,
+        )
 
     def AsyncClient(self, *args, **kwargs):
         from .client import BBOTAsyncClient
