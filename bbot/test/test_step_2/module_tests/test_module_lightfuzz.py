@@ -59,7 +59,7 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
 
             if e.type == "FINDING":
                 if (
-                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Detection Method: [single-dot traversal tolerance"
+                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Original Value: [default.jpg] Detection Method: [single-dot traversal tolerance (url-encoding)]"
                     in e.data["description"]
                 ):
                     pathtraversal_finding_emitted = True
@@ -110,7 +110,7 @@ lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
 
             if e.type == "FINDING":
                 if (
-                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Detection Method: [Absolute Path: /etc/passwd]"
+                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Original Value: [default.jpg] Detection Method: [Absolute Path: /etc/passwd]"
                     in e.data["description"]
                 ):
                     pathtraversal_finding_emitted = True
@@ -145,7 +145,7 @@ class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
-        respond_args = {"response_data": "", "status": 302, "headers": {"Location": "/test?data=1"}}
+        respond_args = {"response_data": "", "status": 302, "headers": {"Location": "/test?data=9"}}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
         expect_args = re.compile("/test.*")
@@ -162,7 +162,7 @@ class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
 
             if e.type == "FINDING":
                 if (
-                    "POSSIBLE Server-side Template Injection. Parameter: [data] Parameter Type: [GETPARAM] Detection Method: [Integer Multiplication]"
+                    "POSSIBLE Server-side Template Injection. Parameter: [data] Parameter Type: [GETPARAM] Original Value: [9] Detection Method: [Integer Multiplication]"
                     in e.data["description"]
                 ):
                     ssti_finding_emitted = True

@@ -27,8 +27,8 @@ class SerialLightfuzz(BaseLightfuzz):
             "java.io.optionaldataexception",
         ]
 
-        original_value = self.event.data.get("original_value", None)
-        if not (original_value == None or original_value == ""):
+        probe_value = self.probe_value(populate_empty=False)
+        if probe_value:
             self.lightfuzz.debug(
                 f"The Serialization Submodule only operates when there if no original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
@@ -39,11 +39,15 @@ class SerialLightfuzz(BaseLightfuzz):
             try:
                 serialization_probe = await self.compare_probe(http_compare, self.event.data["type"], payload, cookies)
                 if serialization_probe[0] == False and serialization_probe[1] != ["header"]:
-                    if serialization_probe[3].status_code == 200 and "code" in serialization_probe[1]:
+                    if (
+                        serialization_probe[3].status_code == 200
+                        and "code" in serialization_probe[1]
+                        and "The requested URL was rejected" not in serialization_probe[3].text
+                    ):
                         self.results.append(
                             {
                                 "type": "FINDING",
-                                "description": f"POSSIBLE Unsafe Deserialization. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Technique: [Error Resolution] Serialization Payload: [{type}]",
+                                "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Error Resolution] Serialization Payload: [{type}]",
                             }
                         )
                     elif serialization_probe[3].status_code == 500 or (
@@ -54,7 +58,7 @@ class SerialLightfuzz(BaseLightfuzz):
                                 self.results.append(
                                     {
                                         "type": "FINDING",
-                                        "description": f"POSSIBLE Unsafe Deserialization. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Technique: [Differential Error Analysis] Error-String: [{serialization_error}] Payload: [{type}]",
+                                        "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Differential Error Analysis] Error-String: [{serialization_error}] Payload: [{type}]",
                                     }
                                 )
                                 break

@@ -10,6 +10,6 @@ class SSTILightfuzz(BaseLightfuzz):
             self.results.append(
                 {
                     "type": "FINDING",
-                    "description": f"POSSIBLE Server-side Template Injection. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [Integer Multiplication]",
+                    "description": f"POSSIBLE Server-side Template Injection. {self.metadata()} Detection Method: [Integer Multiplication]",
                 }
             )

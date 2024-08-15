@@ -29,11 +29,14 @@ class SQLiLightfuzz(BaseLightfuzz):
     async def fuzz(self):
 
         cookies = self.event.data.get("assigned_cookies", {})
+
+        # custom probe_value generation
         if "original_value" in self.event.data and self.event.data["original_value"] is not None:
             probe_value = urllib.parse.quote(str(self.event.data["original_value"]), safe="")
 
         else:
             probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
+
         http_compare = self.compare_baseline(
             self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
         )
@@ -58,7 +61,7 @@ class SQLiLightfuzz(BaseLightfuzz):
                 self.results.append(
                     {
                         "type": "FINDING",
-                        "description": f"Possible SQL Injection. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [Single Quote/Two Single Quote]",
+                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote]",
                     }
                 )
         except HttpCompareError as e:
@@ -112,7 +115,7 @@ class SQLiLightfuzz(BaseLightfuzz):
                     self.results.append(
                         {
                             "type": "FINDING",
-                            "description": f"Possible Blind SQL Injection. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [Delay Probe ({p})]",
+                            "description": f"Possible Blind SQL Injection. {self.metadata()} Detection Method: [Delay Probe ({p})]",
                         }
                     )
 

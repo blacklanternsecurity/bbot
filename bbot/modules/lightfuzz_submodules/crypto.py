@@ -188,7 +188,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                 {
                     "type": "VULNERABILITY",
                     "severity": "HIGH",
-                    "description": f"Padding Oracle Vulnerability. Block size: [{str(block_size)}] Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]",
+                    "description": f"Padding Oracle Vulnerability. Block size: [{str(block_size)}] {self.metadata()}",
                     "context": context,
                 }
             )
@@ -208,7 +208,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             self.results.append(
                 {
                     "type": "FINDING",
-                    "description": f"Possible Cryptographic Error. Parameter: [{self.event.data['name']}] Strings: [{','.join(matching_strings)}] Detection Technique(s): [{','.join(matching_techniques)}]",
+                    "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(matching_strings)}] Detection Technique(s): [{','.join(matching_techniques)}]",
                     "context": context,
                 }
             )
@@ -229,10 +229,8 @@ class CryptoLightfuzz(BaseLightfuzz):
 
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
-        original_value = self.event.data.get("original_value", None)
-        if original_value is not None and original_value != "1":
-            probe_value = self.event.data["original_value"]
-        else:
+        probe_value = self.probe_value(populate_empty=False)
+        if not probe_value:
             self.lightfuzz.debug(
                 f"The Cryptography Probe Submodule requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
@@ -278,7 +276,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             self.results.append(
                 {
                     "type": "FINDING",
-                    "description": f"Probable Cryptographic Parameter [{self.event.data['name']}] Parameter Type [{self.event.data['type']}] Detection Technique(s): [{', '.join(confirmed_techniques)}]",
+                    "description": f"Probable Cryptographic Parameter. {self.metadata()} Detection Technique(s): [{', '.join(confirmed_techniques)}]",
                     "context": context,
                 }
             )
@@ -323,7 +321,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                             self.results.append(
                                 {
                                     "type": "FINDING",
-                                    "description": f"Possible {self.event.data['type']} parameter with {hash_instance.name.upper()} Hash as value. Parameter: [{self.event.data['name']}], linked to additional parameter [{additional_param_name}]",
+                                    "description": f"Possible {self.event.data['type']} parameter with {hash_instance.name.upper()} Hash as value. {self.metadata()}, linked to additional parameter [{additional_param_name}]",
                                     "context": context,
                                 }
                             )

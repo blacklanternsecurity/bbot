@@ -156,3 +156,20 @@ class BaseLightfuzz:
             retries=0,
             timeout=timeout,
         )
+
+    def metadata(self):
+
+        metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]"
+        if self.event.data["original_value"] != "" and self.event.data["original_value"] != None:
+            metadata_string += (
+                f" Original Value: [{self.lightfuzz.helpers.truncate_string(self.event.data['original_value'],200)}]"
+            )
+        return metadata_string
+
+    def probe_value(self, populate_empty=True):
+
+        probe_value = str(self.event.data.get("original_value", ""))
+        if (probe_value is None or len(probe_value) == 0) and populate_empty == True:
+            probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
+
+        return probe_value

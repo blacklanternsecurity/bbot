@@ -9,11 +9,8 @@ class PathTraversalLightfuzz(BaseLightfuzz):
 
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
-
-        original_value = str(self.event.data.get("original_value", ""))
-        if original_value is not None and original_value != "1":
-            probe_value = urllib.parse.quote(original_value)
-        else:
+        probe_value = self.probe_value(populate_empty=False)
+        if not probe_value:
             self.lightfuzz.debug(
                 f"Path Traversal detection requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
@@ -76,7 +73,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                             self.results.append(
                                 {
                                     "type": "FINDING",
-                                    "description": f"POSSIBLE Path Traversal. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [{path_technique}]",
+                                    "description": f"POSSIBLE Path Traversal. {self.metadata()} Detection Method: [{path_technique}]",
                                 }
                             )
                             # no need to report both techniques if they both work
@@ -104,6 +101,6 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                 self.results.append(
                     {
                         "type": "FINDING",
-                        "description": f"POSSIBLE Path Traversal. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [Absolute Path: {path}]",
+                        "description": f"POSSIBLE Path Traversal. {self.metadata()} Detection Method: [Absolute Path: {path}]",
                     }
                 )

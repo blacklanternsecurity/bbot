@@ -9,11 +9,7 @@ class CmdILightfuzz(BaseLightfuzz):
     async def fuzz(self):
 
         cookies = self.event.data.get("assigned_cookies", {})
-        original_value = str(self.event.data.get("original_value", ""))
-        if original_value is not None and len(original_value) != 0:
-            probe_value = original_value
-        else:
-            probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
+        probe_value = self.probe_value()
 
         canary = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
         http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
@@ -46,12 +42,11 @@ class CmdILightfuzz(BaseLightfuzz):
             except HttpCompareError as e:
                 self.lightfuzz.debug(e)
                 continue
-
         if len(positive_detections) > 0:
             self.results.append(
                 {
                     "type": "FINDING",
-                    "description": f"POSSIBLE OS Command Injection. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}] Detection Method: [echo canary] CMD Probe Delimeters: [{' '.join(positive_detections)}]",
+                    "description": f"POSSIBLE OS Command Injection. {self.metadata()} Detection Method: [echo canary] CMD Probe Delimeters: [{' '.join(positive_detections)}]",
                 }
             )
 
