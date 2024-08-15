@@ -8,7 +8,7 @@ from bbot.modules.base import BaseModule
 class docker_pull(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow"]
+    flags = ["passive", "safe", "slow", "code-enum"]
     meta = {
         "description": "Download images from a docker repository",
         "created_date": "2024-03-24",
