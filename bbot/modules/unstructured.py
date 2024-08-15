@@ -67,7 +67,9 @@ class unstructured(BaseModule):
     }
 
     deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
-    deps_pip = ["git+https://github.com/Unstructured-IO/unstructured@9b778e270dd8547476370a9417520679cd46c802#egg=unstructured[all-docs]"]
+    deps_pip = [
+        "git+https://github.com/Unstructured-IO/unstructured@9b778e270dd8547476370a9417520679cd46c802#egg=unstructured[all-docs]"
+    ]
 
     async def setup(self):
         self.extensions = list(set([e.lower().strip(".") for e in self.config.get("extensions", [])]))
