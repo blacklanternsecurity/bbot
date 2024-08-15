@@ -286,7 +286,13 @@ class hunt(BaseModule):
         p = event.data["name"]
         for k in hunt_param_dict.keys():
             if p.lower() in hunt_param_dict[k]:
-                description = f"Found potential {k.upper()} parameter [{p}]"
+
+                description = f"Found potential {k.upper()} parameter: [{p}] Parameter Type: [{event.data['type']}]"
+                if event.data["original_value"] != "" and event.data["original_value"] != None:
+                    description += (
+                        f" Original Value: [{self.helpers.truncate_string(event.data['original_value'],200)}]"
+                    )
+
                 data = {"host": str(event.host), "description": description}
                 url = event.data.get("url", "")
                 if url:
