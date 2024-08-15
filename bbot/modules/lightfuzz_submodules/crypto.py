@@ -306,7 +306,11 @@ class CryptoLightfuzz(BaseLightfuzz):
                 hash_instance = hash_function()
                 # if there are any hash functions which match the length, we check the additional parameters to see if they cause identical changes
                 # this would indicate they are being used to generate the hash
-                if hash_function and self.event.data["additional_params"]:
+                if (
+                    hash_function
+                    and "additional_params" in self.event.data.keys()
+                    and self.event.data["additional_params"]
+                ):
                     for additional_param_name, additional_param_value in self.event.data["additional_params"].items():
                         additional_param_probe = await self.compare_probe(
                             http_compare,
