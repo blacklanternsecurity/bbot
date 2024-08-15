@@ -65,7 +65,7 @@ class SQLiLightfuzz(BaseLightfuzz):
                     }
                 )
         except HttpCompareError as e:
-            self.lightfuzz.critical(e)
+            self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
         standard_probe_strings = [
             f"'||pg_sleep({str(self.expected_delay)})--",  # postgres

@@ -254,9 +254,15 @@ class CryptoLightfuzz(BaseLightfuzz):
         http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
 
         # Cryptographic Response Divergence Test
-        arbitrary_probe = await self.compare_probe(http_compare, self.event.data["type"], "AAAAAAA", cookies)
-        truncate_probe = await self.compare_probe(http_compare, self.event.data["type"], truncate_probe_value, cookies)
-        mutate_probe = await self.compare_probe(http_compare, self.event.data["type"], mutate_probe_value, cookies)
+        try:
+            arbitrary_probe = await self.compare_probe(http_compare, self.event.data["type"], "AAAAAAA", cookies)
+            truncate_probe = await self.compare_probe(
+                http_compare, self.event.data["type"], truncate_probe_value, cookies
+            )
+            mutate_probe = await self.compare_probe(http_compare, self.event.data["type"], mutate_probe_value, cookies)
+        except HttpCompareError as e:
+            self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+            return
 
         confirmed_techniques = []
         if mutate_probe[0] == False and "body" in mutate_probe[1]:
@@ -312,13 +318,17 @@ class CryptoLightfuzz(BaseLightfuzz):
                     and self.event.data["additional_params"]
                 ):
                     for additional_param_name, additional_param_value in self.event.data["additional_params"].items():
-                        additional_param_probe = await self.compare_probe(
-                            http_compare,
-                            self.event.data["type"],
-                            probe_value,
-                            cookies,
-                            additional_params_override={additional_param_name: additional_param_value + "A"},
-                        )
+                        try:
+                            additional_param_probe = await self.compare_probe(
+                                http_compare,
+                                self.event.data["type"],
+                                probe_value,
+                                cookies,
+                                additional_params_override={additional_param_name: additional_param_value + "A"},
+                            )
+                        except HttpCompareError as e:
+                            self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+                            continue
                         # the additional parameter affects the potential hash parameter (suggesting its calculated in the hash)
                         if additional_param_probe[0] == False and (additional_param_probe[1] == mutate_probe[1]):
                             context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) that is a likely a hash, which is connected to another parameter {additional_param_name})"
