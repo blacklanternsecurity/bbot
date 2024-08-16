@@ -1008,5 +1008,9 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         ), f"Failed to emmit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
         url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
-        assert "https://www.test.notreal/about" in url_events, f"URL extracted from unstructured text is incorrect, got {url_events}"
-        assert "/donot_detect.js" not in url_events, f"URL extracted from unstructured text is incorrect, got {url_events}"
+        assert (
+            "https://www.test.notreal/about" in url_events
+        ), f"URL extracted from unstructured text is incorrect, got {url_events}"
+        assert (
+            "/donot_detect.js" not in url_events
+        ), f"URL extracted from unstructured text is incorrect, got {url_events}"
