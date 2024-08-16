@@ -1000,15 +1000,12 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         ), f"Email extracted from unstructured text is incorrect, got {email_events[0].data}"
         finding_events = [e for e in events if e.type == "FINDING"]
         assert 2 == len(finding_events), "Failed to emmit FINDING events"
-        finding_event_data = [e.data for e in finding_events]
-        assert (
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-            in finding_event_data
-        ), f"Failed to emmit JWT event got {finding_event_data}"
-        assert (
-            "AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA=="
-            in finding_event_data
-        ), f"Failed to emmit serialized event got {finding_event_data}"
+        assert any(
+            e.type == "FINDING" and "JWT" in e.data["description"] for e in finding_events
+        ), f"Failed to emmit JWT event got {finding_events}"
+        assert any(
+            e.type == "FINDING" and "DOTNET" in e.data["description"] for e in finding_events
+        ), f"Failed to emmit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
         url_events = [e for e in events if e.type == "URL"]
         assert 1 == len(url_events), "Failed to emmit URL event"
