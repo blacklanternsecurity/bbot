@@ -993,15 +993,26 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert (
             raw_text_events[0].data == self.unstructured_response
         ), f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
-        event_data = [e.data for e in events]
-        assert "example@blacklanternsecurity.notreal" in event_data
+        email_events = [e for e in events if e.type == "EMAIL_ADDRESS"]
+        assert 1 == len(email_events), "Failed to emmit EMAIL_ADDRESS event"
+        assert (
+            email_events[0].data == "example@blacklanternsecurity.notreal"
+        ), f"Email extracted from unstructured text is incorrect, got {email_events[0].data}"
+        finding_events = [e for e in events if e.type == "FINDING"]
+        assert 2 == len(finding_events), "Failed to emmit FINDING events"
+        finding_event_data = [e.data for e in finding_events]
         assert (
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-            in event_data
-        )
+            in finding_event_data
+        ), f"Failed to emmit JWT event got {finding_event_data}"
         assert (
             "AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA=="
-            in event_data
-        )
-        assert "https://www.test.notreal/about" in event_data
-        assert "/donot_detect.js" not in event_data
+            in finding_event_data
+        ), f"Failed to emmit serialized event got {finding_event_data}"
+        assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
+        url_events = [e for e in events if e.type == "URL"]
+        assert 1 == len(url_events), "Failed to emmit URL event"
+        assert (
+            url_events[0].data == "https://www.test.notreal/about"
+        ), f"URL extracted from unstructured text is incorrect, got {url_events[0].data}"
+        assert "/donot_detect.js" not in [e.data for e in events]
