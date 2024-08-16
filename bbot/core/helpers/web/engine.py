@@ -47,7 +47,9 @@ class HTTPEngine(EngineServer):
         except KeyError:
             from .client import BBOTAsyncClient
 
-            return BBOTAsyncClient.from_config(self.config, self.target, *args, **kwargs)
+            client = BBOTAsyncClient.from_config(self.config, self.target, *args, **kwargs)
+            self.web_clients[retries] = client
+            return client
 
     async def request(self, *args, **kwargs):
         raise_error = kwargs.pop("raise_error", False)
