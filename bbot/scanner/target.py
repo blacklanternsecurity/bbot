@@ -277,8 +277,8 @@ class Target:
         self.strict_scope = strict_scope
         self.acl_mode = acl_mode
         self.special_event_types = {
-            "ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),
-            "ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE),
+            "ORG_STUB": re.compile(r"^(?:ORG|ORG_STUB):(.*)", re.IGNORECASE),
+            "USERNAME": re.compile(r"^(?:USER|USERNAME):(.*)", re.IGNORECASE),
         }
         self._events = set()
         self._radix = RadixTarget()
