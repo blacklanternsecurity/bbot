@@ -1208,16 +1208,6 @@ class Scanner:
             self.dummy_modules[name] = dummy
             return dummy
 
-    def _make_dummy_module_dns(self, name):
-        try:
-            dummy_module = self.dummy_modules[name]
-        except KeyError:
-            dummy_module = self._make_dummy_module(name=name, _type="DNS")
-            dummy_module.suppress_dupes = False
-            dummy_module._priority = 4
-            self.dummy_modules[name] = dummy_module
-        return dummy_module
-
 
 from bbot.modules.base import BaseModule
 

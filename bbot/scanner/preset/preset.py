@@ -97,6 +97,7 @@ class Preset:
         config=None,
         module_dirs=None,
         include=None,
+        presets=None,
         output_dir=None,
         scan_name=None,
         name=None,
@@ -125,6 +126,7 @@ class Preset:
             module_dirs (list[str], optional): additional directories to load modules from.
             config (dict, optional): Additional scan configuration settings.
             include (list[str], optional): names or filenames of other presets to include.
+            presets (list[str], optional): an alias for `include`.
             output_dir (str or Path, optional): Directory to store scan output. Defaults to BBOT home directory (`~/.bbot`).
             scan_name (str, optional): Human-readable name of the scan. If not specified, it will be random, e.g. "demonic_jimmy".
             name (str, optional): Human-readable name of the preset. Used mainly for logging.
@@ -240,6 +242,13 @@ class Preset:
 
         self._target = None
 
+        # "presets" is alias to "include"
+        if presets and include:
+            raise ValueError(
+                'Cannot use both "presets" and "include" args at the same time (presets is only an alias to include). Please pick only one :)'
+            )
+        if presets and not include:
+            include = presets
         # include other presets
         if include and not isinstance(include, (list, tuple, set)):
             include = [include]

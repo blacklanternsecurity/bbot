@@ -113,6 +113,9 @@ class BaseEvent:
     _data_validator = None
     # Whether to increment scope distance if the child and parent hosts are the same
     _scope_distance_increment_same_host = False
+    # Don't allow duplicates to occur within a parent chain
+    # In other words, don't emit the event if the same one already exists in its discovery context
+    _suppress_chain_dupes = False
 
     def __init__(
         self,
@@ -169,6 +172,7 @@ class BaseEvent:
         self._resolved_hosts = set()
         self.dns_children = dict()
         self._discovery_context = ""
+        self._discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
         self.web_spider_distance = 0
 
         # for creating one-off events without enforcing parent requirement
@@ -311,6 +315,15 @@ class BaseEvent:
         return self._host_original
 
     @property
+    def closest_host(self):
+        """
+        Walk up the chain of parents events until we hit the first one with a host
+        """
+        if self.host is not None or self.parent is None or self.parent is self:
+            return self.host
+        return self.parent.closest_host
+
+    @property
     def port(self):
         self.host
         if getattr(self, "parsed_url", None):
@@ -339,10 +352,14 @@ class BaseEvent:
 
     @discovery_context.setter
     def discovery_context(self, context):
+        def replace(match):
+            s = match.group()
+            return s.format(module=self.module, event=self)
+
         try:
-            self._discovery_context = context.format(module=self.module, event=self)
+            self._discovery_context = self._discovery_context_regex.sub(replace, context)
         except Exception as e:
-            log.warning(f"Error formatting discovery context for {self}: {e} (context: '{context}')")
+            log.trace(f"Error formatting discovery context for {self}: {e} (context: '{context}')")
             self._discovery_context = context
 
     @property
@@ -350,8 +367,10 @@ class BaseEvent:
         """
         This event's full discovery context, including those of all its parents
         """
-        full_event_chain = list(reversed(self.get_parents())) + [self]
-        return [[e.id, e.discovery_context] for e in full_event_chain if e.type != "SCAN"]
+        parent_path = []
+        if self.parent is not None and self != self.parent:
+            parent_path = self.parent.discovery_path
+        return parent_path + [[self.id, self.discovery_context]]
 
     @property
     def words(self):
@@ -562,7 +581,7 @@ class BaseEvent:
         return parents
 
     def _host(self):
-        return ""
+        return None
 
     def _sanitize_data(self, data):
         """
@@ -870,6 +889,10 @@ class SCAN(BaseEvent):
     def _data_human(self):
         return f"{self.data['name']} ({self.data['id']})"
 
+    @property
+    def discovery_path(self):
+        return []
+
 
 class FINISHED(BaseEvent):
     """
@@ -907,6 +930,18 @@ class DictHostEvent(DictEvent):
             parsed = getattr(self, "parsed_url", None)
             if parsed is not None:
                 return make_ip_type(parsed.hostname)
+
+
+class ClosestHostEvent(DictHostEvent):
+    # if a host isn't specified, this event type uses the host from the closest parent
+    # inherited by FINDING and VULNERABILITY
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "host" not in self.data:
+            closest_host = self.closest_host
+            if closest_host is None:
+                raise ValueError("No host was found in event parents. Host must be specified!")
+            self.data["host"] = str(closest_host)
 
 
 class DictPathEvent(DictEvent):
@@ -1165,6 +1200,7 @@ class URL(URL_UNVERIFIED):
 
 class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
     _always_emit = True
+    _suppress_chain_dupes = True
 
     class _data_validator(BaseModel):
         name: str
@@ -1285,7 +1321,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         return location
 
 
-class VULNERABILITY(DictHostEvent):
+class VULNERABILITY(ClosestHostEvent):
     _always_emit = True
     _quick_emit = True
     severity_colors = {
@@ -1301,10 +1337,11 @@ class VULNERABILITY(DictHostEvent):
         return data
 
     class _data_validator(BaseModel):
-        host: str
+        host: Optional[str] = None
         severity: str
         description: str
         url: Optional[str] = None
+        path: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
@@ -1313,14 +1350,15 @@ class VULNERABILITY(DictHostEvent):
         return f'[{self.data["severity"]}] {self.data["description"]}'
 
 
-class FINDING(DictHostEvent):
+class FINDING(ClosestHostEvent):
     _always_emit = True
     _quick_emit = True
 
     class _data_validator(BaseModel):
-        host: str
+        host: Optional[str] = None
         description: str
         url: Optional[str] = None
+        path: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
@@ -1436,7 +1474,8 @@ class FILESYSTEM(DictPathEvent):
 
 
 class RAW_DNS_RECORD(DictHostEvent):
-    pass
+    # don't emit raw DNS records for affiliates
+    _always_emit_tags = ["target"]
 
 
 def make_event(

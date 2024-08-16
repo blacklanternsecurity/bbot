@@ -18,7 +18,7 @@ pipx install bbot
 pipx install --pip-args '\--pre' bbot
 ```
 
-_For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/)_
+_For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_
 
 ## Example Commands
 
@@ -66,7 +66,7 @@ config:
 
 <!-- END BBOT SUBDOMAIN-ENUM PRESET EXPANDABLE -->
 
-BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
+BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/Dev/how_it_works/).
 
 ![subdomain-stats-ebay](https://github.com/blacklanternsecurity/bbot/assets/20261699/de3e7f21-6f52-4ac4-8eab-367296cd385f)
 
@@ -228,9 +228,9 @@ config:
 
 ## How it Works
 
-Click the graph below to explore the [inner workings](https://www.blacklanternsecurity.com/bbot/how_it_works/) of BBOT.
+Click the graph below to explore the [inner workings](https://www.blacklanternsecurity.com/bbot/Stable/how_it_works/) of BBOT.
 
-[![image](https://github.com/blacklanternsecurity/bbot/assets/20261699/e55ba6bd-6d97-48a6-96f0-e122acc23513)](https://www.blacklanternsecurity.com/bbot/how_it_works/)
+[![image](https://github.com/blacklanternsecurity/bbot/assets/20261699/e55ba6bd-6d97-48a6-96f0-e122acc23513)](https://www.blacklanternsecurity.com/bbot/Stable/how_it_works/)
 
 ## BBOT as a Python Library
 
@@ -261,7 +261,7 @@ if __name__ == "__main__":
 <details>
 <summary><b>SEE: This Nefarious Discord Bot</b></summary>
 
-A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/#discord-bot-example) that responds to the `/scan` command. Scan the internet from the comfort of your discord server!
+A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/Stable/dev/#discord-bot-example) that responds to the `/scan` command. Scan the internet from the comfort of your discord server!
 
 ![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9)
 
@@ -294,7 +294,7 @@ Targets can be any of the following:
 - `OPEN_TCP_PORT` (`192.168.0.1:80`)
 - `URL` (`https://www.evilcorp.com`)
 
-For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/scanning/#scope).
+For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/Stable/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/Stable/scanning/#scope).
 
 ## API Keys
 
@@ -318,70 +318,71 @@ If you like, you can also specify them on the command line:
 bbot -c modules.virustotal.api_key=dd5f0eee2e4a99b71a939bded450b246
 ```
 
-For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/).
+For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stable/scanning/configuration/).
 
 ## Complete Lists of Modules, Flags, etc.
 
-- Complete list of [Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules/).
-- Complete list of [Flags](https://www.blacklanternsecurity.com/bbot/scanning/#list-of-flags).
-- Complete list of [Presets](https://www.blacklanternsecurity.com/bbot/scanning/presets_list/).
-    - Complete list of [Global Config Options](https://www.blacklanternsecurity.com/bbot/scanning/configuration/#global-config-options).
-    - Complete list of [Module Config Options](https://www.blacklanternsecurity.com/bbot/scanning/configuration/#module-config-options).
+- Complete list of [Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/list_of_modules/).
+- Complete list of [Flags](https://www.blacklanternsecurity.com/bbot/Stable/scanning/#list-of-flags).
+- Complete list of [Presets](https://www.blacklanternsecurity.com/bbot/Stable/scanning/presets_list/).
+    - Complete list of [Global Config Options](https://www.blacklanternsecurity.com/bbot/Stable/scanning/configuration/#global-config-options).
+    - Complete list of [Module Config Options](https://www.blacklanternsecurity.com/bbot/Stable/scanning/configuration/#module-config-options).
 
 ## Documentation
 
 <!-- BBOT DOCS TOC -->
 - **User Manual**
     - **Basics**
-        - [Getting Started](https://www.blacklanternsecurity.com/bbot/)
-        - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
-        - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
+        - [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)
+        - [How it Works](https://www.blacklanternsecurity.com/bbot/Stable/how_it_works)
+        - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/Stable/comparison)
     - **Scanning**
-        - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/)
+        - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/Stable/scanning/)
         - **Presets**
-            - [Overview](https://www.blacklanternsecurity.com/bbot/scanning/presets)
-            - [List of Presets](https://www.blacklanternsecurity.com/bbot/scanning/presets_list)
-        - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
-        - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
-        - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
-        - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
-        - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
+            - [Overview](https://www.blacklanternsecurity.com/bbot/Stable/scanning/presets)
+            - [List of Presets](https://www.blacklanternsecurity.com/bbot/Stable/scanning/presets_list)
+        - [Events](https://www.blacklanternsecurity.com/bbot/Stable/scanning/events)
+        - [Output](https://www.blacklanternsecurity.com/bbot/Stable/scanning/output)
+        - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks)
+        - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/Stable/scanning/advanced)
+        - [Configuration](https://www.blacklanternsecurity.com/bbot/Stable/scanning/configuration)
     - **Modules**
-        - [List of Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules)
-        - [Nuclei](https://www.blacklanternsecurity.com/bbot/modules/nuclei)
+        - [List of Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/list_of_modules)
+        - [Nuclei](https://www.blacklanternsecurity.com/bbot/Stable/modules/nuclei)
     - **Misc**
-        - [Contribution](https://www.blacklanternsecurity.com/bbot/contribution)
-        - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
-        - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
+        - [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution)
+        - [Release History](https://www.blacklanternsecurity.com/bbot/Stable/release_history)
+        - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/Stable/troubleshooting)
 - **Developer Manual**
-    - [Development Overview](https://www.blacklanternsecurity.com/bbot/dev/)
-    - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/dev/architecture)
-    - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/dev/module_howto)
-    - [Unit Tests](https://www.blacklanternsecurity.com/bbot/dev/tests)
-    - [Discord Bot Example](https://www.blacklanternsecurity.com/bbot/dev/discord_bot)
+    - [Development Overview](https://www.blacklanternsecurity.com/bbot/Stable/dev/)
+    - [Setting Up a Dev Environment](https://www.blacklanternsecurity.com/bbot/Stable/dev/dev_environment)
+    - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/Stable/dev/architecture)
+    - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/Stable/dev/module_howto)
+    - [Unit Tests](https://www.blacklanternsecurity.com/bbot/Stable/dev/tests)
+    - [Discord Bot Example](https://www.blacklanternsecurity.com/bbot/Stable/dev/discord_bot)
     - **Code Reference**
-        - [Scanner](https://www.blacklanternsecurity.com/bbot/dev/scanner)
-        - [Presets](https://www.blacklanternsecurity.com/bbot/dev/presets)
-        - [Event](https://www.blacklanternsecurity.com/bbot/dev/event)
-        - [Target](https://www.blacklanternsecurity.com/bbot/dev/target)
-        - [BaseModule](https://www.blacklanternsecurity.com/bbot/dev/basemodule)
-        - [BBOTCore](https://www.blacklanternsecurity.com/bbot/dev/core)
-        - [Engine](https://www.blacklanternsecurity.com/bbot/dev/engine)
+        - [Scanner](https://www.blacklanternsecurity.com/bbot/Stable/dev/scanner)
+        - [Presets](https://www.blacklanternsecurity.com/bbot/Stable/dev/presets)
+        - [Event](https://www.blacklanternsecurity.com/bbot/Stable/dev/event)
+        - [Target](https://www.blacklanternsecurity.com/bbot/Stable/dev/target)
+        - [BaseModule](https://www.blacklanternsecurity.com/bbot/Stable/dev/basemodule)
+        - [BBOTCore](https://www.blacklanternsecurity.com/bbot/Stable/dev/core)
+        - [Engine](https://www.blacklanternsecurity.com/bbot/Stable/dev/engine)
         - **Helpers**
-            - [Overview](https://www.blacklanternsecurity.com/bbot/dev/helpers/)
-            - [Command](https://www.blacklanternsecurity.com/bbot/dev/helpers/command)
-            - [DNS](https://www.blacklanternsecurity.com/bbot/dev/helpers/dns)
-            - [Interactsh](https://www.blacklanternsecurity.com/bbot/dev/helpers/interactsh)
-            - [Miscellaneous](https://www.blacklanternsecurity.com/bbot/dev/helpers/misc)
-            - [Web](https://www.blacklanternsecurity.com/bbot/dev/helpers/web)
-            - [Word Cloud](https://www.blacklanternsecurity.com/bbot/dev/helpers/wordcloud)
+            - [Overview](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/)
+            - [Command](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/command)
+            - [DNS](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/dns)
+            - [Interactsh](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/interactsh)
+            - [Miscellaneous](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/misc)
+            - [Web](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/web)
+            - [Word Cloud](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/wordcloud)
 <!-- END BBOT DOCS TOC -->
 
 ## Contribution
 
 Some of the best BBOT modules were written by the community. BBOT is being constantly improved; every day it grows more powerful!
 
-We welcome contributions. Not just code, but ideas too! If you have an idea for a new feature, please let us know in [Discussions](https://github.com/blacklanternsecurity/bbot/discussions). If you want to get your hands dirty, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/). There you can find setup instructions and a simple tutorial on how to write a BBOT module. We also have extensive [Developer Documentation](https://www.blacklanternsecurity.com/bbot/dev/).
+We welcome contributions. Not just code, but ideas too! If you have an idea for a new feature, please let us know in [Discussions](https://github.com/blacklanternsecurity/bbot/discussions). If you want to get your hands dirty, see [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution/). There you can find setup instructions and a simple tutorial on how to write a BBOT module. We also have extensive [Developer Documentation](https://www.blacklanternsecurity.com/bbot/Stable/dev/).
 
 Thanks to these amazing people for contributing to BBOT! :heart:
 
@@ -393,7 +394,7 @@ Thanks to these amazing people for contributing to BBOT! :heart:
 
 Special thanks to:
 
-- @TheTechromancer for creating [BBOT](https://github.com/blacklanternsecurity/bbot)
+- @TheTechromancer for creating BBOT
 - @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets) and [baddns](https://github.com/blacklanternsecurity/baddns)
 - Steve Micallef (@smicallef) for creating Spiderfoot
 - @kerrymilan for his Neo4j and Ansible expertise

@@ -725,12 +725,25 @@ config:
 """
         )
 
+    # with include=
     preset = Preset(include=[str(custom_preset_dir_1 / "preset1")])
     assert preset.config.modules.testpreset1.test == "asdf"
     assert preset.config.modules.testpreset2.test == "fdsa"
     assert preset.config.modules.testpreset3.test == "qwerty"
     assert preset.config.modules.testpreset4.test == "zxcv"
     assert preset.config.modules.testpreset5.test == "hjkl"
+
+    # same thing but with presets= (an alias to include)
+    preset = Preset(presets=[str(custom_preset_dir_1 / "preset1")])
+    assert preset.config.modules.testpreset1.test == "asdf"
+    assert preset.config.modules.testpreset2.test == "fdsa"
+    assert preset.config.modules.testpreset3.test == "qwerty"
+    assert preset.config.modules.testpreset4.test == "zxcv"
+    assert preset.config.modules.testpreset5.test == "hjkl"
+
+    # can't use both include= and presets= at the same time
+    with pytest.raises(ValueError):
+        preset = Preset(presets=["subdomain-enum"], include=["dirbust-light"])
 
 
 @pytest.mark.asyncio

@@ -24,13 +24,6 @@ if multiprocessing.current_process().name == "MainProcess":
 www.blacklanternsecurity.com/bbot
 """
         print(ascii_art, file=sys.stderr)
-        log_to_stderr(
-            "This is a pre-release of BBOT 2.0. If you upgraded from version 1, we recommend cleaning your old configs etc. before running this version!",
-            level="WARNING",
-        )
-        log_to_stderr(
-            "For details, see https://github.com/blacklanternsecurity/bbot/discussions/1540", level="WARNING"
-        )
 
 scan_name = ""
 

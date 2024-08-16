@@ -27,8 +27,8 @@ class HTTPEngine(EngineServer):
         "max_redirects",
     )
 
-    def __init__(self, socket_path, target, config={}):
-        super().__init__(socket_path)
+    def __init__(self, socket_path, target, config={}, debug=False):
+        super().__init__(socket_path, debug=debug)
         self.target = target
         self.config = config
         self.web_config = self.config.get("web", {})
@@ -100,7 +100,7 @@ class HTTPEngine(EngineServer):
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            finished = await self.finished_tasks(client_id)
+            finished = await self.finished_tasks(client_id, timeout=120)
 
             for task in finished:
                 response = task.result()

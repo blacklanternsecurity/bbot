@@ -97,6 +97,11 @@ web:
   # Whether to verify SSL certificates
   ssl_verify: false
 
+### ENGINE ###
+
+engine:
+  debug: false
+
 # Tool dependencies
 deps:
   ffuf:

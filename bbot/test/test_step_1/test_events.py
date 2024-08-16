@@ -587,8 +587,22 @@ async def test_event_discovery_context():
 
     scan.modules["dummy_module"] = dummy_module
 
+    # test discovery context
     test_event = dummy_module.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
     assert test_event.discovery_context == "dummy_module discovered DNS_NAME: evilcorp.com"
+
+    test_event2 = dummy_module.make_event(
+        "evilcorp.com", "DNS_NAME", parent=scan.root_event, context="{module} {found} {event.host}"
+    )
+    assert test_event2.discovery_context == "dummy_module {found} evilcorp.com"
+    # jank input
+    test_event3 = dummy_module.make_event(
+        "http://evilcorp.com/{http://evilcorp.org!@#%@#$:,,,}", "URL_UNVERIFIED", parent=scan.root_event
+    )
+    assert (
+        test_event3.discovery_context
+        == "dummy_module discovered URL_UNVERIFIED: http://evilcorp.com/{http:/evilcorp.org!@"
+    )
 
     events = [e async for e in scan.async_start()]
     assert len(events) == 6
@@ -757,3 +771,35 @@ async def test_event_web_spider_distance(bbot_scanner):
     assert url_event_5.web_spider_distance == 1
     assert "spider-danger" in url_event_5.tags
     assert not "spider-max" in url_event_5.tags
+
+
+def test_event_closest_host():
+    scan = Scanner()
+    # first event has a host
+    event1 = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    assert event1.host == "evilcorp.com"
+    assert event1.closest_host == "evilcorp.com"
+    # second event has no host
+    event2 = scan.make_event("wat", "ASDF", parent=event1)
+    assert event2.host == None
+    assert event2.closest_host == "evilcorp.com"
+    # finding automatically uses the host from the first event
+    finding = scan.make_event({"path": "/tmp/asdf.txt", "description": "test"}, "FINDING", parent=event2)
+    assert finding.data["host"] == "evilcorp.com"
+    assert finding.host == "evilcorp.com"
+    # same with vuln
+    vuln = scan.make_event(
+        {"path": "/tmp/asdf.txt", "description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event2
+    )
+    assert vuln.data["host"] == "evilcorp.com"
+    assert vuln.host == "evilcorp.com"
+
+    # no host == not allowed
+    event3 = scan.make_event("wat", "ASDF", parent=scan.root_event)
+    assert event3.host == None
+    with pytest.raises(ValueError):
+        finding = scan.make_event({"path": "/tmp/asdf.txt", "description": "test"}, "FINDING", parent=event3)
+    with pytest.raises(ValueError):
+        vuln = scan.make_event(
+            {"path": "/tmp/asdf.txt", "description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event3
+        )
