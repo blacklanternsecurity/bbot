@@ -7,7 +7,7 @@ from bbot.modules.templates.github import github
 class github_workflows(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe"]
+    flags = ["passive", "safe", "code-enum"]
     meta = {
         "description": "Download a github repositories workflow logs",
         "created_date": "2024-04-29",
