@@ -24,7 +24,7 @@ class bucket_azure(bucket_template):
     def build_bucket_request(self, bucket_name, base_domain, region):
         url = self.build_url(bucket_name, base_domain, region)
         url = url.strip("/") + f"/{bucket_name}?restype=container"
-        return url, {"retries": 0}
+        return url, {}
 
     def check_bucket_exists(self, bucket_name, response):
         status_code = getattr(response, "status_code", 0)
