@@ -268,7 +268,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "| dnsbrute " in out
+    assert "| chaos " in out
     assert not "| httpx " in out
 
     # list modules by flag + excluded flag
@@ -276,7 +276,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "| dnsbrute " in out
+    assert "| chaos " in out
     assert not "| httpx " in out
 
     # list modules by flag + excluded module
