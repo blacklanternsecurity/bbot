@@ -182,9 +182,9 @@ class ExcavateRule:
         for identifier, results in yara_results.items():
             for result in results:
                 event_data = {"host": str(event.host)}
-                if "url" in event.data:
+                if isinstance(event.data, dict) and event.data.get("url"):
                     event_data["url"] = event.data["url"]
-                if "path" in event.parent.data:
+                if event.parent.data.get("path"):
                     event_data["path"] = event.parent.data["path"]
                 event_data["description"] = f"{discovery_context} {yara_rule_settings.description}"
                 if yara_rule_settings.emit_match:
@@ -273,9 +273,9 @@ class CustomExtractor(ExcavateRule):
         for identifier, results in yara_results.items():
             for result in results:
                 event_data = {"host": str(event.host)}
-                if "url" in event.data:
+                if isinstance(event.data, dict) and event.data.get("url"):
                     event_data["url"] = event.data["url"]
-                if "path" in event.parent.data:
+                if event.parent.data.get("path"):
                     event_data["path"] = event.parent.data["path"]
                 description_string = (
                     f" with description: [{yara_rule_settings.description}]" if yara_rule_settings.description else ""
@@ -591,9 +591,9 @@ class excavate(BaseInternalModule):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
                     event_data = {"host": str(event.host)}
-                    if "url" in event.data:
+                    if isinstance(event.data, dict) and event.data.get("url"):
                         event_data["url"] = event.data["url"]
-                    if "path" in event.parent.data:
+                    if event.parent.data.get("path"):
                         event_data["path"] = event.parent.data["path"]
                     event_data["description"] = f"{discovery_context} {yara_rule_settings.description} ({identifier})"
 
@@ -625,9 +625,9 @@ class excavate(BaseInternalModule):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
                     event_data = {"host": str(event.host)}
-                    if "url" in event.data:
+                    if isinstance(event.data, dict) and event.data.get("url"):
                         event_data["url"] = event.data["url"]
-                    if "path" in event.parent.data:
+                    if event.parent.data.get("path"):
                         event_data["path"] = event.parent.data["path"]
                     event_data["description"] = f"{discovery_context} {yara_rule_settings.description} ({identifier})"
 
