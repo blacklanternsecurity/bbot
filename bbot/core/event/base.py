@@ -336,15 +336,6 @@ class BaseEvent:
         return self._host_original
 
     @property
-    def closest_host(self):
-        """
-        Walk up the chain of parents events until we hit the first one with a host
-        """
-        if self.host is not None or self.parent is None or self.parent is self:
-            return self.host
-        return self.parent.closest_host
-
-    @property
     def port(self):
         self.host
         if getattr(self, "parsed_url", None):
@@ -602,7 +593,7 @@ class BaseEvent:
         return parents
 
     def _host(self):
-        return None
+        return ""
 
     def _sanitize_data(self, data):
         """
@@ -954,30 +945,39 @@ class DictHostEvent(DictEvent):
 
 
 class ClosestHostEvent(DictHostEvent):
-    # if a host isn't specified, this event type uses the host from the closest parent
+    # if a host/path/url isn't specified, this event type grabs it from the closest parent
     # inherited by FINDING and VULNERABILITY
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if "host" not in self.data:
-            closest_host = self.closest_host
-            if closest_host is None:
-                raise ValueError("No host was found in event parents. Host must be specified!")
-            self.data["host"] = str(closest_host)
+        if not self.host:
+            for parent in self.get_parents(include_self=True):
+                # inherit closest URL
+                if not "url" in self.data:
+                    parent_url = getattr(parent, "parsed_url", None)
+                    if parent_url is not None:
+                        self.data["url"] = parent_url.geturl()
+                # inherit closest path
+                if not "path" in self.data and isinstance(parent.data, dict):
+                    parent_path = parent.data.get("path", None)
+                    if parent_path is not None:
+                        self.data["path"] = parent_path
+                # inherit closest host
+                if parent.host:
+                    self.data["host"] = str(parent.host)
+                    break
+        # die if we still haven't found a host
+        if not self.host:
+            raise ValueError("No host was found in event parents. Host must be specified!")
 
 
 class DictPathEvent(DictEvent):
-    _path_keywords = ["path", "filename"]
-
     def sanitize_data(self, data):
         new_data = dict(data)
         file_blobs = getattr(self.scan, "_file_blobs", False)
         folder_blobs = getattr(self.scan, "_folder_blobs", False)
-        for path_keyword in self._path_keywords:
-            blob = None
-            try:
-                data_path = Path(data[path_keyword])
-            except KeyError:
-                continue
+        blob = None
+        try:
+            data_path = Path(data["path"])
             if data_path.is_file():
                 self.add_tag("file")
                 if file_blobs:
@@ -987,10 +987,10 @@ class DictPathEvent(DictEvent):
                 self.add_tag("folder")
                 if folder_blobs:
                     blob = self._tar_directory(data_path)
-            else:
-                continue
-            if blob:
-                new_data["blob"] = base64.b64encode(blob).decode("utf-8")
+        except KeyError:
+            pass
+        if blob:
+            new_data["blob"] = base64.b64encode(blob).decode("utf-8")
 
         return new_data
 

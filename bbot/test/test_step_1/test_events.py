@@ -813,25 +813,32 @@ def test_event_closest_host():
     # first event has a host
     event1 = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
     assert event1.host == "evilcorp.com"
-    assert event1.closest_host == "evilcorp.com"
-    # second event has no host
-    event2 = scan.make_event("wat", "ASDF", parent=event1)
-    assert event2.host == None
-    assert event2.closest_host == "evilcorp.com"
-    # finding automatically uses the host from the first event
-    finding = scan.make_event({"path": "/tmp/asdf.txt", "description": "test"}, "FINDING", parent=event2)
-    assert finding.data["host"] == "evilcorp.com"
-    assert finding.host == "evilcorp.com"
-    # same with vuln
-    vuln = scan.make_event(
-        {"path": "/tmp/asdf.txt", "description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event2
+    # second event has a host + url
+    event2 = scan.make_event(
+        {"method": "GET", "url": "http://www.evilcorp.com/asdf", "hash": {"header_mmh3": "1", "body_mmh3": "2"}},
+        "HTTP_RESPONSE",
+        parent=event1,
     )
-    assert vuln.data["host"] == "evilcorp.com"
-    assert vuln.host == "evilcorp.com"
+    assert event2.host == "www.evilcorp.com"
+    # third event has a path
+    event3 = scan.make_event({"path": "/tmp/asdf.txt"}, "FILESYSTEM", parent=event2)
+    assert not event3.host
+    # finding automatically uses the host from the second event
+    finding = scan.make_event({"description": "test"}, "FINDING", parent=event3)
+    assert finding.data["host"] == "www.evilcorp.com"
+    assert finding.data["url"] == "http://www.evilcorp.com/asdf"
+    assert finding.data["path"] == "/tmp/asdf.txt"
+    assert finding.host == "www.evilcorp.com"
+    # same with vuln
+    vuln = scan.make_event({"description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event3)
+    assert vuln.data["host"] == "www.evilcorp.com"
+    assert vuln.data["url"] == "http://www.evilcorp.com/asdf"
+    assert vuln.data["path"] == "/tmp/asdf.txt"
+    assert vuln.host == "www.evilcorp.com"
 
     # no host == not allowed
     event3 = scan.make_event("wat", "ASDF", parent=scan.root_event)
-    assert event3.host == None
+    assert not event3.host
     with pytest.raises(ValueError):
         finding = scan.make_event({"path": "/tmp/asdf.txt", "description": "test"}, "FINDING", parent=event3)
     with pytest.raises(ValueError):
