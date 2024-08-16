@@ -336,6 +336,15 @@ class BaseEvent:
         return self._host_original
 
     @property
+    def closest_host(self):
+        """
+        Walk up the chain of parents events until we hit the first one with a host
+        """
+        if self.host is not None or self.parent is None or self.parent is self:
+            return self.host
+        return self.parent.closest_host
+
+    @property
     def port(self):
         self.host
         if getattr(self, "parsed_url", None):
@@ -593,7 +602,7 @@ class BaseEvent:
         return parents
 
     def _host(self):
-        return ""
+        return None
 
     def _sanitize_data(self, data):
         """
@@ -942,6 +951,18 @@ class DictHostEvent(DictEvent):
             parsed = getattr(self, "parsed_url", None)
             if parsed is not None:
                 return make_ip_type(parsed.hostname)
+
+
+class ClosestHostEvent(DictHostEvent):
+    # if a host isn't specified, this event type uses the host from the closest parent
+    # inherited by FINDING and VULNERABILITY
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "host" not in self.data:
+            closest_host = self.closest_host
+            if closest_host is None:
+                raise ValueError("No host was found in event parents. Host must be specified!")
+            self.data["host"] = str(closest_host)
 
 
 class DictPathEvent(DictEvent):
@@ -1321,7 +1342,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         return location
 
 
-class VULNERABILITY(DictHostEvent):
+class VULNERABILITY(ClosestHostEvent):
     _always_emit = True
     _quick_emit = True
     severity_colors = {
@@ -1337,10 +1358,11 @@ class VULNERABILITY(DictHostEvent):
         return data
 
     class _data_validator(BaseModel):
-        host: str
+        host: Optional[str] = None
         severity: str
         description: str
         url: Optional[str] = None
+        path: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
@@ -1349,14 +1371,15 @@ class VULNERABILITY(DictHostEvent):
         return f'[{self.data["severity"]}] {self.data["description"]}'
 
 
-class FINDING(DictHostEvent):
+class FINDING(ClosestHostEvent):
     _always_emit = True
     _quick_emit = True
 
     class _data_validator(BaseModel):
-        host: str
+        host: Optional[str] = None
         description: str
         url: Optional[str] = None
+        path: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
