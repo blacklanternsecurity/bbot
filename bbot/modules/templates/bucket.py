@@ -89,7 +89,6 @@ class bucket_template(BaseModule):
 
     async def emit_storage_bucket(self, event_data, event_type, parent, tags, context):
         event_data["url"] = self.clean_bucket_url(event_data["url"])
-        self.hugewarning(event_data)
         await self.emit_event(
             event_data,
             event_type,
