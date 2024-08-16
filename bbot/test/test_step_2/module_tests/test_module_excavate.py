@@ -1007,8 +1007,8 @@ A href <a href='/donot_detect.js'>Click me</a>"""
             e.type == "FINDING" and "DOTNET" in e.data["description"] for e in finding_events
         ), f"Failed to emmit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
-        url_events = [e for e in events if e.type == "URL"]
-        assert 1 == len(url_events), "Failed to emmit URL event"
+        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        assert 1 == len(url_events), "Failed to emmit URL_UNVERIFIED event"
         assert (
             url_events[0].data == "https://www.test.notreal/about"
         ), f"URL extracted from unstructured text is incorrect, got {url_events[0].data}"
