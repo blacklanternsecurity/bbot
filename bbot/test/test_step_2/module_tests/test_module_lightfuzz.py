@@ -489,6 +489,38 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         assert sqli_finding_emitted, "SQLi Single/Double Quote postparam FINDING not emitted"
 
 
+# disable_post test
+class Test_Lightfuzz_disable_post(Test_Lightfuzz_sqli_post):
+
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli"],
+                "disable_post": True,
+            }
+        },
+    }
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        sqli_finding_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [search]" in e.data["description"]:
+                    web_parameter_emitted = True
+
+            if e.type == "FINDING":
+                if (
+                    "Possible SQL Injection. Parameter: [search] Parameter Type: [POSTPARAM] Detection Method: [Single Quote/Two Single Quote]"
+                    in e.data["description"]
+                ):
+                    sqli_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert not sqli_finding_emitted, "post-based SQLI emitted despite post-parameters being disabled"
+
+
 # SQLI Single Quote/Two Single Quote (headers)
 class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
 

@@ -32,10 +32,11 @@ class lightfuzz(BaseModule):
         "serial": {"description": "Unsafe Deserialization Probe", "module": SerialLightfuzz},
     }
 
-    options = {"force_common_headers": False, "enabled_submodules": []}
+    options = {"force_common_headers": False, "enabled_submodules": [], "disable_post": False}
     options_desc = {
         "force_common_headers": "Force emit commonly exploitable parameters that may be difficult to detect",
         "enabled_submodules": "A list of submodules to enable. Empty list enabled all modules.",
+        "disable_post": "Disable processing of POST parameters, avoiding form submissions.",
     }
 
     meta = {"description": "Find Web Parameters and Lightly Fuzz them using a heuristic based scanner"}
@@ -62,6 +63,7 @@ class lightfuzz(BaseModule):
         self.event_dict = {}
         self.interactsh_subdomain_tags = {}
         self.interactsh_instance = None
+        self.disable_post = self.config.get("disable_post", False)
         self.enabled_submodules = self.config.get("enabled_submodules")
 
         for m in self.enabled_submodules:
@@ -206,3 +208,8 @@ class lightfuzz(BaseModule):
                     await self.interactsh_callback(r)
             except InteractshError as e:
                 self.debug(f"Error in interact.sh: {e}")
+
+    async def filter_event(self, event):
+        if event.type == "WEB_PARAMETER" and self.disable_post and event.data["type"] == "POSTPARAM":
+            return False, "POST parameter disabled in lilghtfuzz module"
+        return True
