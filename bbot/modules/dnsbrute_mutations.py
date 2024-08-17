@@ -2,7 +2,7 @@ from bbot.modules.base import BaseModule
 
 
 class dnsbrute_mutations(BaseModule):
-    flags = ["subdomain-enum", "passive", "aggressive", "slow"]
+    flags = ["subdomain-enum", "active", "aggressive", "slow"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
@@ -45,6 +45,10 @@ class dnsbrute_mutations(BaseModule):
         return self.parent_events[parent_host]
 
     async def finish(self):
+        """
+        TODO: speed up this loop.
+            We should see if we can combine multiple runs together instead of running them each individually.
+        """
         found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
         # if we have a lot of rounds to make, don't try mutations on less-populated domains
         trimmed_found = []
