@@ -1,7 +1,9 @@
 from bbot.modules.base import BaseModule
 from .base import ModuleTestBase, tempwordlist
+
 from bbot.modules.internal.excavate import ExcavateRule
 
+from pathlib import Path
 import yara
 
 
@@ -884,3 +886,143 @@ class TestExcavateHeaders(ModuleTestBase):
 
         assert found_first_cookie == True
         assert found_second_cookie == True
+
+
+class TestExcavateRAWTEXT(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
+    modules_overrides = ["excavate", "httpx", "filedownload", "unstructured"]
+    config_overrides = {"scope": {"report_distance": 1}, "web": {"spider_distance": 2, "spider_depth": 2}}
+
+    pdf_data = r"""%PDF-1.3
+%���� ReportLab Generated PDF document http://www.reportlab.com
+1 0 obj
+<<
+/F1 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/Contents 7 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 6 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+4 0 obj
+<<
+/PageMode /UseNone /Pages 6 0 R /Type /Catalog
+>>
+endobj
+5 0 obj
+<<
+/Author (anonymous) /CreationDate (D:20240807182842+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240807182842+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+  /Subject (unspecified) /Title (untitled) /Trapped /False
+>>
+endobj
+6 0 obj
+<<
+/Count 1 /Kids [ 3 0 R ] /Type /Pages
+>>
+endobj
+7 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 742
+>>
+stream
+Gas2F;0/Hc'SYHA/+V9II1V!>b>-epMEjN4$Udfu3WXha!?H`crq_UNGP5IS$'WT'SF]Hm/eEhd_JY>@!1knV$j`L/E!kN:0EQJ+FF:uKph>GV#ju48hu\;DS#c\h,:/udaV^[@;X>;"'ep>>)(B?I-n?2pLTEZKb$BFgKRF(b#Pc?SYeqN_Q<+X%64E)"g-fPCbq][OcNlQLW_hs%Z%g83]3b]0V$sluS:l]fd*^-UdD=#bCpInTen.cfe189iIh6\.p.U0GF:oK9b'->\lOqObp&ppaGMoCcp"4SVDq!<>6ZV]FD>,rrdc't<[N2!Ai12-2<OHlF74n#8(/WCG7Tai2$(/r@ULUNdEZ3Op<HV;A-c0GnY'M+s]&p&%@CgEr<@Bc.Uf<HojGCuBU=*pA.;2`iCVN!R2W:7h`/$bDaRRVeOY>bU`S*gNOt?NS4WgtN@KuL)HOb>`9L>S$_ert"UNW*,("+*>]m)4`k"8SUOCpM7`cEe!(7?`JV*GMajff(^atd&EX#qdMBmI'Q(YYb&m.O>0MYJ4XfJH@("`jPF^W5.*84$HY?2JY[WU48,IqkD_]b:_615)BA3RM*]q4>2Gf_1aMGFGu.Zt]!p5h;`XYO/FCmQ4/3ZX09kH$X+QI/JJh`lb\dBu:d$%Ld1=H=-UbKXP_&26H00T.?":f@40#m]NM5JYq@VFSk+#OR+sc4eX`Oq]N([T/;kQ>>WZOJNWnM"#msq:#?Km~>endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000073 00000 n 
+0000000104 00000 n 
+0000000211 00000 n 
+0000000414 00000 n 
+0000000482 00000 n 
+0000000778 00000 n 
+0000000837 00000 n 
+trailer
+<<
+/ID 
+[<3c7340500fa2fe72523c5e6f07511599><3c7340500fa2fe72523c5e6f07511599>]
+% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+
+/Info 5 0 R
+/Root 4 0 R
+/Size 8
+>>
+startxref
+1669
+%%EOF"""
+    unstructured_response = """This is an email example@blacklanternsecurity.notreal
+
+An example JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+A serialized DOTNET object AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA==
+
+A full url https://www.test.notreal/about
+
+A href <a href='/donot_detect.js'>Click me</a>"""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            dict(uri="/"),
+            dict(response_data='<a href="/Test_PDF"/>'),
+        )
+        module_test.set_expect_requests(
+            dict(uri="/Test_PDF"),
+            dict(response_data=self.pdf_data, headers={"Content-Type": "application/pdf"}),
+        )
+
+    def check(self, module_test, events):
+        filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
+        assert 1 == len(filesystem_events), filesystem_events
+        filesystem_event = filesystem_events[0]
+        file = Path(filesystem_event.data["path"])
+        assert file.is_file(), "Destination file doesn't exist"
+        assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
+        raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
+        assert 1 == len(raw_text_events), "Failed to emmit RAW_TEXT event"
+        assert (
+            raw_text_events[0].data == self.unstructured_response
+        ), f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
+        email_events = [e for e in events if e.type == "EMAIL_ADDRESS"]
+        assert 1 == len(email_events), "Failed to emmit EMAIL_ADDRESS event"
+        assert (
+            email_events[0].data == "example@blacklanternsecurity.notreal"
+        ), f"Email extracted from unstructured text is incorrect, got {email_events[0].data}"
+        finding_events = [e for e in events if e.type == "FINDING"]
+        assert 2 == len(finding_events), "Failed to emmit FINDING events"
+        assert any(
+            e.type == "FINDING"
+            and "JWT" in e.data["description"]
+            and e.data["url"] == "http://127.0.0.1:8888/Test_PDF"
+            and e.data["host"] == "127.0.0.1"
+            and e.data["path"].endswith("http-127-0-0-1-8888-test-pdf.pdf")
+            and str(e.host) == "127.0.0.1"
+            for e in finding_events
+        ), f"Failed to emmit JWT event got {finding_events}"
+        assert any(
+            e.type == "FINDING"
+            and "DOTNET" in e.data["description"]
+            and e.data["url"] == "http://127.0.0.1:8888/Test_PDF"
+            and e.data["host"] == "127.0.0.1"
+            and e.data["path"].endswith("http-127-0-0-1-8888-test-pdf.pdf")
+            and str(e.host) == "127.0.0.1"
+            for e in finding_events
+        ), f"Failed to emmit serialized event got {finding_events}"
+        assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
+        url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
+        assert (
+            "https://www.test.notreal/about" in url_events
+        ), f"URL extracted from unstructured text is incorrect, got {url_events}"
+        assert (
+            "/donot_detect.js" not in url_events
+        ), f"URL extracted from unstructured text is incorrect, got {url_events}"

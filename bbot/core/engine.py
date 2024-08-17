@@ -74,7 +74,7 @@ class EngineBase:
             try:
                 return await asyncio.wait_for(callback(*args, **kwargs), timeout=interval)
             except (TimeoutError, asyncio.exceptions.TimeoutError):
-                self.log.debug(f"{self.name}: Timeout after {interval:,} seconds{context}, retrying...")
+                self.log.debug(f"{self.name}: Timeout after {interval:,} seconds {context}, retrying...")
                 retries += 1
                 if max_retries is not None and retries > max_retries:
                     raise TimeoutError(f"Timed out after {max_retries*interval:,} seconds {context}")
