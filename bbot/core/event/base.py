@@ -388,10 +388,20 @@ class BaseEvent:
         """
         This event's full discovery context, including those of all its parents
         """
-        parent_path = []
+        discovery_path = []
         if self.parent is not None and self.parent is not self:
-            parent_path = self.parent.discovery_path
-        return parent_path + [[self.id, self.discovery_context]]
+            discovery_path = self.parent.discovery_path
+        return discovery_path + [self.discovery_context]
+
+    @property
+    def parent_chain(self):
+        """
+        This event's full discovery context, including those of all its parents
+        """
+        parent_chain = []
+        if self.parent is not None and self.parent is not self:
+            parent_chain = self.parent.parent_chain
+        return parent_chain + [self.id]
 
     @property
     def words(self):
@@ -775,6 +785,7 @@ class BaseEvent:
         # discovery context
         j["discovery_context"] = self.discovery_context
         j["discovery_path"] = self.discovery_path
+        j["parent_chain"] = self.parent_chain
 
         # normalize non-primitive python objects
         for k, v in list(j.items()):
@@ -912,6 +923,10 @@ class SCAN(BaseEvent):
 
     @property
     def discovery_path(self):
+        return []
+
+    @property
+    def parent_chain(self):
         return []
 
 

@@ -38,8 +38,9 @@ class TestJSON(ModuleTestBase):
         assert dns_reconstructed.data == dns_data
         assert dns_reconstructed.discovery_context == context_data
         assert dns_reconstructed.discovery_path == [
-            ["DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc", context_data]
+            context_data
         ]
+        assert dns_reconstructed.parent_chain == ["DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc"]
 
 
 class TestJSONSIEMFriendly(ModuleTestBase):
