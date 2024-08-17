@@ -54,7 +54,6 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
     "DNS_NAME:879e47564ff0ed7711b707d3dbecb706ad6af1a3"
   ]
 }
-
 ```
 
 For a more detailed description of BBOT events, see [Developer Documentation - Event](../../dev/event).
