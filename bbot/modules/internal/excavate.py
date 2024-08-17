@@ -181,7 +181,9 @@ class ExcavateRule:
         """
         for identifier, results in yara_results.items():
             for result in results:
-                event_data = {"host": str(event.host)}
+                event_data = {}
+                if event.host:
+                    event_data["host"] = str(event.host)
                 if isinstance(event.data, dict) and event.data.get("url"):
                     event_data["url"] = event.data["url"]
                 event_data["description"] = f"{discovery_context} {yara_rule_settings.description}"
@@ -270,7 +272,9 @@ class CustomExtractor(ExcavateRule):
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
         for identifier, results in yara_results.items():
             for result in results:
-                event_data = {"host": str(event.host)}
+                event_data = {}
+                if event.host:
+                    event_data["host"] = str(event.host)
                 if isinstance(event.data, dict) and event.data.get("url"):
                     event_data["url"] = event.data["url"]
                 description_string = (
@@ -586,7 +590,9 @@ class excavate(BaseInternalModule):
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
-                    event_data = {"host": str(event.host)}
+                    event_data = {}
+                    if event.host:
+                        event_data["host"] = str(event.host)
                     if isinstance(event.data, dict) and event.data.get("url"):
                         event_data["url"] = event.data["url"]
                     event_data["description"] = f"{discovery_context} {yara_rule_settings.description} ({identifier})"
@@ -618,7 +624,9 @@ class excavate(BaseInternalModule):
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
-                    event_data = {"host": str(event.host)}
+                    event_data = {}
+                    if event.host:
+                        event_data["host"] = str(event.host)
                     if isinstance(event.data, dict) and event.data.get("url"):
                         event_data["url"] = event.data["url"]
                     event_data["description"] = f"{discovery_context} {yara_rule_settings.description} ({identifier})"
