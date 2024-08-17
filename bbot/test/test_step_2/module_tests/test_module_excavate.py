@@ -1001,10 +1001,22 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         finding_events = [e for e in events if e.type == "FINDING"]
         assert 2 == len(finding_events), "Failed to emmit FINDING events"
         assert any(
-            e.type == "FINDING" and "JWT" in e.data["description"] for e in finding_events
+            e.type == "FINDING"
+            and "JWT" in e.data["description"]
+            and e.data["url"] == "http://127.0.0.1:8888/Test_PDF"
+            and e.data["host"] == "127.0.0.1"
+            and e.data["path"].endswith("http-127-0-0-1-8888-test-pdf.pdf")
+            and str(e.host) == "127.0.0.1"
+            for e in finding_events
         ), f"Failed to emmit JWT event got {finding_events}"
         assert any(
-            e.type == "FINDING" and "DOTNET" in e.data["description"] for e in finding_events
+            e.type == "FINDING"
+            and "DOTNET" in e.data["description"]
+            and e.data["url"] == "http://127.0.0.1:8888/Test_PDF"
+            and e.data["host"] == "127.0.0.1"
+            and e.data["path"].endswith("http-127-0-0-1-8888-test-pdf.pdf")
+            and str(e.host) == "127.0.0.1"
+            for e in finding_events
         ), f"Failed to emmit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
         url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
