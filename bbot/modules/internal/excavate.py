@@ -184,8 +184,6 @@ class ExcavateRule:
                 event_data = {"host": str(event.host)}
                 if isinstance(event.data, dict) and event.data.get("url"):
                     event_data["url"] = event.data["url"]
-                if isinstance(event.parent.data, dict) and event.parent.data.get("path"):
-                    event_data["path"] = event.parent.data["path"]
                 event_data["description"] = f"{discovery_context} {yara_rule_settings.description}"
                 if yara_rule_settings.emit_match:
                     event_data["description"] += f" [{result}]"
@@ -275,8 +273,6 @@ class CustomExtractor(ExcavateRule):
                 event_data = {"host": str(event.host)}
                 if isinstance(event.data, dict) and event.data.get("url"):
                     event_data["url"] = event.data["url"]
-                if isinstance(event.parent.data, dict) and event.parent.data.get("path"):
-                    event_data["path"] = event.parent.data["path"]
                 description_string = (
                     f" with description: [{yara_rule_settings.description}]" if yara_rule_settings.description else ""
                 )
@@ -593,8 +589,6 @@ class excavate(BaseInternalModule):
                     event_data = {"host": str(event.host)}
                     if isinstance(event.data, dict) and event.data.get("url"):
                         event_data["url"] = event.data["url"]
-                    if isinstance(event.parent.data, dict) and event.parent.data.get("path"):
-                        event_data["path"] = event.parent.data["path"]
                     event_data["description"] = f"{discovery_context} {yara_rule_settings.description} ({identifier})"
 
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
@@ -627,8 +621,6 @@ class excavate(BaseInternalModule):
                     event_data = {"host": str(event.host)}
                     if isinstance(event.data, dict) and event.data.get("url"):
                         event_data["url"] = event.data["url"]
-                    if isinstance(event.parent.data, dict) and event.parent.data.get("path"):
-                        event_data["path"] = event.parent.data["path"]
                     event_data["description"] = f"{discovery_context} {yara_rule_settings.description} ({identifier})"
 
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
