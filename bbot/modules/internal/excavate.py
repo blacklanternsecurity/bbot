@@ -329,7 +329,7 @@ class excavate(BaseInternalModule):
     ]
 
     parameter_blacklist_prefix = [
-        "TS01"  # Big-IP F5 Persistence Cookies
+        "TS01",  # Big-IP F5 Persistence Cookies
         "BIGipServerpool_"
     ]
 
