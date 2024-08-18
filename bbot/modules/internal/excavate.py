@@ -1012,7 +1012,7 @@ class excavate(BaseInternalModule):
                         cookie_name = header_value.split("=")[0]
                         cookie_value = header_value.split("=")[1].split(";")[0]
 
-                        if self.in_bl(cookie_value) == False:
+                        if self.in_bl(cookie_name) == False:
                             self.assigned_cookies[cookie_name] = cookie_value
                             description = f"Set-Cookie Assigned Cookie [{cookie_name}]"
                             data = {
