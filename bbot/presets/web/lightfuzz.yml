@@ -4,13 +4,15 @@ modules:
   - httpx
   - lightfuzz
   - badsecrets
+  - hunt
 
 config:
   url_querystring_remove: False
-  web_spider_distance: 4
-  web_spider_depth: 5
+  web_spider_distance: 3
+  web_spider_depth: 4
   modules:
     lightfuzz:
-      submodules_enabled: [cmdi,crypto,sqli,ssti,xss]
+      submodules_enabled: [cmdi,crypto,path,serial,sqli,ssti,xss]
+      disable_post: True
     excavate:
       retain_querystring: True
