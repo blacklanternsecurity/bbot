@@ -328,6 +328,11 @@ class excavate(BaseInternalModule):
         "PHPSESSID",
     ]
 
+    parameter_blacklist_prefix = [
+        "TS01"  # Big-IP F5 Persistence Cookies
+        "BIGipServerpool_"
+    ]
+
     yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
 
@@ -335,6 +340,10 @@ class excavate(BaseInternalModule):
         in_bl = False
         for bl_param in self.parameter_blacklist:
             if bl_param.lower() == value.lower():
+                in_bl = True
+
+        for bl_param_prefix in self.parameter_blacklist_prefix:
+            if value.lower().startswith(bl_param_prefix.lower()):
                 in_bl = True
         return in_bl
 
