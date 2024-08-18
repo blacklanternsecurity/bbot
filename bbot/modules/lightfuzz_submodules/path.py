@@ -64,6 +64,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                         and doubledot_probe[0] == False
                         and doubledot_probe[3] != None
                         and doubledot_probe[1] != ["header"]
+                        and "The requested URL was rejected" not in doubledot_probe[3].text
                     ):
                         confirmations += 1
                         self.lightfuzz.verbose(
