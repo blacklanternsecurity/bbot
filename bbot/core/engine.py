@@ -138,9 +138,11 @@ class EngineClient(EngineBase):
 
     def check_error(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_e" in message:
+            self.debug(f"{self.name}: got error message: {message}")
             error, trace = message["_e"]
             error = self.ERROR_CLASS(error)
             error.engine_traceback = trace
+            self.debug(f"{self.name}: raising {error.__class__.__name__}")
             raise error
         return False
 
@@ -404,21 +406,22 @@ class EngineServer(EngineBase):
         with self.client_id_context(client_id):
             try:
                 self.debug(f"{self.name}: run-and-return {fn_str}")
-                result = error_sentinel
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
-                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
-                        error = f"Error in {self.name}.{fn_str}: {e}"
-                        self.debug(error)
-                        trace = traceback.format_exc()
-                        self.debug(trace)
-                        result = {"_e": (error, trace)}
+                    if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        log_fn = self.log.debug
+                    else:
+                        log_fn = self.log.error
+                    error = f"Error in {self.name} {fn_str}: {e}"
+                    trace = traceback.format_exc()
+                    log_fn(error)
+                    self.log.trace(trace)
+                    result = {"_e": (error, trace)}
                 finally:
                     self.tasks.pop(client_id, None)
-                    if result is not error_sentinel:
-                        self.debug(f"{self.name}: Sending response to {fn_str}: {result}")
-                        await self.send_socket_multipart(client_id, result)
+                    self.debug(f"{self.name}: Sending response to {fn_str}: {result}")
+                    await self.send_socket_multipart(client_id, result)
             except BaseException as e:
                 self.log.critical(
                     f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
@@ -437,13 +440,16 @@ class EngineServer(EngineBase):
                         self.debug(f"{self.name}: sending iteration for {command_fn.__name__}(): {_}")
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
-                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
-                        error = f"Error in {self.name}.{fn_str}: {e}"
-                        trace = traceback.format_exc()
-                        self.debug(error)
-                        self.debug(trace)
-                        result = {"_e": (error, trace)}
-                        await self.send_socket_multipart(client_id, result)
+                    if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        log_fn = self.log.debug
+                    else:
+                        log_fn = self.log.error
+                    error = f"Error in {self.name} {fn_str}: {e}"
+                    trace = traceback.format_exc()
+                    log_fn(error)
+                    self.log.trace(trace)
+                    result = {"_e": (error, trace)}
+                    await self.send_socket_multipart(client_id, result)
                 finally:
                     self.debug(f"{self.name} reached end of run-and-yield iteration for {command_fn.__name__}()")
                     # _s == special signal that means StopIteration
@@ -475,7 +481,7 @@ class EngineServer(EngineBase):
             while 1:
                 client_id, binary = await self.socket.recv_multipart()
                 message = self.unpickle(binary)
-                # self.log.debug(f"{self.name} got message: {message}")
+                self.debug(f"{self.name} got message: {message}")
                 if self.check_error(message):
                     continue
 
@@ -493,7 +499,7 @@ class EngineServer(EngineBase):
 
                 # -99 == shutdown task
                 if cmd == -99:
-                    self.debug(f"{self.name} got shutdown signal")
+                    self.log.verbose(f"{self.name} got shutdown signal")
                     await self.send_socket_multipart(client_id, {"m": "SHUTDOWN_OK"})
                     await self._shutdown()
                     return
@@ -515,16 +521,16 @@ class EngineServer(EngineBase):
                     continue
 
                 if inspect.isasyncgenfunction(command_fn):
-                    # self.log.debug(f"{self.name}: creating run-and-yield coroutine for {command_name}()")
+                    self.debug(f"{self.name}: creating run-and-yield coroutine for {command_name}()")
                     coroutine = self.run_and_yield(client_id, command_fn, *args, **kwargs)
                 else:
-                    # self.log.debug(f"{self.name}: creating run-and-return coroutine for {command_name}()")
+                    self.debug(f"{self.name}: creating run-and-return coroutine for {command_name}()")
                     coroutine = self.run_and_return(client_id, command_fn, *args, **kwargs)
 
-                # self.log.debug(f"{self.name}: creating task for {command_name}() coroutine")
+                self.debug(f"{self.name}: creating task for {command_name}() coroutine")
                 task = asyncio.create_task(coroutine)
                 self.tasks[client_id] = task, command_fn, args, kwargs
-                # self.log.debug(f"{self.name}: finished creating task for {command_name}() coroutine")
+                self.debug(f"{self.name}: finished creating task for {command_name}() coroutine")
         except BaseException as e:
             await self._shutdown()
             if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
