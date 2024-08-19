@@ -405,7 +405,7 @@ class EngineServer(EngineBase):
         fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.debug(f"{self.name}: run-and-return {fn_str}")
+                self.debug(f"{self.name}: Starting run-and-return {fn_str}")
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
@@ -413,7 +413,7 @@ class EngineServer(EngineBase):
                         log_fn = self.log.debug
                     else:
                         log_fn = self.log.error
-                    error = f"Error in {self.name} {fn_str}: {e}"
+                    error = f"{self.name}: Error in {fn_str}: {e}"
                     trace = traceback.format_exc()
                     log_fn(error)
                     self.log.trace(trace)
@@ -428,30 +428,30 @@ class EngineServer(EngineBase):
                 )
                 self.log.critical(traceback.format_exc())
             finally:
-                self.debug(f"{self.name} finished run-and-return {command_fn.__name__}({args}, {kwargs})")
+                self.debug(f"{self.name} finished run-and-return {fn_str}")
 
     async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
         fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.debug(f"{self.name}: run-and-yield {fn_str}")
+                self.debug(f"{self.name}: Starting run-and-yield {fn_str}")
                 try:
                     async for _ in command_fn(*args, **kwargs):
-                        self.debug(f"{self.name}: sending iteration for {command_fn.__name__}(): {_}")
+                        self.debug(f"{self.name}: Sending iteration for {fn_str}: {_}")
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
                     if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                         log_fn = self.log.debug
                     else:
                         log_fn = self.log.error
-                    error = f"Error in {self.name} {fn_str}: {e}"
+                    error = f"{self.name}: Error in {fn_str}: {e}"
                     trace = traceback.format_exc()
                     log_fn(error)
                     self.log.trace(trace)
                     result = {"_e": (error, trace)}
                     await self.send_socket_multipart(client_id, result)
                 finally:
-                    self.debug(f"{self.name} reached end of run-and-yield iteration for {command_fn.__name__}()")
+                    self.debug(f"{self.name}: Reached end of run-and-yield iteration for {fn_str}")
                     # _s == special signal that means StopIteration
                     await self.send_socket_multipart(client_id, {"_s": None})
                     self.tasks.pop(client_id, None)
@@ -461,7 +461,7 @@ class EngineServer(EngineBase):
                 )
                 self.log.critical(traceback.format_exc())
             finally:
-                self.debug(f"{self.name} finished run-and-yield {command_fn.__name__}()")
+                self.debug(f"{self.name}: Finished run-and-yield {fn_str}")
 
     async def send_socket_multipart(self, client_id, message):
         try:
