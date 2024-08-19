@@ -316,7 +316,9 @@ class EngineClient(EngineBase):
                 self.debug(f"{self.name}: waiting for server process to start...")
                 await asyncio.sleep(0.1)
         socket = self.context.socket(zmq.DEALER)
-        socket.setsockopt(zmq.LINGER, 0)
+        socket.setsockopt(zmq.LINGER, 0)  # Discard pending messages immediately disconnect() or close()
+        socket.setsockopt(zmq.SNDHWM, 0)  # Unlimited send buffer
+        socket.setsockopt(zmq.RCVHWM, 0)  # Unlimited receive buffer
         socket.connect(f"ipc://{self.socket_path}")
         self.sockets.add(socket)
         try:
@@ -386,10 +388,11 @@ class EngineServer(EngineBase):
         if self.socket_path is not None:
             # create ZeroMQ context
             self.context = zmq.asyncio.Context()
-            self.context.setsockopt(zmq.LINGER, 0)
             # ROUTER socket can handle multiple concurrent requests
             self.socket = self.context.socket(zmq.ROUTER)
-            self.socket.setsockopt(zmq.LINGER, 0)
+            self.socket.setsockopt(zmq.LINGER, 0)  # Discard pending messages immediately disconnect() or close()
+            self.socket.setsockopt(zmq.SNDHWM, 0)  # Unlimited send buffer
+            self.socket.setsockopt(zmq.RCVHWM, 0)  # Unlimited receive buffer
             # create socket file
             self.socket.bind(f"ipc://{self.socket_path}")
 
@@ -405,7 +408,7 @@ class EngineServer(EngineBase):
         fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.debug(f"{self.name}: Starting run-and-return {fn_str}")
+                self.debug(f"{self.name}: starting run-and-return {fn_str}")
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
@@ -413,14 +416,14 @@ class EngineServer(EngineBase):
                         log_fn = self.log.debug
                     else:
                         log_fn = self.log.error
-                    error = f"{self.name}: Error in {fn_str}: {e}"
+                    error = f"{self.name}: error in {fn_str}: {e}"
                     trace = traceback.format_exc()
                     log_fn(error)
                     self.log.trace(trace)
                     result = {"_e": (error, trace)}
                 finally:
                     self.tasks.pop(client_id, None)
-                    self.debug(f"{self.name}: Sending response to {fn_str}: {result}")
+                    self.debug(f"{self.name}: sending response to {fn_str}: {result}")
                     await self.send_socket_multipart(client_id, result)
             except BaseException as e:
                 self.log.critical(
@@ -434,24 +437,24 @@ class EngineServer(EngineBase):
         fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.debug(f"{self.name}: Starting run-and-yield {fn_str}")
+                self.debug(f"{self.name}: starting run-and-yield {fn_str}")
                 try:
                     async for _ in command_fn(*args, **kwargs):
-                        self.debug(f"{self.name}: Sending iteration for {fn_str}: {_}")
+                        self.debug(f"{self.name}: sending iteration for {fn_str}: {_}")
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
                     if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                         log_fn = self.log.debug
                     else:
                         log_fn = self.log.error
-                    error = f"{self.name}: Error in {fn_str}: {e}"
+                    error = f"{self.name}: error in {fn_str}: {e}"
                     trace = traceback.format_exc()
                     log_fn(error)
                     self.log.trace(trace)
                     result = {"_e": (error, trace)}
                     await self.send_socket_multipart(client_id, result)
                 finally:
-                    self.debug(f"{self.name}: Reached end of run-and-yield iteration for {fn_str}")
+                    self.debug(f"{self.name}: reached end of run-and-yield iteration for {fn_str}")
                     # _s == special signal that means StopIteration
                     await self.send_socket_multipart(client_id, {"_s": None})
                     self.tasks.pop(client_id, None)
@@ -461,14 +464,14 @@ class EngineServer(EngineBase):
                 )
                 self.log.critical(traceback.format_exc())
             finally:
-                self.debug(f"{self.name}: Finished run-and-yield {fn_str}")
+                self.debug(f"{self.name}: finished run-and-yield {fn_str}")
 
     async def send_socket_multipart(self, client_id, message):
         try:
             message = pickle.dumps(message)
             await self._infinite_retry(self.socket.send_multipart, [client_id, message])
         except Exception as e:
-            self.log.verbose(f"Error sending ZMQ message: {e}")
+            self.log.verbose(f"{self.name}: error sending ZMQ message: {e}")
             self.log.trace(traceback.format_exc())
 
     def check_error(self, message):
