@@ -81,7 +81,7 @@ class EngineBase:
 
     def engine_debug(self, *args, **kwargs):
         if self._engine_debug:
-            self.log.debug(*args, **kwargs)
+            self.log.trace(*args, **kwargs)
 
 
 class EngineClient(EngineBase):

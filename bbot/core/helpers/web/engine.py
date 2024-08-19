@@ -35,20 +35,19 @@ class HTTPEngine(EngineServer):
         self.http_debug = self.web_config.get("debug", False)
         self._ssl_context_noverify = None
         self.web_clients = {}
-        self.web_clients[0] = self.AsyncClient(persist_cookies=False, retries=0)
-        self.web_client = self.web_clients[0]
+        self.web_client = self.AsyncClient(persist_cookies=False)
 
     def AsyncClient(self, *args, **kwargs):
         # cache by retries to prevent unwanted accumulation of clients
         # (they are not garbage-collected)
-        retries = kwargs.get("retries", 0)
+        retries = kwargs.get("retries", 1)
         try:
             return self.web_clients[retries]
         except KeyError:
             from .client import BBOTAsyncClient
 
             client = BBOTAsyncClient.from_config(self.config, self.target, *args, **kwargs)
-            self.web_clients[retries] = client
+            self.web_clients[client.retries] = client
             return client
 
     async def request(self, *args, **kwargs):
