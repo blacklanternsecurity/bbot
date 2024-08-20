@@ -179,7 +179,7 @@ class asn(BaseReportModule):
                                 asn[keyname] = value
             asn["emails"] = list(emails)
             asn["asn"] = str(asn_number)
-            self.ripe_cache[asn_number][asn_number] = asn
+            self.ripe_cache[asn_number] = asn
             return asn
 
     async def get_asn_bgpview(self, ip):
