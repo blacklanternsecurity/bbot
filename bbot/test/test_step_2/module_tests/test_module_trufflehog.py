@@ -851,7 +851,7 @@ class TestTrufflehog(ModuleTestBase):
             if e.type == "VULNERABILITY"
             and (e.data["host"] == "hub.docker.com" or e.data["host"] == "github.com")
             and "Verified Secret Found." in e.data["description"]
-            and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
+            and "Raw result: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
         ]
         assert 3 == len(vuln_events), "Failed to find secret in events"
         github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].parent
@@ -898,7 +898,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             if e.type == e.type == "FINDING"
             and (e.data["host"] == "hub.docker.com" or e.data["host"] == "github.com")
             and "Potential Secret Found." in e.data["description"]
-            and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
+            and "Raw result: [https://admin:admin@internal.host.com]" in e.data["description"]
         ]
         assert 3 == len(finding_events), "Failed to find secret in events"
         github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].parent
