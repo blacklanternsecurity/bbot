@@ -42,7 +42,7 @@ def add_to_path(v, k="PATH", environ=None):
         if _ != v and _ not in deduped_var_list:
             deduped_var_list.append(_)
     deduped_var_list = [v] + deduped_var_list
-    new_var_str = ":".join(deduped_var_list)
+    new_var_str = ":".join(deduped_var_list).strip(":")
     environ[k] = new_var_str
 
 

@@ -83,8 +83,7 @@ class HTTPEngine(EngineServer):
 
         async with self._acatch(url, raise_error):
             if self.http_debug:
-                logstr = f"Web request: {str(args)}, {str(kwargs)}"
-                log.trace(logstr)
+                log.trace(f"Web request: {str(args)}, {str(kwargs)}")
             response = await client.request(*args, **kwargs)
             if self.http_debug:
                 log.trace(

@@ -67,7 +67,7 @@ class unstructured(BaseModule):
     }
 
     deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
-    deps_pip = ["unstructured[all-docs]>=0.5.15,<1.0"]
+    deps_pip = ["unstructured[all-docs]>=0.15.6,<1.0"]
 
     scope_distance_modifier = 1
 
