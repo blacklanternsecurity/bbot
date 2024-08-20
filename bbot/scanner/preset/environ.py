@@ -107,7 +107,7 @@ class BBOTEnviron:
         environ.update(bbot_environ)
 
         # handle HTTP proxy
-        http_proxy = self.preset.config.get("http_proxy", "")
+        http_proxy = self.preset.config.get("web", {}).get("http_proxy", "")
         if http_proxy:
             environ["HTTP_PROXY"] = http_proxy
             environ["HTTPS_PROXY"] = http_proxy
