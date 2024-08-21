@@ -868,7 +868,7 @@ class TestTrufflehog(ModuleTestBase):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
@@ -915,7 +915,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
