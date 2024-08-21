@@ -61,4 +61,4 @@ class git_clone(github):
             return
 
         folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
-        return self.output_dir / folder / folder_name
+        return folder / folder_name
