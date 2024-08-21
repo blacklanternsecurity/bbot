@@ -63,10 +63,10 @@ class EngineBase:
         return error_sentinel
 
     async def _infinite_retry(self, callback, *args, **kwargs):
-        interval = kwargs.pop("_interval", 15)
+        interval = kwargs.pop("_interval", 300)
         context = kwargs.pop("_context", "")
         # default overall timeout of 5 minutes (15 second interval * 20 iterations)
-        max_retries = kwargs.pop("_max_retries", 4 * 5)
+        max_retries = kwargs.pop("_max_retries", 1)
         if not context:
             context = f"{callback.__name__}({args}, {kwargs})"
         retries = 0
