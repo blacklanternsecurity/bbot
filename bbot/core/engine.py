@@ -65,7 +65,7 @@ class EngineBase:
     async def _infinite_retry(self, callback, *args, **kwargs):
         interval = kwargs.pop("_interval", 300)
         context = kwargs.pop("_context", "")
-        # default overall timeout of 5 minutes (15 second interval * 20 iterations)
+        # default overall timeout of 10 minutes (300 second interval * 2 iterations)
         max_retries = kwargs.pop("_max_retries", 1)
         if not context:
             context = f"{callback.__name__}({args}, {kwargs})"
@@ -77,7 +77,7 @@ class EngineBase:
                 self.log.debug(f"{self.name}: Timeout after {interval:,} seconds {context}, retrying...")
                 retries += 1
                 if max_retries is not None and retries > max_retries:
-                    raise TimeoutError(f"Timed out after {max_retries*interval:,} seconds {context}")
+                    raise TimeoutError(f"Timed out after {(max_retries+1)*interval:,} seconds {context}")
 
     def engine_debug(self, *args, **kwargs):
         if self._engine_debug:

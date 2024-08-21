@@ -72,7 +72,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
         proxies = self._web_config.get("http_proxy", None)
         kwargs["proxies"] = proxies
 
-        log.debug(f"Creating httpx.AsyncClient({args}, {kwargs})")
+        log.critical(f"Creating httpx.AsyncClient({args}, {kwargs})")
         super().__init__(*args, **kwargs)
         if not self._persist_cookies:
             self._cookies = DummyCookies()
