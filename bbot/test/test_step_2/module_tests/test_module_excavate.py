@@ -19,7 +19,7 @@ class TestExcavate(ModuleTestBase):
         \\nhttps://www1.test.notreal
         \\x3dhttps://www2.test.notreal
         %0ahttps://www3.test.notreal
-        \\u000ahttps://www4.test.notreal
+        \\u000ahttps://www4.test.notreal:
         \nwww5.test.notreal
         \\x3dwww6.test.notreal
         %0awww7.test.notreal
@@ -989,17 +989,17 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert file.is_file(), "Destination file doesn't exist"
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
         raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
-        assert 1 == len(raw_text_events), "Failed to emmit RAW_TEXT event"
+        assert 1 == len(raw_text_events), "Failed to emit RAW_TEXT event"
         assert (
             raw_text_events[0].data == self.unstructured_response
         ), f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
         email_events = [e for e in events if e.type == "EMAIL_ADDRESS"]
-        assert 1 == len(email_events), "Failed to emmit EMAIL_ADDRESS event"
+        assert 1 == len(email_events), "Failed to emit EMAIL_ADDRESS event"
         assert (
             email_events[0].data == "example@blacklanternsecurity.notreal"
         ), f"Email extracted from unstructured text is incorrect, got {email_events[0].data}"
         finding_events = [e for e in events if e.type == "FINDING"]
-        assert 2 == len(finding_events), "Failed to emmit FINDING events"
+        assert 2 == len(finding_events), "Failed to emit FINDING events"
         assert any(
             e.type == "FINDING"
             and "JWT" in e.data["description"]
@@ -1008,7 +1008,7 @@ A href <a href='/donot_detect.js'>Click me</a>"""
             and e.data["path"].endswith("http-127-0-0-1-8888-test-pdf.pdf")
             and str(e.host) == "127.0.0.1"
             for e in finding_events
-        ), f"Failed to emmit JWT event got {finding_events}"
+        ), f"Failed to emit JWT event got {finding_events}"
         assert any(
             e.type == "FINDING"
             and "DOTNET" in e.data["description"]
@@ -1017,7 +1017,7 @@ A href <a href='/donot_detect.js'>Click me</a>"""
             and e.data["path"].endswith("http-127-0-0-1-8888-test-pdf.pdf")
             and str(e.host) == "127.0.0.1"
             for e in finding_events
-        ), f"Failed to emmit serialized event got {finding_events}"
+        ), f"Failed to emit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
         url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
         assert (
