@@ -619,13 +619,13 @@ class excavate(BaseInternalModule):
     class SerializationExtractor(ExcavateRule):
 
         regexes = {
-            "Java": re.compile(r"[^a-zA-Z0-9\/+]rO0[a-zA-Z0-9+\/]+={0,2}"),
-            "Ruby": re.compile(r"[^a-zA-Z0-9\/+]BAh[a-zA-Z0-9+\/]+={0,2}"),
-            "DOTNET": re.compile(r"[^a-zA-Z0-9\/+]AAEAAAD\/\/[a-zA-Z0-9\/+]+={0,2}"),
-            "PHP_Array": re.compile(r"[^a-zA-Z0-9\/+]YTo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
-            "PHP_String": re.compile(r"[^a-zA-Z0-9\/+]czo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
-            "PHP_Object": re.compile(r"[^a-zA-Z0-9\/+]Tzo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
-            "Possible_Compressed": re.compile(r"[^a-zA-Z0-9\/+]H4sIAAAAAAAA[a-zA-Z0-9+\/]+={0,2}"),
+            "Java": re.compile(r"[^a-zA-Z0-9\/+][\"']?rO0[a-zA-Z0-9+\/]+={0,2}"),
+            "Ruby": re.compile(r"[^[^a-zA-Z0-9\/+][\"']?BAh[a-zA-Z0-9+\/]+={0,2}"),
+            "DOTNET": re.compile(r"[^a-zA-Z0-9\/+][\"']?AAEAAAD\/\/[a-zA-Z0-9\/+]+={0,2}"),
+            "PHP_Array": re.compile(r"[^a-zA-Z0-9\/+][\"']?YTo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "PHP_String": re.compile(r"[^a-zA-Z0-9\/+][\"']?czo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "PHP_Object": re.compile(r"[^a-zA-Z0-9\/+][\"']?Tzo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "Possible_Compressed": re.compile(r"[^a-zA-Z0-9\/+][\"']?H4sIAAAA[a-zA-Z0-9+\/]+={0,2}"),
         }
         yara_rules = {}
 
