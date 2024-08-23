@@ -1,4 +1,4 @@
-description: Discovery web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques
+description: Discovery web parameters and lightly fuzz them for vulnerabilities, without some of the more intense discovery techniques
 
 modules:
   - httpx
