@@ -71,7 +71,6 @@ class WebHelper(EngineClient):
         try:
             return self.web_clients[retries]
         except KeyError:
-            log.critical("CREATING CLIENT")
             from .client import BBOTAsyncClient
 
             client = BBOTAsyncClient.from_config(self.config, self.target, *args, persist_cookies=False, **kwargs)
