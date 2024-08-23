@@ -640,9 +640,7 @@ class EngineServer(EngineBase):
                 return done
             except BaseException as e:
                 if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):
-                    self.log.warning(
-                        f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({tasks})"
-                    )
+                    self.log.warning(f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({tasks})")
                     for task in tasks:
                         task.cancel()
                 else:
