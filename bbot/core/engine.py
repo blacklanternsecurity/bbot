@@ -563,8 +563,13 @@ class EngineServer(EngineBase):
 
     def new_child_task(self, client_id, coro):
         task = asyncio.create_task(coro)
+
         def remove_task(t):
-            self.child_tasks.get(client_id, set()).discard(t)
+            tasks = self.child_tasks.get(client_id, set())
+            tasks.discard(t)
+            if not tasks:
+                self.child_tasks.pop(client_id, None)
+
         task.add_done_callback(remove_task)
         try:
             self.child_tasks[client_id].add(task)
