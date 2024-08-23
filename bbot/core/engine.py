@@ -551,49 +551,106 @@ class EngineServer(EngineBase):
             self.log.verbose(f"{self.name}: shutting down...")
             self._shutdown_status = True
             await self.cancel_all_tasks()
-            try:
-                self.context.destroy(linger=0)
-            except Exception:
-                self.log.trace(traceback.format_exc())
-            try:
-                self.context.term()
-            except Exception:
-                self.log.trace(traceback.format_exc())
+            context = getattr(self, "context", None)
+            if context is not None:
+                try:
+                    context.destroy(linger=0)
+                except Exception:
+                    self.log.trace(traceback.format_exc())
+                try:
+                    context.term()
+                except Exception:
+                    self.log.trace(traceback.format_exc())
             self.log.verbose(f"{self.name}: finished shutting down")
 
-    def new_child_task(self, client_id, coro):
+    async def task_pool(self, fn, args_kwargs, threads=10, timeout=300, global_kwargs=None):
+        if global_kwargs is None:
+            global_kwargs = {}
+
+        tasks = {}
+        args_kwargs = list(args_kwargs)
+
+        def new_task():
+            if args_kwargs:
+                kwargs = {}
+                tracker = None
+                args = args_kwargs.pop(0)
+                if isinstance(args, (list, tuple)):
+                    # you can specify a custom tracker value if you want
+                    # this helps with correlating results
+                    with suppress(ValueError):
+                        args, kwargs, tracker = args
+                    # or you can just specify args/kwargs
+                    with suppress(ValueError):
+                        args, kwargs = args
+
+                if not isinstance(kwargs, dict):
+                    raise ValueError(f"kwargs must be dict (got: {kwargs})")
+                if not isinstance(args, (list, tuple)):
+                    args = [args]
+
+                task = self.new_child_task(fn(*args, **kwargs, **global_kwargs))
+                tasks[task] = (args, kwargs, tracker)
+
+        for _ in range(threads):  # Start initial batch of tasks
+            new_task()
+
+        while tasks:  # While there are tasks pending
+            # Wait for the first task to complete
+            finished = await self.finished_tasks(tasks, timeout=timeout)
+            for task in finished:
+                result = task.result()
+                (args, kwargs, tracker) = tasks.pop(task)
+                yield (args, kwargs, tracker), result
+                new_task()
+
+    def new_child_task(self, coro):
+        """
+        Create a new asyncio task, making sure to track it based on the client id.
+
+        This allows the task to be automatically cancelled if its parent is cancelled.
+        """
+        client_id = self.client_id_var.get()
         task = asyncio.create_task(coro)
 
-        def remove_task(t):
-            tasks = self.child_tasks.get(client_id, set())
-            tasks.discard(t)
-            if not tasks:
-                self.child_tasks.pop(client_id, None)
+        if client_id:
 
-        task.add_done_callback(remove_task)
-        try:
-            self.child_tasks[client_id].add(task)
-        except KeyError:
-            self.child_tasks[client_id] = {task}
+            def remove_task(t):
+                tasks = self.child_tasks.get(client_id, set())
+                tasks.discard(t)
+                if not tasks:
+                    self.child_tasks.pop(client_id, None)
+
+            task.add_done_callback(remove_task)
+
+            try:
+                self.child_tasks[client_id].add(task)
+            except KeyError:
+                self.child_tasks[client_id] = {task}
+
         return task
 
-    async def finished_tasks(self, client_id, timeout=None):
-        child_tasks = self.child_tasks.get(client_id, set())
-        try:
-            done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
-        except BaseException as e:
-            if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):
-                done = set()
-                self.log.warning(f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({child_tasks})")
-                for task in child_tasks:
-                    task.cancel()
-            else:
-                if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
-                    self.log.error(f"{self.name}: Unhandled exception in finished_tasks({child_tasks}): {e}")
-                    self.log.trace(traceback.format_exc())
-                raise
-        self.child_tasks[client_id] = pending
-        return done
+    async def finished_tasks(self, tasks, timeout=None):
+        """
+        Given a list of asyncio tasks, return the ones that are finished with an optional timeout
+        """
+        if tasks:
+            try:
+                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+                return done
+            except BaseException as e:
+                if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):
+                    self.log.warning(
+                        f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({tasks})"
+                    )
+                    for task in tasks:
+                        task.cancel()
+                else:
+                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        self.log.error(f"{self.name}: Unhandled exception in finished_tasks({tasks}): {e}")
+                        self.log.trace(traceback.format_exc())
+                    raise
+        return set()
 
     async def cancel_task(self, client_id):
         parent_task = self.tasks.pop(client_id, None)
