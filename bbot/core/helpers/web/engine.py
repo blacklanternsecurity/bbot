@@ -27,19 +27,29 @@ class HTTPEngine(EngineServer):
         "max_redirects",
     )
 
-    def __init__(self, socket_path, target, config={}):
-        super().__init__(socket_path)
+    def __init__(self, socket_path, target, config={}, debug=False):
+        super().__init__(socket_path, debug=debug)
         self.target = target
         self.config = config
         self.web_config = self.config.get("web", {})
         self.http_debug = self.web_config.get("debug", False)
         self._ssl_context_noverify = None
-        self.web_client = self.AsyncClient(persist_cookies=False)
+        self.web_clients = {}
+        self.web_clients[0] = self.AsyncClient(persist_cookies=False, retries=0)
+        self.web_client = self.web_clients[0]
 
     def AsyncClient(self, *args, **kwargs):
-        from .client import BBOTAsyncClient
+        # cache by retries to prevent unwanted accumulation of clients
+        # (they are not garbage-collected)
+        retries = kwargs.get("retries", 0)
+        try:
+            return self.web_clients[retries]
+        except KeyError:
+            from .client import BBOTAsyncClient
 
-        return BBOTAsyncClient.from_config(self.config, self.target, *args, **kwargs)
+            client = BBOTAsyncClient.from_config(self.config, self.target, *args, **kwargs)
+            self.web_clients[retries] = client
+            return client
 
     async def request(self, *args, **kwargs):
         raise_error = kwargs.pop("raise_error", False)

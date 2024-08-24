@@ -1,6 +1,6 @@
 from ..bbot_fixtures import *
 
-from bbot.core.helpers.dns.helpers import extract_targets
+from bbot.core.helpers.dns.helpers import extract_targets, service_record, common_srvs
 
 
 mock_records = {
@@ -464,3 +464,16 @@ async def test_dns_graph_structure(bbot_scanner):
     assert str(events_by_data["www.evilcorp.com"].module) == "CNAME"
     assert events_by_data["evilcorp.com"].parent.data == "https://evilcorp.com/"
     assert str(events_by_data["evilcorp.com"].module) == "host"
+
+
+def test_dns_helpers():
+    assert service_record("") == False
+    assert service_record("localhost") == False
+    assert service_record("www.example.com") == False
+    assert service_record("www.example.com", "SRV") == True
+    assert service_record("_custom._service.example.com", "SRV") == True
+    assert service_record("_custom._service.example.com", "A") == False
+    # top 100 most common SRV records
+    for srv_record in common_srvs[:100]:
+        hostname = f"{srv_record}.example.com"
+        assert service_record(hostname) == True

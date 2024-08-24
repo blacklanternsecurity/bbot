@@ -178,10 +178,19 @@ async def test_target(bbot_scanner):
     assert list(bbottarget.whitelist) == ["evilcorp.net"]
     assert list(bbottarget.blacklist) == ["evilcorp.org"]
 
-    scan = bbot_scanner("ORG:evilcorp")
-    events = [e async for e in scan.async_start()]
-    assert len(events) == 2
-    assert set([e.type for e in events]) == {"SCAN", "ORG_STUB"}
+    # test org stub as target
+    for org_target in ("ORG:evilcorp", "ORG_STUB:evilcorp"):
+        scan = bbot_scanner(org_target)
+        events = [e async for e in scan.async_start()]
+        assert len(events) == 2
+        assert set([e.type for e in events]) == {"SCAN", "ORG_STUB"}
+
+    # test username as target
+    for user_target in ("USER:vancerefrigeration", "USERNAME:vancerefrigeration"):
+        scan = bbot_scanner(user_target)
+        events = [e async for e in scan.async_start()]
+        assert len(events) == 2
+        assert set([e.type for e in events]) == {"SCAN", "USERNAME"}
 
     # verify hash values
     bbottarget = BBOTTarget(

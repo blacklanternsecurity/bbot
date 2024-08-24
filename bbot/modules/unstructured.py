@@ -67,9 +67,9 @@ class unstructured(BaseModule):
     }
 
     deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
-    deps_pip = [
-        "git+https://github.com/Unstructured-IO/unstructured@d0211cc41faa3988b0cfdefa3e0a8f80adbf013b#egg=unstructured[all-docs]"
-    ]
+    deps_pip = ["unstructured[all-docs]>=0.5.15,<1.0"]
+
+    scope_distance_modifier = 1
 
     async def setup(self):
         self.extensions = list(set([e.lower().strip(".") for e in self.config.get("extensions", [])]))
@@ -104,6 +104,7 @@ class unstructured(BaseModule):
                 raw_text_event = self.make_event(
                     content,
                     "RAW_TEXT",
+                    context=f"Extracted text from {file_path}",
                     parent=event,
                 )
                 await self.emit_event(raw_text_event)
@@ -151,8 +152,12 @@ def extract_text(file_path):
 
     # If the file can be extracted with unstructured use its partition function or try and read it
     if any(file_path.lower().endswith(file_type) for file_type in unstructured_file_types):
-        elements = partition(filename=file_path)
-        return "\n\n".join(element.text for element in elements)
+        try:
+            elements = partition(filename=file_path)
+            return "\n\n".join(element.text for element in elements)
+        except ValueError:
+            with open(file_path, "rb") as file:
+                return file.read().decode("utf-8", errors="ignore")
     else:
         with open(file_path, "rb") as file:
             return file.read().decode("utf-8", errors="ignore")

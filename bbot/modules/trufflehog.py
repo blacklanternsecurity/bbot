@@ -13,7 +13,7 @@ class trufflehog(BaseModule):
     }
 
     options = {
-        "version": "3.81.7",
+        "version": "3.81.9",
         "only_verified": True,
         "concurrency": 8,
         "deleted_forks": False,
@@ -90,17 +90,25 @@ class trufflehog(BaseModule):
             host = event.host
         else:
             host = str(event.parent.host)
-        async for decoder_name, detector_name, raw_result, verified, source_metadata in self.execute_trufflehog(
-            module, path
-        ):
+        async for (
+            decoder_name,
+            detector_name,
+            raw_result,
+            rawv2_result,
+            verified,
+            source_metadata,
+        ) in self.execute_trufflehog(module, path):
             if verified:
                 data = {
                     "severity": "High",
-                    "description": f"Verified Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
+                    "description": f"Verified Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",
                     "host": host,
                 }
                 if description:
                     data["description"] += f" Description: [{description}]"
+                data["description"] += f" Raw result: [{raw_result}]"
+                if rawv2_result:
+                    data["description"] += f" RawV2 result: [{rawv2_result}]"
                 await self.emit_event(
                     data,
                     "VULNERABILITY",
@@ -109,11 +117,14 @@ class trufflehog(BaseModule):
                 )
             else:
                 data = {
-                    "description": f"Potential Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
+                    "description": f"Potential Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",
                     "host": host,
                 }
                 if description:
                     data["description"] += f" Description: [{description}]"
+                data["description"] += f" Raw result: [{raw_result}]"
+                if rawv2_result:
+                    data["description"] += f" RawV2 result: [{rawv2_result}]"
                 await self.emit_event(
                     data,
                     "FINDING",
@@ -162,11 +173,13 @@ class trufflehog(BaseModule):
 
                     raw_result = j.get("Raw", "")
 
+                    rawv2_result = j.get("RawV2", "")
+
                     verified = j.get("Verified", False)
 
                     source_metadata = j.get("SourceMetadata", {})
 
-                    yield (decoder_name, detector_name, raw_result, verified, source_metadata)
+                    yield (decoder_name, detector_name, raw_result, rawv2_result, verified, source_metadata)
         finally:
             stats_file.unlink()
 

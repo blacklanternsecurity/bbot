@@ -29,6 +29,9 @@ Passive API sources plus a recursive DNS brute-force with target-specific subdom
 ```bash
 # find subdomains of evilcorp.com
 bbot -t evilcorp.com -p subdomain-enum
+
+# passive sources only
+bbot -t evilcorp.com -p subdomain-enum -rf passive
 ```
 
 <!-- BBOT SUBDOMAIN-ENUM PRESET EXPANDABLE -->
