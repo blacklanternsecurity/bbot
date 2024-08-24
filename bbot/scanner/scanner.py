@@ -656,14 +656,14 @@ class Scanner:
                 scan_active_status.append(f"scan.modules_finished: {self.modules_finished}")
                 for m in sorted_modules:
                     running = m.running
-                    scan_active_status.append(f"    {m}.finished: {m.finished}")
-                    scan_active_status.append(f"        running: {running}")
+                    scan_active_status.append(f"    {m}:")
+                    # scan_active_status.append(f"        running: {running}")
                     if running:
-                        scan_active_status.append(f"        tasks:")
+                        # scan_active_status.append(f"        tasks:")
                         for task in list(m._task_counter.tasks.values()):
-                            scan_active_status.append(f"            - {task}:")
-                    scan_active_status.append(f"        incoming_queue_size: {m.num_incoming_events}")
-                    scan_active_status.append(f"        outgoing_queue_size: {m.outgoing_event_queue.qsize()}")
+                            scan_active_status.append(f"        - {task}:")
+                    # scan_active_status.append(f"        incoming_queue_size: {m.num_incoming_events}")
+                    # scan_active_status.append(f"        outgoing_queue_size: {m.outgoing_event_queue.qsize()}")
                 for line in scan_active_status:
                     self.debug(line)
 
