@@ -28,13 +28,13 @@ class ffuf(BaseModule):
 
     deps_common = ["ffuf"]
 
-    banned_characters = [" "]
-
+    banned_characters = set([" "])
     blacklist = ["images", "css", "image"]
 
     in_scope_only = True
 
     async def setup(self):
+
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
@@ -318,7 +318,6 @@ class ffuf(BaseModule):
             prefix = prefix.strip().lower()
 
         max_lines = self.config.get("lines")
-        banned_set = set(self.banned_characters)
 
         for idx, val in enumerate(self.wordlist_lines):
             if idx > max_lines:
@@ -332,7 +331,7 @@ class ffuf(BaseModule):
                     # Check if it starts with the given prefix (if any)
                     if not prefix or stripped_val.startswith(prefix):
                         # Check if it contains any banned characters
-                        if not any(char in banned_set for char in stripped_val):
+                        if not any(char in self.banned_characters for char in stripped_val):
                             line_count += 1
                             virtual_file.append(stripped_val)
 
