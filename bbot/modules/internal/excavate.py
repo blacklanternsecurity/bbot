@@ -857,33 +857,35 @@ class excavate(BaseInternalModule):
 
         decoded_data = await self.helpers.re.recursive_decode(data)
 
-        content_type_lower = content_type.lower() if content_type else ""
-        extraction_map = {
-            "json": self.helpers.extract_params_json,
-            "xml": self.helpers.extract_params_xml,
-        }
+        if self.parameter_extraction:
 
-        for source_type, extract_func in extraction_map.items():
-            if source_type in content_type_lower:
-                results = extract_func(data)
-                if results:
-                    for parameter_name, original_value in results:
-                        description = (
-                            f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]"
-                        )
-                        data = {
-                            "host": str(event.host),
-                            "type": "SPECULATIVE",
-                            "name": parameter_name,
-                            "original_value": original_value,
-                            "url": str(event.data["url"]),
-                            "additional_params": {},
-                            "assigned_cookies": self.assigned_cookies,
-                            "description": description,
-                        }
-                        context = f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}"
-                        await self.emit_event(data, "WEB_PARAMETER", event, context=context)
-                return
+            content_type_lower = content_type.lower() if content_type else ""
+            extraction_map = {
+                "json": self.helpers.extract_params_json,
+                "xml": self.helpers.extract_params_xml,
+            }
+
+            for source_type, extract_func in extraction_map.items():
+                if source_type in content_type_lower:
+                    results = extract_func(data)
+                    if results:
+                        for parameter_name, original_value in results:
+                            description = (
+                                f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]"
+                            )
+                            data = {
+                                "host": str(event.host),
+                                "type": "SPECULATIVE",
+                                "name": parameter_name,
+                                "original_value": original_value,
+                                "url": str(event.data["url"]),
+                                "additional_params": {},
+                                "assigned_cookies": self.assigned_cookies,
+                                "description": description,
+                            }
+                            context = f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}"
+                            await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+                    return
 
         for result in self.yara_rules.match(data=f"{data}\n{decoded_data}"):
             rule_name = result.rule
@@ -938,7 +940,7 @@ class excavate(BaseInternalModule):
 
             for header, header_values in headers.items():
                 for header_value in header_values:
-                    if header.lower() == "set-cookie":
+                    if header.lower() == "set-cookie" and self.parameter_extraction:
                         if "=" not in header_value:
                             self.debug(f"Cookie found without '=': {header_value}")
                             continue
