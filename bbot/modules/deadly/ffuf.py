@@ -28,13 +28,13 @@ class ffuf(BaseModule):
 
     deps_common = ["ffuf"]
 
-    banned_characters = [" "]
-
+    banned_characters = set([" "])
     blacklist = ["images", "css", "image"]
 
     in_scope_only = True
 
     async def setup(self):
+
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
@@ -312,18 +312,28 @@ class ffuf(BaseModule):
 
     def generate_templist(self, prefix=None):
         line_count = 0
-
         virtual_file = []
+
+        if prefix:
+            prefix = prefix.strip().lower()
+
+        max_lines = self.config.get("lines")
+
         for idx, val in enumerate(self.wordlist_lines):
-            if idx > self.config.get("lines"):
+            if idx > max_lines:
                 break
-            if len(val) > 0:
-                if val.strip().lower() in self.blacklist:
-                    self.debug(f"Skipping adding [{val.strip()}] to wordlist because it was in the blacklist")
+            stripped_val = val.strip().lower()
+            if stripped_val:
+                # Check if the word is in the blacklist
+                if stripped_val in self.blacklist:
+                    self.debug(f"Skipping adding [{stripped_val}] to wordlist because it was in the blacklist")
                 else:
-                    if not prefix or val.strip().lower().startswith(prefix.strip().lower()):
-                        if not any(char in val.strip().lower() for char in self.banned_characters):
+                    # Check if it starts with the given prefix (if any)
+                    if not prefix or stripped_val.startswith(prefix):
+                        # Check if it contains any banned characters
+                        if not any(char in self.banned_characters for char in stripped_val):
                             line_count += 1
-                            virtual_file.append(f"{val.strip().lower()}")
+                            virtual_file.append(stripped_val)
+
         virtual_file.append(self.canary)
         return self.helpers.tempfile(virtual_file, pipe=False), line_count
