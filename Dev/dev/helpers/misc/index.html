@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.gm8fdp2e.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.to3zaeqz.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -568,6 +568,106 @@
 <div class="doc doc-object doc-module">
 <div class="doc doc-contents first">
 <div class="doc doc-children">
+<div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.add_get_params">
+<span class="doc doc-object-name doc-function-name">add_get_params</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">add_get_params(url,</span> <span style="color: #e6edf3">params)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Add or update query parameters to the given URL.</p>
+<p>This function takes an existing URL and a dictionary of query parameters,
+updates or adds these parameters to the URL, and returns a new URL.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>url</code></b>
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="urllib.parse.ParseResult" href="https://docs.python.org/3.11/library/urllib.parse.html#urllib.parse.ParseResult">ParseResult</a>]</code>)
+          –
+          <div class="doc-md-description">
+<p>The original URL.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code>params</code></b>
+              (<code>Dict[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, Any]</code>)
+          –
+          <div class="doc-md-description">
+<p>A dictionary containing the query parameters to be added or updated.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>ParseResult</code></b>          –
+          <div class="doc-md-description">
+<p>A named 6-tuple containing the components of the modified URL.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">add_get_params(</span><span style="color: #a5d6ff">'https://www.evilcorp.com?foo=1'</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">{</span><span style="color: #a5d6ff">'bar'</span><span style="color: #e6edf3">:</span> <span style="color: #a5d6ff">2</span><span style="color: #e6edf3">})</span>
+<span style="color: #8b949e">ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='foo=1&amp;bar=2', fragment='')</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">add_get_params(</span><span style="color: #a5d6ff">'https://www.evilcorp.com?foo=1'</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">{</span><span style="color: #a5d6ff">'foo'</span><span style="color: #e6edf3">:</span> <span style="color: #a5d6ff">2</span><span style="color: #e6edf3">})</span>
+<span style="color: #8b949e">ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='foo=2', fragment='')</span>
+</code></pre></div>
+<details class="quote">
+<summary>Source code in <code>bbot/core/helpers/url.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">35</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">36</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">37</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">38</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">39</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">40</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">41</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">42</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">43</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">44</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">45</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">46</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">47</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">48</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">49</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">50</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">51</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">52</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">53</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">54</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">55</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">56</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">57</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">58</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">59</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">add_get_params</span><span style="color: #e6edf3">(url,</span> <span style="color: #e6edf3">params):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Add or update query parameters to the given URL.</span>
+
+<span style="color: #a5d6ff">    This function takes an existing URL and a dictionary of query parameters,</span>
+<span style="color: #a5d6ff">    updates or adds these parameters to the URL, and returns a new URL.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        url (Union[str, ParseResult]): The original URL.</span>
+<span style="color: #a5d6ff">        params (Dict[str, Any]): A dictionary containing the query parameters to be added or updated.</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        ParseResult: A named 6-tuple containing the components of the modified URL.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; add_get_params('https://www.evilcorp.com?foo=1', {'bar': 2})</span>
+<span style="color: #a5d6ff">        ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='foo=1&amp;bar=2', fragment='')</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; add_get_params('https://www.evilcorp.com?foo=1', {'foo': 2})</span>
+<span style="color: #a5d6ff">        ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='foo=2', fragment='')</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">parsed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">parse_url(url)</span>
+    <span style="color: #e6edf3">old_params</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">dict(parse_qs(parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">query))</span>
+    <span style="color: #e6edf3">old_params</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">update(params)</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_replace(query</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">urlencode(old_params,</span> <span style="color: #e6edf3">doseq</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">))</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
 <div class="doc doc-object doc-function">
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.as_completed">
 <span class="doc doc-object-name doc-function-name">as_completed</span>
@@ -1493,6 +1593,132 @@ It also allows you to optionally open entries as files and add their contents to
     <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">list(final_list)</span>
     <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">remove_blank:</span>
         <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[r</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">r</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">r]</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">ret</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.charset">
+<span class="doc doc-object-name doc-function-name">charset</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">charset(p)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Determine the character set of the given string based on the types of characters it contains.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>p</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+          –
+          <div class="doc-md-description">
+<p>The string whose character set is to be determined.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>int</code></b>          –
+          <div class="doc-md-description">
+<p>A bitmask representing the types of characters present in the string.
+- CHAR_LOWER = 1: Lowercase alphabets
+- CHAR_UPPER = 2: Uppercase alphabets
+- CHAR_DIGIT = 4: Digits
+- CHAR_SYMBOL = 8: Symbols/Special characters</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">charset(</span><span style="color: #a5d6ff">'abc'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">1</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">charset(</span><span style="color: #a5d6ff">'abcABC'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">3</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">charset(</span><span style="color: #a5d6ff">'abc123'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">5</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">charset(</span><span style="color: #a5d6ff">'!abc123'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">13</span>
+</code></pre></div>
+<details class="quote">
+<summary>Source code in <code>bbot/core/helpers/url.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 89</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 90</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 91</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 92</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 93</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 94</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 95</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 96</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 97</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 98</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 99</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">100</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">101</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">102</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">103</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">104</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">105</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">106</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">107</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">108</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">109</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">110</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">111</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">112</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">113</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">114</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">115</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">116</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">117</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">118</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">119</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">120</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">121</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">122</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">123</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">124</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">125</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">126</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">charset</span><span style="color: #e6edf3">(p):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Determine the character set of the given string based on the types of characters it contains.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        p (str): The string whose character set is to be determined.</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        int: A bitmask representing the types of characters present in the string.</span>
+<span style="color: #a5d6ff">            - CHAR_LOWER = 1: Lowercase alphabets</span>
+<span style="color: #a5d6ff">            - CHAR_UPPER = 2: Uppercase alphabets</span>
+<span style="color: #a5d6ff">            - CHAR_DIGIT = 4: Digits</span>
+<span style="color: #a5d6ff">            - CHAR_SYMBOL = 8: Symbols/Special characters</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; charset('abc')</span>
+<span style="color: #a5d6ff">        1</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; charset('abcABC')</span>
+<span style="color: #a5d6ff">        3</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; charset('abc123')</span>
+<span style="color: #a5d6ff">        5</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; charset('!abc123')</span>
+<span style="color: #a5d6ff">        13</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">0</span>
+    <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">c</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">p:</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">c</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">islower():</span>
+            <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">|=</span> <span style="color: #e6edf3">CHAR_LOWER</span>
+        <span style="color: #ff7b72">elif</span> <span style="color: #e6edf3">c</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">isupper():</span>
+            <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">|=</span> <span style="color: #e6edf3">CHAR_UPPER</span>
+        <span style="color: #ff7b72">elif</span> <span style="color: #e6edf3">c</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">isnumeric():</span>
+            <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">|=</span> <span style="color: #e6edf3">CHAR_DIGIT</span>
+        <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">ret</span> <span style="color: #ff7b72; font-weight: bold">|=</span> <span style="color: #e6edf3">CHAR_SYMBOL</span>
     <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">ret</span>
 </code></pre></div></td></tr></table></div>
 </details>
@@ -3799,6 +4025,84 @@ does not point to a file, the function returns 0.</p>
 </div>
 </div>
 <div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.get_get_params">
+<span class="doc doc-object-name doc-function-name">get_get_params</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">get_get_params(url)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Extract the query parameters from the given URL as a dictionary.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>url</code></b>
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="urllib.parse.ParseResult" href="https://docs.python.org/3.11/library/urllib.parse.html#urllib.parse.ParseResult">ParseResult</a>]</code>)
+          –
+          <div class="doc-md-description">
+<p>The URL from which to extract query parameters.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+          –
+          <div class="doc-md-description">
+<p>Dict[str, List[str]]: A dictionary containing the query parameters and their values.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">get_get_params(</span><span style="color: #a5d6ff">'https://www.evilcorp.com?foo=1&amp;bar=2'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">{'foo': ['1'], 'bar': ['2']}</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">get_get_params(</span><span style="color: #a5d6ff">'https://www.evilcorp.com?foo=1&amp;foo=2'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">{'foo': ['1', '2']}</span>
+</code></pre></div>
+<details class="quote">
+<summary>Source code in <code>bbot/core/helpers/url.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">62</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">63</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">64</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">65</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">66</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">67</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">68</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">69</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">70</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">71</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">72</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">73</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">74</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">75</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">76</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">77</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">78</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">79</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">80</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">get_get_params</span><span style="color: #e6edf3">(url):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Extract the query parameters from the given URL as a dictionary.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        url (Union[str, ParseResult]): The URL from which to extract query parameters.</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        Dict[str, List[str]]: A dictionary containing the query parameters and their values.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; get_get_params('https://www.evilcorp.com?foo=1&amp;bar=2')</span>
+<span style="color: #a5d6ff">        {'foo': ['1'], 'bar': ['2']}</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; get_get_params('https://www.evilcorp.com?foo=1&amp;foo=2')</span>
+<span style="color: #a5d6ff">        {'foo': ['1', '2']}</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">parsed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">parse_url(url)</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">dict(parse_qs(parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">query))</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.get_keys_in_dot_syntax">
 <span class="doc doc-object-name doc-function-name">get_keys_in_dot_syntax</span>
 </h1>
@@ -4274,6 +4578,117 @@ represented in dot notation.</p>
 
     <span style="color: #e6edf3">iterable</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">iter(iterable)</span>
     <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">iter(</span><span style="color: #ff7b72">lambda</span><span style="color: #e6edf3">:</span> <span style="color: #e6edf3">list(islice(iterable,</span> <span style="color: #e6edf3">n)),</span> <span style="color: #e6edf3">[])</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.hash_url">
+<span class="doc doc-object-name doc-function-name">hash_url</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">hash_url(url)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Hashes a URL for the purpose of cleaning or collapsing similar URLs.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>url</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+          –
+          <div class="doc-md-description">
+<p>The URL to be hashed.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>int</code></b>          –
+          <div class="doc-md-description">
+<p>The hash value of the cleaned URL.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">hash_url(</span><span style="color: #a5d6ff">'https://www.evilcorp.com'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">-7448777882396416944</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">hash_url(</span><span style="color: #a5d6ff">'https://www.evilcorp.com/page/1'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">-8101275613229735915</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">hash_url(</span><span style="color: #a5d6ff">'https://www.evilcorp.com/page/2'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">-8101275613229735915</span>
+</code></pre></div>
+<details class="quote">
+<summary>Source code in <code>bbot/core/helpers/url.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">162</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">163</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">164</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">165</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">166</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">167</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">168</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">169</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">170</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">171</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">172</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">173</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">174</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">175</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">176</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">177</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">178</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">179</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">180</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">181</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">182</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">183</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">184</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">185</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">186</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">187</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">188</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">189</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">190</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">191</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">192</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">193</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">194</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">195</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">hash_url</span><span style="color: #e6edf3">(url):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Hashes a URL for the purpose of cleaning or collapsing similar URLs.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        url (str): The URL to be hashed.</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        int: The hash value of the cleaned URL.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; hash_url('https://www.evilcorp.com')</span>
+<span style="color: #a5d6ff">        -7448777882396416944</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; hash_url('https://www.evilcorp.com/page/1')</span>
+<span style="color: #a5d6ff">        -8101275613229735915</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; hash_url('https://www.evilcorp.com/page/2')</span>
+<span style="color: #a5d6ff">        -8101275613229735915</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">parsed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">parse_url(url)</span>
+    <span style="color: #e6edf3">parsed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_replace(fragment</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">""</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">query</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">""</span><span style="color: #e6edf3">)</span>
+    <span style="color: #e6edf3">to_hash</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">netloc]</span>
+    <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">segment</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">path</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">split(</span><span style="color: #a5d6ff">"/"</span><span style="color: #e6edf3">):</span>
+        <span style="color: #e6edf3">hash_segment</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[]</span>
+        <span style="color: #e6edf3">hash_segment</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(charset(segment))</span>
+        <span style="color: #e6edf3">hash_segment</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(param_type(segment))</span>
+        <span style="color: #e6edf3">dot_split</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">segment</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">split(</span><span style="color: #a5d6ff">"."</span><span style="color: #e6edf3">)</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">len(dot_split)</span> <span style="color: #ff7b72; font-weight: bold">&gt;</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">hash_segment</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(dot_split[</span><span style="color: #ff7b72; font-weight: bold">-</span><span style="color: #a5d6ff">1</span><span style="color: #e6edf3">])</span>
+        <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">hash_segment</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(</span><span style="color: #a5d6ff">""</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">to_hash</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(tuple(hash_segment))</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">hash(tuple(to_hash))</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -6971,6 +7386,114 @@ Specifically, it changes "darwin" to "macOS".</p>
 </div>
 </div>
 <div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.param_type">
+<span class="doc doc-object-name doc-function-name">param_type</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">param_type(p)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Evaluates the type of the given parameter.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>p</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+          –
+          <div class="doc-md-description">
+<p>The parameter whose type is to be evaluated.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>int</code></b>          –
+          <div class="doc-md-description">
+<p>An integer representing the type of parameter.
+- 1: Integer
+- 2: UUID
+- 3: Other</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">param_type(</span><span style="color: #a5d6ff">'123'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">1</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">param_type(</span><span style="color: #a5d6ff">'550e8400-e29b-41d4-a716-446655440000'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">2</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">param_type(</span><span style="color: #a5d6ff">'abc'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">3</span>
+</code></pre></div>
+<details class="quote">
+<summary>Source code in <code>bbot/core/helpers/url.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">129</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">130</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">131</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">132</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">133</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">134</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">135</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">136</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">137</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">138</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">139</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">140</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">141</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">142</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">143</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">144</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">145</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">146</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">147</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">148</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">149</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">150</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">151</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">152</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">153</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">154</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">155</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">156</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">157</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">158</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">159</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">param_type</span><span style="color: #e6edf3">(p):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Evaluates the type of the given parameter.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        p (str): The parameter whose type is to be evaluated.</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        int: An integer representing the type of parameter.</span>
+<span style="color: #a5d6ff">            - 1: Integer</span>
+<span style="color: #a5d6ff">            - 2: UUID</span>
+<span style="color: #a5d6ff">            - 3: Other</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; param_type('123')</span>
+<span style="color: #a5d6ff">        1</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; param_type('550e8400-e29b-41d4-a716-446655440000')</span>
+<span style="color: #a5d6ff">        2</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; param_type('abc')</span>
+<span style="color: #a5d6ff">        3</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
+        <span style="color: #e6edf3">int(p)</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #a5d6ff">1</span>
+    <span style="color: #ff7b72">except</span> <span style="color: #f0883e; font-weight: bold">Exception</span><span style="color: #e6edf3">:</span>
+        <span style="color: #ff7b72">with</span> <span style="color: #e6edf3">suppress(</span><span style="color: #f0883e; font-weight: bold">Exception</span><span style="color: #e6edf3">):</span>
+            <span style="color: #e6edf3">uuid</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">UUID(p)</span>
+            <span style="color: #ff7b72">return</span> <span style="color: #a5d6ff">2</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #a5d6ff">3</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.parent_domain">
 <span class="doc doc-object-name doc-function-name">parent_domain</span>
 </h1>
@@ -7338,6 +7861,88 @@ If the input URL does not have a parent (i.e., it's already the top-level), it r
             <span style="color: #ff7b72">raise</span> <span style="color: #f0883e; font-weight: bold">ValueError</span><span style="color: #e6edf3">(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Invalid port or port range: {</span><span style="color: #e6edf3">element</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
 
     <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">ports</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.parse_url">
+<span class="doc doc-object-name doc-function-name">parse_url</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">parse_url(url)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Parse the given URL string or ParseResult object and return a ParseResult.</p>
+<p>This function checks if the input is already a ParseResult object. If it is,
+it returns the object as-is. Otherwise, it parses the given URL string using
+<code>urlparse</code>.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>url</code></b>
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="urllib.parse.ParseResult" href="https://docs.python.org/3.11/library/urllib.parse.html#urllib.parse.ParseResult">ParseResult</a>]</code>)
+          –
+          <div class="doc-md-description">
+<p>The URL string or ParseResult object to be parsed.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>ParseResult</code></b>          –
+          <div class="doc-md-description">
+<p>A named 6-tuple that contains the components of a URL.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">parse_url(</span><span style="color: #a5d6ff">'https://www.evilcorp.com'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='', fragment='')</span>
+</code></pre></div>
+<details class="quote">
+<summary>Source code in <code>bbot/core/helpers/url.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">12</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">13</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">14</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">15</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">16</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">17</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">18</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">19</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">20</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">21</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">22</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">23</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">24</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">25</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">26</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">27</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">28</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">29</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">30</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">31</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">32</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">parse_url</span><span style="color: #e6edf3">(url):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Parse the given URL string or ParseResult object and return a ParseResult.</span>
+
+<span style="color: #a5d6ff">    This function checks if the input is already a ParseResult object. If it is,</span>
+<span style="color: #a5d6ff">    it returns the object as-is. Otherwise, it parses the given URL string using</span>
+<span style="color: #a5d6ff">    `urlparse`.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        url (Union[str, ParseResult]): The URL string or ParseResult object to be parsed.</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        ParseResult: A named 6-tuple that contains the components of a URL.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; parse_url('https://www.evilcorp.com')</span>
+<span style="color: #a5d6ff">        ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='', fragment='')</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(url,</span> <span style="color: #e6edf3">ParseResult):</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">url</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">urlparse(url)</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -9354,6 +9959,90 @@ PosixPath('/path/to/example.txt')</p>
 
     <span style="color: #e6edf3">new_path</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">directory</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #e6edf3">(truncated_stem</span> <span style="color: #ff7b72; font-weight: bold">+</span> <span style="color: #e6edf3">suffix)</span>
     <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">new_path</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.url_depth">
+<span class="doc doc-object-name doc-function-name">url_depth</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">url_depth(url)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Calculate the depth of the given URL based on its path components.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>url</code></b>
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="urllib.parse.ParseResult" href="https://docs.python.org/3.11/library/urllib.parse.html#urllib.parse.ParseResult">ParseResult</a>]</code>)
+          –
+          <div class="doc-md-description">
+<p>The URL whose depth is to be calculated.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Returns:</span></p>
+<ul>
+<li class="doc-section-item field-body">
+<b><code>int</code></b>          –
+          <div class="doc-md-description">
+<p>The depth of the URL, based on its path components.</p>
+</div>
+</li>
+</ul>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">url_depth(</span><span style="color: #a5d6ff">'https://www.evilcorp.com/foo/bar/'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">2</span>
+</code></pre></div>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #e6edf3">url_depth(</span><span style="color: #a5d6ff">'https://www.evilcorp.com/foo//bar/baz/'</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">3</span>
+</code></pre></div>
+<details class="quote">
+<summary>Source code in <code>bbot/core/helpers/url.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">198</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">199</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">200</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">201</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">202</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">203</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">204</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">205</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">206</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">207</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">208</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">209</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">210</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">211</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">212</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">213</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">214</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">215</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">216</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">217</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">218</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">219</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">url_depth</span><span style="color: #e6edf3">(url):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Calculate the depth of the given URL based on its path components.</span>
+
+<span style="color: #a5d6ff">    Args:</span>
+<span style="color: #a5d6ff">        url (Union[str, ParseResult]): The URL whose depth is to be calculated.</span>
+
+<span style="color: #a5d6ff">    Returns:</span>
+<span style="color: #a5d6ff">        int: The depth of the URL, based on its path components.</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; url_depth('https://www.evilcorp.com/foo/bar/')</span>
+<span style="color: #a5d6ff">        2</span>
+
+<span style="color: #a5d6ff">        &gt;&gt;&gt; url_depth('https://www.evilcorp.com/foo//bar/baz/')</span>
+<span style="color: #a5d6ff">        3</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">parsed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">parse_url(url)</span>
+    <span style="color: #e6edf3">parsed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_replace(path</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">double_slash_regex</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">sub(</span><span style="color: #a5d6ff">"/"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">path))</span>
+    <span style="color: #e6edf3">split_path</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">str(parsed</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">path)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strip(</span><span style="color: #a5d6ff">"/"</span><span style="color: #e6edf3">)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">split(</span><span style="color: #a5d6ff">"/"</span><span style="color: #e6edf3">)</span>
+    <span style="color: #e6edf3">split_path</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[e</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">e</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">split_path</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">e]</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">len(split_path)</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
