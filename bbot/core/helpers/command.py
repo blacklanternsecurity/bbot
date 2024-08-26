@@ -182,7 +182,11 @@ async def _spawn_proc(self, *command, **kwargs):
         >>> _spawn_proc("ls", "-l", input="data")
         (<Process ...>, "data", ["ls", "-l"])
     """
-    command, kwargs = self._prepare_command_kwargs(command, kwargs)
+    try:
+        command, kwargs = self._prepare_command_kwargs(command, kwargs)
+    except SubprocessError as e:
+        log.warning(e)
+        return None, None, None
     _input = kwargs.pop("input", None)
     if _input is not None:
         if kwargs.get("stdin") is not None:
