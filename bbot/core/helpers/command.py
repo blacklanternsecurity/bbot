@@ -3,9 +3,9 @@ import asyncio
 import logging
 import traceback
 from signal import SIGINT
-from subprocess import CompletedProcess, CalledProcessError
+from subprocess import CompletedProcess, CalledProcessError, SubprocessError
 
-from .misc import smart_decode, smart_encode
+from .misc import smart_decode, smart_encode, which
 
 log = logging.getLogger("bbot.core.helpers.command")
 
@@ -275,6 +275,17 @@ def _prepare_command_kwargs(self, command, kwargs):
     if len(command) == 1 and isinstance(command[0], (list, tuple)):
         command = command[0]
     command = [str(s) for s in command]
+
+    if not command:
+        raise SubprocessError("Must specify a command")
+
+    # use full path of binary, if not already specified
+    binary = command[0]
+    if not "/" in binary:
+        binary_full_path = which(command[0])
+        if binary_full_path is None:
+            raise SubprocessError(f'Command "{binary}" was not found')
+        command[0] = binary_full_path
 
     env = kwargs.get("env", os.environ)
     if sudo and os.geteuid() != 0:
