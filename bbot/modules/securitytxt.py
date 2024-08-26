@@ -65,18 +65,15 @@ class securitytxt(BaseModule):
         "created_date": "2024-05-26",
     }
     options = {
-        "in_scope_only": True,
         "emails": True,
         "urls": True,
     }
     options_desc = {
-        "in_scope_only": "Only emit events related to in-scope domains",
         "emails": "emit EMAIL_ADDRESS events",
         "urls": "emit URL_UNVERIFIED events",
     }
 
     async def setup(self):
-        self.in_scope_only = self.config.get("in_scope_only", True)
         self._emails = self.config.get("emails", True)
         self._urls = self.config.get("urls", True)
         return await super().setup()
@@ -89,11 +86,6 @@ class securitytxt(BaseModule):
     async def filter_event(self, event):
         if "_wildcard" in str(event.host).split("."):
             return False, "event is wildcard"
-
-        # scope filtering
-        if event.scope_distance > 0 and self.in_scope_only:
-            return False, "event is not in scope"
-
         return True
 
     async def handle_event(self, event):

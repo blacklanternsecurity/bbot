@@ -31,16 +31,14 @@ class TestSecurityTxt(ModuleTestBase):
         assert not any(str(e.data) == "vdp@example.com" for e in events)
 
 
-class TestSecurityTxtInScopeFalse(TestSecurityTxt):
+class TestSecurityTxtEmailsFalse(TestSecurityTxt):
     config_overrides = {
         "scope": {"report_distance": 1},
-        "modules": {"securitytxt": {"in_scope_only": False}},
+        "modules": {"securitytxt": {"emails": False}},
     }
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "EMAIL_ADDRESS" and e.data == "vdp@example.com" for e in events
-        ), "Failed to detect email address"
+        assert not any(e.type == "EMAIL_ADDRESS" for e in events), "Detected email address when emails=False"
         assert any(
             e.type == "URL_UNVERIFIED" and e.data == "https://vdp.example.com/" for e in events
         ), "Failed to detect URL"
