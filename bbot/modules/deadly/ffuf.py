@@ -339,7 +339,7 @@ class ffuf(BaseModule):
                 self.debug(f"Skipping adding [{line}] to wordlist because it was in the blacklist")
                 continue
             if any(x in line for x in self.banned_characters):
-                self.debug(f"Skipping adding [{line}] to wordlist because has a banned character")
+                self.debug(f"Skipping adding [{line}] to wordlist because it has a banned character")
                 continue
             wordlist.append(line)
         return wordlist
