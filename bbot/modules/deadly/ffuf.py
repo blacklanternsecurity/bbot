@@ -39,7 +39,7 @@ class ffuf(BaseModule):
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
         self.wordlist = await self.helpers.wordlist(wordlist_url)
-        self.wordlist_lines = self.gen_wordlist(self.wordlist)
+        self.wordlist_lines = self.generate_wordlist(self.wordlist)
         self.tempfile, tempfile_len = self.generate_templist()
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         try:
@@ -315,15 +315,13 @@ class ffuf(BaseModule):
 
     def generate_templist(self, prefix=None):
         virtual_file = []
-
         if prefix:
             prefix = prefix.strip().lower()
-
         max_lines = self.config.get("lines")
 
         for line in self.wordlist_lines[:max_lines]:
             # Check if it starts with the given prefix (if any)
-            if not prefix or line.startswith(prefix):
+            if (not prefix) or line.lower().startswith(prefix):
                 virtual_file.append(line)
 
         virtual_file.append(self.canary)

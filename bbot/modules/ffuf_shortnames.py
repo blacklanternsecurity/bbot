@@ -74,7 +74,7 @@ class ffuf_shortnames(ffuf):
             wordlist = f"{self.helpers.wordlist_dir}/ffuf_shortname_candidates.txt"
         self.debug(f"Using [{wordlist}] for shortname candidate list")
         self.wordlist = await self.helpers.wordlist(wordlist)
-        self.wordlist_lines = list(self.helpers.read_file(self.wordlist))
+        self.wordlist_lines = self.generate_wordlist(self.wordlist)
 
         wordlist_extensions = self.config.get("wordlist_extensions", "")
         if not wordlist_extensions:
