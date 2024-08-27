@@ -56,7 +56,7 @@ class gowitness(BaseModule):
         self.threads = self.config.get("threads", 0)
         if not self.threads:
             self.threads = default_thread_count
-        self.proxy = self.scan.config.get("http_proxy", "")
+        self.proxy = self.scan.web_config.get("http_proxy", "")
         self.resolution_x = self.config.get("resolution_x")
         self.resolution_y = self.config.get("resolution_y")
         self.visit_social = self.config.get("social", True)

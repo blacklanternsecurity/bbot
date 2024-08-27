@@ -34,7 +34,7 @@ class ffuf(BaseModule):
     in_scope_only = True
 
     async def setup(self):
-
+        self.proxy = self.scan.web_config.get("http_proxy", "")
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
@@ -242,6 +242,9 @@ class ffuf(BaseModule):
             else:
                 self.debug("invalid mode specified, aborting")
                 return
+
+            if self.proxy:
+                command += ["-x", self.proxy]
 
             if apply_filters:
                 if ext in filters.keys():

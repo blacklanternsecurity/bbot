@@ -62,7 +62,7 @@ class wpscan(BaseModule):
         self.ignore_events = ["xmlrpc", "readme"]
         self.api_key = self.config.get("api_key", "")
         self.enumerate = self.config.get("enumerate", "vp,vt,tt,cb,dbe,u,m")
-        self.proxy = self.scan.config.get("http_proxy", "")
+        self.proxy = self.scan.web_config.get("http_proxy", "")
         self.threads = self.config.get("threads", 5)
         self.request_timeout = self.config.get("request_timeout", 60)
         self.connection_timeout = self.config.get("connection_timeout", 30)

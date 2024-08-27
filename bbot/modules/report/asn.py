@@ -18,6 +18,7 @@ class asn(BaseReportModule):
     async def setup(self):
         self.asn_counts = {}
         self.asn_cache = {}
+        self.ripe_cache = {}
         self.sources = ["bgpview", "ripe"]
         self.unknown_asn = {
             "asn": "UNKNOWN",
@@ -144,38 +145,42 @@ class asn(BaseReportModule):
         return asns
 
     async def get_asn_metadata_ripe(self, asn_number):
-        metadata_keys = {
-            "name": ["ASName", "OrgId"],
-            "description": ["OrgName", "OrgTechName", "RTechName"],
-            "country": ["Country"],
-        }
-        url = f"https://stat.ripe.net/data/whois/data.json?resource={asn_number}"
-        response = await self.get_url(url, "ASN Metadata", cache=True)
-        if response == False:
-            return False
-        data = response.get("data", {})
-        if not data:
-            data = {}
-        records = data.get("records", [])
-        if not records:
-            records = []
-        emails = set()
-        asn = {k: "" for k in metadata_keys.keys()}
-        for record in records:
-            for item in record:
-                key = item.get("key", "")
-                value = item.get("value", "")
-                for email in await self.helpers.re.extract_emails(value):
-                    emails.add(email.lower())
-                if not key:
-                    continue
-                if value:
-                    for keyname, keyvals in metadata_keys.items():
-                        if key in keyvals and not asn.get(keyname, ""):
-                            asn[keyname] = value
-        asn["emails"] = list(emails)
-        asn["asn"] = str(asn_number)
-        return asn
+        try:
+            return self.ripe_cache[asn_number]
+        except KeyError:
+            metadata_keys = {
+                "name": ["ASName", "OrgId"],
+                "description": ["OrgName", "OrgTechName", "RTechName"],
+                "country": ["Country"],
+            }
+            url = f"https://stat.ripe.net/data/whois/data.json?resource={asn_number}"
+            response = await self.get_url(url, "ASN Metadata", cache=True)
+            if response == False:
+                return False
+            data = response.get("data", {})
+            if not data:
+                data = {}
+            records = data.get("records", [])
+            if not records:
+                records = []
+            emails = set()
+            asn = {k: "" for k in metadata_keys.keys()}
+            for record in records:
+                for item in record:
+                    key = item.get("key", "")
+                    value = item.get("value", "")
+                    for email in await self.helpers.re.extract_emails(value):
+                        emails.add(email.lower())
+                    if not key:
+                        continue
+                    if value:
+                        for keyname, keyvals in metadata_keys.items():
+                            if key in keyvals and not asn.get(keyname, ""):
+                                asn[keyname] = value
+            asn["emails"] = list(emails)
+            asn["asn"] = str(asn_number)
+            self.ripe_cache[asn_number] = asn
+            return asn
 
     async def get_asn_bgpview(self, ip):
         url = f"https://api.bgpview.io/ip/{ip}"

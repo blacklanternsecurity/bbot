@@ -67,6 +67,7 @@ class ffuf_shortnames(ffuf):
     in_scope_only = True
 
     async def setup(self):
+        self.proxy = self.scan.web_config.get("http_proxy", "")
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist = self.config.get("wordlist", "")
         if not wordlist:
