@@ -19,7 +19,7 @@ class TestExcavate(ModuleTestBase):
         \\nhttps://www1.test.notreal
         \\x3dhttps://www2.test.notreal
         %0ahttps://www3.test.notreal
-        \\u000ahttps://www4.test.notreal:
+        \\u000ahttps://www4.test.notreal
         \nwww5.test.notreal
         \\x3dwww6.test.notreal
         %0awww7.test.notreal

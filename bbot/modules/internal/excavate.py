@@ -684,13 +684,12 @@ class excavate(BaseInternalModule):
                 final_url = ""
                 for url_str in results:
                     if identifier == "url_full":
-                        match = await self.helpers.re.search(self.full_url_regex, url_str)
-                        if not match:
+                        if not await self.helpers.re.search(self.full_url_regex, url_str):
                             self.excavate.debug(
                                 f"Rejecting potential full URL [{url_str}] as did not match full_url_regex"
                             )
                             continue
-                        final_url = match.group()
+                        final_url = url_str
 
                         self.excavate.debug(f"Discovered Full URL [{final_url}]")
                     elif identifier == "url_attr" and hasattr(event, "parsed_url"):
