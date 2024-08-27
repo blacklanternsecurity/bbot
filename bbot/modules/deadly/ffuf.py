@@ -39,7 +39,7 @@ class ffuf(BaseModule):
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
         self.wordlist = await self.helpers.wordlist(wordlist_url)
-        self.wordlist_lines = list(self.helpers.read_file(self.wordlist))
+        self.wordlist_lines = self.generate_wordlist(self.wordlist)
         self.tempfile, tempfile_len = self.generate_templist()
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         try:
@@ -314,29 +314,30 @@ class ffuf(BaseModule):
                     self.debug("Received invalid JSON from FFUF")
 
     def generate_templist(self, prefix=None):
-        line_count = 0
         virtual_file = []
-
         if prefix:
             prefix = prefix.strip().lower()
-
         max_lines = self.config.get("lines")
 
-        for idx, val in enumerate(self.wordlist_lines):
-            if idx > max_lines:
-                break
-            stripped_val = val.strip().lower()
-            if stripped_val:
-                # Check if the word is in the blacklist
-                if stripped_val in self.blacklist:
-                    self.debug(f"Skipping adding [{stripped_val}] to wordlist because it was in the blacklist")
-                else:
-                    # Check if it starts with the given prefix (if any)
-                    if not prefix or stripped_val.startswith(prefix):
-                        # Check if it contains any banned characters
-                        if not any(char in self.banned_characters for char in stripped_val):
-                            line_count += 1
-                            virtual_file.append(stripped_val)
+        for line in self.wordlist_lines[:max_lines]:
+            # Check if it starts with the given prefix (if any)
+            if (not prefix) or line.lower().startswith(prefix):
+                virtual_file.append(line)
 
         virtual_file.append(self.canary)
-        return self.helpers.tempfile(virtual_file, pipe=False), line_count
+        return self.helpers.tempfile(virtual_file, pipe=False), len(virtual_file)
+
+    def generate_wordlist(self, wordlist_file):
+        wordlist = []
+        for line in self.helpers.read_file(wordlist_file):
+            line = line.strip()
+            if not line:
+                continue
+            if line in self.blacklist:
+                self.debug(f"Skipping adding [{line}] to wordlist because it was in the blacklist")
+                continue
+            if any(x in line for x in self.banned_characters):
+                self.debug(f"Skipping adding [{line}] to wordlist because it has a banned character")
+                continue
+            wordlist.append(line)
+        return wordlist
