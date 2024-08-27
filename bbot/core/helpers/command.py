@@ -286,7 +286,7 @@ def _prepare_command_kwargs(self, command, kwargs):
     # use full path of binary, if not already specified
     binary = command[0]
     if not "/" in binary:
-        binary_full_path = which(command[0])
+        binary_full_path = which(binary)
         if binary_full_path is None:
             raise SubprocessError(f'Command "{binary}" was not found')
         command[0] = binary_full_path
