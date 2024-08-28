@@ -511,6 +511,8 @@ class WebHelper(EngineClient):
 
     def is_login_page(self, html):
         """
+        TODO: convert this into an excavate YARA rule
+
         Determines if the provided HTML content contains a login page.
 
         This function parses the HTML to search for forms with input fields typically used for

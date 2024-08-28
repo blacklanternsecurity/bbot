@@ -408,6 +408,10 @@ class BaseEvent:
     def add_tag(self, tag):
         self._tags.add(tagify(tag))
 
+    def add_tags(self, tags):
+        for tag in set(tags):
+            self.add_tag(tag)
+
     def remove_tag(self, tag):
         with suppress(KeyError):
             self._tags.remove(tagify(tag))
@@ -482,10 +486,10 @@ class BaseEvent:
                 self.remove_tag("in-scope")
                 self.add_tag(f"distance-{new_scope_distance}")
             self._scope_distance = new_scope_distance
-        # apply recursively to parent events
-        parent_scope_distance = getattr(self.parent, "scope_distance", None)
-        if parent_scope_distance is not None and self.parent is not self:
-            self.parent.scope_distance = scope_distance + 1
+            # apply recursively to parent events
+            parent_scope_distance = getattr(self.parent, "scope_distance", None)
+            if parent_scope_distance is not None and self.parent is not self:
+                self.parent.scope_distance = new_scope_distance + 1
 
     @property
     def scope_description(self):
