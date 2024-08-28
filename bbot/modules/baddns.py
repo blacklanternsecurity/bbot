@@ -58,7 +58,7 @@ class baddns(BaseModule):
 
             if ModuleClass.name == "NS":
                 kwargs["raw_query_max_retries"] = 1
-                kwargs["raw_query_timeout"] = 4.0
+                kwargs["raw_query_timeout"] = 5.0
                 kwargs["raw_query_retry_wait"] = 0
 
             module_instance = ModuleClass(event.data, **kwargs)
