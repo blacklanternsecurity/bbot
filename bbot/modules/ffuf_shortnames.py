@@ -67,13 +67,14 @@ class ffuf_shortnames(ffuf):
     in_scope_only = True
 
     async def setup(self):
+        self.proxy = self.scan.web_config.get("http_proxy", "")
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist = self.config.get("wordlist", "")
         if not wordlist:
             wordlist = f"{self.helpers.wordlist_dir}/ffuf_shortname_candidates.txt"
         self.debug(f"Using [{wordlist}] for shortname candidate list")
         self.wordlist = await self.helpers.wordlist(wordlist)
-        self.wordlist_lines = list(self.helpers.read_file(self.wordlist))
+        self.wordlist_lines = self.generate_wordlist(self.wordlist)
 
         wordlist_extensions = self.config.get("wordlist_extensions", "")
         if not wordlist_extensions:

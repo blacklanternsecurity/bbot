@@ -35,20 +35,19 @@ class HTTPEngine(EngineServer):
         self.http_debug = self.web_config.get("debug", False)
         self._ssl_context_noverify = None
         self.web_clients = {}
-        self.web_clients[0] = self.AsyncClient(persist_cookies=False, retries=0)
-        self.web_client = self.web_clients[0]
+        self.web_client = self.AsyncClient(persist_cookies=False)
 
     def AsyncClient(self, *args, **kwargs):
         # cache by retries to prevent unwanted accumulation of clients
         # (they are not garbage-collected)
-        retries = kwargs.get("retries", 0)
+        retries = kwargs.get("retries", 1)
         try:
             return self.web_clients[retries]
         except KeyError:
             from .client import BBOTAsyncClient
 
             client = BBOTAsyncClient.from_config(self.config, self.target, *args, **kwargs)
-            self.web_clients[retries] = client
+            self.web_clients[client.retries] = client
             return client
 
     async def request(self, *args, **kwargs):
@@ -84,8 +83,7 @@ class HTTPEngine(EngineServer):
 
         async with self._acatch(url, raise_error):
             if self.http_debug:
-                logstr = f"Web request: {str(args)}, {str(kwargs)}"
-                log.trace(logstr)
+                log.trace(f"Web request: {str(args)}, {str(kwargs)}")
             response = await client.request(*args, **kwargs)
             if self.http_debug:
                 log.trace(
@@ -93,54 +91,17 @@ class HTTPEngine(EngineServer):
                 )
             return response
 
-    async def request_batch(self, urls, *args, threads=10, **kwargs):
-        tasks = {}
-        client_id = self.client_id_var.get()
+    async def request_batch(self, urls, threads=10, **kwargs):
+        async for (args, _, _), response in self.task_pool(
+            self.request, args_kwargs=urls, threads=threads, global_kwargs=kwargs
+        ):
+            yield args[0], response
 
-        urls = list(urls)
-
-        def new_task():
-            if urls:
-                url = urls.pop(0)
-                task = self.new_child_task(client_id, self.request(url, *args, **kwargs))
-                tasks[task] = url
-
-        for _ in range(threads):  # Start initial batch of tasks
-            new_task()
-
-        while tasks:  # While there are tasks pending
-            # Wait for the first task to complete
-            finished = await self.finished_tasks(client_id, timeout=120)
-
-            for task in finished:
-                response = task.result()
-                url = tasks.pop(task)
-                yield (url, response)
-                new_task()
-
-    async def request_custom_batch(self, urls_and_kwargs, threads=10):
-        tasks = {}
-        client_id = self.client_id_var.get()
-        urls_and_kwargs = list(urls_and_kwargs)
-
-        def new_task():
-            if urls_and_kwargs:  # Ensure there are args to process
-                url, kwargs, custom_tracker = urls_and_kwargs.pop(0)
-                task = self.new_child_task(client_id, self.request(url, **kwargs))
-                tasks[task] = (url, kwargs, custom_tracker)
-
-        for _ in range(threads):  # Start initial batch of tasks
-            new_task()
-
-        while tasks:  # While there are tasks pending
-            # Wait for the first task to complete
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-
-            for task in done:
-                response = task.result()
-                url, kwargs, custom_tracker = tasks.pop(task)
-                yield (url, kwargs, custom_tracker, response)
-                new_task()
+    async def request_custom_batch(self, urls_and_kwargs, threads=10, **kwargs):
+        async for (args, kwargs, tracker), response in self.task_pool(
+            self.request, args_kwargs=urls_and_kwargs, threads=threads, global_kwargs=kwargs
+        ):
+            yield args[0], kwargs, tracker, response
 
     async def download(self, url, **kwargs):
         warn = kwargs.pop("warn", True)
