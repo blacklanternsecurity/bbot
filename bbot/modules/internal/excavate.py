@@ -211,7 +211,7 @@ class ExcavateRule:
         event_draft = self.excavate.make_event(event_data, event_type, parent=event)
         if not event_draft:
             return None
-        event_draft.tags = tags
+        event_draft.add_tags(tags)
         return event_draft
 
     async def report(
@@ -734,7 +734,7 @@ class excavate(BaseInternalModule):
                 exceeds_max_links = urls_found > self.excavate.scan.web_spider_links_per_page and url_in_scope
                 if exceeds_max_links:
                     tags.append("spider-max")
-            event_draft.tags = tags
+            event_draft.add_tags(tags)
             return event_draft
 
     class HostnameExtractor(ExcavateRule):

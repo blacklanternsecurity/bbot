@@ -109,6 +109,8 @@ class DNSResolve(InterceptModule):
                         main_host_event.scope_distance = 0
                         await self.handle_wildcard_event(main_host_event)
 
+                    in_dns_scope = -1 < main_host_event.scope_distance < self._dns_search_distance
+
                     if event != main_host_event:
                         await self.emit_event(main_host_event)
                     for raw_record_event in raw_record_events:

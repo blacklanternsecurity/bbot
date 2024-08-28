@@ -86,6 +86,10 @@ class TestExcavate(ModuleTestBase):
             e.type == "URL_UNVERIFIED"
             and e.data == "http://127.0.0.1:8888/relative.html"
             and "spider-max" not in e.tags
+            and "endpoint" in e.tags
+            and "extension-html" in e.tags
+            and "in-scope" in e.tags
+            and e.scope_distance == 0
             for e in events
         )
 
