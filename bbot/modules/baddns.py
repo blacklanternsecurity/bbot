@@ -22,7 +22,7 @@ class baddns(BaseModule):
         "enable_references": "Enable the references module (off by default)",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.1.798"]
+    deps_pip = ["baddns~=1.1.815"]
 
     def select_modules(self):
 
@@ -49,13 +49,20 @@ class baddns(BaseModule):
 
         tasks = []
         for ModuleClass in self.select_modules():
-            module_instance = ModuleClass(
-                event.data,
-                http_client_class=self.scan.helpers.web.AsyncClient,
-                dns_client=self.scan.helpers.dns.resolver,
-                custom_nameservers=self.custom_nameservers,
-                signatures=self.signatures,
-            )
+            kwargs = {
+                "http_client_class": self.scan.helpers.web.AsyncClient,
+                "dns_client": self.scan.helpers.dns.resolver,
+                "custom_nameservers": self.custom_nameservers,
+                "signatures": self.signatures,
+            }
+
+            if ModuleClass.name == "NS":
+                kwargs["raw_query_max_retries"] = 1
+                kwargs["raw_query_timeout"] = 4.0
+                kwargs["raw_query_retry_wait"] = 0
+
+            module_instance = ModuleClass(event.data, **kwargs)
+
             tasks.append((module_instance, asyncio.create_task(module_instance.dispatch())))
 
         for module_instance, task in tasks:
