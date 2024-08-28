@@ -28,8 +28,9 @@ jobs:
           response = requests.get('https://api.github.com/repos/projectdiscovery/nuclei/releases/latest')
           version = response.json()['tag_name'].lstrip('v')
           release_notes = response.json()['body']
-          os.system(f"echo 'latest_version={version}' >> $GITHUB_ENV")
-          os.system(f"echo 'release_notes={release_notes}' >> $GITHUB_ENV")
+          with open(os.getenv('GITHUB_ENV'), 'a') as env_file:
+            env_file.write(f"latest_version={version}\n")
+            env_file.write(f"release_notes<<EOF\n{release_notes}\nEOF\n")
         shell: python
       - name: Get current version
         id: get-current-version
@@ -78,8 +79,9 @@ jobs:
           response = requests.get('https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest')
           version = response.json()['tag_name'].lstrip('v')
           release_notes = response.json()['body']
-          os.system(f"echo 'latest_version={version}' >> $GITHUB_ENV")
-          os.system(f"echo 'release_notes={release_notes}' >> $GITHUB_ENV")
+          with open(os.getenv('GITHUB_ENV'), 'a') as env_file:
+            env_file.write(f"latest_version={version}\n")
+            env_file.write(f"release_notes<<EOF\n{release_notes}\nEOF\n")
         shell: python
       - name: Get current version
         id: get-current-version
