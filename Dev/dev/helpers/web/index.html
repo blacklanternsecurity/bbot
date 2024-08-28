@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.hcu5lvf8.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.lyxilxj9.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1164,7 +1164,9 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">604</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">605</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">606</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">607</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">WebHelper</span><span style="color: #e6edf3">(EngineClient):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">607</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">608</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">609</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">WebHelper</span><span style="color: #e6edf3">(EngineClient):</span>
 
     <span style="color: #e6edf3">SERVER_CLASS</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">HTTPEngine</span>
     <span style="color: #e6edf3">ERROR_CLASS</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">WebError</span>
@@ -1655,6 +1657,8 @@
 
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_login_page</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">html):</span>
 <span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        TODO: convert this into an excavate YARA rule</span>
+
 <span style="color: #a5d6ff">        Determines if the provided HTML content contains a login page.</span>
 
 <span style="color: #a5d6ff">        This function parses the HTML to search for forms with input fields typically used for</span>
@@ -2776,6 +2780,7 @@ A negative value disables caching. Defaults to -1.</p>
 <div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">is_login_page(html)</span>
 </code></pre></div>
 <div class="doc doc-contents">
+<p>TODO: convert this into an excavate YARA rule</p>
 <p>Determines if the provided HTML content contains a login page.</p>
 <p>This function parses the HTML to search for forms with input fields typically used for
 authentication. If it identifies password fields or a combination of username and password
@@ -2849,8 +2854,12 @@ fields, it returns True.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">549</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">550</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">551</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">552</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_login_page</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">html):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">552</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">553</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">554</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_login_page</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">html):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    TODO: convert this into an excavate YARA rule</span>
+
 <span style="color: #a5d6ff">    Determines if the provided HTML content contains a login page.</span>
 
 <span style="color: #a5d6ff">    This function parses the HTML to search for forms with input fields typically used for</span>
@@ -3375,9 +3384,7 @@ help correlate requests, etc.</p>
 <p>Convert web response to JSON object, similar to the output of <code>httpx -irr -json</code></p>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">554</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">555</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">556</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">556</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">557</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">558</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">559</span>
@@ -3428,7 +3435,9 @@ help correlate requests, etc.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">604</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">605</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">606</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">607</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">response_to_json</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">response):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">607</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">608</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">609</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">response_to_json</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">response):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Convert web response to JSON object, similar to the output of `httpx -irr -json`</span>
 <span style="color: #a5d6ff">    """</span>
