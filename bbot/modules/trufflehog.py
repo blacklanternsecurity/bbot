@@ -21,7 +21,7 @@ class trufflehog(BaseModule):
     }
     options_desc = {
         "version": "trufflehog version",
-        "config": "File path to YAML trufflehog config",
+        "config": "File path or URL to YAML trufflehog config",
         "only_verified": "Only report credentials that have been verified",
         "concurrency": "Number of concurrent workers",
         "deleted_forks": "Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
