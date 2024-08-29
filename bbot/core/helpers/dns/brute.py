@@ -39,18 +39,14 @@ class DNSBrute:
             type = "A"
         type = str(type).strip().upper()
 
-        domain_wildcard_rdtypes = set()
-        for _domain, rdtypes in (await self.parent_helper.dns.is_wildcard_domain(domain)).items():
-            for rdtype, results in rdtypes.items():
-                if results:
-                    domain_wildcard_rdtypes.add(rdtype)
-        if any([r in domain_wildcard_rdtypes for r in (type, "CNAME")]):
-            self.log.info(
-                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(domain_wildcard_rdtypes)})"
+        wildcard_rdtypes = await self.parent_helper.dns.is_wildcard_domain(domain, (type, "CNAME"))
+        if wildcard_rdtypes:
+            self.log.hugewarning(
+                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(wildcard_rdtypes)})"
             )
             return []
         else:
-            self.log.debug(f"{domain}: A is not in domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
+            self.log.hugeinfo(f"{domain}: A is not in domain_wildcard_rdtypes:{wildcard_rdtypes}")
 
         canaries = self.gen_random_subdomains(self.num_canaries)
         canaries_list = list(canaries)
