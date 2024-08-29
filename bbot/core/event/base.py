@@ -171,6 +171,7 @@ class BaseEvent:
         self._module_priority = None
         self._resolved_hosts = set()
         self.dns_children = dict()
+        self.raw_dns_records = dict()
         self._discovery_context = ""
         self._discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
         self.web_spider_distance = 0

@@ -30,7 +30,7 @@ dns:
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
   # How many instances of the dns module to run concurrently
-  threads: 20
+  threads: 25
   # How many concurrent DNS resolvers to use when brute-forcing
   # (under the hood this is passed through directly to massdns -s)
   brute_threads: 1000

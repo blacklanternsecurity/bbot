@@ -38,12 +38,14 @@ async def test_dns_engine(bbot_scanner):
     results = [_ async for _ in scan.helpers.resolve_raw_batch((("one.one.one.one", "A"), ("1.1.1.1", "PTR")))]
     pass_1 = False
     pass_2 = False
-    for (query, rdtype), (result, errors) in results:
-        result = extract_targets(result)
-        _results = [r[1] for r in result]
-        if query == "one.one.one.one" and "1.1.1.1" in _results:
+    for (query, rdtype), (answers, errors) in results:
+        results = []
+        for answer in answers:
+            for t in extract_targets(answer):
+                results.append(t[1])
+        if query == "one.one.one.one" and "1.1.1.1" in query:
             pass_1 = True
-        elif query == "1.1.1.1" and "one.one.one.one" in _results:
+        elif query == "1.1.1.1" and "one.one.one.one" in query:
             pass_2 = True
     assert pass_1 and pass_2
 
@@ -115,7 +117,10 @@ async def test_dns_resolution(bbot_scanner):
 
     # custom batch resolution
     batch_results = [r async for r in dnsengine.resolve_raw_batch([("1.1.1.1", "PTR"), ("one.one.one.one", "A")])]
-    batch_results = [(response.to_text(), response.rdtype.name) for query, (response, errors) in batch_results]
+    batch_results = []
+    for query, (answers, errors) in batch_results:
+        for answer in answers:
+            batch_results.append((answer.to_text(), answer.rdtype.name))
     assert len(batch_results) == 3
     assert any(answer == "1.0.0.1" and rdtype == "A" for answer, rdtype in batch_results)
     assert any(answer == "one.one.one.one." and rdtype == "PTR" for answer, rdtype in batch_results)
@@ -148,11 +153,7 @@ async def test_dns_resolution(bbot_scanner):
     resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", parent=scan.root_event)
     resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", parent=scan.root_event)
     dnsresolve = scan.modules["dnsresolve"]
-    assert hash(resolved_hosts_event1.host) not in dnsresolve._event_cache
-    assert hash(resolved_hosts_event2.host) not in dnsresolve._event_cache
     await dnsresolve.handle_event(resolved_hosts_event1)
-    assert hash(resolved_hosts_event1.host) in dnsresolve._event_cache
-    assert hash(resolved_hosts_event2.host) in dnsresolve._event_cache
     await dnsresolve.handle_event(resolved_hosts_event2)
     assert "1.1.1.1" in resolved_hosts_event2.resolved_hosts
     # URL event should not have dns_children
@@ -160,6 +161,8 @@ async def test_dns_resolution(bbot_scanner):
     assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
     # DNS_NAME event should have dns_children
     assert "1.1.1.1" in resolved_hosts_event1.dns_children["A"]
+    assert "A" in resolved_hosts_event1.raw_dns_records
+    assert "AAAA" in resolved_hosts_event1.raw_dns_records
     assert "a-record" in resolved_hosts_event1.tags
     assert not "a-record" in resolved_hosts_event2.tags
 

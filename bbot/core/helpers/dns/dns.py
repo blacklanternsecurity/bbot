@@ -117,8 +117,11 @@ class DNSHelper(EngineClient):
             self._brute = DNSBrute(self.parent_helper)
         return self._brute
 
-    @async_cachedmethod(lambda self: self._is_wildcard_cache)
-    async def is_wildcard(self, query, ips=None, rdtype=None):
+    @async_cachedmethod(
+        lambda self: self._is_wildcard_cache,
+        key=lambda query, rdtypes, raw_dns_records: (query, tuple(sorted(rdtypes))),
+    )
+    async def is_wildcard(self, query, rdtypes, raw_dns_records=None):
         """
         Use this method to check whether a *host* is a wildcard entry
 
@@ -150,9 +153,6 @@ class DNSHelper(EngineClient):
         Note:
             `is_wildcard` can be True, False, or None (indicating that wildcard detection was inconclusive)
         """
-        if [ips, rdtype].count(None) == 1:
-            raise ValueError("Both ips and rdtype must be specified")
-
         query = self._wildcard_prevalidation(query)
         if not query:
             return {}
@@ -161,15 +161,17 @@ class DNSHelper(EngineClient):
         if is_domain(query):
             return {}
 
-        return await self.run_and_return("is_wildcard", query=query, ips=ips, rdtype=rdtype)
+        return await self.run_and_return("is_wildcard", query=query, rdtypes=rdtypes, raw_dns_records=raw_dns_records)
 
-    @async_cachedmethod(lambda self: self._is_wildcard_domain_cache)
-    async def is_wildcard_domain(self, domain, log_info=False):
+    @async_cachedmethod(
+        lambda self: self._is_wildcard_domain_cache, key=lambda domain, rdtypes: (domain, tuple(sorted(rdtypes)))
+    )
+    async def is_wildcard_domain(self, domain, rdtypes):
         domain = self._wildcard_prevalidation(domain)
         if not domain:
             return {}
 
-        return await self.run_and_return("is_wildcard_domain", domain=domain, log_info=False)
+        return await self.run_and_return("is_wildcard_domain", domain=domain, rdtypes=rdtypes)
 
     def _wildcard_prevalidation(self, host):
         if self.wildcard_disable:
