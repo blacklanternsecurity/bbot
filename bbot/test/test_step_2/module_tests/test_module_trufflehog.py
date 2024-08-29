@@ -13,6 +13,7 @@ class TestTrufflehog(ModuleTestBase):
         "github_org",
         "speculate",
         "git_clone",
+        "unstructured",
         "github_workflows",
         "dockerhub",
         "docker_pull",
@@ -854,6 +855,7 @@ class TestTrufflehog(ModuleTestBase):
             and "Raw result: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
             and "RawV2 result: [https://admin:admin@the-internet.herokuapp.com/basic_auth]" in e.data["description"]
         ]
+        # Trufflehog should find 3 verifiable secrets, 1 from the github, 1 from the workflow log and 1 from the docker image. Unstructured will extract the text file but trufflehog should reject it as its already scanned the containing folder
         assert 3 == len(vuln_events), "Failed to find secret in events"
         github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
@@ -901,6 +903,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             and "Potential Secret Found." in e.data["description"]
             and "Raw result: [https://admin:admin@internal.host.com]" in e.data["description"]
         ]
+        # Trufflehog should find 3 unverifiable secrets, 1 from the github, 1 from the workflow log and 1 from the docker image. Unstructured will extract the text file but trufflehog should reject it as its already scanned the containing folder
         assert 3 == len(finding_events), "Failed to find secret in events"
         github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
