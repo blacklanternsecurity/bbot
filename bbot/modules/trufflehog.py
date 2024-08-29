@@ -15,12 +15,14 @@ class trufflehog(BaseModule):
 
     options = {
         "version": "3.81.9",
+        "config": "",
         "only_verified": True,
         "concurrency": 8,
         "deleted_forks": False,
     }
     options_desc = {
         "version": "trufflehog version",
+        "config": "File path or URL to YAML trufflehog config",
         "only_verified": "Only report credentials that have been verified",
         "concurrency": "Number of concurrent workers",
         "deleted_forks": "Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
@@ -41,6 +43,9 @@ class trufflehog(BaseModule):
 
     async def setup(self):
         self.verified = self.config.get("only_verified", True)
+        self.config_file = self.config.get("config", "")
+        if self.config_file:
+            self.config_file = await self.helpers.wordlist(self.config_file)
         self.concurrency = int(self.config.get("concurrency", 8))
 
         self.deleted_forks = self.config.get("deleted_forks", False)
@@ -150,6 +155,8 @@ class trufflehog(BaseModule):
         ]
         if self.verified:
             command.append("--only-verified")
+        if self.config_file:
+            command.append("--config=" + str(self.config_file))
         command.append("--concurrency=" + str(self.concurrency))
         if module == "git":
             command.append("git")
