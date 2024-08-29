@@ -1,5 +1,5 @@
-import os
 import json
+from pathlib import Path
 from bbot.modules.base import BaseModule
 
 
@@ -74,8 +74,10 @@ class trufflehog(BaseModule):
                 return False, "Deleted forks is not enabled"
         else:
             path = event.data["path"]
-            for processed_path in self.processed:
-                if os.path.commonpath([path, processed_path]) == processed_path:
+            for processed in self.processed:
+                processed_path = Path(processed)
+                new_path = Path(path)
+                if new_path.is_relative_to(processed_path):
                     return False, "Parent folder has already been processed"
         return True
 
