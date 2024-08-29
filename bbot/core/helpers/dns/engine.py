@@ -37,8 +37,8 @@ class DNSEngine(EngineServer):
         99: "_mock_dns",
     }
 
-    def __init__(self, socket_path, config={}):
-        super().__init__(socket_path)
+    def __init__(self, socket_path, config={}, debug=False):
+        super().__init__(socket_path, debug=debug)
 
         self.config = config
         self.dns_config = self.config.get("dns", {})
@@ -349,57 +349,20 @@ class DNSEngine(EngineServer):
             ('www.evilcorp.com', {'1.1.1.1'})
             ('evilcorp.com', {'2.2.2.2'})
         """
-        tasks = {}
-        client_id = self.client_id_var.get()
-
-        def new_task(query):
-            task = self.new_child_task(client_id, self.resolve(query, **kwargs))
-            tasks[task] = query
-
-        queries = list(queries)
-        for _ in range(threads):  # Start initial batch of tasks
-            if queries:  # Ensure there are args to process
-                new_task(queries.pop(0))
-
-        while tasks:  # While there are tasks pending
-            # Wait for the first task to complete
-            finished = await self.finished_tasks(client_id, timeout=120)
-
-            for task in finished:
-                results = task.result()
-                query = tasks.pop(task)
-
-                if results:
-                    yield (query, results)
-
-                if queries:  # Start a new task for each one completed, if URLs remain
-                    new_task(queries.pop(0))
+        async for (args, _, _), responses in self.task_pool(
+            self.resolve, args_kwargs=queries, threads=threads, global_kwargs=kwargs
+        ):
+            yield args[0], responses
 
     async def resolve_raw_batch(self, queries, threads=10, **kwargs):
-        tasks = {}
-        client_id = self.client_id_var.get()
-
-        def new_task(query, rdtype):
-            task = self.new_child_task(client_id, self.resolve_raw(query, type=rdtype, **kwargs))
-            tasks[task] = (query, rdtype)
-
-        queries = list(queries)
-        for _ in range(threads):  # Start initial batch of tasks
-            if queries:  # Ensure there are args to process
-                new_task(*queries.pop(0))
-
-        while tasks:  # While there are tasks pending
-            # Wait for the first task to complete
-            finished = await self.finished_tasks(client_id, timeout=120)
-
-            for task in finished:
-                answers, errors = task.result()
-                query, rdtype = tasks.pop(task)
-                for answer in answers:
-                    yield ((query, rdtype), (answer, errors))
-
-                if queries:  # Start a new task for each one completed, if URLs remain
-                    new_task(*queries.pop(0))
+        queries_kwargs = [[q[0], {"type": q[1]}] for q in queries]
+        async for (args, kwargs, _), (answers, errors) in self.task_pool(
+            self.resolve_raw, args_kwargs=queries_kwargs, threads=threads, global_kwargs=kwargs
+        ):
+            query = args[0]
+            rdtype = kwargs["type"]
+            for answer in answers:
+                yield ((query, rdtype), (answer, errors))
 
     async def _catch(self, callback, *args, **kwargs):
         """

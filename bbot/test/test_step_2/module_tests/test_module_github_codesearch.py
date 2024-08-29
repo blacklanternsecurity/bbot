@@ -13,10 +13,11 @@ class TestGithub_Codesearch(ModuleTestBase):
         "/projectdiscovery/nuclei/06f242e5fce3439b7418877676810cbf57934875/v2/cmd/cve-annotate/main.go"
     )
     github_file_url = f"http://127.0.0.1:8888{github_file_endpoint}"
+    github_file_content = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
 
     async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": self.github_file_endpoint}
-        respond_args = {"response_data": "-----BEGIN PGP PRIVATE KEY BLOCK-----"}
+        respond_args = {"response_data": self.github_file_content}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")

@@ -826,8 +826,8 @@ def test_preset_require_exclude():
     module_flags = list(get_module_flags(preset))
     dnsbrute_flags = preset.preloaded_module("dnsbrute").get("flags", [])
     assert "subdomain-enum" in dnsbrute_flags
-    assert "passive" in dnsbrute_flags
-    assert not "active" in dnsbrute_flags
+    assert "active" in dnsbrute_flags
+    assert not "passive" in dnsbrute_flags
     assert "aggressive" in dnsbrute_flags
     assert not "safe" in dnsbrute_flags
     assert "dnsbrute" in [x[0] for x in module_flags]
@@ -842,7 +842,8 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert "dnsbrute" in [x[0] for x in module_flags]
+    assert "chaos" in [x[0] for x in module_flags]
+    assert not "httpx" in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -852,7 +853,8 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert "dnsbrute" in [x[0] for x in module_flags]
+    assert "chaos" in [x[0] for x in module_flags]
+    assert not "httpx" in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -863,6 +865,7 @@ def test_preset_require_exclude():
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert not "dnsbrute" in [x[0] for x in module_flags]
+    assert "httpx" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)

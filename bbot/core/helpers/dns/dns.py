@@ -56,7 +56,8 @@ class DNSHelper(EngineClient):
         self.parent_helper = parent_helper
         self.config = self.parent_helper.config
         self.dns_config = self.config.get("dns", {})
-        super().__init__(server_kwargs={"config": self.config})
+        engine_debug = self.config.get("engine", {}).get("debug", False)
+        super().__init__(server_kwargs={"config": self.config}, debug=engine_debug)
 
         # resolver
         self.timeout = self.dns_config.get("timeout", 5)

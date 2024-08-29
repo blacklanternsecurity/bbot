@@ -196,7 +196,7 @@ class TestGit_Clone(ModuleTestBase):
             e
             for e in events
             if e.type == "FILESYSTEM"
-            and "git_repos/test_keys" in e.data["path"]
+            and "git_repos/.bbot_test/test_keys" in e.data["path"]
             and "git" in e.tags
             and e.scope_distance == 1
         ]

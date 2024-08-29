@@ -771,3 +771,77 @@ async def test_event_web_spider_distance(bbot_scanner):
     assert url_event_5.web_spider_distance == 1
     assert "spider-danger" in url_event_5.tags
     assert not "spider-max" in url_event_5.tags
+
+
+def test_event_confidence():
+    scan = Scanner()
+    # default 100
+    event1 = scan.make_event("evilcorp.com", "DNS_NAME", dummy=True)
+    assert event1.confidence == 100
+    assert event1.cumulative_confidence == 100
+    # custom confidence
+    event2 = scan.make_event("evilcorp.com", "DNS_NAME", confidence=90, dummy=True)
+    assert event2.confidence == 90
+    assert event2.cumulative_confidence == 90
+    # max 100
+    event3 = scan.make_event("evilcorp.com", "DNS_NAME", confidence=999, dummy=True)
+    assert event3.confidence == 100
+    assert event3.cumulative_confidence == 100
+    # min 1
+    event4 = scan.make_event("evilcorp.com", "DNS_NAME", confidence=0, dummy=True)
+    assert event4.confidence == 1
+    assert event4.cumulative_confidence == 1
+    # first event in chain
+    event5 = scan.make_event("evilcorp.com", "DNS_NAME", confidence=90, parent=scan.root_event)
+    assert event5.confidence == 90
+    assert event5.cumulative_confidence == 90
+    # compounding confidence
+    event6 = scan.make_event("evilcorp.com", "DNS_NAME", confidence=50, parent=event5)
+    assert event6.confidence == 50
+    assert event6.cumulative_confidence == 45
+    event7 = scan.make_event("evilcorp.com", "DNS_NAME", confidence=50, parent=event6)
+    assert event7.confidence == 50
+    assert event7.cumulative_confidence == 22
+    # 100 confidence resets
+    event8 = scan.make_event("evilcorp.com", "DNS_NAME", confidence=100, parent=event7)
+    assert event8.confidence == 100
+    assert event8.cumulative_confidence == 100
+
+
+def test_event_closest_host():
+    scan = Scanner()
+    # first event has a host
+    event1 = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    assert event1.host == "evilcorp.com"
+    # second event has a host + url
+    event2 = scan.make_event(
+        {"method": "GET", "url": "http://www.evilcorp.com/asdf", "hash": {"header_mmh3": "1", "body_mmh3": "2"}},
+        "HTTP_RESPONSE",
+        parent=event1,
+    )
+    assert event2.host == "www.evilcorp.com"
+    # third event has a path
+    event3 = scan.make_event({"path": "/tmp/asdf.txt"}, "FILESYSTEM", parent=event2)
+    assert not event3.host
+    # finding automatically uses the host from the second event
+    finding = scan.make_event({"description": "test"}, "FINDING", parent=event3)
+    assert finding.data["host"] == "www.evilcorp.com"
+    assert finding.data["url"] == "http://www.evilcorp.com/asdf"
+    assert finding.data["path"] == "/tmp/asdf.txt"
+    assert finding.host == "www.evilcorp.com"
+    # same with vuln
+    vuln = scan.make_event({"description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event3)
+    assert vuln.data["host"] == "www.evilcorp.com"
+    assert vuln.data["url"] == "http://www.evilcorp.com/asdf"
+    assert vuln.data["path"] == "/tmp/asdf.txt"
+    assert vuln.host == "www.evilcorp.com"
+
+    # no host == not allowed
+    event3 = scan.make_event("wat", "ASDF", parent=scan.root_event)
+    assert not event3.host
+    with pytest.raises(ValueError):
+        finding = scan.make_event({"path": "/tmp/asdf.txt", "description": "test"}, "FINDING", parent=event3)
+    with pytest.raises(ValueError):
+        vuln = scan.make_event(
+            {"path": "/tmp/asdf.txt", "description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event3
+        )

@@ -55,14 +55,27 @@ class WebHelper(EngineClient):
         self.web_config = self.config.get("web", {})
         self.web_spider_depth = self.web_config.get("spider_depth", 1)
         self.web_spider_distance = self.web_config.get("spider_distance", 0)
+        self.web_clients = {}
         self.target = self.preset.target
         self.ssl_verify = self.config.get("ssl_verify", False)
-        super().__init__(server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.radix_only})
+        engine_debug = self.config.get("engine", {}).get("debug", False)
+        super().__init__(
+            server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.radix_only},
+            debug=engine_debug,
+        )
 
     def AsyncClient(self, *args, **kwargs):
-        from .client import BBOTAsyncClient
+        # cache by retries to prevent unwanted accumulation of clients
+        # (they are not garbage-collected)
+        retries = kwargs.get("retries", 1)
+        try:
+            return self.web_clients[retries]
+        except KeyError:
+            from .client import BBOTAsyncClient
 
-        return BBOTAsyncClient.from_config(self.config, self.target, *args, persist_cookies=False, **kwargs)
+            client = BBOTAsyncClient.from_config(self.config, self.target, *args, persist_cookies=False, **kwargs)
+            self.web_clients[client.retries] = client
+            return client
 
     async def request(self, *args, **kwargs):
         """
@@ -498,6 +511,8 @@ class WebHelper(EngineClient):
 
     def is_login_page(self, html):
         """
+        TODO: convert this into an excavate YARA rule
+
         Determines if the provided HTML content contains a login page.
 
         This function parses the HTML to search for forms with input fields typically used for
