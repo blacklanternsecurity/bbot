@@ -41,6 +41,7 @@ class DNSResolve(InterceptModule):
         self.host_module = self.HostModule(self.scan)
         self.children_emitted = set()
         self.children_emitted_raw = set()
+        self.hosts_resolved = set()
 
         return True
 
@@ -60,6 +61,7 @@ class DNSResolve(InterceptModule):
 
         # first, we find or create the main DNS_NAME or IP_ADDRESS associated with this event
         main_host_event, whitelisted, blacklisted, new_event = self.get_dns_parent(event)
+        original_tags = set(event.tags)
 
         # minimal resolution - first, we resolve A/AAAA records for scope purposes
         if new_event or event is main_host_event:
@@ -79,33 +81,37 @@ class DNSResolve(InterceptModule):
             if main_host_event.scope_distance < self._dns_search_distance:
                 await self.resolve_event(main_host_event, types=non_minimal_rdtypes)
                 # check for wildcards if we're within the scan's search distance
-                if (
-                    new_event
-                    and main_host_event.scope_distance <= self.scan.scope_search_distance
-                    and not "domain" in main_host_event.tags
-                ):
+                if new_event and main_host_event.scope_distance <= self.scan.scope_search_distance:
                     await self.handle_wildcard_event(main_host_event)
+
+        # main_host_event.add_tag(f"resolve-distance-{main_host_event.dns_resolve_distance}")
+
+        dns_tags = main_host_event.tags.difference(original_tags)
 
         dns_resolve_distance = getattr(main_host_event, "dns_resolve_distance", 0)
         runaway_dns = dns_resolve_distance >= self.helpers.dns.runaway_limit
         if runaway_dns:
             # kill runaway DNS chains
-            # TODO: test this
             self.debug(
                 f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.helpers.dns.runaway_limit})"
             )
+            main_host_event.add_tag(f"runaway-dns-{dns_resolve_distance}")
         else:
             # emit dns children
             await self.emit_dns_children(main_host_event)
-            await self.emit_dns_children_raw(main_host_event)
+            await self.emit_dns_children_raw(main_host_event, dns_tags)
 
-        # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
-        if main_host_event.type == "DNS_NAME" and "unresolved" in main_host_event.tags:
-            main_host_event.type = "DNS_NAME_UNRESOLVED"
+            # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
+            if main_host_event.type == "DNS_NAME" and "unresolved" in main_host_event.tags:
+                main_host_event.type = "DNS_NAME_UNRESOLVED"
 
-        # emit the main DNS_NAME or IP_ADDRESS
-        if new_event and event is not main_host_event and main_host_event.scope_distance <= self._dns_search_distance:
-            await self.emit_event(main_host_event)
+            # emit the main DNS_NAME or IP_ADDRESS
+            if (
+                new_event
+                and event is not main_host_event
+                and main_host_event.scope_distance <= self._dns_search_distance
+            ):
+                await self.emit_event(main_host_event)
 
         # transfer scope distance to event
         event.scope_distance = main_host_event.scope_distance
@@ -122,8 +128,9 @@ class DNSResolve(InterceptModule):
             elif is_wildcard == True:
                 event.add_tag("wildcard")
                 wildcard_tag = "wildcard"
-            elif is_wildcard == None:
-                wildcard_tag = "error"
+            else:
+                event.add_tag(f"wildcard-{is_wildcard}")
+                wildcard_tag = f"wildcard-{is_wildcard}"
             event.add_tag(f"{rdtype}-{wildcard_tag}")
 
         # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
@@ -175,8 +182,10 @@ class DNSResolve(InterceptModule):
                         self.debug(f"Queueing DNS child for {event}: {child_event}")
                         await self.emit_event(child_event)
 
-    async def emit_dns_children_raw(self, event):
+    async def emit_dns_children_raw(self, event, dns_tags):
         for rdtype, answers in event.raw_dns_records.items():
+            rdtype_lower = rdtype.lower()
+            tags = {t for t in dns_tags if rdtype_lower in t.split("-")}
             if self.emit_raw_records and rdtype not in ("A", "AAAA", "CNAME", "PTR"):
                 for answer in answers:
                     text_answer = answer.to_text()
@@ -187,7 +196,7 @@ class DNSResolve(InterceptModule):
                             {"host": str(event.host), "type": rdtype, "answer": text_answer},
                             "RAW_DNS_RECORD",
                             parent=event,
-                            tags=[f"{rdtype.lower()}-record"],
+                            tags=tags,
                             context=f"{rdtype} lookup on {{event.parent.host}} produced {{event.type}}",
                         )
 
@@ -231,6 +240,7 @@ class DNSResolve(InterceptModule):
             except KeyError:
                 dns_errors[rdtype] = set(errors)
             for answer in answers:
+                event.add_tag(f"{rdtype}-record")
                 # raw dnspython answers
                 try:
                     event.raw_dns_records[rdtype].add(answer)
@@ -238,7 +248,6 @@ class DNSResolve(InterceptModule):
                     event.raw_dns_records[rdtype] = {answer}
                 # hosts
                 for _rdtype, host in extract_targets(answer):
-                    event.add_tag(f"{_rdtype}-record")
                     try:
                         event.dns_children[_rdtype].add(host)
                     except KeyError:

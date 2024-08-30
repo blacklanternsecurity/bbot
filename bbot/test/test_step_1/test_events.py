@@ -311,6 +311,16 @@ async def test_events(events, helpers):
             {"host": "evilcorp.com", "severity": "WACK", "description": "asdf"}, "VULNERABILITY", dummy=True
         )
 
+    # test tagging
+    ip_event_1 = scan.make_event("8.8.8.8", dummy=True)
+    assert "private-ip" not in ip_event_1.tags
+    ip_event_2 = scan.make_event("192.168.0.1", dummy=True)
+    assert "private-ip" in ip_event_2.tags
+    dns_event_1 = scan.make_event("evilcorp.com", dummy=True)
+    assert "domain" in dns_event_1.tags
+    dns_event_2 = scan.make_event("www.evilcorp.com", dummy=True)
+    assert "subdomain" in dns_event_2.tags
+
     # punycode - event type detection
 
     # japanese

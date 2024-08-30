@@ -66,7 +66,7 @@ class DNSHelper(EngineClient):
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
 
-        self.runaway_limit = self.config.get("runaway_limit", 5)
+        self.runaway_limit = self.dns_config.get("runaway_limit", 5)
 
         # wildcard handling
         self.wildcard_disable = self.dns_config.get("wildcard_disable", False)
@@ -119,7 +119,7 @@ class DNSHelper(EngineClient):
 
     @async_cachedmethod(
         lambda self: self._is_wildcard_cache,
-        key=lambda query, rdtypes, raw_dns_records: (query, tuple(sorted(rdtypes))),
+        key=lambda query, rdtypes, raw_dns_records: (query, tuple(sorted(rdtypes)), bool(raw_dns_records)),
     )
     async def is_wildcard(self, query, rdtypes, raw_dns_records=None):
         """
@@ -194,8 +194,8 @@ class DNSHelper(EngineClient):
 
         return host
 
-    async def _mock_dns(self, mock_data):
+    async def _mock_dns(self, mock_data, custom_lookup_fn=None):
         from .mock import MockResolver
 
-        self.resolver = MockResolver(mock_data)
-        await self.run_and_return("_mock_dns", mock_data=mock_data)
+        self.resolver = MockResolver(mock_data, custom_lookup_fn=custom_lookup_fn)
+        await self.run_and_return("_mock_dns", mock_data=mock_data, custom_lookup_fn=custom_lookup_fn)

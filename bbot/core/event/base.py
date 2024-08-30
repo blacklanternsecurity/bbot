@@ -1054,6 +1054,17 @@ class DnsEvent(BaseEvent):
             if parent_module_type == "DNS":
                 self.dns_resolve_distance += 1
         # self.add_tag(f"resolve-distance-{self.dns_resolve_distance}")
+        # tag subdomain / domain
+        if is_subdomain(self.host):
+            self.add_tag("subdomain")
+        elif is_domain(self.host):
+            self.add_tag("domain")
+        # tag private IP
+        try:
+            if self.host.is_private:
+                self.add_tag("private-ip")
+        except AttributeError:
+            pass
 
 
 class IP_RANGE(DnsEvent):
@@ -1070,13 +1081,6 @@ class IP_RANGE(DnsEvent):
 
 
 class DNS_NAME(DnsEvent):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if is_subdomain(self.data):
-            self.add_tag("subdomain")
-        elif is_domain(self.data):
-            self.add_tag("domain")
-
     def sanitize_data(self, data):
         return validators.validate_host(data)
 
@@ -1499,7 +1503,7 @@ class FILESYSTEM(DictPathEvent):
     pass
 
 
-class RAW_DNS_RECORD(DictHostEvent):
+class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
     # don't emit raw DNS records for affiliates
     _always_emit_tags = ["target"]
 

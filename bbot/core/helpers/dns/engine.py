@@ -400,6 +400,9 @@ class DNSEngine(EngineServer):
 
         This can reliably tell the difference between a valid DNS record and a wildcard within a wildcard domain.
 
+        It works by making a bunch of random DNS queries to the parent domain, compiling a list of wildcard IPs,
+        then comparing those to the IPs of the host in question. If the host's IP matches the wildcard ones, it's a wildcard.
+
         If you want to know whether a domain is using wildcard DNS, use `is_wildcard_domain()` instead.
 
         Args:
@@ -412,9 +415,6 @@ class DNSEngine(EngineServer):
                 Keys are DNS record types like "A", "AAAA", etc.
                 Values are tuples where the first element is a boolean indicating if the query is a wildcard,
                 and the second element is the wildcard parent if it's a wildcard.
-
-        Raises:
-            ValueError: If only one of `ips` or `rdtype` is specified or if no valid IPs are specified.
 
         Examples:
             >>> is_wildcard("www.github.io", rdtypes=["A", "AAAA", "MX"])
@@ -445,7 +445,7 @@ class DNSEngine(EngineServer):
                 else:
                     if errors:
                         self.debug(f"Failed to resolve {query} ({rdtype}) during wildcard detection")
-                        result[rdtype] = (None, query)
+                        result[rdtype] = ("ERROR", query)
 
         # clean + process the raw records into a baseline
         baseline = {}
@@ -470,12 +470,15 @@ class DNSEngine(EngineServer):
         # once we've resolved the base query and have IP addresses to work with
         # we can compare the IPs to the ones we have on file for wildcards
 
+        # only bother to check the rdypes that actually resolve
+        rdtypes_to_check = set(raw_dns_records)
+
         # for every parent domain, starting with the shortest
         parents = list(domain_parents(query))
         for parent in parents[::-1]:
 
             # check if the parent domain is set up with wildcards
-            wildcard_results = await self.is_wildcard_domain(parent, rdtypes)
+            wildcard_results = await self.is_wildcard_domain(parent, rdtypes_to_check)
 
             # for every rdtype
             for rdtype in list(baseline_raw):
@@ -487,18 +490,26 @@ class DNSEngine(EngineServer):
                 _baseline = baseline.get(rdtype, set())
                 _baseline_raw = baseline_raw.get(rdtype, set())
 
-                wildcards = wildcard_results.get(rdtype, None)
+                wildcard_rdtypes = wildcard_results.get(parent, {})
+                wildcards = wildcard_rdtypes.get(rdtype, None)
                 if wildcards is None:
                     continue
                 wildcards, wildcard_raw = wildcards
 
-                # check if any of our baseline IPs are in the wildcard results
-                is_wildcard = any(r in wildcards for r in _baseline)
-                is_wildcard_raw = any(r in wildcard_raw for r in _baseline_raw)
+                if wildcard_raw:
+                    # skip this rdtype from now on
+                    rdtypes_to_check.remove(rdtype)
 
-                # if there are any matches, we have a wildcard
-                if is_wildcard or is_wildcard_raw:
-                    result[rdtype] = (True, query)
+                    # check if any of our baseline IPs are in the wildcard results
+                    is_wildcard = any(r in wildcards for r in _baseline)
+                    is_wildcard_raw = any(r in wildcard_raw for r in _baseline_raw)
+
+                    # if there are any matches, we have a wildcard
+                    if is_wildcard or is_wildcard_raw:
+                        result[rdtype] = (True, parent)
+                    else:
+                        # otherwise, it's still suspicious, because we had random stuff resolve at this level
+                        result[rdtype] = ("POSSIBLE", parent)
 
         # any rdtype that wasn't a wildcard, mark it as False
         for rdtype, answers in baseline_raw.items():
@@ -531,11 +542,13 @@ class DNSEngine(EngineServer):
         if isinstance(rdtypes, str):
             rdtypes = [rdtypes]
         rdtypes = set(rdtypes)
+
         wildcard_results = {}
         # make a list of its parents
         parents = list(domain_parents(domain, include_self=True))
         # and check each of them, beginning with the highest parent (i.e. the root domain)
         for i, host in enumerate(parents[::-1]):
+            host_results = {}
             queries = [((host, rdtype), {}) for rdtype in rdtypes]
             async for ((_, rdtype), _, _), (results, results_raw) in self.task_pool(
                 self._is_wildcard_zone, args_kwargs=queries
@@ -543,13 +556,10 @@ class DNSEngine(EngineServer):
                 # if we hit a wildcard, we can skip this rdtype from now on
                 if results_raw:
                     rdtypes.remove(rdtype)
-                    wildcard_results[rdtype] = results, results_raw
+                    host_results[rdtype] = results, results_raw
 
-        if wildcard_results:
-            wildcard_rdtypes_str = ",".join(sorted(wildcard_results))
-            self.log.info(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
-        else:
-            self.log.verbose(f"Finished checking {host}, it is not a wildcard")
+            if host_results:
+                wildcard_results[host] = host_results
 
         return wildcard_results
 
@@ -587,7 +597,7 @@ class DNSEngine(EngineServer):
                             wildcard_results.add(t)
 
                 if wildcard_results:
-                    self.debug(f"Finished checking {host}:{rdtype}, it is a wildcard")
+                    self.log.info(f"Encountered domain with wildcard DNS ({rdtype}): *.{host}")
                 else:
                     self.debug(f"Finished checking {host}:{rdtype}, it is not a wildcard")
                 self._wildcard_cache[host_hash] = wildcard_results, wildcard_results_raw
@@ -643,7 +653,14 @@ class DNSEngine(EngineServer):
     def in_tests(self):
         return os.getenv("BBOT_TESTING", "") == "True"
 
-    async def _mock_dns(self, mock_data):
+    async def _mock_dns(self, mock_data, custom_lookup_fn=None):
         from .mock import MockResolver
 
-        self.resolver = MockResolver(mock_data)
+        def deserialize_function(func_source):
+            assert self.in_tests, "Can only mock when BBOT_TESTING=True"
+            if func_source is None:
+                return None
+            exec(func_source)
+            return locals()["custom_lookup"]
+
+        self.resolver = MockResolver(mock_data, custom_lookup_fn=deserialize_function(custom_lookup_fn))
