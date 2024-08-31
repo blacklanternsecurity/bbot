@@ -206,8 +206,8 @@ class DNSEngine(EngineServer):
         retries = kwargs.pop("retries", self.retries)
         use_cache = kwargs.pop("use_cache", True)
         tries_left = int(retries) + 1
-        parent_hash = hash(f"{parent}:{rdtype}")
-        dns_cache_hash = hash(f"{query}:{rdtype}")
+        parent_hash = hash((parent, rdtype))
+        dns_cache_hash = hash((query, rdtype))
         while tries_left > 0:
             try:
                 if use_cache:
@@ -295,7 +295,7 @@ class DNSEngine(EngineServer):
         tries_left = int(retries) + 1
         results = []
         errors = []
-        dns_cache_hash = hash(f"{query}:PTR")
+        dns_cache_hash = hash((query, "PTR"))
         while tries_left > 0:
             try:
                 if use_cache:
@@ -570,7 +570,7 @@ class DNSEngine(EngineServer):
         rdtype = rdtype.upper()
 
         # have we checked this host before?
-        host_hash = hash(f"{host}:{rdtype}")
+        host_hash = hash((host, rdtype))
         async with self._wildcard_lock.lock(host_hash):
             # if we've seen this host before
             try:

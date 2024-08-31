@@ -77,12 +77,16 @@ class DNSResolve(InterceptModule):
             return False, "it has a blacklisted DNS record"
 
         if not event_is_ip:
-            # if we're within our dns search distance, resolve the rest of our records
+            # if the event is within our dns search distance, resolve the rest of our records
             if main_host_event.scope_distance < self._dns_search_distance:
                 await self.resolve_event(main_host_event, types=non_minimal_rdtypes)
-                # check for wildcards if we're within the scan's search distance
+                # check for wildcards if the event is within the scan's search distance
                 if new_event and main_host_event.scope_distance <= self.scan.scope_search_distance:
                     await self.handle_wildcard_event(main_host_event)
+
+        # if there weren't any DNS children and it's not an IP address, tag as unresolved
+        if not main_host_event.raw_dns_records and not event_is_ip:
+            main_host_event.add_tag("unresolved")
 
         # main_host_event.add_tag(f"resolve-distance-{main_host_event.dns_resolve_distance}")
 

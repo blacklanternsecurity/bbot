@@ -127,24 +127,24 @@ async def test_dns_resolution(bbot_scanner):
 
     # dns cache
     dnsengine._dns_cache.clear()
-    assert hash(f"1.1.1.1:PTR") not in dnsengine._dns_cache
-    assert hash(f"one.one.one.one:A") not in dnsengine._dns_cache
-    assert hash(f"one.one.one.one:AAAA") not in dnsengine._dns_cache
+    assert hash(("1.1.1.1", "PTR")) not in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "A")) not in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "AAAA")) not in dnsengine._dns_cache
     await dnsengine.resolve("1.1.1.1", use_cache=False)
     await dnsengine.resolve("one.one.one.one", use_cache=False)
-    assert hash(f"1.1.1.1:PTR") not in dnsengine._dns_cache
-    assert hash(f"one.one.one.one:A") not in dnsengine._dns_cache
-    assert hash(f"one.one.one.one:AAAA") not in dnsengine._dns_cache
+    assert hash(("1.1.1.1", "PTR")) not in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "A")) not in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "AAAA")) not in dnsengine._dns_cache
 
     await dnsengine.resolve("1.1.1.1")
-    assert hash(f"1.1.1.1:PTR") in dnsengine._dns_cache
+    assert hash(("1.1.1.1", "PTR")) in dnsengine._dns_cache
     await dnsengine.resolve("one.one.one.one", type="A")
-    assert hash(f"one.one.one.one:A") in dnsengine._dns_cache
-    assert not hash(f"one.one.one.one:AAAA") in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "A")) in dnsengine._dns_cache
+    assert not hash(("one.one.one.one", "AAAA")) in dnsengine._dns_cache
     dnsengine._dns_cache.clear()
     await dnsengine.resolve("one.one.one.one", type="AAAA")
-    assert hash(f"one.one.one.one:AAAA") in dnsengine._dns_cache
-    assert not hash(f"one.one.one.one:A") in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "AAAA")) in dnsengine._dns_cache
+    assert not hash(("one.one.one.one", "A")) in dnsengine._dns_cache
 
     await dnsengine._shutdown()
 
@@ -196,9 +196,9 @@ async def test_wildcards(bbot_scanner):
     wildcard_domains = await dnsengine.is_wildcard_domain("asdf.github.io", all_rdtypes)
     assert len(dnsengine._wildcard_cache) == len(all_rdtypes) + (len(all_rdtypes) - 2)
     for rdtype in all_rdtypes:
-        assert hash(f"github.io:{rdtype}") in dnsengine._wildcard_cache
+        assert hash(("github.io", rdtype)) in dnsengine._wildcard_cache
         if not rdtype in ("A", "AAAA"):
-            assert hash(f"asdf.github.io:{rdtype}") in dnsengine._wildcard_cache
+            assert hash(("asdf.github.io", rdtype)) in dnsengine._wildcard_cache
     assert "github.io" in wildcard_domains
     assert "A" in wildcard_domains["github.io"]
     assert "SRV" not in wildcard_domains["github.io"]
@@ -214,10 +214,10 @@ async def test_wildcards(bbot_scanner):
         assert wildcard_rdtypes["AAAA"] == (True, "github.io")
         assert len(dnsengine._wildcard_cache) == 2
         for rdtype in ("A", "AAAA"):
-            assert hash(f"github.io:{rdtype}") in dnsengine._wildcard_cache
-            assert len(dnsengine._wildcard_cache[hash(f"github.io:{rdtype}")]) == 2
-            assert len(dnsengine._wildcard_cache[hash(f"github.io:{rdtype}")][0]) > 0
-            assert len(dnsengine._wildcard_cache[hash(f"github.io:{rdtype}")][1]) > 0
+            assert hash(("github.io", rdtype)) in dnsengine._wildcard_cache
+            assert len(dnsengine._wildcard_cache[hash(("github.io", rdtype))]) == 2
+            assert len(dnsengine._wildcard_cache[hash(("github.io", rdtype))][0]) > 0
+            assert len(dnsengine._wildcard_cache[hash(("github.io", rdtype))][1]) > 0
         dnsengine._wildcard_cache.clear()
 
     ### wildcard TXT record ###

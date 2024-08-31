@@ -47,7 +47,7 @@ flags QR AA RD
 
         message_text += "\n;AUTHORITY\n;ADDITIONAL\n"
         message = dns.message.from_text(message_text)
-        log.verbose(message_text)
+        # log.verbose(message_text)
         return message
 
     async def resolve(self, query_name, rdtype=None):
