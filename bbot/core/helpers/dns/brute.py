@@ -45,8 +45,6 @@ class DNSBrute:
                 f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(wildcard_rdtypes)})"
             )
             return []
-        else:
-            self.log.hugeinfo(f"{domain}: A is not in domain_wildcard_rdtypes:{wildcard_rdtypes}")
 
         canaries = self.gen_random_subdomains(self.num_canaries)
         canaries_list = list(canaries)
