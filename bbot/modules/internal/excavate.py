@@ -313,29 +313,28 @@ class excavate(BaseInternalModule):
 
     _module_threads = 8
 
-    parameter_blacklist = [
-        "__VIEWSTATE",
-        "__EVENTARGUMENT",
-        "__EVENTVALIDATION",
-        "__EVENTTARGET",
-        "__EVENTARGUMENT",
-        "__VIEWSTATEGENERATOR",
-        "__SCROLLPOSITIONY",
-        "__SCROLLPOSITIONX",
-        "ASP.NET_SessionId",
-        "JSESSIONID",
-        "PHPSESSID",
-    ]
+    parameter_blacklist = set(
+        p.lower()
+        for p in [
+            "__VIEWSTATE",
+            "__EVENTARGUMENT",
+            "__EVENTVALIDATION",
+            "__EVENTTARGET",
+            "__EVENTARGUMENT",
+            "__VIEWSTATEGENERATOR",
+            "__SCROLLPOSITIONY",
+            "__SCROLLPOSITIONX",
+            "ASP.NET_SessionId",
+            "JSESSIONID",
+            "PHPSESSID",
+        ]
+    )
 
     yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
 
     def in_bl(self, value):
-        in_bl = False
-        for bl_param in self.parameter_blacklist:
-            if bl_param.lower() == value.lower():
-                in_bl = True
-        return in_bl
+        return value.lower() in self.parameter_blacklist
 
     def url_unparse(self, param_type, parsed_url):
         if param_type == "GETPARAM":
