@@ -102,8 +102,9 @@ class DNSResolve(InterceptModule):
             main_host_event.add_tag(f"runaway-dns-{dns_resolve_distance}")
         else:
             # emit dns children
-            await self.emit_dns_children(main_host_event)
             await self.emit_dns_children_raw(main_host_event, dns_tags)
+            if not self.minimal:
+                await self.emit_dns_children(main_host_event)
 
             # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
             if main_host_event.type == "DNS_NAME" and "unresolved" in main_host_event.tags:
