@@ -56,22 +56,25 @@ class Teams(WebhookOutputModule):
                     f"Error sending {event}: status code {status_code}, response: {response_data}, retrying in {retry_after} seconds"
                 )
                 await self.helpers.sleep(retry_after)
+    
+    def trim_message(self, message):
+        if len(message) > self.message_size_limit:
+            message = message[: self.message_size_limit - 3] + "..."
+        return message
 
     def format_message_str(self, event):
         items = []
-        msg = event.data
-        if len(msg) > self.message_size_limit:
-            msg = msg[: self.message_size_limit - 3] + "..."
+        msg = self.trim_message(event.data)
         items.append({"type": "TextBlock", "text": f"{msg}", "wrap": True})
         items.append({"type": "FactSet", "facts": [{"title": "Tags:", "value": ", ".join(event.tags)}]})
         return items
 
     def format_message_other(self, event):
-        event_yaml = yaml.dump(event.data)
-        msg = event_yaml
-        if len(msg) > self.message_size_limit:
-            msg = msg[: self.message_size_limit - 3] + "..."
-        return [{"type": "TextBlock", "text": f"{msg}", "wrap": True}]
+        items = [{"type": "FactSet", "facts": []}]
+        for key, value in event.data.items():
+            msg = self.trim_message(str(value))
+            items[0]["facts"].append({"title": f"{key}:", "value": msg})
+        return items
 
     def get_severity_color(self, event):
         color = "Accent"
@@ -116,8 +119,7 @@ class Teams(WebhookOutputModule):
             items = self.format_message_str(event)
         else:
             items = self.format_message_other(event)
-        for item in items:
-            main_text["columns"][0]["items"].append(item)
+        main_text["columns"][0]["items"] = items
         body.append(main_text)
         return adaptive_card
 
