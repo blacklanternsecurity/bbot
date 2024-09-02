@@ -56,7 +56,7 @@ class Teams(WebhookOutputModule):
                     f"Error sending {event}: status code {status_code}, response: {response_data}, retrying in {retry_after} seconds"
                 )
                 await self.helpers.sleep(retry_after)
-    
+
     def trim_message(self, message):
         if len(message) > self.message_size_limit:
             message = message[: self.message_size_limit - 3] + "..."
@@ -102,7 +102,7 @@ class Teams(WebhookOutputModule):
                 "size": "Large",
                 "wrap": True,
             }
-            subheading["color"] = self.get_severity_color(self, event)
+            subheading["color"] = self.get_severity_color(event)
         main_text = {
             "type": "ColumnSet",
             "separator": True,
