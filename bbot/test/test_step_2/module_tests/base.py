@@ -11,17 +11,6 @@ from bbot.core.helpers.misc import rand_string
 log = logging.getLogger("bbot.test.modules")
 
 
-def tempwordlist(content):
-    from bbot.core.helpers.misc import rand_string
-
-    filename = bbot_test_dir / f"{rand_string(8)}"
-    with open(filename, "w", errors="ignore") as f:
-        for c in content:
-            line = f"{c}\n"
-            f.write(line)
-    return filename
-
-
 class ModuleTestBase:
     targets = ["blacklanternsecurity.com"]
     scan_name = None

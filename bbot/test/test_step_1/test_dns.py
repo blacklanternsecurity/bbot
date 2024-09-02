@@ -742,7 +742,8 @@ async def test_dns_graph_structure(bbot_scanner):
     assert str(events_by_data["evilcorp.com"].module) == "host"
 
 
-def test_dns_helpers():
+@pytest.mark.asyncio
+async def test_dns_helpers(bbot_scanner):
     assert service_record("") == False
     assert service_record("localhost") == False
     assert service_record("www.example.com") == False
@@ -753,3 +754,11 @@ def test_dns_helpers():
     for srv_record in common_srvs[:100]:
         hostname = f"{srv_record}.example.com"
         assert service_record(hostname) == True
+
+    # make sure system nameservers are excluded from use by DNS brute force
+    brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8"])
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers}})
+    scan.helpers.dns.system_resolvers = ["8.8.8.8", "8.8.4.4"]
+    resolver_file = await scan.helpers.dns.brute.resolver_file()
+    resolvers = set(scan.helpers.read_file(resolver_file))
+    assert resolvers == {"1.2.3.4", "4.3.2.1"}
