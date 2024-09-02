@@ -367,6 +367,8 @@ class DepsInstaller:
 
     @property
     def encrypted_sudo_pw(self):
+        if self._sudo_password is None:
+            return ""
         return self._encrypt_sudo_pw(self._sudo_password)
 
     def _encrypt_sudo_pw(self, pw):
