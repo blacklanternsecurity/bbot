@@ -10,10 +10,11 @@ from pathlib import Path
 from threading import Lock
 from itertools import chain
 from contextlib import suppress
+from secrets import token_bytes
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
-from ..misc import can_sudo_without_password, os_platform
+from ..misc import can_sudo_without_password, os_platform, rm_at_exit
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -29,14 +30,13 @@ class DepsInstaller:
         http_timeout = self.web_config.get("http_timeout", 30)
         os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
 
+        # cache encrypted sudo pass
         self.askpass_filename = "sudo_askpass.py"
+        self._sudo_password = None
+        self._sudo_cache_setup = False
+        self._setup_sudo_cache()
         self._installed_sudo_askpass = False
-        self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
-        if self._sudo_password is None:
-            if self.core.bbot_sudo_pass is not None:
-                self._sudo_password = self.core.bbot_sudo_pass
-            elif can_sudo_without_password():
-                self._sudo_password = ""
+
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.parent_helper.mkdir(self.data_dir)
         self.setup_status_cache = self.data_dir / "setup_status.json"
@@ -314,18 +314,25 @@ class DepsInstaller:
 
     def ensure_root(self, message=""):
         self._install_sudo_askpass()
+        # skip if we've already done this
+        if self._sudo_password is not None:
+            return
         with self.ensure_root_lock:
-            if os.geteuid() != 0 and self._sudo_password is None:
+            # first check if the environment variable is set
+            _sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
+            if _sudo_password is not None or can_sudo_without_password():
+                # if we can sudo without a password, there's no need to prompt
+                return
+            if os.geteuid() != 0:
                 if message:
                     log.warning(message)
                 while not self._sudo_password:
                     # sleep for a split second to flush previous log messages
                     sleep(0.1)
-                    password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
-                    if self.parent_helper.verify_sudo_password(password):
+                    _sudo_password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+                    if self.parent_helper.verify_sudo_password(_sudo_password):
                         log.success("Authentication successful")
-                        self._sudo_password = password
-                        self.core.bbot_sudo_pass = password
+                        self._sudo_password = _sudo_password
                     else:
                         log.warning("Incorrect password")
 
@@ -342,6 +349,36 @@ class DepsInstaller:
         if to_install:
             self.ensure_root()
             self.apt_install(list(to_install))
+
+    def _setup_sudo_cache(self):
+        if not self._sudo_cache_setup:
+            self._sudo_cache_setup = True
+            # write temporary encryption key, to be deleted upon scan completion
+            self._sudo_temp_keyfile = self.parent_helper.temp_filename()
+            # remove it at exit
+            rm_at_exit(self._sudo_temp_keyfile)
+            # generate random 32-byte key
+            random_key = token_bytes(32)
+            # write key to file and set secure permissions
+            self._sudo_temp_keyfile.write_bytes(random_key)
+            self._sudo_temp_keyfile.chmod(0o600)
+            # export path to environment variable, for use in askpass script
+            os.environ["BBOT_SUDO_KEYFILE"] = str(self._sudo_temp_keyfile.resolve())
+
+    @property
+    def encrypted_sudo_pw(self):
+        return self._encrypt_sudo_pw(self._sudo_password)
+
+    def _encrypt_sudo_pw(self, pw):
+        from Crypto.Cipher import AES
+        from Crypto.Util.Padding import pad
+
+        key = self._sudo_temp_keyfile.read_bytes()
+        cipher = AES.new(key, AES.MODE_CBC)
+        ct_bytes = cipher.encrypt(pad(pw.encode(), AES.block_size))
+        iv = cipher.iv.hex()
+        ct = ct_bytes.hex()
+        return f"{iv}:{ct}"
 
     def _install_sudo_askpass(self):
         if not self._installed_sudo_askpass:
