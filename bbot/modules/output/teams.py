@@ -1,5 +1,3 @@
-import yaml
-
 from bbot.modules.templates.webhook import WebhookOutputModule
 
 
