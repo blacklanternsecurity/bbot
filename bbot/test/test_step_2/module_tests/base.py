@@ -82,10 +82,10 @@ class ModuleTestBase:
         def set_expect_requests_handler(self, expect_args=None, request_handler=None):
             self.httpserver.expect_request(expect_args).respond_with_handler(request_handler)
 
-        async def mock_dns(self, mock_data, scan=None):
+        async def mock_dns(self, mock_data, custom_lookup_fn=None, scan=None):
             if scan is None:
                 scan = self.scan
-            await scan.helpers.dns._mock_dns(mock_data)
+            await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup_fn)
 
         def mock_interactsh(self, name):
             from ...conftest import Interactsh_mock

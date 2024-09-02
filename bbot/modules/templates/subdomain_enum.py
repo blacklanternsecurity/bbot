@@ -118,10 +118,11 @@ class subdomain_enum(BaseModule):
             self.info(f"Error retrieving results for {query}: {e}", trace=True)
 
     async def _is_wildcard(self, query):
+        rdtypes = ("A", "AAAA", "CNAME")
         if self.helpers.is_dns_name(query):
-            wildcard_rdtypes = await self.helpers.is_wildcard_domain(query, rdtypes=("A", "AAAA", "CNAME"))
-            if wildcard_rdtypes:
-                return True
+            for domain, wildcard_rdtypes in (await self.helpers.is_wildcard_domain(query, rdtypes=rdtypes)).items():
+                if any(t in wildcard_rdtypes for t in rdtypes):
+                    return True
         return False
 
     async def filter_event(self, event):
