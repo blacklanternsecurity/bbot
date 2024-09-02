@@ -20,6 +20,8 @@ def decrypt_password(encrypted_data, key):
 
 def main():
     encrypted_password = os.environ.get(ENV_VAR_NAME, "")
+    # remove variable from environment once we've got it
+    os.environ.pop(ENV_VAR_NAME, None)
     encryption_keypath = Path(os.environ.get(KEY_ENV_VAR_PATH, ""))
 
     if not encrypted_password or not encryption_keypath.is_file():
