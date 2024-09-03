@@ -58,6 +58,8 @@ jobs:
             # Release notes:
             ${{ env.release_notes }}
           branch: "update-nuclei"
+          committer: blsaccess <info@blacklanternsecurity.com>
+          author: blsaccess <info@blacklanternsecurity.com>
           assignees: "TheTechromancer"
   update-trufflehog-version:
     runs-on: ubuntu-latest
@@ -108,4 +110,6 @@ jobs:
             # Release notes:
             ${{ env.release_notes }}
           branch: "update-trufflehog"
+          committer: blsaccess <info@blacklanternsecurity.com>
+          author: blsaccess <info@blacklanternsecurity.com>
           assignees: "TheTechromancer"
