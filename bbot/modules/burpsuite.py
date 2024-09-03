@@ -4,7 +4,12 @@ class burpsuite(BaseModule):
     watched_events = ["DNS_NAME","URL","URL_UNVERIFIED"] # watch for DNS_NAME events
     produced_events = ["SITEMAP"] # we produce WHOIS events
     flags = ["passive", "safe"]
-    meta = {"description": "Extension to forward findings to burpsuite Sitemap"}
+
+    meta = {
+        "description": "BurpSuite extenion to populate the sitemap feature with found URLs and endpoints.",
+        "created_date": "2024-08-03",
+        "author": "@jackpas23",
+    }
     deps_apt = ["proxychains4"]
     # one-time setup - runs at the beginning of the scan
     async def setup(self):
@@ -16,7 +21,7 @@ class burpsuite(BaseModule):
 
     async def handle_event(self, event):
         self.hugesuccess(f"Got {event} (event.data: {event.data})")
-        _, domain = self.helpers.split_domain(event.data)
+        
 
         #option to enforce TLS?
         url=f"https://{event.host}"
