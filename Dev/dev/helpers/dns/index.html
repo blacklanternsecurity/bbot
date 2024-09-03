@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.xe_th9s3.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.akb_887u.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -758,7 +758,9 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">196</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">197</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">198</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">199</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">DNSHelper</span><span style="color: #e6edf3">(EngineClient):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">199</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">200</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">201</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">DNSHelper</span><span style="color: #e6edf3">(EngineClient):</span>
 
     <span style="color: #e6edf3">SERVER_CLASS</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">DNSEngine</span>
     <span style="color: #e6edf3">ERROR_CLASS</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">DNSError</span>
@@ -809,7 +811,7 @@
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolver</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">timeout</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">timeout</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolver</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">lifetime</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">timeout</span>
 
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">runaway_limit</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"runaway_limit"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">5</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">runaway_limit</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dns_config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"runaway_limit"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">5</span><span style="color: #e6edf3">)</span>
 
         <span style="color: #8b949e; font-style: italic"># wildcard handling</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">wildcard_disable</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dns_config</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"wildcard_disable"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
@@ -860,8 +862,11 @@
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_brute</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">DNSBrute(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">parent_helper)</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_brute</span>
 
-    <span style="color: #d2a8ff; font-weight: bold">@async_cachedmethod</span><span style="color: #e6edf3">(</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">self:</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_is_wildcard_cache)</span>
-    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_wildcard</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">ips</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">rdtype</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
+    <span style="color: #d2a8ff; font-weight: bold">@async_cachedmethod</span><span style="color: #e6edf3">(</span>
+        <span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">self:</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_is_wildcard_cache,</span>
+        <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">rdtypes,</span> <span style="color: #e6edf3">raw_dns_records:</span> <span style="color: #e6edf3">(query,</span> <span style="color: #e6edf3">tuple(sorted(rdtypes)),</span> <span style="color: #e6edf3">bool(raw_dns_records)),</span>
+    <span style="color: #e6edf3">)</span>
+    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_wildcard</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">rdtypes,</span> <span style="color: #e6edf3">raw_dns_records</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
 <span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">        Use this method to check whether a *host* is a wildcard entry</span>
 
@@ -893,9 +898,6 @@
 <span style="color: #a5d6ff">        Note:</span>
 <span style="color: #a5d6ff">            `is_wildcard` can be True, False, or None (indicating that wildcard detection was inconclusive)</span>
 <span style="color: #a5d6ff">        """</span>
-        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">[ips,</span> <span style="color: #e6edf3">rdtype]</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">count(</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
-            <span style="color: #ff7b72">raise</span> <span style="color: #f0883e; font-weight: bold">ValueError</span><span style="color: #e6edf3">(</span><span style="color: #a5d6ff">"Both ips and rdtype must be specified"</span><span style="color: #e6edf3">)</span>
-
         <span style="color: #e6edf3">query</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_wildcard_prevalidation(query)</span>
         <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">query:</span>
             <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">{}</span>
@@ -904,15 +906,17 @@
         <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">is_domain(query):</span>
             <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">{}</span>
 
-        <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"is_wildcard"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">query</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">ips</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">ips,</span> <span style="color: #e6edf3">rdtype</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">rdtype)</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"is_wildcard"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">query</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">rdtypes</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">rdtypes,</span> <span style="color: #e6edf3">raw_dns_records</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">raw_dns_records)</span>
 
-    <span style="color: #d2a8ff; font-weight: bold">@async_cachedmethod</span><span style="color: #e6edf3">(</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">self:</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_is_wildcard_domain_cache)</span>
-    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_wildcard_domain</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">log_info</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">):</span>
+    <span style="color: #d2a8ff; font-weight: bold">@async_cachedmethod</span><span style="color: #e6edf3">(</span>
+        <span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">self:</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_is_wildcard_domain_cache,</span> <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">rdtypes:</span> <span style="color: #e6edf3">(domain,</span> <span style="color: #e6edf3">tuple(sorted(rdtypes)))</span>
+    <span style="color: #e6edf3">)</span>
+    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_wildcard_domain</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">rdtypes):</span>
         <span style="color: #e6edf3">domain</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_wildcard_prevalidation(domain)</span>
         <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">domain:</span>
             <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">{}</span>
 
-        <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"is_wildcard_domain"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">domain</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">log_info</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"is_wildcard_domain"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">domain</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">rdtypes</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">rdtypes)</span>
 
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_wildcard_prevalidation</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">host):</span>
         <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">wildcard_disable:</span>
@@ -935,11 +939,11 @@
 
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">host</span>
 
-    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_mock_dns</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">mock_data):</span>
+    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_mock_dns</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">mock_data,</span> <span style="color: #e6edf3">custom_lookup_fn</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
         <span style="color: #ff7b72">from</span> <span style="color: #ff7b72">.mock</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">MockResolver</span>
 
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolver</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">MockResolver(mock_data)</span>
-        <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"_mock_dns"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">mock_data</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">mock_data)</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolver</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">MockResolver(mock_data,</span> <span style="color: #e6edf3">custom_lookup_fn</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">custom_lookup_fn)</span>
+        <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"_mock_dns"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">mock_data</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">mock_data,</span> <span style="color: #e6edf3">custom_lookup_fn</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">custom_lookup_fn)</span>
 </code></pre></div></td></tr></table></div>
 </details>
 <div class="doc doc-children">
@@ -1019,7 +1023,7 @@
 <small class="doc doc-label doc-label-async"><code>async</code></small>
 </span>
 </h2>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">is_wildcard(query,</span> <span style="color: #e6edf3">ips</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">rdtype</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">is_wildcard(query,</span> <span style="color: #e6edf3">rdtypes,</span> <span style="color: #e6edf3">raw_dns_records</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Use this method to check whether a <em>host</em> is a wildcard entry</p>
@@ -1037,9 +1041,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code>ips</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>, default:
-                  <code>None</code>
-)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>)
           –
           <div class="doc-md-description">
 <p>List of IPs to compare against, typically obtained from a previous DNS resolution of the query.</p>
@@ -1047,9 +1049,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code>rdtype</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
-                  <code>None</code>
-)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The DNS record type (e.g., "A", "AAAA") to consider during the check.</p>
@@ -1135,8 +1135,11 @@ and the second element is the wildcard parent if it's a wildcard.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">161</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">162</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">163</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">164</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #d2a8ff; font-weight: bold">@async_cachedmethod</span><span style="color: #e6edf3">(</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">self:</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_is_wildcard_cache)</span>
-<span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_wildcard</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">ips</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">rdtype</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">164</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #d2a8ff; font-weight: bold">@async_cachedmethod</span><span style="color: #e6edf3">(</span>
+    <span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">self:</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_is_wildcard_cache,</span>
+    <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">rdtypes,</span> <span style="color: #e6edf3">raw_dns_records:</span> <span style="color: #e6edf3">(query,</span> <span style="color: #e6edf3">tuple(sorted(rdtypes)),</span> <span style="color: #e6edf3">bool(raw_dns_records)),</span>
+<span style="color: #e6edf3">)</span>
+<span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_wildcard</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">rdtypes,</span> <span style="color: #e6edf3">raw_dns_records</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Use this method to check whether a *host* is a wildcard entry</span>
 
@@ -1168,9 +1171,6 @@ and the second element is the wildcard parent if it's a wildcard.</p>
 <span style="color: #a5d6ff">    Note:</span>
 <span style="color: #a5d6ff">        `is_wildcard` can be True, False, or None (indicating that wildcard detection was inconclusive)</span>
 <span style="color: #a5d6ff">    """</span>
-    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">[ips,</span> <span style="color: #e6edf3">rdtype]</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">count(</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
-        <span style="color: #ff7b72">raise</span> <span style="color: #f0883e; font-weight: bold">ValueError</span><span style="color: #e6edf3">(</span><span style="color: #a5d6ff">"Both ips and rdtype must be specified"</span><span style="color: #e6edf3">)</span>
-
     <span style="color: #e6edf3">query</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_wildcard_prevalidation(query)</span>
     <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">query:</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">{}</span>
@@ -1179,7 +1179,7 @@ and the second element is the wildcard parent if it's a wildcard.</p>
     <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">is_domain(query):</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">{}</span>
 
-    <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"is_wildcard"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">query</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">ips</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">ips,</span> <span style="color: #e6edf3">rdtype</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">rdtype)</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"is_wildcard"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">query</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">query,</span> <span style="color: #e6edf3">rdtypes</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">rdtypes,</span> <span style="color: #e6edf3">raw_dns_records</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">raw_dns_records)</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -1191,7 +1191,7 @@ and the second element is the wildcard parent if it's a wildcard.</p>
 <small class="doc doc-label doc-label-async"><code>async</code></small>
 </span>
 </h2>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">is_wildcard_domain(domain,</span> <span style="color: #e6edf3">log_info</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">is_wildcard_domain(domain,</span> <span style="color: #e6edf3">rdtypes)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <details class="quote">
@@ -1202,13 +1202,17 @@ and the second element is the wildcard parent if it's a wildcard.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">169</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">170</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">171</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">172</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #d2a8ff; font-weight: bold">@async_cachedmethod</span><span style="color: #e6edf3">(</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">self:</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_is_wildcard_domain_cache)</span>
-<span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_wildcard_domain</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">log_info</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">172</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">173</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">174</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #d2a8ff; font-weight: bold">@async_cachedmethod</span><span style="color: #e6edf3">(</span>
+    <span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">self:</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_is_wildcard_domain_cache,</span> <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #ff7b72">lambda</span> <span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">rdtypes:</span> <span style="color: #e6edf3">(domain,</span> <span style="color: #e6edf3">tuple(sorted(rdtypes)))</span>
+<span style="color: #e6edf3">)</span>
+<span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_wildcard_domain</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">rdtypes):</span>
     <span style="color: #e6edf3">domain</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_wildcard_prevalidation(domain)</span>
     <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">domain:</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">{}</span>
 
-    <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"is_wildcard_domain"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">domain</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">log_info</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"is_wildcard_domain"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">domain</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">domain,</span> <span style="color: #e6edf3">rdtypes</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">rdtypes)</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>

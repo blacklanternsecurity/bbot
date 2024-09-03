@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.xe_th9s3.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.akb_887u.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1166,7 +1166,26 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">606</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">607</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">608</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">609</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">WebHelper</span><span style="color: #e6edf3">(EngineClient):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">609</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">610</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">611</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">612</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">613</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">614</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">615</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">616</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">617</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">618</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">619</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">620</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">621</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">622</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">623</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">624</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">625</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">626</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">627</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">628</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">WebHelper</span><span style="color: #e6edf3">(EngineClient):</span>
 
     <span style="color: #e6edf3">SERVER_CLASS</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">HTTPEngine</span>
     <span style="color: #e6edf3">ERROR_CLASS</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">WebError</span>
@@ -1267,7 +1286,16 @@
 <span style="color: #a5d6ff">        Note:</span>
 <span style="color: #a5d6ff">            If the web request fails, it will return None unless `raise_error` is `True`.</span>
 <span style="color: #a5d6ff">        """</span>
-        <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"request"</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+        <span style="color: #e6edf3">raise_error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"raise_error"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">result</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"request"</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(result,</span> <span style="color: #e6edf3">dict)</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #a5d6ff">"_request_error"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">result:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">raise_error:</span>
+                <span style="color: #e6edf3">error_msg</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">result[</span><span style="color: #a5d6ff">"_request_error"</span><span style="color: #e6edf3">]</span>
+                <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">result[</span><span style="color: #a5d6ff">"_response"</span><span style="color: #e6edf3">]</span>
+                <span style="color: #e6edf3">error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">ERROR_CLASS(error_msg)</span>
+                <span style="color: #e6edf3">error</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">response</span>
+                <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">error</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">result</span>
 
     <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">request_batch</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">urls,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
 <span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
@@ -1345,6 +1373,7 @@
 <span style="color: #a5d6ff">            &gt;&gt;&gt; filepath = await self.helpers.download("https://www.evilcorp.com/passwords.docx", cache_hrs=24)</span>
 <span style="color: #a5d6ff">        """</span>
         <span style="color: #e6edf3">success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+        <span style="color: #e6edf3">raise_error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"raise_error"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
         <span style="color: #e6edf3">filename</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"filename"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">parent_helper</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">cache_filename(url))</span>
         <span style="color: #e6edf3">filename</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">truncate_filename(Path(filename)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolve())</span>
         <span style="color: #e6edf3">kwargs[</span><span style="color: #a5d6ff">"filename"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">filename</span>
@@ -1357,7 +1386,16 @@
             <span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">debug(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">url</span><span style="color: #a5d6ff">} is cached at {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">parent_helper</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">cache_filename(url)</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
             <span style="color: #e6edf3">success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
         <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"download"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">url,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+            <span style="color: #e6edf3">result</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"download"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">url,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(result,</span> <span style="color: #e6edf3">dict)</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #a5d6ff">"_download_error"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">result:</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">raise_error:</span>
+                    <span style="color: #e6edf3">error_msg</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">result[</span><span style="color: #a5d6ff">"_download_error"</span><span style="color: #e6edf3">]</span>
+                    <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">result[</span><span style="color: #a5d6ff">"_response"</span><span style="color: #e6edf3">]</span>
+                    <span style="color: #e6edf3">error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">ERROR_CLASS(error_msg)</span>
+                    <span style="color: #e6edf3">error</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">response</span>
+                    <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">error</span>
+            <span style="color: #ff7b72">elif</span> <span style="color: #e6edf3">result:</span>
+                <span style="color: #e6edf3">success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
 
         <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">success:</span>
             <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">filename</span>
@@ -1913,26 +1951,7 @@ It is well-suited for APIs that provide paginated results.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">272</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">273</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">274</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">275</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">276</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">277</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">278</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">279</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">280</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">281</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">282</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">283</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">284</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">285</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">286</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">287</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">288</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">289</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">290</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">291</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">291</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">292</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">293</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">294</span>
@@ -1971,7 +1990,26 @@ It is well-suited for APIs that provide paginated results.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">327</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">328</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">329</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">api_page_iter</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">url,</span> <span style="color: #e6edf3">page_size</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">100</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">json</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">next_key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">requests_kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">331</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">338</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">339</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">340</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">341</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">342</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">343</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">344</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">345</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">346</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">347</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">348</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">349</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">api_page_iter</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">url,</span> <span style="color: #e6edf3">page_size</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">100</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">json</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">next_key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">requests_kwargs):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    An asynchronous generator function for iterating through paginated API data.</span>
 
@@ -2112,26 +2150,7 @@ document to be parsed.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">451</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">452</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">453</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">454</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">455</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">456</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">457</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">458</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">459</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">460</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">461</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">462</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">463</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">464</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">465</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">466</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">467</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">468</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">469</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">470</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">470</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">471</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">472</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">473</span>
@@ -2168,7 +2187,26 @@ document to be parsed.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">beautifulsoup</span><span style="color: #e6edf3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">508</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">509</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">510</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">511</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">512</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">513</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">514</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">515</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">516</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">517</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">518</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">519</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">520</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">521</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">522</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">523</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">524</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">525</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">526</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">beautifulsoup</span><span style="color: #e6edf3">(</span>
     <span style="color: #e6edf3">self,</span>
     <span style="color: #e6edf3">markup,</span>
     <span style="color: #e6edf3">features</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"html.parser"</span><span style="color: #e6edf3">,</span>
@@ -2364,26 +2402,7 @@ It offers support for various cURL options such as headers, post data, and cooki
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">338</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">339</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">340</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">341</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">342</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">343</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">344</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">345</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">346</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">347</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">348</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">349</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">350</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">351</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">351</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">352</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">353</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">354</span>
@@ -2481,7 +2500,26 @@ It offers support for various cURL options such as headers, post data, and cooki
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">446</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">447</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">448</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">449</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">curl</span><span style="color: #e6edf3">(self,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">449</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">450</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">451</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">452</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">453</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">454</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">455</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">456</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">457</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">458</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">459</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">460</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">461</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">462</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">463</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">464</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">465</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">466</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">467</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">468</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">curl</span><span style="color: #e6edf3">(self,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    An asynchronous function that runs a cURL command with specified arguments and options.</span>
 
@@ -2690,16 +2728,7 @@ A negative value disables caching. Defaults to -1.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">178</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">179</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">180</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">181</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">182</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">183</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">184</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">185</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">186</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">187</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">187</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">188</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">189</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">190</span>
@@ -2729,7 +2758,26 @@ A negative value disables caching. Defaults to -1.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">214</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">215</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">216</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">217</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">download</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">url,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">217</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">218</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">219</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">220</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">221</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">222</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">223</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">224</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">225</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">226</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">227</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">228</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">229</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">230</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">231</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">232</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">233</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">234</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">235</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">236</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">download</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">url,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Asynchronous function for downloading files from a given URL. Supports caching with an optional</span>
 <span style="color: #a5d6ff">    time period in hours via the "cache_hrs" keyword argument. In case of successful download,</span>
@@ -2753,6 +2801,7 @@ A negative value disables caching. Defaults to -1.</p>
 <span style="color: #a5d6ff">        &gt;&gt;&gt; filepath = await self.helpers.download("https://www.evilcorp.com/passwords.docx", cache_hrs=24)</span>
 <span style="color: #a5d6ff">    """</span>
     <span style="color: #e6edf3">success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+    <span style="color: #e6edf3">raise_error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"raise_error"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
     <span style="color: #e6edf3">filename</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"filename"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">parent_helper</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">cache_filename(url))</span>
     <span style="color: #e6edf3">filename</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">truncate_filename(Path(filename)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolve())</span>
     <span style="color: #e6edf3">kwargs[</span><span style="color: #a5d6ff">"filename"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">filename</span>
@@ -2765,7 +2814,16 @@ A negative value disables caching. Defaults to -1.</p>
         <span style="color: #e6edf3">log</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">debug(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"{</span><span style="color: #e6edf3">url</span><span style="color: #a5d6ff">} is cached at {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">parent_helper</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">cache_filename(url)</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
         <span style="color: #e6edf3">success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
     <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
-        <span style="color: #e6edf3">success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"download"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">url,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+        <span style="color: #e6edf3">result</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"download"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">url,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(result,</span> <span style="color: #e6edf3">dict)</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #a5d6ff">"_download_error"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">result:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">raise_error:</span>
+                <span style="color: #e6edf3">error_msg</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">result[</span><span style="color: #a5d6ff">"_download_error"</span><span style="color: #e6edf3">]</span>
+                <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">result[</span><span style="color: #a5d6ff">"_response"</span><span style="color: #e6edf3">]</span>
+                <span style="color: #e6edf3">error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">ERROR_CLASS(error_msg)</span>
+                <span style="color: #e6edf3">error</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">response</span>
+                <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">error</span>
+        <span style="color: #ff7b72">elif</span> <span style="color: #e6edf3">result:</span>
+            <span style="color: #e6edf3">success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
 
     <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">success:</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">filename</span>
@@ -2814,26 +2872,7 @@ fields, it returns True.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">512</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">513</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">514</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">515</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">516</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">517</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">518</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">519</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">520</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">521</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">522</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">523</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">524</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">525</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">526</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">527</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">528</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">529</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">530</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">531</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">531</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">532</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">533</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">534</span>
@@ -2856,7 +2895,26 @@ fields, it returns True.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">551</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">552</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">553</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">554</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_login_page</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">html):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">554</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">555</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">556</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">557</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">558</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">559</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">560</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">561</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">562</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">563</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">564</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">565</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">566</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">567</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">568</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">569</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">570</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">571</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">572</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">573</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">is_login_page</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">html):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    TODO: convert this into an excavate YARA rule</span>
 
@@ -3138,7 +3196,16 @@ meaning you can override the scan's values if you want.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">121</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">122</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">123</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">124</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">request</span><span style="color: #e6edf3">(self,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">124</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">125</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">126</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">127</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">128</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">129</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">130</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">131</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">132</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">133</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">request</span><span style="color: #e6edf3">(self,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Asynchronous function for making HTTP requests, intended to be the most basic web request function</span>
 <span style="color: #a5d6ff">    used widely across BBOT and within this helper class. Handles various exceptions and timeouts</span>
@@ -3182,7 +3249,16 @@ meaning you can override the scan's values if you want.</p>
 <span style="color: #a5d6ff">    Note:</span>
 <span style="color: #a5d6ff">        If the web request fails, it will return None unless `raise_error` is `True`.</span>
 <span style="color: #a5d6ff">    """</span>
-    <span style="color: #ff7b72">return</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"request"</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+    <span style="color: #e6edf3">raise_error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">get(</span><span style="color: #a5d6ff">"raise_error"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">False</span><span style="color: #e6edf3">)</span>
+    <span style="color: #e6edf3">result</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_and_return(</span><span style="color: #a5d6ff">"request"</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">isinstance(result,</span> <span style="color: #e6edf3">dict)</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #a5d6ff">"_request_error"</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">result:</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">raise_error:</span>
+            <span style="color: #e6edf3">error_msg</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">result[</span><span style="color: #a5d6ff">"_request_error"</span><span style="color: #e6edf3">]</span>
+            <span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">result[</span><span style="color: #a5d6ff">"_response"</span><span style="color: #e6edf3">]</span>
+            <span style="color: #e6edf3">error</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">ERROR_CLASS(error_msg)</span>
+            <span style="color: #e6edf3">error</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">response</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">response</span>
+            <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">error</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">result</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -3230,16 +3306,7 @@ meaning you can override the scan's values if you want.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">126</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">127</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">128</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">129</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">130</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">131</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">132</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">133</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">134</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">135</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">135</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">136</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">137</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">138</span>
@@ -3250,7 +3317,16 @@ meaning you can override the scan's values if you want.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">143</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">144</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">145</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">146</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">request_batch</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">urls,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">146</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">147</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">148</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">149</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">150</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">151</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">152</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">153</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">154</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">155</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">request_batch</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">urls,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Given a list of URLs, request them in parallel and yield responses as they come in.</span>
 
@@ -3313,16 +3389,7 @@ help correlate requests, etc.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">148</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">149</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">150</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">151</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">152</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">153</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">154</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">155</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">156</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">157</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">157</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">158</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">159</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">160</span>
@@ -3341,7 +3408,16 @@ help correlate requests, etc.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">173</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">174</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">175</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">176</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">request_custom_batch</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">urls_and_kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">176</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">177</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">178</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">179</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">180</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">181</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">182</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">183</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">184</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">185</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">request_custom_batch</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">urls_and_kwargs):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Make web requests in parallel with custom options for each request. Yield responses as they come in.</span>
 
@@ -3384,26 +3460,7 @@ help correlate requests, etc.</p>
 <p>Convert web response to JSON object, similar to the output of <code>httpx -irr -json</code></p>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">556</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">557</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">558</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">559</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">560</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">561</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">562</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">563</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">564</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">565</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">566</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">567</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">568</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">569</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">570</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">571</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">572</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">573</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">574</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">575</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">575</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">576</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">577</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">578</span>
@@ -3437,7 +3494,26 @@ help correlate requests, etc.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">606</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">607</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">608</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">609</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">response_to_json</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">response):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">609</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">610</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">611</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">612</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">613</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">614</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">615</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">616</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">617</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">618</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">619</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">620</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">621</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">622</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">623</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">624</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">625</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">626</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">627</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">628</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">response_to_json</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">response):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Convert web response to JSON object, similar to the output of `httpx -irr -json`</span>
 <span style="color: #a5d6ff">    """</span>
@@ -3574,26 +3650,7 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">219</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">220</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">221</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">222</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">223</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">224</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">225</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">226</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">227</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">228</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">229</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">230</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">231</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">232</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">233</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">234</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">235</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">236</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">237</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">238</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">238</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">239</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">240</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">241</span>
@@ -3625,7 +3682,26 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">267</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">268</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">269</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">270</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">wordlist</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">path,</span> <span style="color: #e6edf3">lines</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">270</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">271</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">272</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">273</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">274</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">275</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">276</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">277</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">278</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">279</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">280</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">281</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">282</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">283</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">284</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">285</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">286</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">287</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">288</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">289</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">wordlist</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">path,</span> <span style="color: #e6edf3">lines</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Asynchronous function for retrieving wordlists, either from a local path or a URL.</span>
 <span style="color: #a5d6ff">    Allows for optional line-based truncation and caching. Returns the full path of the wordlist</span>
