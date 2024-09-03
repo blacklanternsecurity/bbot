@@ -2,8 +2,8 @@ from bbot.modules.base import BaseModule
 
 
 class burpsuite(BaseModule):
-    watched_events = ["DNS_NAME", "URL", "URL_UNVERIFIED"]  # watch for DNS_NAME events
-    produced_events = ["SITEMAP"]  # we produce WHOIS events
+    watched_events = ["DNS_NAME", "URL", "URL_UNVERIFIED"]  
+    produced_events = ["SITEMAP"]  
     flags = ["passive", "safe"]
 
     meta = {
@@ -46,7 +46,7 @@ class burpsuite(BaseModule):
         self.hugesuccess(f"Got {event} (event.data: {event.data})")
         # option to enforce TLS?
         url = f"https://{event.host}"
-        #print(f"{event.host}")
+        # print(f"{event.host}")
         print(self.options["proxyaddr"])
         command = [
             "proxychains",
