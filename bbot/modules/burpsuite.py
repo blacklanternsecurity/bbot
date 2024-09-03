@@ -1,8 +1,9 @@
 from bbot.modules.base import BaseModule
 
+
 class burpsuite(BaseModule):
-    watched_events = ["DNS_NAME","URL","URL_UNVERIFIED"] # watch for DNS_NAME events
-    produced_events = ["SITEMAP"] # we produce WHOIS events
+    watched_events = ["DNS_NAME", "URL", "URL_UNVERIFIED"]  # watch for DNS_NAME events
+    produced_events = ["SITEMAP"]  # we produce WHOIS events
     flags = ["passive", "safe"]
 
     meta = {
@@ -11,18 +12,19 @@ class burpsuite(BaseModule):
         "author": "@jackpas23",
     }
     options = {
-        "proxyaddr" : "127.0.0.1",
-        "proxyport" : "8080",
-        "requesttag": "X-BBOT-Identifier: bbot generated request"
+        "proxyaddr": "127.0.0.1",
+        "proxyport": "8080",
+        "requesttag": "X-BBOT-Identifier: bbot generated request",
     }
 
     options_desc = {
         "proxyaddr": "Specify specfic proxy address, default is Burpsuite(127.0.0.1)",
         "proxyport": "Specify specfic proxy port, default is Burpsuite(8080)",
-        "requesttag": "Request identifier to find bbot generated findings"
+        "requesttag": "Request identifier to find bbot generated findings",
     }
 
     deps_apt = ["proxychains4"]
+
     # one-time setup - runs at the beginning of the scan
     async def setup(self):
         config = (
@@ -35,18 +37,28 @@ class burpsuite(BaseModule):
             f"http\t{self.options['proxyaddr']}\t{self.options['proxyport']}"
         )
         print(f"Proxy configuration: {config}")
-        f = open("proxychains.conf","w")
+        f = open("proxychains.conf", "w")
         f.write(config)
         f.close
         return True
 
     async def handle_event(self, event):
         self.hugesuccess(f"Got {event} (event.data: {event.data})")
-        #option to enforce TLS?
-        url=f"https://{event.host}"
-        print(f"{event.host}")
+        # option to enforce TLS?
+        url = f"https://{event.host}"
+        #print(f"{event.host}")
         print(self.options["proxyaddr"])
-        command = ["proxychains", "-f", "proxychains.conf", "curl", "-H", self.options["requesttag"], "--max-time", "3", url]
+        command = [
+            "proxychains",
+            "-f",
+            "proxychains.conf",
+            "curl",
+            "-H",
+            self.options["requesttag"],
+            "--max-time",
+            "3",
+            url,
+        ]
         self.hugeinfo("Running proxychains with curl command...")
         result = await self.run_process(command)
         self.hugeinfo(f"{result}")
