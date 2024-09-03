@@ -15,7 +15,7 @@ class Teams(WebhookOutputModule):
         "min_severity": "Only allow VULNERABILITY events of this severity or higher",
     }
     _module_threads = 5
-    good_status_code = 200
+    good_status_code = 202
     adaptive_card = {
         "type": "message",
         "attachments": [
@@ -26,6 +26,7 @@ class Teams(WebhookOutputModule):
                     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                     "type": "AdaptiveCard",
                     "version": "1.2",
+                    "msteams": {"width": "full"},
                     "body": [],
                 },
             }
@@ -70,8 +71,9 @@ class Teams(WebhookOutputModule):
     def format_message_other(self, event):
         items = [{"type": "FactSet", "facts": []}]
         for key, value in event.data.items():
-            msg = self.trim_message(str(value))
-            items[0]["facts"].append({"title": f"{key}:", "value": msg})
+            if key != "severity":
+                msg = self.trim_message(str(value))
+                items[0]["facts"].append({"title": f"{key}:", "value": msg})
         return items
 
     def get_severity_color(self, event):
@@ -89,7 +91,7 @@ class Teams(WebhookOutputModule):
         return color
 
     def format_message(self, adaptive_card, event):
-        heading = {"type": "TextBlock", "text": f"{event.type}", "wrap": True, "style": "heading"}
+        heading = {"type": "TextBlock", "text": f"{event.type}", "wrap": True, "size": "Large", "style": "heading"}
         body = adaptive_card["attachments"][0]["content"]["body"]
         body.append(heading)
         if event.type in ("VULNERABILITY", "FINDING"):
@@ -101,6 +103,7 @@ class Teams(WebhookOutputModule):
                 "wrap": True,
             }
             subheading["color"] = self.get_severity_color(event)
+            body.append(subheading)
         main_text = {
             "type": "ColumnSet",
             "separator": True,
@@ -120,7 +123,3 @@ class Teams(WebhookOutputModule):
         main_text["columns"][0]["items"] = items
         body.append(main_text)
         return adaptive_card
-
-    def evaluate_response(self, response):
-        text = getattr(response, "text", "")
-        return text == "1"

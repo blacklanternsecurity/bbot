@@ -20,9 +20,6 @@ class TestTeams(DiscordBase):
                     text="Webhook message delivery failed with error: Microsoft Teams endpoint returned HTTP error 429 with ContextId tcid=0,server=msgapi-production-eus-azsc2-4-170,cv=deadbeef=2..",
                 )
             else:
-                return httpx.Response(
-                    status_code=200,
-                    text="1",
-                )
+                return httpx.Response(status_code=202)
 
         module_test.httpx_mock.add_callback(custom_response, url=self.webhook_url)
