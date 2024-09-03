@@ -1,5 +1,8 @@
 name: Version Updater
 on:
+  push:
+    branches:
+      - troubleshoot-version-updater
   schedule:
     # Runs at 00:00 every day
     - cron: '0 0 * * *'
@@ -9,10 +12,11 @@ jobs:
   update-nuclei-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: dev
           fetch-depth: 0
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -54,16 +58,15 @@ jobs:
             # Release notes:
             ${{ env.release_notes }}
           branch: "update-nuclei"
-          committer: GitHub <noreply@github.com>
-          author: GitHub <noreply@github.com>
           assignees: "TheTechromancer"
   update-trufflehog-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: dev
           fetch-depth: 0
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -105,6 +108,4 @@ jobs:
             # Release notes:
             ${{ env.release_notes }}
           branch: "update-trufflehog"
-          committer: GitHub <noreply@github.com>
-          author: GitHub <noreply@github.com>
           assignees: "TheTechromancer"
