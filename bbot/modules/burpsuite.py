@@ -18,7 +18,8 @@ class burpsuite(BaseModule):
 
     options_desc = {
         "proxyaddr": "Specify specfic proxy address, default is Burpsuite(127.0.0.1)",
-        "proxyport": "Specify specfic proxy port, default is Burpsuite(8080)"
+        "proxyport": "Specify specfic proxy port, default is Burpsuite(8080)",
+        "requesttag": "Request identifier to find bbot generated findings"
     }
 
     deps_apt = ["proxychains4"]
