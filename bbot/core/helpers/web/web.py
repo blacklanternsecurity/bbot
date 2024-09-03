@@ -121,7 +121,16 @@ class WebHelper(EngineClient):
         Note:
             If the web request fails, it will return None unless `raise_error` is `True`.
         """
-        return await self.run_and_return("request", *args, **kwargs)
+        raise_error = kwargs.get("raise_error", False)
+        result = await self.run_and_return("request", *args, **kwargs)
+        if isinstance(result, dict) and "_request_error" in result:
+            if raise_error:
+                error_msg = result["_request_error"]
+                response = result["_response"]
+                error = self.ERROR_CLASS(error_msg)
+                error.response = response
+                raise error
+        return result
 
     async def request_batch(self, urls, *args, **kwargs):
         """
@@ -199,6 +208,7 @@ class WebHelper(EngineClient):
             >>> filepath = await self.helpers.download("https://www.evilcorp.com/passwords.docx", cache_hrs=24)
         """
         success = False
+        raise_error = kwargs.get("raise_error", False)
         filename = kwargs.pop("filename", self.parent_helper.cache_filename(url))
         filename = truncate_filename(Path(filename).resolve())
         kwargs["filename"] = filename
@@ -211,7 +221,16 @@ class WebHelper(EngineClient):
             log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
             success = True
         else:
-            success = await self.run_and_return("download", url, **kwargs)
+            result = await self.run_and_return("download", url, **kwargs)
+            if isinstance(result, dict) and "_download_error" in result:
+                if raise_error:
+                    error_msg = result["_download_error"]
+                    response = result["_response"]
+                    error = self.ERROR_CLASS(error_msg)
+                    error.response = response
+                    raise error
+            elif result:
+                success = True
 
         if success:
             return filename
