@@ -91,7 +91,7 @@ class speculate(BaseInternalModule):
 
         # parent domains
         if event.type.startswith("DNS_NAME"):
-            parent = self.helpers.parent_domain(event.data)
+            parent = self.helpers.parent_domain(event.host_original)
             if parent != event.data:
                 await self.emit_event(
                     parent, "DNS_NAME", parent=event, context=f"speculated parent {{event.type}}: {{event.data}}"

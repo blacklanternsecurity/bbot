@@ -15,7 +15,7 @@ from werkzeug.wrappers import Request
 from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
 from bbot.scanner import Preset
-from bbot.core.helpers.misc import mkdir
+from bbot.core.helpers.misc import mkdir, rand_string
 from bbot.core.helpers.async_helpers import get_event_loop
 
 
@@ -31,6 +31,15 @@ DEFAULT_PRESET = Preset()
 available_modules = list(DEFAULT_PRESET.module_loader.configs(type="scan"))
 available_output_modules = list(DEFAULT_PRESET.module_loader.configs(type="output"))
 available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="internal"))
+
+
+def tempwordlist(content):
+    filename = bbot_test_dir / f"{rand_string(8)}"
+    with open(filename, "w", errors="ignore") as f:
+        for c in content:
+            line = f"{c}\n"
+            f.write(line)
+    return filename
 
 
 @pytest.fixture
