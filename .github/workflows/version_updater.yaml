@@ -8,6 +8,10 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch: # Adds the ability to manually trigger the workflow
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update-nuclei-version:
     runs-on: ubuntu-latest
