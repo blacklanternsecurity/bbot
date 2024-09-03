@@ -2,8 +2,8 @@ from bbot.modules.base import BaseModule
 
 
 class burpsuite(BaseModule):
-    watched_events = ["DNS_NAME", "URL", "URL_UNVERIFIED"]  
-    produced_events = ["SITEMAP"]  
+    watched_events = ["DNS_NAME", "URL", "URL_UNVERIFIED"]
+    produced_events = ["SITEMAP"]
     flags = ["passive", "safe"]
 
     meta = {
