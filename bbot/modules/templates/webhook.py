@@ -93,4 +93,4 @@ class WebhookOutputModule(BaseOutputModule):
         return msg
 
     def evaluate_response(self, response):
-        return response.is_success
+        return getattr(response, "is_success", False)
