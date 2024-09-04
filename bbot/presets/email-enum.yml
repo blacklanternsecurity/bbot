@@ -1,0 +1,7 @@
+description: Enumerate email addresses from APIs, web crawling, etc.
+
+flags:
+  - email-enum
+
+output_modules:
+  - emails

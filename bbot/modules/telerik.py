@@ -1,4 +1,3 @@
-import asyncio
 from sys import executable
 from urllib.parse import urlparse
 
@@ -161,17 +160,13 @@ class telerik(BaseModule):
         },
     ]
 
-    _max_event_handlers = 5
+    _module_threads = 5
 
     def _incoming_dedup_hash(self, event):
         if event.type == "URL":
             return hash(event.host)
         else:
             return hash(event.data["url"])
-
-    async def setup(self):
-        self.timeout = self.scan.config.get("httpx_timeout", 5)
-        return True
 
     async def handle_event(self, event):
         if event.type == "URL":
@@ -219,6 +214,7 @@ class telerik(BaseModule):
                         {"host": str(event.host), "url": f"{event.data}{webresource}", "description": description},
                         "FINDING",
                         event,
+                        context=f"{{module}} scanned {event.data} and identified {{event.type}}: Telerik RAU AXD Handler",
                     )
                     if self.config.get("exploit_RAU_crypto") == True:
                         hostname = urlparse(event.data).netloc
@@ -250,34 +246,29 @@ class telerik(BaseModule):
                                         },
                                         "VULNERABILITY",
                                         event,
+                                        context=f"{{module}} scanned {event.data} and identified critical {{event.type}}: {description}",
                                     )
                                     break
 
-            tasks = []
+            urls = {}
             for dh in self.DialogHandlerUrls:
-                tasks.append(self.helpers.create_task(self.test_detector(event.data, f"{dh}?dp=1")))
+                url = self.create_url(event.data, f"{dh}?dp=1")
+                urls[url] = dh
 
+            gen = self.helpers.request_batch(list(urls))
             fail_count = 0
-            gen = self.helpers.as_completed(tasks)
-            async for task in gen:
-                try:
-                    result, dh = await task
-                except asyncio.CancelledError:
-                    continue
-
+            async for url, response in gen:
                 # cancel if we run into timeouts etc.
-                if result is None:
+                if response is None:
                     fail_count += 1
 
                     # tolerate some random errors
                     if fail_count < 2:
                         continue
                     self.debug(f"Cancelling run against {event.data} due to failed request")
-                    await self.helpers.cancel_tasks(tasks)
                     await gen.aclose()
                 else:
-                    if "Cannot deserialize dialog parameters" in result.text:
-                        await self.helpers.cancel_tasks(tasks)
+                    if "Cannot deserialize dialog parameters" in response.text:
                         self.debug(f"Detected Telerik UI instance ({dh})")
                         description = f"Telerik DialogHandler detected"
                         await self.emit_event(
@@ -287,8 +278,6 @@ class telerik(BaseModule):
                         )
                         # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
                         await gen.aclose()
-
-            await self.helpers.cancel_tasks(tasks)
 
             spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
             result, _ = await self.test_detector(event.data, spellcheckhandler)
@@ -310,6 +299,7 @@ class telerik(BaseModule):
                         },
                         "FINDING",
                         event,
+                        context=f"{{module}} scanned {event.data} and identified {{event.type}}: Telerik SpellCheckHandler",
                     )
 
             chartimagehandler = "ChartImage.axd?ImageName=bqYXJAqm315eEd6b%2bY4%2bGqZpe7a1kY0e89gfXli%2bjFw%3d"
@@ -328,41 +318,49 @@ class telerik(BaseModule):
                         },
                         "FINDING",
                         event,
+                        context=f"{{module}} scanned {event.data} and identified {{event.type}}: Telerik ChartImage AXD Handler",
                     )
 
         elif event.type == "HTTP_RESPONSE":
             resp_body = event.data.get("body", None)
+            url = event.data["url"]
             if resp_body:
                 if '":{"SerializedParameters":"' in resp_body:
                     await self.emit_event(
                         {
                             "host": str(event.host),
-                            "url": event.data["url"],
+                            "url": url,
                             "description": "Telerik DialogHandler [SerializedParameters] Detected in HTTP Response",
                         },
                         "FINDING",
                         event,
+                        context=f"{{module}} searched HTTP_RESPONSE and identified {{event.type}}: Telerik ChartImage AXD Handler",
                     )
                 elif '"_serializedConfiguration":"' in resp_body:
                     await self.emit_event(
                         {
                             "host": str(event.host),
-                            "url": event.data["url"],
+                            "url": url,
                             "description": "Telerik AsyncUpload [serializedConfiguration] Detected in HTTP Response",
                         },
                         "FINDING",
                         event,
+                        context=f"{{module}} searched HTTP_RESPONSE and identified {{event.type}}: Telerik AsyncUpload",
                     )
 
         # Check for RAD Controls in URL
 
-    async def test_detector(self, baseurl, detector):
-        result = None
-        if "/" != baseurl[-1]:
+    def create_url(self, baseurl, detector):
+        if not baseurl.endswith("/"):
             url = f"{baseurl}/{detector}"
         else:
             url = f"{baseurl}{detector}"
-        result = await self.helpers.request(url, timeout=self.timeout)
+        return url
+
+    async def test_detector(self, baseurl, detector):
+        result = None
+        url = self.create_url(baseurl, detector)
+        result = await self.helpers.request(url, timeout=self.scan.httpx_timeout)
         return result, detector
 
     async def filter_event(self, event):

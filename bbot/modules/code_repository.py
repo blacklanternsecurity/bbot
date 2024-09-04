@@ -10,7 +10,7 @@ class code_repository(BaseModule):
         "created_date": "2024-05-15",
         "author": "@domwhewell-sage",
     }
-    flags = ["passive", "safe", "repo-enum"]
+    flags = ["passive", "safe", "code-enum"]
 
     # platform name : (regex, case_sensitive)
     code_repositories = {
@@ -42,11 +42,14 @@ class code_repository(BaseModule):
                     url = match.group()
                     if not case_sensitive:
                         url = url.lower()
+                    url = f"https://{url}"
                     repo_event = self.make_event(
-                        {"url": f"https://{url}"},
+                        {"url": url},
                         "CODE_REPOSITORY",
                         tags=platform,
-                        source=event,
+                        parent=event,
                     )
-                    repo_event.scope_distance = event.scope_distance
-                    await self.emit_event(repo_event)
+                    await self.emit_event(
+                        repo_event,
+                        context=f"{{module}} detected {platform} {{event.type}} at {url}",
+                    )

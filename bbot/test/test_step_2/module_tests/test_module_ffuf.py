@@ -49,7 +49,7 @@ class TestFFUFHeaders(TestFFUF):
     test_wordlist = ["11111111", "console", "junkword1", "zzzjunkword2"]
     config_overrides = {
         "modules": {"ffuf": {"wordlist": tempwordlist(test_wordlist), "extensions": "php"}},
-        "http_headers": {"test": "test2"},
+        "web": {"http_headers": {"test": "test2"}},
     }
 
     async def setup_before_prep(self, module_test):

@@ -8,7 +8,7 @@ from bbot.modules.base import BaseModule
 class docker_pull(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow"]
+    flags = ["passive", "safe", "slow", "code-enum"]
     meta = {
         "description": "Download images from a docker repository",
         "created_date": "2024-03-24",
@@ -57,10 +57,12 @@ class docker_pull(BaseModule):
                 {"path": str(repo_path), "description": f"Docker image repository: {repo_url}"},
                 "FILESYSTEM",
                 tags=["docker", "tarball"],
-                source=event,
+                parent=event,
             )
-            codebase_event.scope_distance = event.scope_distance
-            await self.emit_event(codebase_event)
+            if codebase_event:
+                await self.emit_event(
+                    codebase_event, context=f"{{module}} downloaded Docker image to {{event.type}}: {repo_path}"
+                )
 
     def get_registry_and_repository(self, repository_url):
         """Function to get the registry and repository from a html repository URL."""

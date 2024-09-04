@@ -18,6 +18,7 @@ class asn(BaseReportModule):
     async def setup(self):
         self.asn_counts = {}
         self.asn_cache = {}
+        self.ripe_cache = {}
         self.sources = ["bgpview", "ripe"]
         self.unknown_asn = {
             "asn": "UNKNOWN",
@@ -38,19 +39,31 @@ class asn(BaseReportModule):
     async def handle_event(self, event):
         host = event.host
         if self.cache_get(host) == False:
-            asns = await self.get_asn(host)
+            asns, source = await self.get_asn(host)
             if not asns:
                 self.cache_put(self.unknown_asn)
             else:
                 for asn in asns:
                     emails = asn.pop("emails", [])
                     self.cache_put(asn)
-                    asn_event = self.make_event(asn, "ASN", source=event)
+                    asn_event = self.make_event(asn, "ASN", parent=event)
+                    asn_number = asn.get("asn", "")
+                    asn_desc = asn.get("description", "")
+                    asn_name = asn.get("name", "")
+                    asn_subnet = asn.get("subnet", "")
                     if not asn_event:
                         continue
-                    await self.emit_event(asn_event)
+                    await self.emit_event(
+                        asn_event,
+                        context=f"{{module}} checked {event.data} against {source} API and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_desc}, {asn_subnet})",
+                    )
                     for email in emails:
-                        await self.emit_event(email, "EMAIL_ADDRESS", source=asn_event)
+                        await self.emit_event(
+                            email,
+                            "EMAIL_ADDRESS",
+                            parent=asn_event,
+                            context=f"{{module}} retrieved details for AS{asn_number} and found {{event.type}}: {{event.data}}",
+                        )
 
     async def report(self):
         asn_data = sorted(self.asn_cache.items(), key=lambda x: self.asn_counts[x[0]], reverse=True)
@@ -104,7 +117,7 @@ class asn(BaseReportModule):
                     self.sources.append(self.sources.pop(i))
                     self.verbose(f"Failed to contact {source}, retrying")
                     continue
-                return res
+                return res, source
         self.warning(f"Error retrieving ASN for {ip}")
         return [], ""
 
@@ -132,38 +145,42 @@ class asn(BaseReportModule):
         return asns
 
     async def get_asn_metadata_ripe(self, asn_number):
-        metadata_keys = {
-            "name": ["ASName", "OrgId"],
-            "description": ["OrgName", "OrgTechName", "RTechName"],
-            "country": ["Country"],
-        }
-        url = f"https://stat.ripe.net/data/whois/data.json?resource={asn_number}"
-        response = await self.get_url(url, "ASN Metadata", cache=True)
-        if response == False:
-            return False
-        data = response.get("data", {})
-        if not data:
-            data = {}
-        records = data.get("records", [])
-        if not records:
-            records = []
-        emails = set()
-        asn = {k: "" for k in metadata_keys.keys()}
-        for record in records:
-            for item in record:
-                key = item.get("key", "")
-                value = item.get("value", "")
-                for email in self.helpers.extract_emails(value):
-                    emails.add(email.lower())
-                if not key:
-                    continue
-                if value:
-                    for keyname, keyvals in metadata_keys.items():
-                        if key in keyvals and not asn.get(keyname, ""):
-                            asn[keyname] = value
-        asn["emails"] = list(emails)
-        asn["asn"] = str(asn_number)
-        return asn
+        try:
+            return self.ripe_cache[asn_number]
+        except KeyError:
+            metadata_keys = {
+                "name": ["ASName", "OrgId"],
+                "description": ["OrgName", "OrgTechName", "RTechName"],
+                "country": ["Country"],
+            }
+            url = f"https://stat.ripe.net/data/whois/data.json?resource={asn_number}"
+            response = await self.get_url(url, "ASN Metadata", cache=True)
+            if response == False:
+                return False
+            data = response.get("data", {})
+            if not data:
+                data = {}
+            records = data.get("records", [])
+            if not records:
+                records = []
+            emails = set()
+            asn = {k: "" for k in metadata_keys.keys()}
+            for record in records:
+                for item in record:
+                    key = item.get("key", "")
+                    value = item.get("value", "")
+                    for email in await self.helpers.re.extract_emails(value):
+                        emails.add(email.lower())
+                    if not key:
+                        continue
+                    if value:
+                        for keyname, keyvals in metadata_keys.items():
+                            if key in keyvals and not asn.get(keyname, ""):
+                                asn[keyname] = value
+            asn["emails"] = list(emails)
+            asn["asn"] = str(asn_number)
+            self.ripe_cache[asn_number] = asn
+            return asn
 
     async def get_asn_bgpview(self, ip):
         url = f"https://api.bgpview.io/ip/{ip}"

@@ -3,9 +3,9 @@ import asyncio
 import logging
 import traceback
 from signal import SIGINT
-from subprocess import CompletedProcess, CalledProcessError
+from subprocess import CompletedProcess, CalledProcessError, SubprocessError
 
-from .misc import smart_decode, smart_encode
+from .misc import smart_decode, smart_encode, which
 
 log = logging.getLogger("bbot.core.helpers.command")
 
@@ -38,6 +38,7 @@ async def run(self, *command, check=False, text=True, idle_timeout=None, **kwarg
     # proc_tracker optionally keeps track of which processes are running under which modules
     # this allows for graceful SIGINTing of a module's processes in the case when it's killed
     proc_tracker = kwargs.pop("_proc_tracker", set())
+    log_stderr = kwargs.pop("_log_stderr", True)
     proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         proc_tracker.add(proc)
@@ -66,7 +67,7 @@ async def run(self, *command, check=False, text=True, idle_timeout=None, **kwarg
             if proc.returncode:
                 if check:
                     raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
-                if stderr:
+                if stderr and log_stderr:
                     command_str = " ".join(command)
                     log.warning(f"Stderr for run({command_str}):\n\t{stderr}")
 
@@ -103,6 +104,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
     # proc_tracker optionally keeps track of which processes are running under which modules
     # this allows for graceful SIGINTing of a module's processes in the case when it's killed
     proc_tracker = kwargs.pop("_proc_tracker", set())
+    log_stderr = kwargs.pop("_log_stderr", True)
     proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         proc_tracker.add(proc)
@@ -151,7 +153,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                 if check:
                     raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
                 # surface stderr
-                if stderr:
+                if stderr and log_stderr:
                     command_str = " ".join(command)
                     log.warning(f"Stderr for run_live({command_str}):\n\t{stderr}")
         finally:
@@ -180,7 +182,11 @@ async def _spawn_proc(self, *command, **kwargs):
         >>> _spawn_proc("ls", "-l", input="data")
         (<Process ...>, "data", ["ls", "-l"])
     """
-    command, kwargs = self._prepare_command_kwargs(command, kwargs)
+    try:
+        command, kwargs = self._prepare_command_kwargs(command, kwargs)
+    except SubprocessError as e:
+        log.warning(e)
+        return None, None, None
     _input = kwargs.pop("input", None)
     if _input is not None:
         if kwargs.get("stdin") is not None:
@@ -201,11 +207,13 @@ async def _write_proc_line(proc, chunk):
     try:
         proc.stdin.write(smart_encode(chunk) + b"\n")
         await proc.stdin.drain()
+        return True
     except Exception as e:
         proc_args = [str(s) for s in getattr(proc, "args", [])]
         command = " ".join(proc_args)
         log.warning(f"Error writing line to stdin for command: {command}: {e}")
         log.trace(traceback.format_exc())
+        return False
 
 
 async def _write_stdin(proc, _input):
@@ -225,10 +233,14 @@ async def _write_stdin(proc, _input):
             _input = [_input]
         if isinstance(_input, (list, tuple)):
             for chunk in _input:
-                await _write_proc_line(proc, chunk)
+                write_result = await _write_proc_line(proc, chunk)
+                if not write_result:
+                    break
         else:
             async for chunk in _input:
-                await _write_proc_line(proc, chunk)
+                write_result = await _write_proc_line(proc, chunk)
+                if not write_result:
+                    break
         proc.stdin.close()
 
 
@@ -268,11 +280,22 @@ def _prepare_command_kwargs(self, command, kwargs):
         command = command[0]
     command = [str(s) for s in command]
 
+    if not command:
+        raise SubprocessError("Must specify a command")
+
+    # use full path of binary, if not already specified
+    binary = command[0]
+    if not "/" in binary:
+        binary_full_path = which(binary)
+        if binary_full_path is None:
+            raise SubprocessError(f'Command "{binary}" was not found')
+        command[0] = binary_full_path
+
     env = kwargs.get("env", os.environ)
     if sudo and os.geteuid() != 0:
         self.depsinstaller.ensure_root()
         env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
-        env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
+        env["BBOT_SUDO_PASS"] = self.depsinstaller.encrypted_sudo_pw
         kwargs["env"] = env
 
         PATH = os.environ.get("PATH", "")

@@ -10,12 +10,11 @@ from pathlib import Path
 from threading import Lock
 from itertools import chain
 from contextlib import suppress
+from secrets import token_bytes
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
-from bbot.core import configurator
-from bbot.modules import module_loader
-from ..misc import can_sudo_without_password, os_platform
+from ..misc import can_sudo_without_password, os_platform, rm_at_exit
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -23,19 +22,21 @@ log = logging.getLogger("bbot.core.helpers.depsinstaller")
 class DepsInstaller:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
+        self.preset = self.parent_helper.preset
+        self.core = self.preset.core
 
         # respect BBOT's http timeout
-        http_timeout = self.parent_helper.config.get("http_timeout", 30)
+        self.web_config = self.parent_helper.config.get("web", {})
+        http_timeout = self.web_config.get("http_timeout", 30)
         os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
 
+        # cache encrypted sudo pass
         self.askpass_filename = "sudo_askpass.py"
+        self._sudo_password = None
+        self._sudo_cache_setup = False
+        self._setup_sudo_cache()
         self._installed_sudo_askpass = False
-        self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
-        if self._sudo_password is None:
-            if configurator.bbot_sudo_pass is not None:
-                self._sudo_password = configurator.bbot_sudo_pass
-            elif can_sudo_without_password():
-                self._sudo_password = ""
+
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.parent_helper.mkdir(self.data_dir)
         self.setup_status_cache = self.data_dir / "setup_status.json"
@@ -43,16 +44,11 @@ class DepsInstaller:
         self.parent_helper.mkdir(self.command_status)
         self.setup_status = self.read_setup_status()
 
-        self.no_deps = self.parent_helper.config.get("no_deps", False)
-        self.ansible_debug = True
-        self.force_deps = self.parent_helper.config.get("force_deps", False)
-        self.retry_deps = self.parent_helper.config.get("retry_deps", False)
-        self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
+        self.deps_behavior = self.parent_helper.config.get("deps_behavior", "abort_on_failure").lower()
+        self.ansible_debug = self.core.logger.log_level <= logging.DEBUG
         self.venv = ""
         if sys.prefix != sys.base_prefix:
             self.venv = sys.prefix
-
-        self.all_modules_preloaded = module_loader.preloaded()
 
         self.ensure_root_lock = Lock()
 
@@ -64,7 +60,7 @@ class DepsInstaller:
             notified = False
             for m in modules:
                 # assume success if we're ignoring dependencies
-                if self.no_deps:
+                if self.deps_behavior == "disable":
                     succeeded.append(m)
                     continue
                 # abort if module name is unknown
@@ -73,6 +69,7 @@ class DepsInstaller:
                     failed.append(m)
                     continue
                 preloaded = self.all_modules_preloaded[m]
+                log.debug(f"Installing {m} - Preloaded Deps {preloaded['deps']}")
                 # make a hash of the dependencies and check if it's already been handled
                 # take into consideration whether the venv or bbot home directory changes
                 module_hash = self.parent_helper.sha1(
@@ -84,11 +81,15 @@ class DepsInstaller:
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
                 if len(dependencies) <= 0:
-                    log.debug(f'No setup to do for module "{m}"')
+                    log.debug(f'No dependency work to do for module "{m}"')
                     succeeded.append(m)
                     continue
                 else:
-                    if success is None or (success is False and self.retry_deps) or self.force_deps:
+                    if (
+                        success is None
+                        or (success is False and self.deps_behavior == "retry_failed")
+                        or self.deps_behavior == "force_install"
+                    ):
                         if not notified:
                             log.hugeinfo(f"Installing module dependencies. Please be patient, this may take a while.")
                             notified = True
@@ -98,14 +99,14 @@ class DepsInstaller:
                             self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
                         success = await self.install_module(m)
                         self.setup_status[module_hash] = success
-                        if success or self.ignore_failed_deps:
+                        if success or self.deps_behavior == "ignore_failed":
                             log.debug(f'Setup succeeded for module "{m}"')
                             succeeded.append(m)
                         else:
                             log.warning(f'Setup failed for module "{m}"')
                             failed.append(m)
                     else:
-                        if success or self.ignore_failed_deps:
+                        if success or self.deps_behavior == "ignore_failed":
                             log.debug(
                                 f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
                             )
@@ -147,6 +148,20 @@ class DepsInstaller:
         deps_pip_constraints = preloaded["deps"]["pip_constraints"]
         if deps_pip:
             success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
+
+        # shared/common
+        deps_common = preloaded["deps"]["common"]
+        if deps_common:
+            for dep_common in deps_common:
+                if self.setup_status.get(dep_common, False) == True:
+                    log.debug(
+                        f'Skipping installation of dependency "{dep_common}" for module "{module}" since it is already installed'
+                    )
+                    continue
+                ansible_tasks = self.preset.module_loader._shared_deps[dep_common]
+                result = self.tasks(module, ansible_tasks)
+                self.setup_status[dep_common] = result
+                success &= result
 
         return success
 
@@ -299,20 +314,27 @@ class DepsInstaller:
 
     def ensure_root(self, message=""):
         self._install_sudo_askpass()
+        # skip if we've already done this
+        if self._sudo_password is not None:
+            return
         with self.ensure_root_lock:
-            if os.geteuid() != 0 and self._sudo_password is None:
-                if message:
-                    log.warning(message)
-                while not self._sudo_password:
-                    # sleep for a split second to flush previous log messages
-                    sleep(0.1)
-                    password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
-                    if self.parent_helper.verify_sudo_password(password):
-                        log.success("Authentication successful")
-                        self._sudo_password = password
-                        configurator.bbot_sudo_pass = password
-                    else:
-                        log.warning("Incorrect password")
+            # first check if the environment variable is set
+            _sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
+            if _sudo_password is not None or os.geteuid() == 0 or can_sudo_without_password():
+                # if we're already root or we can sudo without a password, there's no need to prompt
+                return
+
+            if message:
+                log.warning(message)
+            while not self._sudo_password:
+                # sleep for a split second to flush previous log messages
+                sleep(0.1)
+                _sudo_password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+                if self.parent_helper.verify_sudo_password(_sudo_password):
+                    log.success("Authentication successful")
+                    self._sudo_password = _sudo_password
+                else:
+                    log.warning("Incorrect password")
 
     def install_core_deps(self):
         to_install = set()
@@ -328,6 +350,38 @@ class DepsInstaller:
             self.ensure_root()
             self.apt_install(list(to_install))
 
+    def _setup_sudo_cache(self):
+        if not self._sudo_cache_setup:
+            self._sudo_cache_setup = True
+            # write temporary encryption key, to be deleted upon scan completion
+            self._sudo_temp_keyfile = self.parent_helper.temp_filename()
+            # remove it at exit
+            rm_at_exit(self._sudo_temp_keyfile)
+            # generate random 32-byte key
+            random_key = token_bytes(32)
+            # write key to file and set secure permissions
+            self._sudo_temp_keyfile.write_bytes(random_key)
+            self._sudo_temp_keyfile.chmod(0o600)
+            # export path to environment variable, for use in askpass script
+            os.environ["BBOT_SUDO_KEYFILE"] = str(self._sudo_temp_keyfile.resolve())
+
+    @property
+    def encrypted_sudo_pw(self):
+        if self._sudo_password is None:
+            return ""
+        return self._encrypt_sudo_pw(self._sudo_password)
+
+    def _encrypt_sudo_pw(self, pw):
+        from Crypto.Cipher import AES
+        from Crypto.Util.Padding import pad
+
+        key = self._sudo_temp_keyfile.read_bytes()
+        cipher = AES.new(key, AES.MODE_CBC)
+        ct_bytes = cipher.encrypt(pad(pw.encode(), AES.block_size))
+        iv = cipher.iv.hex()
+        ct = ct_bytes.hex()
+        return f"{iv}:{ct}"
+
     def _install_sudo_askpass(self):
         if not self._installed_sudo_askpass:
             self._installed_sudo_askpass = True
@@ -336,3 +390,7 @@ class DepsInstaller:
             askpass_dst = self.parent_helper.tools_dir / self.askpass_filename
             shutil.copy(askpass_src, askpass_dst)
             askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)
+
+    @property
+    def all_modules_preloaded(self):
+        return self.preset.module_loader.preloaded()

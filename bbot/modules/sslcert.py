@@ -2,15 +2,16 @@ import asyncio
 from OpenSSL import crypto
 from contextlib import suppress
 
+from bbot.errors import ValidationError
 from bbot.modules.base import BaseModule
-from bbot.core.errors import ValidationError
 from bbot.core.helpers.async_helpers import NamedLock
+from bbot.core.helpers.web.ssl_context import ssl_context_noverify
 
 
 class sslcert(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS"]
-    flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic", "web-thorough"]
+    flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic"]
     meta = {
         "description": "Visit open ports and retrieve SSL certificates",
         "created_date": "2022-03-30",
@@ -20,7 +21,7 @@ class sslcert(BaseModule):
     options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
     deps_apt = ["openssl"]
     deps_pip = ["pyOpenSSL~=24.0.0"]
-    _max_event_handlers = 25
+    _module_threads = 25
     scope_distance_modifier = 1
     _priority = 2
 
@@ -31,7 +32,7 @@ class sslcert(BaseModule):
 
         # sometimes we run into a server with A LOT of SANs
         # these are usually stupid and useless, so we abort based on a different threshold
-        # depending on whether the source event is in scope
+        # depending on whether the parent event is in scope
         self.in_scope_abort_threshold = 50
         self.out_of_scope_abort_threshold = 10
 
@@ -79,16 +80,25 @@ class sslcert(BaseModule):
                     if event_data is not None and event_data != event:
                         self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
                         try:
-                            ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
+                            ssl_event = self.make_event(event_data, event_type, parent=event, raise_error=True)
+                            parent_event = ssl_event.get_parent()
+                            if parent_event.scope_distance == 0:
+                                tags = ["affiliate"]
+                            else:
+                                tags = None
                             if ssl_event:
-                                await self.emit_event(ssl_event, on_success_callback=self.on_success_callback)
+                                await self.emit_event(
+                                    ssl_event,
+                                    tags=tags,
+                                    context=f"{{module}} parsed SSL certificate at {event.data} and found {{event.type}}: {{event.data}}",
+                                )
                         except ValidationError as e:
                             self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")
 
     def on_success_callback(self, event):
-        source_scope_distance = event.get_source().scope_distance
-        if source_scope_distance == 0 and event.scope_distance > 0:
+        parent_scope_distance = event.get_parent().scope_distance
+        if parent_scope_distance == 0 and event.scope_distance > 0:
             event.add_tag("affiliate")
 
     async def visit_host(self, host, port):
@@ -106,17 +116,12 @@ class sslcert(BaseModule):
 
             host = str(host)
 
-            # Create an SSL context
-            try:
-                ssl_context = self.helpers.ssl_context_noverify()
-            except Exception as e:
-                self.warning(f"Error creating SSL context: {e}")
-                return [], [], (host, port)
-
             # Connect to the host
             try:
                 transport, _ = await asyncio.wait_for(
-                    self.scan._loop.create_connection(lambda: asyncio.Protocol(), host, port, ssl=ssl_context),
+                    self.helpers.loop.create_connection(
+                        lambda: asyncio.Protocol(), host, port, ssl=ssl_context_noverify
+                    ),
                     timeout=self.timeout,
                 )
             except asyncio.TimeoutError:

@@ -23,7 +23,13 @@ class sitedossier(subdomain_enum):
                 self.verbose(e)
                 continue
             if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
-                await self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
+                await self.emit_event(
+                    hostname,
+                    "DNS_NAME",
+                    event,
+                    abort_if=self.abort_if,
+                    context=f'{{module}} searched sitedossier.com for "{query}" and found {{event.type}}: {{event.data}}',
+                )
 
     async def query(self, query, parse_fn=None, request_fn=None):
         results = set()
@@ -40,12 +46,11 @@ class sitedossier(subdomain_enum):
             if response.status_code == 302:
                 self.verbose("Hit rate limit captcha")
                 break
-            for regex in self.scan.dns_regexes:
-                for match in regex.finditer(response.text):
-                    hostname = match.group().lower()
-                    if hostname and hostname not in results:
-                        results.add(hostname)
-                        yield hostname
+            for match in await self.helpers.re.finditer_multi(self.scan.dns_regexes, response.text):
+                hostname = match.group().lower()
+                if hostname and hostname not in results:
+                    results.add(hostname)
+                    yield hostname
             if '<a href="/parentdomain/' not in response.text:
                 self.debug(f"Next page not found")
                 break

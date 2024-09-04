@@ -39,7 +39,7 @@ dehashed_domain_response = {
 class TestDehashed(ModuleTestBase):
     modules_overrides = ["dehashed", "speculate"]
     config_overrides = {
-        "scope_report_distance": 2,
+        "scope": {"report_distance": 2},
         "modules": {"dehashed": {"username": "admin", "api_key": "deadbeef"}},
     }
 
@@ -48,7 +48,7 @@ class TestDehashed(ModuleTestBase):
             url=f"https://api.dehashed.com/search?query=domain:blacklanternsecurity.com&size=10000&page=1",
             json=dehashed_domain_response,
         )
-        module_test.mock_dns(
+        await module_test.mock_dns(
             {
                 "bob.com": {"A": ["127.0.0.1"]},
                 "blacklanternsecurity.com": {"A": ["127.0.0.1"]},
@@ -83,7 +83,7 @@ class TestDehashed(ModuleTestBase):
                 for e in events
                 if e.type == "USERNAME"
                 and e.data == "bob@blacklanternsecurity.com:bob@bob.com"
-                and e.source.data == "bob@blacklanternsecurity.com"
+                and e.parent.data == "bob@blacklanternsecurity.com"
             ]
         )
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "tim@blacklanternsecurity.com"])

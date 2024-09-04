@@ -7,7 +7,7 @@ class binaryedge(subdomain_enum_apikey):
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {
         "description": "Query the BinaryEdge API",
-        "created_date": "2024-08-18",
+        "created_date": "2022-08-17",
         "author": "@TheTechromancer",
         "auth_required": True,
     }

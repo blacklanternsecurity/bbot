@@ -1,10 +1,11 @@
 from bbot.modules.templates.github import github
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class github_codesearch(github):
+class github_codesearch(github, subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["CODE_REPOSITORY", "URL_UNVERIFIED"]
-    flags = ["passive", "subdomain-enum", "safe"]
+    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
     meta = {
         "description": "Query Github's API for code containing the target domain name",
         "created_date": "2023-12-14",
@@ -23,16 +24,20 @@ class github_codesearch(github):
     async def handle_event(self, event):
         query = self.make_query(event)
         for repo_url, raw_urls in (await self.query(query)).items():
-            repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", source=event)
+            repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", parent=event)
             if repo_event is None:
                 continue
-            await self.emit_event(repo_event)
+            await self.emit_event(
+                repo_event,
+                context=f'{{module}} searched github.com for "{query}" and found {{event.type}} with matching content at {repo_url}',
+            )
             for raw_url in raw_urls:
-                url_event = self.make_event(raw_url, "URL_UNVERIFIED", source=repo_event, tags=["httpx-safe"])
+                url_event = self.make_event(raw_url, "URL_UNVERIFIED", parent=repo_event, tags=["httpx-safe"])
                 if not url_event:
                     continue
-                url_event.scope_distance = repo_event.scope_distance
-                await self.emit_event(url_event)
+                await self.emit_event(
+                    url_event, context=f'file matching query "{query}" is at {{event.type}}: {raw_url}'
+                )
 
     async def query(self, query):
         repos = {}

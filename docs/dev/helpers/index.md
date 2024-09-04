@@ -18,7 +18,7 @@ class MyModule(BaseModule):
             self.hugesuccess(str(ip))
 
         # Execute shell command
-        completed_process = self.run_process("ls", "-l")
+        completed_process = await self.run_process("ls", "-l")
         self.hugesuccess(completed_process.stdout)
 
         # Split a DNS name into subdomain / domain

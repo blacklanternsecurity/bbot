@@ -4,9 +4,6 @@ from .base import BaseModule
 
 import asyncio
 import logging
-from bbot.core.logger.logger import include_logger
-
-include_logger(logging.getLogger("baddns"))
 
 
 class baddns(BaseModule):
@@ -18,22 +15,29 @@ class baddns(BaseModule):
         "created_date": "2024-01-18",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "only_high_confidence": False}
+    options = {"custom_nameservers": [], "only_high_confidence": False, "enable_references": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "only_high_confidence": "Do not emit low-confidence or generic detections",
+        "enable_references": "Enable the references module (off by default)",
     }
-    max_event_handlers = 8
-    deps_pip = ["baddns~=1.1.789"]
+    module_threads = 8
+    deps_pip = ["baddns~=1.1.815"]
 
     def select_modules(self):
+
+        module_list = ["CNAME", "NS", "MX", "TXT"]
+        if self.config.get("enable_references", False):
+            module_list.append("references")
+
         selected_modules = []
         for m in get_all_modules():
-            if m.name in ["CNAME", "NS", "MX", "references", "TXT"]:
+            if m.name in module_list:
                 selected_modules.append(m)
         return selected_modules
 
     async def setup(self):
+        self.preset.core.logger.include_logger(logging.getLogger("baddns"))
         self.custom_nameservers = self.config.get("custom_nameservers", []) or None
         if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
@@ -45,13 +49,20 @@ class baddns(BaseModule):
 
         tasks = []
         for ModuleClass in self.select_modules():
-            module_instance = ModuleClass(
-                event.data,
-                http_client_class=self.scan.helpers.web.AsyncClient,
-                dns_client=self.scan.helpers.dns.resolver,
-                custom_nameservers=self.custom_nameservers,
-                signatures=self.signatures,
-            )
+            kwargs = {
+                "http_client_class": self.scan.helpers.web.AsyncClient,
+                "dns_client": self.scan.helpers.dns.resolver,
+                "custom_nameservers": self.custom_nameservers,
+                "signatures": self.signatures,
+            }
+
+            if ModuleClass.name == "NS":
+                kwargs["raw_query_max_retries"] = 1
+                kwargs["raw_query_timeout"] = 5.0
+                kwargs["raw_query_retry_wait"] = 0
+
+            module_instance = ModuleClass(event.data, **kwargs)
+
             tasks.append((module_instance, asyncio.create_task(module_instance.dispatch())))
 
         for module_instance, task in tasks:
@@ -68,7 +79,11 @@ class baddns(BaseModule):
                                 "host": str(event.host),
                             }
                             await self.emit_event(
-                                data, "VULNERABILITY", event, tags=[f"baddns-{module_instance.name.lower()}"]
+                                data,
+                                "VULNERABILITY",
+                                event,
+                                tags=[f"baddns-{module_instance.name.lower()}"],
+                                context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
                             )
 
                         elif r_dict["confidence"] in ["UNLIKELY", "POSSIBLE"] and not self.only_high_confidence:
@@ -77,7 +92,11 @@ class baddns(BaseModule):
                                 "host": str(event.host),
                             }
                             await self.emit_event(
-                                data, "FINDING", event, tags=[f"baddns-{module_instance.name.lower()}"]
+                                data,
+                                "FINDING",
+                                event,
+                                tags=[f"baddns-{module_instance.name.lower()}"],
+                                context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
                             )
                         else:
                             self.warning(f"Got unrecognized confidence level: {r['confidence']}")
@@ -86,5 +105,9 @@ class baddns(BaseModule):
                         if found_domains:
                             for found_domain in found_domains:
                                 await self.emit_event(
-                                    found_domain, "DNS_NAME", event, tags=[f"baddns-{module_instance.name.lower()}"]
+                                    found_domain,
+                                    "DNS_NAME",
+                                    event,
+                                    tags=[f"baddns-{module_instance.name.lower()}"],
+                                    context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.data}}',
                                 )

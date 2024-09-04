@@ -2,11 +2,10 @@ import uuid
 import random
 import asyncio
 import logging
-import threading
+import functools
 from datetime import datetime
-from queue import Queue, Empty
-from cachetools import LRUCache
 from .misc import human_timedelta
+from cachetools import keys, LRUCache
 from contextlib import asynccontextmanager
 
 log = logging.getLogger("bbot.core.helpers.async_helpers")
@@ -35,7 +34,7 @@ class NamedLock:
     E.g. simultaneous DNS lookups on the same hostname
     """
 
-    def __init__(self, max_size=1000):
+    def __init__(self, max_size=10000):
         self._cache = LRUCache(maxsize=max_size)
 
     @asynccontextmanager
@@ -92,35 +91,39 @@ class TaskCounter:
             return f"{self.task_name} running for {running_for}"
 
 
+def get_event_loop():
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        log.verbose("Starting new event loop")
+        return asyncio.new_event_loop()
+
+
 def async_to_sync_gen(async_gen):
-    # Queue to hold generated values
-    queue = Queue()
-
-    # Flag to indicate if the async generator is done
-    is_done = False
-
-    # Function to run in the separate thread
-    async def runner():
-        nonlocal is_done
-        try:
-            async for value in async_gen:
-                queue.put(value)
-        finally:
-            is_done = True
-
-    def generator():
+    loop = get_event_loop()
+    try:
         while True:
-            # Try to get a value from the queue
+            yield loop.run_until_complete(async_gen.__anext__())
+    except StopAsyncIteration:
+        pass
+
+
+def async_cachedmethod(cache, key=keys.hashkey):
+    def decorator(method):
+        async def wrapper(self, *args, **kwargs):
+            method_cache = cache(self)
+            k = key(*args, **kwargs)
             try:
-                yield queue.get(timeout=0.1)
-            except Empty:
-                # If the queue is empty, check if the async generator is done
-                if is_done:
-                    break
+                return method_cache[k]
+            except KeyError:
+                pass
+            ret = await method(self, *args, **kwargs)
+            try:
+                method_cache[k] = ret
+            except ValueError:
+                pass
+            return ret
 
-    # Start the event loop in a separate thread
-    thread = threading.Thread(target=lambda: asyncio.run(runner()))
-    thread.start()
+        return functools.wraps(method)(wrapper)
 
-    # Return the generator
-    return generator()
+    return decorator

@@ -32,6 +32,8 @@ jobs:
     needs: lint
     runs-on: ubuntu-latest
     strategy:
+      # if one python version fails, let the others finish
+      fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
@@ -76,14 +78,14 @@ jobs:
         uses: EndBug/add-and-commit@v9
         continue-on-error: true
         with:
-          add: "*.md"
+          add: '["*.md", "docs/data/chord_graph/*.json"]'
           author_name: "BBOT Docs Autopublish"
           author_email: info@blacklanternsecurity.com
           message: "Refresh module docs"
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -100,7 +102,28 @@ jobs:
         run: |
           pip install poetry
           poetry install --only=docs
-      - run: poetry run mkdocs gh-deploy --force
+      - name: Configure Git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git branch -f gh-pages origin/gh-pages
+          else
+            git branch --track gh-pages origin/gh-pages
+          fi
+      - name: Generate docs (stable branch)
+        if: github.ref == 'refs/heads/stable'
+        run: |
+          poetry run mike deploy Stable
+      - name: Generate docs (dev branch)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          poetry run mike deploy Dev
+      - name: Publish docs
+        run: |
+          git switch gh-pages
+          git push
   publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
