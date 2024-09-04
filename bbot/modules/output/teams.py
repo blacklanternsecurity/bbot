@@ -15,7 +15,6 @@ class Teams(WebhookOutputModule):
         "min_severity": "Only allow VULNERABILITY events of this severity or higher",
     }
     _module_threads = 5
-    good_status_code = 202
     adaptive_card = {
         "type": "message",
         "attachments": [
