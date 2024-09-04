@@ -231,6 +231,7 @@ class Scanner:
 
         self._dns_strings = None
         self._dns_regexes = None
+        self._dns_regexes_yara = None
 
         self.__log_handlers = None
         self._log_handler_backup = []
@@ -1000,7 +1001,7 @@ class Scanner:
             ...     for match in regex.finditer(response.text):
             ...         hostname = match.group().lower()
         """
-        if not self._dns_regexes:
+        if self._dns_regexes is None:
             self._dns_regexes = self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
         return self._dns_regexes
 
@@ -1009,7 +1010,9 @@ class Scanner:
         """
         Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
         """
-        return self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
+        if self._dns_regexes_yara is None:
+            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
+        return self._dns_regexes_yara
 
     @property
     def json(self):

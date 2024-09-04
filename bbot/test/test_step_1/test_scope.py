@@ -12,7 +12,7 @@ class TestScopeBaseline(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert len(events) == 5
+        assert len(events) == 6
         assert 1 == len(
             [
                 e
@@ -24,7 +24,7 @@ class TestScopeBaseline(ModuleTestBase):
             ]
         )
         # we have two of these because the host module considers "always_emit" in its outgoing deduplication
-        assert 1 == len(
+        assert 2 == len(
             [
                 e
                 for e in events

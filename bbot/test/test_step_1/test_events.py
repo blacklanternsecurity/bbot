@@ -311,6 +311,16 @@ async def test_events(events, helpers):
             {"host": "evilcorp.com", "severity": "WACK", "description": "asdf"}, "VULNERABILITY", dummy=True
         )
 
+    # test tagging
+    ip_event_1 = scan.make_event("8.8.8.8", dummy=True)
+    assert "private-ip" not in ip_event_1.tags
+    ip_event_2 = scan.make_event("192.168.0.1", dummy=True)
+    assert "private-ip" in ip_event_2.tags
+    dns_event_1 = scan.make_event("evilcorp.com", dummy=True)
+    assert "domain" in dns_event_1.tags
+    dns_event_2 = scan.make_event("www.evilcorp.com", dummy=True)
+    assert "subdomain" in dns_event_2.tags
+
     # punycode - event type detection
 
     # japanese
@@ -409,7 +419,8 @@ async def test_events(events, helpers):
     db_event._resolved_hosts = {"127.0.0.1"}
     db_event.scope_distance = 1
     assert db_event.discovery_context == "test context"
-    assert db_event.discovery_path == [["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]]
+    assert db_event.discovery_path == ["test context"]
+    assert db_event.parent_chain == ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac"]
     timestamp = db_event.timestamp.isoformat()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
@@ -418,7 +429,8 @@ async def test_events(events, helpers):
     assert json_event["host"] == "evilcorp.com"
     assert json_event["timestamp"] == timestamp
     assert json_event["discovery_context"] == "test context"
-    assert json_event["discovery_path"] == [["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]]
+    assert json_event["discovery_path"] == ["test context"]
+    assert json_event["parent_chain"] == ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac"]
     reconstituted_event = event_from_json(json_event)
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.isoformat() == timestamp
@@ -426,9 +438,8 @@ async def test_events(events, helpers):
     assert reconstituted_event.type == "OPEN_TCP_PORT"
     assert reconstituted_event.host == "evilcorp.com"
     assert reconstituted_event.discovery_context == "test context"
-    assert reconstituted_event.discovery_path == [
-        ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]
-    ]
+    assert reconstituted_event.discovery_path == ["test context"]
+    assert reconstituted_event.parent_chain == ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac"]
     assert "127.0.0.1" in reconstituted_event.resolved_hosts
     hostless_event = scan.make_event("asdf", "ASDF", dummy=True)
     hostless_event_json = hostless_event.json()
@@ -614,7 +625,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "evilcorp.com"
             and e.discovery_context == f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"
-            and [_[-1] for _ in e.discovery_path] == [f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"]
+            and e.discovery_path == [f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"]
         ]
     )
     assert 1 == len(
@@ -624,7 +635,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "one.evilcorp.com"
             and e.discovery_context == "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com"
-            and [_[-1] for _ in e.discovery_path]
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -639,7 +650,7 @@ async def test_event_discovery_context():
             and e.data == "two.evilcorp.com"
             and e.discovery_context
             == "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com"
-            and [_[-1] for _ in e.discovery_path]
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -654,7 +665,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "three.evilcorp.com"
             and e.discovery_context == "module_2 asked nicely and was given DNS_NAME three.evilcorp.com"
-            and [_[-1] for _ in e.discovery_path]
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -676,11 +687,11 @@ async def test_event_discovery_context():
         if e.type == "DNS_NAME"
         and e.data == "four.evilcorp.com"
         and e.discovery_context == "module_2 used brute force to obtain DNS_NAME four.evilcorp.com"
-        and [_[-1] for _ in e.discovery_path] == final_path
+        and e.discovery_path == final_path
     ]
     assert 1 == len(final_event)
     j = final_event[0].json()
-    assert [_[-1] for _ in j["discovery_path"]] == final_path
+    assert j["discovery_path"] == final_path
 
     await scan._cleanup()
 
@@ -693,7 +704,7 @@ async def test_event_discovery_context():
     events = [e async for e in scan.async_start()]
     blsops_event = [e for e in events if e.type == "DNS_NAME" and e.data == "blsops.com"]
     assert len(blsops_event) == 1
-    assert blsops_event[0].discovery_path[1][-1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
+    assert blsops_event[0].discovery_path[1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
 
     await scan._cleanup()
 

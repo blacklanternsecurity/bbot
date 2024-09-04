@@ -387,13 +387,13 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "5.0.1.515"
+version = "5.0.1.537"
 description = "Check whether an IP address belongs to a cloud provider"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "cloudcheck-5.0.1.515-py3-none-any.whl", hash = "sha256:427ee423b9abca9f742f21300c3968dde8784cbfdd99ba69b336a0a6723fe677"},
-    {file = "cloudcheck-5.0.1.515.tar.gz", hash = "sha256:64c7c22567a3ae14731b4826c631585a9714858cc9dd70fafbfa40b5cef37049"},
+    {file = "cloudcheck-5.0.1.537-py3-none-any.whl", hash = "sha256:ef5c3326bdacfd7048ecc4b1849e728ca705163e7e4713ba4546493af491024a"},
+    {file = "cloudcheck-5.0.1.537.tar.gz", hash = "sha256:8884dd9c3de0f634a191559255f3370222bfde5929b10d356415b58291f5d639"},
 ]
 
 [package.dependencies]
@@ -719,13 +719,13 @@ trio = ["trio (>=0.22.0,<0.26.0)"]
 
 [[package]]
 name = "httpx"
-version = "0.27.0"
+version = "0.27.2"
 description = "The next generation HTTP client."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "httpx-0.27.0-py3-none-any.whl", hash = "sha256:71d5465162c13681bff01ad59b2cc68dd838ea1f10e51574bac27103f00c91a5"},
-    {file = "httpx-0.27.0.tar.gz", hash = "sha256:a0cb88a46f32dc874e04ee956e4c2764aba2aa228f650b06788ba6bda2962ab5"},
+    {file = "httpx-0.27.2-py3-none-any.whl", hash = "sha256:7bb2708e112d8fdd7829cd4243970f0c223274051cb35ee80c03301ee29a3df0"},
+    {file = "httpx-0.27.2.tar.gz", hash = "sha256:f7c2be1d2f3c3c3160d441802406b206c2b76f5947b11115e6df10c6c65e66c2"},
 ]
 
 [package.dependencies]
@@ -740,6 +740,7 @@ brotli = ["brotli", "brotlicffi"]
 cli = ["click (==8.*)", "pygments (==2.*)", "rich (>=10,<14)"]
 http2 = ["h2 (>=3,<5)"]
 socks = ["socksio (==1.*)"]
+zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "identify"
@@ -1190,13 +1191,13 @@ min-versions = ["babel (==2.9.0)", "click (==7.0)", "colorama (==0.4)", "ghp-imp
 
 [[package]]
 name = "mkdocs-autorefs"
-version = "1.0.1"
+version = "1.2.0"
 description = "Automatically link across pages in MkDocs."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocs_autorefs-1.0.1-py3-none-any.whl", hash = "sha256:aacdfae1ab197780fb7a2dac92ad8a3d8f7ca8049a9cbe56a4218cd52e8da570"},
-    {file = "mkdocs_autorefs-1.0.1.tar.gz", hash = "sha256:f684edf847eced40b570b57846b15f0bf57fb93ac2c510450775dcf16accb971"},
+    {file = "mkdocs_autorefs-1.2.0-py3-none-any.whl", hash = "sha256:d588754ae89bd0ced0c70c06f58566a4ee43471eeeee5202427da7de9ef85a2f"},
+    {file = "mkdocs_autorefs-1.2.0.tar.gz", hash = "sha256:a86b93abff653521bda71cf3fc5596342b7a23982093915cb74273f67522190f"},
 ]
 
 [package.dependencies]
@@ -1239,13 +1240,13 @@ pyyaml = ">=5.1"
 
 [[package]]
 name = "mkdocs-material"
-version = "9.5.33"
+version = "9.5.34"
 description = "Documentation that simply works"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocs_material-9.5.33-py3-none-any.whl", hash = "sha256:dbc79cf0fdc6e2c366aa987de8b0c9d4e2bb9f156e7466786ba2fd0f9bf7ffca"},
-    {file = "mkdocs_material-9.5.33.tar.gz", hash = "sha256:d23a8b5e3243c9b2f29cdfe83051104a8024b767312dc8fde05ebe91ad55d89d"},
+    {file = "mkdocs_material-9.5.34-py3-none-any.whl", hash = "sha256:54caa8be708de2b75167fd4d3b9f3d949579294f49cb242515d4653dbee9227e"},
+    {file = "mkdocs_material-9.5.34.tar.gz", hash = "sha256:1e60ddf716cfb5679dfd65900b8a25d277064ed82d9a53cd5190e3f894df7840"},
 ]
 
 [package.dependencies]
@@ -1279,24 +1280,24 @@ files = [
 
 [[package]]
 name = "mkdocstrings"
-version = "0.25.1"
+version = "0.26.0"
 description = "Automatic documentation from sources, for MkDocs."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocstrings-0.25.1-py3-none-any.whl", hash = "sha256:da01fcc2670ad61888e8fe5b60afe9fee5781017d67431996832d63e887c2e51"},
-    {file = "mkdocstrings-0.25.1.tar.gz", hash = "sha256:c3a2515f31577f311a9ee58d089e4c51fc6046dbd9e9b4c3de4c3194667fe9bf"},
+    {file = "mkdocstrings-0.26.0-py3-none-any.whl", hash = "sha256:1aa227fe94f88e80737d37514523aacd473fc4b50a7f6852ce41447ab23f2654"},
+    {file = "mkdocstrings-0.26.0.tar.gz", hash = "sha256:ff9d0de28c8fa877ed9b29a42fe407cfe6736d70a1c48177aa84fcc3dc8518cd"},
 ]
 
 [package.dependencies]
 click = ">=7.0"
 importlib-metadata = {version = ">=4.6", markers = "python_version < \"3.10\""}
 Jinja2 = ">=2.11.1"
-Markdown = ">=3.3"
+Markdown = ">=3.6"
 MarkupSafe = ">=1.1"
 mkdocs = ">=1.4"
-mkdocs-autorefs = ">=0.3.1"
-platformdirs = ">=2.2.0"
+mkdocs-autorefs = ">=1.2"
+platformdirs = ">=2.2"
 pymdown-extensions = ">=6.3"
 typing-extensions = {version = ">=4.1", markers = "python_version < \"3.10\""}
 
@@ -1307,17 +1308,18 @@ python-legacy = ["mkdocstrings-python-legacy (>=0.2.1)"]
 
 [[package]]
 name = "mkdocstrings-python"
-version = "1.10.8"
+version = "1.10.9"
 description = "A Python handler for mkdocstrings."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocstrings_python-1.10.8-py3-none-any.whl", hash = "sha256:bb12e76c8b071686617f824029cb1dfe0e9afe89f27fb3ad9a27f95f054dcd89"},
-    {file = "mkdocstrings_python-1.10.8.tar.gz", hash = "sha256:5856a59cbebbb8deb133224a540de1ff60bded25e54d8beacc375bb133d39016"},
+    {file = "mkdocstrings_python-1.10.9-py3-none-any.whl", hash = "sha256:cbe98710a6757dfd4dff79bf36cb9731908fb4c69dd2736b15270ae7a488243d"},
+    {file = "mkdocstrings_python-1.10.9.tar.gz", hash = "sha256:f344aaa47e727d8a2dc911e063025e58e2b7fb31a41110ccc3902aa6be7ca196"},
 ]
 
 [package.dependencies]
 griffe = ">=0.49"
+mkdocs-autorefs = ">=1.0"
 mkdocstrings = ">=0.25"
 
 [[package]]
@@ -2973,4 +2975,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "d5a58b845248d60d5cfc5111d6e611486e9137479952f180e2e01d719e440746"
+content-hash = "c4d16176c75de710966e2d5dadfa8f0c181d90f9ad3ca4fd250702dc23909b98"

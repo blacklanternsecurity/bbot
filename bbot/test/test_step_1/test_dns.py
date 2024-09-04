@@ -38,12 +38,14 @@ async def test_dns_engine(bbot_scanner):
     results = [_ async for _ in scan.helpers.resolve_raw_batch((("one.one.one.one", "A"), ("1.1.1.1", "PTR")))]
     pass_1 = False
     pass_2 = False
-    for (query, rdtype), (result, errors) in results:
-        result = extract_targets(result)
-        _results = [r[1] for r in result]
-        if query == "one.one.one.one" and "1.1.1.1" in _results:
+    for (query, rdtype), (answers, errors) in results:
+        results = []
+        for answer in answers:
+            for t in extract_targets(answer):
+                results.append(t[1])
+        if query == "one.one.one.one" and "1.1.1.1" in results:
             pass_1 = True
-        elif query == "1.1.1.1" and "one.one.one.one" in _results:
+        elif query == "1.1.1.1" and "one.one.one.one" in results:
             pass_2 = True
     assert pass_1 and pass_2
 
@@ -115,31 +117,34 @@ async def test_dns_resolution(bbot_scanner):
 
     # custom batch resolution
     batch_results = [r async for r in dnsengine.resolve_raw_batch([("1.1.1.1", "PTR"), ("one.one.one.one", "A")])]
-    batch_results = [(response.to_text(), response.rdtype.name) for query, (response, errors) in batch_results]
-    assert len(batch_results) == 3
-    assert any(answer == "1.0.0.1" and rdtype == "A" for answer, rdtype in batch_results)
-    assert any(answer == "one.one.one.one." and rdtype == "PTR" for answer, rdtype in batch_results)
+    batch_results_new = []
+    for query, (answers, errors) in batch_results:
+        for answer in answers:
+            batch_results_new.append((answer.to_text(), answer.rdtype.name))
+    assert len(batch_results_new) == 3
+    assert any(answer == "1.0.0.1" and rdtype == "A" for answer, rdtype in batch_results_new)
+    assert any(answer == "one.one.one.one." and rdtype == "PTR" for answer, rdtype in batch_results_new)
 
     # dns cache
     dnsengine._dns_cache.clear()
-    assert hash(f"1.1.1.1:PTR") not in dnsengine._dns_cache
-    assert hash(f"one.one.one.one:A") not in dnsengine._dns_cache
-    assert hash(f"one.one.one.one:AAAA") not in dnsengine._dns_cache
+    assert hash(("1.1.1.1", "PTR")) not in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "A")) not in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "AAAA")) not in dnsengine._dns_cache
     await dnsengine.resolve("1.1.1.1", use_cache=False)
     await dnsengine.resolve("one.one.one.one", use_cache=False)
-    assert hash(f"1.1.1.1:PTR") not in dnsengine._dns_cache
-    assert hash(f"one.one.one.one:A") not in dnsengine._dns_cache
-    assert hash(f"one.one.one.one:AAAA") not in dnsengine._dns_cache
+    assert hash(("1.1.1.1", "PTR")) not in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "A")) not in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "AAAA")) not in dnsengine._dns_cache
 
     await dnsengine.resolve("1.1.1.1")
-    assert hash(f"1.1.1.1:PTR") in dnsengine._dns_cache
+    assert hash(("1.1.1.1", "PTR")) in dnsengine._dns_cache
     await dnsengine.resolve("one.one.one.one", type="A")
-    assert hash(f"one.one.one.one:A") in dnsengine._dns_cache
-    assert not hash(f"one.one.one.one:AAAA") in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "A")) in dnsengine._dns_cache
+    assert not hash(("one.one.one.one", "AAAA")) in dnsengine._dns_cache
     dnsengine._dns_cache.clear()
     await dnsengine.resolve("one.one.one.one", type="AAAA")
-    assert hash(f"one.one.one.one:AAAA") in dnsengine._dns_cache
-    assert not hash(f"one.one.one.one:A") in dnsengine._dns_cache
+    assert hash(("one.one.one.one", "AAAA")) in dnsengine._dns_cache
+    assert not hash(("one.one.one.one", "A")) in dnsengine._dns_cache
 
     await dnsengine._shutdown()
 
@@ -148,11 +153,7 @@ async def test_dns_resolution(bbot_scanner):
     resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", parent=scan.root_event)
     resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", parent=scan.root_event)
     dnsresolve = scan.modules["dnsresolve"]
-    assert hash(resolved_hosts_event1.host) not in dnsresolve._event_cache
-    assert hash(resolved_hosts_event2.host) not in dnsresolve._event_cache
     await dnsresolve.handle_event(resolved_hosts_event1)
-    assert hash(resolved_hosts_event1.host) in dnsresolve._event_cache
-    assert hash(resolved_hosts_event2.host) in dnsresolve._event_cache
     await dnsresolve.handle_event(resolved_hosts_event2)
     assert "1.1.1.1" in resolved_hosts_event2.resolved_hosts
     # URL event should not have dns_children
@@ -160,6 +161,8 @@ async def test_dns_resolution(bbot_scanner):
     assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
     # DNS_NAME event should have dns_children
     assert "1.1.1.1" in resolved_hosts_event1.dns_children["A"]
+    assert "A" in resolved_hosts_event1.raw_dns_records
+    assert "AAAA" in resolved_hosts_event1.raw_dns_records
     assert "a-record" in resolved_hosts_event1.tags
     assert not "a-record" in resolved_hosts_event2.tags
 
@@ -181,40 +184,316 @@ async def test_dns_resolution(bbot_scanner):
 
 @pytest.mark.asyncio
 async def test_wildcards(bbot_scanner):
+
     scan = bbot_scanner("1.1.1.1")
     helpers = scan.helpers
 
-    from bbot.core.helpers.dns.engine import DNSEngine
+    from bbot.core.helpers.dns.engine import DNSEngine, all_rdtypes
 
-    dnsengine = DNSEngine(None)
+    dnsengine = DNSEngine(None, debug=True)
 
-    # wildcards
-    wildcard_domains = await dnsengine.is_wildcard_domain("asdf.github.io")
-    assert hash("github.io") in dnsengine._wildcard_cache
-    assert hash("asdf.github.io") in dnsengine._wildcard_cache
+    # is_wildcard_domain
+    wildcard_domains = await dnsengine.is_wildcard_domain("asdf.github.io", all_rdtypes)
+    assert len(dnsengine._wildcard_cache) == len(all_rdtypes) + (len(all_rdtypes) - 2)
+    for rdtype in all_rdtypes:
+        assert hash(("github.io", rdtype)) in dnsengine._wildcard_cache
+        if not rdtype in ("A", "AAAA"):
+            assert hash(("asdf.github.io", rdtype)) in dnsengine._wildcard_cache
     assert "github.io" in wildcard_domains
     assert "A" in wildcard_domains["github.io"]
     assert "SRV" not in wildcard_domains["github.io"]
-    assert wildcard_domains["github.io"]["A"] and all(helpers.is_ip(r) for r in wildcard_domains["github.io"]["A"])
+    assert wildcard_domains["github.io"]["A"] and all(helpers.is_ip(r) for r in wildcard_domains["github.io"]["A"][0])
     dnsengine._wildcard_cache.clear()
 
-    wildcard_rdtypes = await dnsengine.is_wildcard("blacklanternsecurity.github.io")
-    assert "A" in wildcard_rdtypes
-    assert "SRV" not in wildcard_rdtypes
-    assert wildcard_rdtypes["A"] == (True, "github.io")
-    assert hash("github.io") in dnsengine._wildcard_cache
-    assert len(dnsengine._wildcard_cache[hash("github.io")]) > 0
-    dnsengine._wildcard_cache.clear()
+    # is_wildcard
+    for test_domain in ("blacklanternsecurity.github.io", "asdf.asdf.asdf.github.io"):
+        wildcard_rdtypes = await dnsengine.is_wildcard(test_domain, all_rdtypes)
+        assert "A" in wildcard_rdtypes
+        assert "SRV" not in wildcard_rdtypes
+        assert wildcard_rdtypes["A"] == (True, "github.io")
+        assert wildcard_rdtypes["AAAA"] == (True, "github.io")
+        assert len(dnsengine._wildcard_cache) == 2
+        for rdtype in ("A", "AAAA"):
+            assert hash(("github.io", rdtype)) in dnsengine._wildcard_cache
+            assert len(dnsengine._wildcard_cache[hash(("github.io", rdtype))]) == 2
+            assert len(dnsengine._wildcard_cache[hash(("github.io", rdtype))][0]) > 0
+            assert len(dnsengine._wildcard_cache[hash(("github.io", rdtype))][1]) > 0
+        dnsengine._wildcard_cache.clear()
 
-    wildcard_rdtypes = await dnsengine.is_wildcard("asdf.asdf.asdf.github.io")
-    assert "A" in wildcard_rdtypes
-    assert "SRV" not in wildcard_rdtypes
-    assert wildcard_rdtypes["A"] == (True, "github.io")
-    assert hash("github.io") in dnsengine._wildcard_cache
-    assert not hash("asdf.github.io") in dnsengine._wildcard_cache
-    assert not hash("asdf.asdf.github.io") in dnsengine._wildcard_cache
-    assert not hash("asdf.asdf.asdf.github.io") in dnsengine._wildcard_cache
-    assert len(dnsengine._wildcard_cache[hash("github.io")]) > 0
+    ### wildcard TXT record ###
+
+    custom_lookup = """
+def custom_lookup(query, rdtype):
+    if rdtype == "TXT" and query.strip(".").endswith("test.evilcorp.com"):
+        return {""}
+"""
+
+    mock_data = {
+        "evilcorp.com": {"A": ["127.0.0.1"]},
+        "test.evilcorp.com": {"A": ["127.0.0.2"]},
+        "www.test.evilcorp.com": {"AAAA": ["dead::beef"]},
+    }
+
+    # basic sanity checks
+
+    await dnsengine._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
+
+    a_result = await dnsengine.resolve("evilcorp.com")
+    assert a_result == {"127.0.0.1"}
+    aaaa_result = await dnsengine.resolve("www.test.evilcorp.com", type="AAAA")
+    assert aaaa_result == {"dead::beef"}
+    txt_result = await dnsengine.resolve("asdf.www.test.evilcorp.com", type="TXT")
+    assert txt_result == set()
+    txt_result_raw, errors = await dnsengine.resolve_raw("asdf.www.test.evilcorp.com", type="TXT")
+    txt_result_raw = list(txt_result_raw)
+    assert txt_result_raw
+
+    await dnsengine._shutdown()
+
+    # first, we check with wildcard detection disabled
+
+    scan = bbot_scanner(
+        "bbot.fdsa.www.test.evilcorp.com",
+        whitelist=["evilcorp.com"],
+        config={
+            "dns": {"minimal": False, "disable": False, "search_distance": 5, "wildcard_ignore": ["evilcorp.com"]},
+            "speculate": True,
+        },
+    )
+    await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
+
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 11
+    assert len([e for e in events if e.type == "DNS_NAME"]) == 5
+    assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
+    assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
+        "bbot.fdsa.www.test.evilcorp.com",
+        "evilcorp.com",
+        "fdsa.www.test.evilcorp.com",
+        "test.evilcorp.com",
+        "www.test.evilcorp.com",
+    ]
+
+    dns_names_by_host = {e.host: e for e in events if e.type == "DNS_NAME"}
+    assert dns_names_by_host["evilcorp.com"].tags == {"domain", "private-ip", "in-scope", "a-record"}
+    assert dns_names_by_host["evilcorp.com"].resolved_hosts == {"127.0.0.1"}
+    assert dns_names_by_host["test.evilcorp.com"].tags == {
+        "subdomain",
+        "private-ip",
+        "in-scope",
+        "a-record",
+        "txt-record",
+    }
+    assert dns_names_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
+    assert dns_names_by_host["www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "aaaa-record", "txt-record"}
+    assert dns_names_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    assert dns_names_by_host["fdsa.www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert dns_names_by_host["fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+    assert dns_names_by_host["bbot.fdsa.www.test.evilcorp.com"].tags == {
+        "target",
+        "subdomain",
+        "in-scope",
+        "txt-record",
+    }
+    assert dns_names_by_host["bbot.fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+
+    raw_records_by_host = {e.host: e for e in events if e.type == "RAW_DNS_RECORD"}
+    assert raw_records_by_host["test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
+    assert raw_records_by_host["www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    assert raw_records_by_host["fdsa.www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+    assert raw_records_by_host["bbot.fdsa.www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["bbot.fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+
+    # then we run it again with wildcard detection enabled
+
+    scan = bbot_scanner(
+        "bbot.fdsa.www.test.evilcorp.com",
+        whitelist=["evilcorp.com"],
+        config={
+            "dns": {"minimal": False, "disable": False, "search_distance": 5, "wildcard_ignore": []},
+            "speculate": True,
+        },
+    )
+    await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
+
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 11
+    assert len([e for e in events if e.type == "DNS_NAME"]) == 5
+    assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
+    assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
+        "_wildcard.test.evilcorp.com",
+        "bbot.fdsa.www.test.evilcorp.com",
+        "evilcorp.com",
+        "test.evilcorp.com",
+        "www.test.evilcorp.com",
+    ]
+
+    dns_names_by_host = {e.host: e for e in events if e.type == "DNS_NAME"}
+    assert dns_names_by_host["evilcorp.com"].tags == {"domain", "private-ip", "in-scope", "a-record"}
+    assert dns_names_by_host["evilcorp.com"].resolved_hosts == {"127.0.0.1"}
+    assert dns_names_by_host["test.evilcorp.com"].tags == {
+        "subdomain",
+        "private-ip",
+        "in-scope",
+        "a-record",
+        "txt-record",
+    }
+    assert dns_names_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
+    assert dns_names_by_host["_wildcard.test.evilcorp.com"].tags == {
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "txt-wildcard",
+        "wildcard",
+    }
+    assert dns_names_by_host["_wildcard.test.evilcorp.com"].resolved_hosts == set()
+    assert dns_names_by_host["www.test.evilcorp.com"].tags == {
+        "subdomain",
+        "in-scope",
+        "aaaa-record",
+        "txt-record",
+        "txt-wildcard",
+        "wildcard",
+    }
+    assert dns_names_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    assert dns_names_by_host["bbot.fdsa.www.test.evilcorp.com"].tags == {
+        "target",
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "txt-wildcard",
+        "wildcard",
+    }
+    assert dns_names_by_host["bbot.fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+
+    raw_records_by_host = {e.host: e for e in events if e.type == "RAW_DNS_RECORD"}
+    assert raw_records_by_host["test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
+    assert raw_records_by_host["www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record", "txt-wildcard"}
+    assert raw_records_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    assert raw_records_by_host["_wildcard.test.evilcorp.com"].tags == {
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "txt-wildcard",
+    }
+    assert raw_records_by_host["_wildcard.test.evilcorp.com"].resolved_hosts == set()
+    assert raw_records_by_host["bbot.fdsa.www.test.evilcorp.com"].tags == {
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "txt-wildcard",
+    }
+    assert raw_records_by_host["bbot.fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+
+    ### runaway SRV wildcard ###
+
+    custom_lookup = """
+def custom_lookup(query, rdtype):
+    if rdtype == "SRV" and query.strip(".").endswith("evilcorp.com"):
+        return {f"0 100 389 test.{query}"}
+"""
+
+    mock_data = {
+        "evilcorp.com": {"A": ["127.0.0.1"]},
+        "test.evilcorp.com": {"AAAA": ["dead::beef"]},
+    }
+
+    scan = bbot_scanner(
+        "evilcorp.com",
+        config={
+            "dns": {
+                "minimal": False,
+                "disable": False,
+                "search_distance": 5,
+                "wildcard_ignore": [],
+                "runaway_limit": 3,
+            },
+        },
+    )
+    await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
+
+    events = [e async for e in scan.async_start()]
+
+    assert len(events) == 10
+    assert len([e for e in events if e.type == "DNS_NAME"]) == 5
+    assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
+    assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
+        "evilcorp.com",
+        "test.evilcorp.com",
+        "test.test.evilcorp.com",
+        "test.test.test.evilcorp.com",
+        "test.test.test.test.evilcorp.com",
+    ]
+
+    dns_names_by_host = {e.host: e for e in events if e.type == "DNS_NAME"}
+    assert dns_names_by_host["evilcorp.com"].tags == {
+        "target",
+        "a-record",
+        "in-scope",
+        "domain",
+        "srv-record",
+        "private-ip",
+    }
+    assert dns_names_by_host["test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "aaaa-record",
+        "srv-wildcard-possible",
+        "wildcard-possible",
+        "subdomain",
+    }
+    assert dns_names_by_host["test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "wildcard-possible",
+        "subdomain",
+    }
+    assert dns_names_by_host["test.test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "wildcard-possible",
+        "subdomain",
+    }
+    assert dns_names_by_host["test.test.test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "wildcard-possible",
+        "subdomain",
+        "runaway-dns-3",
+    }
+
+    raw_records_by_host = {e.host: e for e in events if e.type == "RAW_DNS_RECORD"}
+    assert raw_records_by_host["evilcorp.com"].tags == {"in-scope", "srv-record", "domain"}
+    assert raw_records_by_host["test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "subdomain",
+    }
+    assert raw_records_by_host["test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "subdomain",
+    }
+    assert raw_records_by_host["test.test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "subdomain",
+    }
+
+    scan = bbot_scanner("1.1.1.1")
+    helpers = scan.helpers
+
+    # event resolution
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", parent=scan.root_event)
     wildcard_event1.scope_distance = 0
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", parent=scan.root_event)
@@ -222,9 +501,6 @@ async def test_wildcards(bbot_scanner):
     wildcard_event3 = scan.make_event("github.io", "DNS_NAME", parent=scan.root_event)
     wildcard_event3.scope_distance = 0
 
-    await dnsengine._shutdown()
-
-    # event resolution
     await scan._prep()
     dnsresolve = scan.modules["dnsresolve"]
     await dnsresolve.handle_event(wildcard_event1)
@@ -466,7 +742,8 @@ async def test_dns_graph_structure(bbot_scanner):
     assert str(events_by_data["evilcorp.com"].module) == "host"
 
 
-def test_dns_helpers():
+@pytest.mark.asyncio
+async def test_dns_helpers(bbot_scanner):
     assert service_record("") == False
     assert service_record("localhost") == False
     assert service_record("www.example.com") == False
@@ -477,3 +754,11 @@ def test_dns_helpers():
     for srv_record in common_srvs[:100]:
         hostname = f"{srv_record}.example.com"
         assert service_record(hostname) == True
+
+    # make sure system nameservers are excluded from use by DNS brute force
+    brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8"])
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers}})
+    scan.helpers.dns.system_resolvers = ["8.8.8.8", "8.8.4.4"]
+    resolver_file = await scan.helpers.dns.brute.resolver_file()
+    resolvers = set(scan.helpers.read_file(resolver_file))
+    assert resolvers == {"1.2.3.4", "4.3.2.1"}
