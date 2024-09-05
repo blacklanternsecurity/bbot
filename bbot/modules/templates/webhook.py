@@ -9,7 +9,6 @@ class WebhookOutputModule(BaseOutputModule):
     """
 
     accept_dupes = False
-    good_status_code = 204
     message_size_limit = 2000
     content_key = "content"
     vuln_severities = ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -94,5 +93,4 @@ class WebhookOutputModule(BaseOutputModule):
         return msg
 
     def evaluate_response(self, response):
-        status_code = getattr(response, "status_code", 0)
-        return status_code == self.good_status_code
+        return getattr(response, "is_success", False)
