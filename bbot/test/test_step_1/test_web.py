@@ -1,4 +1,5 @@
 import re
+import httpx
 
 from ..bbot_fixtures import *
 
@@ -13,6 +14,7 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
     base_url = bbot_httpserver.url_for("/test/")
     bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
+    bbot_httpserver.expect_request(uri=re.compile(r"/nope")).respond_with_data("nope", status=500)
 
     scan = bbot_scanner()
 
@@ -49,15 +51,45 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
         assert response.text.startswith(f"{url}: ")
         assert f"H{custom_tracker}: v{custom_tracker}" in response.text
 
+    # request with raise_error=True
+    with pytest.raises(WebError):
+        await scan.helpers.request("http://www.example.com/", raise_error=True)
+    try:
+        await scan.helpers.request("http://www.example.com/", raise_error=True)
+    except WebError as e:
+        assert hasattr(e, "response")
+        assert e.response is None
+    with pytest.raises(httpx.HTTPStatusError):
+        response = await scan.helpers.request(bbot_httpserver.url_for("/nope"), raise_error=True)
+        response.raise_for_status()
+    try:
+        response = await scan.helpers.request(bbot_httpserver.url_for("/nope"), raise_error=True)
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        assert hasattr(e, "response")
+        assert e.response.status_code == 500
+
     # download
     url = f"{base_url}999"
     filename = await scan.helpers.download(url)
     file_content = open(filename).read()
     assert file_content.startswith(f"{url}: ")
 
-    # raise_error=True
+    # download with raise_error=True
     with pytest.raises(WebError):
-        await scan.helpers.request("http://www.example.com/", raise_error=True)
+        await scan.helpers.download("http://www.example.com/", raise_error=True)
+    try:
+        await scan.helpers.download("http://www.example.com/", raise_error=True)
+    except WebError as e:
+        assert hasattr(e, "response")
+        assert e.response is None
+    with pytest.raises(WebError):
+        await scan.helpers.download(bbot_httpserver.url_for("/nope"), raise_error=True)
+    try:
+        await scan.helpers.download(bbot_httpserver.url_for("/nope"), raise_error=True)
+    except WebError as e:
+        assert hasattr(e, "response")
+        assert e.response.status_code == 500
 
     await scan._cleanup()
 

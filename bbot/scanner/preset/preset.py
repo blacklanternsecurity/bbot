@@ -74,7 +74,7 @@ class Preset:
                 "1.2.3.0/24",
                 flags=["subdomain-enum"],
                 modules=["nuclei"],
-                config={"http_proxy": "http://127.0.0.1"}
+                config={"web": {"http_proxy": "http://127.0.0.1"}}
             )
         >>> scan = Scanner(preset=preset)
 

@@ -437,9 +437,47 @@ class TestGithub_Workflows(ModuleTestBase):
             url="https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02",
             content=self.zip_content,
         )
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/artifacts",
+            json={
+                "total_count": 1,
+                "artifacts": [
+                    {
+                        "id": 1829832535,
+                        "node_id": "MDg6QXJ0aWZhY3QxODI5ODMyNTM1",
+                        "name": "build.tar.gz",
+                        "size_in_bytes": 245770648,
+                        "url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/artifacts/1829832535",
+                        "archive_download_url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/artifacts/1829832535/zip",
+                        "expired": False,
+                        "created_at": "2024-08-19T22:32:17Z",
+                        "updated_at": "2024-08-19T22:32:18Z",
+                        "expires_at": "2024-09-02T22:21:59Z",
+                        "workflow_run": {
+                            "id": 10461468466,
+                            "repository_id": 89290483,
+                            "head_repository_id": 799444840,
+                            "head_branch": "not-a-real-branch",
+                            "head_sha": "1eeb5354ab7b1e4141b8a6473846e2a5ea0dd2c6",
+                        },
+                    }
+                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/artifacts/1829832535/zip",
+            headers={
+                "location": "https://pipelinesghubeus22.actions.githubusercontent.com/uYHz4cw2WwYcB2EU57uoCs3MaEDiz8veiVlAtReP3xevBriD1h/_apis/pipelines/1/runs/214601/signedartifactscontent?artifactName=build.tar.gz&urlExpires=2024-08-20T14%3A41%3A41.8000556Z&urlSigningMethod=HMACV2&urlSignature=OOBxLx4eE5A8uHjxOIvQtn3cLFQOBW927mg0hcTHO6U%3D"
+            },
+            status_code=302,
+        )
+        module_test.httpx_mock.add_response(
+            url="https://pipelinesghubeus22.actions.githubusercontent.com/uYHz4cw2WwYcB2EU57uoCs3MaEDiz8veiVlAtReP3xevBriD1h/_apis/pipelines/1/runs/214601/signedartifactscontent?artifactName=build.tar.gz&urlExpires=2024-08-20T14%3A41%3A41.8000556Z&urlSigningMethod=HMACV2&urlSignature=OOBxLx4eE5A8uHjxOIvQtn3cLFQOBW927mg0hcTHO6U%3D",
+            content=self.zip_content,
+        )
 
     def check(self, module_test, events):
-        assert len(events) == 7
+        assert len(events) == 8
         assert 1 == len(
             [
                 e
@@ -473,7 +511,7 @@ class TestGithub_Workflows(ModuleTestBase):
             ]
         ), "Failed to find blacklanternsecurity github repo"
         filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
-        assert 2 == len(filesystem_events), filesystem_events
+        assert 3 == len(filesystem_events), filesystem_events
         for filesystem_event in filesystem_events:
             file = Path(filesystem_event.data["path"])
             assert file.is_file(), "Destination file does not exist"

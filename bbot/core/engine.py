@@ -40,9 +40,10 @@ class EngineBase:
 
     ERROR_CLASS = BBOTEngineError
 
-    def __init__(self):
+    def __init__(self, debug=False):
         self._shutdown_status = False
         self.log = logging.getLogger(f"bbot.core.{self.__class__.__name__.lower()}")
+        self._engine_debug = debug
 
     def pickle(self, obj):
         try:
@@ -62,10 +63,10 @@ class EngineBase:
         return error_sentinel
 
     async def _infinite_retry(self, callback, *args, **kwargs):
-        interval = kwargs.pop("_interval", 15)
+        interval = kwargs.pop("_interval", 300)
         context = kwargs.pop("_context", "")
-        # default overall timeout of 5 minutes (15 second interval * 20 iterations)
-        max_retries = kwargs.pop("_max_retries", 4 * 5)
+        # default overall timeout of 10 minutes (300 second interval * 2 iterations)
+        max_retries = kwargs.pop("_max_retries", 1)
         if not context:
             context = f"{callback.__name__}({args}, {kwargs})"
         retries = 0
@@ -73,10 +74,14 @@ class EngineBase:
             try:
                 return await asyncio.wait_for(callback(*args, **kwargs), timeout=interval)
             except (TimeoutError, asyncio.exceptions.TimeoutError):
-                self.log.debug(f"{self.name}: Timeout after {interval:,} seconds{context}, retrying...")
+                self.log.debug(f"{self.name}: Timeout after {interval:,} seconds {context}, retrying...")
                 retries += 1
                 if max_retries is not None and retries > max_retries:
-                    raise TimeoutError(f"Timed out after {max_retries*interval:,} seconds {context}")
+                    raise TimeoutError(f"Timed out after {(max_retries+1)*interval:,} seconds {context}")
+
+    def engine_debug(self, *args, **kwargs):
+        if self._engine_debug:
+            self.log.trace(*args, **kwargs)
 
 
 class EngineClient(EngineBase):
@@ -114,9 +119,9 @@ class EngineClient(EngineBase):
 
     SERVER_CLASS = None
 
-    def __init__(self, **kwargs):
-        super().__init__()
+    def __init__(self, debug=False, **kwargs):
         self.name = f"EngineClient {self.__class__.__name__}"
+        super().__init__(debug=debug)
         self.process = None
         if self.SERVER_CLASS is None:
             raise ValueError(f"Must set EngineClient SERVER_CLASS, {self.SERVER_CLASS}")
@@ -133,15 +138,17 @@ class EngineClient(EngineBase):
 
     def check_error(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_e" in message:
+            self.engine_debug(f"{self.name}: got error message: {message}")
             error, trace = message["_e"]
             error = self.ERROR_CLASS(error)
             error.engine_traceback = trace
+            self.engine_debug(f"{self.name}: raising {error.__class__.__name__}")
             raise error
         return False
 
     async def run_and_return(self, command, *args, **kwargs):
         fn_str = f"{command}({args}, {kwargs})"
-        self.log.debug(f"{self.name}: executing run-and-return {fn_str}")
+        self.engine_debug(f"{self.name}: executing run-and-return {fn_str}")
         if self._shutdown_status and not command == "_shutdown":
             self.log.verbose(f"{self.name} has been shut down and is not accepting new tasks")
             return
@@ -150,7 +157,7 @@ class EngineClient(EngineBase):
                 message = self.make_message(command, args=args, kwargs=kwargs)
                 if message is error_sentinel:
                     return
-                await self._infinite_retry(socket.send, message)
+                await socket.send(message)
                 binary = await self._infinite_retry(socket.recv, _context=f"waiting for return value from {fn_str}")
             except BaseException:
                 try:
@@ -161,7 +168,7 @@ class EngineClient(EngineBase):
                 raise
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = self.unpickle(binary)
-        self.log.debug(f"{self.name}: {fn_str} got return value: {message}")
+        self.engine_debug(f"{self.name}: {fn_str} got return value: {message}")
         # error handling
         if self.check_error(message):
             return
@@ -169,7 +176,7 @@ class EngineClient(EngineBase):
 
     async def run_and_yield(self, command, *args, **kwargs):
         fn_str = f"{command}({args}, {kwargs})"
-        self.log.debug(f"{self.name}: executing run-and-yield {fn_str}")
+        self.engine_debug(f"{self.name}: executing run-and-yield {fn_str}")
         if self._shutdown_status:
             self.log.verbose("Engine has been shut down and is not accepting new tasks")
             return
@@ -188,18 +195,18 @@ class EngineClient(EngineBase):
                     )
                     # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
                     message = self.unpickle(binary)
-                    self.log.debug(f"{self.name} {command} got iteration: {message}")
+                    self.engine_debug(f"{self.name}: {fn_str} got iteration: {message}")
                     # error handling
                     if self.check_error(message) or self.check_stop(message):
                         break
                     yield message
                 except (StopAsyncIteration, GeneratorExit) as e:
                     exc_name = e.__class__.__name__
-                    self.log.debug(f"{self.name}.{command} got {exc_name}")
+                    self.engine_debug(f"{self.name}.{command} got {exc_name}")
                     try:
                         await self.send_cancel_message(socket, fn_str)
                     except Exception:
-                        self.log.debug(f"{self.name}.{command} failed to send cancel message after {exc_name}")
+                        self.engine_debug(f"{self.name}.{command} failed to send cancel message after {exc_name}")
                         self.log.trace(traceback.format_exc())
                     break
 
@@ -266,6 +273,7 @@ class EngineClient(EngineBase):
             # this allows us to more easily mock http, etc.
             if os.environ.get("BBOT_TESTING", "") == "True":
                 kwargs["_loop"] = get_event_loop()
+            kwargs["debug"] = self._engine_debug
             self.process = CORE.create_process(
                 target=self.server_process,
                 args=(
@@ -305,10 +313,12 @@ class EngineClient(EngineBase):
         if self._server_process is None:
             self._server_process = self.start_server()
             while not self.socket_path.exists():
-                self.log.debug(f"{self.name}: waiting for server process to start...")
+                self.engine_debug(f"{self.name}: waiting for server process to start...")
                 await asyncio.sleep(0.1)
         socket = self.context.socket(zmq.DEALER)
-        socket.setsockopt(zmq.LINGER, 0)
+        socket.setsockopt(zmq.LINGER, 0)  # Discard pending messages immediately disconnect() or close()
+        socket.setsockopt(zmq.SNDHWM, 0)  # Unlimited send buffer
+        socket.setsockopt(zmq.RCVHWM, 0)  # Unlimited receive buffer
         socket.connect(f"ipc://{self.socket_path}")
         self.sockets.add(socket)
         try:
@@ -366,24 +376,28 @@ class EngineServer(EngineBase):
 
     CMDS = {}
 
-    def __init__(self, socket_path):
-        super().__init__()
+    def __init__(self, socket_path, debug=False):
         self.name = f"EngineServer {self.__class__.__name__}"
+        super().__init__(debug=debug)
+        self.engine_debug(f"{self.name}: finished setup 1 (_debug={self._engine_debug})")
         self.socket_path = socket_path
         self.client_id_var = contextvars.ContextVar("client_id", default=None)
         # task <--> client id mapping
         self.tasks = {}
         # child tasks spawned by main tasks
         self.child_tasks = {}
+        self.engine_debug(f"{self.name}: finished setup 2 (_debug={self._engine_debug})")
         if self.socket_path is not None:
             # create ZeroMQ context
             self.context = zmq.asyncio.Context()
-            self.context.setsockopt(zmq.LINGER, 0)
             # ROUTER socket can handle multiple concurrent requests
             self.socket = self.context.socket(zmq.ROUTER)
-            self.socket.setsockopt(zmq.LINGER, 0)
+            self.socket.setsockopt(zmq.LINGER, 0)  # Discard pending messages immediately disconnect() or close()
+            self.socket.setsockopt(zmq.SNDHWM, 0)  # Unlimited send buffer
+            self.socket.setsockopt(zmq.RCVHWM, 0)  # Unlimited receive buffer
             # create socket file
             self.socket.bind(f"ipc://{self.socket_path}")
+        self.engine_debug(f"{self.name}: finished setup 3 (_debug={self._engine_debug})")
 
     @contextlib.contextmanager
     def client_id_context(self, value):
@@ -395,51 +409,56 @@ class EngineServer(EngineBase):
 
     async def run_and_return(self, client_id, command_fn, *args, **kwargs):
         fn_str = f"{command_fn.__name__}({args}, {kwargs})"
+        self.engine_debug(fn_str)
         with self.client_id_context(client_id):
             try:
-                self.log.debug(f"{self.name} run-and-return {fn_str}")
-                result = error_sentinel
+                self.engine_debug(f"{self.name}: starting run-and-return {fn_str}")
                 try:
                     result = await command_fn(*args, **kwargs)
                 except BaseException as e:
-                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
-                        error = f"Error in {self.name}.{fn_str}: {e}"
-                        self.log.debug(error)
-                        trace = traceback.format_exc()
-                        self.log.debug(trace)
-                        result = {"_e": (error, trace)}
+                    if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        log_fn = self.log.debug
+                    else:
+                        log_fn = self.log.error
+                    error = f"{self.name}: error in {fn_str}: {e}"
+                    trace = traceback.format_exc()
+                    log_fn(error)
+                    self.log.trace(trace)
+                    result = {"_e": (error, trace)}
                 finally:
                     self.tasks.pop(client_id, None)
-                    if result is not error_sentinel:
-                        self.log.debug(f"{self.name}: Sending response to {fn_str}: {result}")
-                        await self.send_socket_multipart(client_id, result)
+                    self.engine_debug(f"{self.name}: sending response to {fn_str}: {result}")
+                    await self.send_socket_multipart(client_id, result)
             except BaseException as e:
                 self.log.critical(
                     f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
                 )
                 self.log.critical(traceback.format_exc())
             finally:
-                self.log.debug(f"{self.name} finished run-and-return {command_fn.__name__}({args}, {kwargs})")
+                self.engine_debug(f"{self.name} finished run-and-return {fn_str}")
 
     async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
         fn_str = f"{command_fn.__name__}({args}, {kwargs})"
         with self.client_id_context(client_id):
             try:
-                self.log.debug(f"{self.name} run-and-yield {fn_str}")
+                self.engine_debug(f"{self.name}: starting run-and-yield {fn_str}")
                 try:
                     async for _ in command_fn(*args, **kwargs):
-                        self.log.debug(f"{self.name}: sending iteration for {command_fn.__name__}(): {_}")
+                        self.engine_debug(f"{self.name}: sending iteration for {fn_str}: {_}")
                         await self.send_socket_multipart(client_id, _)
                 except BaseException as e:
-                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
-                        error = f"Error in {self.name}.{fn_str}: {e}"
-                        trace = traceback.format_exc()
-                        self.log.debug(error)
-                        self.log.debug(trace)
-                        result = {"_e": (error, trace)}
-                        await self.send_socket_multipart(client_id, result)
+                    if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        log_fn = self.log.debug
+                    else:
+                        log_fn = self.log.error
+                    error = f"{self.name}: error in {fn_str}: {e}"
+                    trace = traceback.format_exc()
+                    log_fn(error)
+                    self.log.trace(trace)
+                    result = {"_e": (error, trace)}
+                    await self.send_socket_multipart(client_id, result)
                 finally:
-                    self.log.debug(f"{self.name} reached end of run-and-yield iteration for {command_fn.__name__}()")
+                    self.engine_debug(f"{self.name}: reached end of run-and-yield iteration for {fn_str}")
                     # _s == special signal that means StopIteration
                     await self.send_socket_multipart(client_id, {"_s": None})
                     self.tasks.pop(client_id, None)
@@ -449,14 +468,14 @@ class EngineServer(EngineBase):
                 )
                 self.log.critical(traceback.format_exc())
             finally:
-                self.log.debug(f"{self.name} finished run-and-yield {command_fn.__name__}()")
+                self.engine_debug(f"{self.name}: finished run-and-yield {fn_str}")
 
     async def send_socket_multipart(self, client_id, message):
         try:
             message = pickle.dumps(message)
             await self._infinite_retry(self.socket.send_multipart, [client_id, message])
         except Exception as e:
-            self.log.verbose(f"Error sending ZMQ message: {e}")
+            self.log.verbose(f"{self.name}: error sending ZMQ message: {e}")
             self.log.trace(traceback.format_exc())
 
     def check_error(self, message):
@@ -464,12 +483,12 @@ class EngineServer(EngineBase):
             return True
 
     async def worker(self):
-        self.log.debug(f"{self.name}: starting worker")
+        self.engine_debug(f"{self.name}: starting worker")
         try:
             while 1:
                 client_id, binary = await self.socket.recv_multipart()
                 message = self.unpickle(binary)
-                # self.log.debug(f"{self.name} got message: {message}")
+                self.engine_debug(f"{self.name} got message: {message}")
                 if self.check_error(message):
                     continue
 
@@ -480,14 +499,14 @@ class EngineServer(EngineBase):
 
                 # -1 == cancel task
                 if cmd == -1:
-                    self.log.debug(f"{self.name} got cancel signal")
+                    self.engine_debug(f"{self.name} got cancel signal")
                     await self.send_socket_multipart(client_id, {"m": "CANCEL_OK"})
                     await self.cancel_task(client_id)
                     continue
 
                 # -99 == shutdown task
                 if cmd == -99:
-                    self.log.debug(f"{self.name} got shutdown signal")
+                    self.log.verbose(f"{self.name} got shutdown signal")
                     await self.send_socket_multipart(client_id, {"m": "SHUTDOWN_OK"})
                     await self._shutdown()
                     return
@@ -509,75 +528,138 @@ class EngineServer(EngineBase):
                     continue
 
                 if inspect.isasyncgenfunction(command_fn):
-                    # self.log.debug(f"{self.name}: creating run-and-yield coroutine for {command_name}()")
+                    self.engine_debug(f"{self.name}: creating run-and-yield coroutine for {command_name}()")
                     coroutine = self.run_and_yield(client_id, command_fn, *args, **kwargs)
                 else:
-                    # self.log.debug(f"{self.name}: creating run-and-return coroutine for {command_name}()")
+                    self.engine_debug(f"{self.name}: creating run-and-return coroutine for {command_name}()")
                     coroutine = self.run_and_return(client_id, command_fn, *args, **kwargs)
 
-                # self.log.debug(f"{self.name}: creating task for {command_name}() coroutine")
+                self.engine_debug(f"{self.name}: creating task for {command_name}() coroutine")
                 task = asyncio.create_task(coroutine)
                 self.tasks[client_id] = task, command_fn, args, kwargs
-                # self.log.debug(f"{self.name}: finished creating task for {command_name}() coroutine")
+                self.engine_debug(f"{self.name}: finished creating task for {command_name}() coroutine")
         except BaseException as e:
             await self._shutdown()
             if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                 self.log.error(f"{self.name}: error in EngineServer worker: {e}")
                 self.log.trace(traceback.format_exc())
         finally:
-            self.log.debug(f"{self.name}: finished worker()")
+            self.engine_debug(f"{self.name}: finished worker()")
 
     async def _shutdown(self):
         if not self._shutdown_status:
             self.log.verbose(f"{self.name}: shutting down...")
             self._shutdown_status = True
             await self.cancel_all_tasks()
-            try:
-                self.context.destroy(linger=0)
-            except Exception:
-                self.log.trace(traceback.format_exc())
-            try:
-                self.context.term()
-            except Exception:
-                self.log.trace(traceback.format_exc())
-            self.log.debug(f"{self.name}: finished shutting down")
+            context = getattr(self, "context", None)
+            if context is not None:
+                try:
+                    context.destroy(linger=0)
+                except Exception:
+                    self.log.trace(traceback.format_exc())
+                try:
+                    context.term()
+                except Exception:
+                    self.log.trace(traceback.format_exc())
+            self.log.verbose(f"{self.name}: finished shutting down")
 
-    def new_child_task(self, client_id, coro):
+    async def task_pool(self, fn, args_kwargs, threads=10, timeout=300, global_kwargs=None):
+        if global_kwargs is None:
+            global_kwargs = {}
+
+        tasks = {}
+        args_kwargs = list(args_kwargs)
+
+        def new_task():
+            if args_kwargs:
+                kwargs = {}
+                tracker = None
+                args = args_kwargs.pop(0)
+                if isinstance(args, (list, tuple)):
+                    # you can specify a custom tracker value if you want
+                    # this helps with correlating results
+                    with suppress(ValueError):
+                        args, kwargs, tracker = args
+                    # or you can just specify args/kwargs
+                    with suppress(ValueError):
+                        args, kwargs = args
+
+                if not isinstance(kwargs, dict):
+                    raise ValueError(f"kwargs must be dict (got: {kwargs})")
+                if not isinstance(args, (list, tuple)):
+                    args = [args]
+
+                task = self.new_child_task(fn(*args, **kwargs, **global_kwargs))
+                tasks[task] = (args, kwargs, tracker)
+
+        for _ in range(threads):  # Start initial batch of tasks
+            new_task()
+
+        while tasks:  # While there are tasks pending
+            # Wait for the first task to complete
+            finished = await self.finished_tasks(tasks, timeout=timeout)
+            for task in finished:
+                result = task.result()
+                (args, kwargs, tracker) = tasks.pop(task)
+                yield (args, kwargs, tracker), result
+                new_task()
+
+    def new_child_task(self, coro):
+        """
+        Create a new asyncio task, making sure to track it based on the client id.
+
+        This allows the task to be automatically cancelled if its parent is cancelled.
+        """
+        client_id = self.client_id_var.get()
         task = asyncio.create_task(coro)
-        try:
-            self.child_tasks[client_id].add(task)
-        except KeyError:
-            self.child_tasks[client_id] = {task}
+
+        if client_id:
+
+            def remove_task(t):
+                tasks = self.child_tasks.get(client_id, set())
+                tasks.discard(t)
+                if not tasks:
+                    self.child_tasks.pop(client_id, None)
+
+            task.add_done_callback(remove_task)
+
+            try:
+                self.child_tasks[client_id].add(task)
+            except KeyError:
+                self.child_tasks[client_id] = {task}
+
         return task
 
-    async def finished_tasks(self, client_id, timeout=None):
-        child_tasks = self.child_tasks.get(client_id, set())
-        try:
-            done, pending = await asyncio.wait(child_tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
-        except BaseException as e:
-            if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):
-                done = set()
-                self.log.warning(f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({child_tasks})")
-                for task in child_tasks:
-                    task.cancel()
-            else:
-                if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
-                    self.log.error(f"{self.name}: Unhandled exception in finished_tasks({child_tasks}): {e}")
-                    self.log.trace(traceback.format_exc())
-                raise
-        self.child_tasks[client_id] = pending
-        return done
+    async def finished_tasks(self, tasks, timeout=None):
+        """
+        Given a list of asyncio tasks, return the ones that are finished with an optional timeout
+        """
+        if tasks:
+            try:
+                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+                return done
+            except BaseException as e:
+                if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):
+                    self.log.warning(f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({tasks})")
+                    for task in tasks:
+                        task.cancel()
+                else:
+                    if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        self.log.error(f"{self.name}: Unhandled exception in finished_tasks({tasks}): {e}")
+                        self.log.trace(traceback.format_exc())
+                    raise
+        return set()
 
     async def cancel_task(self, client_id):
         parent_task = self.tasks.pop(client_id, None)
         if parent_task is None:
             return
         parent_task, _cmd, _args, _kwargs = parent_task
-        self.log.debug(f"{self.name}: Cancelling client id {client_id} (task: {parent_task})")
+        self.engine_debug(f"{self.name}: Cancelling client id {client_id} (task: {parent_task})")
         parent_task.cancel()
         child_tasks = self.child_tasks.pop(client_id, set())
         if child_tasks:
-            self.log.debug(f"{self.name}: Cancelling {len(child_tasks):,} child tasks for client id {client_id}")
+            self.engine_debug(f"{self.name}: Cancelling {len(child_tasks):,} child tasks for client id {client_id}")
             for child_task in child_tasks:
                 child_task.cancel()
 
@@ -588,7 +670,7 @@ class EngineServer(EngineBase):
         try:
             await asyncio.wait_for(task, timeout=10)
         except (TimeoutError, asyncio.exceptions.TimeoutError):
-            self.log.debug(f"{self.name}: Timeout cancelling task")
+            self.log.trace(f"{self.name}: Timeout cancelling task: {task}")
             return
         except (KeyboardInterrupt, asyncio.CancelledError):
             return

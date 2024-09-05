@@ -237,6 +237,7 @@ class Scanner:
 
         self._dns_strings = None
         self._dns_regexes = None
+        self._dns_regexes_yara = None
 
         self.__log_handlers = None
         self._log_handler_backup = []
@@ -662,14 +663,14 @@ class Scanner:
                 scan_active_status.append(f"scan.modules_finished: {self.modules_finished}")
                 for m in sorted_modules:
                     running = m.running
-                    scan_active_status.append(f"    {m}.finished: {m.finished}")
-                    scan_active_status.append(f"        running: {running}")
+                    scan_active_status.append(f"    {m}:")
+                    # scan_active_status.append(f"        running: {running}")
                     if running:
-                        scan_active_status.append(f"        tasks:")
+                        # scan_active_status.append(f"        tasks:")
                         for task in list(m._task_counter.tasks.values()):
-                            scan_active_status.append(f"            - {task}:")
-                    scan_active_status.append(f"        incoming_queue_size: {m.num_incoming_events}")
-                    scan_active_status.append(f"        outgoing_queue_size: {m.outgoing_event_queue.qsize()}")
+                            scan_active_status.append(f"        - {task}:")
+                    # scan_active_status.append(f"        incoming_queue_size: {m.num_incoming_events}")
+                    # scan_active_status.append(f"        outgoing_queue_size: {m.outgoing_event_queue.qsize()}")
                 for line in scan_active_status:
                     self.debug(line)
 
@@ -746,11 +747,11 @@ class Scanner:
         for module in self.modules.values():
             with contextlib.suppress(asyncio.queues.QueueEmpty):
                 while 1:
-                    if module.incoming_event_queue:
+                    if module.incoming_event_queue not in (None, False):
                         module.incoming_event_queue.get_nowait()
             with contextlib.suppress(asyncio.queues.QueueEmpty):
                 while 1:
-                    if module.outgoing_event_queue:
+                    if module.outgoing_event_queue not in (None, False):
                         module.outgoing_event_queue.get_nowait()
         self.debug("Finished draining queues")
 
@@ -1006,7 +1007,7 @@ class Scanner:
             ...     for match in regex.finditer(response.text):
             ...         hostname = match.group().lower()
         """
-        if not self._dns_regexes:
+        if self._dns_regexes is None:
             self._dns_regexes = self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
         return self._dns_regexes
 
@@ -1015,7 +1016,9 @@ class Scanner:
         """
         Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
         """
-        return self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
+        if self._dns_regexes_yara is None:
+            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
+        return self._dns_regexes_yara
 
     @property
     def json(self):

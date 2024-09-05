@@ -26,7 +26,8 @@ class TestJSON(ModuleTestBase):
         assert scan_json["data"]["target"]["whitelist"] == ["blacklanternsecurity.com"]
         assert dns_json["data"] == dns_data
         assert dns_json["discovery_context"] == context_data
-        assert dns_json["discovery_path"] == [["DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc", context_data]]
+        assert dns_json["discovery_path"] == [context_data]
+        assert dns_json["parent_chain"] == ["DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc"]
 
         # event objects reconstructed from json
         scan_reconstructed = event_from_json(scan_json)
@@ -37,9 +38,8 @@ class TestJSON(ModuleTestBase):
         assert scan_reconstructed.data["target"]["whitelist"] == ["blacklanternsecurity.com"]
         assert dns_reconstructed.data == dns_data
         assert dns_reconstructed.discovery_context == context_data
-        assert dns_reconstructed.discovery_path == [
-            ["DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc", context_data]
-        ]
+        assert dns_reconstructed.discovery_path == [context_data]
+        assert dns_reconstructed.parent_chain == ["DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc"]
 
 
 class TestJSONSIEMFriendly(ModuleTestBase):

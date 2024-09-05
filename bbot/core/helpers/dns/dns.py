@@ -56,7 +56,8 @@ class DNSHelper(EngineClient):
         self.parent_helper = parent_helper
         self.config = self.parent_helper.config
         self.dns_config = self.config.get("dns", {})
-        super().__init__(server_kwargs={"config": self.config})
+        engine_debug = self.config.get("engine", {}).get("debug", False)
+        super().__init__(server_kwargs={"config": self.config}, debug=engine_debug)
 
         # resolver
         self.timeout = self.dns_config.get("timeout", 5)
@@ -65,7 +66,7 @@ class DNSHelper(EngineClient):
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
 
-        self.runaway_limit = self.config.get("runaway_limit", 5)
+        self.runaway_limit = self.dns_config.get("runaway_limit", 5)
 
         # wildcard handling
         self.wildcard_disable = self.dns_config.get("wildcard_disable", False)
@@ -116,8 +117,11 @@ class DNSHelper(EngineClient):
             self._brute = DNSBrute(self.parent_helper)
         return self._brute
 
-    @async_cachedmethod(lambda self: self._is_wildcard_cache)
-    async def is_wildcard(self, query, ips=None, rdtype=None):
+    @async_cachedmethod(
+        lambda self: self._is_wildcard_cache,
+        key=lambda query, rdtypes, raw_dns_records: (query, tuple(sorted(rdtypes)), bool(raw_dns_records)),
+    )
+    async def is_wildcard(self, query, rdtypes, raw_dns_records=None):
         """
         Use this method to check whether a *host* is a wildcard entry
 
@@ -149,9 +153,6 @@ class DNSHelper(EngineClient):
         Note:
             `is_wildcard` can be True, False, or None (indicating that wildcard detection was inconclusive)
         """
-        if [ips, rdtype].count(None) == 1:
-            raise ValueError("Both ips and rdtype must be specified")
-
         query = self._wildcard_prevalidation(query)
         if not query:
             return {}
@@ -160,15 +161,17 @@ class DNSHelper(EngineClient):
         if is_domain(query):
             return {}
 
-        return await self.run_and_return("is_wildcard", query=query, ips=ips, rdtype=rdtype)
+        return await self.run_and_return("is_wildcard", query=query, rdtypes=rdtypes, raw_dns_records=raw_dns_records)
 
-    @async_cachedmethod(lambda self: self._is_wildcard_domain_cache)
-    async def is_wildcard_domain(self, domain, log_info=False):
+    @async_cachedmethod(
+        lambda self: self._is_wildcard_domain_cache, key=lambda domain, rdtypes: (domain, tuple(sorted(rdtypes)))
+    )
+    async def is_wildcard_domain(self, domain, rdtypes):
         domain = self._wildcard_prevalidation(domain)
         if not domain:
             return {}
 
-        return await self.run_and_return("is_wildcard_domain", domain=domain, log_info=False)
+        return await self.run_and_return("is_wildcard_domain", domain=domain, rdtypes=rdtypes)
 
     def _wildcard_prevalidation(self, host):
         if self.wildcard_disable:
@@ -191,8 +194,8 @@ class DNSHelper(EngineClient):
 
         return host
 
-    async def _mock_dns(self, mock_data):
+    async def _mock_dns(self, mock_data, custom_lookup_fn=None):
         from .mock import MockResolver
 
-        self.resolver = MockResolver(mock_data)
-        await self.run_and_return("_mock_dns", mock_data=mock_data)
+        self.resolver = MockResolver(mock_data, custom_lookup_fn=custom_lookup_fn)
+        await self.run_and_return("_mock_dns", mock_data=mock_data, custom_lookup_fn=custom_lookup_fn)

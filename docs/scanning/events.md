@@ -21,41 +21,37 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
 
 ```json
 {
-  "type": "URL",
-  "id": "URL:c9962277277393f8895d2a4fa9b7f70b15f3af3e",
+  "type": "DNS_NAME",
+  "id": "DNS_NAME:879e47564ff0ed7711b707d3dbecb706ad6af1a3",
   "scope_description": "in-scope",
-  "data": "https://blog.blacklanternsecurity.com/",
-  "host": "blog.blacklanternsecurity.com",
+  "data": "www.blacklanternsecurity.com",
+  "host": "www.blacklanternsecurity.com",
   "resolved_hosts": [
-    "104.18.40.87"
+    "185.199.108.153",
+    "2606:50c0:8003::153",
+    "blacklanternsecurity.github.io"
   ],
-  "dns_children": {
-    "A": [
-      "104.18.40.87",
-      "172.64.147.169"
-    ]
-  },
+  "dns_children": {},
   "web_spider_distance": 0,
   "scope_distance": 0,
-  "scan": "SCAN:9224b49405e6d1607fd615243577d9ca86c7d206",
-  "timestamp": 1717260760.157012,
-  "parent": "OPEN_TCP_PORT:ebe3d6c10b41f60e3590ce6436ab62510b91c758",
+  "scan": "SCAN:477d1e6b94be928bf85c554b0845985189cfc81d",
+  "timestamp": "2024-08-17T03:49:47.906017+00:00",
+  "parent": "DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc",
   "tags": [
-    "in-scope",
-    "http-title-black-lantern-security-blsops",
-    "dir",
-    "ip-104-18-40-87",
-    "cdn-cloudflare",
-    "status-200"
+    "cdn-github",
+    "subdomain",
+    "in-scope"
   ],
-  "module": "httpx",
-  "module_sequence": "httpx",
-  "discovery_context": "httpx visited blog.blacklanternsecurity.com:443 and got status code 200 at https://blog.blacklanternsecurity.com/",
+  "module": "otx",
+  "module_sequence": "otx",
+  "discovery_context": "otx searched otx API for \"blacklanternsecurity.com\" and found DNS_NAME: www.blacklanternsecurity.com",
   "discovery_path": [
-    "Scan difficult_arthur seeded with DNS_NAME: blacklanternsecurity.com",
-    "certspotter searched certspotter API for \"blacklanternsecurity.com\" and found DNS_NAME: blog.blacklanternsecurity.com",
-    "speculated OPEN_TCP_PORT: blog.blacklanternsecurity.com:443",
-    "httpx visited blog.blacklanternsecurity.com:443 and got status code 200 at https://blog.blacklanternsecurity.com/"
+    "Scan demonic_jimmy seeded with DNS_NAME: blacklanternsecurity.com",
+    "otx searched otx API for \"blacklanternsecurity.com\" and found DNS_NAME: www.blacklanternsecurity.com"
+  ],
+  "parent_chain": [
+    "DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc",
+    "DNS_NAME:879e47564ff0ed7711b707d3dbecb706ad6af1a3"
   ]
 }
 ```

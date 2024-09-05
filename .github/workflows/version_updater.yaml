@@ -9,10 +9,11 @@ jobs:
   update-nuclei-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: dev
           fetch-depth: 0
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -28,8 +29,9 @@ jobs:
           response = requests.get('https://api.github.com/repos/projectdiscovery/nuclei/releases/latest')
           version = response.json()['tag_name'].lstrip('v')
           release_notes = response.json()['body']
-          os.system(f"echo 'latest_version={version}' >> $GITHUB_ENV")
-          os.system(f"echo 'release_notes={release_notes}' >> $GITHUB_ENV")
+          with open(os.getenv('GITHUB_ENV'), 'a') as env_file:
+            env_file.write(f"latest_version={version}\n")
+            env_file.write(f"release_notes<<EOF\n{release_notes}\nEOF\n")
         shell: python
       - name: Get current version
         id: get-current-version
@@ -44,25 +46,26 @@ jobs:
         if: steps.update-version.outcome == 'success'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           commit-message: "Update nuclei"
           title: "Update nuclei to ${{ env.latest_version }}"
           body: |
             This PR uses https://api.github.com/repos/projectdiscovery/nuclei/releases/latest to obtain the latest version of nuclei and update the version in bbot/modules/deadly/nuclei.py."
 
-            Release notes:
+            # Release notes:
             ${{ env.release_notes }}
           branch: "update-nuclei"
-          committer: GitHub <noreply@github.com>
-          author: GitHub <noreply@github.com>
+          committer: blsaccess <info@blacklanternsecurity.com>
+          author: blsaccess <info@blacklanternsecurity.com>
           assignees: "TheTechromancer"
   update-trufflehog-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: dev
           fetch-depth: 0
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -78,8 +81,9 @@ jobs:
           response = requests.get('https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest')
           version = response.json()['tag_name'].lstrip('v')
           release_notes = response.json()['body']
-          os.system(f"echo 'latest_version={version}' >> $GITHUB_ENV")
-          os.system(f"echo 'release_notes={release_notes}' >> $GITHUB_ENV")
+          with open(os.getenv('GITHUB_ENV'), 'a') as env_file:
+            env_file.write(f"latest_version={version}\n")
+            env_file.write(f"release_notes<<EOF\n{release_notes}\nEOF\n")
         shell: python
       - name: Get current version
         id: get-current-version
@@ -94,15 +98,15 @@ jobs:
         if: steps.update-version.outcome == 'success'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           commit-message: "Update trufflehog"
           title: "Update trufflehog to ${{ env.latest_version }}"
           body: |
             This PR uses https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest to obtain the latest version of trufflehog and update the version in bbot/modules/trufflehog.py.
 
-            Release notes:
+            # Release notes:
             ${{ env.release_notes }}
           branch: "update-trufflehog"
-          committer: GitHub <noreply@github.com>
-          author: GitHub <noreply@github.com>
+          committer: blsaccess <info@blacklanternsecurity.com>
+          author: blsaccess <info@blacklanternsecurity.com>
           assignees: "TheTechromancer"

@@ -13,6 +13,7 @@ class TestTrufflehog(ModuleTestBase):
         "github_org",
         "speculate",
         "git_clone",
+        "unstructured",
         "github_workflows",
         "dockerhub",
         "docker_pull",
@@ -851,8 +852,10 @@ class TestTrufflehog(ModuleTestBase):
             if e.type == "VULNERABILITY"
             and (e.data["host"] == "hub.docker.com" or e.data["host"] == "github.com")
             and "Verified Secret Found." in e.data["description"]
-            and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
+            and "Raw result: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
+            and "RawV2 result: [https://admin:admin@the-internet.herokuapp.com/basic_auth]" in e.data["description"]
         ]
+        # Trufflehog should find 3 verifiable secrets, 1 from the github, 1 from the workflow log and 1 from the docker image. Unstructured will extract the text file but trufflehog should reject it as its already scanned the containing folder
         assert 3 == len(vuln_events), "Failed to find secret in events"
         github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
@@ -867,7 +870,7 @@ class TestTrufflehog(ModuleTestBase):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
@@ -898,8 +901,9 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             if e.type == e.type == "FINDING"
             and (e.data["host"] == "hub.docker.com" or e.data["host"] == "github.com")
             and "Potential Secret Found." in e.data["description"]
-            and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
+            and "Raw result: [https://admin:admin@internal.host.com]" in e.data["description"]
         ]
+        # Trufflehog should find 3 unverifiable secrets, 1 from the github, 1 from the workflow log and 1 from the docker image. Unstructured will extract the text file but trufflehog should reject it as its already scanned the containing folder
         assert 3 == len(finding_events), "Failed to find secret in events"
         github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
@@ -914,7 +918,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(

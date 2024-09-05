@@ -7,9 +7,9 @@ from bbot.modules.templates.github import github
 class github_workflows(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe"]
+    flags = ["passive", "safe", "code-enum"]
     meta = {
-        "description": "Download a github repositories workflow logs",
+        "description": "Download a github repositories workflow logs and workflow artifacts",
         "created_date": "2024-04-29",
         "author": "@domwhewell-sage",
     }
@@ -46,9 +46,9 @@ class github_workflows(github):
             self.log.debug(f"Looking up runs for {workflow_name} in {owner}/{repo}")
             for run in await self.get_workflow_runs(owner, repo, workflow_id):
                 run_id = run.get("id")
+                workflow_url = f"https://github.com/{owner}/{repo}/actions/runs/{run_id}"
                 self.log.debug(f"Downloading logs for {workflow_name}/{run_id} in {owner}/{repo}")
                 for log in await self.download_run_logs(owner, repo, run_id):
-                    workflow_url = f"https://github.com/{owner}/{repo}/actions/runs/{run_id}"
                     logfile_event = self.make_event(
                         {
                             "path": str(log),
@@ -62,6 +62,28 @@ class github_workflows(github):
                         logfile_event,
                         context=f"{{module}} downloaded workflow run logs from {workflow_url} to {{event.type}}: {log}",
                     )
+                artifacts = await self.get_run_artifacts(owner, repo, run_id)
+                if artifacts:
+                    for artifact in artifacts:
+                        artifact_id = artifact.get("id")
+                        artifact_name = artifact.get("name")
+                        expired = artifact.get("expired")
+                        if not expired:
+                            filepath = await self.download_run_artifacts(owner, repo, artifact_id, artifact_name)
+                            if filepath:
+                                artifact_event = self.make_event(
+                                    {
+                                        "path": str(filepath),
+                                        "description": f"Workflow run artifact from {workflow_url}",
+                                    },
+                                    "FILESYSTEM",
+                                    tags=["zipfile"],
+                                    parent=event,
+                                )
+                                await self.emit_event(
+                                    artifact_event,
+                                    context=f"{{module}} downloaded workflow run artifact from {workflow_url} to {{event.type}}: {filepath}",
+                                )
 
     async def get_workflows(self, owner, repo):
         workflows = []
@@ -150,3 +172,51 @@ class github_workflows(github):
             return main_logs
         else:
             return []
+
+    async def get_run_artifacts(self, owner, repo, run_id):
+        artifacts = []
+        url = f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"
+        r = await self.helpers.request(url, headers=self.headers)
+        if r is None:
+            return artifacts
+        status_code = getattr(r, "status_code", 0)
+        if status_code == 403:
+            self.warning("Github is rate-limiting us (HTTP status: 403)")
+            return artifacts
+        if status_code != 200:
+            return artifacts
+        try:
+            j = r.json().get("artifacts", [])
+        except Exception as e:
+            self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+            return artifacts
+        if not j:
+            return artifacts
+        for item in j:
+            artifacts.append(item)
+        return artifacts
+
+    async def download_run_artifacts(self, owner, repo, artifact_id, artifact_name):
+        folder = self.output_dir / owner / repo
+        self.helpers.mkdir(folder)
+        file_destination = folder / artifact_name
+        try:
+            await self.helpers.download(
+                f"{self.base_url}/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip",
+                filename=file_destination,
+                headers=self.headers,
+                raise_error=True,
+                warn=False,
+            )
+            self.info(
+                f"Downloaded workflow artifact {owner}/{repo}/{artifact_id}/{artifact_name} to {file_destination}"
+            )
+        except Exception as e:
+            file_destination = None
+            response = getattr(e, "response", None)
+            status_code = getattr(response, "status_code", 0)
+            if status_code == 403:
+                self.warning(
+                    f"The current access key does not have access to workflow artifacts {owner}/{repo}/{artifact_id} (status: {status_code})"
+                )
+        return file_destination

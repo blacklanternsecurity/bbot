@@ -181,8 +181,7 @@ class ExcavateRule:
         """
         for identifier, results in yara_results.items():
             for result in results:
-                event_data = {"host": str(event.host), "url": event.data.get("url", "")}
-                event_data["description"] = f"{discovery_context} {yara_rule_settings.description}"
+                event_data = {"description": f"{discovery_context} {yara_rule_settings.description}"}
                 if yara_rule_settings.emit_match:
                     event_data["description"] += f" [{result}]"
                 await self.report(event_data, event, yara_rule_settings, discovery_context)
@@ -212,7 +211,7 @@ class ExcavateRule:
         event_draft = self.excavate.make_event(event_data, event_type, parent=event)
         if not event_draft:
             return None
-        event_draft.tags = tags
+        event_draft.add_tags(tags)
         return event_draft
 
     async def report(
@@ -268,7 +267,7 @@ class CustomExtractor(ExcavateRule):
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
         for identifier, results in yara_results.items():
             for result in results:
-                event_data = {"host": str(event.host), "url": event.data.get("url", "")}
+                event_data = {}
                 description_string = (
                     f" with description: [{yara_rule_settings.description}]" if yara_rule_settings.description else ""
                 )
@@ -291,7 +290,7 @@ class excavate(BaseInternalModule):
         }
     """
 
-    watched_events = ["HTTP_RESPONSE"]
+    watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
     produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
     flags = ["passive"]
     meta = {
@@ -328,24 +327,38 @@ class excavate(BaseInternalModule):
         "PHPSESSID",
     ]
 
-    parameter_blacklist_prefix = [
-        "TS01",  # Big-IP F5 Persistence Cookies
-        "BIGipServerpool_"
-    ]
+    parameter_blacklist_prefix = ["TS01", "BIGipServerpool_"]  # Big-IP F5 Persistence Cookies
+    parameter_blacklist = set(
+        p.lower()
+        for p in [
+            "__VIEWSTATE",
+            "__EVENTARGUMENT",
+            "__EVENTVALIDATION",
+            "__EVENTTARGET",
+            "__EVENTARGUMENT",
+            "__VIEWSTATEGENERATOR",
+            "__SCROLLPOSITIONY",
+            "__SCROLLPOSITIONX",
+            "ASP.NET_SessionId",
+            "JSESSIONID",
+            "PHPSESSID",
+        ]
+    )
 
     yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
 
     def in_bl(self, value):
-        in_bl = False
-        for bl_param in self.parameter_blacklist:
-            if bl_param.lower() == value.lower():
-                in_bl = True
+        lower_value = value.lower()
+
+        if lower_value in self.parameter_blacklist:
+            return True
 
         for bl_param_prefix in self.parameter_blacklist_prefix:
-            if value.lower().startswith(bl_param_prefix.lower()):
-                in_bl = True
-        return in_bl
+            if lower_value.startswith(bl_param_prefix.lower()):
+                return True
+
+        return False
 
     def url_unparse(self, param_type, parsed_url):
         if param_type == "GETPARAM":
@@ -610,9 +623,7 @@ class excavate(BaseInternalModule):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
                     event_data = {
-                        "host": str(event.host),
-                        "url": event.data.get("url", ""),
-                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})",
+                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})"
                     }
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
 
@@ -643,9 +654,7 @@ class excavate(BaseInternalModule):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
                     event_data = {
-                        "host": str(event.host),
-                        "url": event.data.get("url", ""),
-                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})",
+                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})"
                     }
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
 
@@ -714,6 +723,7 @@ class excavate(BaseInternalModule):
 
             for identifier, results in yara_results.items():
                 urls_found = 0
+                final_url = ""
                 for url_str in results:
                     if identifier == "url_full":
                         if not await self.helpers.re.search(self.full_url_regex, url_str):
@@ -724,7 +734,7 @@ class excavate(BaseInternalModule):
                         final_url = url_str
 
                         self.excavate.debug(f"Discovered Full URL [{final_url}]")
-                    elif identifier == "url_attr":
+                    elif identifier == "url_attr" and hasattr(event, "parsed_url"):
                         m = await self.helpers.re.search(self.tag_attribute_regex, url_str)
                         if not m:
                             self.excavate.debug(
@@ -743,17 +753,18 @@ class excavate(BaseInternalModule):
                             f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                         )
 
-                    if self.excavate.scan.in_scope(final_url):
-                        urls_found += 1
+                    if final_url:
+                        if self.excavate.scan.in_scope(final_url):
+                            urls_found += 1
 
-                    await self.report(
-                        final_url,
-                        event,
-                        yara_rule_settings,
-                        discovery_context,
-                        event_type="URL_UNVERIFIED",
-                        urls_found=urls_found,
-                    )
+                        await self.report(
+                            final_url,
+                            event,
+                            yara_rule_settings,
+                            discovery_context,
+                            event_type="URL_UNVERIFIED",
+                            urls_found=urls_found,
+                        )
 
         async def report_prep(self, event_data, event_type, event, tags, **kwargs):
             event_draft = self.excavate.make_event(event_data, event_type, parent=event)
@@ -765,7 +776,7 @@ class excavate(BaseInternalModule):
                 exceeds_max_links = urls_found > self.excavate.scan.web_spider_links_per_page and url_in_scope
                 if exceeds_max_links:
                     tags.append("spider-max")
-            event_draft.tags = tags
+            event_draft.add_tags(tags)
             return event_draft
 
     class HostnameExtractor(ExcavateRule):
@@ -888,33 +899,35 @@ class excavate(BaseInternalModule):
 
         decoded_data = await self.helpers.re.recursive_decode(data)
 
-        content_type_lower = content_type.lower() if content_type else ""
-        extraction_map = {
-            "json": self.helpers.extract_params_json,
-            "xml": self.helpers.extract_params_xml,
-        }
+        if self.parameter_extraction:
 
-        for source_type, extract_func in extraction_map.items():
-            if source_type in content_type_lower:
-                results = extract_func(data)
-                if results:
-                    for parameter_name, original_value in results:
-                        description = (
-                            f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]"
-                        )
-                        data = {
-                            "host": str(event.host),
-                            "type": "SPECULATIVE",
-                            "name": parameter_name,
-                            "original_value": original_value,
-                            "url": str(event.data["url"]),
-                            "additional_params": {},
-                            "assigned_cookies": self.assigned_cookies,
-                            "description": description,
-                        }
-                        context = f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}"
-                        await self.emit_event(data, "WEB_PARAMETER", event, context=context)
-                return
+            content_type_lower = content_type.lower() if content_type else ""
+            extraction_map = {
+                "json": self.helpers.extract_params_json,
+                "xml": self.helpers.extract_params_xml,
+            }
+
+            for source_type, extract_func in extraction_map.items():
+                if source_type in content_type_lower:
+                    results = extract_func(data)
+                    if results:
+                        for parameter_name, original_value in results:
+                            description = (
+                                f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]"
+                            )
+                            data = {
+                                "host": str(event.host),
+                                "type": "SPECULATIVE",
+                                "name": parameter_name,
+                                "original_value": original_value,
+                                "url": str(event.data["url"]),
+                                "additional_params": {},
+                                "assigned_cookies": self.assigned_cookies,
+                                "description": description,
+                            }
+                            context = f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}"
+                            await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+                    return
 
         for result in self.yara_rules.match(data=f"{data}\n{decoded_data}"):
             rule_name = result.rule
@@ -924,174 +937,183 @@ class excavate(BaseInternalModule):
                 self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
     async def handle_event(self, event):
-        # Harvest GET parameters from URL, if it came directly from the target, and parameter extraction is enabled
-        if (
-            self.parameter_extraction == True
-            and self.url_querystring_remove == False
-            and str(event.parent.parent.module) == "TARGET"
-        ):
-            self.debug(f"Processing target URL [{urlunparse(event.parsed_url)}] for GET parameters")
-            for (
-                method,
-                parsed_url,
-                parameter_name,
-                original_value,
-                regex_name,
-                additional_params,
-            ) in extract_params_url(event.parsed_url):
-                if self.in_bl(parameter_name) == False:
-                    description = f"HTTP Extracted Parameter [{parameter_name}] (Target URL)"
+
+        if event.type == "HTTP_RESPONSE":
+            # Harvest GET parameters from URL, if it came directly from the target, and parameter extraction is enabled
+            if (
+                self.parameter_extraction == True
+                and self.url_querystring_remove == False
+                and str(event.parent.parent.module) == "TARGET"
+            ):
+                self.debug(f"Processing target URL [{urlunparse(event.parsed_url)}] for GET parameters")
+                for (
+                    method,
+                    parsed_url,
+                    parameter_name,
+                    original_value,
+                    regex_name,
+                    additional_params,
+                ) in extract_params_url(event.parsed_url):
+                    if self.in_bl(parameter_name) == False:
+                        description = f"HTTP Extracted Parameter [{parameter_name}] (Target URL)"
+                        data = {
+                            "host": parsed_url.hostname,
+                            "type": "GETPARAM",
+                            "name": parameter_name,
+                            "original_value": original_value,
+                            "url": self.url_unparse("GETPARAM", parsed_url),
+                            "description": description,
+                            "additional_params": additional_params,
+                        }
+                        context = f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
+                        await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+
+            # If parameter_extraction is enabled and we assigned custom headers, emit them as WEB_PARAMETER
+            if self.parameter_extraction == True:
+
+                custom_cookies = self.scan.web_config.get("http_cookies", {})
+                for custom_cookie_name, custom_cookie_value in custom_cookies.items():
+                    description = f"HTTP Extracted Parameter [{custom_cookie_name}] (Custom Cookie)"
                     data = {
-                        "host": parsed_url.hostname,
-                        "type": "GETPARAM",
-                        "name": parameter_name,
-                        "original_value": original_value,
-                        "url": self.url_unparse("GETPARAM", parsed_url),
+                        "host": event.parsed_url.hostname,
+                        "type": "COOKIE",
+                        "name": custom_cookie_name,
+                        "original_value": custom_cookie_value,
+                        "url": self.url_unparse("COOKIE", event.parsed_url),
                         "description": description,
-                        "additional_params": additional_params,
+                        "additional_params": _exclude_key(custom_cookies, custom_cookie_name),
                     }
-                    context = f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
+                    context = (
+                        f"Excavate saw a custom cookie set [{custom_cookie_name}], and emitted a WEB_PARAMETER for it"
+                    )
                     await self.emit_event(data, "WEB_PARAMETER", event, context=context)
 
-        # If parameter_extraction is enabled and we assigned custom headers, emit them as WEB_PARAMETER
-        if self.parameter_extraction == True:
+                custom_headers = self.scan.web_config.get("http_headers", {})
+                for custom_header_name, custom_header_value in custom_headers.items():
+                    description = f"HTTP Extracted Parameter [{custom_header_name}] (Custom Header)"
+                    data = {
+                        "host": event.parsed_url.hostname,
+                        "type": "HEADER",
+                        "name": custom_header_name,
+                        "original_value": custom_header_value,
+                        "url": self.url_unparse("HEADER", event.parsed_url),
+                        "description": description,
+                        "additional_params": _exclude_key(custom_headers, custom_header_name),
+                    }
+                    context = (
+                        f"Excavate saw a custom header set [{custom_header_name}], and emitted a WEB_PARAMETER for it"
+                    )
+                    await self.emit_event(data, "WEB_PARAMETER", event, context=context)
 
-            custom_cookies = self.scan.web_config.get("http_cookies", {})
-            for custom_cookie_name, custom_cookie_value in custom_cookies.items():
-                description = f"HTTP Extracted Parameter [{custom_cookie_name}] (Custom Cookie)"
-                data = {
-                    "host": event.parsed_url.hostname,
-                    "type": "COOKIE",
-                    "name": custom_cookie_name,
-                    "original_value": custom_cookie_value,
-                    "url": self.url_unparse("COOKIE", event.parsed_url),
-                    "description": description,
-                    "additional_params": _exclude_key(custom_cookies, custom_cookie_name),
-                }
-                context = (
-                    f"Excavate saw a custom cookie set [{custom_cookie_name}], and emitted a WEB_PARAMETER for it"
-                )
-                await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+            data = event.data
 
-            custom_headers = self.scan.web_config.get("http_headers", {})
-            for custom_header_name, custom_header_value in custom_headers.items():
-                description = f"HTTP Extracted Parameter [{custom_header_name}] (Custom Header)"
-                data = {
-                    "host": event.parsed_url.hostname,
-                    "type": "HEADER",
-                    "name": custom_header_name,
-                    "original_value": custom_header_value,
-                    "url": self.url_unparse("HEADER", event.parsed_url),
-                    "description": description,
-                    "additional_params": _exclude_key(custom_headers, custom_header_name),
-                }
-                context = (
-                    f"Excavate saw a custom header set [{custom_header_name}], and emitted a WEB_PARAMETER for it"
-                )
-                await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+            # process response data
+            body = event.data.get("body", "")
+            headers = event.data.get("header-dict", {})
+            if body == "" and headers == {}:
+                return
 
-        data = event.data
+            self.assigned_cookies = {}
+            content_type = None
+            reported_location_header = False
 
-        # process response data
-        body = event.data.get("body", "")
-        headers = event.data.get("header-dict", {})
-        if body == "" and headers == {}:
-            return
-
-        self.assigned_cookies = {}
-        content_type = None
-        reported_location_header = False
-
-        for header, header_values in headers.items():
-            for header_value in header_values:
-                if header.lower() == "set-cookie":
-                    if "=" not in header_value:
-                        self.debug(f"Cookie found without '=': {header_value}")
-                        continue
-                    else:
-                        cookie_name = header_value.split("=")[0]
-                        cookie_value = header_value.split("=")[1].split(";")[0]
-
-                        if self.in_bl(cookie_name) == False:
-                            self.assigned_cookies[cookie_name] = cookie_value
-                            description = f"Set-Cookie Assigned Cookie [{cookie_name}]"
-                            data = {
-                                "host": str(event.host),
-                                "type": "COOKIE",
-                                "name": cookie_name,
-                                "original_value": cookie_value,
-                                "url": self.url_unparse("COOKIE", event.parsed_url),
-                                "description": description,
-                            }
-                            context = f"Excavate noticed a set-cookie header for cookie [{cookie_name}] and emitted a WEB_PARAMETER for it"
-                            await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+            for header, header_values in headers.items():
+                for header_value in header_values:
+                    if header.lower() == "set-cookie" and self.parameter_extraction:
+                        if "=" not in header_value:
+                            self.debug(f"Cookie found without '=': {header_value}")
+                            continue
                         else:
-                            self.debug(f"blocked cookie parameter [{cookie_name}] due to BL match")
-                if header.lower() == "location":
-                    redirect_location = getattr(event, "redirect_location", "")
-                    if redirect_location:
-                        scheme = self.helpers.is_uri(redirect_location, return_scheme=True)
-                        if scheme in ("http", "https"):
-                            web_spider_distance = getattr(event, "web_spider_distance", 0)
-                            num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
-                            if num_redirects <= self.scan.web_max_redirects:
-                                # we do not want to allow the web_spider_distance to be incremented on redirects, so we do not add spider-danger tag
-                                url_event = self.make_event(
-                                    redirect_location, "URL_UNVERIFIED", event, tags="affiliate"
-                                )
-                                if url_event is not None:
-                                    reported_location_header = True
-                                    await self.emit_event(
-                                        url_event,
-                                        context=f'excavate looked in "Location" header and found {url_event.type}: {url_event.data}',
+                            cookie_name = header_value.split("=")[0]
+                            cookie_value = header_value.split("=")[1].split(";")[0]
+
+                            if self.in_bl(cookie_name) == False:
+                                self.assigned_cookies[cookie_name] = cookie_value
+                                description = f"Set-Cookie Assigned Cookie [{cookie_name}]"
+                                data = {
+                                    "host": str(event.host),
+                                    "type": "COOKIE",
+                                    "name": cookie_name,
+                                    "original_value": cookie_value,
+                                    "url": self.url_unparse("COOKIE", event.parsed_url),
+                                    "description": description,
+                                }
+                                context = f"Excavate noticed a set-cookie header for cookie [{cookie_name}] and emitted a WEB_PARAMETER for it"
+                                await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+                            else:
+                                self.debug(f"blocked cookie parameter [{cookie_name}] due to BL match")
+                    if header.lower() == "location":
+                        redirect_location = getattr(event, "redirect_location", "")
+                        if redirect_location:
+                            scheme = self.helpers.is_uri(redirect_location, return_scheme=True)
+                            if scheme in ("http", "https"):
+                                web_spider_distance = getattr(event, "web_spider_distance", 0)
+                                num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
+                                if num_redirects <= self.scan.web_max_redirects:
+                                    # we do not want to allow the web_spider_distance to be incremented on redirects, so we do not add spider-danger tag
+                                    url_event = self.make_event(
+                                        redirect_location, "URL_UNVERIFIED", event, tags="affiliate"
                                     )
+                                    if url_event is not None:
+                                        reported_location_header = True
+                                        await self.emit_event(
+                                            url_event,
+                                            context=f'excavate looked in "Location" header and found {url_event.type}: {url_event.data}',
+                                        )
 
-                        # Try to extract parameters from the redirect URL
-                        if self.parameter_extraction:
+                            # Try to extract parameters from the redirect URL
+                            if self.parameter_extraction:
 
-                            for (
-                                method,
-                                parsed_url,
-                                parameter_name,
-                                original_value,
-                                regex_name,
-                                additional_params,
-                            ) in extract_params_location(header_value, event.parsed_url):
-                                if self.in_bl(parameter_name) == False:
-                                    description = f"HTTP Extracted Parameter [{parameter_name}] (Location Header)"
-                                    data = {
-                                        "host": parsed_url.hostname,
-                                        "type": "GETPARAM",
-                                        "name": parameter_name,
-                                        "original_value": original_value,
-                                        "url": self.url_unparse("GETPARAM", parsed_url),
-                                        "description": description,
-                                        "additional_params": additional_params,
-                                    }
-                                    context = f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
-                                    await self.emit_event(data, "WEB_PARAMETER", event, context=context)
-                    else:
-                        self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
-                if header.lower() == "content-type":
-                    content_type = headers["content-type"][0]
+                                for (
+                                    method,
+                                    parsed_url,
+                                    parameter_name,
+                                    original_value,
+                                    regex_name,
+                                    additional_params,
+                                ) in extract_params_location(header_value, event.parsed_url):
+                                    if self.in_bl(parameter_name) == False:
+                                        description = f"HTTP Extracted Parameter [{parameter_name}] (Location Header)"
+                                        data = {
+                                            "host": parsed_url.hostname,
+                                            "type": "GETPARAM",
+                                            "name": parameter_name,
+                                            "original_value": original_value,
+                                            "url": self.url_unparse("GETPARAM", parsed_url),
+                                            "description": description,
+                                            "additional_params": additional_params,
+                                        }
+                                        context = f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
+                                        await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+                        else:
+                            self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
+                    if header.lower() == "content-type":
+                        content_type = headers["content-type"][0]
 
-        await self.search(
-            body,
-            event,
-            content_type,
-            discovery_context="HTTP response (body)",
-        )
+            await self.search(
+                body,
+                event,
+                content_type,
+                discovery_context="HTTP response (body)",
+            )
 
-        if reported_location_header:
-            # Location header should be removed if we already found and emitted a result.
-            # Failure to do so results in a race against the same URL extracted by the URLExtractor submodule
-            # If the extracted URL wins, it will cause the manual one to be a dupe, but it will have a higher web_spider_distance.
-            headers.pop("location")
-        headers_str = "\n".join(f"{k}: {v}" for k, values in headers.items() for v in values)
+            if reported_location_header:
+                # Location header should be removed if we already found and emitted a result.
+                # Failure to do so results in a race against the same URL extracted by the URLExtractor submodule
+                # If the extracted URL wins, it will cause the manual one to be a dupe, but it will have a higher web_spider_distance.
+                headers.pop("location")
+            headers_str = "\n".join(f"{k}: {v}" for k, values in headers.items() for v in values)
 
-        await self.search(
-            headers_str,
-            event,
-            content_type,
-            discovery_context="HTTP response (headers)",
-        )
+            await self.search(
+                headers_str,
+                event,
+                content_type,
+                discovery_context="HTTP response (headers)",
+            )
+        else:
+            await self.search(
+                event.data,
+                event,
+                content_type="",
+                discovery_context="Parsed file content",
+            )
