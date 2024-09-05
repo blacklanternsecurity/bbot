@@ -1906,7 +1906,7 @@ class TestExcavate_webparameter_outofscope(ModuleTestBase):
 class TestExcavateHeaders(ModuleTestBase):
 
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx"]
+    modules_overrides = ["excavate", "httpx", "hunt"]
     config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
 
     async def setup_before_prep(self, module_test):

@@ -41,20 +41,6 @@ class lightfuzz(BaseModule):
 
     meta = {"description": "Find Web Parameters and Lightly Fuzz them using a heuristic based scanner"}
     common_headers = ["x-forwarded-for", "user-agent"]
-    parameter_blacklist = [
-        "__VIEWSTATE",
-        "__EVENTARGUMENT",
-        "__EVENTVALIDATION",
-        "__EVENTTARGET",
-        "__EVENTARGUMENT",
-        "__VIEWSTATEGENERATOR",
-        "__SCROLLPOSITIONY",
-        "__SCROLLPOSITIONX",
-        "ASP.NET_SessionId",
-        "JSESSIONID",
-        "PHPSESSID",
-        "__cf_bm",
-    ]
     in_scope_only = True
 
     _module_threads = 4
@@ -120,13 +106,6 @@ class lightfuzz(BaseModule):
                 event.data.get("name", ""),
             )
         )
-
-    def in_bl(self, value):
-        in_bl = False
-        for bl_param in self.parameter_blacklist:
-            if bl_param.lower() == value.lower():
-                in_bl = True
-        return in_bl
 
     def url_unparse(self, param_type, parsed_url):
         if param_type == "GETPARAM":
