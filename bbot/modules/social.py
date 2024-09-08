@@ -25,6 +25,7 @@ class social(BaseModule):
         "discord": (r"discord.gg/([a-zA-Z0-9_-]+)", True),
         "docker": (r"hub.docker.com/[ru]/([a-zA-Z0-9_-]+)", False),
         "huggingface": (r"huggingface.co/([a-zA-Z0-9_-]+)", False),
+        "postman": (r"www.postman.com/([a-zA-Z0-9_-]+)", False),
     }
 
     scope_distance_modifier = 1
