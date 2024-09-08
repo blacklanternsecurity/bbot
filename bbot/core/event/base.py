@@ -1,5 +1,6 @@
 import io
 import re
+import uuid
 import json
 import base64
 import logging
@@ -58,7 +59,8 @@ class BaseEvent:
 
     Attributes:
         type (str): Specifies the type of the event, e.g., `IP_ADDRESS`, `DNS_NAME`.
-        id (str): A unique identifier for the event.
+        id (str): An identifier for the event (event type + sha1 hash of data).
+        uuid (UUID): A universally unique identifier for the event.
         data (str or dict): The main data for the event, e.g., a URL or IP address.
         data_graph (str): Representation of `self.data` for Neo4j graph nodes.
         data_human (str): Representation of `self.data` for human output.
@@ -154,7 +156,7 @@ class BaseEvent:
         Raises:
             ValidationError: If either `scan` or `parent` are not specified and `_dummy` is False.
         """
-
+        self.uuid = uuid.uuid4()
         self._id = None
         self._hash = None
         self._data = None
@@ -733,8 +735,9 @@ class BaseEvent:
         Returns:
             dict: JSON-serializable dictionary representation of the event object.
         """
-        # type, ID, scope description
         j = dict()
+        j["uuid"] = str(self.uuid)
+        # type, ID, scope description
         for i in ("type", "id", "scope_description"):
             v = getattr(self, i, "")
             if v:
@@ -1691,6 +1694,9 @@ def event_from_json(j, siem_friendly=False):
             data = j["data"]
         kwargs["data"] = data
         event = make_event(**kwargs)
+        event_uuid = j.get("uuid", None)
+        if event_uuid is not None:
+            event.uuid = uuid.UUID(event_uuid)
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)

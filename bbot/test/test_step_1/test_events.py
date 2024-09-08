@@ -412,6 +412,20 @@ async def test_events(events, helpers):
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 
+    # test event uuid
+    import uuid
+
+    event1 = scan.make_event("evilcorp.com:80", parent=scan.root_event, context="test context")
+    assert hasattr(event1, "uuid")
+    assert isinstance(event1.uuid, uuid.UUID)
+    event2 = scan.make_event("evilcorp.com:80", parent=scan.root_event, context="test context")
+    assert hasattr(event2, "uuid")
+    assert isinstance(event2.uuid, uuid.UUID)
+    # ids should match because the event type + data is the same
+    assert event1.id == event2.id
+    # but uuids should be unique!
+    assert event1.uuid != event2.uuid
+
     # test event serialization
     from bbot.core.event import event_from_json
 
@@ -423,6 +437,8 @@ async def test_events(events, helpers):
     assert db_event.parent_chain == ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac"]
     timestamp = db_event.timestamp.isoformat()
     json_event = db_event.json()
+    assert isinstance(json_event["uuid"], str)
+    assert json_event["uuid"] == str(db_event.uuid)
     assert json_event["scope_distance"] == 1
     assert json_event["data"] == "evilcorp.com:80"
     assert json_event["type"] == "OPEN_TCP_PORT"
@@ -432,6 +448,9 @@ async def test_events(events, helpers):
     assert json_event["discovery_path"] == ["test context"]
     assert json_event["parent_chain"] == ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac"]
     reconstituted_event = event_from_json(json_event)
+    assert isinstance(reconstituted_event.uuid, uuid.UUID)
+    assert str(reconstituted_event.uuid) == json_event["uuid"]
+    assert reconstituted_event.uuid == db_event.uuid
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.isoformat() == timestamp
     assert reconstituted_event.data == "evilcorp.com:80"
