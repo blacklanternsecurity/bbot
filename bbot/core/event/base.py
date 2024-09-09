@@ -745,12 +745,11 @@ class BaseEvent:
             dict: JSON-serializable dictionary representation of the event object.
         """
         j = dict()
-        j["uuid"] = str(self.uuid)
         # type, ID, scope description
-        for i in ("type", "id", "scope_description"):
+        for i in ("type", "id", "uuid", "scope_description"):
             v = getattr(self, i, "")
             if v:
-                j.update({i: v})
+                j.update({i: str(v)})
         # event data
         data_attr = getattr(self, f"data_{mode}", None)
         if data_attr is not None:
