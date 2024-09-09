@@ -1719,7 +1719,7 @@ def event_from_json(j, siem_friendly=False):
             event._parent_id = parent_id
         parent_uuid = j.get("parent_uuid", None)
         if parent_uuid is not None:
-            event._parent_uuid = parent_uuid
+            event._parent_uuid = uuid.UUID(parent_uuid)
         return event
     except KeyError as e:
         raise ValidationError(f"Event missing required field: {e}")

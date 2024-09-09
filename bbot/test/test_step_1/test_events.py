@@ -471,6 +471,7 @@ async def test_events(events, helpers):
     assert str(reconstituted_event.uuid) == json_event["uuid"]
     assert str(reconstituted_event.parent_uuid) == json_event["parent_uuid"]
     assert reconstituted_event.uuid == db_event.uuid
+    assert reconstituted_event.parent_uuid == scan.root_event.uuid
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.isoformat() == timestamp
     assert reconstituted_event.data == "evilcorp.com:80"

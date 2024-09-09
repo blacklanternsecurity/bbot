@@ -217,9 +217,9 @@ def events(scan):
     return bbot_events
 
 
-@pytest.fixture(scope="session", autouse=True)
-def install_all_python_deps():
-    deps_pip = set()
-    for module in DEFAULT_PRESET.module_loader.preloaded().values():
-        deps_pip.update(set(module.get("deps", {}).get("pip", [])))
-    subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
+# @pytest.fixture(scope="session", autouse=True)
+# def install_all_python_deps():
+#     deps_pip = set()
+#     for module in DEFAULT_PRESET.module_loader.preloaded().values():
+#         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
+#     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
