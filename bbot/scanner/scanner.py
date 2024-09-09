@@ -115,6 +115,8 @@ class Scanner:
             dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.
             **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
         """
+        self._root_event = None
+
         if scan_id is not None:
             self.id = str(id)
         else:
@@ -945,13 +947,15 @@ class Scanner:
             }
             ```
         """
-        root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True)
-        root_event._id = self.id
-        root_event.scope_distance = 0
-        root_event.parent = root_event
-        root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
-        root_event.discovery_context = f"Scan {self.name} started at {root_event.timestamp}"
-        return root_event
+        if self._root_event is None:
+            root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True)
+            root_event._id = self.id
+            root_event.scope_distance = 0
+            root_event.parent = root_event
+            root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
+            root_event.discovery_context = f"Scan {self.name} started at {root_event.timestamp}"
+            self._root_event = root_event
+        return self._root_event
 
     @property
     def dns_strings(self):
