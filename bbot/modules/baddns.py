@@ -25,11 +25,11 @@ class baddns(BaseModule):
     deps_pip = ["baddns~=1.1.815"]
 
     def select_modules(self):
-        selected_modules = []
+        selected_submodules = []
         for m in get_all_modules():
-            if m.name in self.enabled_modules:
-                selected_modules.append(m)
-        return selected_modules
+            if m.name in self.enabled_submodules:
+                selected_submodules.append(m)
+        return selected_submodules
 
     async def setup(self):
         self.preset.core.logger.include_logger(logging.getLogger("baddns"))
@@ -39,17 +39,17 @@ class baddns(BaseModule):
         self.only_high_confidence = self.config.get("only_high_confidence", False)
         self.signatures = load_signatures()
 
-        self.enabled_modules = self.config.get("enabled_submodules", [])
-        if self.enabled_modules == []:
-            self.enabled_modules = ["CNAME"]
+        self.enabled_submodules = self.config.get("enabled_submodules", [])
+        if self.enabled_submodules == []:
+            self.enabled_submodules = ["CNAME"]
         all_submodules_list = [m.name for m in get_all_modules()]
-        for m in self.enabled_modules:
+        for m in self.enabled_submodules:
             if m not in all_submodules_list:
                 self.hugewarning(
                     f"Selected BadDNS submodule [{m}] does not exist. Available submodules: [{','.join(all_submodules_list)}]"
                 )
                 return False
-        self.critical(f"Enabled BadDNS Submodules: [{','.join(self.enabled_modules)}]")
+        self.critical(f"Enabled BadDNS Submodules: [{','.join(self.enabled_submodules)}]")
         return True
 
     async def handle_event(self, event):

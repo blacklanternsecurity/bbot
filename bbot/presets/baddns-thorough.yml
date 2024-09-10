@@ -1,0 +1,11 @@
+description: Comprehensive scan for all IIS/.NET specific modules and module settings
+
+
+modules:
+  - baddns
+  - baddns_zone
+
+config:
+  modules:
+    baddns:
+      enabled_submodules: [NSEC,CNAME,references,zonetransfer,MX,NS,TXT]
