@@ -380,8 +380,8 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     scan.modules["dummy"] = dummy(scan)
     events = [e async for e in scan.async_start()]
 
-    assert len(events) == 8
-    assert 1 == len([e for e in events if e.type == "SCAN"])
+    assert len(events) == 9
+    assert 2 == len([e for e in events if e.type == "SCAN"])
     assert 3 == len([e for e in events if e.type == "DNS_NAME"])
     # one from target and one from speculate
     assert 2 == len([e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com"])

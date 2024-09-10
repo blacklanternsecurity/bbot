@@ -19,17 +19,17 @@ class TestJSON(ModuleTestBase):
         json_events = [json.loads(line) for line in lines]
         scan_json = [e for e in json_events if e["type"] == "SCAN"]
         dns_json = [e for e in json_events if e["type"] == "DNS_NAME"]
-        assert len(scan_json) == 1
+        assert len(scan_json) == 2
         assert len(dns_json) == 1
-        scan_json = scan_json[0]
         dns_json = dns_json[0]
-        assert scan_json["data"]["name"] == module_test.scan.name
-        assert scan_json["data"]["id"] == module_test.scan.id
-        assert scan_json["id"] == module_test.scan.id
-        assert scan_json["uuid"] == str(module_test.scan.root_event.uuid)
-        assert scan_json["parent_uuid"] == str(module_test.scan.root_event.uuid)
-        assert scan_json["data"]["target"]["seeds"] == ["blacklanternsecurity.com"]
-        assert scan_json["data"]["target"]["whitelist"] == ["blacklanternsecurity.com"]
+        for scan in scan_json:
+            assert scan["data"]["name"] == module_test.scan.name
+            assert scan["data"]["id"] == module_test.scan.id
+            assert scan["id"] == module_test.scan.id
+            assert scan["uuid"] == str(module_test.scan.root_event.uuid)
+            assert scan["parent_uuid"] == str(module_test.scan.root_event.uuid)
+            assert scan["data"]["target"]["seeds"] == ["blacklanternsecurity.com"]
+            assert scan["data"]["target"]["whitelist"] == ["blacklanternsecurity.com"]
         assert dns_json["data"] == dns_data
         assert dns_json["id"] == str(dns_event.id)
         assert dns_json["uuid"] == str(dns_event.uuid)
@@ -39,7 +39,7 @@ class TestJSON(ModuleTestBase):
         assert dns_json["parent_chain"] == [dns_json["uuid"]]
 
         # event objects reconstructed from json
-        scan_reconstructed = event_from_json(scan_json)
+        scan_reconstructed = event_from_json(scan_json[0])
         dns_reconstructed = event_from_json(dns_json)
         assert scan_reconstructed.data["name"] == module_test.scan.name
         assert scan_reconstructed.data["id"] == module_test.scan.id

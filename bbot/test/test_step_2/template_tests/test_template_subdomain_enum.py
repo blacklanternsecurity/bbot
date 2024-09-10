@@ -120,7 +120,7 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
 
     def check(self, module_test, events):
         assert self.queries == ["walmart.cn"]
-        assert len(events) == 6
+        assert len(events) == 7
         assert 2 == len(
             [
                 e
@@ -185,7 +185,7 @@ def custom_lookup(query, rdtype):
     def check(self, module_test, events):
         # no subdomain enum should happen on this domain!
         assert self.queries == []
-        assert len(events) == 6
+        assert len(events) == 7
         assert 2 == len(
             [e for e in events if e.type == "IP_ADDRESS" and str(e.module) == "A" and e.scope_distance == 1]
         )

@@ -17,7 +17,7 @@ class TestStdoutEventTypes(TestStdout):
 
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
-        assert len(out.splitlines()) == 1
+        assert len(out.splitlines()) == 2
         assert out.startswith("[DNS_NAME]          \tblacklanternsecurity.com\tTARGET")
 
 
@@ -41,7 +41,7 @@ class TestStdoutJSON(TestStdout):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         lines = out.splitlines()
-        assert len(lines) == 2
+        assert len(lines) == 3
         for i, line in enumerate(lines):
             event = json.loads(line)
             if i == 0:
@@ -56,7 +56,7 @@ class TestStdoutJSONFields(TestStdout):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         lines = out.splitlines()
-        assert len(lines) == 2
+        assert len(lines) == 3
         for line in lines:
             event = json.loads(line)
             assert set(event) == {"data", "module_sequence"}
@@ -79,7 +79,7 @@ class TestStdoutDupes(TestStdout):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         lines = out.splitlines()
-        assert len(lines) == 3
+        assert len(lines) == 4
         assert out.count("[IP_ADDRESS]        \t127.0.0.2") == 2
 
 
@@ -97,5 +97,5 @@ class TestStdoutNoDupes(TestStdoutDupes):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         lines = out.splitlines()
-        assert len(lines) == 2
+        assert len(lines) == 3
         assert out.count("[IP_ADDRESS]        \t127.0.0.2") == 1
