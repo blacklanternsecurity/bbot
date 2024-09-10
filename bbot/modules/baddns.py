@@ -15,24 +15,19 @@ class baddns(BaseModule):
         "created_date": "2024-01-18",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "only_high_confidence": False, "enable_references": False}
+    options = {"custom_nameservers": [], "only_high_confidence": False, "enabled_submodules": []}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "only_high_confidence": "Do not emit low-confidence or generic detections",
-        "enable_references": "Enable the references module (off by default)",
+        "enabled_submodules": "A list of submodules to enable. Empty list enables CNAME Only",
     }
     module_threads = 8
     deps_pip = ["baddns~=1.1.815"]
 
     def select_modules(self):
-
-        module_list = ["CNAME", "NS", "MX", "TXT"]
-        if self.config.get("enable_references", False):
-            module_list.append("references")
-
         selected_modules = []
         for m in get_all_modules():
-            if m.name in module_list:
+            if m.name in self.enabled_modules:
                 selected_modules.append(m)
         return selected_modules
 
@@ -43,6 +38,18 @@ class baddns(BaseModule):
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
         self.only_high_confidence = self.config.get("only_high_confidence", False)
         self.signatures = load_signatures()
+
+        self.enabled_modules = self.config.get("enabled_submodules", [])
+        if self.enabled_modules == []:
+            self.enabled_modules = ["CNAME"]
+        all_submodules_list = [m.name for m in get_all_modules()]
+        for m in self.enabled_modules:
+            if m not in all_submodules_list:
+                self.hugewarning(
+                    f"Selected BadDNS submodule [{m}] does not exist. Available submodules: [{','.join(all_submodules_list)}]"
+                )
+                return False
+        self.critical(f"Enabled BadDNS Submodules: [{','.join(self.enabled_modules)}]")
         return True
 
     async def handle_event(self, event):
