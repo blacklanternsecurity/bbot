@@ -19,7 +19,7 @@ class baddns(BaseModule):
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "only_high_confidence": "Do not emit low-confidence or generic detections",
-        "enabled_submodules": "A list of submodules to enable. Empty list enables CNAME Only",
+        "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
     }
     module_threads = 8
     deps_pip = ["baddns~=1.1.815"]
@@ -41,7 +41,7 @@ class baddns(BaseModule):
 
         self.enabled_submodules = self.config.get("enabled_submodules", [])
         if self.enabled_submodules == []:
-            self.enabled_submodules = ["CNAME"]
+            self.enabled_submodules = ["CNAME","MX","TXT"]
         all_submodules_list = [m.name for m in get_all_modules()]
         for m in self.enabled_submodules:
             if m not in all_submodules_list:
