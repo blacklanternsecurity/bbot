@@ -41,7 +41,7 @@ class baddns(BaseModule):
 
         self.enabled_submodules = self.config.get("enabled_submodules", [])
         if self.enabled_submodules == []:
-            self.enabled_submodules = ["CNAME","MX","TXT"]
+            self.enabled_submodules = ["CNAME", "MX", "TXT"]
         all_submodules_list = [m.name for m in get_all_modules()]
         for m in self.enabled_submodules:
             if m not in all_submodules_list:
