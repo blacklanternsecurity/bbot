@@ -971,6 +971,7 @@ class Scanner:
             dns_strings = []
             for t in dns_targets:
                 if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
+                    dns_targets_set.add(t)
                     dns_strings.append(t)
             self._dns_strings = dns_strings
         return self._dns_strings
