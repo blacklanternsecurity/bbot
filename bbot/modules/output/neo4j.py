@@ -1,8 +1,13 @@
 import json
+import logging
 from contextlib import suppress
 from neo4j import AsyncGraphDatabase
 
 from bbot.modules.output.base import BaseOutputModule
+
+
+# silence annoying neo4j logger
+logging.getLogger("neo4j").setLevel(logging.CRITICAL)
 
 
 class neo4j(BaseOutputModule):
@@ -110,7 +115,7 @@ class neo4j(BaseOutputModule):
 
         cypher = f"""UNWIND $events AS event
         MERGE (_:{event_type} {{ id: event.id }})
-        SET _ += event
+        SET _ += properties(event)
         RETURN event.data as event_data, event.id as event_id, elementId(_) as neo4j_id"""
         neo4j_ids = {}
         # insert events
