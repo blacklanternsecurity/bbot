@@ -1,4 +1,4 @@
-description: Comprehensive scan for all IIS/.NET specific modules and module settings
+description: Run all baddns and baddns_zone submodules.
 
 
 modules:
