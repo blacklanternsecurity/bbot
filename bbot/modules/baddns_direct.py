@@ -85,4 +85,5 @@ class baddns_direct(BaseModule):
                 return False
             if "status-200" in event.tags or "status-301" in event.tags:
                 self.critical(f"Rejecting {event.host} due to lack of non-standard status code")
+                return False
         return True
