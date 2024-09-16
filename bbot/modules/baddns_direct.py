@@ -1,9 +1,7 @@
 from baddns.base import get_all_modules
 from baddns.lib.loader import load_signatures
-from urllib.parse import urlparse
 from .base import BaseModule
 
-import asyncio
 import logging
 
 
