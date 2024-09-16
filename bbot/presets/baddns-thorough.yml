@@ -4,6 +4,7 @@ description: Run all baddns and baddns_zone submodules.
 modules:
   - baddns
   - baddns_zone
+  - baddns_direct
 
 config:
   modules:
