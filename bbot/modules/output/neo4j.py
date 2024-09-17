@@ -53,7 +53,7 @@ class neo4j(BaseOutputModule):
                 ),
             )
             self.session = self.driver.session()
-            await self.handle_event(self.scan.root_event)
+            await self.session.run("Match () Return 1 Limit 1")
         except Exception as e:
             return False, f"Error setting up Neo4j: {e}"
         return True

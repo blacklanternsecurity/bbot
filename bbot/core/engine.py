@@ -666,7 +666,7 @@ class EngineServer(EngineBase):
         for task in [parent_task] + list(child_tasks):
             await self._cancel_task(task)
 
-    async def _cancel_task(self, task):
+    async def _await_cancelled_task(self, task):
         try:
             await asyncio.wait_for(task, timeout=10)
         except (TimeoutError, asyncio.exceptions.TimeoutError):

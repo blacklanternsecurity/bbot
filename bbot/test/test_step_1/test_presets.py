@@ -902,3 +902,20 @@ def test_preset_require_exclude():
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
     assert any("aggressive" in flags for module, flags in module_flags)
+
+
+@pytest.mark.asyncio
+async def test_preset_output_dir():
+    output_dir = bbot_test_dir / "preset_output_dir"
+    preset = Preset.from_yaml_string(
+        f"""
+output_dir: {output_dir}
+scan_name: bbot_test
+"""
+    )
+    scan = Scanner(preset=preset)
+    await scan.async_start_without_generator()
+    scan_dir = output_dir / "bbot_test"
+    assert scan_dir.is_dir()
+    output_file = scan_dir / "output.txt"
+    assert output_file.is_file()
