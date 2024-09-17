@@ -663,7 +663,7 @@ config:
     preset2_file.unlink()
 
     # test output dir preset
-    output_dir_preset_file = preset_dir / "output_dir_preset.yml"
+    output_dir_preset_file = bbot_test_dir / "output_dir_preset.yml"
     scan_name = "cli_output_dir_test"
     output_dir = bbot_test_dir / "cli_output_dir_preset"
     scan_dir = output_dir / scan_name
