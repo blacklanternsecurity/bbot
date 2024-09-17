@@ -643,6 +643,7 @@ class EngineServer(EngineBase):
                     self.log.warning(f"{self.name}: Timeout after {timeout:,} seconds in finished_tasks({tasks})")
                     for task in tasks:
                         task.cancel()
+                        self._await_cancelled_task(task)
                 else:
                     if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                         self.log.error(f"{self.name}: Unhandled exception in finished_tasks({tasks}): {e}")
@@ -664,7 +665,7 @@ class EngineServer(EngineBase):
                 child_task.cancel()
 
         for task in [parent_task] + list(child_tasks):
-            await self._cancel_task(task)
+            await self._await_cancelled_task(task)
 
     async def _await_cancelled_task(self, task):
         try:
@@ -683,4 +684,4 @@ class EngineServer(EngineBase):
             await self.cancel_task(client_id)
         for client_id, tasks in self.child_tasks.items():
             for task in tasks:
-                await self._cancel_task(task)
+                await self._await_cancelled_task(task)
