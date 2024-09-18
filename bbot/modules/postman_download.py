@@ -14,7 +14,7 @@ class postman_download(postman):
         "author": "@domwhewell-sage",
     }
     options = {"output_folder": "", "api_key": ""}
-    options_desc = {"output_folder": "Folder to download postman workspaces to"}
+    options_desc = {"output_folder": "Folder to download postman workspaces to", "api_key": "Postman API Key"}
     scope_distance_modifier = 2
 
     async def setup(self):
