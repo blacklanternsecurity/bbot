@@ -672,6 +672,7 @@ config:
     with open(output_dir_preset_file, "w") as f:
         f.write(
             f"""
+description: test preset
 output_dir: {output_dir}
 scan_name: {scan_name}
         """
