@@ -1020,6 +1020,25 @@ class Scanner:
         return self._dns_regexes_yara
 
     @property
+    def dns_yara_rules_uncompiled(self):
+        if self._dns_yara_rules_uncompiled is None:
+            regexes_component_list = []
+            for i, r in enumerate(self.dns_regexes_yara):
+                regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
+            if regexes_component_list:
+                regexes_component = " ".join(regexes_component_list)
+                self._dns_yara_rules_uncompiled = f'rule hostname_extraction {{meta: description = "matches DNS hostname pattern derived from target(s)" strings: {regexes_component} condition: any of them}}'
+        return self._dns_yara_rules_uncompiled
+
+    @property
+    def dns_yara_rules(self):
+        if self._dns_yara_rules is None:
+            import yara
+
+            self._dns_yara_rules = yara.compile(self.dns_yara_rules_uncompiled)
+        return self._dns_yara_rules
+
+    @property
     def json(self):
         """
         A dictionary representation of the scan including its name, ID, targets, whitelist, blacklist, and modules
