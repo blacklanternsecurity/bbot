@@ -355,6 +355,9 @@ class Preset:
         self._blacklist.update(other._blacklist)
         self.strict_scope = self.strict_scope or other.strict_scope
 
+        # module dirs
+        self.module_dirs = self.module_dirs.union(other.module_dirs)
+
         # log verbosity
         if other.silent:
             self.silent = other.silent

@@ -194,10 +194,10 @@ class MyModule(BaseModule):
 
 ## Load Modules from Custom Locations
 
-If you have a custom module and you want to use it with BBOT, you can add its parent folder to `module_paths`. This saves you from having to copy it into the BBOT install location. To add a custom module directory, add it to `module_paths` in your preset:
+If you have a custom module and you want to use it with BBOT, you can add its parent folder to `module_dirs`. This saves you from having to copy it into the BBOT install location. To add a custom module directory, add it to `module_dirs` in your preset:
 
 ```yaml title="my_preset.yml"
 # load BBOT modules from these additional paths
-module_paths:
+module_dirs:
   - /home/user/my_modules
 ```

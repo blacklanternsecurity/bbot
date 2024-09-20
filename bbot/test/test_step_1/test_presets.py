@@ -532,7 +532,8 @@ def test_preset_module_resolution(clean_default_config):
     assert str(error.value) == 'Unable to add scan module "sslcert" because the module has been excluded'
 
 
-def test_preset_module_loader():
+@pytest.mark.asyncio
+async def test_preset_module_loader():
     custom_module_dir = bbot_test_dir / "custom_module_dir"
     custom_module_dir_2 = custom_module_dir / "asdf"
     custom_output_module_dir = custom_module_dir / "output"
@@ -639,6 +640,43 @@ class TestModule4(BaseModule):
 
     # reset module_loader
     preset2.module_loader.__init__()
+
+    # custom module dir via preset
+    custom_module_dir_3 = bbot_test_dir / "custom_module_dir_3"
+    custom_module_dir_3.mkdir(exist_ok=True, parents=True)
+    custom_module_5 = custom_module_dir_3 / "testmodule5.py"
+    with open(custom_module_5, "w") as f:
+        f.write(
+            """
+from bbot.modules.base import BaseModule
+
+class TestModule5(BaseModule):
+    watched_events = ["TECHNOLOGY"]
+    produced_events = ["FINDING"]
+"""
+        )
+
+    preset = Preset.from_yaml_string(
+        f"""
+modules:
+  - testmodule5
+"""
+    )
+    # should fail
+    with pytest.raises(ValidationError):
+        scan = Scanner(preset=preset)
+
+    preset = Preset.from_yaml_string(
+        f"""
+module_dirs:
+  - {custom_module_dir_3}
+modules:
+  - testmodule5
+"""
+    )
+    scan = Scanner(preset=preset)
+    await scan._prep()
+    assert "testmodule5" in scan.modules
 
 
 def test_preset_include():
