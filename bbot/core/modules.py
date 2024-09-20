@@ -478,7 +478,7 @@ class ModuleLoader:
 
         spec = importlib.util.spec_from_file_location(full_namespace, module_path)
         module = importlib.util.module_from_spec(spec)
-        # sys.modules[module_name] = module
+        sys.modules[full_namespace] = module
         spec.loader.exec_module(module)
 
         # for every top-level variable in the .py file
