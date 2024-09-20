@@ -731,6 +731,9 @@ class Preset:
         """
         preset_dict = {}
 
+        if self.description:
+            preset_dict["description"] = self.description
+
         # config
         if full_config:
             config = self.core.config
