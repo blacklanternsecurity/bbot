@@ -227,7 +227,7 @@ class TestPostman_Download(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="https://api.getpostman.com/collections/10197090-62b91565-d2e2-4bcd-8248-4dba2e3452f0",
+            url="https://api.getpostman.com/collections/10197090-2aab9fd0-3715-4abe-8bb0-8cb0264d023f",
             json={
                 "collection": {
                     "info": {
