@@ -919,3 +919,5 @@ scan_name: bbot_test
     assert scan_dir.is_dir()
     output_file = scan_dir / "output.txt"
     assert output_file.is_file()
+
+    shutil.rmtree(output_dir, ignore_errors=True)

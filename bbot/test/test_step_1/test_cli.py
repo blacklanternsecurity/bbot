@@ -672,7 +672,6 @@ config:
     with open(output_dir_preset_file, "w") as f:
         f.write(
             f"""
-description: test preset
 output_dir: {output_dir}
 scan_name: {scan_name}
         """
@@ -703,3 +702,8 @@ scan_name: {scan_name}
     assert output_dir.is_dir()
     assert scan_dir.is_dir()
     assert output_file.is_file()
+
+    shutil.rmtree(output_dir, ignore_errors=True)
+    shutil.rmtree(scan_dir, ignore_errors=True)
+    shutil.rmtree(output_file, ignore_errors=True)
+    output_dir_preset_file.unlink()
