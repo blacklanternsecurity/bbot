@@ -22,14 +22,14 @@ class TestJSON(ModuleTestBase):
         assert len(scan_json) == 2
         assert len(dns_json) == 1
         dns_json = dns_json[0]
-        for scan in scan_json:
-            assert scan["data"]["name"] == module_test.scan.name
-            assert scan["data"]["id"] == module_test.scan.id
-            assert scan["id"] == module_test.scan.id
-            assert scan["uuid"] == str(module_test.scan.root_event.uuid)
-            assert scan["parent_uuid"] == str(module_test.scan.root_event.uuid)
-            assert scan["data"]["target"]["seeds"] == ["blacklanternsecurity.com"]
-            assert scan["data"]["target"]["whitelist"] == ["blacklanternsecurity.com"]
+        scan = scan_json[0]
+        assert scan["data"]["name"] == module_test.scan.name
+        assert scan["data"]["id"] == module_test.scan.id
+        assert scan["id"] == module_test.scan.id
+        assert scan["uuid"] == str(module_test.scan.root_event.uuid)
+        assert scan["parent_uuid"] == str(module_test.scan.root_event.uuid)
+        assert scan["data"]["target"]["seeds"] == ["blacklanternsecurity.com"]
+        assert scan["data"]["target"]["whitelist"] == ["blacklanternsecurity.com"]
         assert dns_json["data"] == dns_data
         assert dns_json["id"] == str(dns_event.id)
         assert dns_json["uuid"] == str(dns_event.uuid)
