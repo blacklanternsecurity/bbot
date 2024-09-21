@@ -46,8 +46,10 @@ class TestStdoutJSON(TestStdout):
             event = json.loads(line)
             if i == 0:
                 assert event["type"] == "SCAN"
-            elif i == 2:
+            elif i == 1:
                 assert event["type"] == "DNS_NAME" and event["data"] == "blacklanternsecurity.com"
+            if i == 2:
+                assert event["type"] == "SCAN"
 
 
 class TestStdoutJSONFields(TestStdout):
