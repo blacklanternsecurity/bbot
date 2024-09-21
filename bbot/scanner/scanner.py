@@ -234,6 +234,8 @@ class Scanner:
         self._dns_strings = None
         self._dns_regexes = None
         self._dns_regexes_yara = None
+        self._dns_yara_rules_uncompiled = None
+        self._dns_yara_rules = None
 
         self.__log_handlers = None
         self._log_handler_backup = []
@@ -1030,13 +1032,32 @@ class Scanner:
                 self._dns_yara_rules_uncompiled = f'rule hostname_extraction {{meta: description = "matches DNS hostname pattern derived from target(s)" strings: {regexes_component} condition: any of them}}'
         return self._dns_yara_rules_uncompiled
 
-    @property
-    def dns_yara_rules(self):
+    async def dns_yara_rules(self):
         if self._dns_yara_rules is None:
-            import yara
+            if self.dns_yara_rules_uncompiled is not None:
+                import yara
 
-            self._dns_yara_rules = yara.compile(self.dns_yara_rules_uncompiled)
+                self._dns_yara_rules = await self.helpers.run_in_executor(
+                    yara.compile, source=self.dns_yara_rules_uncompiled
+                )
         return self._dns_yara_rules
+
+    async def extract_in_scope_hostnames(self, s):
+        """
+        Given a string, uses yara to extract hostnames that match scan targets
+
+        Examples:
+            >>> self.scan.extract_in_scope_hostnames("http://www.evilcorp.com")
+            ... {"www.evilcorp.com"}
+        """
+        matches = set()
+        dns_yara_rules = await self.dns_yara_rules()
+        if dns_yara_rules is not None:
+            for match in await self.helpers.run_in_executor(dns_yara_rules.match, data=s):
+                for string in match.strings:
+                    for instance in string.instances:
+                        matches.add(str(instance))
+        return matches
 
     @property
     def json(self):
