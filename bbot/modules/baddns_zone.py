@@ -1,4 +1,3 @@
-from baddns.base import get_all_modules
 from .baddns import baddns as baddns_module
 
 
