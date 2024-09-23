@@ -116,6 +116,13 @@ class Scanner:
             **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
         """
         self._root_event = None
+        self.start_time = None
+        self.end_time = None
+        self.duration = None
+        self.duration_human = None
+        self.duration_seconds = None
+
+        self._success = False
 
         if scan_id is not None:
             self.id = str(id)
@@ -306,13 +313,13 @@ class Scanner:
 
     async def async_start(self):
         """ """
-        failed = True
-        scan_start_time = datetime.now()
+        self.start_time = datetime.now()
+        self.root_event.data["started_at"] = self.start_time.isoformat()
         try:
             await self._prep()
 
             self._start_log_handlers()
-            self.trace(f'Ran BBOT {__version__} at {scan_start_time}, command: {" ".join(sys.argv)}')
+            self.trace(f'Ran BBOT {__version__} at {self.start_time}, command: {" ".join(sys.argv)}')
             self.trace(f"Target: {self.preset.target.json}")
             self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 
@@ -363,16 +370,19 @@ class Scanner:
                 if self._finished_init and self.modules_finished:
                     new_activity = await self.finish()
                     if not new_activity:
+                        self._success = True
+                        await self._mark_finished()
+                        yield self.root_event
                         break
 
                 await asyncio.sleep(0.1)
 
-            failed = False
+            self._success = True
 
         except BaseException as e:
             if self.helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                 self.stop()
-                failed = False
+                self._success = True
             else:
                 try:
                     raise
@@ -396,23 +406,45 @@ class Scanner:
             await self._report()
             await self._cleanup()
 
-            log_fn = self.hugesuccess
-            if self.status == "ABORTING":
-                self.status = "ABORTED"
-                log_fn = self.hugewarning
-            elif failed:
-                self.status = "FAILED"
-                log_fn = self.critical
-            else:
-                self.status = "FINISHED"
-
-            scan_run_time = datetime.now() - scan_start_time
-            scan_run_time = self.helpers.human_timedelta(scan_run_time)
-            log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
-
             await self.dispatcher.on_finish(self)
 
             self._stop_log_handlers()
+
+    async def _mark_finished(self):
+        log_fn = self.hugesuccess
+        if self.status == "ABORTING":
+            status = "ABORTED"
+            log_fn = self.hugewarning
+        elif not self._success:
+            status = "FAILED"
+            log_fn = self.critical
+        else:
+            status = "FINISHED"
+
+        self.end_time = datetime.now()
+        self.duration = self.end_time - self.start_time
+        self.duration_seconds = self.duration.total_seconds()
+        self.duration_human = self.helpers.human_timedelta(self.duration)
+
+        status_message = f"Scan {self.name} completed in {self.duration_human} with status {status}"
+
+        scan_finish_event = self.make_root_event(status_message)
+        scan_finish_event.data["status"] = status
+
+        # queue final scan event with output modules
+        output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
+        for m in output_modules:
+            await m.queue_event(scan_finish_event)
+        # wait until output modules are flushed
+        while 1:
+            modules_finished = all([m.finished for m in output_modules])
+            self.verbose(modules_finished)
+            if modules_finished:
+                break
+            await asyncio.sleep(0.05)
+
+        self.status = status
+        log_fn(status_message)
 
     def _start_modules(self):
         self.verbose(f"Starting module worker loops")
@@ -727,8 +759,8 @@ class Scanner:
                 await module.queue_event(finished_event)
             self.verbose("Completed finish()")
             return True
-        # Return False if no new events were generated since last time
         self.verbose("Completed final finish()")
+        # Return False if no new events were generated since last time
         return False
 
     def _drain_queues(self):
@@ -948,14 +980,17 @@ class Scanner:
             ```
         """
         if self._root_event is None:
-            root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True)
-            root_event._id = self.id
-            root_event.scope_distance = 0
-            root_event.parent = root_event
-            root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
-            root_event.discovery_context = f"Scan {self.name} started at {root_event.timestamp}"
-            self._root_event = root_event
+            self._root_event = self.make_root_event(f"Scan {self.name} started at {self.start_time}")
+        self._root_event.data["status"] = self.status
         return self._root_event
+
+    def make_root_event(self, context):
+        root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True, context=context)
+        root_event._id = self.id
+        root_event.scope_distance = 0
+        root_event.parent = root_event
+        root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
+        return root_event
 
     @property
     def dns_strings(self):
@@ -1031,6 +1066,14 @@ class Scanner:
                 j.update({i: v})
         j["target"] = self.preset.target.json
         j["preset"] = self.preset.to_dict(redact_secrets=True)
+        if self.start_time is not None:
+            j["started_at"] = self.start_time.isoformat()
+        if self.end_time is not None:
+            j["finished_at"] = self.end_time.isoformat()
+        if self.duration is not None:
+            j["duration_seconds"] = self.duration_seconds
+        if self.duration_human is not None:
+            j["duration"] = self.duration_human
         return j
 
     def debug(self, *args, trace=False, **kwargs):

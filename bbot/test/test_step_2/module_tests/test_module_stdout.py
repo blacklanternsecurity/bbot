@@ -41,13 +41,15 @@ class TestStdoutJSON(TestStdout):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         lines = out.splitlines()
-        assert len(lines) == 2
+        assert len(lines) == 3
         for i, line in enumerate(lines):
             event = json.loads(line)
             if i == 0:
                 assert event["type"] == "SCAN"
-            elif i == 2:
+            elif i == 1:
                 assert event["type"] == "DNS_NAME" and event["data"] == "blacklanternsecurity.com"
+            if i == 2:
+                assert event["type"] == "SCAN"
 
 
 class TestStdoutJSONFields(TestStdout):
@@ -56,7 +58,7 @@ class TestStdoutJSONFields(TestStdout):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         lines = out.splitlines()
-        assert len(lines) == 2
+        assert len(lines) == 3
         for line in lines:
             event = json.loads(line)
             assert set(event) == {"data", "module_sequence"}

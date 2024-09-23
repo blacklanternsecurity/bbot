@@ -90,7 +90,7 @@ class TestPostman(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 4
+        assert len(events) == 5
         assert 1 == len(
             [
                 e
