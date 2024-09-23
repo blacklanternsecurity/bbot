@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.khildfvf.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.u5zzl204.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -434,9 +434,9 @@
 <nav aria-label="Test your new module" class="md-nav">
 <ul class="md-nav__list">
 <li class="md-nav__item">
-<a class="md-nav__link" href="#debugging-your-module-bbots-colorful-log-functions">
+<a class="md-nav__link" href="#debugging-your-module">
 <span class="md-ellipsis">
-      Debugging Your Module - BBOT's Colorful Log Functions
+      Debugging Your Module
     </span>
 </a>
 </li>
@@ -468,6 +468,13 @@
 <a class="md-nav__link" href="#module-dependencies">
 <span class="md-ellipsis">
       Module Dependencies
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#load-modules-from-custom-locations">
+<span class="md-ellipsis">
+      Load Modules from Custom Locations
     </span>
 </a>
 </li>
@@ -634,7 +641,7 @@
 <p>Here we'll go over a basic example of writing a custom BBOT module.</p>
 <h2 id="create-the-python-file">Create the python file</h2>
 <ol>
-<li>Create a new <code>.py</code> file in <code>bbot/modules</code></li>
+<li>Create a new <code>.py</code> file in <code>bbot/modules</code> (or in a <a href="#custom-module-directory">custom module directory</a>)</li>
 <li>At the top of the file, import <code>BaseModule</code></li>
 <li>Declare a class that inherits from <code>BaseModule</code></li>
 <li>the class must have the same name as your file (case-insensitive)</li>
@@ -678,8 +685,8 @@
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># run a scan enabling the module in bbot/modules/mymodule.py</span>
 bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>evilcorp.com<span style="color: #6e7681"> </span>-m<span style="color: #6e7681"> </span>whois
 </code></pre></div>
-<h3 id="debugging-your-module-bbots-colorful-log-functions">Debugging Your Module - BBOT's Colorful Log Functions</h3>
-<p>You probably noticed the use of <code>self.hugesuccess()</code>. This function is part of BBOT's builtin logging capabilty, and it prints whatever you give it in bright green. These colorful log functions can be useful for debugging.</p>
+<h3 id="debugging-your-module">Debugging Your Module</h3>
+<p>BBOT has a variety of colorful logging functions like <code>self.hugesuccess()</code> that can be useful for debugging.</p>
 <p><strong>BBOT log levels</strong>:</p>
 <ul>
 <li><code>critical</code>: bright red</li>
@@ -689,8 +696,8 @@ bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>
 <li><code>error</code>: red</li>
 <li><code>warning</code>: orange</li>
 <li><code>info</code>: blue</li>
-<li><code>verbose</code>: grey (must use <code>-v</code> to see)</li>
-<li><code>debug</code>: grey (must use <code>-d</code> to see)</li>
+<li><code>verbose</code>: grey (must enable <code>-v</code> to see)</li>
+<li><code>debug</code>: grey (must enable <code>-d</code> to see)</li>
 </ul>
 <p>For details on how tests are written, see <a href="../tests/">Unit Tests</a>.</p>
 <h2 id="handle_event-and-emit_event"><code>handle_event()</code> and <code>emit_event()</code></h2>
@@ -786,6 +793,12 @@ bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>
             <span style="color: #a5d6ff">"copy"</span><span style="color: #e6edf3">:</span> <span style="color: #e6edf3">{</span><span style="color: #a5d6ff">"src"</span><span style="color: #e6edf3">:</span> <span style="color: #a5d6ff">"#{BBOT_TEMP}/massdns/bin/massdns"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"dest"</span><span style="color: #e6edf3">:</span> <span style="color: #a5d6ff">"#{BBOT_TOOLS}/"</span><span style="color: #e6edf3">,</span> <span style="color: #a5d6ff">"mode"</span><span style="color: #e6edf3">:</span> <span style="color: #a5d6ff">"u+x,g+x,o+x"</span><span style="color: #e6edf3">},</span>
         <span style="color: #e6edf3">},</span>
     <span style="color: #e6edf3">]</span>
+</code></pre></div>
+<h2 id="load-modules-from-custom-locations">Load Modules from Custom Locations</h2>
+<p>If you have a custom module and you want to use it with BBOT, you can add its parent folder to <code>module_dirs</code>. This saves you from having to copy it into the BBOT install location. To add a custom module directory, add it to <code>module_dirs</code> in your preset:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># load BBOT modules from these additional paths</span>
+<span style="color: #7ee787">module_dirs</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">/home/user/my_modules</span>
 </code></pre></div>
 </article>
 </div>

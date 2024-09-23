@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.khildfvf.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.u5zzl204.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -285,6 +285,13 @@
 </a>
 <nav aria-label="Advanced Usage" class="md-nav">
 <ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#custom-modules">
+<span class="md-ellipsis">
+      Custom Modules
+    </span>
+</a>
+</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#environment-variables">
 <span class="md-ellipsis">
@@ -707,6 +714,12 @@ bbot<span style="color: #6e7681"> </span>-p<span style="color: #6e7681"> </span>
 </code></pre></div>
 <h2 id="advanced-usage">Advanced Usage</h2>
 <p>BBOT Presets support advanced features like environment variable substitution and custom conditions.</p>
+<h3 id="custom-modules">Custom Modules</h3>
+<p>If you want to use a custom BBOT <code>.py</code> module, you can either move it into <code>bbot/modules</code> where BBOT is installed, or add its parent folder to <code>module_dirs</code> like so:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">custom_modules.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e; font-style: italic"># load extra BBOT modules from this locaation</span>
+<span style="color: #7ee787">module_dirs</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">/home/user/custom_modules</span>
+</code></pre></div>
 <h3 id="environment-variables">Environment Variables</h3>
 <p>You can insert environment variables into your preset like this: <code>${env:&lt;variable&gt;}</code>:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">my_nuclei.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7ee787">description</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">Do a nuclei scan</span>
