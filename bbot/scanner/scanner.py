@@ -160,6 +160,10 @@ class Scanner:
             scan_name = str(preset.scan_name)
         self.name = scan_name
 
+        # make sure the preset has a description
+        if not self.preset.description:
+            self.preset.description = self.name
+
         # scan output dir
         if preset.output_dir is not None:
             self.home = Path(preset.output_dir).resolve() / self.name

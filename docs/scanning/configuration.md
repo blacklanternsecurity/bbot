@@ -164,7 +164,7 @@ deps:
 ### ADVANCED OPTIONS ###
 
 # Load BBOT modules from these custom paths
-module_paths: []
+module_dirs: []
 
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
