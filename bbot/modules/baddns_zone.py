@@ -19,12 +19,8 @@ class baddns_zone(baddns_module):
     module_threads = 8
     deps_pip = ["baddns~=1.1.839"]
 
-    def select_modules(self):
-        selected_modules = []
-        for m in get_all_modules():
-            if m.name in ["NSEC", "zonetransfer"]:
-                selected_modules.append(m)
-        return selected_modules
+    def set_modules(self):
+        self.enabled_submodules = ["NSEC", "zonetransfer"]
 
     # minimize nsec records feeding back into themselves
     async def filter_event(self, event):

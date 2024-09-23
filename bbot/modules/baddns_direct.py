@@ -40,7 +40,6 @@ class baddns_direct(BaseModule):
         return selected_modules
 
     async def handle_event(self, event):
-        self.critical(event.type)
         CNAME_direct_module = self.select_modules()[0]
         kwargs = {
             "http_client_class": self.scan.helpers.web.AsyncClient,
@@ -74,16 +73,19 @@ class baddns_direct(BaseModule):
         if event.type == "STORAGE_BUCKET":
             if str(event.module).startswith("bucket_"):
                 return False
+            self.debug(f"Processing STORAGE_BUCKET for {event.host}")
         if event.type == "URL":
             if event.scope_distance > 0:
-                self.critical(
+                self.debug(
                     f"Rejecting {event.host} due to not being in scope (scope distance: {str(event.scope_distance)})"
                 )
                 return False
             if "cdn-cloudflare" not in event.tags:
-                self.critical(f"Rejecting {event.host} due to not being behind CloudFlare")
+                self.debug(f"Rejecting {event.host} due to not being behind CloudFlare")
                 return False
             if "status-200" in event.tags or "status-301" in event.tags:
-                self.critical(f"Rejecting {event.host} due to lack of non-standard status code")
+                self.debug(f"Rejecting {event.host} due to lack of non-standard status code")
                 return False
+
+            self.debug(f"Passed all checks and is processing {event.host}")
         return True

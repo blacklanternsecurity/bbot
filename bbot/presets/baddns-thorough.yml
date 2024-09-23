@@ -9,4 +9,4 @@ modules:
 config:
   modules:
     baddns:
-      enabled_submodules: [NSEC,CNAME,references,zonetransfer,MX,NS,TXT]
+      enabled_submodules: [CNAME,references,MX,NS,TXT]
