@@ -1044,10 +1044,10 @@ class Scanner:
 
     async def extract_in_scope_hostnames(self, s):
         """
-        Given a string, uses yara to extract hostnames that match scan targets
+        Given a string, uses yara to extract hostnames matching scan targets
 
         Examples:
-            >>> self.scan.extract_in_scope_hostnames("http://www.evilcorp.com")
+            >>> await self.scan.extract_in_scope_hostnames("http://www.evilcorp.com")
             ... {"www.evilcorp.com"}
         """
         matches = set()
