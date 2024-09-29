@@ -10,6 +10,7 @@ include:
   - paramminer
   - dirbust-light
   - web-screenshots
+  - baddns-thorough
 
 config:
   modules:
