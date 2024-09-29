@@ -263,7 +263,7 @@ def custom_lookup(query, rdtype):
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
 
     events = [e async for e in scan.async_start()]
-    assert len(events) == 11
+    assert len(events) == 12
     assert len([e for e in events if e.type == "DNS_NAME"]) == 5
     assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
     assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
@@ -320,7 +320,7 @@ def custom_lookup(query, rdtype):
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
 
     events = [e async for e in scan.async_start()]
-    assert len(events) == 11
+    assert len(events) == 12
     assert len([e for e in events if e.type == "DNS_NAME"]) == 5
     assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
     assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
@@ -418,7 +418,7 @@ def custom_lookup(query, rdtype):
 
     events = [e async for e in scan.async_start()]
 
-    assert len(events) == 10
+    assert len(events) == 11
     assert len([e for e in events if e.type == "DNS_NAME"]) == 5
     assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
     assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
@@ -546,8 +546,8 @@ def custom_lookup(query, rdtype):
     )
     await scan2.ingress_module.queue_event(other_event, {})
     events = [e async for e in scan2.async_start()]
-    assert len(events) == 3
-    assert 1 == len([e for e in events if e.type == "SCAN"])
+    assert len(events) == 4
+    assert 2 == len([e for e in events if e.type == "SCAN"])
     unmodified_wildcard_events = [
         e for e in events if e.type == "DNS_NAME" and e.data == "asdfl.gashdgkjsadgsdf.github.io"
     ]
@@ -592,8 +592,8 @@ def custom_lookup(query, rdtype):
     )
     await scan2.ingress_module.queue_event(other_event, {})
     events = [e async for e in scan2.async_start()]
-    assert len(events) == 3
-    assert 1 == len([e for e in events if e.type == "SCAN"])
+    assert len(events) == 4
+    assert 2 == len([e for e in events if e.type == "SCAN"])
     unmodified_wildcard_events = [e for e in events if e.type == "DNS_NAME" and "_wildcard" not in e.data]
     assert len(unmodified_wildcard_events) == 2
     assert 1 == len(
@@ -729,7 +729,7 @@ async def test_dns_graph_structure(bbot_scanner):
         }
     )
     events = [e async for e in scan.async_start()]
-    assert len(events) == 5
+    assert len(events) == 6
     non_scan_events = [e for e in events if e.type != "SCAN"]
     assert sorted([e.type for e in non_scan_events]) == ["DNS_NAME", "DNS_NAME", "DNS_NAME", "URL_UNVERIFIED"]
     events_by_data = {e.data: e for e in non_scan_events}

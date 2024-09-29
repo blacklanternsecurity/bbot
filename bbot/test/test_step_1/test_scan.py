@@ -78,6 +78,9 @@ async def test_scan(
     for scan in (scan0, scan1, scan2, scan4, scan5):
         await scan._cleanup()
 
+    scan6 = bbot_scanner("a.foobar.io", "b.foobar.io", "c.foobar.io", "foobar.io")
+    assert len(scan6.dns_strings) == 1
+
 
 @pytest.mark.asyncio
 async def test_url_extension_handling(bbot_scanner):

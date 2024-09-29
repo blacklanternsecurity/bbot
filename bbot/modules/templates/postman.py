@@ -8,4 +8,13 @@ class postman(BaseModule):
     """
 
     base_url = "https://www.postman.com/_api"
+    api_url = "https://api.getpostman.com"
     html_url = "https://www.postman.com"
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-App-Version": "10.18.8-230926-0808",
+        "X-Entity-Team-Id": "0",
+        "Origin": "https://www.postman.com",
+        "Referer": "https://www.postman.com/search?q=&scope=public&type=all",
+    }
