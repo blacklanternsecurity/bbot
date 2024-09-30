@@ -49,7 +49,7 @@ class postman_download(postman):
             workspace = data["workspace"]
             environments = data["environments"]
             collections = data["collections"]
-            in_scope = self.validate_workspace(workspace, environments, collections)
+            in_scope = await self.validate_workspace(workspace, environments, collections)
             if in_scope:
                 workspace_path = self.save_workspace(workspace, environments, collections)
                 if workspace_path:
@@ -182,55 +182,20 @@ class postman_download(postman):
         collection = json.get("collection", {})
         return collection
 
-    def validate_string(self, v):
-        if (
-            isinstance(v, str)
-            and (
-                self.helpers.is_dns_name(v, include_local=False) or self.helpers.is_url(v) or self.helpers.is_email(v)
-            )
-            and self.scan.in_scope(v)
-        ):
-            return True
-        return False
-
-    def unpack_and_validate(self, data, workspace_name):
-        for k, v in data.items():
-            if isinstance(v, dict):
-                if self.unpack_and_validate(v, workspace_name):
-                    self.verbose(
-                        f'Found in-scope key "{k}": "{v}" for workspace {workspace_name}, it appears to be in-scope'
-                    )
+    async def validate_workspace(self, workspace, environments, collections):
+        name = workspace.get("name", "")
+        for dict in [workspace, *environments, *collections]:
+            for email in await self.helpers.re.extract_emails(str(dict)):
+                if self.scan.in_scope(email):
+                    self.verbose(f'Found in-scope email: "{email}" for workspace {name}, it appears to be in-scope')
                     return True
-            elif isinstance(v, list):
-                for item in v:
-                    if isinstance(item, dict):
-                        if self.unpack_and_validate(item, workspace_name):
-                            self.verbose(
-                                f'Found in-scope key "{k}": "{item}" for workspace {workspace_name}, it appears to be in-scope'
-                            )
-                            return True
-                    elif self.validate_string(item):
+            for host in await self.scan.extract_in_scope_hostnames(str(dict)):
+                if self.scan.in_scope(host):
+                    if self.scan.in_scope(host):
                         self.verbose(
-                            f'Found in-scope key "{k}": "{item}" for workspace {workspace_name}, it appears to be in-scope'
+                            f'Found in-scope hostname: "{host}" for workspace {name}, it appears to be in-scope'
                         )
                         return True
-            elif self.validate_string(v):
-                self.verbose(
-                    f'Found in-scope key "{k}": "{v}" for workspace {workspace_name}, it appears to be in-scope'
-                )
-                return True
-        return False
-
-    def validate_workspace(self, workspace, environments, collections):
-        name = workspace.get("name", "")
-        if self.unpack_and_validate(workspace, name):
-            return True
-        for environment in environments:
-            if self.unpack_and_validate(environment, name):
-                return True
-        for collection in collections:
-            if self.unpack_and_validate(collection, name):
-                return True
         return False
 
     def save_workspace(self, workspace, environments, collections):
