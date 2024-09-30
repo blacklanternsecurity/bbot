@@ -11,16 +11,16 @@
 <link href="../advanced/" rel="prev"/>
 <link href="../../modules/list_of_modules/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.36" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.39" name="generator"/>
 <title>Configuration - BBOT Docs</title>
-<link href="../../assets/stylesheets/main.06209087.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/main.8c3ca2c6.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.wk7pcgq_.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.kqwxc4n2.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -675,10 +675,13 @@ Is the same as:
 <span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># Speed up scan by not creating any new DNS events, and only resolving A and AAAA records</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">minimal</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">false</span>
 <span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># How many instances of the dns module to run concurrently</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">threads</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">20</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">threads</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">25</span>
 <span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># How many concurrent DNS resolvers to use when brute-forcing</span>
 <span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># (under the hood this is passed through directly to massdns -s)</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">brute_threads</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1000</span>
+<span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># nameservers to use for DNS brute-forcing</span>
+<span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># default is updated weekly and contains ~10K high-quality public servers</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">brute_nameservers</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt</span>
 <span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># How far away from the main target to explore via DNS resolution (independent of scope.search_distance)</span>
 <span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># This is safe to change</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">search_distance</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">1</span>
@@ -741,6 +744,11 @@ Is the same as:
 <span style="color: #6e7681">  </span><span style="color: #7ee787">http_max_redirects</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">5</span>
 <span style="color: #6e7681">  </span><span style="color: #8b949e; font-style: italic"># Whether to verify SSL certificates</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">ssl_verify</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">false</span>
+
+<span style="color: #8b949e; font-style: italic">### ENGINE ###</span>
+
+<span style="color: #7ee787">engine</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">debug</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">false</span>
 
 <span style="color: #8b949e; font-style: italic"># Tool dependencies</span>
 <span style="color: #7ee787">deps</span><span style="color: #e6edf3">:</span>
@@ -906,6 +914,30 @@ Is the same as:
 <td>bool</td>
 <td>Whether to try permutations</td>
 <td>False</td>
+</tr>
+<tr>
+<td>modules.dnsbrute.max_depth</td>
+<td>int</td>
+<td>How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com</td>
+<td>5</td>
+</tr>
+<tr>
+<td>modules.dnsbrute.wordlist</td>
+<td>str</td>
+<td>Subdomain wordlist URL</td>
+<td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt</td>
+</tr>
+<tr>
+<td>modules.dnsbrute_mutations.max_mutations</td>
+<td>int</td>
+<td>Maximum number of target-specific mutations to try per subdomain</td>
+<td>100</td>
+</tr>
+<tr>
+<td>modules.dnscommonsrv.max_depth</td>
+<td>int</td>
+<td>The maximum subdomain depth to brute-force SRV records</td>
+<td>2</td>
 </tr>
 <tr>
 <td>modules.ffuf.extensions</td>
@@ -1199,7 +1231,7 @@ Is the same as:
 <td>modules.nuclei.version</td>
 <td>str</td>
 <td>nuclei version</td>
-<td>3.2.0</td>
+<td>3.3.2</td>
 </tr>
 <tr>
 <td>modules.oauth.try_all</td>
@@ -1352,6 +1384,18 @@ Is the same as:
 <td>https://raw.githubusercontent.com/blacklanternsecurity/secrets-patterns-db/master/db/rules-stable.yml</td>
 </tr>
 <tr>
+<td>modules.securitytxt.emails</td>
+<td>bool</td>
+<td>emit EMAIL_ADDRESS events</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.securitytxt.urls</td>
+<td>bool</td>
+<td>emit URL_UNVERIFIED events</td>
+<td>True</td>
+</tr>
+<tr>
 <td>modules.sslcert.skip_non_ssl</td>
 <td>bool</td>
 <td>Don't try common non-SSL ports</td>
@@ -1408,8 +1452,8 @@ Is the same as:
 <tr>
 <td>modules.wpscan.connection_timeout</td>
 <td>int</td>
-<td>The connection timeout in seconds (default 30)</td>
-<td>30</td>
+<td>The connection timeout in seconds (default 2)</td>
+<td>2</td>
 </tr>
 <tr>
 <td>modules.wpscan.disable_tls_checks</td>
@@ -1420,8 +1464,8 @@ Is the same as:
 <tr>
 <td>modules.wpscan.enumerate</td>
 <td>str</td>
-<td>Enumeration Process see wpscan help documentation (default: vp,vt,tt,cb,dbe,u,m)</td>
-<td>vp,vt,tt,cb,dbe,u,m</td>
+<td>Enumeration Process see wpscan help documentation (default: vp,vt,cb,dbe)</td>
+<td>vp,vt,cb,dbe</td>
 </tr>
 <tr>
 <td>modules.wpscan.force</td>
@@ -1432,8 +1476,8 @@ Is the same as:
 <tr>
 <td>modules.wpscan.request_timeout</td>
 <td>int</td>
-<td>The request timeout in seconds (default 60)</td>
-<td>60</td>
+<td>The request timeout in seconds (default 5)</td>
+<td>5</td>
 </tr>
 <tr>
 <td>modules.wpscan.threads</td>
@@ -1550,24 +1594,6 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
-<td>modules.dnsbrute.max_depth</td>
-<td>int</td>
-<td>How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com</td>
-<td>5</td>
-</tr>
-<tr>
-<td>modules.dnsbrute.wordlist</td>
-<td>str</td>
-<td>Subdomain wordlist URL</td>
-<td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt</td>
-</tr>
-<tr>
-<td>modules.dnsbrute_mutations.max_mutations</td>
-<td>int</td>
-<td>Maximum number of target-specific mutations to try per subdomain</td>
-<td>100</td>
-</tr>
-<tr>
 <td>modules.dnscaa.dns_names</td>
 <td>bool</td>
 <td>emit DNS_NAME events</td>
@@ -1590,12 +1616,6 @@ Is the same as:
 <td>bool</td>
 <td>emit URL_UNVERIFIED events</td>
 <td>True</td>
-</tr>
-<tr>
-<td>modules.dnscommonsrv.max_depth</td>
-<td>int</td>
-<td>The maximum subdomain depth to brute-force SRV records</td>
-<td>2</td>
 </tr>
 <tr>
 <td>modules.docker_pull.all_tags</td>
@@ -1730,6 +1750,18 @@ Is the same as:
 <td><code>['https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&amp;op=vindex&amp;search=&lt;query&gt;', 'http://the.earth.li:11371/pks/lookup?fingerprint=on&amp;op=vindex&amp;search=&lt;query&gt;', 'https://pgpkeys.eu/pks/lookup?search=&lt;query&gt;&amp;op=index', 'https://pgp.mit.edu/pks/lookup?search=&lt;query&gt;&amp;op=index']</code></td>
 </tr>
 <tr>
+<td>modules.postman_download.api_key</td>
+<td>str</td>
+<td>Postman API Key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.postman_download.output_folder</td>
+<td>str</td>
+<td>Folder to download postman workspaces to</td>
+<td></td>
+</tr>
+<tr>
 <td>modules.securitytrails.api_key</td>
 <td>str</td>
 <td>SecurityTrails API key</td>
@@ -1754,6 +1786,18 @@ Is the same as:
 <td>8</td>
 </tr>
 <tr>
+<td>modules.trufflehog.config</td>
+<td>str</td>
+<td>File path or URL to YAML trufflehog config</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.trufflehog.deleted_forks</td>
+<td>bool</td>
+<td>Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.</td>
+<td>False</td>
+</tr>
+<tr>
 <td>modules.trufflehog.only_verified</td>
 <td>bool</td>
 <td>Only report credentials that have been verified</td>
@@ -1763,7 +1807,7 @@ Is the same as:
 <td>modules.trufflehog.version</td>
 <td>str</td>
 <td>trufflehog version</td>
-<td>3.75.1</td>
+<td>3.82.2</td>
 </tr>
 <tr>
 <td>modules.unstructured.extensions</td>
@@ -2050,7 +2094,7 @@ Is the same as:
 <tr>
 <td>modules.teams.webhook_url</td>
 <td>str</td>
-<td>Discord webhook URL</td>
+<td>Teams webhook URL</td>
 <td></td>
 </tr>
 <tr>
@@ -2146,7 +2190,7 @@ Is the same as:
 <div class="md-dialog__inner md-typeset"></div>
 </div>
 <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+<script src="../../assets/javascripts/bundle.525ec568.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
 <script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>

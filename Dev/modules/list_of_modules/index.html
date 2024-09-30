@@ -11,16 +11,16 @@
 <link href="../../scanning/configuration/" rel="prev"/>
 <link href="../nuclei/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.36" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.39" name="generator"/>
 <title>List of Modules - BBOT Docs</title>
-<link href="../../assets/stylesheets/main.06209087.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/main.8c3ca2c6.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.wk7pcgq_.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.kqwxc4n2.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -702,6 +702,39 @@
 <td>2023-12-11</td>
 </tr>
 <tr>
+<td>dnsbrute</td>
+<td>scan</td>
+<td>No</td>
+<td>Brute-force subdomains with massdns + static wordlist</td>
+<td>active, aggressive, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2024-04-24</td>
+</tr>
+<tr>
+<td>dnsbrute_mutations</td>
+<td>scan</td>
+<td>No</td>
+<td>Brute-force subdomains with massdns + target-specific mutations</td>
+<td>active, aggressive, slow, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2024-04-25</td>
+</tr>
+<tr>
+<td>dnscommonsrv</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for common SRV records</td>
+<td>active, safe, subdomain-enum</td>
+<td>DNS_NAME</td>
+<td>DNS_NAME</td>
+<td>@TheTechromancer</td>
+<td>2022-05-15</td>
+</tr>
+<tr>
 <td>dotnetnuke</td>
 <td>scan</td>
 <td>No</td>
@@ -953,6 +986,17 @@
 <td>FINDING</td>
 <td>@TheTechromancer</td>
 <td>2023-03-17</td>
+</tr>
+<tr>
+<td>securitytxt</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for security.txt content</td>
+<td>active, cloud-enum, safe, subdomain-enum, web-basic</td>
+<td>DNS_NAME</td>
+<td>EMAIL_ADDRESS, URL_UNVERIFIED</td>
+<td>@colin-stubbs</td>
+<td>2024-05-26</td>
 </tr>
 <tr>
 <td>smuggler</td>
@@ -1252,28 +1296,6 @@
 <td>2023-07-25</td>
 </tr>
 <tr>
-<td>dnsbrute</td>
-<td>scan</td>
-<td>No</td>
-<td>Brute-force subdomains with massdns + static wordlist</td>
-<td>aggressive, passive, subdomain-enum</td>
-<td>DNS_NAME</td>
-<td>DNS_NAME</td>
-<td>@TheTechromancer</td>
-<td>2024-04-24</td>
-</tr>
-<tr>
-<td>dnsbrute_mutations</td>
-<td>scan</td>
-<td>No</td>
-<td>Brute-force subdomains with massdns + target-specific mutations</td>
-<td>aggressive, passive, slow, subdomain-enum</td>
-<td>DNS_NAME</td>
-<td>DNS_NAME</td>
-<td>@TheTechromancer</td>
-<td>2024-04-25</td>
-</tr>
-<tr>
 <td>dnscaa</td>
 <td>scan</td>
 <td>No</td>
@@ -1283,17 +1305,6 @@
 <td>DNS_NAME, EMAIL_ADDRESS, URL_UNVERIFIED</td>
 <td>@colin-stubbs</td>
 <td>2024-05-26</td>
-</tr>
-<tr>
-<td>dnscommonsrv</td>
-<td>scan</td>
-<td>No</td>
-<td>Check for common SRV records</td>
-<td>passive, safe, subdomain-enum</td>
-<td>DNS_NAME</td>
-<td>DNS_NAME</td>
-<td>@TheTechromancer</td>
-<td>2022-05-15</td>
 </tr>
 <tr>
 <td>dnsdumpster</td>
@@ -1311,7 +1322,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Download images from a docker repository</td>
-<td>passive, safe, slow</td>
+<td>code-enum, passive, safe, slow</td>
 <td>CODE_REPOSITORY</td>
 <td>FILESYSTEM</td>
 <td>@domwhewell-sage</td>
@@ -1355,7 +1366,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Clone code github repositories</td>
-<td>passive, safe, slow</td>
+<td>code-enum, passive, safe, slow</td>
 <td>CODE_REPOSITORY</td>
 <td>FILESYSTEM</td>
 <td>@domwhewell-sage</td>
@@ -1387,8 +1398,8 @@
 <td>github_workflows</td>
 <td>scan</td>
 <td>No</td>
-<td>Download a github repositories workflow logs</td>
-<td>passive, safe</td>
+<td>Download a github repositories workflow logs and workflow artifacts</td>
+<td>code-enum, passive, safe</td>
 <td>CODE_REPOSITORY</td>
 <td>FILESYSTEM</td>
 <td>@domwhewell-sage</td>
@@ -1519,12 +1530,23 @@
 <td>postman</td>
 <td>scan</td>
 <td>No</td>
-<td>Query Postman's API for related workspaces, collections, requests</td>
+<td>Query Postman's API for related workspaces, collections, requests and download them</td>
 <td>code-enum, passive, safe, subdomain-enum</td>
-<td>DNS_NAME</td>
-<td>URL_UNVERIFIED</td>
+<td>ORG_STUB, SOCIAL</td>
+<td>CODE_REPOSITORY</td>
 <td>@domwhewell-sage</td>
-<td>2023-12-23</td>
+<td>2024-09-07</td>
+</tr>
+<tr>
+<td>postman_download</td>
+<td>scan</td>
+<td>No</td>
+<td>Download workspaces, collections, requests from Postman</td>
+<td>code-enum, passive, safe, subdomain-enum</td>
+<td>CODE_REPOSITORY</td>
+<td>FILESYSTEM</td>
+<td>@domwhewell-sage</td>
+<td>2024-09-07</td>
 </tr>
 <tr>
 <td>rapiddns</td>
@@ -1620,7 +1642,7 @@
 <td>No</td>
 <td>TruffleHog is a tool for finding credentials</td>
 <td>code-enum, passive, safe</td>
-<td>FILESYSTEM</td>
+<td>CODE_REPOSITORY, FILESYSTEM</td>
 <td>FINDING, VULNERABILITY</td>
 <td>@domwhewell-sage</td>
 <td>2024-03-12</td>
@@ -1906,7 +1928,7 @@
 <td>No</td>
 <td>Passively extract juicy tidbits from scan data</td>
 <td>passive</td>
-<td>HTTP_RESPONSE</td>
+<td>HTTP_RESPONSE, RAW_TEXT</td>
 <td>URL_UNVERIFIED, WEB_PARAMETER</td>
 <td>@liquidsec</td>
 <td>2022-06-27</td>
@@ -1950,7 +1972,7 @@
 <div class="md-dialog__inner md-typeset"></div>
 </div>
 <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+<script src="../../assets/javascripts/bundle.525ec568.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
 <script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>

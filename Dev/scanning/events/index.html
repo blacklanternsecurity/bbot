@@ -11,16 +11,16 @@
 <link href="../presets_list/" rel="prev"/>
 <link href="../output/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.36" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.39" name="generator"/>
 <title>Events - BBOT Docs</title>
-<link href="../../assets/stylesheets/main.06209087.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/main.8c3ca2c6.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.wk7pcgq_.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.kqwxc4n2.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -680,16 +680,16 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>CODE_REPOSITORY</td>
-<td>3</td>
 <td>5</td>
-<td>docker_pull, git_clone, github_workflows</td>
-<td>code_repository, dockerhub, github_codesearch, github_org, gitlab</td>
+<td>6</td>
+<td>docker_pull, git_clone, github_workflows, postman_download, trufflehog</td>
+<td>code_repository, dockerhub, github_codesearch, github_org, gitlab, postman</td>
 </tr>
 <tr>
 <td>DNS_NAME</td>
 <td>56</td>
 <td>41</td>
-<td>anubisdb, asset_inventory, azure_realm, azure_tenant, baddns, baddns_zone, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, builtwith, c99, censys, certspotter, chaos, columbus, credshed, crt, dehashed, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, emailformat, fullhunt, github_codesearch, hackertarget, hunterio, internetdb, leakix, myssl, oauth, otx, passivetotal, pgp, portscan, postman, rapiddns, securitytrails, shodan_dns, sitedossier, skymem, speculate, subdomaincenter, subdomains, trickest, urlscan, viewdns, virustotal, wayback, zoomeye</td>
+<td>anubisdb, asset_inventory, azure_realm, azure_tenant, baddns, baddns_zone, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, builtwith, c99, censys, certspotter, chaos, columbus, credshed, crt, dehashed, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, emailformat, fullhunt, github_codesearch, hackertarget, hunterio, internetdb, leakix, myssl, oauth, otx, passivetotal, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, sitedossier, skymem, speculate, subdomaincenter, subdomains, trickest, urlscan, viewdns, virustotal, wayback, zoomeye</td>
 <td>anubisdb, azure_tenant, bevigil, binaryedge, builtwith, c99, censys, certspotter, chaos, columbus, crt, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, fullhunt, hackertarget, hunterio, internetdb, leakix, myssl, ntlm, oauth, otx, passivetotal, rapiddns, securitytrails, shodan_dns, sitedossier, speculate, sslcert, subdomaincenter, trickest, urlscan, vhost, viewdns, virustotal, wayback, zoomeye</td>
 </tr>
 <tr>
@@ -702,16 +702,16 @@ event type      event data          source module    tags
 <tr>
 <td>EMAIL_ADDRESS</td>
 <td>1</td>
-<td>8</td>
+<td>9</td>
 <td>emails</td>
-<td>credshed, dehashed, dnscaa, emailformat, hunterio, pgp, skymem, sslcert</td>
+<td>credshed, dehashed, dnscaa, emailformat, hunterio, pgp, securitytxt, skymem, sslcert</td>
 </tr>
 <tr>
 <td>FILESYSTEM</td>
 <td>2</td>
-<td>5</td>
+<td>6</td>
 <td>trufflehog, unstructured</td>
-<td>docker_pull, filedownload, git_clone, github_workflows, unstructured</td>
+<td>docker_pull, filedownload, git_clone, github_workflows, postman_download, unstructured</td>
 </tr>
 <tr>
 <td>FINDING</td>
@@ -764,9 +764,9 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>ORG_STUB</td>
-<td>2</td>
+<td>3</td>
 <td>1</td>
-<td>dockerhub, github_org</td>
+<td>dockerhub, github_org, postman</td>
 <td>speculate</td>
 </tr>
 <tr>
@@ -785,16 +785,16 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>RAW_TEXT</td>
-<td>0</td>
 <td>1</td>
-<td></td>
+<td>1</td>
+<td>excavate</td>
 <td>unstructured</td>
 </tr>
 <tr>
 <td>SOCIAL</td>
-<td>5</td>
+<td>6</td>
 <td>3</td>
-<td>dockerhub, github_org, gitlab, gowitness, speculate</td>
+<td>dockerhub, github_org, gitlab, gowitness, postman, speculate</td>
 <td>dockerhub, gitlab, social</td>
 </tr>
 <tr>
@@ -830,7 +830,7 @@ event type      event data          source module    tags
 <td>6</td>
 <td>16</td>
 <td>code_repository, filedownload, httpx, oauth, social, speculate</td>
-<td>azure_realm, bevigil, bucket_file_enum, dnscaa, dockerhub, excavate, ffuf, ffuf_shortnames, github_codesearch, gowitness, hunterio, postman, robots, urlscan, wayback, wpscan</td>
+<td>azure_realm, bevigil, bucket_file_enum, dnscaa, dockerhub, excavate, ffuf, ffuf_shortnames, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, wpscan</td>
 </tr>
 <tr>
 <td>USERNAME</td>
@@ -914,7 +914,7 @@ event type      event data          source module    tags
 <div class="md-dialog__inner md-typeset"></div>
 </div>
 <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+<script src="../../assets/javascripts/bundle.525ec568.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
 <script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>
