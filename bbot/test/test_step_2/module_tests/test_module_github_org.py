@@ -284,7 +284,7 @@ class TestGithub_Org(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 6
+        assert len(events) == 7
         assert 1 == len(
             [
                 e
@@ -335,7 +335,7 @@ class TestGithub_Org_No_Members(TestGithub_Org):
     config_overrides = {"modules": {"github_org": {"include_members": False}}}
 
     def check(self, module_test, events):
-        assert len(events) == 5
+        assert len(events) == 6
         assert 1 == len(
             [
                 e
@@ -363,7 +363,7 @@ class TestGithub_Org_MemberRepos(TestGithub_Org):
     config_overrides = {"modules": {"github_org": {"include_member_repos": True}}}
 
     def check(self, module_test, events):
-        assert len(events) == 7
+        assert len(events) == 8
         assert 1 == len(
             [
                 e
@@ -381,7 +381,7 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
     config_overrides = {"scope": {"report_distance": 10}, "omit_event_types": [], "speculate": True}
 
     def check(self, module_test, events):
-        assert len(events) == 7
+        assert len(events) == 8
         assert 1 == len(
             [e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity" and e.scope_distance == 0]
         )

@@ -121,6 +121,16 @@ bbot -p ./mypreset.yml --current-preset
 
 BBOT Presets support advanced features like environment variable substitution and custom conditions.
 
+### Custom Modules
+
+If you want to use a custom BBOT `.py` module, you can either move it into `bbot/modules` where BBOT is installed, or add its parent folder to `module_dirs` like so:
+
+```yaml title="custom_modules.yml"
+# load extra BBOT modules from this locaation
+module_dirs:
+  - /home/user/custom_modules
+```
+
 ### Environment Variables
 
 You can insert environment variables into your preset like this: `${env:<variable>}`:
