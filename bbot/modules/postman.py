@@ -11,14 +11,6 @@ class postman(postman):
         "author": "@domwhewell-sage",
     }
 
-    headers = {
-        "Content-Type": "application/json",
-        "X-App-Version": "10.18.8-230926-0808",
-        "X-Entity-Team-Id": "0",
-        "Origin": "https://www.postman.com",
-        "Referer": "https://www.postman.com/search?q=&scope=public&type=all",
-    }
-
     reject_wildcards = False
 
     async def handle_event(self, event):

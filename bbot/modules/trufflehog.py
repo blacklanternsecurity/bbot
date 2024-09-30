@@ -14,7 +14,7 @@ class trufflehog(BaseModule):
     }
 
     options = {
-        "version": "3.81.10",
+        "version": "3.82.6",
         "config": "",
         "only_verified": True,
         "concurrency": 8,

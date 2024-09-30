@@ -656,7 +656,7 @@ async def test_event_discovery_context():
     )
 
     events = [e async for e in scan.async_start()]
-    assert len(events) == 6
+    assert len(events) == 7
 
     assert 1 == len(
         [

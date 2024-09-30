@@ -12,7 +12,8 @@ class TestScopeBaseline(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert len(events) == 6
+        assert len(events) == 7
+        assert 2 == len([e for e in events if e.type == "SCAN"])
         assert 1 == len(
             [
                 e
@@ -62,7 +63,7 @@ class TestScopeBlacklist(TestScopeBaseline):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert len(events) == 1
+        assert len(events) == 2
         assert not any(e.type == "URL" for e in events)
         assert not any(str(e.host) == "127.0.0.1" for e in events)
 
@@ -72,7 +73,7 @@ class TestScopeWhitelist(TestScopeBlacklist):
     whitelist = ["255.255.255.255"]
 
     def check(self, module_test, events):
-        assert len(events) == 3
+        assert len(events) == 4
         assert not any(e.type == "URL" for e in events)
         assert 1 == len(
             [
