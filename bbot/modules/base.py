@@ -103,7 +103,7 @@ class BaseModule:
     _module_threads = 1
     _batch_size = 1
     batch_wait = 10
-    failed_request_abort_threshold = 5
+    _failed_request_abort_threshold = 5
 
     default_discovery_context = "{module} discovered {event.type}: {event.data}"
 
@@ -147,6 +147,8 @@ class BaseModule:
 
         # string constant
         self._custom_filter_criteria_msg = "it did not meet custom filter criteria"
+
+        self._api_keys = []
 
         # track number of failures (for .request_with_fail_count())
         self._request_failures = 0
@@ -309,6 +311,24 @@ class BaseModule:
                 return None, f"Error with API ({str(e).strip()})"
         else:
             return None, "No API key set"
+
+    @property
+    def api_key(self):
+        if self._api_keys:
+            return self._api_keys[0]
+
+    @api_key.setter
+    def api_key(self, api_keys):
+        if isinstance(api_keys, str):
+            api_keys = [api_keys]
+        self._api_keys = list(api_keys)
+
+    def cycle_api_key(self):
+        self._api_keys.insert(0, self._api_keys.pop())
+
+    @property
+    def failed_request_abort_threshold(self):
+        return max(self._failed_request_abort_threshold, len(self._api_keys))
 
     async def ping(self):
         """Asynchronously checks the health of the configured API.
@@ -1065,31 +1085,107 @@ class BaseModule:
         async for line in self.helpers.run_live(*args, **kwargs):
             yield line
 
-    async def request_with_fail_count(self, *args, **kwargs):
-        """Asynchronously perform an HTTP request while keeping track of consecutive failures.
+    def prepare_api_request(self, url, kwargs):
+        """
+        Prepare an API request by adding the necessary authentication - header, bearer token, etc.
+        """
+        if self.api_key:
+            url = url.format(api_key=self.api_key)
+            if not "headers" in kwargs:
+                kwargs["headers"] = {}
+            kwargs["headers"]["Authorization"] = f"Bearer {self.api_key}"
+        return url, kwargs
 
-        This function wraps the `self.helpers.request` method, incrementing a failure counter if
-        the request returns None. When the failure counter exceeds `self.failed_request_abort_threshold`,
-        the module is set to an error state.
+    async def api_request(self, *args, **kwargs):
+        """
+        Makes an HTTP request while automatically cycling API keys
+        """
+        url = args[0] if args else kwargs.pop("url", "")
+
+        # loop until we have a successful request
+        while 1:
+            if not "headers" in kwargs:
+                kwargs["headers"] = {}
+            new_url, kwargs = self.prepare_api_request(url, kwargs)
+            kwargs["url"] = new_url
+
+            self.critical(kwargs)
+            r = await self.helpers.request(**kwargs)
+            success = False if r is None else r.is_success
+
+            if success:
+                self._request_failures = 0
+                break
+            else:
+                # if request failed, cycle API keys and try again
+                self._request_failures += 1
+                if self._request_failures >= self.failed_request_abort_threshold:
+                    self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
+                    break
+                else:
+                    self.cycle_api_key()
+                    continue
+        return r
+
+    async def api_page_iter(self, url, page_size=100, json=True, next_key=None, **requests_kwargs):
+        """
+        An asynchronous generator function for iterating through paginated API data.
+
+        This function continuously makes requests to a specified API URL, incrementing the page number
+        or applying a custom pagination function, and yields the received data one page at a time.
+        It is well-suited for APIs that provide paginated results.
 
         Args:
-            *args: Positional arguments to pass to `self.helpers.request`.
-            **kwargs: Keyword arguments to pass to `self.helpers.request`.
+            url (str): The initial API URL. Can contain placeholders for 'page', 'page_size', and 'offset'.
+            page_size (int, optional): The number of items per page. Defaults to 100.
+            json (bool, optional): If True, attempts to deserialize the response content to a JSON object. Defaults to True.
+            next_key (callable, optional): A function that takes the last page's data and returns the URL for the next page. Defaults to None.
+            **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
-        Returns:
-            Any: The response object or None if the request failed.
+        Yields:
+            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
 
-        Raises:
-            None: Sets the module to an error state when the failure threshold is reached.
+        Note:
+            The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.
+
+        Examples:
+            >>> agen = api_page_iter('https://api.example.com/data?page={page}&page_size={page_size}')
+            >>> try:
+            >>>     async for page in agen:
+            >>>         subdomains = page["subdomains"]
+            >>>         self.hugesuccess(subdomains)
+            >>>         if not subdomains:
+            >>>             break
+            >>> finally:
+            >>>     agen.aclose()
         """
-        r = await self.helpers.request(*args, **kwargs)
-        if r is None:
-            self._request_failures += 1
-        else:
-            self._request_failures = 0
-        if self._request_failures >= self.failed_request_abort_threshold:
-            self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
-        return r
+        page = 1
+        offset = 0
+        result = None
+        while 1:
+            if result and callable(next_key):
+                try:
+                    new_url = next_key(result)
+                except Exception as e:
+                    self.debug(f"Failed to extract next page of results from {url}: {e}")
+                    self.debug(traceback.format_exc())
+            else:
+                new_url = url.format(page=page, page_size=page_size, offset=offset)
+            result = await self.api_request(new_url, **requests_kwargs)
+            if result is None:
+                self.verbose(f"api_page_iter() got no response for {url}")
+                break
+            try:
+                if json:
+                    result = result.json()
+                yield result
+            except Exception:
+                self.warning(f'Error in api_page_iter() for url: "{new_url}"')
+                self.trace(traceback.format_exc())
+                break
+            finally:
+                offset += page_size
+                page += 1
 
     @property
     def preset(self):

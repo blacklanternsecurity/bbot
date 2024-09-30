@@ -1,7 +1,6 @@
 import re
 import logging
 import warnings
-import traceback
 from pathlib import Path
 from bs4 import BeautifulSoup
 
@@ -287,66 +286,6 @@ class WebHelper(EngineClient):
                 for line in read_lines[:lines]:
                     f.write(line)
             return truncated_filename
-
-    async def api_page_iter(self, url, page_size=100, json=True, next_key=None, **requests_kwargs):
-        """
-        An asynchronous generator function for iterating through paginated API data.
-
-        This function continuously makes requests to a specified API URL, incrementing the page number
-        or applying a custom pagination function, and yields the received data one page at a time.
-        It is well-suited for APIs that provide paginated results.
-
-        Args:
-            url (str): The initial API URL. Can contain placeholders for 'page', 'page_size', and 'offset'.
-            page_size (int, optional): The number of items per page. Defaults to 100.
-            json (bool, optional): If True, attempts to deserialize the response content to a JSON object. Defaults to True.
-            next_key (callable, optional): A function that takes the last page's data and returns the URL for the next page. Defaults to None.
-            **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
-
-        Yields:
-            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
-
-        Note:
-            The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.
-
-        Examples:
-            >>> agen = api_page_iter('https://api.example.com/data?page={page}&page_size={page_size}')
-            >>> try:
-            >>>     async for page in agen:
-            >>>         subdomains = page["subdomains"]
-            >>>         self.hugesuccess(subdomains)
-            >>>         if not subdomains:
-            >>>             break
-            >>> finally:
-            >>>     agen.aclose()
-        """
-        page = 1
-        offset = 0
-        result = None
-        while 1:
-            if result and callable(next_key):
-                try:
-                    new_url = next_key(result)
-                except Exception as e:
-                    log.debug(f"Failed to extract next page of results from {url}: {e}")
-                    log.debug(traceback.format_exc())
-            else:
-                new_url = url.format(page=page, page_size=page_size, offset=offset)
-            result = await self.request(new_url, **requests_kwargs)
-            if result is None:
-                log.verbose(f"api_page_iter() got no response for {url}")
-                break
-            try:
-                if json:
-                    result = result.json()
-                yield result
-            except Exception:
-                log.warning(f'Error in api_page_iter() for url: "{new_url}"')
-                log.trace(traceback.format_exc())
-                break
-            finally:
-                offset += page_size
-                page += 1
 
     async def curl(self, *args, **kwargs):
         """
