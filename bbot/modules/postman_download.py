@@ -62,7 +62,7 @@ class postman_download(postman):
                         context=f"{{module}} downloaded postman workspace at {repo_url} to {{event.type}}: {workspace_path}",
                     )
             else:
-                self.warning(
+                self.verbose(
                     f"Failed to validate {repo_url} is in our scope as it does not contain any in-scope dns_names / emails, skipping download"
                 )
 
