@@ -328,7 +328,10 @@ class BaseModule:
 
     def cycle_api_key(self):
         if self._api_keys:
+            self.verbose(f"Cycling API key")
             self._api_keys.insert(0, self._api_keys.pop())
+        else:
+            self.debug(f"No extra API keys to cycle")
 
     @property
     def failed_request_abort_threshold(self):
