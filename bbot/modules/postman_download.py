@@ -185,15 +185,12 @@ class postman_download(postman):
     async def validate_workspace(self, workspace, environments, collections):
         name = workspace.get("name", "")
         full_wks = str([workspace, environments, collections])
-        for email in await self.helpers.re.extract_emails(full_wks):
-            if self.scan.in_scope(email):
-                self.verbose(f'Found in-scope email: "{email}" for workspace {name}, it appears to be in-scope')
-                return True
-        for host in await self.scan.extract_in_scope_hostnames(full_wks):
-            if self.scan.in_scope(host):
-                if self.scan.in_scope(host):
-                    self.verbose(f'Found in-scope hostname: "{host}" for workspace {name}, it appears to be in-scope')
-                    return True
+        in_scope_hosts = await self.scan.extract_in_scope_hostnames(full_wks)
+        if in_scope_hosts:
+            self.verbose(
+                f'Found in-scope hostname(s): "{in_scope_hosts}" in workspace {name}, it appears to be in-scope'
+            )
+            return True
         return False
 
     def save_workspace(self, workspace, environments, collections):
