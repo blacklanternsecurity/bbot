@@ -22,7 +22,7 @@ class baddns(BaseModule):
         "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.1.846"]
+    deps_pip = ["baddns~=1.1.855"]
 
     def select_modules(self):
         selected_submodules = []
@@ -75,7 +75,9 @@ class baddns(BaseModule):
             tasks.append((module_instance, asyncio.create_task(module_instance.dispatch())))
 
         for module_instance, task in tasks:
-            if await task:
+
+            complete_task = await task
+            if complete_task:
                 results = module_instance.analyze()
                 if results and len(results) > 0:
                     for r in results:
@@ -120,3 +122,5 @@ class baddns(BaseModule):
                                     tags=[f"baddns-{module_instance.name.lower()}"],
                                     context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.data}}',
                                 )
+
+                await module_instance.cleanup()

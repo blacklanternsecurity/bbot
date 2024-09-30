@@ -19,7 +19,7 @@ class baddns_direct(BaseModule):
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.1.846"]
+    deps_pip = ["baddns~=1.1.855"]
 
     scope_distance_modifier = 1
 
@@ -51,6 +51,7 @@ class baddns_direct(BaseModule):
 
         CNAME_direct_instance = CNAME_direct_module(event.host, **kwargs)
         if await CNAME_direct_instance.dispatch():
+
             results = CNAME_direct_instance.analyze()
             if results and len(results) > 0:
                 for r in results:
@@ -68,6 +69,7 @@ class baddns_direct(BaseModule):
                         tags=[f"baddns-{CNAME_direct_module.name.lower()}"],
                         context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
                     )
+        await CNAME_direct_instance.cleanup()
 
     async def filter_event(self, event):
         if event.type == "STORAGE_BUCKET":
