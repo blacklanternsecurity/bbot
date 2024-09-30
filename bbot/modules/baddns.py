@@ -71,13 +71,19 @@ class baddns(BaseModule):
                 kwargs["raw_query_retry_wait"] = 0
 
             module_instance = ModuleClass(event.data, **kwargs)
+            task = asyncio.create_task(module_instance.dispatch())
+            tasks.append((module_instance, task))
 
-            tasks.append((module_instance, asyncio.create_task(module_instance.dispatch())))
+        async for completed_task in self.helpers.as_completed([task for _, task in tasks]):
 
-        for module_instance, task in tasks:
+            module_instance = next((m for m, t in tasks if t == completed_task), None)
+            try:
+                task_result = await completed_task
+            except Exception as e:
+                self.hugewarning(f"Task for {module_instance} raised an error: {e}")
+                task_result = None
 
-            complete_task = await task
-            if complete_task:
+            if task_result:
                 results = module_instance.analyze()
                 if results and len(results) > 0:
                     for r in results:
@@ -122,5 +128,4 @@ class baddns(BaseModule):
                                     tags=[f"baddns-{module_instance.name.lower()}"],
                                     context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.data}}',
                                 )
-
                 await module_instance.cleanup()
