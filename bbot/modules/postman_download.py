@@ -45,15 +45,25 @@ class postman_download(postman):
         workspace_id = await self.get_workspace_id(repo_url)
         if workspace_id:
             self.verbose(f"Found workspace ID {workspace_id} for {repo_url}")
-            workspace_path = await self.download_workspace(workspace_id)
-            if workspace_path:
-                self.verbose(f"Downloaded workspace from {repo_url} to {workspace_path}")
-                codebase_event = self.make_event(
-                    {"path": str(workspace_path)}, "FILESYSTEM", tags=["postman", "workspace"], parent=event
-                )
-                await self.emit_event(
-                    codebase_event,
-                    context=f"{{module}} downloaded postman workspace at {repo_url} to {{event.type}}: {workspace_path}",
+            data = await self.request_workspace(workspace_id)
+            workspace = data["workspace"]
+            environments = data["environments"]
+            collections = data["collections"]
+            in_scope = await self.validate_workspace(workspace, environments, collections)
+            if in_scope:
+                workspace_path = self.save_workspace(workspace, environments, collections)
+                if workspace_path:
+                    self.verbose(f"Downloaded workspace from {repo_url} to {workspace_path}")
+                    codebase_event = self.make_event(
+                        {"path": str(workspace_path)}, "FILESYSTEM", tags=["postman", "workspace"], parent=event
+                    )
+                    await self.emit_event(
+                        codebase_event,
+                        context=f"{{module}} downloaded postman workspace at {repo_url} to {{event.type}}: {workspace_path}",
+                    )
+            else:
+                self.verbose(
+                    f"Failed to validate {repo_url} is in our scope as it does not contain any in-scope dns_names / emails, skipping download"
                 )
 
     async def get_workspace_id(self, repo_url):
@@ -80,24 +90,18 @@ class postman_download(postman):
             workspace_id = data[0]["id"]
         return workspace_id
 
-    async def download_workspace(self, id):
-        zip_path = None
+    async def request_workspace(self, id):
+        data = {"workspace": {}, "environments": [], "collections": []}
         workspace = await self.get_workspace(id)
         if workspace:
-            # Create a folder for the workspace
-            name = workspace["name"]
-            folder = self.output_dir / name
-            self.helpers.mkdir(folder)
-            zip_path = folder / f"{id}.zip"
-
             # Main Workspace
-            self.add_json_to_zip(zip_path, workspace, f"{name}.postman_workspace.json")
+            name = workspace["name"]
+            data["workspace"] = workspace
 
             # Workspace global variables
             self.verbose(f"Downloading globals for workspace {name}")
             globals = await self.get_globals(id)
-            globals_id = globals["id"]
-            self.add_json_to_zip(zip_path, globals, f"{globals_id}.postman_environment.json")
+            data["environments"].append(globals)
 
             # Workspace Environments
             workspace_environments = workspace.get("environments", [])
@@ -106,7 +110,7 @@ class postman_download(postman):
                 for _ in workspace_environments:
                     environment_id = _["uid"]
                     environment = await self.get_environment(environment_id)
-                    self.add_json_to_zip(zip_path, environment, f"{environment_id}.postman_environment.json")
+                    data["environments"].append(environment)
 
             # Workspace Collections
             workspace_collections = workspace.get("collections", [])
@@ -115,8 +119,8 @@ class postman_download(postman):
                 for _ in workspace_collections:
                     collection_id = _["uid"]
                     collection = await self.get_collection(collection_id)
-                    self.add_json_to_zip(zip_path, collection, f"{collection_id}.postman_collection.json")
-        return zip_path
+                    data["collections"].append(collection)
+        return data
 
     async def get_workspace(self, workspace_id):
         workspace = {}
@@ -177,6 +181,42 @@ class postman_download(postman):
             return collection
         collection = json.get("collection", {})
         return collection
+
+    async def validate_workspace(self, workspace, environments, collections):
+        name = workspace.get("name", "")
+        full_wks = str([workspace, environments, collections])
+        in_scope_hosts = await self.scan.extract_in_scope_hostnames(full_wks)
+        if in_scope_hosts:
+            self.verbose(
+                f'Found in-scope hostname(s): "{in_scope_hosts}" in workspace {name}, it appears to be in-scope'
+            )
+            return True
+        return False
+
+    def save_workspace(self, workspace, environments, collections):
+        zip_path = None
+        # Create a folder for the workspace
+        name = workspace["name"]
+        id = workspace["id"]
+        folder = self.output_dir / name
+        self.helpers.mkdir(folder)
+        zip_path = folder / f"{id}.zip"
+
+        # Main Workspace
+        self.add_json_to_zip(zip_path, workspace, f"{name}.postman_workspace.json")
+
+        # Workspace Environments
+        if environments:
+            for environment in environments:
+                environment_id = environment["id"]
+                self.add_json_to_zip(zip_path, environment, f"{environment_id}.postman_environment.json")
+
+            # Workspace Collections
+            if collections:
+                for collection in collections:
+                    collection_name = collection["info"]["name"]
+                    self.add_json_to_zip(zip_path, collection, f"{collection_name}.postman_collection.json")
+        return zip_path
 
     def add_json_to_zip(self, zip_path, data, filename):
         with zipfile.ZipFile(zip_path, "a") as zipf:

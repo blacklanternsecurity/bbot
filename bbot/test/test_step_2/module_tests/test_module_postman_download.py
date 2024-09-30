@@ -97,14 +97,65 @@ class TestPostman_Download(ModuleTestBase):
                             "documentType": "workspace",
                         },
                         "highlight": {"summary": "<b>BLS</b> BBOT api test."},
-                    }
+                    },
+                    {
+                        "score": 611.41156,
+                        "normalizedScore": 23,
+                        "document": {
+                            "watcherCount": 6,
+                            "apiCount": 0,
+                            "forkCount": 0,
+                            "isblacklisted": "false",
+                            "createdAt": "2021-06-15T14:03:51",
+                            "publishertype": "team",
+                            "publisherHandle": "testteam",
+                            "id": "11498add-357d-4bc5-a008-0a2d44fb8829",
+                            "slug": "testing-bbot-api",
+                            "updatedAt": "2024-07-30T11:00:35",
+                            "entityType": "workspace",
+                            "visibilityStatus": "public",
+                            "forkcount": "0",
+                            "tags": [],
+                            "createdat": "2021-06-15T14:03:51",
+                            "forkLabel": "",
+                            "publisherName": "testteam",
+                            "name": "Test BlackLanternSecurity API Team Workspace",
+                            "dependencyCount": 7,
+                            "collectionCount": 6,
+                            "warehouse__updated_at": "2024-07-30 11:00:00",
+                            "privateNetworkFolders": [],
+                            "isPublisherVerified": False,
+                            "publisherType": "team",
+                            "curatedInList": [],
+                            "creatorId": "6900157",
+                            "description": "",
+                            "forklabel": "",
+                            "publisherId": "299401",
+                            "publisherLogo": "",
+                            "popularity": 5,
+                            "isPublic": True,
+                            "categories": [],
+                            "universaltags": "",
+                            "views": 5788,
+                            "summary": "Private test of BBOTs public API",
+                            "memberCount": 2,
+                            "isBlacklisted": False,
+                            "publisherid": "299401",
+                            "isPrivateNetworkEntity": False,
+                            "isDomainNonTrivial": True,
+                            "privateNetworkMeta": "",
+                            "updatedat": "2021-10-20T16:19:29",
+                            "documentType": "workspace",
+                        },
+                        "highlight": {"summary": "Private test of BBOTs Public API"},
+                    },
                 ],
                 "meta": {
                     "queryText": "blacklanternsecurity",
                     "total": {
                         "collection": 0,
                         "request": 0,
-                        "workspace": 1,
+                        "workspace": 2,
                         "api": 0,
                         "team": 0,
                         "user": 0,
@@ -113,7 +164,7 @@ class TestPostman_Download(ModuleTestBase):
                         "privateNetworkFolder": 0,
                     },
                     "state": "AQ4",
-                    "spellCorrection": {"count": {"all": 1, "workspace": 1}, "correctedQueryText": None},
+                    "spellCorrection": {"count": {"all": 2, "workspace": 2}, "correctedQueryText": None},
                     "featureFlags": {
                         "enabledPublicResultCuration": True,
                         "boostByPopularity": True,
@@ -154,6 +205,36 @@ class TestPostman_Download(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
+            url="https://www.postman.com/_api/ws/proxy",
+            match_content=b'{"service": "workspaces", "method": "GET", "path": "/workspaces?handle=testteam&slug=testing-bbot-api"}',
+            json={
+                "meta": {"model": "workspace", "action": "find", "nextCursor": ""},
+                "data": [
+                    {
+                        "id": "a4dfe981-2593-4f0b-b4c3-5145e8640f7d",
+                        "name": "Test BlackLanternSecurity API Team Workspace",
+                        "description": None,
+                        "summary": "Private test of BBOTs public API",
+                        "createdBy": "299401",
+                        "updatedBy": "299401",
+                        "team": None,
+                        "createdAt": "2021-10-20T16:19:29",
+                        "updatedAt": "2021-10-20T16:19:29",
+                        "visibilityStatus": "public",
+                        "profileInfo": {
+                            "slug": "bbot-public",
+                            "profileType": "team",
+                            "profileId": "000000",
+                            "publicHandle": "https://www.postman.com/testteam",
+                            "publicImageURL": "",
+                            "publicName": "testteam",
+                            "isVerified": False,
+                        },
+                    }
+                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
             url="https://api.getpostman.com/workspaces/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b",
             json={
                 "workspace": {
@@ -185,6 +266,31 @@ class TestPostman_Download(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
+            url="https://api.getpostman.com/workspaces/a4dfe981-2593-4f0b-b4c3-5145e8640f7d",
+            json={
+                "workspace": {
+                    "id": "a4dfe981-2593-4f0b-b4c3-5145e8640f7d",
+                    "name": "Test BlackLanternSecurity API Team Workspace",
+                    "type": "personal",
+                    "description": None,
+                    "visibility": "public",
+                    "createdBy": "00000000",
+                    "updatedBy": "00000000",
+                    "createdAt": "2021-11-17T06:09:01.000Z",
+                    "updatedAt": "2021-11-17T08:57:16.000Z",
+                    "collections": [
+                        {
+                            "id": "f46bebfd-420a-4adf-97d1-6fb5a02cf7fc",
+                            "name": "BBOT Public",
+                            "uid": "10197090-f46bebfd-420a-4adf-97d1-6fb5a02cf7fc",
+                        },
+                    ],
+                    "environments": [],
+                    "apis": [],
+                }
+            },
+        )
+        module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/workspace/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b/globals",
             json={
                 "model_id": "8be7574b-219f-49e0-8d25-da447a882e4e",
@@ -201,6 +307,22 @@ class TestPostman_Download(ModuleTestBase):
                             "enabled": True,
                         },
                     ],
+                    "createdAt": "2021-11-17T06:09:01.000Z",
+                    "updatedAt": "2021-11-18T12:38:33.000Z",
+                },
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://www.postman.com/_api/workspace/a4dfe981-2593-4f0b-b4c3-5145e8640f7d/globals",
+            json={
+                "model_id": "8be7574b-219f-49e0-8d25-da447a882e4e",
+                "meta": {"model": "globals", "action": "find"},
+                "data": {
+                    "workspace": "a4dfe981-2593-4f0b-b4c3-5145e8640f7d",
+                    "lastUpdatedBy": "00000000",
+                    "lastRevision": 1637239113000,
+                    "id": "8be7574b-219f-49e0-8d25-da447a882e4e",
+                    "values": [],
                     "createdAt": "2021-11-17T06:09:01.000Z",
                     "updatedAt": "2021-11-18T12:38:33.000Z",
                 },
@@ -227,7 +349,7 @@ class TestPostman_Download(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="https://api.getpostman.com/collections/10197090-62b91565-d2e2-4bcd-8248-4dba2e3452f0",
+            url="https://api.getpostman.com/collections/10197090-2aab9fd0-3715-4abe-8bb0-8cb0264d023f",
             json={
                 "collection": {
                     "info": {
@@ -261,17 +383,45 @@ class TestPostman_Download(ModuleTestBase):
                 }
             },
         )
+        module_test.httpx_mock.add_response(
+            url="https://api.getpostman.com/collections/10197090-f46bebfd-420a-4adf-97d1-6fb5a02cf7fc",
+            json={
+                "collection": {
+                    "info": {
+                        "_postman_id": "f46bebfd-420a-4adf-97d1-6fb5a02cf7fc",
+                        "name": "BBOT Public",
+                        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+                        "updatedAt": "2021-11-17T07:13:16.000Z",
+                        "createdAt": "2021-11-17T07:13:15.000Z",
+                        "lastUpdatedBy": "00000000",
+                        "uid": "00000000-f46bebfd-420a-4adf-97d1-6fb5a02cf7fc",
+                    },
+                    "item": [
+                        {
+                            "name": "Out of Scope API request",
+                            "id": "c1bac38c-dfc9-4cc0-9c19-828cbc8543b1",
+                            "protocolProfileBehavior": {"disableBodyPruning": True},
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Content-Type", "value": "application/json"}],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": '{"username": "test", "password": "Test"}',
+                                },
+                                "url": {"raw": "https://www.outofscope.com", "host": ["www.outofscope.com"]},
+                                "description": "",
+                            },
+                            "response": [],
+                            "uid": "10197090-c1bac38c-dfc9-4cc0-9c19-828cbc8543b1",
+                        },
+                    ],
+                }
+            },
+        )
 
     def check(self, module_test, events):
-        assert 1 == len(
-            [
-                e
-                for e in events
-                if e.type == "CODE_REPOSITORY"
-                and "postman" in e.tags
-                and e.data["url"] == "https://www.postman.com/blacklanternsecurity/bbot-public"
-                and e.scope_distance == 1
-            ]
+        assert 2 == len(
+            [e for e in events if e.type == "CODE_REPOSITORY" and "postman" in e.tags and e.scope_distance == 1]
         ), "Failed to find blacklanternsecurity postman workspace"
         assert 1 == len(
             [
