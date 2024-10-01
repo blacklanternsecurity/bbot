@@ -23,7 +23,7 @@ class vhost(ffuf):
     }
 
     deps_common = ["ffuf"]
-    banned_characters = set([" ","."])
+    banned_characters = set([" ", "."])
 
     in_scope_only = True
 
