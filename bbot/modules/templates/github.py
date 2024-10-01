@@ -1,3 +1,5 @@
+import traceback
+
 from bbot.modules.base import BaseModule
 
 

@@ -1,3 +1,5 @@
+import traceback
+
 from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
