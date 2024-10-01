@@ -24,9 +24,9 @@ class Trickest(subdomain_enum_apikey):
 
     def prepare_api_request(self, url, kwargs):
         kwargs["headers"]["Authorization"] = f"Token {self.api_key}"
+        return url, kwargs
 
     async def ping(self):
-
         url = f"{self.base_url}/dataset"
         response = await self.api_request(url)
         status_code = getattr(response, "status_code", 0)

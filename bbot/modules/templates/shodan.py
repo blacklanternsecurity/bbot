@@ -28,6 +28,7 @@ class shodan(subdomain_enum):
             self.hugesuccess(f"API is ready")
             return True
         except Exception as e:
+            self.trace(traceback.format_exc())
             return None, f"Error with API ({str(e).strip()})"
         return True
 
