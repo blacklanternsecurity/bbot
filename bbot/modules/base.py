@@ -336,7 +336,7 @@ class BaseModule:
 
     @property
     def failed_request_abort_threshold(self):
-        return max(self._failed_request_abort_threshold, len(self._api_keys))
+        return max(self._failed_request_abort_threshold, len(self._api_keys) * 2)
 
     async def ping(self):
         """Asynchronously checks the health of the configured API.
