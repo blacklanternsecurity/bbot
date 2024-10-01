@@ -99,6 +99,8 @@ class trufflehog(BaseModule):
                 module = "git"
             elif "docker" in event.tags:
                 module = "docker"
+            elif "postman" in event.tags:
+                module = "postman"
             else:
                 module = "filesystem"
         if event.type == "CODE_REPOSITORY":
@@ -164,6 +166,9 @@ class trufflehog(BaseModule):
         elif module == "docker":
             command.append("docker")
             command.append("--image=file://" + path)
+        elif module == "postman":
+            command.append("postman")
+            command.append("--workspace-paths=" + path)
         elif module == "filesystem":
             command.append("filesystem")
             command.append(path)
