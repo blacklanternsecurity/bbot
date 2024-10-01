@@ -116,7 +116,7 @@ class BBOTEnviron:
             environ.pop("HTTPS_PROXY", None)
 
         # ssl verification
-        # import urllib3
+        #import urllib3
 
         # urllib3.disable_warnings()
         # ssl_verify = self.preset.config.get("ssl_verify", False)
