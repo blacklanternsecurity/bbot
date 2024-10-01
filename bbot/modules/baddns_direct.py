@@ -19,7 +19,7 @@ class baddns_direct(BaseModule):
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.1.862"]
+    deps_pip = ["baddns~=1.1.864"]
 
     scope_distance_modifier = 1
 
