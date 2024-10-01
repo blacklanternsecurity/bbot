@@ -118,19 +118,19 @@ class BBOTEnviron:
         # ssl verification
         import urllib3
 
-        # urllib3.disable_warnings()
-        # ssl_verify = self.preset.config.get("ssl_verify", False)
-        # if not ssl_verify:
-        #     import requests
-        #     import functools
+        urllib3.disable_warnings()
+        ssl_verify = self.preset.config.get("ssl_verify", False)
+        if not ssl_verify:
+            import requests
+            import functools
 
-        #     requests.adapters.BaseAdapter.send = functools.partialmethod(
-        #         requests.adapters.BaseAdapter.send, verify=False
-        #     )
-        #     requests.adapters.HTTPAdapter.send = functools.partialmethod(
-        #         requests.adapters.HTTPAdapter.send, verify=False
-        #     )
-        #     requests.Session.request = functools.partialmethod(requests.Session.request, verify=False)
-        #     requests.request = functools.partial(requests.request, verify=False)
+            requests.adapters.BaseAdapter.send = functools.partialmethod(
+                requests.adapters.BaseAdapter.send, verify=False
+            )
+            requests.adapters.HTTPAdapter.send = functools.partialmethod(
+                requests.adapters.HTTPAdapter.send, verify=False
+            )
+            requests.Session.request = functools.partialmethod(requests.Session.request, verify=False)
+            requests.request = functools.partial(requests.request, verify=False)
 
         return environ
