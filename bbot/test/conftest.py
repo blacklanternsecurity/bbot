@@ -51,7 +51,6 @@ def bbot_httpserver():
         gc.collect()
 
 
-
 @pytest.fixture
 def bbot_httpserver_ssl():
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -74,6 +73,7 @@ def bbot_httpserver_ssl():
         # Explicitly collect garbage after teardown to avoid retained references
         gc.collect()
 
+
 @pytest.fixture
 def non_mocked_hosts() -> list:
     return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
@@ -94,7 +94,6 @@ def bbot_httpserver_allinterfaces():
 
         # Explicitly collect garbage after teardown to avoid retained references
         gc.collect()
-
 
 
 class Interactsh_mock:
