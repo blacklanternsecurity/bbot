@@ -21,7 +21,7 @@ class crt(subdomain_enum):
     async def request_url(self, query):
         params = {"q": f"%.{query}", "output": "json"}
         url = self.helpers.add_get_params(self.base_url, params).geturl()
-        return await self.request_with_fail_count(url, timeout=self.http_timeout + 30)
+        return await self.api_request(url, timeout=self.http_timeout + 30)
 
     def parse_results(self, r, query):
         j = r.json()

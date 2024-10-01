@@ -88,7 +88,7 @@ class github_workflows(github):
     async def get_workflows(self, owner, repo):
         workflows = []
         url = f"{self.base_url}/repos/{owner}/{repo}/actions/workflows?per_page=100&page=" + "{page}"
-        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        agen = self.api_page_iter(url, json=False)
         try:
             async for r in agen:
                 if r is None:
@@ -115,7 +115,7 @@ class github_workflows(github):
     async def get_workflow_runs(self, owner, repo, workflow_id):
         runs = []
         url = f"{self.base_url}/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs?status=success&per_page={self.num_logs}"
-        r = await self.helpers.request(url, headers=self.headers)
+        r = await self.api_request(url)
         if r is None:
             return runs
         status_code = getattr(r, "status_code", 0)
@@ -176,7 +176,7 @@ class github_workflows(github):
     async def get_run_artifacts(self, owner, repo, run_id):
         artifacts = []
         url = f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"
-        r = await self.helpers.request(url, headers=self.headers)
+        r = await self.api_request(url)
         if r is None:
             return artifacts
         status_code = getattr(r, "status_code", 0)

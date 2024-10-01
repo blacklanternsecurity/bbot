@@ -63,7 +63,7 @@ class BaseModule:
 
         batch_wait (int): Seconds to wait before force-submitting a batch. Default is 10.
 
-        failed_request_abort_threshold (int): Threshold for setting error state after failed HTTP requests (only takes effect when `request_with_fail_count()` is used. Default is 5.
+        failed_request_abort_threshold (int): Threshold for setting error state after failed HTTP requests (only takes effect when `api_request()` is used. Default is 5.
 
         _preserve_graph (bool): When set to True, accept events that may be duplicates but are necessary for construction of complete graph. Typically only enabled for output modules that need to maintain full chains of events, e.g. `neo4j` and `json`. Default is False.
 
@@ -103,7 +103,10 @@ class BaseModule:
     _module_threads = 1
     _batch_size = 1
     batch_wait = 10
+    # disable the module after this many failed requests in a row
     _failed_request_abort_threshold = 5
+    # sleep for this many seconds after being rate limited
+    _429_sleep_interval = 30
 
     default_discovery_context = "{module} discovered {event.type}: {event.data}"
 
@@ -150,7 +153,7 @@ class BaseModule:
 
         self._api_keys = []
 
-        # track number of failures (for .request_with_fail_count())
+        # track number of failures (for .api_request())
         self._request_failures = 0
 
         self._tasks = []
@@ -324,7 +327,8 @@ class BaseModule:
         self._api_keys = list(api_keys)
 
     def cycle_api_key(self):
-        self._api_keys.insert(0, self._api_keys.pop())
+        if self._api_keys:
+            self._api_keys.insert(0, self._api_keys.pop())
 
     @property
     def failed_request_abort_threshold(self):
@@ -338,7 +342,7 @@ class BaseModule:
         Example Usage:
             In your implementation, if the API has a "/ping" endpoint:
             async def ping(self):
-                r = await self.request_with_fail_count(f"{self.base_url}/ping")
+                r = await self.api_request(f"{self.base_url}/ping")
                 resp_content = getattr(r, "text", "")
                 assert getattr(r, "status_code", 0) == 200, resp_content
 
@@ -1098,7 +1102,10 @@ class BaseModule:
 
     async def api_request(self, *args, **kwargs):
         """
-        Makes an HTTP request while automatically cycling API keys
+        Makes an HTTP request while automatically:
+            - avoiding rate limits (sleep/retry)
+            - cycling API keys
+            - cancelling after too many failed attempts
         """
         url = args[0] if args else kwargs.pop("url", "")
 
@@ -1109,22 +1116,30 @@ class BaseModule:
             new_url, kwargs = self.prepare_api_request(url, kwargs)
             kwargs["url"] = new_url
 
-            self.critical(kwargs)
             r = await self.helpers.request(**kwargs)
             success = False if r is None else r.is_success
 
             if success:
                 self._request_failures = 0
-                break
             else:
-                # if request failed, cycle API keys and try again
+                status_code = getattr(r, "status_code", 0)
                 self._request_failures += 1
                 if self._request_failures >= self.failed_request_abort_threshold:
                     self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
-                    break
                 else:
-                    self.cycle_api_key()
-                    continue
+                    # sleep for a bit if we're being rate limited
+                    if status_code == 429:
+                        self.verbose(
+                            f"Sleeping for {self._429_sleep_interval:,} seconds due to rate limit (HTTP status: 429)"
+                        )
+                        await asyncio.sleep(self._429_sleep_interval)
+                        continue
+                    elif self._api_keys:
+                        # if request failed, cycle API keys and try again
+                        self.cycle_api_key()
+                        continue
+            break
+
         return r
 
     async def api_page_iter(self, url, page_size=100, json=True, next_key=None, **requests_kwargs):

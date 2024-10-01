@@ -9,16 +9,20 @@ class shodan(subdomain_enum):
 
     async def setup(self):
         await super().setup()
-        self.api_key = None
+        api_keys = set()
         for module_name in ("shodan", "shodan_dns", "shodan_port"):
             module_config = self.scan.config.get("modules", {}).get(module_name, {})
             api_key = module_config.get("api_key", "")
-            if api_key:
-                self.api_key = api_key
-                break
-        if not self.api_key:
+            if isinstance(api_key, str):
+                api_key = [api_key]
+            for key in api_key:
+                key = key.strip()
+                if key:
+                    api_keys.add(key)
+        if not api_keys:
             if self.auth_required:
                 return None, "No API key set"
+        self.api_key = api_keys
         try:
             await self.ping()
             self.hugesuccess(f"API is ready")
@@ -29,6 +33,6 @@ class shodan(subdomain_enum):
 
     async def ping(self):
         url = f"{self.base_url}/api-info?key={self.api_key}"
-        r = await self.request_with_fail_count(url)
+        r = await self.api_request(url)
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
