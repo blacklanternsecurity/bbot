@@ -1,4 +1,5 @@
 import os
+import gc
 import ssl
 import shutil
 import pytest
@@ -38,17 +39,17 @@ def bbot_httpserver():
     server = HTTPServer(host="127.0.0.1", port=8888, threaded=True)
     server.start()
 
-    yield server
+    try:
+        yield server
+    finally:
+        if server.is_running():
+            server.stop()  # Stop the server if still running
+        server.check_assertions()  # Verify if all requests were asserted
+        server.clear()  # Clear server state to ensure no lingering references
 
-    server.clear()
-    if server.is_running():
-        server.stop()
+        # Explicitly collect garbage after teardown to avoid retained references
+        gc.collect()
 
-    # this is to check if the client has made any request where no
-    # `assert_request` was called on it from the test
-
-    server.check_assertions()
-    server.clear()
 
 
 @pytest.fixture
@@ -58,21 +59,20 @@ def bbot_httpserver_ssl():
     keyfile = str(current_dir / "testsslkey.pem")
     certfile = str(current_dir / "testsslcert.pem")
     context.load_cert_chain(certfile, keyfile)
+
     server = HTTPServer(host="127.0.0.1", port=9999, ssl_context=context, threaded=True)
     server.start()
 
-    yield server
+    try:
+        yield server
+    finally:
+        if server.is_running():
+            server.stop()  # Stop the server if still running
+        server.check_assertions()  # Verify if all requests were asserted
+        server.clear()  # Clear server state to ensure no lingering references
 
-    server.clear()
-    if server.is_running():
-        server.stop()
-
-    # this is to check if the client has made any request where no
-    # `assert_request` was called on it from the test
-
-    server.check_assertions()
-    server.clear()
-
+        # Explicitly collect garbage after teardown to avoid retained references
+        gc.collect()
 
 @pytest.fixture
 def non_mocked_hosts() -> list:
@@ -84,13 +84,17 @@ def bbot_httpserver_allinterfaces():
     server = HTTPServer(host="0.0.0.0", port=5556, threaded=True)
     server.start()
 
-    yield server
+    try:
+        yield server
+    finally:
+        if server.is_running():
+            server.stop()  # Stop the server if still running
+        server.check_assertions()  # Verify if all requests were asserted
+        server.clear()  # Clear server state to ensure no lingering references
 
-    server.clear()
-    if server.is_running():
-        server.stop()
-    server.check_assertions()
-    server.clear()
+        # Explicitly collect garbage after teardown to avoid retained references
+        gc.collect()
+
 
 
 class Interactsh_mock:
