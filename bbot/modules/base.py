@@ -1188,7 +1188,7 @@ class BaseModule:
                     self.debug(f"Failed to extract next page of results from {url}: {e}")
                     self.debug(traceback.format_exc())
             else:
-                new_url = url.format(page=page, page_size=page_size, offset=offset)
+                new_url = self.helpers.safe_format(url, page=page, page_size=page_size, offset=offset)
             result = await self.api_request(new_url, **requests_kwargs)
             if result is None:
                 self.verbose(f"api_page_iter() got no response for {url}")
