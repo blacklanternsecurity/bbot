@@ -114,8 +114,9 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         await scan.helpers.dns._mock_dns(_dns_mock)
         if scan_callback is not None:
             scan_callback(scan)
+        output_events = [e async for e in scan.async_start()]
         return (
-            [e async for e in scan.async_start()],
+            output_events,
             dummy_module.events,
             dummy_module_nodupes.events,
             dummy_graph_output_module.events,
