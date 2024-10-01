@@ -22,7 +22,7 @@ class baddns(BaseModule):
         "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.1.855"]
+    deps_pip = ["baddns~=1.1.862"]
 
     def select_modules(self):
         selected_submodules = []
@@ -80,7 +80,7 @@ class baddns(BaseModule):
             try:
                 task_result = await completed_task
             except Exception as e:
-                self.hugewarning(f"Task for {module_instance} raised an error: {e}")
+                self.warning(f"Task for {module_instance} raised an error: {e}")
                 task_result = None
 
             if task_result:
