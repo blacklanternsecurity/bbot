@@ -50,6 +50,7 @@ def bbot_httpserver():
     server.check_assertions()
     server.clear()
 
+
 @pytest.fixture
 def bbot_httpserver_ssl():
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -73,7 +74,6 @@ def bbot_httpserver_ssl():
     server.clear()
 
 
-
 @pytest.fixture
 def non_mocked_hosts() -> list:
     return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
@@ -91,6 +91,7 @@ def bbot_httpserver_allinterfaces():
         server.stop()
     server.check_assertions()
     server.clear()
+
 
 class Interactsh_mock:
     def __init__(self, name):

@@ -86,9 +86,8 @@ mike = "^2.1.2"
 env = [
     "BBOT_TESTING = True",
 ]
-asyncio_mode = auto
-asyncio_default_fixture_loop_scope = module  # All test functions in the same .py file will share the same loop
-
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "module"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
