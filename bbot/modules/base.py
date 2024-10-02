@@ -63,7 +63,7 @@ class BaseModule:
 
         batch_wait (int): Seconds to wait before force-submitting a batch. Default is 10.
 
-        failed_request_abort_threshold (int): Threshold for setting error state after failed HTTP requests (only takes effect when `api_request()` is used. Default is 5.
+        api_failure_abort_threshold (int): Threshold for setting error state after failed HTTP requests (only takes effect when `api_request()` is used. Default is 5.
 
         _preserve_graph (bool): When set to True, accept events that may be duplicates but are necessary for construction of complete graph. Typically only enabled for output modules that need to maintain full chains of events, e.g. `neo4j` and `json`. Default is False.
 
@@ -103,8 +103,11 @@ class BaseModule:
     _module_threads = 1
     _batch_size = 1
     batch_wait = 10
-    # disable the module after this many failed requests in a row
-    _failed_request_abort_threshold = 5
+
+    # API retries, etc.
+    _api_retries = 2
+    # disable the module after this many failed attempts in a row
+    _api_failure_abort_threshold = 3
     # sleep for this many seconds after being rate limited
     _429_sleep_interval = 30
 
@@ -154,7 +157,7 @@ class BaseModule:
         self._api_keys = []
 
         # track number of failures (for .api_request())
-        self._request_failures = 0
+        self._api_request_failures = 0
 
         self._tasks = []
         self._event_received = asyncio.Condition()
@@ -335,8 +338,12 @@ class BaseModule:
             self.debug(f"No extra API keys to cycle")
 
     @property
-    def failed_request_abort_threshold(self):
-        return max(self._failed_request_abort_threshold, len(self._api_keys) * 2)
+    def api_retries(self):
+        return max(self._api_retries + 1, len(self._api_keys))
+
+    @property
+    def api_failure_abort_threshold(self):
+        return (self.api_retries * self._api_failure_abort_threshold) + 1
 
     async def ping(self):
         """Asynchronously checks the health of the configured API.
@@ -1114,7 +1121,7 @@ class BaseModule:
         url = args[0] if args else kwargs.pop("url", "")
 
         # loop until we have a successful request
-        while 1:
+        for _ in range(self.api_retries):
             if not "headers" in kwargs:
                 kwargs["headers"] = {}
             new_url, kwargs = self.prepare_api_request(url, kwargs)
@@ -1124,12 +1131,14 @@ class BaseModule:
             success = False if r is None else r.is_success
 
             if success:
-                self._request_failures = 0
+                self._api_request_failures = 0
             else:
                 status_code = getattr(r, "status_code", 0)
-                self._request_failures += 1
-                if self._request_failures >= self.failed_request_abort_threshold:
-                    self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
+                self._api_request_failures += 1
+                if self._api_request_failures >= self.api_failure_abort_threshold:
+                    self.set_error_state(
+                        f"Setting error state due to {self._api_request_failures:,} failed HTTP requests"
+                    )
                 else:
                     # sleep for a bit if we're being rate limited
                     if status_code == 429:
@@ -1137,11 +1146,10 @@ class BaseModule:
                             f"Sleeping for {self._429_sleep_interval:,} seconds due to rate limit (HTTP status: 429)"
                         )
                         await asyncio.sleep(self._429_sleep_interval)
-                        continue
                     elif self._api_keys:
                         # if request failed, cycle API keys and try again
                         self.cycle_api_key()
-                        continue
+                    continue
             break
 
         return r
