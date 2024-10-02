@@ -43,19 +43,17 @@ class postman(postman):
         self.verbose(f"Searching for any postman workspaces, collections, requests for {org_name}")
         for item in await self.query(org_name):
             workspace = item["document"]
-            human_readable_name = workspace["name"]
             name = workspace["slug"]
             profile = workspace["publisherHandle"]
-            if org_name.lower() in human_readable_name.lower():
-                self.verbose(f"Got {name}")
-                workspace_url = f"{self.html_url}/{profile}/{name}"
-                await self.emit_event(
-                    {"url": workspace_url},
-                    "CODE_REPOSITORY",
-                    tags="postman",
-                    parent=event,
-                    context=f'{{module}} searched postman.com for "{org_name}" and found matching workspace "{name}" at {{event.type}}: {workspace_url}',
-                )
+            self.verbose(f"Got {name}")
+            workspace_url = f"{self.html_url}/{profile}/{name}"
+            await self.emit_event(
+                {"url": workspace_url},
+                "CODE_REPOSITORY",
+                tags="postman",
+                parent=event,
+                context=f'{{module}} searched postman.com for "{org_name}" and found matching workspace "{name}" at {{event.type}}: {workspace_url}',
+            )
 
     async def query(self, query):
         data = []

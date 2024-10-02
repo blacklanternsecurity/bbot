@@ -21,14 +21,14 @@ class securitytrails(subdomain_enum_apikey):
         return await super().setup()
 
     async def ping(self):
-        url = f"{self.base_url}/ping?apikey={self.api_key}"
-        r = await self.request_with_fail_count(url)
+        url = f"{self.base_url}/ping?apikey={{api_key}}"
+        r = await self.api_request(url)
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
     async def request_url(self, query):
-        url = f"{self.base_url}/domain/{query}/subdomains?apikey={self.api_key}"
-        response = await self.request_with_fail_count(url)
+        url = f"{self.base_url}/domain/{query}/subdomains?apikey={{api_key}}"
+        response = await self.api_request(url)
         return response
 
     def parse_results(self, r, query):

@@ -828,6 +828,7 @@ class excavate(BaseInternalModule):
         yara.set_config(max_match_data=yara_max_match_data)
         yara_rules_combined = "\n".join(self.yara_rules_dict.values())
         try:
+            self.info(f"Compiling {len(self.yara_rules_dict):,} YARA rules")
             self.yara_rules = yara.compile(source=yara_rules_combined)
         except yara.SyntaxError as e:
             self.debug(yara_rules_combined)

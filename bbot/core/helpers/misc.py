@@ -2788,3 +2788,15 @@ def top_tcp_ports(n, as_string=False):
     if as_string:
         return ",".join([str(s) for s in top_ports])
     return top_ports
+
+
+class SafeDict(dict):
+    def __missing__(self, key):
+        return "{" + key + "}"
+
+
+def safe_format(s, **kwargs):
+    """
+    Format string while ignoring unused keys (prevents KeyError)
+    """
+    return s.format_map(SafeDict(kwargs))

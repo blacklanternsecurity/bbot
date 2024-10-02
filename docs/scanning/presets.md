@@ -77,7 +77,10 @@ config:
     securitytrails:
       api_key: 21a270d5f59c9b05813a72bb41707266
     virustotal:
-      api_key: 4f41243847da693a4f356c0486114bc6
+      # multiple API keys are allowed
+      api_key:
+        - 4f41243847da693a4f356c0486114bc6
+        - 5bc6ed268ab6488270e496d3183a1a27
 ```
 
 To execute your custom preset, you do:
