@@ -669,7 +669,7 @@ class excavate(BaseInternalModule):
 
     class URLExtractor(ExcavateRule):
         yara_rules = {
-            "url_full": r'rule url_full { meta: tags = "spider-danger" description = "contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([:\/\w\.-]*)/ condition: $url_full }',
+            "url_full": r'rule url_full { meta: tags = "spider-danger" description = "contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)(:\d{1,5})?([\/\w\.-]*)/ condition: $url_full }',
             "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
         }
         full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
