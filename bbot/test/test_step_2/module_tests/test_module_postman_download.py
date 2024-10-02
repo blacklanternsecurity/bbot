@@ -8,6 +8,7 @@ class TestPostman_Download(ModuleTestBase):
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.getpostman.com/me",
+            match_headers={"X-Api-Key": "asdf"},
             json={
                 "user": {
                     "id": 000000,
@@ -236,6 +237,7 @@ class TestPostman_Download(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.getpostman.com/workspaces/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b",
+            match_headers={"X-Api-Key": "asdf"},
             json={
                 "workspace": {
                     "id": "3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b",
@@ -330,6 +332,7 @@ class TestPostman_Download(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.getpostman.com/environments/10197090-f770f816-9c6a-40f7-bde3-c0855d2a1089",
+            match_headers={"X-Api-Key": "asdf"},
             json={
                 "environment": {
                     "id": "f770f816-9c6a-40f7-bde3-c0855d2a1089",
@@ -350,6 +353,7 @@ class TestPostman_Download(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.getpostman.com/collections/10197090-2aab9fd0-3715-4abe-8bb0-8cb0264d023f",
+            match_headers={"X-Api-Key": "asdf"},
             json={
                 "collection": {
                     "info": {

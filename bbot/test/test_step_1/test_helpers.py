@@ -424,6 +424,10 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
 
     assert type(helpers.make_date()) == str
 
+    # string formatter
+    s = "asdf {unused} {used}"
+    assert helpers.safe_format(s, used="fdsa") == "asdf {unused} fdsa"
+
     # punycode
     assert helpers.smart_encode_punycode("ドメイン.テスト") == "xn--eckwd4c7c.xn--zckzah"
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah") == "ドメイン.テスト"

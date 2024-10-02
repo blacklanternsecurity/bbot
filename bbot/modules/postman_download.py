@@ -18,9 +18,6 @@ class postman_download(postman):
     scope_distance_modifier = 2
 
     async def setup(self):
-        self.api_key = self.config.get("api_key", "")
-        self.authorization_headers = {"X-Api-Key": self.api_key}
-
         output_folder = self.config.get("output_folder")
         if output_folder:
             self.output_dir = Path(output_folder) / "postman_workspaces"
@@ -29,9 +26,13 @@ class postman_download(postman):
         self.helpers.mkdir(self.output_dir)
         return await self.require_api_key()
 
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["X-Api-Key"] = self.api_key
+        return url, kwargs
+
     async def ping(self):
         url = f"{self.api_url}/me"
-        response = await self.helpers.request(url, headers=self.authorization_headers)
+        response = await self.api_request(url)
         assert getattr(response, "status_code", 0) == 200, response.text
 
     async def filter_event(self, event):
@@ -125,7 +126,7 @@ class postman_download(postman):
     async def get_workspace(self, workspace_id):
         workspace = {}
         workspace_url = f"{self.api_url}/workspaces/{workspace_id}"
-        r = await self.helpers.request(workspace_url, headers=self.authorization_headers)
+        r = await self.api_request(workspace_url)
         if r is None:
             return workspace
         status_code = getattr(r, "status_code", 0)
@@ -155,7 +156,7 @@ class postman_download(postman):
     async def get_environment(self, environment_id):
         environment = {}
         environment_url = f"{self.api_url}/environments/{environment_id}"
-        r = await self.helpers.request(environment_url, headers=self.authorization_headers)
+        r = await self.api_request(environment_url)
         if r is None:
             return environment
         status_code = getattr(r, "status_code", 0)
@@ -170,7 +171,7 @@ class postman_download(postman):
     async def get_collection(self, collection_id):
         collection = {}
         collection_url = f"{self.api_url}/collections/{collection_id}"
-        r = await self.helpers.request(collection_url, headers=self.authorization_headers)
+        r = await self.api_request(collection_url)
         if r is None:
             return collection
         status_code = getattr(r, "status_code", 0)

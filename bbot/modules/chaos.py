@@ -18,13 +18,17 @@ class chaos(subdomain_enum_apikey):
 
     async def ping(self):
         url = f"{self.base_url}/example.com"
-        response = await self.request_with_fail_count(url, headers={"Authorization": self.api_key})
+        response = await self.api_request(url)
         assert response.json()["domain"] == "example.com"
+
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["Authorization"] = self.api_key
+        return url, kwargs
 
     async def request_url(self, query):
         _, domain = self.helpers.split_domain(query)
         url = f"{self.base_url}/{domain}/subdomains"
-        return await self.request_with_fail_count(url, headers={"Authorization": self.api_key})
+        return await self.api_request(url)
 
     def parse_results(self, r, query):
         j = r.json()

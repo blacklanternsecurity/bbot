@@ -64,7 +64,7 @@ class internetdb(BaseModule):
         if ip is None:
             return
         url = f"{self.base_url}/{ip}"
-        r = await self.request_with_fail_count(url)
+        r = await self.api_request(url)
         if r is None:
             self.debug(f"No response for {event.data}")
             return

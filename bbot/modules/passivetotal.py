@@ -24,7 +24,7 @@ class passivetotal(subdomain_enum_apikey):
 
     async def ping(self):
         url = f"{self.base_url}/account/quota"
-        j = (await self.request_with_fail_count(url, auth=self.auth)).json()
+        j = (await self.api_request(url, auth=self.auth)).json()
         limit = j["user"]["limits"]["search_api"]
         used = j["user"]["counts"]["search_api"]
         assert used < limit, "No quota remaining"
@@ -35,7 +35,7 @@ class passivetotal(subdomain_enum_apikey):
 
     async def request_url(self, query):
         url = f"{self.base_url}/enrichment/subdomains?query={self.helpers.quote(query)}"
-        return await self.request_with_fail_count(url, auth=self.auth)
+        return await self.api_request(url, auth=self.auth)
 
     def parse_results(self, r, query):
         for subdomain in r.json().get("subdomains", []):
