@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.8d3538lj.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.t3n7jfl2.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -8354,6 +8354,29 @@ it returns the object as-is. Otherwise, it parses the given URL string using
     <span style="color: #ff7b72">import</span> <span style="color: #ff7b72">shutil</span>
 
     <span style="color: #e6edf3">shutil</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">rmtree(f)</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.safe_format">
+<span class="doc doc-object-name doc-function-name">safe_format</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">safe_format(s,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Format string while ignoring unused keys (prevents KeyError)</p>
+<details class="quote">
+<summary>Source code in <code>bbot/core/helpers/misc.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2798</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2799</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2800</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2801</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2802</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">safe_format</span><span style="color: #e6edf3">(s,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Format string while ignoring unused keys (prevents KeyError)</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">s</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">format_map(SafeDict(kwargs))</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>

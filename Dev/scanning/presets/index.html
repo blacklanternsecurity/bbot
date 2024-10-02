@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.8d3538lj.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.t3n7jfl2.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -690,7 +690,10 @@ bbot<span style="color: #6e7681"> </span>-t<span style="color: #6e7681"> </span>
 <span style="color: #6e7681">    </span><span style="color: #7ee787">securitytrails</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">      </span><span style="color: #7ee787">api_key</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">21a270d5f59c9b05813a72bb41707266</span>
 <span style="color: #6e7681">    </span><span style="color: #7ee787">virustotal</span><span style="color: #e6edf3">:</span>
-<span style="color: #6e7681">      </span><span style="color: #7ee787">api_key</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">4f41243847da693a4f356c0486114bc6</span>
+<span style="color: #6e7681">      </span><span style="color: #8b949e; font-style: italic"># multiple API keys are allowed</span>
+<span style="color: #6e7681">      </span><span style="color: #7ee787">api_key</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">4f41243847da693a4f356c0486114bc6</span>
+<span style="color: #6e7681">        </span><span style="color: #e6edf3">-</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">5bc6ed268ab6488270e496d3183a1a27</span>
 </code></pre></div>
 <p>To execute your custom preset, you do:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6e7681"> </span>-p<span style="color: #6e7681"> </span>./my_subdomains.yml
