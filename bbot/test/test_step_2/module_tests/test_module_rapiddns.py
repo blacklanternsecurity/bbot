@@ -8,7 +8,7 @@ class TestRapidDNS(ModuleTestBase):
 <td>asdf.blacklanternsecurity.com</td>
 <td><a href="/sameip/asdf.blacklanternsecurity.com.?t=cname#result" target="_blank" title="asdf.blacklanternsecurity.com. same ip website">asdf.blacklanternsecurity.com.</a>"""
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.module.abort_if = lambda e: False
         module_test.httpx_mock.add_response(
             url=f"https://rapiddns.io/subdomain/blacklanternsecurity.com?full=1#result", text=self.web_body
@@ -21,7 +21,7 @@ class TestRapidDNS(ModuleTestBase):
 class TestRapidDNSAbortThreshold1(TestRapidDNS):
     module_name = "rapiddns"
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         self.url_count = {}
 
         async def custom_callback(request):
