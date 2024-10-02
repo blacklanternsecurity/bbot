@@ -6,6 +6,9 @@ from pathlib import Path
 from bbot.core.helpers.misc import cpu_architecture, os_platform, os_platform_friendly
 
 
+REQUESTS_PATCHED = False
+
+
 def increase_limit(new_limit):
     try:
         import resource
@@ -42,7 +45,7 @@ def add_to_path(v, k="PATH", environ=None):
         if _ != v and _ not in deduped_var_list:
             deduped_var_list.append(_)
     deduped_var_list = [v] + deduped_var_list
-    new_var_str = ":".join(deduped_var_list)
+    new_var_str = ":".join(deduped_var_list).strip(":")
     environ[k] = new_var_str
 
 
@@ -107,7 +110,7 @@ class BBOTEnviron:
         environ.update(bbot_environ)
 
         # handle HTTP proxy
-        http_proxy = self.preset.config.get("http_proxy", "")
+        http_proxy = self.preset.config.get("web", {}).get("http_proxy", "")
         if http_proxy:
             environ["HTTP_PROXY"] = http_proxy
             environ["HTTPS_PROXY"] = http_proxy
@@ -120,7 +123,10 @@ class BBOTEnviron:
 
         urllib3.disable_warnings()
         ssl_verify = self.preset.config.get("ssl_verify", False)
-        if not ssl_verify:
+
+        global REQUESTS_PATCHED
+        if not ssl_verify and not REQUESTS_PATCHED:
+            REQUESTS_PATCHED = True
             import requests
             import functools
 

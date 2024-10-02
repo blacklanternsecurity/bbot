@@ -58,7 +58,7 @@ jobs:
   update_docs:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
+    if: github.event_name == 'push' && (github.ref != 'refs/heads/dev' && github.ref != 'refs/heads/stable')
     steps:
       - uses: actions/checkout@v3
         with:
@@ -83,11 +83,13 @@ jobs:
           author_email: info@blacklanternsecurity.com
           message: "Refresh module docs"
   publish_docs:
-    needs: update_docs
+    needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"

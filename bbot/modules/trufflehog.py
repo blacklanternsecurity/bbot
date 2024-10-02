@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from bbot.modules.base import BaseModule
 
 
@@ -13,13 +14,15 @@ class trufflehog(BaseModule):
     }
 
     options = {
-        "version": "3.81.9",
+        "version": "3.82.6",
+        "config": "",
         "only_verified": True,
         "concurrency": 8,
         "deleted_forks": False,
     }
     options_desc = {
         "version": "trufflehog version",
+        "config": "File path or URL to YAML trufflehog config",
         "only_verified": "Only report credentials that have been verified",
         "concurrency": "Number of concurrent workers",
         "deleted_forks": "Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
@@ -40,6 +43,9 @@ class trufflehog(BaseModule):
 
     async def setup(self):
         self.verified = self.config.get("only_verified", True)
+        self.config_file = self.config.get("config", "")
+        if self.config_file:
+            self.config_file = await self.helpers.wordlist(self.config_file)
         self.concurrency = int(self.config.get("concurrency", 8))
 
         self.deleted_forks = self.config.get("deleted_forks", False)
@@ -59,6 +65,7 @@ class trufflehog(BaseModule):
             if not self.github_token:
                 self.deleted_forks = False
                 return None, "A github api_key must be provided to the github modules for deleted forks to be scanned"
+        self.processed = set()
         return True
 
     async def filter_event(self, event):
@@ -70,6 +77,13 @@ class trufflehog(BaseModule):
                     return False, "Module only accepts github CODE_REPOSITORY events"
             else:
                 return False, "Deleted forks is not enabled"
+        else:
+            path = event.data["path"]
+            for processed in self.processed:
+                processed_path = Path(processed)
+                new_path = Path(path)
+                if new_path.is_relative_to(processed_path):
+                    return False, "Parent folder has already been processed"
         return True
 
     async def handle_event(self, event):
@@ -80,10 +94,13 @@ class trufflehog(BaseModule):
                 module = "github-experimental"
         else:
             path = event.data["path"]
+            self.processed.add(path)
             if "git" in event.tags:
                 module = "git"
             elif "docker" in event.tags:
                 module = "docker"
+            elif "postman" in event.tags:
+                module = "postman"
             else:
                 module = "filesystem"
         if event.type == "CODE_REPOSITORY":
@@ -140,6 +157,8 @@ class trufflehog(BaseModule):
         ]
         if self.verified:
             command.append("--only-verified")
+        if self.config_file:
+            command.append("--config=" + str(self.config_file))
         command.append("--concurrency=" + str(self.concurrency))
         if module == "git":
             command.append("git")
@@ -147,6 +166,9 @@ class trufflehog(BaseModule):
         elif module == "docker":
             command.append("docker")
             command.append("--image=file://" + path)
+        elif module == "postman":
+            command.append("postman")
+            command.append("--workspace-paths=" + path)
         elif module == "filesystem":
             command.append("filesystem")
             command.append(path)

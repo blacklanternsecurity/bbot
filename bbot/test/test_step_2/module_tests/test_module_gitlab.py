@@ -4,10 +4,13 @@ from .base import ModuleTestBase
 class TestGitlab(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["gitlab", "httpx"]
+    config_overrides = {"modules": {"gitlab": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(headers={"X-Gitlab-Meta": "asdf"})
-        module_test.httpserver.expect_request("/api/v4/projects", query_string="simple=true").respond_with_json(
+        module_test.httpserver.expect_request(
+            "/api/v4/projects", query_string="simple=true", headers={"Authorization": "Bearer asdf"}
+        ).respond_with_json(
             [
                 {
                     "id": 33,
@@ -41,7 +44,9 @@ class TestGitlab(ModuleTestBase):
                 },
             ],
         )
-        module_test.httpserver.expect_request("/api/v4/groups", query_string="simple=true").respond_with_json(
+        module_test.httpserver.expect_request(
+            "/api/v4/groups", query_string="simple=true", headers={"Authorization": "Bearer asdf"}
+        ).respond_with_json(
             [
                 {
                     "id": 9,
@@ -84,7 +89,7 @@ class TestGitlab(ModuleTestBase):
             ]
         )
         module_test.httpserver.expect_request(
-            "/api/v4/groups/bbotgroup/projects", query_string="simple=true"
+            "/api/v4/groups/bbotgroup/projects", query_string="simple=true", headers={"Authorization": "Bearer asdf"}
         ).respond_with_json(
             [
                 {
@@ -120,7 +125,7 @@ class TestGitlab(ModuleTestBase):
             ]
         )
         module_test.httpserver.expect_request(
-            "/api/v4/users/bbotgroup/projects", query_string="simple=true"
+            "/api/v4/users/bbotgroup/projects", query_string="simple=true", headers={"Authorization": "Bearer asdf"}
         ).respond_with_json(
             [
                 {

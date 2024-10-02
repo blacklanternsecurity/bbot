@@ -3,9 +3,9 @@ import asyncio
 import logging
 import traceback
 from signal import SIGINT
-from subprocess import CompletedProcess, CalledProcessError
+from subprocess import CompletedProcess, CalledProcessError, SubprocessError
 
-from .misc import smart_decode, smart_encode
+from .misc import smart_decode, smart_encode, which
 
 log = logging.getLogger("bbot.core.helpers.command")
 
@@ -182,7 +182,11 @@ async def _spawn_proc(self, *command, **kwargs):
         >>> _spawn_proc("ls", "-l", input="data")
         (<Process ...>, "data", ["ls", "-l"])
     """
-    command, kwargs = self._prepare_command_kwargs(command, kwargs)
+    try:
+        command, kwargs = self._prepare_command_kwargs(command, kwargs)
+    except SubprocessError as e:
+        log.warning(e)
+        return None, None, None
     _input = kwargs.pop("input", None)
     if _input is not None:
         if kwargs.get("stdin") is not None:
@@ -276,11 +280,22 @@ def _prepare_command_kwargs(self, command, kwargs):
         command = command[0]
     command = [str(s) for s in command]
 
+    if not command:
+        raise SubprocessError("Must specify a command")
+
+    # use full path of binary, if not already specified
+    binary = command[0]
+    if not "/" in binary:
+        binary_full_path = which(binary)
+        if binary_full_path is None:
+            raise SubprocessError(f'Command "{binary}" was not found')
+        command[0] = binary_full_path
+
     env = kwargs.get("env", os.environ)
     if sudo and os.geteuid() != 0:
         self.depsinstaller.ensure_root()
         env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
-        env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
+        env["BBOT_SUDO_PASS"] = self.depsinstaller.encrypted_sudo_pw
         kwargs["env"] = env
 
         PATH = os.environ.get("PATH", "")

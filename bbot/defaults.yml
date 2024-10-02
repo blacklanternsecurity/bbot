@@ -30,10 +30,13 @@ dns:
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
   # How many instances of the dns module to run concurrently
-  threads: 20
+  threads: 25
   # How many concurrent DNS resolvers to use when brute-forcing
   # (under the hood this is passed through directly to massdns -s)
   brute_threads: 1000
+  # nameservers to use for DNS brute-forcing
+  # default is updated weekly and contains ~10K high-quality public servers
+  brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt
   # How far away from the main target to explore via DNS resolution (independent of scope.search_distance)
   # This is safe to change
   search_distance: 1
@@ -110,7 +113,7 @@ deps:
 ### ADVANCED OPTIONS ###
 
 # Load BBOT modules from these custom paths
-module_paths: []
+module_dirs: []
 
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True

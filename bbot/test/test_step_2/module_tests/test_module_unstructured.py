@@ -96,7 +96,7 @@ startxref
         assert file.is_file(), "Destination file doesn't exist"
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
         raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
-        assert 1 == len(raw_text_events), "Failed to emmit RAW_TEXT event"
+        assert 1 == len(raw_text_events), "Failed to emit RAW_TEXT event"
         assert (
             raw_text_events[0].data == self.unstructured_response
         ), f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"

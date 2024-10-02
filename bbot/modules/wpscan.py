@@ -14,19 +14,19 @@ class wpscan(BaseModule):
 
     options = {
         "api_key": "",
-        "enumerate": "vp,vt,tt,cb,dbe,u,m",
+        "enumerate": "vp,vt,cb,dbe",
         "threads": 5,
-        "request_timeout": 60,
-        "connection_timeout": 30,
+        "request_timeout": 5,
+        "connection_timeout": 2,
         "disable_tls_checks": True,
         "force": False,
     }
     options_desc = {
         "api_key": "WPScan API Key",
-        "enumerate": "Enumeration Process see wpscan help documentation (default: vp,vt,tt,cb,dbe,u,m)",
+        "enumerate": "Enumeration Process see wpscan help documentation (default: vp,vt,cb,dbe)",
         "threads": "How many wpscan threads to spawn (default is 5)",
-        "request_timeout": "The request timeout in seconds (default 60)",
-        "connection_timeout": "The connection timeout in seconds (default 30)",
+        "request_timeout": "The request timeout in seconds (default 5)",
+        "connection_timeout": "The connection timeout in seconds (default 2)",
         "disable_tls_checks": "Disables the SSL/TLS certificate verification (Default True)",
         "force": "Do not check if the target is running WordPress or returns a 403",
     }
@@ -61,11 +61,11 @@ class wpscan(BaseModule):
         self.processed = set()
         self.ignore_events = ["xmlrpc", "readme"]
         self.api_key = self.config.get("api_key", "")
-        self.enumerate = self.config.get("enumerate", "vp,vt,tt,cb,dbe,u,m")
-        self.proxy = self.scan.config.get("http_proxy", "")
+        self.enumerate = self.config.get("enumerate", "vp,vt,cb,dbe")
+        self.proxy = self.scan.web_config.get("http_proxy", "")
         self.threads = self.config.get("threads", 5)
-        self.request_timeout = self.config.get("request_timeout", 60)
-        self.connection_timeout = self.config.get("connection_timeout", 30)
+        self.request_timeout = self.config.get("request_timeout", 5)
+        self.connection_timeout = self.config.get("connection_timeout", 2)
         self.disable_tls_checks = self.config.get("disable_tls_checks", True)
         self.force = self.config.get("force", False)
         return True

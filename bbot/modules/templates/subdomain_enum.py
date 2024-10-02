@@ -63,7 +63,7 @@ class subdomain_enum(BaseModule):
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
-        return await self.request_with_fail_count(url)
+        return await self.api_request(url)
 
     def make_query(self, event):
         query = event.data
@@ -78,11 +78,7 @@ class subdomain_enum(BaseModule):
             if self.scan.in_scope(p):
                 query = p
                 break
-        try:
-            return ".".join([s for s in query.split(".") if s != "_wildcard"])
-        except Exception:
-            self.critical(query)
-            raise
+        return ".".join([s for s in query.split(".") if s != "_wildcard"])
 
     def parse_results(self, r, query=None):
         json = r.json()
@@ -118,9 +114,10 @@ class subdomain_enum(BaseModule):
             self.info(f"Error retrieving results for {query}: {e}", trace=True)
 
     async def _is_wildcard(self, query):
+        rdtypes = ("A", "AAAA", "CNAME")
         if self.helpers.is_dns_name(query):
-            for domain, wildcard_rdtypes in (await self.helpers.is_wildcard_domain(query)).items():
-                if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
+            for domain, wildcard_rdtypes in (await self.helpers.is_wildcard_domain(query, rdtypes=rdtypes)).items():
+                if any(t in wildcard_rdtypes for t in rdtypes):
                     return True
         return False
 

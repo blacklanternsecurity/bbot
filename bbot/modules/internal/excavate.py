@@ -211,7 +211,7 @@ class ExcavateRule:
         event_draft = self.excavate.make_event(event_data, event_type, parent=event)
         if not event_draft:
             return None
-        event_draft.tags = tags
+        event_draft.add_tags(tags)
         return event_draft
 
     async def report(
@@ -313,29 +313,28 @@ class excavate(BaseInternalModule):
 
     _module_threads = 8
 
-    parameter_blacklist = [
-        "__VIEWSTATE",
-        "__EVENTARGUMENT",
-        "__EVENTVALIDATION",
-        "__EVENTTARGET",
-        "__EVENTARGUMENT",
-        "__VIEWSTATEGENERATOR",
-        "__SCROLLPOSITIONY",
-        "__SCROLLPOSITIONX",
-        "ASP.NET_SessionId",
-        "JSESSIONID",
-        "PHPSESSID",
-    ]
+    parameter_blacklist = set(
+        p.lower()
+        for p in [
+            "__VIEWSTATE",
+            "__EVENTARGUMENT",
+            "__EVENTVALIDATION",
+            "__EVENTTARGET",
+            "__EVENTARGUMENT",
+            "__VIEWSTATEGENERATOR",
+            "__SCROLLPOSITIONY",
+            "__SCROLLPOSITIONX",
+            "ASP.NET_SessionId",
+            "JSESSIONID",
+            "PHPSESSID",
+        ]
+    )
 
     yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
 
     def in_bl(self, value):
-        in_bl = False
-        for bl_param in self.parameter_blacklist:
-            if bl_param.lower() == value.lower():
-                in_bl = True
-        return in_bl
+        return value.lower() in self.parameter_blacklist
 
     def url_unparse(self, param_type, parsed_url):
         if param_type == "GETPARAM":
@@ -734,7 +733,7 @@ class excavate(BaseInternalModule):
                 exceeds_max_links = urls_found > self.excavate.scan.web_spider_links_per_page and url_in_scope
                 if exceeds_max_links:
                     tags.append("spider-max")
-            event_draft.tags = tags
+            event_draft.add_tags(tags)
             return event_draft
 
     class HostnameExtractor(ExcavateRule):
@@ -742,14 +741,8 @@ class excavate(BaseInternalModule):
 
         def __init__(self, excavate):
             super().__init__(excavate)
-            regexes_component_list = []
-            if excavate.scan.dns_regexes_yara:
-                for i, r in enumerate(excavate.scan.dns_regexes_yara):
-                    regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
-                regexes_component = " ".join(regexes_component_list)
-                self.yara_rules[f"hostname_extraction"] = (
-                    f'rule hostname_extraction {{meta: description = "matches DNS hostname pattern derived from target(s)" strings: {regexes_component} condition: any of them}}'
-                )
+            if excavate.scan.dns_yara_rules_uncompiled:
+                self.yara_rules[f"hostname_extraction"] = excavate.scan.dns_yara_rules_uncompiled
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
@@ -806,9 +799,9 @@ class excavate(BaseInternalModule):
             if Path(self.custom_yara_rules).is_file():
                 with open(self.custom_yara_rules) as f:
                     rules_content = f.read()
-                self.debug(f"Successfully loaded secrets file [{self.custom_yara_rules}]")
+                self.debug(f"Successfully loaded custom yara rules file [{self.custom_yara_rules}]")
             else:
-                self.debug(f"Custom secrets is NOT a file. Will attempt to treat it as rule content")
+                self.debug(f"Custom yara rules file is NOT a file. Will attempt to treat it as rule content")
                 rules_content = self.custom_yara_rules
 
             self.debug(f"Final combined yara rule contents: {rules_content}")
@@ -817,13 +810,11 @@ class excavate(BaseInternalModule):
                 try:
                     yara.compile(source=rule_content)
                 except yara.SyntaxError as e:
-                    self.hugewarning(f"Custom Yara rule failed to compile: {e}")
-                    return False
+                    return False, f"Custom Yara rule failed to compile: {e}"
 
                 rule_match = await self.helpers.re.search(self.yara_rule_name_regex, rule_content)
                 if not rule_match:
-                    self.hugewarning(f"Custom Yara formatted incorrectly: could not find rule name")
-                    return False
+                    return False, f"Custom Yara formatted incorrectly: could not find rule name"
 
                 rule_name = rule_match.groups(1)[0]
                 c = CustomExtractor(self)
@@ -837,11 +828,11 @@ class excavate(BaseInternalModule):
         yara.set_config(max_match_data=yara_max_match_data)
         yara_rules_combined = "\n".join(self.yara_rules_dict.values())
         try:
+            self.info(f"Compiling {len(self.yara_rules_dict):,} YARA rules")
             self.yara_rules = yara.compile(source=yara_rules_combined)
         except yara.SyntaxError as e:
-            self.hugewarning(f"Yara Rules failed to compile with error: [{e}]")
             self.debug(yara_rules_combined)
-            return False
+            return False, f"Yara Rules failed to compile with error: [{e}]"
 
         # pre-load valid URL schemes
         valid_schemes_filename = self.helpers.wordlist_dir / "valid_url_schemes.txt"

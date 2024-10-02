@@ -15,7 +15,7 @@ class otx(subdomain_enum):
 
     def request_url(self, query):
         url = f"{self.base_url}/api/v1/indicators/domain/{self.helpers.quote(query)}/passive_dns"
-        return self.request_with_fail_count(url)
+        return self.api_request(url)
 
     def parse_results(self, r, query):
         j = r.json()

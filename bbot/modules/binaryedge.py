@@ -21,18 +21,21 @@ class binaryedge(subdomain_enum_apikey):
 
     async def setup(self):
         self.max_records = self.config.get("max_records", 1000)
-        self.headers = {"X-Key": self.config.get("api_key", "")}
         return await super().setup()
+
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["X-Key"] = self.api_key
+        return url, kwargs
 
     async def ping(self):
         url = f"{self.base_url}/user/subscription"
-        j = (await self.request_with_fail_count(url, headers=self.headers)).json()
+        j = (await self.api_request(url)).json()
         assert j.get("requests_left", 0) > 0
 
     async def request_url(self, query):
         # todo: host query (certs + services)
         url = f"{self.base_url}/query/domains/subdomain/{self.helpers.quote(query)}"
-        return await self.request_with_fail_count(url, headers=self.headers)
+        return await self.api_request(url)
 
     def parse_results(self, r, query):
         j = r.json()

@@ -95,14 +95,6 @@ class BBOTArgs:
             name="args_preset",
         )
 
-        # then we set verbosity levels (so if the user enables -d they can see debug output)
-        if self.parsed.silent:
-            args_preset.silent = True
-        if self.parsed.verbose:
-            args_preset.verbose = True
-        if self.parsed.debug:
-            args_preset.debug = True
-
         # then we load requested preset
         # this is important so we can load custom module directories, pull in custom flags, module config options, etc.
         for preset_arg in self.parsed.preset:
@@ -112,6 +104,14 @@ class BBOTArgs:
                 raise
             except Exception as e:
                 raise BBOTArgumentError(f'Error parsing preset "{preset_arg}": {e}')
+
+        # then we set verbosity levels (so if the user enables -d they can see debug output)
+        if self.parsed.silent:
+            args_preset.silent = True
+        if self.parsed.verbose:
+            args_preset.verbose = True
+        if self.parsed.debug:
+            args_preset.debug = True
 
         # modules + flags
         args_preset.exclude_modules.update(set(self.parsed.exclude_modules))
@@ -142,9 +142,12 @@ class BBOTArgs:
             args_preset.core.custom_config["deps_behavior"] = "ignore_failed"
 
         # other scan options
-        args_preset.scan_name = self.parsed.name
-        args_preset.output_dir = self.parsed.output_dir
-        args_preset.force_start = self.parsed.force
+        if self.parsed.name is not None:
+            args_preset.scan_name = self.parsed.name
+        if self.parsed.output_dir is not None:
+            args_preset.output_dir = self.parsed.output_dir
+        if self.parsed.force:
+            args_preset.force_start = self.parsed.force
 
         if self.parsed.custom_headers:
             args_preset.core.merge_custom({"web": {"http_headers": self.parsed.custom_headers}})
