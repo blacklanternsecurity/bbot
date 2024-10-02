@@ -37,8 +37,7 @@ class iis_shortnames(BaseModule):
         random_string = self.helpers.rand_string(8)
         control_url = f"{target}{random_string}*~1*/a.aspx"
         test_url = f"{target}*~1*/a.aspx"
-
-        urls_and_kwargs = []
+        
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
             kwargs = dict(method=method, allow_redirects=False, timeout=10)
             confirmations = 0
