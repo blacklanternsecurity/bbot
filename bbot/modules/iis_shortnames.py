@@ -45,7 +45,7 @@ class iis_shortnames(BaseModule):
             iterations = 5  # one failed detection is tolerated, as long as its not the first run
             while iterations > 0:
                 control_result = await self.helpers.request(control_url, **kwargs)
-                test_result =  await self.helpers.request(test_url, **kwargs)
+                test_result = await self.helpers.request(test_url, **kwargs)
                 if control_result and test_result:
                     if control_result.status_code != test_result.status_code:
                         confirmations += 1
