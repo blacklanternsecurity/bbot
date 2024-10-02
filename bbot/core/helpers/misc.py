@@ -229,13 +229,13 @@ def split_host_port(d):
 
     match = bbot_regexes.extract_open_port_regex.match(netloc)
     if match is None:
-        raise ValueError(f'split_port() failed to parse netloc "{netloc}"')
+        raise ValueError(f'split_port() failed to parse netloc "{netloc}" (original value: {d})')
 
     host = match.group(2)
     if host is None:
         host = match.group(1)
     if host is None:
-        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}"')
+        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}" (original value: {d})')
 
     port = match.group(3)
     if port is None and scheme is not None:
@@ -2826,3 +2826,15 @@ def top_tcp_ports(n, as_string=False):
     if as_string:
         return ",".join([str(s) for s in top_ports])
     return top_ports
+
+
+class SafeDict(dict):
+    def __missing__(self, key):
+        return "{" + key + "}"
+
+
+def safe_format(s, **kwargs):
+    """
+    Format string while ignoring unused keys (prevents KeyError)
+    """
+    return s.format_map(SafeDict(kwargs))

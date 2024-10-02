@@ -4,6 +4,7 @@ import ipaddress
 
 from ..bbot_fixtures import *
 from bbot.scanner import Scanner
+from bbot.core.helpers.regexes import uuid_regex
 
 
 @pytest.mark.asyncio
@@ -412,17 +413,50 @@ async def test_events(events, helpers):
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 
+    # test event uuid
+    import uuid
+
+    parent_event1 = scan.make_event("evilcorp.com", parent=scan.root_event, context="test context")
+    parent_event2 = scan.make_event("evilcorp.com", parent=scan.root_event, context="test context")
+
+    event1 = scan.make_event("evilcorp.com:80", parent=parent_event1, context="test context")
+    assert hasattr(event1, "uuid")
+    assert isinstance(event1.uuid, uuid.UUID)
+    event2 = scan.make_event("evilcorp.com:80", parent=parent_event2, context="test context")
+    assert hasattr(event2, "uuid")
+    assert isinstance(event2.uuid, uuid.UUID)
+    # ids should match because the event type + data is the same
+    assert event1.id == event2.id
+    # but uuids should be unique!
+    assert event1.uuid != event2.uuid
+    # parent ids should match
+    assert event1.parent_id == event2.parent_id == parent_event1.id == parent_event2.id
+    # uuids should not
+    assert event1.parent_uuid == parent_event1.uuid
+    assert event2.parent_uuid == parent_event2.uuid
+    assert event1.parent_uuid != event2.parent_uuid
+
     # test event serialization
     from bbot.core.event import event_from_json
 
     db_event = scan.make_event("evilcorp.com:80", parent=scan.root_event, context="test context")
+    assert db_event.parent == scan.root_event
+    assert db_event.parent is scan.root_event
     db_event._resolved_hosts = {"127.0.0.1"}
     db_event.scope_distance = 1
     assert db_event.discovery_context == "test context"
     assert db_event.discovery_path == ["test context"]
-    assert db_event.parent_chain == ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac"]
+    assert len(db_event.parent_chain) == 1
+    assert all([uuid_regex.match(u) for u in db_event.parent_chain])
+    assert db_event.parent_chain[0] == str(db_event.uuid)
+    assert db_event.parent.uuid == scan.root_event.uuid
+    assert db_event.parent_uuid == scan.root_event.uuid
     timestamp = db_event.timestamp.isoformat()
     json_event = db_event.json()
+    assert isinstance(json_event["uuid"], str)
+    assert json_event["uuid"] == str(db_event.uuid)
+    print(f"{json_event} / {db_event.uuid} / {db_event.parent_uuid} / {scan.root_event.uuid}")
+    assert json_event["parent_uuid"] == str(scan.root_event.uuid)
     assert json_event["scope_distance"] == 1
     assert json_event["data"] == "evilcorp.com:80"
     assert json_event["type"] == "OPEN_TCP_PORT"
@@ -430,8 +464,14 @@ async def test_events(events, helpers):
     assert json_event["timestamp"] == timestamp
     assert json_event["discovery_context"] == "test context"
     assert json_event["discovery_path"] == ["test context"]
-    assert json_event["parent_chain"] == ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac"]
+    assert json_event["parent_chain"] == db_event.parent_chain
+    assert json_event["parent_chain"][0] == str(db_event.uuid)
     reconstituted_event = event_from_json(json_event)
+    assert isinstance(reconstituted_event.uuid, uuid.UUID)
+    assert str(reconstituted_event.uuid) == json_event["uuid"]
+    assert str(reconstituted_event.parent_uuid) == json_event["parent_uuid"]
+    assert reconstituted_event.uuid == db_event.uuid
+    assert reconstituted_event.parent_uuid == scan.root_event.uuid
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.isoformat() == timestamp
     assert reconstituted_event.data == "evilcorp.com:80"
@@ -439,7 +479,7 @@ async def test_events(events, helpers):
     assert reconstituted_event.host == "evilcorp.com"
     assert reconstituted_event.discovery_context == "test context"
     assert reconstituted_event.discovery_path == ["test context"]
-    assert reconstituted_event.parent_chain == ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac"]
+    assert reconstituted_event.parent_chain == db_event.parent_chain
     assert "127.0.0.1" in reconstituted_event.resolved_hosts
     hostless_event = scan.make_event("asdf", "ASDF", dummy=True)
     hostless_event_json = hostless_event.json()
@@ -616,7 +656,7 @@ async def test_event_discovery_context():
     )
 
     events = [e async for e in scan.async_start()]
-    assert len(events) == 6
+    assert len(events) == 7
 
     assert 1 == len(
         [

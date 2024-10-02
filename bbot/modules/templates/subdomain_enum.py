@@ -63,7 +63,7 @@ class subdomain_enum(BaseModule):
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
-        return await self.request_with_fail_count(url)
+        return await self.api_request(url)
 
     def make_query(self, event):
         query = event.data
@@ -78,11 +78,7 @@ class subdomain_enum(BaseModule):
             if self.scan.in_scope(p):
                 query = p
                 break
-        try:
-            return ".".join([s for s in query.split(".") if s != "_wildcard"])
-        except Exception:
-            self.critical(query)
-            raise
+        return ".".join([s for s in query.split(".") if s != "_wildcard"])
 
     def parse_results(self, r, query=None):
         json = r.json()

@@ -22,10 +22,13 @@ class Trickest(subdomain_enum_apikey):
     dataset_id = "a0a49ca9-03bb-45e0-aa9a-ad59082ebdfc"
     page_size = 50
 
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["Authorization"] = f"Token {self.api_key}"
+        return url, kwargs
+
     async def ping(self):
-        self.headers = {"Authorization": f"Token {self.api_key}"}
         url = f"{self.base_url}/dataset"
-        response = await self.helpers.request(url, headers=self.headers)
+        response = await self.api_request(url)
         status_code = getattr(response, "status_code", 0)
         if status_code != 200:
             response_text = getattr(response, "text", "no response from server")
@@ -54,7 +57,7 @@ class Trickest(subdomain_enum_apikey):
         url = f"{self.base_url}/view?q=hostname%20~%20%22.{self.helpers.quote(query)}%22"
         url += f"&dataset_id={self.dataset_id}"
         url += "&limit={page_size}&offset={offset}&select=hostname&orderby=hostname"
-        agen = self.helpers.api_page_iter(url, headers=self.headers, page_size=self.page_size)
+        agen = self.api_page_iter(url, page_size=self.page_size)
         try:
             async for response in agen:
                 subdomains = self.parse_results(response)

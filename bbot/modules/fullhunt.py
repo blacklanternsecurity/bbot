@@ -18,18 +18,21 @@ class fullhunt(subdomain_enum_apikey):
 
     async def setup(self):
         self.api_key = self.config.get("api_key", "")
-        self.headers = {"x-api-key": self.api_key}
         return await super().setup()
 
     async def ping(self):
         url = f"{self.base_url}/auth/status"
-        j = (await self.request_with_fail_count(url, headers=self.headers)).json()
+        j = (await self.api_request(url)).json()
         remaining = j["user_credits"]["remaining_credits"]
         assert remaining > 0, "No credits remaining"
 
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["x-api-key"] = self.api_key
+        return url, kwargs
+
     async def request_url(self, query):
         url = f"{self.base_url}/domain/{self.helpers.quote(query)}/subdomains"
-        response = await self.request_with_fail_count(url, headers=self.headers)
+        response = await self.api_request(url)
         return response
 
     def parse_results(self, r, query):

@@ -90,6 +90,7 @@ class DNSResolve(InterceptModule):
         # if there weren't any DNS children and it's not an IP address, tag as unresolved
         if not main_host_event.raw_dns_records and not event_is_ip:
             main_host_event.add_tag("unresolved")
+            main_host_event.type = "DNS_NAME_UNRESOLVED"
 
         # main_host_event.add_tag(f"resolve-distance-{main_host_event.dns_resolve_distance}")
 
@@ -108,10 +109,6 @@ class DNSResolve(InterceptModule):
             await self.emit_dns_children_raw(main_host_event, dns_tags)
             if not self.minimal:
                 await self.emit_dns_children(main_host_event)
-
-            # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
-            if main_host_event.type == "DNS_NAME" and "unresolved" in main_host_event.tags:
-                main_host_event.type = "DNS_NAME_UNRESOLVED"
 
             # emit the main DNS_NAME or IP_ADDRESS
             if (

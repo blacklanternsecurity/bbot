@@ -15,26 +15,10 @@ class Teams(WebhookOutputModule):
         "min_severity": "Only allow VULNERABILITY events of this severity or higher",
     }
     _module_threads = 5
-    adaptive_card = {
-        "type": "message",
-        "attachments": [
-            {
-                "contentType": "application/vnd.microsoft.card.adaptive",
-                "contentUrl": None,
-                "content": {
-                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                    "type": "AdaptiveCard",
-                    "version": "1.2",
-                    "msteams": {"width": "full"},
-                    "body": [],
-                },
-            }
-        ],
-    }
 
     async def handle_event(self, event):
         while 1:
-            data = self.format_message(self.adaptive_card.copy(), event)
+            data = self.format_message(event)
 
             response = await self.helpers.request(
                 url=self.webhook_url,
@@ -89,7 +73,23 @@ class Teams(WebhookOutputModule):
                 color = "Good"
         return color
 
-    def format_message(self, adaptive_card, event):
+    def format_message(self, event):
+        adaptive_card = {
+            "type": "message",
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "contentUrl": None,
+                    "content": {
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "type": "AdaptiveCard",
+                        "version": "1.2",
+                        "msteams": {"width": "full"},
+                        "body": [],
+                    },
+                }
+            ],
+        }
         heading = {"type": "TextBlock", "text": f"{event.type}", "wrap": True, "size": "Large", "style": "heading"}
         body = adaptive_card["attachments"][0]["content"]["body"]
         body.append(heading)
