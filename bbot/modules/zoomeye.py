@@ -27,6 +27,7 @@ class zoomeye(subdomain_enum_apikey):
 
     def prepare_api_request(self, url, kwargs):
         kwargs["headers"]["API-KEY"] = self.api_key
+        return url, kwargs
 
     async def ping(self):
         url = f"{self.base_url}/resources-info"
