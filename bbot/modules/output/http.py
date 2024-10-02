@@ -1,4 +1,3 @@
-from bbot.errors import WebError
 from bbot.modules.output.base import BaseOutputModule
 
 
@@ -61,11 +60,10 @@ class HTTP(BaseOutputModule):
             )
             is_success = False if response is None else response.is_success
             if not is_success:
+                status_code = getattr(response, "status_code", 0)
                 self.warning(f"Error sending {event} (HTTP status code: {status_code}), retrying...")
                 body = getattr(response, "text", "")
                 self.debug(body)
-
-                status_code = getattr(response, "status_code", 0)
                 if status_code == 429:
                     sleep_interval = 10
                 else:
