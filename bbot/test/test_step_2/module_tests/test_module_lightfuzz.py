@@ -430,8 +430,6 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
 
     def request_handler(self, request):
 
-        qs = str(request.query_string.decode())
-
         parameter_block = """
         <section class=search>
             <form action=/ method=POST>
@@ -558,7 +556,6 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         </html>
         """
 
-        qs = str(request.query_string.decode())
         if request.headers.get("Test") is not None:
             header_value = request.headers.get("Test")
 
@@ -580,8 +577,6 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         return Response(placeholder_block, status=200)
 
     def check(self, module_test, events):
-
-        web_parameter_emitted = False
         sqli_finding_emitted = False
         for e in events:
             if e.type == "FINDING":
@@ -631,7 +626,6 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
         </html>
         """
 
-        qs = str(request.query_string.decode())
         if request.cookies.get("test") is not None:
             header_value = request.cookies.get("test")
 
@@ -655,7 +649,6 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
 
     def check(self, module_test, events):
 
-        web_parameter_emitted = False
         sqli_finding_emitted = False
         for e in events:
             if e.type == "FINDING":
@@ -806,7 +799,6 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
         excavate_extracted_form_parameter = False
         excavate_extracted_form_parameter_details = False
         lightfuzz_serial_detect_errorresolution = False
-        lightfuzz_serial_detect_errordifferential = False
 
         for e in events:
             if e.type == "WEB_PARAMETER":

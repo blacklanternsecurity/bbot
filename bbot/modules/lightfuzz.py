@@ -1,12 +1,7 @@
 from bbot.modules.base import BaseModule
-import statistics
-import re
-import os
-import base64
-import urllib.parse
 
-from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, unquote
-from bbot.errors import InteractshError, HttpCompareError
+from urllib.parse import urlunparse
+from bbot.errors import InteractshError
 
 from .lightfuzz_submodules.cmdi import CmdILightfuzz
 from .lightfuzz_submodules.crypto import CryptoLightfuzz

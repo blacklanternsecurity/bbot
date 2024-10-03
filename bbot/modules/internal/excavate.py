@@ -7,7 +7,7 @@ from pathlib import Path
 from bbot.errors import ExcavateError
 import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.internal.base import BaseInternalModule
-from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, quote
+from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
 
 
 def find_subclasses(obj, base_class):

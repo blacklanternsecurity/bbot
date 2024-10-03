@@ -2,7 +2,7 @@ import base64
 import hashlib
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
-from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, unquote, quote
+from urllib.parse import unquote, quote
 
 
 class CryptoLightfuzz(BaseLightfuzz):

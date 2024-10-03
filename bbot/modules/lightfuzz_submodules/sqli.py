@@ -73,7 +73,6 @@ class SQLiLightfuzz(BaseLightfuzz):
             f"' AND (SELECT FROM DBMS_LOCK.SLEEP({str(self.expected_delay)})) AND '1'='1"  # oracle (not tested)
             f"; WAITFOR DELAY '00:00:{str(self.expected_delay)}'--",  # mssql (not tested)
         ]
-        method = "GET"
 
         baseline_1 = await self.standard_probe(
             self.event.data["type"], cookies, probe_value, additional_params_populate_empty=True
