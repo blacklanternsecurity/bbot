@@ -792,10 +792,6 @@ def recursive_decode(data, max_depth=5):
     return data
 
 
-rand_pool = string.ascii_lowercase
-rand_pool_digits = rand_pool + string.digits
-
-
 def rand_string(length=10, digits=True, numeric_only=False):
     """
     Generates a random string of specified length.
@@ -821,9 +817,9 @@ def rand_string(length=10, digits=True, numeric_only=False):
     if numeric_only:
         pool = string.digits
     elif digits:
-        pool = string.ascii_letters + string.digits
+        pool = string.ascii_lowercase + string.digits
     else:
-        pool = string.ascii_letters
+        pool = string.ascii_lowercase
 
     return "".join(random.choice(pool) for _ in range(length))
 
