@@ -15,7 +15,7 @@ from .lightfuzz_submodules.serial import SerialLightfuzz
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "web-thorough"]
+    flags = ["active", "aggressive", "web-thorough"]
 
     submodules = {
         "sqli": {"description": "SQL Injection", "module": SQLiLightfuzz},
