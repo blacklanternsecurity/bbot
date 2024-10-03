@@ -127,7 +127,7 @@ jobs:
           git switch gh-pages
           git push
   publish_code:
-    needs: update_docs
+    needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
