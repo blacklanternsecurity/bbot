@@ -294,7 +294,7 @@ class hunt(BaseModule):
                     and event.data["original_value"] != None
                 ):
                     description += (
-                        f" Original Value: [{self.helpers.truncate_string(event.data['original_value'],200)}]"
+                        f" Original Value: [{self.helpers.truncate_string(str(event.data['original_value']),200)}]"
                     )
 
                 data = {"host": str(event.host), "description": description}
