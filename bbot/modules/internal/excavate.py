@@ -314,7 +314,7 @@ class excavate(BaseInternalModule):
     _module_threads = 8
 
     parameter_blacklist_prefix = ["TS01", "BIGipServerpool_"]  # Big-IP F5 Persistence Cookies
-    
+
     parameter_blacklist = set(
         p.lower()
         for p in [
