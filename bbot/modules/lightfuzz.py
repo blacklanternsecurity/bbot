@@ -34,7 +34,11 @@ class lightfuzz(BaseModule):
         "disable_post": "Disable processing of POST parameters, avoiding form submissions.",
     }
 
-    meta = {"description": "Find Web Parameters and Lightly Fuzz them using a heuristic based scanner"}
+    meta = {
+        "description": "Find Web Parameters and Lightly Fuzz them using a heuristic based scanner",
+        "author": "@liquidsec",
+        "created_date": "2024-06-28",
+    }
     common_headers = ["x-forwarded-for", "user-agent"]
     in_scope_only = True
 
