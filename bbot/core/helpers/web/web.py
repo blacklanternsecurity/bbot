@@ -354,7 +354,7 @@ class WebHelper(EngineClient):
                     if hk not in headers:
                         headers[hk] = hv
 
-                for ck, cv in self._web_config.get("http_cookies", {}).items():
+                for ck, cv in self.web_config.get("http_cookies", {}).items():
                     # don't clobber cookies
                     if ck not in cookies:
                         cookies[ck] = cv
