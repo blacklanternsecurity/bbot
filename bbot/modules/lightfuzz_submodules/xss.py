@@ -81,4 +81,12 @@ class XSSLightfuzz(BaseLightfuzz):
 
         if in_javascript:
             in_javascript_probe = rf"</script><script>{random_string}</script>"
-            await self.check_probe(in_javascript_probe, in_javascript_probe, "In Javascript")
+            result = await self.check_probe(in_javascript_probe, in_javascript_probe, "In Javascript")
+            if result == False:
+                in_javasscript_escape_probe = rf"a\';zzzzz({random_string})\\"
+                in_javasscript_escape_match = rf"a\\';zzzzz({random_string})\\"
+                await self.check_probe(
+                    in_javasscript_escape_probe,
+                    in_javasscript_escape_match,
+                    "In Javascript (escaping the escape character)",
+                )
