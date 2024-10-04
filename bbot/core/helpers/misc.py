@@ -367,7 +367,7 @@ def parent_url(u):
     if path.parent == path:
         return None
     else:
-        return urlunparse(parsed._replace(path=str(path.parent)))
+        return urlunparse(parsed._replace(path=str(path.parent), query=""))
 
 
 def url_parents(u):
