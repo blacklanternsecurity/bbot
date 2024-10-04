@@ -996,7 +996,7 @@ class Scanner:
             if context is None or status is None:
                 raise ValueError("Must specify context and status")
             self._finish_event = self.make_root_event(context)
-            self._finish_event.status = status
+            self._finish_event.data["status"] = status
         return self._finish_event
 
     def make_root_event(self, context):
