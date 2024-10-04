@@ -57,7 +57,7 @@ class SQLiLightfuzz(BaseLightfuzz):
                 additional_params_populate_empty=True,
             )
 
-            if single_quote and double_single_quote:
+            if single_quote[3] and double_single_quote[3]:
                 if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
                     self.results.append(
                         {
