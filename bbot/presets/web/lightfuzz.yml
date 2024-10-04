@@ -8,8 +8,9 @@ modules:
 
 config:
   url_querystring_remove: False
-  web_spider_distance: 3
-  web_spider_depth: 4
+  web:
+    spider_distance: 3
+    spider_depth: 4
   modules:
     lightfuzz:
       submodules_enabled: [cmdi,crypto,path,serial,sqli,ssti,xss]
