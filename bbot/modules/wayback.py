@@ -10,7 +10,7 @@ class wayback(subdomain_enum):
     meta = {
         "description": "Query archive.org's API for subdomains",
         "created_date": "2022-04-01",
-        "author": "@pmueller",
+        "author": "@liquidsec",
     }
     options = {"urls": False, "garbage_threshold": 10}
     options_desc = {
