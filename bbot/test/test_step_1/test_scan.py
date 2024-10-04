@@ -118,3 +118,26 @@ async def test_speed_counter():
         await asyncio.sleep(0.2)
     # only 5 should show
     assert 4 <= counter.speed <= 5
+
+
+@pytest.mark.asyncio
+async def test_python_output_matches_json(bbot_scanner):
+    import json
+
+    scan = bbot_scanner(
+        "blacklanternsecurity.com",
+        config={"speculate": True, "dns": {"minimal": False}, "scope": {"report_distance": 10}},
+    )
+    await scan.helpers.dns._mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.1"]}})
+    events = [e.json() async for e in scan.async_start()]
+    output_json = scan.home / "output.json"
+    json_events = []
+    for line in open(output_json):
+        json_events.append(json.loads(line))
+
+    assert len(events) == 5
+    assert len([e for e in events if e["type"] == "SCAN"]) == 2
+    assert len([e for e in events if e["type"] == "DNS_NAME"]) == 1
+    assert len([e for e in events if e["type"] == "ORG_STUB"]) == 1
+    assert len([e for e in events if e["type"] == "IP_ADDRESS"]) == 1
+    assert events == json_events
