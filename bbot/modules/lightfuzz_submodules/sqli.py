@@ -57,13 +57,16 @@ class SQLiLightfuzz(BaseLightfuzz):
                 additional_params_populate_empty=True,
             )
 
-            if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
-                self.results.append(
-                    {
-                        "type": "FINDING",
-                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote]",
-                    }
-                )
+            if single_quote and double_single_quote:
+                if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
+                    self.results.append(
+                        {
+                            "type": "FINDING",
+                            "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote]",
+                        }
+                    )
+            else:
+                self.lightfuzz.debug("Failed to get responses for both single_quote and double_single_quote")
         except HttpCompareError as e:
             self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
