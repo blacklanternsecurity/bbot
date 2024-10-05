@@ -116,6 +116,7 @@ class Scanner:
             **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
         """
         self._root_event = None
+        self._finish_event = None
         self.start_time = None
         self.end_time = None
         self.duration = None
@@ -377,8 +378,8 @@ class Scanner:
                     new_activity = await self.finish()
                     if not new_activity:
                         self._success = True
-                        await self._mark_finished()
-                        yield self.root_event
+                        scan_finish_event = await self._mark_finished()
+                        yield scan_finish_event
                         break
 
                 await asyncio.sleep(0.1)
@@ -434,8 +435,7 @@ class Scanner:
 
         status_message = f"Scan {self.name} completed in {self.duration_human} with status {status}"
 
-        scan_finish_event = self.make_root_event(status_message)
-        scan_finish_event.data["status"] = status
+        scan_finish_event = self.finish_event(status_message, status)
 
         # queue final scan event with output modules
         output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
@@ -451,6 +451,7 @@ class Scanner:
 
         self.status = status
         log_fn(status_message)
+        return scan_finish_event
 
     def _start_modules(self):
         self.verbose(f"Starting module worker loops")
@@ -989,6 +990,14 @@ class Scanner:
             self._root_event = self.make_root_event(f"Scan {self.name} started at {self.start_time}")
         self._root_event.data["status"] = self.status
         return self._root_event
+
+    def finish_event(self, context=None, status=None):
+        if self._finish_event is None:
+            if context is None or status is None:
+                raise ValueError("Must specify context and status")
+            self._finish_event = self.make_root_event(context)
+            self._finish_event.data["status"] = status
+        return self._finish_event
 
     def make_root_event(self, context):
         root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True, context=context)
