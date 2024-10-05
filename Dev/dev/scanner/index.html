@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.h_hn7xmb.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.9lzzms2k.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -2141,7 +2141,16 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1299</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1300</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1301</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1302</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">Scanner</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1302</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1303</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1304</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1305</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1306</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1307</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1308</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1309</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1310</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1311</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">Scanner</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""A class representing a single BBOT scan</span>
 
 <span style="color: #a5d6ff">    Examples:</span>
@@ -2236,6 +2245,7 @@
 <span style="color: #a5d6ff">            **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).</span>
 <span style="color: #a5d6ff">        """</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">end_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
@@ -2497,8 +2507,8 @@
                     <span style="color: #e6edf3">new_activity</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">finish()</span>
                     <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">new_activity:</span>
                         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
-                        <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_mark_finished()</span>
-                        <span style="color: #ff7b72">yield</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">root_event</span>
+                        <span style="color: #e6edf3">scan_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_mark_finished()</span>
+                        <span style="color: #ff7b72">yield</span> <span style="color: #e6edf3">scan_finish_event</span>
                         <span style="color: #ff7b72">break</span>
 
                 <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">sleep(</span><span style="color: #a5d6ff">0.1</span><span style="color: #e6edf3">)</span>
@@ -2554,8 +2564,7 @@
 
         <span style="color: #e6edf3">status_message</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Scan {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">} completed in {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_human</span><span style="color: #a5d6ff">} with status {</span><span style="color: #e6edf3">status</span><span style="color: #a5d6ff">}"</span>
 
-        <span style="color: #e6edf3">scan_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">make_root_event(status_message)</span>
-        <span style="color: #e6edf3">scan_finish_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data[</span><span style="color: #a5d6ff">"status"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">status</span>
+        <span style="color: #e6edf3">scan_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">finish_event(status_message,</span> <span style="color: #e6edf3">status)</span>
 
         <span style="color: #8b949e; font-style: italic"># queue final scan event with output modules</span>
         <span style="color: #e6edf3">output_modules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[m</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">m</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">modules</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">values()</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">m</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_type</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"output"</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">m</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span> <span style="color: #ff7b72; font-weight: bold">!=</span> <span style="color: #a5d6ff">"python"</span><span style="color: #e6edf3">]</span>
@@ -2571,6 +2580,7 @@
 
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">status</span>
         <span style="color: #e6edf3">log_fn(status_message)</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">scan_finish_event</span>
 
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_start_modules</span><span style="color: #e6edf3">(self):</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">verbose(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Starting module worker loops"</span><span style="color: #e6edf3">)</span>
@@ -3109,6 +3119,14 @@
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">make_root_event(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Scan {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">} started at {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data[</span><span style="color: #a5d6ff">"status"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">finish_event</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">context</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">status</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">context</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span> <span style="color: #ff7b72; font-weight: bold">or</span> <span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+                <span style="color: #ff7b72">raise</span> <span style="color: #f0883e; font-weight: bold">ValueError</span><span style="color: #e6edf3">(</span><span style="color: #a5d6ff">"Must specify context and status"</span><span style="color: #e6edf3">)</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">make_root_event(context)</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data[</span><span style="color: #a5d6ff">"status"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">status</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span>
 
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">make_root_event</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">context):</span>
         <span style="color: #e6edf3">root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">make_event(data</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">json,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"SCAN"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">context</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">context)</span>
@@ -3740,7 +3758,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">249</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">250</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">251</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">252</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__init__</span><span style="color: #e6edf3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">252</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">253</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__init__</span><span style="color: #e6edf3">(</span>
     <span style="color: #e6edf3">self,</span>
     <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span>
     <span style="color: #e6edf3">scan_id</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span>
@@ -3761,6 +3780,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #a5d6ff">        **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).</span>
 <span style="color: #a5d6ff">    """</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">end_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
@@ -3911,8 +3931,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <div class="doc doc-contents">
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">320</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">321</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">321</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">322</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">323</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">324</span>
@@ -4008,7 +4027,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">414</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">415</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">416</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">async_start</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">418</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">async_start</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">""" """</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">datetime</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">now()</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data[</span><span style="color: #a5d6ff">"started_at"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">isoformat()</span>
@@ -4068,8 +4088,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
                 <span style="color: #e6edf3">new_activity</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">finish()</span>
                 <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">new_activity:</span>
                     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
-                    <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_mark_finished()</span>
-                    <span style="color: #ff7b72">yield</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">root_event</span>
+                    <span style="color: #e6edf3">scan_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_mark_finished()</span>
+                    <span style="color: #ff7b72">yield</span> <span style="color: #e6edf3">scan_finish_event</span>
                     <span style="color: #ff7b72">break</span>
 
             <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">sleep(</span><span style="color: #a5d6ff">0.1</span><span style="color: #e6edf3">)</span>
@@ -4127,22 +4147,22 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1082</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1083</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1084</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1085</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1086</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1087</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1088</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1089</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1090</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1091</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1091</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1092</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1093</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1094</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1095</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1096</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1097</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">extract_in_scope_hostnames</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">s):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1097</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1098</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1099</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1100</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1101</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1102</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1103</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1104</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1105</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1106</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">extract_in_scope_hostnames</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">s):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">    Given a string, uses yara to extract hostnames matching scan targets</span>
 
@@ -4190,8 +4210,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </details>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">745</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">746</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">746</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">747</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">748</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">749</span>
@@ -4215,7 +4234,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">767</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">768</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">769</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">770</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">finish</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">770</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">771</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">finish</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""Finalizes the scan by invoking the `finished()` method on all active modules if new activity is detected.</span>
 
 <span style="color: #a5d6ff">    The method is idempotent and will return False if no new activity has been recorded since the last invocation.</span>
@@ -4317,8 +4337,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </details>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
@@ -4406,7 +4425,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">589</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">590</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">591</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">load_modules</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">593</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">load_modules</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""Asynchronously import and instantiate all scan modules, including internal and output modules.</span>
 
 <span style="color: #a5d6ff">    This method is automatically invoked by `setup_modules()`. It performs several key tasks in the following sequence:</span>
@@ -4552,8 +4572,7 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 </details>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">460</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">461</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">461</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">462</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">463</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">464</span>
@@ -4593,7 +4612,8 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">498</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">499</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">500</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">setup_modules</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">remove_failed</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">setup_modules</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">remove_failed</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""Asynchronously initializes all loaded modules by invoking their `setup()` methods.</span>
 
 <span style="color: #a5d6ff">    Args:</span>
@@ -4659,8 +4679,7 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 </ul>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">725</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">726</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">726</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">727</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">728</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">729</span>
@@ -4677,7 +4696,8 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">740</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">741</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">742</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">743</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">stop</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">743</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">744</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">stop</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""Stops the in-progress scan and performs necessary cleanup.</span>
 
 <span style="color: #a5d6ff">    This method sets the scan's status to "ABORTING," cancels any pending tasks, and drains event queues. It also kills child processes spawned during the scan.</span>
