@@ -31,7 +31,7 @@ class trufflehog(BaseModule):
         {
             "name": "Download trufflehog",
             "unarchive": {
-                "src": "https://github.com/trufflesecurity/trufflehog/releases/download/v#{BBOT_MODULES_TRUFFLEHOG_VERSION}/trufflehog_#{BBOT_MODULES_TRUFFLEHOG_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
+                "src": "https://github.com/trufflesecurity/trufflehog/releases/download/v#{BBOT_MODULES_TRUFFLEHOG_VERSION}/trufflehog_#{BBOT_MODULES_TRUFFLEHOG_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH}.tar.gz",
                 "include": "trufflehog",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
