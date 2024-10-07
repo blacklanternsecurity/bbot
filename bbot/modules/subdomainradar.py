@@ -15,7 +15,7 @@ class SubdomainRadar(subdomain_enum_apikey):
         "auth_required": True,
     }
     options = {"api_key": "", "group": "fast", "timeout": 120}
-    options_desc = {"api_key": "SubDomainRadar.io API key", "group": "", "timeout": "Timeout in seconds"}
+    options_desc = {"api_key": "SubDomainRadar.io API key", "group": "The enumeration group to use. Choose from fast, medium, deep", "timeout": "Timeout in seconds"}
 
     base_url = "https://api.subdomainradar.io"
     group_choices = ("fast", "medium", "deep")
