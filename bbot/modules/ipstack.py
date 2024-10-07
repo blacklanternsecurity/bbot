@@ -30,8 +30,8 @@ class Ipstack(BaseModule):
     async def ping(self):
         url = f"{self.base_url}/check?access_key={{api_key}}"
         r = await self.api_request(url)
-        resp_content = getattr(r, "text", "")
-        assert getattr(r, "status_code", 0) == 200, resp_content
+        if getattr(r, "status_code", 0) != 200:
+            raise ValueError(getattr(r, "text", "API does not appear to be operational"))
 
     async def handle_event(self, event):
         try:

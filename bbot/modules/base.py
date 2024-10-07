@@ -331,7 +331,7 @@ class BaseModule:
         self._api_keys = list(api_keys)
 
     def cycle_api_key(self):
-        if self._api_keys:
+        if len(self._api_keys) > 1:
             self.verbose(f"Cycling API key")
             self._api_keys.insert(0, self._api_keys.pop())
         else:
@@ -355,7 +355,8 @@ class BaseModule:
             async def ping(self):
                 r = await self.api_request(f"{self.base_url}/ping")
                 resp_content = getattr(r, "text", "")
-                assert getattr(r, "status_code", 0) == 200, resp_content
+                if getattr(r, "status_code", 0) != 200:
+                    raise ValueError(resp_content)
 
         Returns:
             None
@@ -1134,6 +1135,8 @@ class BaseModule:
                 self._api_request_failures = 0
             else:
                 status_code = getattr(r, "status_code", 0)
+                response_text = getattr(r, "text", "")
+                self.trace(f"API response to {url} failed with status code {status_code}: {response_text}")
                 self._api_request_failures += 1
                 if self._api_request_failures >= self.api_failure_abort_threshold:
                     self.set_error_state(

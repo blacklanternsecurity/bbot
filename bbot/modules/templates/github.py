@@ -45,4 +45,5 @@ class github(BaseModule):
     async def ping(self):
         url = f"{self.base_url}/zen"
         response = await self.helpers.request(url, headers=self.headers)
-        assert getattr(response, "status_code", 0) == 200, response.text
+        if getattr(response, "status_code", 0) != 200:
+            raise ValueError(getattr(response, "text", "API does not appear to be operational"))

@@ -26,6 +26,7 @@ class SubdomainRadar(subdomain_enum_apikey):
 
     async def setup(self):
         self.group = self.config.get("group", "fast").strip().lower()
+        self.timeout = self.config.get("timeout", 120)
         if self.group not in self.group_choices:
             return False, f'Invalid group: "{self.group}", please choose from {",".join(self.group_choices)}'
         success, reason = await self.require_api_key()
@@ -69,14 +70,17 @@ class SubdomainRadar(subdomain_enum_apikey):
 
     async def ping(self):
         url = f"{self.base_url}/profile"
-        response = await self.api_request(url)
-        assert getattr(response, "status_code", 0) == 200
+        r = await self.api_request(url)
+        if getattr(r, "status_code", 0) != 200:
+            raise ValueError(getattr(r, "text", "API does not appear to be operational"))
 
     async def handle_event(self, event):
         query = self.make_query(event)
         # start enumeration task
         url = f"{self.base_url}/enumerate"
-        response = await self.api_request(url, json={"domains": [query], "enumerators": self.enumerators})
+        response = await self.api_request(
+            url, method="POST", json={"domains": [query], "enumerators": self.enumerators}
+        )
         try:
             j = response.json()
         except Exception:
@@ -84,7 +88,7 @@ class SubdomainRadar(subdomain_enum_apikey):
             return
         task_id = j.get("tasks", {}).get(query, "")
         if not task_id:
-            self.warning(f"Failed to initiate enumeration task for {query}")
+            self.warning(f"Failed to start enumeration for {query}")
             return
         self.enum_tasks[query] = (task_id, time.time(), event)
         self.debug(f"Started enumeration task for {query}; task id: {task_id}")
@@ -128,4 +132,29 @@ class SubdomainRadar(subdomain_enum_apikey):
         return False
 
     async def finish(self):
-        await self.poll_task
+        start_time = time.time()
+        while self.enum_tasks and not self.poll_task.done():
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= self.timeout:
+                self.warning(f"Timed out waiting for the following tasks to finish: {self.enum_tasks}")
+                for query, (task_id, _, _) in list(self.enum_tasks.items()):
+                    url = f"{self.base_url}/tasks/{task_id}"
+                    self.warning(f"    - {query} ({url})")
+                break
+
+            self.verbose(f"Waiting for enumeration task poll loop to finish ({elapsed_time}/{self.timeout} seconds)")
+
+            try:
+                # Wait for the task to complete or for 10 seconds, whichever comes first
+                await asyncio.wait_for(asyncio.shield(self.poll_task), timeout=10)
+            except asyncio.TimeoutError:
+                # This just means our 10-second check has elapsed, not that the task failed
+                pass
+
+        # Cancel the poll_task if it's still running
+        if not self.poll_task.done():
+            self.poll_task.cancel()
+            try:
+                await self.poll_task
+            except asyncio.CancelledError:
+                pass

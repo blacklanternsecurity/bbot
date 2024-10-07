@@ -18,6 +18,7 @@ class TestSubDomainRadar(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.subdomainradar.io/enumerate",
+            method="POST",
             json={
                 "tasks": {"blacklanternsecurity.com": "86de4531-0a67-41fe-b5e4-8ce8207d6245"},
                 "message": "Tasks initiated",

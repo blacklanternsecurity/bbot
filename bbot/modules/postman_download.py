@@ -33,7 +33,8 @@ class postman_download(postman):
     async def ping(self):
         url = f"{self.api_url}/me"
         response = await self.api_request(url)
-        assert getattr(response, "status_code", 0) == 200, response.text
+        if getattr(response, "status_code", 0) != 200:
+            raise ValueError(getattr(response, "text", "API does not appear to be operational"))
 
     async def filter_event(self, event):
         if event.type == "CODE_REPOSITORY":
