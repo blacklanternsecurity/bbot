@@ -93,7 +93,6 @@ adjectives = [
     "frolicking",
     "furry",
     "fuzzy",
-    "gay",
     "gentle",
     "giddy",
     "glowering",
@@ -189,7 +188,6 @@ adjectives = [
     "psychic",
     "puffy",
     "pure",
-    "queer",
     "questionable",
     "rabid",
     "raging",
@@ -276,6 +274,7 @@ adjectives = [
     "wispy",
     "witty",
     "woolly",
+    "zesty",
 ]
 
 names = [
