@@ -128,6 +128,16 @@ class lightfuzz(BaseModule):
         if len(submodule_instance.results) > 0:
             for r in submodule_instance.results:
                 event_data = {"host": str(event.host), "url": event.data["url"], "description": r["description"]}
+
+                envelopes = getattr(event, "envelopes", None)
+                if envelopes and envelopes.envelopes:
+                    envelope_summary = f'[{"->".join(envelopes.envelopes)}]'
+                    if envelopes.end_format_type:
+                        envelope_summary += f" Format: [{envelopes.end_format_type}] with subparameter [{envelopes.end_format_subparameter}])"
+
+                    # Append the envelope summary to the description
+                    event_data["description"] += f" Envelopes: {envelope_summary}"
+
                 if r["type"] == "VULNERABILITY":
                     event_data["severity"] = r["severity"]
                 await self.emit_event(

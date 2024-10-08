@@ -636,6 +636,29 @@ class TestExcavateParameterExtraction_xml(ModuleTestBase):
         assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
 
 
+class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    getparam_extract_html = """
+<form action=/ method=GET><input type=text name="novalue"><button type=submit class=button>Submit</button></form>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_getparam_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [novalue] (GET Form Submodule)":
+                    excavate_getparam_extraction = True
+        assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+
+
 class excavateTestRule(ExcavateRule):
     yara_rules = {
         "SearchForText": 'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',

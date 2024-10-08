@@ -432,11 +432,13 @@ class excavate(BaseInternalModule):
         class GetForm(ParameterExtractorRule):
             name = "GET Form"
             discovery_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase'
-            form_content_regexes = [
-                bbot_regexes.input_tag_regex,
-                bbot_regexes.select_tag_regex,
-                bbot_regexes.textarea_tag_regex,
-            ]
+            form_content_regexes = {
+                "input_tag_regex": bbot_regexes.input_tag_regex,
+                "input_tag_regex2": bbot_regexes.input_tag_regex2,
+                "input_tag_novalue_regex": bbot_regexes.input_tag_novalue_regex,
+                "select_tag_regex": bbot_regexes.select_tag_regex,
+                "textarea_tag_regex": bbot_regexes.textarea_tag_regex,
+            }
             extraction_regex = bbot_regexes.get_form_regex
             output_type = "GETPARAM"
 
@@ -448,16 +450,26 @@ class excavate(BaseInternalModule):
                         form_action = form_action.lstrip(".")
 
                     form_parameters = {}
-                    for form_content_regex in self.form_content_regexes:
+                    match_found = False
+                    for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = form_content_regex.findall(form_content)
+                        if input_tags:
+                            match_found = True
 
-                        for parameter_name, original_value in input_tags:
-                            form_parameters[parameter_name] = original_value.strip()
+                            if form_content_regex_name == "input_tag_novalue_regex":
+                                form_parameters[input_tags[0]] = None
 
-                        for parameter_name, original_value in form_parameters.items():
-                            yield self.output_type, parameter_name, original_value, form_action, _exclude_key(
-                                form_parameters, parameter_name
-                            )
+                            else:
+                                if form_content_regex_name == "input_tag_regex2":
+                                    input_tags = input_tags = [(b, a) for a, b in input_tags]
+
+                                for parameter_name, original_value in input_tags:
+                                    form_parameters[parameter_name] = original_value.strip()
+
+                            for parameter_name, original_value in form_parameters.items():
+                                yield self.output_type, parameter_name, original_value, form_action, _exclude_key(
+                                    form_parameters, parameter_name
+                                )
 
         class GetForm2(GetForm):
             extraction_regex = bbot_regexes.get_form_regex2
@@ -515,12 +527,12 @@ class excavate(BaseInternalModule):
                                 f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
                             )
                             endpoint = event.data["url"] if not endpoint else endpoint
+                            path = f"{event.parsed_url.path.lstrip('/')}"
                             url = (
                                 endpoint
                                 if endpoint.startswith(("http://", "https://"))
-                                else f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{endpoint}"
+                                else f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{path}{endpoint}"
                             )
-
                             if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
 
                                 if self.excavate.in_bl(parameter_name) == False:
@@ -1003,8 +1015,8 @@ class excavate(BaseInternalModule):
                             self.debug(f"Cookie found without '=': {header_value}")
                             continue
                         else:
-                            cookie_name = header_value.split("=")[0]
-                            cookie_value = header_value.split("=")[1].split(";")[0]
+                            cookie_name, _, remainder = header_value.partition("=")
+                            cookie_value = remainder.split(";")[0]
 
                             if self.in_bl(cookie_name) == False:
                                 self.assigned_cookies[cookie_name] = cookie_value

@@ -1,4 +1,5 @@
 import copy
+import base64
 
 
 class BaseLightfuzz:
@@ -19,9 +20,10 @@ class BaseLightfuzz:
         return new_additional_params
 
     async def send_probe(self, probe):
+        probe = self.probe_value_outgoing(probe)
         getparams = {self.event.data["name"]: probe}
         url = self.lightfuzz.helpers.add_get_params(self.event.data["url"], getparams, encode=False).geturl()
-        self.lightfuzz.debug(f"lightfuzz sending probe with URL: {url}")
+        self.lightfuzz.critical(f"lightfuzz sending probe with URL: {url}")
         r = await self.lightfuzz.helpers.request(method="GET", url=url, allow_redirects=False, retries=2, timeout=10)
         if r:
             return r.text
@@ -29,7 +31,7 @@ class BaseLightfuzz:
     def compare_baseline(
         self, event_type, probe, cookies, additional_params_populate_empty=False, speculative_mode="GETPARAM"
     ):
-
+        probe = self.probe_value_outgoing(probe)
         http_compare = None
 
         if event_type == "SPECULATIVE":
@@ -55,7 +57,7 @@ class BaseLightfuzz:
                 self.event.data["url"], include_cache_buster=False, headers=headers, cookies=cookies
             )
         elif event_type == "POSTPARAM":
-            data = {self.event.data["name"]: f"{probe}"}
+            data = {self.probe_value_outgoing(self.event.data["name"]): f"{probe}"}
             if self.event.data["additional_params"] is not None:
                 data.update(
                     self.additional_params_process(
@@ -67,6 +69,21 @@ class BaseLightfuzz:
             )
         return http_compare
 
+    async def baseline_probe(self, cookies):
+        if self.event.data.get("eventtype") == "POSTPARAM":
+            method = "POST"
+        else:
+            method = "GET"
+
+        return await self.lightfuzz.helpers.request(
+            method=method,
+            cookies=cookies,
+            url=self.event.data.get("url"),
+            allow_redirects=False,
+            retries=1,
+            timeout=10,
+        )
+
     async def compare_probe(
         self,
         http_compare,
@@ -77,6 +94,8 @@ class BaseLightfuzz:
         additional_params_override={},
         speculative_mode="GETPARAM",
     ):
+
+        probe = self.probe_value_outgoing(probe)
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
         if additional_params_override:
             for k, v in additional_params_override.items():
@@ -109,18 +128,20 @@ class BaseLightfuzz:
         self,
         event_type,
         cookies,
-        probe_value,
+        probe,
         timeout=10,
         additional_params_populate_empty=False,
         speculative_mode="GETPARAM",
     ):
+
+        probe = self.probe_value_outgoing(probe)
 
         if event_type == "SPECULATIVE":
             event_type = speculative_mode
 
         method = "GET"
         if event_type == "GETPARAM":
-            url = f"{self.event.data['url']}?{self.event.data['name']}={probe_value}"
+            url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
             if "additional_params" in self.event.data.keys() and self.event.data["additional_params"] is not None:
                 url = self.lightfuzz.helpers.add_get_params(
                     url, self.event.data["additional_params"], encode=False
@@ -128,15 +149,15 @@ class BaseLightfuzz:
         else:
             url = self.event.data["url"]
         if event_type == "COOKIE":
-            cookies_probe = {self.event.data["name"]: probe_value}
+            cookies_probe = {self.event.data["name"]: probe}
             cookies = {**cookies, **cookies_probe}
         if event_type == "HEADER":
-            headers = {self.event.data["name"]: probe_value}
+            headers = {self.event.data["name"]: probe}
         else:
             headers = {}
         if event_type == "POSTPARAM":
             method = "POST"
-            data = {self.event.data["name"]: probe_value}
+            data = {self.event.data["name"]: probe}
             if self.event.data["additional_params"] is not None:
                 data.update(
                     self.additional_params_process(
@@ -166,10 +187,22 @@ class BaseLightfuzz:
             )
         return metadata_string
 
-    def probe_value(self, populate_empty=True):
+    def probe_value_incoming(self, populate_empty=True):
 
         probe_value = str(self.event.data.get("original_value", ""))
         if (probe_value is None or len(probe_value) == 0) and populate_empty == True:
             probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
-
+        self.lightfuzz.debug(f"probe_value_incoming (before modification): {probe_value}")
+        envelopes_instance = getattr(self.event, "envelopes", None)
+        self.lightfuzz.hugesuccess(envelopes_instance)
+        probe_value = envelopes_instance.remove_envelopes(probe_value)
+        self.lightfuzz.debug(f"probe_value_incoming (after modification): {probe_value}")
         return probe_value
+
+    def probe_value_outgoing(self, outgoing_probe_value):
+        self.lightfuzz.debug(f"probe_value_outgoing (before modification): {outgoing_probe_value}")
+        envelopes_instance = getattr(self.event, "envelopes", None)
+        self.lightfuzz.hugesuccess(envelopes_instance)
+        outgoing_probe_value = envelopes_instance.add_envelopes(outgoing_probe_value)
+        self.lightfuzz.debug(f"probe_value_outgoing (after modification): {outgoing_probe_value}")
+        return outgoing_probe_value

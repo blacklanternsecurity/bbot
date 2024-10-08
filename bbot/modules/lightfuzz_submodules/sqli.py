@@ -29,14 +29,7 @@ class SQLiLightfuzz(BaseLightfuzz):
     async def fuzz(self):
 
         cookies = self.event.data.get("assigned_cookies", {})
-
-        # custom probe_value generation
-        if "original_value" in self.event.data and self.event.data["original_value"] is not None:
-            probe_value = urllib.parse.quote(str(self.event.data["original_value"]), safe="")
-
-        else:
-            probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
-
+        probe_value = self.probe_value_incoming(populate_empty=True)
         http_compare = self.compare_baseline(
             self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
         )

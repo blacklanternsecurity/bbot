@@ -3,6 +3,7 @@ import sys
 import copy
 import json
 import math
+import base64
 import random
 import string
 import asyncio
@@ -11,6 +12,7 @@ import ipaddress
 import ahocorasick
 import regex as re
 import subprocess as sp
+
 from pathlib import Path
 from contextlib import suppress
 from unidecode import unidecode  # noqa F401

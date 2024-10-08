@@ -194,7 +194,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                 }
             )
 
-    async def error_string_search(self, text_dict):
+    async def error_string_search(self, text_dict, baseline_text):
 
         matching_techniques = set()
         matching_strings = set()
@@ -206,12 +206,18 @@ class CryptoLightfuzz(BaseLightfuzz):
             matching_techniques.add(label)
         context = f"Lightfuzz Cryptographic Probe Submodule detected a cryptographic error after manipulating parameter: [{self.event.data['name']}]"
         if len(matching_strings) > 0:
-            self.results.append(
-                {
-                    "type": "FINDING",
-                    "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(matching_strings)}] Detection Technique(s): [{','.join(matching_techniques)}]",
-                    "context": context,
-                }
+            false_positive_check = self.lightfuzz.helpers.string_scan(self.crypto_error_strings, baseline_text)
+            false_positive_matches = set(matched_strings) & set(false_positive_check)
+            if not false_positive_matches:
+                self.results.append(
+                    {
+                        "type": "FINDING",
+                        "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(matching_strings)}] Detection Technique(s): [{','.join(matching_techniques)}]",
+                        "context": context,
+                    }
+                )
+            self.lightfuzz.debug(
+                f"Aborting cryptographic error reporting - baseline_text already contained detected string(s) ({','.join(false_positive_check)})"
             )
 
     @staticmethod
@@ -229,13 +235,20 @@ class CryptoLightfuzz(BaseLightfuzz):
             return hash_functions[hash_length]
 
     async def fuzz(self):
+
         cookies = self.event.data.get("assigned_cookies", {})
-        probe_value = self.probe_value(populate_empty=False)
+        probe_value = self.probe_value_incoming(populate_empty=False)
         if not probe_value:
             self.lightfuzz.debug(
                 f"The Cryptography Probe Submodule requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
             return
+
+        baseline_probe = await self.baseline_probe(cookies)
+        if not baseline_probe:
+            self.lightfuzz.critical(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
+            return
+
         try:
             truncate_probe_value = self.modify_string(probe_value, action="truncate")
             mutate_probe_value = self.modify_string(probe_value, action="mutate")
@@ -290,7 +303,7 @@ class CryptoLightfuzz(BaseLightfuzz):
 
         # Cryptographic Error String Test
         await self.error_string_search(
-            {"truncate value": truncate_probe[3].text, "mutate value": mutate_probe[3].text}
+            {"truncate value": truncate_probe[3].text, "mutate value": mutate_probe[3].text}, baseline_probe.text
         )
 
         if confirmed_techniques or (

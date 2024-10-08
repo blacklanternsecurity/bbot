@@ -19,6 +19,6 @@ config:
   modules:
     lightfuzz:
       force_common_headers: False
-      submodules_enabled: [cmdi,crypto,path,serial,sqli,ssti,xss]
+      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss]
     excavate:
       retain_querystring: True
