@@ -22,7 +22,7 @@ class BaseLightfuzz:
         probe = self.probe_value_outgoing(probe)
         getparams = {self.event.data["name"]: probe}
         url = self.lightfuzz.helpers.add_get_params(self.event.data["url"], getparams, encode=False).geturl()
-        self.lightfuzz.critical(f"lightfuzz sending probe with URL: {url}")
+        self.lightfuzz.debug(f"lightfuzz sending probe with URL: {url}")
         r = await self.lightfuzz.helpers.request(method="GET", url=url, allow_redirects=False, retries=2, timeout=10)
         if r:
             return r.text
@@ -193,7 +193,6 @@ class BaseLightfuzz:
             probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
         self.lightfuzz.debug(f"probe_value_incoming (before modification): {probe_value}")
         envelopes_instance = getattr(self.event, "envelopes", None)
-        self.lightfuzz.hugesuccess(envelopes_instance)
         probe_value = envelopes_instance.remove_envelopes(probe_value)
         self.lightfuzz.debug(f"probe_value_incoming (after modification): {probe_value}")
         return probe_value
@@ -201,7 +200,6 @@ class BaseLightfuzz:
     def probe_value_outgoing(self, outgoing_probe_value):
         self.lightfuzz.debug(f"probe_value_outgoing (before modification): {outgoing_probe_value}")
         envelopes_instance = getattr(self.event, "envelopes", None)
-        self.lightfuzz.hugesuccess(envelopes_instance)
         outgoing_probe_value = envelopes_instance.add_envelopes(outgoing_probe_value)
         self.lightfuzz.debug(f"probe_value_outgoing (after modification): {outgoing_probe_value}")
         return outgoing_probe_value
