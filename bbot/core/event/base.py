@@ -5,7 +5,6 @@ import threading
 import uuid
 import json
 import base64
-import inspect
 import asyncio
 import logging
 import tarfile
@@ -1393,10 +1392,6 @@ class WEB_PARAMETER(DictHostEvent):
 
             return ET.tostring(root_element, encoding="utf-8").decode("utf-8")
 
-        @staticmethod
-        def is_ascii_printable(s):
-            return all(32 <= ord(char) < 127 for char in s)
-
         preprocess_map = {
             "base64": preprocess_base64,
             "hex": preprocess_hex,
@@ -1675,8 +1670,6 @@ class WEB_PARAMETER(DictHostEvent):
         return f"{url}:{name}:{param_type}:{subparameter}"
 
     def _outgoing_dedup_hash(self, event):
-
-        envelopes = self.data.get("envelopes")
         return hash(
             (
                 str(event.host),

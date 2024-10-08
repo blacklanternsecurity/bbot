@@ -3,7 +3,6 @@ import sys
 import copy
 import json
 import math
-import base64
 import random
 import string
 import asyncio

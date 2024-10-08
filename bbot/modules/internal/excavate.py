@@ -450,11 +450,9 @@ class excavate(BaseInternalModule):
                         form_action = form_action.lstrip(".")
 
                     form_parameters = {}
-                    match_found = False
                     for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = form_content_regex.findall(form_content)
                         if input_tags:
-                            match_found = True
 
                             if form_content_regex_name == "input_tag_novalue_regex":
                                 form_parameters[input_tags[0]] = None

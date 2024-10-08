@@ -1,6 +1,4 @@
 import copy
-import base64
-
 
 class BaseLightfuzz:
     def __init__(self, lightfuzz, event):

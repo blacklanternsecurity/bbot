@@ -320,7 +320,7 @@ class Test_Lightfuzz_envelope_hex(Test_Lightfuzz_envelope_base64):
                 else:
                     extracted_value = "[Parameter not found in JSON]"
 
-            except (json.JSONDecodeError, ValueError) as e:
+            except (json.JSONDecodeError, ValueError):
                 extracted_value = "[Invalid hex or JSON format]"
 
             xss_block = f"""
@@ -372,7 +372,7 @@ class Test_Lightfuzz_envelope_jsonb64(Test_Lightfuzz_envelope_base64):
                 else:
                     extracted_value = "[Parameter not found in JSON]"
 
-            except (json.JSONDecodeError, base64.binascii.Error) as e:
+            except (json.JSONDecodeError, base64.binascii.Error):
                 extracted_value = "[Invalid base64 or JSON format]"
 
             xss_block = f"""
@@ -425,7 +425,7 @@ class Test_Lightfuzz_envelope_xmlb64(Test_Lightfuzz_envelope_base64):
                 else:
                     extracted_value = "[Parameter not found in XML]"
 
-            except (ET.ParseError, base64.binascii.Error) as e:
+            except (ET.ParseError, base64.binascii.Error):
                 extracted_value = "[Invalid base64 or XML format]"
 
             xss_block = f"""

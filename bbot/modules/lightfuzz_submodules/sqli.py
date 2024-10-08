@@ -1,9 +1,7 @@
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
-import urllib.parse
 import statistics
-
 
 class SQLiLightfuzz(BaseLightfuzz):
     expected_delay = 5
