@@ -140,7 +140,9 @@ class SubdomainRadar(subdomain_enum_apikey):
                     self.warning(f"    - {query} ({url})")
                 break
 
-            self.verbose(f"Waiting for enumeration task poll loop to finish ({int(elapsed_time)}/{self.timeout} seconds)")
+            self.verbose(
+                f"Waiting for enumeration task poll loop to finish ({int(elapsed_time)}/{self.timeout} seconds)"
+            )
 
             try:
                 # Wait for the task to complete or for 10 seconds, whichever comes first
