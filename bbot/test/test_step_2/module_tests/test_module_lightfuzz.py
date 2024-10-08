@@ -262,8 +262,6 @@ class Test_Lightfuzz_envelope_base64(Test_Lightfuzz_xss):
             <hr>
         </section>
         """
-            print("XSS BLOCK:")
-            print(xss_block)
             return Response(xss_block, status=200)
         return Response(parameter_block, status=200)
 
@@ -329,8 +327,6 @@ class Test_Lightfuzz_envelope_hex(Test_Lightfuzz_envelope_base64):
             <hr>
         </section>
         """
-            print("XSS BLOCK:")
-            print(xss_block)
             return Response(xss_block, status=200)
 
         return Response(parameter_block, status=200)
@@ -381,8 +377,6 @@ class Test_Lightfuzz_envelope_jsonb64(Test_Lightfuzz_envelope_base64):
             <hr>
         </section>
         """
-            print("XSS BLOCK:")
-            print(xss_block)
             return Response(xss_block, status=200)
 
         return Response(parameter_block, status=200)
@@ -434,8 +428,6 @@ class Test_Lightfuzz_envelope_xmlb64(Test_Lightfuzz_envelope_base64):
             <hr>
         </section>
         """
-            print("XSS BLOCK:")
-            print(xss_block)
             return Response(xss_block, status=200)
 
         return Response(parameter_block, status=200)
