@@ -27,10 +27,6 @@ class builtwith(subdomain_enum_apikey):
     options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
     base_url = "https://api.builtwith.com"
 
-    async def ping(self):
-        # builtwith does not have a ping feature, so we skip it to save API credits
-        return
-
     async def handle_event(self, event):
         query = self.make_query(event)
         # domains

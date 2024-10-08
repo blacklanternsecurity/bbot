@@ -23,15 +23,10 @@ class Ipstack(BaseModule):
     suppress_dupes = False
 
     base_url = "http://api.ipstack.com"
+    ping_url = f"{base_url}/check?access_key={{api_key}}"
 
     async def setup(self):
         return await self.require_api_key()
-
-    async def ping(self):
-        url = f"{self.base_url}/check?access_key={{api_key}}"
-        r = await self.api_request(url)
-        if getattr(r, "status_code", 0) != 200:
-            raise ValueError(getattr(r, "text", "API does not appear to be operational"))
 
     async def handle_event(self, event):
         try:

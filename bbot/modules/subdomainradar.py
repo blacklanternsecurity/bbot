@@ -22,6 +22,7 @@ class SubdomainRadar(subdomain_enum_apikey):
     }
 
     base_url = "https://api.subdomainradar.io"
+    ping_url = f"{base_url}/profile"
     group_choices = ("fast", "medium", "deep")
 
     async def setup(self):
@@ -67,12 +68,6 @@ class SubdomainRadar(subdomain_enum_apikey):
         if self.api_key:
             kwargs["headers"] = {"Authorization": f"Bearer {self.api_key}"}
         return url, kwargs
-
-    async def ping(self):
-        url = f"{self.base_url}/profile"
-        r = await self.api_request(url)
-        if getattr(r, "status_code", 0) != 200:
-            raise ValueError(getattr(r, "text", "API does not appear to be operational"))
 
     async def handle_event(self, event):
         query = self.make_query(event)

@@ -32,9 +32,7 @@ class IP2Location(BaseModule):
 
     async def ping(self):
         url = self.build_url("8.8.8.8")
-        r = await self.api_request(url)
-        if getattr(r, "status_code", 0) != 200:
-            raise ValueError(getattr(r, "text", "API does not appear to be operational"))
+        await super().ping(url)
 
     def build_url(self, data):
         url = f"{self.base_url}/?key={{api_key}}&ip={data}&format=json&source=bbot"

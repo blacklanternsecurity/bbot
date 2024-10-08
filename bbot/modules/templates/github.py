@@ -11,6 +11,7 @@ class github(BaseModule):
 
     _qsize = 1
     base_url = "https://api.github.com"
+    ping_url = f"{base_url}/zen"
 
     def prepare_api_request(self, url, kwargs):
         kwargs["headers"]["Authorization"] = f"token {self.api_key}"
@@ -41,9 +42,3 @@ class github(BaseModule):
             self.trace(traceback.format_exc())
             return None, f"Error with API ({str(e).strip()})"
         return True
-
-    async def ping(self):
-        url = f"{self.base_url}/zen"
-        response = await self.helpers.request(url, headers=self.headers)
-        if getattr(response, "status_code", 0) != 200:
-            raise ValueError(getattr(response, "text", "API does not appear to be operational"))

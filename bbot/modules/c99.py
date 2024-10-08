@@ -15,11 +15,7 @@ class c99(subdomain_enum_apikey):
     options_desc = {"api_key": "c99.nl API key"}
 
     base_url = "https://api.c99.nl"
-
-    async def ping(self):
-        url = f"{self.base_url}/randomnumber?key={{api_key}}&between=1,100&json"
-        response = await self.api_request(url)
-        assert response.json()["success"] == True
+    ping_url = f"{base_url}/randomnumber?key={{api_key}}&between=1,100&json"
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomainfinder?key={{api_key}}&domain={self.helpers.quote(query)}&json"
