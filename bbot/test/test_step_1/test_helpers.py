@@ -49,6 +49,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.url_depth("http://evilcorp.com/") == 0
     assert helpers.url_depth("http://evilcorp.com") == 0
 
+    assert helpers.parent_url("http://evilcorp.com/subdir1/subdir2?foo=bar") == "http://evilcorp.com/subdir1"
+
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
     assert not helpers.is_domain("www.evilcorp.co.uk")
