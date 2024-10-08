@@ -379,7 +379,8 @@ class BaseModule:
         if url:
             r = await self.api_request(url)
             if getattr(r, "status_code", 0) != 200:
-                raise ValueError(getattr(r, "text", "API does not appear to be operational"))
+                response_text = getattr(r, "text", "no response from server")
+                raise ValueError(response_text)
 
     @property
     def batch_size(self):
