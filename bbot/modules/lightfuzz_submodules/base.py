@@ -1,5 +1,6 @@
 import copy
 
+
 class BaseLightfuzz:
     def __init__(self, lightfuzz, event):
         self.lightfuzz = lightfuzz
