@@ -444,7 +444,6 @@ class Scanner:
         # wait until output modules are flushed
         while 1:
             modules_finished = all([m.finished for m in output_modules])
-            self.verbose(modules_finished)
             if modules_finished:
                 break
             await asyncio.sleep(0.05)
