@@ -13,6 +13,12 @@ class google_playstore(BaseModule):
 
     base_url = "https://play.google.com"
 
+    async def filter_event(self, event):
+        if event.type == "CODE_REPOSITORY":
+            if "android" not in event.tags:
+                return False, "event is not an android repository"
+        return True
+
     async def handle_event(self, event):
         if event.type == "CODE_REPOSITORY":
             await self.handle_url(event)
