@@ -246,7 +246,7 @@ class CryptoLightfuzz(BaseLightfuzz):
 
         baseline_probe = await self.baseline_probe(cookies)
         if not baseline_probe:
-            self.lightfuzz.critical(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
+            self.lightfuzz.warning(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
             return
 
         try:
