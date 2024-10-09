@@ -2057,6 +2057,7 @@ def make_event(
             _internal=internal,
         )
 
+
 def event_from_json(j, siem_friendly=False):
     """
     Creates an event object from a JSON dictionary.
