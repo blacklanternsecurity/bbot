@@ -2057,7 +2057,6 @@ def make_event(
             _internal=internal,
         )
 
-
 def event_from_json(j, siem_friendly=False):
     """
     Creates an event object from a JSON dictionary.
@@ -2088,6 +2087,7 @@ def event_from_json(j, siem_friendly=False):
             "tags": j.get("tags", []),
             "confidence": j.get("confidence", 100),
             "context": j.get("discovery_context", None),
+            "dummy": True,
         }
         if siem_friendly:
             data = j["data"][event_type]
