@@ -329,6 +329,8 @@ class excavate(BaseInternalModule):
             "ASP.NET_SessionId",
             "JSESSIONID",
             "PHPSESSID",
+            "AWSALB",
+            "AWSALBCORS",
         ]
     )
 
@@ -524,13 +526,19 @@ class excavate(BaseInternalModule):
                             self.excavate.debug(
                                 f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
                             )
-                            endpoint = event.data["url"] if not endpoint else endpoint
-                            path = f"{event.parsed_url.path.lstrip('/')}"
-                            url = (
-                                endpoint
-                                if endpoint.startswith(("http://", "https://"))
-                                else f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{path}{endpoint}"
-                            )
+                            # If we have a full URL, leave it as-is
+                            if not endpoint.startswith(("http://", "https://")):
+
+                                # The endpoint is usually a form action - we should use it if we have it. If not, defautl to URL.
+                                path = event.parsed_url.path if not endpoint else endpoint
+                                # Normalize path by remove leading slash
+                                path = path.lstrip("/")
+
+                                # Ensure the base URL has a single slash between path and endpoint
+                                url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{path}"
+                            else:
+                                url = endpoint
+
                             if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
 
                                 if self.excavate.in_bl(parameter_name) == False:
