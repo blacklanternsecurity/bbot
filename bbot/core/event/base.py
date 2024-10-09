@@ -1436,13 +1436,15 @@ class WEB_PARAMETER(DictHostEvent):
             for env in self.envelopes:
                 func = self.preprocess_map.get(env)
                 if func:
+                    # python3.9 compatibility hack
+                    if isinstance(func, staticmethod):
+                        func = func.__get__(None, self.__class__)  # Unwrap staticmethod
                     value = func(value)
 
             # Dynamically select the appropriate isolate function based on the final format
             isolate_func = self.format_isolate_map.get(self.end_format_type)
             if isolate_func:
                 return isolate_func(self)
-
             return value
 
         def add_envelopes(self, value):
@@ -1453,12 +1455,18 @@ class WEB_PARAMETER(DictHostEvent):
             # Dynamically select the appropriate update function based on the final format
             update_func = self.format_update_map.get(self.end_format_type)
             if update_func:
+                # python3.9 compatibility hack
+                if isinstance(update_func, staticmethod):
+                    update_func = update_func.__get__(None, self.__class__)
                 value = update_func(self, value)
 
             # Apply the envelopes in reverse order
             for env in self.envelopes[::-1]:
                 func = self.postprocess_map.get(env)
                 if func:
+                    # python3.9 compatibility hack
+                    if isinstance(func, staticmethod):
+                        func = func.__get__(None, self.__class__)
                     value = func(value)
             return value
 
