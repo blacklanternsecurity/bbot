@@ -16,10 +16,6 @@ class virustotal(subdomain_enum_apikey):
 
     base_url = "https://www.virustotal.com/api/v3"
 
-    async def ping(self):
-        # virustotal does not have a ping function
-        return
-
     def prepare_api_request(self, url, kwargs):
         kwargs["headers"]["x-apikey"] = self.api_key
         return url, kwargs

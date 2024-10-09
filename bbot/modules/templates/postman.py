@@ -10,6 +10,7 @@ class postman(BaseModule):
     base_url = "https://www.postman.com/_api"
     api_url = "https://api.getpostman.com"
     html_url = "https://www.postman.com"
+    ping_url = f"{api_url}/me"
 
     headers = {
         "Content-Type": "application/json",

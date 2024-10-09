@@ -15,16 +15,11 @@ class securitytrails(subdomain_enum_apikey):
     options_desc = {"api_key": "SecurityTrails API key"}
 
     base_url = "https://api.securitytrails.com/v1"
+    ping_url = f"{base_url}/ping?apikey={{api_key}}"
 
     async def setup(self):
         self.limit = 100
         return await super().setup()
-
-    async def ping(self):
-        url = f"{self.base_url}/ping?apikey={{api_key}}"
-        r = await self.api_request(url)
-        resp_content = getattr(r, "text", "")
-        assert getattr(r, "status_code", 0) == 200, resp_content
 
     async def request_url(self, query):
         url = f"{self.base_url}/domain/{query}/subdomains?apikey={{api_key}}"

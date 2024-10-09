@@ -30,11 +30,6 @@ class postman_download(postman):
         kwargs["headers"]["X-Api-Key"] = self.api_key
         return url, kwargs
 
-    async def ping(self):
-        url = f"{self.api_url}/me"
-        response = await self.api_request(url)
-        assert getattr(response, "status_code", 0) == 200, response.text
-
     async def filter_event(self, event):
         if event.type == "CODE_REPOSITORY":
             if "postman" not in event.tags:

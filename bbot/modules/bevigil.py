@@ -29,9 +29,6 @@ class bevigil(subdomain_enum_apikey):
         kwargs["headers"]["X-Access-Token"] = self.api_key
         return url, kwargs
 
-    async def ping(self):
-        pass
-
     async def handle_event(self, event):
         query = self.make_query(event)
         subdomains = await self.query(query, request_fn=self.request_subdomains, parse_fn=self.parse_subdomains)
