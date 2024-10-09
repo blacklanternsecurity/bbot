@@ -21,15 +21,17 @@ class github(BaseModule):
         await super().setup()
         self.headers = {}
         api_keys = set()
-        for module_name in ("github", "github_codesearch", "github_org", "git_clone"):
-            module_config = self.scan.config.get("modules", {}).get(module_name, {})
+        modules_config = self.scan.config.get("modules", {})
+        git_modules = [m for m in modules_config if str(m).startswith("git")]
+        for module_name in git_modules:
+            module_config = modules_config.get(module_name, {})
             api_key = module_config.get("api_key", "")
             if isinstance(api_key, str):
                 api_key = [api_key]
             for key in api_key:
                 key = key.strip()
                 if key:
-                    api_keys.update(key)
+                    api_keys.add(key)
         if not api_keys:
             if self.auth_required:
                 return None, "No API key set"
