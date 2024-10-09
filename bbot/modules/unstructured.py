@@ -94,7 +94,7 @@ class unstructured(BaseModule):
                 if not any(ignored_folder in str(file_path) for ignored_folder in self.ignored_folders):
                     if any(file_path.name.endswith(f".{ext}") for ext in self.extensions):
                         file_event = self.make_event(
-                            {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], parent=event
+                            {"path": str(file_path)}, "FILESYSTEM", tags=["parsed-folder", "file"], parent=event
                         )
                         await self.emit_event(file_event)
         elif "file" in event.tags:
