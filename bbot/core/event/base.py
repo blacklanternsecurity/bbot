@@ -1,7 +1,6 @@
 from collections import defaultdict
 import io
 import re
-import threading
 import uuid
 import json
 import base64
@@ -630,13 +629,9 @@ class BaseEvent:
 
         # Handle attributes that need deep copying manually
         setattr(cloned_event, "envelopes", deepcopy(self.envelopes))
-        #   cloned_event.scan = deepcopy(self.scan)
 
         # Re-assign a new UUID
         cloned_event.uuid = uuid.uuid4()
-
-        # Re-create the unpickleable lock object
-        cloned_event.lock = threading.RLock()
 
         return cloned_event
 
