@@ -1466,7 +1466,7 @@ class WEB_PARAMETER(DictHostEvent):
             if envelopes is None:
                 envelopes = []
             log.debug(
-                f"Starting recurse with value: {value}, current envelopes: {', '.join(envelopes)}, current end format: {end_format}"
+                f"Starting envelope recurse with value: [{value}], current envelopes: [{', '.join(envelopes)}], current end format: {end_format}"
             )
 
             if value is None or value == "" or isinstance(value, int):
@@ -2102,7 +2102,6 @@ def event_from_json(j, siem_friendly=False):
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
-
         event.timestamp = datetime.datetime.fromisoformat(j["timestamp"])
         event.scope_distance = j["scope_distance"]
         parent_id = j.get("parent", None)
