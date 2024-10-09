@@ -1,8 +1,12 @@
+import json
 import re
+import base64
 
 from .base import ModuleTestBase, tempwordlist
 from werkzeug.wrappers import Response
 from urllib.parse import unquote
+
+import xml.etree.ElementTree as ET
 
 
 # Path Traversal single dot tolerance
@@ -229,6 +233,204 @@ class Test_Lightfuzz_xss(ModuleTestBase):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
+
+
+# Base64 Envelope XSS Detection
+class Test_Lightfuzz_envelope_base64(Test_Lightfuzz_xss):
+    def request_handler(self, request):
+
+        qs = str(request.query_string.decode())
+
+        print("****")
+        print(qs)
+
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text value='dGV4dA==' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("search=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            xss_block = f"""
+        <section class=blog-header>
+            <h1>0 search results for '{unquote(base64.b64decode(value))}'</h1>
+            <hr>
+        </section>
+        """
+            return Response(xss_block, status=200)
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+
+        web_parameter_emitted = False
+        xss_finding_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [search]" in e.data["description"]:
+                    web_parameter_emitted = True
+
+            if e.type == "FINDING":
+                if (
+                    "Possible Reflected XSS. Parameter: [search] Context: [Between Tags (z tag)"
+                    in e.data["description"]
+                ):
+                    xss_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
+
+
+# Hex Envelope XSS Detection
+class Test_Lightfuzz_envelope_hex(Test_Lightfuzz_envelope_base64):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text value='7b22736561726368223a202264656d6f6b6579776f7264227d' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+
+        if "search=" in qs:
+            value = qs.split("search=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+
+            try:
+                # Decode the hex value
+                decoded_value = bytes.fromhex(unquote(value)).decode()
+                print(f"Decoded hex value: {decoded_value}")
+
+                # Parse the decoded value as JSON
+                json_data = json.loads(decoded_value)
+
+                # Extract the desired parameter from the JSON (e.g., 'search')
+                if "search" in json_data:
+                    extracted_value = json_data["search"]
+                else:
+                    extracted_value = "[Parameter not found in JSON]"
+
+            except (json.JSONDecodeError, ValueError):
+                extracted_value = "[Invalid hex or JSON format]"
+
+            xss_block = f"""
+        <section class=blog-header>
+            <h1>0 search results for '{extracted_value}'</h1>
+            <hr>
+        </section>
+        """
+            return Response(xss_block, status=200)
+
+        return Response(parameter_block, status=200)
+
+
+# Base64 (JSON) Envelope XSS Detection
+class Test_Lightfuzz_envelope_jsonb64(Test_Lightfuzz_envelope_base64):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+
+        print("****")
+        print(qs)
+
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text value='eyJzZWFyY2giOiAiZGVtb2tleXdvcmQifQ==' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+
+        if "search=" in qs:
+            value = qs.split("search=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+
+            try:
+                # Base64 decode the value
+                decoded_value = base64.b64decode(unquote(value)).decode()
+                print(f"Decoded base64 value: {decoded_value}")
+
+                # Parse the decoded value as JSON
+                json_data = json.loads(decoded_value)
+
+                # Extract the desired parameter from the JSON (e.g., 'search')
+                if "search" in json_data:
+                    extracted_value = json_data["search"]
+                else:
+                    extracted_value = "[Parameter not found in JSON]"
+
+            except (json.JSONDecodeError, base64.binascii.Error):
+                extracted_value = "[Invalid base64 or JSON format]"
+
+            xss_block = f"""
+        <section class=blog-header>
+            <h1>0 search results for '{extracted_value}'</h1>
+            <hr>
+        </section>
+        """
+            return Response(xss_block, status=200)
+
+        return Response(parameter_block, status=200)
+
+
+# Base64 (XML) Envelope XSS Detection
+class Test_Lightfuzz_envelope_xmlb64(Test_Lightfuzz_envelope_base64):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+
+        print("****")
+        print(qs)
+
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text value='PGZpbmQ+PHNlYXJjaD5kZW1va2V5d29yZDwvc2VhcmNoPjwvZmluZD4=' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+
+        if "search=" in qs:
+            value = qs.split("search=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+
+            try:
+                # Base64 decode the value
+                decoded_value = base64.b64decode(unquote(value)).decode()
+                print(f"Decoded base64 value: {decoded_value}")
+
+                # Parse the decoded value as XML
+                root = ET.fromstring(decoded_value)
+
+                # Extract the desired parameter from the XML (e.g., 'search')
+                search_element = root.find(".//search")
+                if search_element is not None:
+                    extracted_value = search_element.text
+                else:
+                    extracted_value = "[Parameter not found in XML]"
+
+            except (ET.ParseError, base64.binascii.Error):
+                extracted_value = "[Invalid base64 or XML format]"
+
+            xss_block = f"""
+        <section class=blog-header>
+            <h1>0 search results for '{extracted_value}'</h1>
+            <hr>
+        </section>
+        """
+            return Response(xss_block, status=200)
+
+        return Response(parameter_block, status=200)
 
 
 # In Tag Attribute XSS Detection
@@ -1101,3 +1303,110 @@ class Test_Lightfuzz_speculative(ModuleTestBase):
 
         assert excavate_json_extraction, "Excavate failed to extract json parameter"
         assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
+
+
+class Test_Lightfuzz_crypto_error(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    def request_handler(self, request):
+
+        qs = str(request.query_string.decode())
+
+        parameter_block = """
+        <section class=secret>
+            <form action=/ method=GET>
+                <input type=text value='08a5a2cea9c5a5576e6e5314edcba581d21c7111c9c0c06990327b9127058d67' name=secret>
+                <button type=submit class=button>Secret Submit</button>
+            </form>
+        </section>
+        """
+        crypto_block = f"""
+        <section class=blog-header>
+            <h1>Access Denied!</h1>
+            <hr>
+        </section>
+        """
+        if "secret=" in qs:
+            value = qs.split("=")[1]
+            if value:
+                return Response(crypto_block, status=200)
+
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        cryptoerror_parameter_extracted = False
+        cryptoerror_finding_emitted = False
+
+        for e in events:
+            print(e)
+            print(e.type)
+
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [secret] (GET Form Submodule)" in e.data["description"]:
+                    cryptoerror_parameter_extracted = True
+            if e.type == "FINDING":
+                if (
+                    "Possible Cryptographic Error. Parameter: [secret] Parameter Type: [GETPARAM] Original Value: [08a5a2cea9c5a5576e6e5314edcba581d21c7111c9c0c06990327b9127058d67]"
+                    in e.data["description"]
+                ):
+                    cryptoerror_finding_emitted = True
+        assert cryptoerror_parameter_extracted, "Parameter not extracted"
+        assert cryptoerror_finding_emitted, "Crypto Error Message FINDING not emitted"
+
+
+class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    def request_handler(self, request):
+        fp_block = """
+        <section class=secret>
+            <form action=/ method=GET>
+                <input type=text value='08a5a2cea9c5a5576e6e5314edcba581d21c7111c9c0c06990327b9127058d67' name=secret>
+                <button type=submit class=button>Secret Submit</button>
+            </form>
+            <h1>Access Denied!</h1>
+        </section>
+        """
+        return Response(fp_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        cryptoerror_parameter_extracted = False
+        cryptoerror_finding_emitted = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [secret] (GET Form Submodule)" in e.data["description"]:
+                    cryptoerror_parameter_extracted = True
+            if e.type == "FINDING":
+                if "Possible Cryptographic Error" in e.data["description"]:
+                    cryptoerror_finding_emitted = True
+        assert cryptoerror_parameter_extracted, "Parameter not extracted"
+        assert (
+            not cryptoerror_finding_emitted
+        ), "Crypto Error Message FINDING was emitted (it is an intentional false positive)"

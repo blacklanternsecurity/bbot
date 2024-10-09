@@ -9,7 +9,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
 
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
-        probe_value = self.probe_value(populate_empty=False)
+        probe_value = self.probe_value_incoming(populate_empty=False)
         if not probe_value:
             self.lightfuzz.debug(
                 f"Path Traversal detection requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"

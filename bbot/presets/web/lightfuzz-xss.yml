@@ -12,4 +12,4 @@ config:
     spider_depth: 5
   modules:
     lightfuzz:
-      submodules_enabled: [xss]
+      enabled_submodules: [xss]

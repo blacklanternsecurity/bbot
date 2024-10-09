@@ -11,6 +11,7 @@ import ipaddress
 import ahocorasick
 import regex as re
 import subprocess as sp
+
 from pathlib import Path
 from contextlib import suppress
 from unidecode import unidecode  # noqa F401

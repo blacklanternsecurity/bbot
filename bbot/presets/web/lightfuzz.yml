@@ -13,7 +13,7 @@ config:
     spider_depth: 4
   modules:
     lightfuzz:
-      submodules_enabled: [cmdi,crypto,path,serial,sqli,ssti,xss]
+      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss]
       disable_post: True
     excavate:
       retain_querystring: True

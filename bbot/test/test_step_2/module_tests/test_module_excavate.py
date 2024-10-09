@@ -582,6 +582,29 @@ class TestExcavateParameterExtraction_getparam(ModuleTestBase):
         assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
 
 
+class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtraction_getparam):
+    getparam_extract_html = """
+                   <section class=search>
+                        <form action="/catalog" method=GET>
+                            <input type=text id="searchBar" placeholder="Search products" name="searchTerm">
+                            <script>
+                                var searchText = '';
+                                document.getElementById('searchBar').value = searchText;
+                            </script>
+                            <button type=submit class=button>Search</button>
+                        </form>
+                    </section>
+    """
+
+    def check(self, module_test, events):
+        excavate_getparam_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [searchTerm] (GET Form Submodule)" in e.data["description"]:
+                    excavate_getparam_extraction = True
+        assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+
+
 class TestExcavateParameterExtraction_json(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
@@ -634,6 +657,29 @@ class TestExcavateParameterExtraction_xml(ModuleTestBase):
                 ):
                     excavate_xml_extraction = True
         assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
+
+
+class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    getparam_extract_html = """
+<form action=/ method=GET><input type=text name="novalue"><button type=submit class=button>Submit</button></form>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_getparam_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [novalue] (GET Form Submodule)":
+                    excavate_getparam_extraction = True
+        assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
 
 
 class excavateTestRule(ExcavateRule):
