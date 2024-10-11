@@ -1289,7 +1289,7 @@ def make_netloc(host, port):
     if is_ip(host, version=6):
         host = f"[{host}]"
     if port is None:
-        return host
+        return str(host)
     return f"{host}:{port}"
 
 

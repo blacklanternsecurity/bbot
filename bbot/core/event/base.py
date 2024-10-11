@@ -353,6 +353,12 @@ class BaseEvent:
         return self._port
 
     @property
+    def netloc(self):
+        if self.host:
+            return make_netloc(self.host, self.port)
+        return None
+
+    @property
     def host_stem(self):
         """
         An abbreviated representation of hostname that removes the TLD
@@ -741,7 +747,7 @@ class BaseEvent:
         """
         j = dict()
         # type, ID, scope description
-        for i in ("type", "id", "uuid", "scope_description"):
+        for i in ("type", "id", "uuid", "scope_description", "netloc"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: str(v)})

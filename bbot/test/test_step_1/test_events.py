@@ -14,10 +14,14 @@ async def test_events(events, helpers):
     await scan._prep()
 
     assert events.ipv4.type == "IP_ADDRESS"
+    assert events.ipv4.netloc == "8.8.8.8"
     assert events.ipv6.type == "IP_ADDRESS"
+    assert events.ipv6.netloc == "[2001:4860:4860::8888]"
+    assert events.ipv6_open_port.netloc == "[2001:4860:4860::8888]:443"
     assert events.netv4.type == "IP_RANGE"
     assert events.netv6.type == "IP_RANGE"
     assert events.domain.type == "DNS_NAME"
+    assert events.domain.netloc == "publicapis.org"
     assert "domain" in events.domain.tags
     assert events.subdomain.type == "DNS_NAME"
     assert "subdomain" in events.subdomain.tags
@@ -67,8 +71,12 @@ async def test_events(events, helpers):
     assert not events.netv6 in events.domain
     assert events.emoji not in events.domain
     assert events.domain not in events.emoji
-    assert "evilcorp.com" == scan.make_event(" eViLcorp.COM.:88", "DNS_NAME", dummy=True)
-    assert "evilcorp.com" == scan.make_event("evilcorp.com.", "DNS_NAME", dummy=True)
+    open_port_event = scan.make_event(" eViLcorp.COM.:88", "DNS_NAME", dummy=True)
+    dns_event = scan.make_event("evilcorp.com.", "DNS_NAME", dummy=True)
+    for e in (open_port_event, dns_event):
+        assert "evilcorp.com" == e
+        assert e.netloc == "evilcorp.com"
+        assert e.json()["netloc"] == "evilcorp.com"
 
     # url tests
     assert scan.make_event("http://evilcorp.com", dummy=True) == scan.make_event("http://evilcorp.com/", dummy=True)
@@ -78,8 +86,10 @@ async def test_events(events, helpers):
     assert "api.publicapis.org:443" in events.url_unverified
     assert "publicapis.org" not in events.url_unverified
     assert events.ipv4_url_unverified in events.ipv4
+    assert events.ipv4_url_unverified.netloc == "8.8.8.8:443"
     assert events.ipv4_url_unverified in events.netv4
     assert events.ipv6_url_unverified in events.ipv6
+    assert events.ipv6_url_unverified.netloc == "[2001:4860:4860::8888]:443"
     assert events.ipv6_url_unverified in events.netv6
     assert events.emoji not in events.url_unverified
     assert events.emoji not in events.ipv6_url_unverified
@@ -193,6 +203,8 @@ async def test_events(events, helpers):
 
     org_stub_1 = scan.make_event("STUB1", "ORG_STUB", parent=scan.root_event)
     org_stub_1.scope_distance == 1
+    assert org_stub_1.netloc == None
+    assert "netloc" not in org_stub_1.json()
     org_stub_2 = scan.make_event("STUB2", "ORG_STUB", parent=org_stub_1)
     org_stub_2.scope_distance == 2
 
