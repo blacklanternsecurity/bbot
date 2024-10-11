@@ -212,10 +212,12 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
 
     ipv4_netloc = helpers.make_netloc("192.168.1.1", 80)
     assert ipv4_netloc == "192.168.1.1:80"
-    assert helpers.make_netloc("192.168.1.1") == "192.168.1.1"
-    assert helpers.make_netloc(ipaddress.ip_address("192.168.1.1")) == "192.168.1.1"
-    ipv6_netloc = helpers.make_netloc("dead::beef", "443")
-    assert ipv6_netloc == "[dead::beef]:443"
+    assert helpers.make_netloc("192.168.1.1", None) == "192.168.1.1"
+    assert helpers.make_netloc(ipaddress.ip_address("192.168.1.1"), None) == "192.168.1.1"
+    assert helpers.make_netloc("dead::beef", "443") == "[dead::beef]:443"
+    assert helpers.make_netloc(ipaddress.ip_address("dead::beef"), 443) == "[dead::beef]:443"
+    assert helpers.make_netloc("dead::beef", None) == "[dead::beef]"
+    assert helpers.make_netloc(ipaddress.ip_address("dead::beef"), None) == "[dead::beef]"
 
     assert helpers.get_file_extension("https://evilcorp.com/evilcorp.com/test/asdf.TXT") == "txt"
     assert helpers.get_file_extension("/etc/conf/test.tar.gz") == "gz"
