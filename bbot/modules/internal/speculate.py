@@ -112,15 +112,15 @@ class speculate(BaseInternalModule):
         speculate_open_ports = self.emit_open_ports and event_in_scope_distance
 
         # URL --> OPEN_TCP_PORT
-        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
+        event_is_url = event.type == "URL"
+        if event_is_url or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
             # only speculate port from a URL if it wouldn't be speculated naturally from the host
             if event.host and (event.port not in self.ports or not speculate_open_ports):
                 await self.emit_event(
                     self.helpers.make_netloc(event.host, event.port),
                     "OPEN_TCP_PORT",
                     parent=event,
-                    internal=True,
-                    quick=(event.type == "URL"),
+                    internal=not event_is_url,  # if the URL is verified, the port is definitely open
                     context=f"speculated {{event.type}} from {event.type}: {{event.data}}",
                 )
 
@@ -169,7 +169,6 @@ class speculate(BaseInternalModule):
                         "OPEN_TCP_PORT",
                         parent=event,
                         internal=True,
-                        quick=True,
                         context="speculated {event.type}: {event.data}",
                     )
 
