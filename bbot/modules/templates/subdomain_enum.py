@@ -112,11 +112,13 @@ class subdomain_enum(BaseModule):
             for hostname in json:
                 yield hostname
 
-    async def query(self, query, parse_fn=None):
+    async def query(self, query, request_fn=None, parse_fn=None):
+        if request_fn is None:
+            request_fn = self.request_url
         if parse_fn is None:
             parse_fn = self.parse_results
         try:
-            response = await self.request_url(query)
+            response = await request_fn(query)
             if response is None:
                 self.info(f'Query "{query}" failed (no response)')
                 return []
