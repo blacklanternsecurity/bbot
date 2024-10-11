@@ -557,6 +557,38 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
 
 
+class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    postformnoaction_extract_html = """
+<body>
+    <h1>Post for without action</h1>
+    <form method="post">
+        <label for="state">Encrypted State:</label>
+        <input type="text" name="state" id="state" value="voCcc4U5jnFWOYYF4Oueau3l8gDsTecHMxniZJSKvh4bSA0WCgEYAxFkdWJzbGJ+" size="100">
+        <br><br>
+        <input type="submit" value="Decrypt">
+    </form>
+</body>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.postformnoaction_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+
+        excavate_getparam_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [state] (POST Form (no action) Submodule)" in e.data["description"]:
+                    excavate_getparam_extraction = True
+        assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+
+
 class TestExcavateParameterExtraction_getparam(ModuleTestBase):
 
     targets = ["http://127.0.0.1:8888/"]

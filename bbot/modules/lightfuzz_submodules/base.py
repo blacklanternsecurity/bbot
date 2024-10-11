@@ -56,7 +56,7 @@ class BaseLightfuzz:
                 self.event.data["url"], include_cache_buster=False, headers=headers, cookies=cookies
             )
         elif event_type == "POSTPARAM":
-            data = {self.probe_value_outgoing(self.event.data["name"]): f"{probe}"}
+            data = {self.event.data["name"]: f"{probe}"}
             if self.event.data["additional_params"] is not None:
                 data.update(
                     self.additional_params_process(

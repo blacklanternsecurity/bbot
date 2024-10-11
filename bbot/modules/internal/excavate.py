@@ -448,7 +448,10 @@ class excavate(BaseInternalModule):
                 forms = self.extraction_regex.findall(str(self.result))
                 for form_action, form_content in forms:
 
-                    if form_action.startswith("./"):
+                    if not form_action:
+                        form_action = None
+
+                    elif form_action.startswith("./"):
                         form_action = form_action.lstrip(".")
 
                     form_parameters = {}
@@ -461,7 +464,7 @@ class excavate(BaseInternalModule):
 
                             else:
                                 if form_content_regex_name == "input_tag_regex2":
-                                    input_tags = input_tags = [(b, a) for a, b in input_tags]
+                                    input_tags = [(b, a) for a, b in input_tags]
 
                                 for parameter_name, original_value in input_tags:
                                     form_parameters[parameter_name] = original_value.strip()
@@ -482,6 +485,10 @@ class excavate(BaseInternalModule):
 
         class PostForm2(PostForm):
             extraction_regex = bbot_regexes.post_form_regex2
+
+        class PostForm_NoAction(PostForm):
+            name = "POST Form (no action)"
+            extraction_regex = bbot_regexes.post_form_regex_noaction
 
         # underscore ensure generic forms runs last, so it doesn't cause dedupe to stop full form detection
         class _GenericForm(GetForm):
@@ -527,17 +534,18 @@ class excavate(BaseInternalModule):
                                 f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
                             )
                             # If we have a full URL, leave it as-is
-                            if not endpoint.startswith(("http://", "https://")):
 
-                                # The endpoint is usually a form action - we should use it if we have it. If not, defautl to URL.
+                            if endpoint and endpoint.startswith(("http://", "https://")):
+                                url = endpoint
+
+                            else:
+                                # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
                                 path = event.parsed_url.path if not endpoint else endpoint
                                 # Normalize path by remove leading slash
                                 path = path.lstrip("/")
 
                                 # Ensure the base URL has a single slash between path and endpoint
                                 url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{path}"
-                            else:
-                                url = endpoint
 
                             if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
 
@@ -893,7 +901,6 @@ class excavate(BaseInternalModule):
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
         if not data:
             return None
-
         decoded_data = await self.helpers.re.recursive_decode(data)
 
         if self.parameter_extraction:
@@ -926,12 +933,30 @@ class excavate(BaseInternalModule):
                             await self.emit_event(data, "WEB_PARAMETER", event, context=context)
                     return
 
-        for result in self.yara_rules.match(data=f"{data}\n{decoded_data}"):
-            rule_name = result.rule
-            if rule_name in self.yara_preprocess_dict:
-                await self.yara_preprocess_dict[rule_name](result, event, discovery_context)
-            else:
-                self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
+        # Initialize the list of data items to process
+        data_items = []
+
+        # Check if data and decoded_data are identical
+        if data == decoded_data:
+            data_items.append(("data", data))  # Add only one since both are the same
+        else:
+            data_items.append(("data", data))
+            data_items.append(("decoded_data", decoded_data))
+
+        for label, data_instance in data_items:
+            # Your existing processing code
+            for result in self.yara_rules.match(data=f"{data_instance}"):
+                rule_name = result.rule
+
+                # Skip specific operations for 'parameter_extraction' rule on decoded_data
+                if label == "decoded_data" and rule_name == "parameter_extraction":
+                    continue
+
+                # Check if rule processing function exists
+                if rule_name in self.yara_preprocess_dict:
+                    await self.yara_preprocess_dict[rule_name](result, event, discovery_context)
+                else:
+                    self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
     async def handle_event(self, event):
 

@@ -47,28 +47,28 @@ class CryptoLightfuzz(BaseLightfuzz):
     ]
 
     @staticmethod
-    def format_agnostic_decode(input_string):
+    def format_agnostic_decode(input_string, urldecode=False):
         encoding = "unknown"
-        decoded_input = unquote(input_string)
-        if CryptoLightfuzz.is_hex(decoded_input):
-            data = bytes.fromhex(decoded_input)
+        if urldecode:
+            input_string = unquote(input_string)
+        if CryptoLightfuzz.is_hex(input_string):
+            data = bytes.fromhex(input_string)
             encoding = "hex"
-        elif CryptoLightfuzz.is_base64(decoded_input):
-            data = base64.b64decode(decoded_input)
+        elif CryptoLightfuzz.is_base64(input_string):
+            data = base64.b64decode(input_string)
             encoding = "base64"
         else:
             data = str
         return data, encoding
 
     @staticmethod
-    def format_agnostic_encode(data, encoding, urlencode=True):
+    def format_agnostic_encode(data, encoding, urlencode=False):
         if encoding == "hex":
             encoded_data = data.hex()
         elif encoding == "base64":
             encoded_data = base64.b64encode(data).decode("utf-8")  # base64 encoding returns bytes, decode to string
         else:
             raise ValueError("Unsupported encoding type specified")
-
         if urlencode:
             return quote(encoded_data)
         return encoded_data
@@ -126,73 +126,76 @@ class CryptoLightfuzz(BaseLightfuzz):
         potential_block_sizes = [8, 16]
         possible_sizes = []
         for block_size in potential_block_sizes:
-            num_blocks = ciphertext_length / block_size
-            if num_blocks.is_integer() and num_blocks >= 2:
+            num_blocks = ciphertext_length // block_size
+            if ciphertext_length % block_size == 0 and num_blocks >= 2:
                 possible_sizes.append(block_size)
         return possible_sizes
 
-    async def padding_oracle_execute(self, original_data, encoding, cookies, possible_first_byte=False):
+    async def padding_oracle_execute(self, original_data, encoding, block_size, cookies, possible_first_byte=True):
+        ivblock = b"\x00" * block_size
+        paddingblock = b"\x00" * block_size
+        datablock = original_data[-block_size:]
+        if possible_first_byte:
+            baseline_byte = b"\xFF"
+            starting_pos = 0
+        else:
+            baseline_byte = b"\x00"
+            starting_pos = 1
+        baseline = self.compare_baseline(
+            self.event.data["type"],
+            self.format_agnostic_encode(ivblock + paddingblock[:-1] + baseline_byte + datablock, encoding),
+            cookies,
+        )
+        differ_count = 0
+        for i in range(starting_pos, starting_pos + 254):
 
-        possible_block_sizes = self.possible_block_sizes(len(original_data))
-
-        for block_size in possible_block_sizes:
-            ivblock = b"\x00" * block_size
-            paddingblock = b"\x00" * block_size
-            datablock = original_data[-block_size:]
-            if possible_first_byte:
-                baseline_byte = b"\xFF"
-                starting_pos = 0
-            else:
-                baseline_byte = b"\x00"
-                starting_pos = 1
-
-            baseline = self.compare_baseline(
-                self.event.data["type"], ivblock + paddingblock[:-1] + baseline_byte + datablock, cookies
+            byte = bytes([i])
+            oracle_probe = await self.compare_probe(
+                baseline,
+                self.event.data["type"],
+                self.format_agnostic_encode(ivblock + paddingblock[:-1] + byte + datablock, encoding),
+                cookies,
             )
-            differ_count = 0
-            for i in range(starting_pos, starting_pos + 254):
-                byte = bytes([i])
-                oracle_probe = await self.compare_probe(
-                    baseline,
-                    self.event.data["type"],
-                    self.format_agnostic_encode(ivblock + paddingblock[:-1] + byte + datablock, encoding),
-                    cookies,
-                )
+            if oracle_probe[0] == False and "body" in oracle_probe[1]:
+                differ_count += 1
 
-                if oracle_probe[0] == False and "body" in oracle_probe[1]:
-                    differ_count += 1
-                    if i == 1:
-                        possible_first_byte = True
-                        continue
-                    elif i == 2 and possible_first_byte == True:
-                        # Thats two results which appear "different". Its entirely possible \x00 was the correct padding. We will break from this loop and redo it with the last byte as the baseline instead of the first
-                        return False, None
-            if differ_count == 1:
-                return True, block_size
-            else:
-                continue
-        return False, None
+                if i == 2:
+                    if possible_first_byte == True:
+                        # Thats two results which appear "different". Since this is the first run, it's entirely possible \x00 was the correct padding.
+                        # We will break from this loop and redo it with the last byte as the baseline instead of the first
+                        return None
+                    else:
+                        # Now that we have tried the run twice, we know it can't be because the first byte was the correct padding, and we know it is not vulnerable
+                        return False
+        if differ_count == 1:
+            return True
+        return False
 
     async def padding_oracle(self, probe_value, cookies):
         data, encoding = self.format_agnostic_decode(probe_value)
+        possible_block_sizes = self.possible_block_sizes(len(data))
 
-        padding_oracle_result, block_size = await self.padding_oracle_execute(data, encoding, cookies)
-        if padding_oracle_result == None:
-            self.lightfuzz.debug("ended up in possible_first_byte situation - retrying with different first byte")
-            padding_oracle_result = await self.padding_oracle_execute(
-                data, encoding, cookies, possible_first_byte=True
-            )
+        for block_size in possible_block_sizes:
 
-        if padding_oracle_result == True:
-            context = f"Lightfuzz Cryptographic Probe Submodule detected a probable padding oracle vulnerability after manipulating parameter: [{self.event.data['name']}]"
-            self.results.append(
-                {
-                    "type": "VULNERABILITY",
-                    "severity": "HIGH",
-                    "description": f"Padding Oracle Vulnerability. Block size: [{str(block_size)}] {self.metadata()}",
-                    "context": context,
-                }
-            )
+            padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
+            if padding_oracle_result == None:
+                self.lightfuzz.debug(
+                    "still could be in a possible_first_byte situation - retrying with different first byte"
+                )
+                padding_oracle_result = await self.padding_oracle_execute(
+                    data, encoding, block_size, cookies, possible_first_byte=False
+                )
+
+            if padding_oracle_result == True:
+                context = f"Lightfuzz Cryptographic Probe Submodule detected a probable padding oracle vulnerability after manipulating parameter: [{self.event.data['name']}]"
+                self.results.append(
+                    {
+                        "type": "VULNERABILITY",
+                        "severity": "HIGH",
+                        "description": f"Padding Oracle Vulnerability. Block size: [{str(block_size)}] {self.metadata()}",
+                        "context": context,
+                    }
+                )
 
     async def error_string_search(self, text_dict, baseline_text):
 
@@ -235,7 +238,6 @@ class CryptoLightfuzz(BaseLightfuzz):
             return hash_functions[hash_length]
 
     async def fuzz(self):
-
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.probe_value_incoming(populate_empty=False)
         if not probe_value:
@@ -259,7 +261,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             return
 
         # Basic crypanalysis
-        likely_crypto, possible_block_cipher = self.cryptanalysis(unquote(probe_value))
+        likely_crypto, possible_block_cipher = self.cryptanalysis(probe_value)
 
         if not likely_crypto:
             self.lightfuzz.debug("Parameter value does not appear to be cryptographic, aborting tests")
