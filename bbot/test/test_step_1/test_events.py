@@ -15,13 +15,16 @@ async def test_events(events, helpers):
 
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv4.netloc == "8.8.8.8"
+    assert events.ipv4.port is None
     assert events.ipv6.type == "IP_ADDRESS"
     assert events.ipv6.netloc == "[2001:4860:4860::8888]"
+    assert events.ipv6.port is None
     assert events.ipv6_open_port.netloc == "[2001:4860:4860::8888]:443"
     assert events.netv4.type == "IP_RANGE"
     assert events.netv6.type == "IP_RANGE"
     assert events.domain.type == "DNS_NAME"
     assert events.domain.netloc == "publicapis.org"
+    assert events.domain.port is None
     assert "domain" in events.domain.tags
     assert events.subdomain.type == "DNS_NAME"
     assert "subdomain" in events.subdomain.tags
@@ -77,6 +80,8 @@ async def test_events(events, helpers):
         assert "evilcorp.com" == e
         assert e.netloc == "evilcorp.com"
         assert e.json()["netloc"] == "evilcorp.com"
+        assert e.port is None
+        assert "port" not in e.json()
 
     # url tests
     assert scan.make_event("http://evilcorp.com", dummy=True) == scan.make_event("http://evilcorp.com/", dummy=True)
@@ -87,9 +92,13 @@ async def test_events(events, helpers):
     assert "publicapis.org" not in events.url_unverified
     assert events.ipv4_url_unverified in events.ipv4
     assert events.ipv4_url_unverified.netloc == "8.8.8.8:443"
+    assert events.ipv4_url_unverified.port == 443
+    assert events.ipv4_url_unverified.json()["port"] == 443
     assert events.ipv4_url_unverified in events.netv4
     assert events.ipv6_url_unverified in events.ipv6
     assert events.ipv6_url_unverified.netloc == "[2001:4860:4860::8888]:443"
+    assert events.ipv6_url_unverified.port == 443
+    assert events.ipv6_url_unverified.json()["port"] == 443
     assert events.ipv6_url_unverified in events.netv6
     assert events.emoji not in events.url_unverified
     assert events.emoji not in events.ipv6_url_unverified

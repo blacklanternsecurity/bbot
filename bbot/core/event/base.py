@@ -766,6 +766,8 @@ class BaseEvent:
             j["host"] = str(self.host)
             j["resolved_hosts"] = sorted(str(h) for h in self.resolved_hosts)
             j["dns_children"] = {k: list(v) for k, v in self.dns_children.items()}
+        if isinstance(self.port, int):
+            j["port"] = self.port
         # web spider distance
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:
