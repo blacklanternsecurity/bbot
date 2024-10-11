@@ -1260,7 +1260,7 @@ def gen_numbers(n, padding=2):
     return results
 
 
-def make_netloc(host, port):
+def make_netloc(host, port=None):
     """Constructs a network location string from a given host and port.
 
     Args:
