@@ -92,8 +92,6 @@ MAPI=1
         dnn_installwizard_privesc_detection = False
 
         for e in events:
-            print(e)
-            print(e.type)
 
             if e.type == "TECHNOLOGY" and "DotNetNuke" in e.data["technology"]:
                 dnn_technology_detection = True
@@ -171,8 +169,6 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
 
         for e in events:
 
-            print(e)
-            print(e.type)
             if e.type == "TECHNOLOGY" and "DotNetNuke" in e.data["technology"]:
                 dnn_technology_detection = True
 

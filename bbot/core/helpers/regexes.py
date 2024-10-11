@@ -157,7 +157,7 @@ select_tag_regex = re.compile(
 textarea_tag_regex = re.compile(
     r'<textarea[^>]*\bname=["\']?(\w+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
 )
-tag_attribute_regex = re.compile(r"<[^>]*(?:href|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
+tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
 
 valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
 

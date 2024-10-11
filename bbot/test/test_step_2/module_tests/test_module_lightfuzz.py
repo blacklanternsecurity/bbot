@@ -4,7 +4,7 @@ import base64
 
 from .base import ModuleTestBase, tempwordlist
 from werkzeug.wrappers import Response
-from urllib.parse import unquote
+from urllib.parse import unquote, quote
 
 import xml.etree.ElementTree as ET
 
@@ -1351,8 +1351,6 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
         cryptoerror_finding_emitted = False
 
         for e in events:
-            print(e)
-            print(e.type)
 
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [secret] (GET Form Submodule)" in e.data["description"]:
@@ -1410,3 +1408,79 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
         assert (
             not cryptoerror_finding_emitted
         ), "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
+
+
+class Test_PaddingOracleDetection(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["crypto"],
+            }
+        },
+    }
+
+    def request_handler(self, request):
+        encrypted_value = quote(
+            "dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q+4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg=="
+        )
+        default_html_response = f"""
+        <html>
+            <body>
+                <form action="/decrypt" method="post">
+                    <input type="hidden" name="encrypted_data" value="{encrypted_value}" />
+                    <button type="submit">Decrypt</button>
+                </form>
+            </body>
+        </html>
+        """
+
+        if "/decrypt" in request.url and request.method == "POST":
+            if request.form and request.form["encrypted_data"]:
+                encrypted_data = request.form["encrypted_data"]
+                if "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALwAgLKWJi2nWKbh9ag5rnhm" in encrypted_data:
+                    response_content = "Padding error detected"
+                elif "4GXVGZbo0DTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg" in encrypted_data:
+                    response_content = "DIFFERENT CRYPTOGRAPHIC ERROR"
+                elif "AAAAAAA" in encrypted_data:
+                    response_content = "YET DIFFERENT CRYPTOGRAPHIC ERROR"
+                else:
+                    response_content = "Decryption failed"
+
+            return Response(response_content, status=200)
+        else:
+            return Response(default_html_response, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+
+        web_parameter_extracted = False
+        cryptographic_parameter_finding = False
+        padding_oracle_detected = False
+        for e in events:
+
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
+                    web_parameter_extracted = True
+            if e.type == "FINDING":
+                if (
+                    e.data["description"]
+                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [url-encoded]"
+                ):
+                    cryptographic_parameter_finding = True
+
+            if e.type == "VULNERABILITY":
+                if (
+                    e.data["description"]
+                    == "Padding Oracle Vulnerability. Block size: [16] Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Envelopes: [url-encoded]"
+                ):
+                    padding_oracle_detected = True
+
+        assert web_parameter_extracted, "Web parameter was not extracted"
+        assert cryptographic_parameter_finding, "Cryptographic parameter not detected"
+        assert padding_oracle_detected, "Padding oracle vulnerability was not detected"

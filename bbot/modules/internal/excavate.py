@@ -901,7 +901,6 @@ class excavate(BaseInternalModule):
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
         if not data:
             return None
-
         decoded_data = await self.helpers.re.recursive_decode(data)
 
         if self.parameter_extraction:
@@ -933,11 +932,27 @@ class excavate(BaseInternalModule):
                             context = f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}"
                             await self.emit_event(data, "WEB_PARAMETER", event, context=context)
                     return
-        for data_instance in [data, decoded_data]:
+
+        # Initialize the list of data items to process
+        data_items = []
+
+        # Check if data and decoded_data are identical
+        if data == decoded_data:
+            data_items.append(("data", data))  # Add only one since both are the same
+        else:
+            data_items.append(("data", data))
+            data_items.append(("decoded_data", decoded_data))
+
+        for label, data_instance in data_items:
+            # Your existing processing code
             for result in self.yara_rules.match(data=f"{data_instance}"):
                 rule_name = result.rule
-                if rule_name == "parameter_extraction" and data_instance == decoded_data:
+
+                # Skip specific operations for 'parameter_extraction' rule on decoded_data
+                if label == "decoded_data" and rule_name == "parameter_extraction":
                     continue
+
+                # Check if rule processing function exists
                 if rule_name in self.yara_preprocess_dict:
                     await self.yara_preprocess_dict[rule_name](result, event, discovery_context)
                 else:

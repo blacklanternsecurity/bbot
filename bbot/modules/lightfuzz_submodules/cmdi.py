@@ -33,7 +33,7 @@ class CmdILightfuzz(BaseLightfuzz):
                     if canary in cmdi_probe[3].text and "echo" not in cmdi_probe[3].text:
                         self.lightfuzz.debug(f"canary [{canary}] found in response when sending probe [{p}]")
                         if p == "AAAA":
-                            self.lightfuzz.hugewarning(
+                            self.lightfuzz.warning(
                                 f"False Postive Probe appears to have been triggered for {self.event.data['url']}, aborting remaining detection"
                             )
                             return
