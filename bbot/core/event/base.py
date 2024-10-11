@@ -1540,11 +1540,6 @@ class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
 class MOBILE_APP(DictEvent):
     _always_emit = True
 
-    # class _data_validator(BaseModel):
-    #     app_id: str
-    #     url: str
-    #     _validate_url = field_validator("url")(validators.validate_url)
-
     def _pretty_string(self):
         return self.data["url"]
 
