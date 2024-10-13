@@ -988,7 +988,7 @@ class BaseModule:
         We take into account the `internal` attribute we don't want an internal event (which isn't distributed to output modules)
         to inadvertently suppress a non-internal event.
         """
-        return hash(event, self.name, event.internal, event.always_emit)
+        return hash((event, self.name, event.internal, event.always_emit))
 
     def get_per_host_hash(self, event):
         """
