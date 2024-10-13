@@ -984,8 +984,11 @@ class BaseModule:
     def _outgoing_dedup_hash(self, event):
         """
         Determines the criteria for what is considered to be a duplicate event if `suppress_dupes` is True.
+
+        We take into account the `internal` attribute we don't want an internal event (which isn't distributed to output modules)
+        to inadvertently suppress a non-internal event.
         """
-        return hash((event, self.name))
+        return hash(event, self.name, event.internal)
 
     def get_per_host_hash(self, event):
         """
