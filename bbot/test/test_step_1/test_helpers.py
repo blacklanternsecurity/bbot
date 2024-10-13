@@ -94,6 +94,15 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     ]
     assert helpers.is_ip("127.0.0.1")
     assert not helpers.is_ip("127.0.0.0.1")
+
+    assert not helpers.is_ip_type("127.0.0.1")
+    assert helpers.is_ip_type(ipaddress.ip_address("127.0.0.1"))
+    assert not helpers.is_ip_type(ipaddress.ip_address("127.0.0.1"), network=True)
+    assert helpers.is_ip_type(ipaddress.ip_address("127.0.0.1"), network=False)
+    assert helpers.is_ip_type(ipaddress.ip_network("127.0.0.0/8"))
+    assert helpers.is_ip_type(ipaddress.ip_network("127.0.0.0/8"), network=True)
+    assert not helpers.is_ip_type(ipaddress.ip_network("127.0.0.0/8"), network=False)
+
     assert helpers.is_dns_name("evilcorp.com")
     assert helpers.is_dns_name("evilcorp")
     assert not helpers.is_dns_name("evilcorp", include_local=False)

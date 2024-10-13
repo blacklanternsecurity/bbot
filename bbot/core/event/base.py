@@ -25,6 +25,7 @@ from bbot.core.helpers import (
     is_domain,
     is_subdomain,
     is_ip,
+    is_ip_type,
     is_ptr,
     is_uri,
     url_depth,
@@ -354,7 +355,7 @@ class BaseEvent:
 
     @property
     def netloc(self):
-        if self.host:
+        if self.host and is_ip_type(self.host, network=False):
             return make_netloc(self.host, self.port)
         return None
 

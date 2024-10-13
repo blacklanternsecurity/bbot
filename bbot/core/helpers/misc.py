@@ -621,12 +621,13 @@ def is_ip(d, version=None):
     return False
 
 
-def is_ip_type(i):
+def is_ip_type(i, network=None):
     """
     Checks if the given object is an instance of an IPv4 or IPv6 type from the ipaddress module.
 
     Args:
         i (ipaddress._BaseV4 or ipaddress._BaseV6): The IP object to check.
+        network (bool, optional): Whether to restrict the check to network types (IPv4Network or IPv6Network). Defaults to False.
 
     Returns:
         bool: True if the object is an instance of ipaddress._BaseV4 or ipaddress._BaseV6, False otherwise.
@@ -639,6 +640,12 @@ def is_ip_type(i):
         >>> is_ip_type("192.168.1.0/24")
         False
     """
+    if network is not None:
+        is_network = ipaddress._BaseNetwork in i.__class__.__mro__
+        if network:
+            return is_network
+        else:
+            return not is_network
     return ipaddress._IPAddressBase in i.__class__.__mro__
 
 
