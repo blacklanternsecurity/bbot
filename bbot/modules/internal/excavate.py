@@ -875,9 +875,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         yara_rules_combined = "\n".join(self.yara_rules_dict.values())
         try:
             self.info(f"Compiling {len(self.yara_rules_dict):,} YARA rules")
-            for rule_name, rule_content in self.yara_rules_dict.items():
-                self.info(f"Compiling YARA rule [{rule_name}]")
-                self.yara_rules = yara.compile(source=yara_rules_combined)
+            self.yara_rules = yara.compile(source=yara_rules_combined)
         except yara.SyntaxError as e:
             self.debug(yara_rules_combined)
             return False, f"Yara Rules failed to compile with error: [{e}]"
