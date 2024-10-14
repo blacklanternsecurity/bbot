@@ -1559,7 +1559,7 @@ class BaseModule:
             self.trace()
 
 
-class InterceptModule(BaseModule):
+class BaseInterceptModule(BaseModule):
     """
     An Intercept Module is a special type of high-priority module that gets early access to events.
 
@@ -1571,7 +1571,6 @@ class InterceptModule(BaseModule):
     """
 
     accept_dupes = True
-    suppress_dupes = False
     _intercept = True
 
     async def _worker(self):

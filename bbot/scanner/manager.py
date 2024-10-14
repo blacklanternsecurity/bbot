@@ -1,10 +1,10 @@
 import asyncio
 from contextlib import suppress
 
-from bbot.modules.base import InterceptModule
+from bbot.modules.base import BaseInterceptModule
 
 
-class ScanIngress(InterceptModule):
+class ScanIngress(BaseInterceptModule):
     """
     This is always the first intercept module in the chain, responsible for basic scope checks
 
@@ -169,7 +169,7 @@ class ScanIngress(InterceptModule):
         return False
 
 
-class ScanEgress(InterceptModule):
+class ScanEgress(BaseInterceptModule):
     """
     This is always the last intercept module in the chain, responsible for executing and acting on the
     `abort_if` and `on_success_callback` functions.
