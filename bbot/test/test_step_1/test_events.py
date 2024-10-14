@@ -22,6 +22,7 @@ async def test_events(events, helpers):
     assert events.ipv6_open_port.netloc == "[2001:4860:4860::8888]:443"
     assert events.netv4.type == "IP_RANGE"
     assert events.netv4.netloc is None
+    assert "netloc" not in events.netv4.json()
     assert events.netv6.type == "IP_RANGE"
     assert events.domain.type == "DNS_NAME"
     assert events.domain.netloc == "publicapis.org"
