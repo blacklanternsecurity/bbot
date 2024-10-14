@@ -10,7 +10,7 @@
 <link href="https://blacklanternsecurity.github.io/bbot/Dev/dev/helpers/wordcloud/" rel="canonical"/>
 <link href="../web/" rel="prev"/>
 <link href="../../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.39" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.40" name="generator"/>
 <title>Word Cloud - BBOT Docs</title>
 <link href="../../../assets/stylesheets/main.8c3ca2c6.min.css" rel="stylesheet"/>
 <link href="../../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
@@ -19,7 +19,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.20yig4je.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.0xuh8oiw.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -576,7 +576,7 @@
 </h1>
 <div class="doc doc-contents">
 <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="bbot.core.helpers.wordcloud.Mutator" href="#bbot.core.helpers.wordcloud.Mutator">Mutator</a></code></p>
+              Bases: <code>Mutator</code></p>
 <p>DNS-specific mutator used by the <code>dnsbrute_mutations</code> module to generate target-specific subdomain mutations.</p>
 <p>This class extends the Mutator base class to add DNS-specific logic for generating
 subdomain mutations based on input words. It utilizes custom word extraction patterns
@@ -757,7 +757,7 @@ and a wordninja model trained on DNS-specific data.</p>
 </h1>
 <div class="doc doc-contents">
 <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code></p>
+              Bases: <code>dict</code></p>
 <p>Base class for generating mutations from a list of words.
 It accumulates words and produces mutations from them.</p>
 <details class="quote">
@@ -863,7 +863,7 @@ It accumulates words and produces mutations from them.</p>
 </h1>
 <div class="doc doc-contents">
 <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code></p>
+              Bases: <code>dict</code></p>
 <p>WordCloud is a specialized dictionary-like class for storing and aggregating
 words extracted from various data sources such as DNS names and URLs. The class
 is intended to facilitate the generation of target-specific wordlists and mutations.</p>
@@ -1796,7 +1796,7 @@ of them to the word cloud. The splitting is done using a predefined algorithm in
 <ul>
 <li class="doc-section-item field-body">
 <b><code>word</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>The word to be split and absorbed into the word cloud.</p>
@@ -1804,7 +1804,7 @@ of them to the word cloud. The splitting is done using a predefined algorithm in
 </li>
 <li class="doc-section-item field-body">
 <b><code>wordninja</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -1888,7 +1888,7 @@ its frequency count is incremented by 1. Optionally, the word can be converted t
 <ul>
 <li class="doc-section-item field-body">
 <b><code>word</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>The word to be added to the word cloud.</p>
@@ -1896,7 +1896,7 @@ its frequency count is incremented by 1. Optionally, the word can be converted t
 </li>
 <li class="doc-section-item field-body">
 <b><code>lowercase</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -1976,7 +1976,7 @@ specified range. It also appends numbers at the end or after each word to genera
 <ul>
 <li class="doc-section-item field-body">
 <b><code>base</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>The base string to generate mutations from.</p>
@@ -1984,7 +1984,7 @@ specified range. It also appends numbers at the end or after each word to genera
 </li>
 <li class="doc-section-item field-body">
 <b><code>n</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
+              (<code>int</code>, default:
                   <code>5</code>
 )
           –
@@ -1994,7 +1994,7 @@ specified range. It also appends numbers at the end or after each word to genera
 </li>
 <li class="doc-section-item field-body">
 <b><code>padding</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
+              (<code>int</code>, default:
                   <code>2</code>
 )
           –
@@ -2183,7 +2183,7 @@ specified range. It also appends numbers at the end or after each word to genera
 <ul>
 <li class="doc-section-item field-body">
 <b><code>limit</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
+              (<code>int</code>, default:
                   <code>None</code>
 )
           –
@@ -2262,7 +2262,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>filename</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -2359,7 +2359,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>words</code></b>
-              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, Iterable[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]]</code>)
+              (<code>Union[str, Iterable[str]]</code>)
           –
           <div class="doc-md-description">
 <p>A single word or list of words to mutate.</p>
@@ -2367,7 +2367,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 </li>
 <li class="doc-section-item field-body">
 <b><code>devops</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -2377,7 +2377,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 </li>
 <li class="doc-section-item field-body">
 <b><code>cloud</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -2387,7 +2387,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 </li>
 <li class="doc-section-item field-body">
 <b><code>letters</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -2397,7 +2397,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 </li>
 <li class="doc-section-item field-body">
 <b><code>numbers</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
+              (<code>int</code>, default:
                   <code>5</code>
 )
           –
@@ -2407,7 +2407,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 </li>
 <li class="doc-section-item field-body">
 <b><code>number_padding</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
+              (<code>int</code>, default:
                   <code>2</code>
 )
           –
@@ -2417,7 +2417,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 </li>
 <li class="doc-section-item field-body">
 <b><code>substitute_numbers</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -2546,7 +2546,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>filename</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -2556,7 +2556,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 </li>
 <li class="doc-section-item field-body">
 <b><code>limit</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
+              (<code>int</code>, default:
                   <code>None</code>
 )
           –
@@ -2676,7 +2676,7 @@ or a .tsv (tab-separated) file where the first row is the count and the second r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>limit</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+              (<code>int</code>)
           –
           <div class="doc-md-description">
 <p>The maximum number of entries to retain in the word cloud.</p>

@@ -11,7 +11,7 @@
 <link href="../dns/" rel="prev"/>
 <link href="../misc/" rel="next"/>
 <link href="../../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.39" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.40" name="generator"/>
 <title>Interactsh - BBOT Docs</title>
 <link href="../../../assets/stylesheets/main.8c3ca2c6.min.css" rel="stylesheet"/>
 <link href="../../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.20yig4je.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.0xuh8oiw.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -588,7 +588,7 @@ configuration provided by <code>parent_helper</code>.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.helpers.interactsh.Interactsh.server">server</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>The server to be used. If None (the default), a random server will be chosen from a predetermined list.</p>
@@ -596,7 +596,7 @@ configuration provided by <code>parent_helper</code>.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.helpers.interactsh.Interactsh.correlation_id">correlation_id</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>An identifier to correlate requests and responses. Default is None.</p>
@@ -604,7 +604,7 @@ configuration provided by <code>parent_helper</code>.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.helpers.interactsh.Interactsh.custom_server">custom_server</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Optional. A custom interact.sh server. Loaded from configuration.</p>
@@ -612,7 +612,7 @@ configuration provided by <code>parent_helper</code>.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.helpers.interactsh.Interactsh.token">token</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Optional. A token for interact.sh API. Loaded from configuration.</p>
@@ -1277,7 +1277,7 @@ task was started, it is cancelled.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><span title="bbot.errors.InteractshError">InteractshError</span></code>
+<code>InteractshError</code>
             –
           <div class="doc-md-description">
 <p>If required information is missing or if deregistration fails.</p>
@@ -1373,7 +1373,7 @@ using an AES key provided by the server response.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><span title="bbot.errors.InteractshError">InteractshError</span></code>
+<code>InteractshError</code>
             –
           <div class="doc-md-description">
 <p>If required information for polling is missing.</p>
@@ -1526,7 +1526,7 @@ function with each interaction data.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>callback</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#callable">callable</a></code>)
+              (<code>callable</code>)
           –
           <div class="doc-md-description">
 <p>The function to be called for every interaction received from the server.</p>
@@ -1606,7 +1606,7 @@ starts an asynchronous polling task to listen for interactions.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>callback</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#callable">callable</a></code>, default:
+              (<code>callable</code>, default:
                   <code>None</code>
 )
           –
@@ -1627,7 +1627,7 @@ starts an asynchronous polling task to listen for interactions.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><span title="bbot.errors.InteractshError">InteractshError</span></code>
+<code>InteractshError</code>
             –
           <div class="doc-md-description">
 <p>If registration with an interact.sh server fails.</p>

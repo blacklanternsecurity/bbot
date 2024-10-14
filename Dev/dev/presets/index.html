@@ -11,7 +11,7 @@
 <link href="../scanner/" rel="prev"/>
 <link href="../event/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.39" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.40" name="generator"/>
 <title>Presets - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.8c3ca2c6.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.20yig4je.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.0xuh8oiw.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -713,7 +713,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.strict_scope">strict_scope</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>If True, subdomains of targets are not considered to be in-scope.</p>
@@ -729,7 +729,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.output_dir">output_dir</span></code></b>
-              (<code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
+              (<code>Path</code>)
           –
           <div class="doc-md-description">
 <p>Output directory for scan.</p>
@@ -737,7 +737,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.scan_name">scan_name</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Name of scan. Defaults to random value, e.g. "demonic_jimmy".</p>
@@ -745,7 +745,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.name">name</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Human-friendly name of preset. Used mainly for logging purposes.</p>
@@ -753,7 +753,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.description">description</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Description of preset.</p>
@@ -761,7 +761,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.modules">modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Combined modules to enable for the scan. Includes scan modules, internal modules, and output modules.</p>
@@ -769,7 +769,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.scan_modules">scan_modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Modules to enable for the scan.</p>
@@ -777,7 +777,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.output_modules">output_modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Output modules to enable for the scan. (note: if no output modules are specified, this is not populated until .bake())</p>
@@ -785,7 +785,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.internal_modules">internal_modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Internal modules for the scan. (note: not populated until .bake())</p>
@@ -793,7 +793,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.exclude_modules">exclude_modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Modules to exclude from the scan. When set, automatically removes excluded modules.</p>
@@ -801,7 +801,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.flags">flags</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Flags to enable for the scan. When set, automatically enables modules.</p>
@@ -809,7 +809,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.require_flags">require_flags</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Require modules to have these flags. When set, automatically removes offending modules.</p>
@@ -817,7 +817,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.exclude_flags">exclude_flags</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Exclude modules that have any of these flags. When set, automatically removes offending modules.</p>
@@ -825,7 +825,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.module_dirs">module_dirs</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code>set</code>)
           –
           <div class="doc-md-description">
 <p>Custom directories from which to load modules (alias to <code>self.module_loader.module_dirs</code>). When set, automatically preloads contained modules.</p>
@@ -833,7 +833,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.config">config</span></code></b>
-              (<code><span title="omegaconf.dictconfig.DictConfig">DictConfig</span></code>)
+              (<code>DictConfig</code>)
           –
           <div class="doc-md-description">
 <p>BBOT config (alias to <code>core.config</code>)</p>
@@ -849,7 +849,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.verbose">verbose</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether log level is currently set to verbose. When set, updates log level for all BBOT log handlers.</p>
@@ -857,7 +857,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.debug">debug</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether log level is currently set to debug. When set, updates log level for all BBOT log handlers.</p>
@@ -865,7 +865,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.silent">silent</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether logging is currently disabled. When set to True, silences all stderr.</p>
@@ -2818,7 +2818,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>*targets</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>()</code>
 )
           –
@@ -2828,7 +2828,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>whitelist</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>, default:
+              (<code>list</code>, default:
                   <code>None</code>
 )
           –
@@ -2838,7 +2838,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>blacklist</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>, default:
+              (<code>list</code>, default:
                   <code>None</code>
 )
           –
@@ -2848,7 +2848,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>strict_scope</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -2858,7 +2858,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>modules</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2868,7 +2868,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>output_modules</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2878,7 +2878,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>exclude_modules</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2888,7 +2888,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>require_flags</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2898,7 +2898,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>exclude_flags</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2908,7 +2908,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>module_dirs</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2918,7 +2918,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>config</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>, default:
+              (<code>dict</code>, default:
                   <code>None</code>
 )
           –
@@ -2928,7 +2928,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>include</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2938,7 +2938,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>presets</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2948,7 +2948,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>output_dir</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>, default:
+              (<code>str or Path</code>, default:
                   <code>None</code>
 )
           –
@@ -2958,7 +2958,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>scan_name</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -2968,7 +2968,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>name</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -2978,7 +2978,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>description</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -2988,7 +2988,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>conditions</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>None</code>
 )
           –
@@ -2998,7 +2998,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>force_start</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -3008,7 +3008,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>verbose</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -3018,7 +3018,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>debug</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -3028,7 +3028,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>silent</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -3038,7 +3038,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_exclude</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a>]</code>, default:
+              (<code>list[Path]</code>, default:
                   <code>None</code>
 )
           –
@@ -3048,7 +3048,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_log</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -3654,7 +3654,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>preset_dict</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
+              (<code>dict</code>)
           –
           <div class="doc-md-description">
 <p>Preset in dictionary form</p>
@@ -3662,7 +3662,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>name</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -3672,7 +3672,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_exclude</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a>]</code>, default:
+              (<code>list[Path]</code>, default:
                   <code>None</code>
 )
           –
@@ -3682,7 +3682,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_log</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -3949,7 +3949,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>filename</code></b>
-              (<code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
+              (<code>Path</code>)
           –
           <div class="doc-md-description">
 <p>The preset YAML file to merge</p>
@@ -4017,7 +4017,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>other</code></b>
-              (<code><a class="autorefs autorefs-internal" title="bbot.scanner.preset.preset.Preset" href="#bbot.scanner.Preset">Preset</a></code>)
+              (<code>Preset</code>)
           –
           <div class="doc-md-description">
 <p>The preset to merge into this one.</p>
@@ -4261,7 +4261,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>include_target</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -4271,7 +4271,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>full_config</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -4473,7 +4473,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>include_target</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -4483,7 +4483,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>full_config</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -4493,7 +4493,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>sort_keys</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –

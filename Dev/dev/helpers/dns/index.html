@@ -11,7 +11,7 @@
 <link href="../command/" rel="prev"/>
 <link href="../interactsh/" rel="next"/>
 <link href="../../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.39" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.40" name="generator"/>
 <title>DNS - BBOT Docs</title>
 <link href="../../../assets/stylesheets/main.8c3ca2c6.min.css" rel="stylesheet"/>
 <link href="../../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.20yig4je.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.0xuh8oiw.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -574,7 +574,7 @@
 </h1>
 <div class="doc doc-contents first">
 <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="bbot.core.engine.EngineClient" href="../../engine/#bbot.core.engine.EngineClient">EngineClient</a></code></p>
+              Bases: <code>EngineClient</code></p>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/dns/dns.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 18</span>
@@ -1033,7 +1033,7 @@
 <ul>
 <li class="doc-section-item field-body">
 <b><code>query</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>The hostname to check for a wildcard entry.</p>
@@ -1041,7 +1041,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code>ips</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>)
+              (<code>list</code>)
           –
           <div class="doc-md-description">
 <p>List of IPs to compare against, typically obtained from a previous DNS resolution of the query.</p>
@@ -1049,7 +1049,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code>rdtype</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>The DNS record type (e.g., "A", "AAAA") to consider during the check.</p>
@@ -1071,7 +1071,7 @@ and the second element is the wildcard parent if it's a wildcard.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#ValueError">ValueError</a></code>
+<code>ValueError</code>
             –
           <div class="doc-md-description">
 <p>If only one of <code>ips</code> or <code>rdtype</code> is specified or if no valid IPs are specified.</p>

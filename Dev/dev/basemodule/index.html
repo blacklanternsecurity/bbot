@@ -11,7 +11,7 @@
 <link href="../target/" rel="prev"/>
 <link href="../core/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.39" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.40" name="generator"/>
 <title>BaseModule - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.8c3ca2c6.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.20yig4je.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.0xuh8oiw.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -960,7 +960,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.accept_dupes">accept_dupes</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether to accept incoming duplicate events. Default is False.</p>
@@ -968,7 +968,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.suppress_dupes">suppress_dupes</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether to suppress outgoing duplicate events. Default is True.</p>
@@ -976,7 +976,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.per_host_only">per_host_only</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Limit the module to only scanning once per host. Default is False.</p>
@@ -984,7 +984,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.per_hostport_only">per_hostport_only</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Limit the module to only scanning once per host:port. Default is False.</p>
@@ -992,7 +992,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.per_domain_only">per_domain_only</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Limit the module to only scanning once per domain. Default is False.</p>
@@ -1000,7 +1000,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.scope_distance_modifier">scope_distance_modifier</span></code></b>
-              (<code>(<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a>, None)</code>)
+              (<code>(int, None)</code>)
           –
           <div class="doc-md-description">
 <p>Modifies scope distance acceptance for events. Default is 0.
@@ -1013,7 +1013,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.target_only">target_only</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Accept only the initial target event(s). Default is False.</p>
@@ -1021,7 +1021,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.in_scope_only">in_scope_only</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Accept only explicitly in-scope events. Default is False.</p>
@@ -1045,7 +1045,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.module_threads">module_threads</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+              (<code>int</code>)
           –
           <div class="doc-md-description">
 <p>Maximum concurrent instances of handle_event() or handle_batch(). Default is 1.</p>
@@ -1053,7 +1053,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.batch_size">batch_size</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+              (<code>int</code>)
           –
           <div class="doc-md-description">
 <p>Size of batches processed by handle_batch(). Default is 1.</p>
@@ -1061,7 +1061,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.batch_wait">batch_wait</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+              (<code>int</code>)
           –
           <div class="doc-md-description">
 <p>Seconds to wait before force-submitting a batch. Default is 10.</p>
@@ -1069,7 +1069,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.api_failure_abort_threshold">api_failure_abort_threshold</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+              (<code>int</code>)
           –
           <div class="doc-md-description">
 <p>Threshold for setting error state after failed HTTP requests (only takes effect when <code>api_request()</code> is used. Default is 5.</p>
@@ -1077,7 +1077,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule._preserve_graph">_preserve_graph</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>When set to True, accept events that may be duplicates but are necessary for construction of complete graph. Typically only enabled for output modules that need to maintain full chains of events, e.g. <code>neo4j</code> and <code>json</code>. Default is False.</p>
@@ -1085,7 +1085,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule._stats_exclude">_stats_exclude</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether to exclude this module from scan statistics. Default is False.</p>
@@ -1093,7 +1093,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule._qsize">_qsize</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+              (<code>int</code>)
           –
           <div class="doc-md-description">
 <p>Outgoing queue size (0 for infinite). Default is 0.</p>
@@ -1101,7 +1101,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule._priority">_priority</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+              (<code>int</code>)
           –
           <div class="doc-md-description">
 <p>Priority level of events raised by this module, 1-5. Default is 3.</p>
@@ -1109,7 +1109,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule._name">_name</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Module name, overridden automatically. Default is 'base'.</p>
@@ -1117,7 +1117,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule._type">_type</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Module type, for differentiating between normal and output modules. Default is 'scan'.</p>
@@ -4452,7 +4452,7 @@ indicating that there are ongoing tasks in the module.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.__init__.errored">errored</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether the module has errored out. Default is False.</p>
@@ -4568,7 +4568,7 @@ It is well-suited for APIs that provide paginated results.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>url</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>The initial API URL. Can contain placeholders for 'page', 'page_size', and 'offset'.</p>
@@ -4576,7 +4576,7 @@ It is well-suited for APIs that provide paginated results.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>page_size</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
+              (<code>int</code>, default:
                   <code>100</code>
 )
           –
@@ -4586,7 +4586,7 @@ It is well-suited for APIs that provide paginated results.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>json</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -4596,7 +4596,7 @@ It is well-suited for APIs that provide paginated results.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>next_key</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#callable">callable</a></code>, default:
+              (<code>callable</code>, default:
                   <code>None</code>
 )
           –
@@ -4943,7 +4943,7 @@ It is well-suited for APIs that provide paginated results.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -5017,7 +5017,7 @@ It is well-suited for APIs that provide paginated results.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -5125,7 +5125,7 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><span title="bbot.errors.ValidationError">ValidationError</span></code>
+<code>ValidationError</code>
             –
           <div class="doc-md-description">
 <p>If the event cannot be validated (handled in <code>self.make_event()</code>).</p>
@@ -5234,7 +5234,7 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -5849,7 +5849,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -5923,7 +5923,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -5997,7 +5997,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -6071,7 +6071,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -6145,7 +6145,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -6335,7 +6335,7 @@ of the table as an info-level log. If a table_name is provided, it also writes t
 </li>
 <li class="doc-section-item field-body">
 <b><code>raise_error</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether to raise a validation error if the event could not be created. Defaults to False.</p>
@@ -6358,7 +6358,7 @@ of the table as an info-level log. If a table_name is provided, it also writes t
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><span title="bbot.errors.ValidationError">ValidationError</span></code>
+<code>ValidationError</code>
             –
           <div class="doc-md-description">
 <p>If the event could not be validated and raise_error is True.</p>
@@ -6453,7 +6453,7 @@ of the table as an info-level log. If a table_name is provided, it also writes t
 <ul>
 <li class="doc-section-item field-body">
 <b><code>url</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -6474,7 +6474,7 @@ of the table as an info-level log. If a table_name is provided, it also writes t
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#ValueError">ValueError</a></code>
+<code>ValueError</code>
             –
           <div class="doc-md-description">
 <p>If the API response is not successful (status code != 200).</p>
@@ -6640,7 +6640,7 @@ If the event passes the check, it is put into the <code>incoming_event_queue</co
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#AttributeError">AttributeError</a></code>
+<code>AttributeError</code>
             –
           <div class="doc-md-description">
 <p>If the module is not in an acceptable state to queue incoming events.</p>
@@ -6773,7 +6773,7 @@ If it's not possible due to the current state of the module, an AttributeError i
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#AttributeError">AttributeError</a></code>
+<code>AttributeError</code>
             –
           <div class="doc-md-description">
 <p>If the module is not in an acceptable state to queue outgoing events.</p>
@@ -6989,7 +6989,7 @@ It also clears the incoming event queue to prevent further processing and update
 <ul>
 <li class="doc-section-item field-body">
 <b><code>message</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -7259,7 +7259,7 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -7392,7 +7392,7 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>False</code>
 )
           –
@@ -7466,7 +7466,7 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 </li>
 <li class="doc-section-item field-body">
 <b><code>trace</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
