@@ -70,27 +70,24 @@ class google_playstore(BaseModule):
         return app_links
 
     async def validate_apk(self, apk_name):
+        """
+        Check the app details page the "App support" section will include URLs or Emails to the app developer
+        """
         in_scope = False
         url = f"{self.base_url}/store/apps/details?id={apk_name}"
         r = await self.helpers.request(url)
         if r is None:
             return in_scope
         status_code = getattr(r, "status_code", 0)
-        try:
-            html = self.helpers.beautifulsoup(r.content, "html.parser")
-        except Exception as e:
-            self.warning(f"Failed to parse html response from {r.url} (HTTP status: {status_code}): {e}")
-            return in_scope
-        # The developer meta tag usually contains the developer's URL
-        developer_meta = html.find("meta", attrs={"name": "appstore:developer_url"})
-        developer_url = developer_meta["content"] if developer_meta else None
-        if self.scan.in_scope(developer_url):
-            in_scope = True
-        # If the developers URL is left blank then a support email is usually provided
-        links = html.find_all("a", href=True)
-        emails = [a["href"].split("mailto:")[1] for a in links if "mailto:" in a["href"]]
-        for email in emails:
-            if self.scan.in_scope(email):
+        if status_code == 200:
+            html = r.text
+            in_scope_hosts = await self.scan.extract_in_scope_hostnames(html)
+            if in_scope_hosts:
                 in_scope = True
-                break
+            for email in await self.helpers.re.extract_emails(html):
+                if self.scan.in_scope(email):
+                    in_scope = True
+                    break
+        else:
+            self.warning(f"Failed to fetch {url} (HTTP status: {status_code})")
         return in_scope
