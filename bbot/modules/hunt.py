@@ -287,7 +287,7 @@ class hunt(BaseModule):
         for k in hunt_param_dict.keys():
             if p.lower() in hunt_param_dict[k]:
 
-                description = f"Found potential {k.upper()} parameter: [{p}] Parameter Type: [{event.data['type']}]"
+                description = f"Found potentially interesting parameter. Name: [{p}] Parameter Type: [{event.data['type']}] Category: [{k.upper()}]"
                 if (
                     "original_value" in event.data.keys()
                     and event.data["original_value"] != ""
