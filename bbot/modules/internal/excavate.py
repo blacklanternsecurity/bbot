@@ -1,4 +1,3 @@
-import ast
 import yara
 import json
 import html
