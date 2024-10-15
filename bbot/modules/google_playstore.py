@@ -13,6 +13,10 @@ class google_playstore(BaseModule):
 
     base_url = "https://play.google.com"
 
+    async def setup(self):
+        self.app_link_regex = self.helpers.re.compile(r"/store/apps/details\?id=([a-zA-Z0-9._-]+)")
+        return True
+
     async def filter_event(self, event):
         if event.type == "CODE_REPOSITORY":
             if "android" not in event.tags:
@@ -61,12 +65,12 @@ class google_playstore(BaseModule):
             return app_links
         status_code = getattr(r, "status_code", 0)
         try:
-            html = self.helpers.beautifulsoup(r.content, "html.parser")
+            html_content = r.content.decode("utf-8")
+            # Use regex to find all app links
+            app_links = await self.helpers.re.findall(self.app_link_regex, html_content)
         except Exception as e:
             self.warning(f"Failed to parse html response from {r.url} (HTTP status: {status_code}): {e}")
             return app_links
-        links = html.find_all("a", href=True)
-        app_links = [a["href"].split("id=")[1].split("&")[0] for a in links if "/store/apps/details?id=" in a["href"]]
         return app_links
 
     async def validate_apk(self, apk_name):
@@ -84,10 +88,6 @@ class google_playstore(BaseModule):
             in_scope_hosts = await self.scan.extract_in_scope_hostnames(html)
             if in_scope_hosts:
                 in_scope = True
-            for email in await self.helpers.re.extract_emails(html):
-                if self.scan.in_scope(email):
-                    in_scope = True
-                    break
         else:
             self.warning(f"Failed to fetch {url} (HTTP status: {status_code})")
         return in_scope
