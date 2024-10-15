@@ -920,6 +920,7 @@ valid_chars_dict = {
     "getparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
     "postparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
     "cookie": set(chr(c) for c in range(33, 127) if chr(c) not in '()<>@,;:"/[]?={} \t'),
+    "bodyjson": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
 }
 
 

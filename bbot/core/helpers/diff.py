@@ -15,6 +15,7 @@ class HttpCompare:
         parent_helper,
         method="GET",
         data=None,
+        json=None,
         allow_redirects=False,
         include_cache_buster=True,
         headers=None,
@@ -26,6 +27,7 @@ class HttpCompare:
         self.include_cache_buster = include_cache_buster
         self.method = method
         self.data = data
+        self.json = json
         self.allow_redirects = allow_redirects
         self._baselined = False
         self.headers = headers
@@ -53,6 +55,7 @@ class HttpCompare:
                 follow_redirects=self.allow_redirects,
                 method=self.method,
                 data=self.data,
+                json=self.json,
                 headers=self.headers,
                 cookies=self.cookies,
                 retries=2,
@@ -76,6 +79,7 @@ class HttpCompare:
                 follow_redirects=self.allow_redirects,
                 method=self.method,
                 data=self.data,
+                json=self.json,
                 retries=2,
                 timeout=self.timeout,
             )
@@ -166,6 +170,7 @@ class HttpCompare:
         check_reflection=False,
         method="GET",
         data=None,
+        json=None,
         allow_redirects=False,
         timeout=None,
     ):
@@ -196,6 +201,7 @@ class HttpCompare:
             follow_redirects=allow_redirects,
             method=method,
             data=data,
+            json=json,
             timeout=timeout,
         )
 
