@@ -221,12 +221,12 @@ class BaseLightfuzz:
         probe_value = self.event.data.get("original_value", "")
         if (probe_value is None or len(probe_value) == 0) and populate_empty == True:
             probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
-        if not isinstance(probe_value, str):
-            probe_value = str(probe_value)
         self.lightfuzz.debug(f"probe_value_incoming (before modification): {probe_value}")
         envelopes_instance = getattr(self.event, "envelopes", None)
         probe_value = envelopes_instance.remove_envelopes(probe_value)
         self.lightfuzz.debug(f"probe_value_incoming (after modification): {probe_value}")
+        if not isinstance(probe_value, str):
+            probe_value = str(probe_value)
         return probe_value
 
     def probe_value_outgoing(self, outgoing_probe_value):
