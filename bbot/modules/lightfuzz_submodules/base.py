@@ -195,7 +195,6 @@ class BaseLightfuzz:
                     )
                 )
 
-        # Pass json_data if BODYJSON, otherwise pass data
         self.lightfuzz.debug(f"standard_probe requested URL: [{url}]")
         return await self.lightfuzz.helpers.request(
             method=method,
