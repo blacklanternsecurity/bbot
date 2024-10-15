@@ -1537,6 +1537,13 @@ class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
     _always_emit_tags = ["target"]
 
 
+class MOBILE_APP(DictEvent):
+    _always_emit = True
+
+    def _pretty_string(self):
+        return self.data["url"]
+
+
 def make_event(
     data,
     event_type=None,
