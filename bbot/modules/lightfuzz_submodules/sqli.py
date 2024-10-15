@@ -6,7 +6,6 @@ import statistics
 
 class SQLiLightfuzz(BaseLightfuzz):
     expected_delay = 5
-
     sqli_error_strings = [
         "Unterminated string literal",
         "Failed to parse string literal",
@@ -14,6 +13,10 @@ class SQLiLightfuzz(BaseLightfuzz):
         "syntax error at or near",
         "Unknown column",
         "unterminated quoted string",
+        "Unclosed quotation mark",
+        "Incorrect syntax near",
+        "SQL command not properly ended",
+        "string not properly terminated"
     ]
 
     def evaluate_delay(self, mean_baseline, measured_delay):
