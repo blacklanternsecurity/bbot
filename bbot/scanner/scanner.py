@@ -1064,7 +1064,7 @@ class Scanner:
         Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
         """
         if self._dns_regexes_yara is None:
-            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
+            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)*")
         return self._dns_regexes_yara
 
     @property
