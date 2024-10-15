@@ -42,6 +42,13 @@ def tempwordlist(content):
     return filename
 
 
+def tempapkfile():
+    current_dir = Path(__file__).parent
+    with open(current_dir / "owasp_mastg.apk", "rb") as f:
+        apk_file = f.read()
+    return apk_file
+
+
 @pytest.fixture
 def clean_default_config(monkeypatch):
     clean_config = OmegaConf.merge(

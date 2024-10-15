@@ -1,9 +1,10 @@
 from pathlib import Path
-from .base import ModuleTestBase
+from .base import ModuleTestBase, tempapkfile
 
 
 class TestAPKPure(ModuleTestBase):
     modules_overrides = ["apkpure", "google_playstore", "speculate"]
+    apk_file = tempapkfile()
 
     async def setup_after_prep(self, module_test):
         await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.99"]}})
@@ -35,7 +36,7 @@ class TestAPKPure(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://d.apkpure.com/b/XAPK/com.bbot.test?version=latest",
-            text="apk",
+            content=self.apk_file,
         )
 
     def check(self, module_test, events):
