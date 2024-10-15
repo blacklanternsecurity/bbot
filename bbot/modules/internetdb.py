@@ -48,6 +48,9 @@ class internetdb(BaseModule):
         "show_open_ports": "Display OPEN_TCP_PORT events in output, even if they didn't lead to an interesting discovery"
     }
 
+    # we get lots of 404s, that's normal
+    _api_failure_abort_threshold = 9999999999
+
     _qsize = 500
 
     base_url = "https://internetdb.shodan.io"
@@ -113,7 +116,6 @@ class internetdb(BaseModule):
                 "OPEN_TCP_PORT",
                 parent=event,
                 internal=(not self.show_open_ports),
-                quick=True,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
             )
         vulns = data.get("vulns", [])

@@ -441,11 +441,6 @@ class BaseEvent:
         return self._always_emit or always_emit_tags or no_host_information
 
     @property
-    def quick_emit(self):
-        no_host_information = not bool(self.host)
-        return self._quick_emit or no_host_information
-
-    @property
     def id(self):
         """
         A uniquely identifiable hash of the event from the event type + a SHA1 of its data
