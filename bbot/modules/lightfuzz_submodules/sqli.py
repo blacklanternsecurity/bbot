@@ -16,7 +16,7 @@ class SQLiLightfuzz(BaseLightfuzz):
         "Unclosed quotation mark",
         "Incorrect syntax near",
         "SQL command not properly ended",
-        "string not properly terminated"
+        "string not properly terminated",
     ]
 
     def evaluate_delay(self, mean_baseline, measured_delay):
