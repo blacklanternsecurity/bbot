@@ -94,7 +94,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
         target_in_scope = self._target.in_scope(str(url))
 
         if target_in_scope:
-            if "cookies" not in kwargs:
+            if not kwargs.get("cookies", None):
                 kwargs["cookies"] = {}
             for ck, cv in self._web_config.get("http_cookies", {}).items():
                 if ck not in kwargs["cookies"]:
