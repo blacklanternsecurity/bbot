@@ -709,9 +709,56 @@ class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
         excavate_getparam_extraction = False
         for e in events:
             if e.type == "WEB_PARAMETER":
-                if "HTTP Extracted Parameter [novalue] (GET Form Submodule)":
+                if "HTTP Extracted Parameter [novalue] (GET Form Submodule)" in e.data["description"]:
                     excavate_getparam_extraction = True
         assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+
+
+class TestExcavateParameterExtraction_jqueryjsonajax(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    jsonajax_extract_html = """
+    <html>
+    <script>
+    function doLogin(e) {
+      e.preventDefault();
+      var username = $("#usernamefield").val();
+      var password = $("#passwordfield").val();
+      $.ajax({
+        url: '/api/auth',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ username: username, password: password }),
+        success: function (r) {
+          window.location.replace("/demo");
+        },
+        error: function (r) {
+          if (r.status == 401) {
+            notify("Access denied");
+          } else {
+            notify(r.responseText);
+          }
+        }
+      });
+    }
+    </html>
+<form action=/ method=GET><input type=text name="novalue"><button type=submit class=button>Submit</button></form>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.jsonajax_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_ajaxpost_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter [username] (JQuery Extractor Submodule)" == e.data["description"]
+                    and e.data["original_value"] == None
+                ):
+                    excavate_ajaxpost_extraction = True
+        assert excavate_ajaxpost_extraction, "Excavate failed to extract web parameter"
 
 
 class excavateTestRule(ExcavateRule):

@@ -431,6 +431,55 @@ class excavate(BaseInternalModule):
                             query_strings_dict, parameter_name
                         )
 
+        class AjaxJquery(ParameterExtractorRule):
+            name = "JQuery Extractor"
+            discovery_regex = r"/\$\.ajax\(\{[^\<$\$]*\}\)/s nocase"
+            extraction_regex = None
+            output_type = "BODYJSON"
+            ajax_content_regexes = {
+                "url": r"url\s*:\s*['\"](.*?)['\"]",
+                "type": r"type\s*:\s*['\"](.*?)['\"]",
+                "content_type": r"contentType\s*:\s*['\"](.*?)['\"]",
+                "data": r"data:.*(\{[^}]*\})",
+            }
+
+            def extract(self):
+                # Iterate through each regex in ajax_content_regexes
+                extracted_values = {}
+                for key, pattern in self.ajax_content_regexes.items():
+                    match = re.search(pattern, self.result)
+                    if match:
+                        # Store the matched value in the dictionary
+                        extracted_values[key] = match.group(1)
+
+                # check to see if the format is defined as JSON
+                if "content_type" in extracted_values.keys():
+                    if extracted_values["content_type"] == "application/json":
+
+                        # If we cant figure out the parameter names, there is no point in continuing
+                        if "data" in extracted_values.keys():
+
+                            if "url" in extracted_values.keys():
+                                form_url = extracted_values["url"]
+                            else:
+                                form_url = None
+
+                            form_parameters = {}
+                            try:
+                                s = extracted_values["data"]
+                                s = re.sub(r"(\w+)\s*:", r'"\1":', s)  # Quote keys
+                                s = re.sub(r":\s*(\w+)", r': "\1"', s)  # Quote values if they are unquoted
+                                data = json.loads(s)
+                            except (ValueError, SyntaxError):
+                                return None
+                            for p in data.keys():
+                                form_parameters[p] = None
+
+                        for parameter_name in form_parameters:
+                            yield "BODYJSON", parameter_name, None, form_url, _exclude_key(
+                                form_parameters, parameter_name
+                            )
+
         class GetForm(ParameterExtractorRule):
             name = "GET Form"
             discovery_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase'

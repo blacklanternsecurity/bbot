@@ -12,7 +12,7 @@ class BaseLightfuzz:
             return additional_params
         new_additional_params = {}
         for k, v in additional_params.items():
-            if v == "":
+            if v == "" or v == None:
                 new_additional_params[k] = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
             else:
                 new_additional_params[k] = v
@@ -66,10 +66,21 @@ class BaseLightfuzz:
             http_compare = self.lightfuzz.helpers.http_compare(
                 self.event.data["url"], method="POST", include_cache_buster=False, data=data, cookies=cookies
             )
+        elif event_type == "BODYJSON":
+            data = {self.event.data["name"]: f"{probe}"}
+            if self.event.data["additional_params"] is not None:
+                data.update(
+                    self.additional_params_process(
+                        self.event.data["additional_params"], additional_params_populate_empty
+                    )
+                )
+            http_compare = self.lightfuzz.helpers.http_compare(
+                self.event.data["url"], method="POST", include_cache_buster=False, json=data, cookies=cookies
+            )
         return http_compare
 
     async def baseline_probe(self, cookies):
-        if self.event.data.get("eventtype") == "POSTPARAM":
+        if self.event.data.get("eventtype") in ["POSTPARAM", "BODYJSON"]:
             method = "POST"
         else:
             method = "GET"
@@ -121,6 +132,13 @@ class BaseLightfuzz:
             compare_result = await http_compare.compare(
                 self.event.data["url"], method="POST", data=data, cookies=cookies
             )
+        elif event_type == "BODYJSON":
+            data = {self.event.data["name"]: f"{probe}"}
+            if additional_params:
+                data.update(self.additional_params_process(additional_params, additional_params_populate_empty))
+            compare_result = await http_compare.compare(
+                self.event.data["url"], method="POST", json=data, cookies=cookies
+            )
         return compare_result
 
     async def standard_probe(
@@ -154,6 +172,10 @@ class BaseLightfuzz:
             headers = {self.event.data["name"]: probe}
         else:
             headers = {}
+
+        data = None
+        json_data = None
+
         if event_type == "POSTPARAM":
             method = "POST"
             data = {self.event.data["name"]: probe}
@@ -163,14 +185,23 @@ class BaseLightfuzz:
                         self.event.data["additional_params"], additional_params_populate_empty
                     )
                 )
-        else:
-            data = {}
+        elif event_type == "BODYJSON":
+            method = "POST"
+            json_data = {self.event.data["name"]: probe}
+            if self.event.data["additional_params"] is not None:
+                json_data.update(
+                    self.additional_params_process(
+                        self.event.data["additional_params"], additional_params_populate_empty
+                    )
+                )
+
         self.lightfuzz.debug(f"standard_probe requested URL: [{url}]")
         return await self.lightfuzz.helpers.request(
             method=method,
             cookies=cookies,
             headers=headers,
             data=data,
+            json=json_data,
             url=url,
             allow_redirects=False,
             retries=0,
@@ -187,14 +218,15 @@ class BaseLightfuzz:
         return metadata_string
 
     def probe_value_incoming(self, populate_empty=True):
-
-        probe_value = str(self.event.data.get("original_value", ""))
-        if (probe_value is None or len(probe_value) == 0) and populate_empty == True:
+        probe_value = self.event.data.get("original_value", "")
+        if (probe_value is None or len(str(probe_value)) == 0) and populate_empty == True:
             probe_value = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
         self.lightfuzz.debug(f"probe_value_incoming (before modification): {probe_value}")
         envelopes_instance = getattr(self.event, "envelopes", None)
         probe_value = envelopes_instance.remove_envelopes(probe_value)
         self.lightfuzz.debug(f"probe_value_incoming (after modification): {probe_value}")
+        if not isinstance(probe_value, str):
+            probe_value = str(probe_value)
         return probe_value
 
     def probe_value_outgoing(self, outgoing_probe_value):

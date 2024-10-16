@@ -14,10 +14,9 @@ class TestHunt(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-
         assert any(
             e.type == "FINDING"
             and e.data["description"]
-            == "Found potential INSECURE CRYPTOGRAPHY parameter: [cipher] Parameter Type: [GETPARAM] Original Value: [xor]"
+            == "Found potentially interesting parameter. Name: [cipher] Parameter Type: [GETPARAM] Category: [INSECURE CRYPTOGRAPHY] Original Value: [xor]"
             for e in events
         )

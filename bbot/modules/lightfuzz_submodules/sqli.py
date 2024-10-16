@@ -6,6 +6,18 @@ import statistics
 
 class SQLiLightfuzz(BaseLightfuzz):
     expected_delay = 5
+    sqli_error_strings = [
+        "Unterminated string literal",
+        "Failed to parse string literal",
+        "error in your SQL syntax",
+        "syntax error at or near",
+        "Unknown column",
+        "unterminated quoted string",
+        "Unclosed quotation mark",
+        "Incorrect syntax near",
+        "SQL command not properly ended",
+        "string not properly terminated",
+    ]
 
     def evaluate_delay(self, mean_baseline, measured_delay):
         margin = 1.5
@@ -48,6 +60,17 @@ class SQLiLightfuzz(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
+
+            if single_quote[0] == False:
+                for sqli_error_string in self.sqli_error_strings:
+                    if sqli_error_string.lower() in single_quote[3].text.lower():
+                        self.results.append(
+                            {
+                                "type": "FINDING",
+                                "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [SQL Error Detection] Detected String: [{sqli_error_string}]",
+                            }
+                        )
+                        break
 
             if single_quote[3] and double_single_quote[3]:
                 if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
