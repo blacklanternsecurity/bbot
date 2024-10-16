@@ -3,11 +3,11 @@ from contextlib import suppress
 
 from bbot.errors import ValidationError
 from bbot.core.helpers.dns.engine import all_rdtypes
-from bbot.modules.base import InterceptModule, BaseModule
 from bbot.core.helpers.dns.helpers import extract_targets
+from bbot.modules.base import BaseInterceptModule, BaseModule
 
 
-class DNSResolve(InterceptModule):
+class DNSResolve(BaseInterceptModule):
     watched_events = ["*"]
     _priority = 1
     scope_distance_modifier = None

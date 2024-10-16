@@ -6,6 +6,7 @@ import regex as re
 from pathlib import Path
 from bbot.errors import ExcavateError
 import bbot.core.helpers.regexes as bbot_regexes
+from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
 
@@ -279,7 +280,7 @@ class CustomExtractor(ExcavateRule):
                 await self.report(event_data, event, yara_rule_settings, discovery_context)
 
 
-class excavate(BaseInternalModule):
+class excavate(BaseInternalModule, BaseInterceptModule):
     """
     Example (simple) Excavate Rules:
 
@@ -310,6 +311,7 @@ class excavate(BaseInternalModule):
         "custom_yara_rules": "Include custom Yara rules",
     }
     scope_distance_modifier = None
+    accept_dupes = False
 
     _module_threads = 8
 
@@ -669,8 +671,32 @@ class excavate(BaseInternalModule):
 
     class URLExtractor(ExcavateRule):
         yara_rules = {
-            "url_full": r'rule url_full { meta: tags = "spider-danger" description = "contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)(:\d{1,5})?([\/\w\.-]*)/ condition: $url_full }',
-            "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
+            "url_full": (
+                r"""
+                rule url_full {
+                    meta:
+                        tags = "spider-danger"
+                        description = "contains full URL"
+                    strings:
+                        $url_full = /https?:\/\/([\w\.-]+)(:\d{1,5})?([\/\w\.-]*)/
+                    condition:
+                        $url_full
+                }
+                """
+            ),
+            "url_attr": (
+                r"""
+                rule url_attr {
+                    meta:
+                        tags = "spider-danger"
+                        description = "contains tag with src or href attribute"
+                    strings:
+                        $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/
+                    condition:
+                        $url_attr
+                }
+                """
+            ),
         }
         full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
         full_url_regex_strict = re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$")
@@ -748,6 +774,26 @@ class excavate(BaseInternalModule):
             for identifier in yara_results.keys():
                 for domain_str in yara_results[identifier]:
                     await self.report(domain_str, event, yara_rule_settings, discovery_context, event_type="DNS_NAME")
+
+    class LoginPageExtractor(ExcavateRule):
+        yara_rules = {
+            "login_page": r"""
+            rule login_page {
+                meta:
+                    description = "Detects login pages with username and password fields"
+                strings:
+                    $username_field = /<input[^>]+name=["']?(user|login|email)/ nocase
+                    $password_field = /<input[^>]+name=["']?passw?/ nocase
+                condition:
+                    $username_field and $password_field
+            }
+            """
+        }
+
+        async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            self.excavate.critical(f"Login page detected: {event.data['url']}")
+            if yara_results:
+                event.add_tag("login-page")
 
     def add_yara_rule(self, rule_name, rule_content, rule_instance):
         rule_instance.name = rule_name
