@@ -15,9 +15,7 @@ class ScanIngress(BaseInterceptModule):
     # accept all events regardless of scope distance
     scope_distance_modifier = None
     _name = "_scan_ingress"
-
-    # small queue size so we don't drain modules' outgoing queues
-    _qsize = 10
+    _qsize = -1
 
     @property
     def priority(self):
