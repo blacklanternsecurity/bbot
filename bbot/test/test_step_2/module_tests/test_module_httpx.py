@@ -142,3 +142,32 @@ class TestHTTPX_querystring_notremoved(TestHTTPX_querystring_removed):
 
     def check(self, module_test, events):
         assert [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/test.php?foo=bar"]
+
+
+class TestHTTPX_custom_headers(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "speculate", "excavate"]
+    config_overrides = {"web": {"http_headers": {"testheader": "testvalue"}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/", headers={"testheader": "testvalue"}).respond_with_data("alive")
+
+    def check(self, module_test, events):
+        # Ensure we received the expected response when the header was present
+        assert [e for e in events if e.type == "URL" and "status-200" in e.tags]
+
+
+class TestHTTPX_custom_headers(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "speculate", "excavate"]
+    config_overrides = {"web": {"http_cookies": {"testcookie": "cookievalue"}}}
+
+    async def setup_after_prep(self, module_test):
+        # Expect a request to "/" with the custom cookie 'testcookie=cookievalue'
+        module_test.httpserver.expect_request("/", headers={"cookie": "testcookie=cookievalue"}).respond_with_data(
+            "alive"
+        )
+
+    def check(self, module_test, events):
+        # Ensure we received the expected response when the cookie was present
+        assert [e for e in events if e.type == "URL" and "status-200" in e.tags]
