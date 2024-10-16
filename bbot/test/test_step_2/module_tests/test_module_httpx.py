@@ -157,7 +157,7 @@ class TestHTTPX_custom_headers(ModuleTestBase):
         assert [e for e in events if e.type == "URL" and "status-200" in e.tags]
 
 
-class TestHTTPX_custom_headers(ModuleTestBase):
+class TestHTTPX_custom_cookies(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "speculate", "excavate"]
     config_overrides = {"web": {"http_cookies": {"testcookie": "cookievalue"}}}
