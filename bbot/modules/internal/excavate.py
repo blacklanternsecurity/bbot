@@ -791,7 +791,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         }
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
-            self.excavate.critical(f"Login page detected: {event.data['url']}")
             if yara_results:
                 event.add_tag("login-page")
 
