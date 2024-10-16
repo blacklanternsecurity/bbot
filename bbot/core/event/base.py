@@ -445,11 +445,6 @@ class BaseEvent:
         return self._always_emit or always_emit_tags or no_host_information
 
     @property
-    def quick_emit(self):
-        no_host_information = not bool(self.host)
-        return self._quick_emit or no_host_information
-
-    @property
     def id(self):
         """
         A uniquely identifiable hash of the event from the event type + a SHA1 of its data
@@ -1930,6 +1925,13 @@ class FILESYSTEM(DictPathEvent):
 class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
     # don't emit raw DNS records for affiliates
     _always_emit_tags = ["target"]
+
+
+class MOBILE_APP(DictEvent):
+    _always_emit = True
+
+    def _pretty_string(self):
+        return self.data["url"]
 
 
 def make_event(

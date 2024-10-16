@@ -215,7 +215,7 @@ class TestGit_CloneWithBlob(TestGit_Clone):
     config_overrides = {"folder_blobs": True}
 
     def check(self, module_test, events):
-        filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
+        filesystem_events = [e for e in events if e.type == "FILESYSTEM" and "folder" in e.tags]
         assert len(filesystem_events) == 1
         assert all(["blob" in e.data for e in filesystem_events])
         filesystem_event = filesystem_events[0]

@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from bbot.modules.base import BaseModule
 
 
@@ -14,7 +13,7 @@ class trufflehog(BaseModule):
     }
 
     options = {
-        "version": "3.82.7",
+        "version": "3.82.9",
         "config": "",
         "only_verified": True,
         "concurrency": 8,
@@ -65,7 +64,6 @@ class trufflehog(BaseModule):
             if not self.github_token:
                 self.deleted_forks = False
                 return None, "A github api_key must be provided to the github modules for deleted forks to be scanned"
-        self.processed = set()
         return True
 
     async def filter_event(self, event):
@@ -78,12 +76,8 @@ class trufflehog(BaseModule):
             else:
                 return False, "Deleted forks is not enabled"
         else:
-            path = event.data["path"]
-            for processed in self.processed:
-                processed_path = Path(processed)
-                new_path = Path(path)
-                if new_path.is_relative_to(processed_path):
-                    return False, "Parent folder has already been processed"
+            if "parsed-folder" in event.tags:
+                return False, "Not accepting parsed-folder events"
         return True
 
     async def handle_event(self, event):
@@ -94,7 +88,6 @@ class trufflehog(BaseModule):
                 module = "github-experimental"
         else:
             path = event.data["path"]
-            self.processed.add(path)
             if "git" in event.tags:
                 module = "git"
             elif "docker" in event.tags:

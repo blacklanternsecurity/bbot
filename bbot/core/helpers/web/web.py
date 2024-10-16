@@ -1,4 +1,3 @@
-import re
 import logging
 import warnings
 from pathlib import Path
@@ -471,53 +470,6 @@ class WebHelper(EngineClient):
         except Exception as e:
             log.debug(f"Error parsing beautifulsoup: {e}")
             return False
-
-    user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
-    pass_keywords = [re.compile(r, re.I) for r in ["pass"]]
-
-    def is_login_page(self, html):
-        """
-        TODO: convert this into an excavate YARA rule
-
-        Determines if the provided HTML content contains a login page.
-
-        This function parses the HTML to search for forms with input fields typically used for
-        authentication. If it identifies password fields or a combination of username and password
-        fields, it returns True.
-
-        Args:
-            html (str): The HTML content to analyze.
-
-        Returns:
-            bool: True if the HTML contains a login page, otherwise False.
-
-        Examples:
-            >>> is_login_page('<form><input type="text" name="username"><input type="password" name="password"></form>')
-            True
-
-            >>> is_login_page('<form><input type="text" name="search"></form>')
-            False
-        """
-        try:
-            soup = BeautifulSoup(html, "html.parser")
-        except Exception as e:
-            log.debug(f"Error parsing html: {e}")
-            return False
-
-        forms = soup.find_all("form")
-
-        # first, check for obvious password fields
-        for form in forms:
-            if form.find_all("input", {"type": "password"}):
-                return True
-
-        # next, check for forms that have both a user-like and password-like field
-        for form in forms:
-            user_fields = sum(bool(form.find_all("input", {"name": r})) for r in self.user_keywords)
-            pass_fields = sum(bool(form.find_all("input", {"name": r})) for r in self.pass_keywords)
-            if user_fields and pass_fields:
-                return True
-        return False
 
     def response_to_json(self, response):
         """

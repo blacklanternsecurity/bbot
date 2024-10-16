@@ -1,10 +1,10 @@
 import asyncio
 from contextlib import suppress
 
-from bbot.modules.base import InterceptModule
+from bbot.modules.base import BaseInterceptModule
 
 
-class ScanIngress(InterceptModule):
+class ScanIngress(BaseInterceptModule):
     """
     This is always the first intercept module in the chain, responsible for basic scope checks
 
@@ -15,9 +15,7 @@ class ScanIngress(InterceptModule):
     # accept all events regardless of scope distance
     scope_distance_modifier = None
     _name = "_scan_ingress"
-
-    # small queue size so we don't drain modules' outgoing queues
-    _qsize = 10
+    _qsize = -1
 
     @property
     def priority(self):
@@ -115,14 +113,6 @@ class ScanIngress(InterceptModule):
         # nerf event's priority if it's not in scope
         event.module_priority += event.scope_distance
 
-    async def forward_event(self, event, kwargs):
-        # if a module qualifies for "quick-emit", we skip all the intermediate modules like dns and cloud
-        # and forward it straight to the egress module
-        if event.quick_emit:
-            await self.scan.egress_module.queue_event(event, kwargs)
-        else:
-            await super().forward_event(event, kwargs)
-
     @property
     def non_intercept_modules(self):
         if self._non_intercept_modules is None:
@@ -169,7 +159,7 @@ class ScanIngress(InterceptModule):
         return False
 
 
-class ScanEgress(InterceptModule):
+class ScanEgress(BaseInterceptModule):
     """
     This is always the last intercept module in the chain, responsible for executing and acting on the
     `abort_if` and `on_success_callback` functions.

@@ -15,11 +15,7 @@ class chaos(subdomain_enum_apikey):
     options_desc = {"api_key": "Chaos API key"}
 
     base_url = "https://dns.projectdiscovery.io/dns"
-
-    async def ping(self):
-        url = f"{self.base_url}/example.com"
-        response = await self.api_request(url)
-        assert response.json()["domain"] == "example.com"
+    ping_url = f"{base_url}/example.com"
 
     def prepare_api_request(self, url, kwargs):
         kwargs["headers"]["Authorization"] = self.api_key

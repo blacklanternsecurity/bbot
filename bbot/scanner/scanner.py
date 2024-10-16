@@ -294,7 +294,9 @@ class Scanner:
                 self.debug(
                     f"Setting intercept module {intercept_module.name}._incoming_event_queue to previous intercept module {prev_intercept_module.name}.outgoing_event_queue"
                 )
-                intercept_module._incoming_event_queue = prev_intercept_module.outgoing_event_queue
+                interqueue = asyncio.Queue()
+                intercept_module._incoming_event_queue = interqueue
+                prev_intercept_module._outgoing_event_queue = interqueue
 
             # abort if there are no output modules
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
@@ -450,7 +452,6 @@ class Scanner:
         # wait until output modules are flushed
         while 1:
             modules_finished = all([m.finished for m in output_modules])
-            self.verbose(modules_finished)
             if modules_finished:
                 break
             await asyncio.sleep(0.05)
@@ -1070,7 +1071,7 @@ class Scanner:
         Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
         """
         if self._dns_regexes_yara is None:
-            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
+            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)*")
         return self._dns_regexes_yara
 
     @property

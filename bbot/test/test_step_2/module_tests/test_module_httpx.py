@@ -1,8 +1,10 @@
 from .base import ModuleTestBase
 
 
-class TestHTTPX(ModuleTestBase):
+class TestHTTPXBase(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/url", "127.0.0.1:8888"]
+    module_name = "httpx"
+    modules_overrides = ["httpx", "excavate"]
     config_overrides = {"modules": {"httpx": {"store_responses": True}}}
 
     # HTML for a page with a login form

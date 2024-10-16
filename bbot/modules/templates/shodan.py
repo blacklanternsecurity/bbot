@@ -8,6 +8,7 @@ class shodan(subdomain_enum):
     options_desc = {"api_key": "Shodan API key"}
 
     base_url = "https://api.shodan.io"
+    ping_url = f"{base_url}/api-info?key={{api_key}}"
 
     async def setup(self):
         await super().setup()
@@ -32,10 +33,3 @@ class shodan(subdomain_enum):
         except Exception as e:
             self.trace(traceback.format_exc())
             return None, f"Error with API ({str(e).strip()})"
-        return True
-
-    async def ping(self):
-        url = f"{self.base_url}/api-info?key={self.api_key}"
-        r = await self.api_request(url)
-        resp_content = getattr(r, "text", "")
-        assert getattr(r, "status_code", 0) == 200, resp_content

@@ -312,7 +312,7 @@ class BaseModule:
             try:
                 await self.ping()
                 self.hugesuccess(f"API is ready")
-                return True
+                return True, ""
             except Exception as e:
                 self.trace(traceback.format_exc())
                 return None, f"Error with API ({str(e).strip()})"
@@ -331,7 +331,7 @@ class BaseModule:
         self._api_keys = list(api_keys)
 
     def cycle_api_key(self):
-        if self._api_keys:
+        if len(self._api_keys) > 1:
             self.verbose(f"Cycling API key")
             self._api_keys.insert(0, self._api_keys.pop())
         else:
@@ -345,25 +345,42 @@ class BaseModule:
     def api_failure_abort_threshold(self):
         return (self.api_retries * self._api_failure_abort_threshold) + 1
 
-    async def ping(self):
+    async def ping(self, url=None):
         """Asynchronously checks the health of the configured API.
 
-        This method is used in conjunction with require_api_key() to verify that the API is not just configured, but also responsive. This method should include an assert statement to validate the API's health, typically by making a test request to a known endpoint.
+        This method is used in conjunction with require_api_key() to verify that the API is not just configured, but also responsive. It makes a test request to a known endpoint to validate the API's health.
 
-        Example Usage:
-            In your implementation, if the API has a "/ping" endpoint:
-            async def ping(self):
-                r = await self.api_request(f"{self.base_url}/ping")
-                resp_content = getattr(r, "text", "")
-                assert getattr(r, "status_code", 0) == 200, resp_content
+        The method uses the `ping_url` attribute if defined, or falls back to a provided URL. If neither is available, no request is made.
+
+        Args:
+            url (str, optional): A specific URL to use for the ping request. If not provided, the method will use the `ping_url` attribute.
 
         Returns:
             None
 
         Raises:
-            AssertionError: If the API does not respond as expected.
+            ValueError: If the API response is not successful (status code != 200).
+
+        Example Usage:
+            To use this method, simply define the `ping_url` attribute in your module:
+
+            class MyModule(BaseModule):
+                ping_url = "https://api.example.com/ping"
+
+            Alternatively, you can override this method for more complex health checks:
+
+            async def ping(self):
+                r = await self.api_request(f"{self.base_url}/complex-health-check")
+                if r.status_code != 200 or r.json().get('status') != 'healthy':
+                    raise ValueError(f"API unhealthy: {r.text}")
         """
-        return
+        if url is None:
+            url = getattr(self, "ping_url", "")
+        if url:
+            r = await self.api_request(url)
+            if getattr(r, "status_code", 0) != 200:
+                response_text = getattr(r, "text", "no response from server")
+                raise ValueError(response_text)
 
     @property
     def batch_size(self):
@@ -1134,6 +1151,8 @@ class BaseModule:
                 self._api_request_failures = 0
             else:
                 status_code = getattr(r, "status_code", 0)
+                response_text = getattr(r, "text", "")
+                self.trace(f"API response to {url} failed with status code {status_code}: {response_text}")
                 self._api_request_failures += 1
                 if self._api_request_failures >= self.api_failure_abort_threshold:
                     self.set_error_state(
@@ -1540,7 +1559,7 @@ class BaseModule:
             self.trace()
 
 
-class InterceptModule(BaseModule):
+class BaseInterceptModule(BaseModule):
     """
     An Intercept Module is a special type of high-priority module that gets early access to events.
 
@@ -1552,7 +1571,6 @@ class InterceptModule(BaseModule):
     """
 
     accept_dupes = True
-    suppress_dupes = False
     _intercept = True
 
     async def _worker(self):
