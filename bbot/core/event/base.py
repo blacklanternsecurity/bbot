@@ -1487,7 +1487,7 @@ class WEB_PARAMETER(DictHostEvent):
                     envelopes.append("base64")
                     envelopes, end_format_dict = self.recurse_envelopes(decoded_base64, envelopes)
                     return envelopes, end_format_dict
-            except (binascii.Error, UnicodeDecodeError):
+            except (binascii.Error, UnicodeDecodeError, ValueError):
                 pass  # Not valid base64
 
             # Try hex decoding
