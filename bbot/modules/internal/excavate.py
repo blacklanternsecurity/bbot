@@ -499,7 +499,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 forms = self.extraction_regex.findall(str(self.result))
                 for form_action, form_content in forms:
 
-                    if not form_action:
+                    if not form_action or form_action == "#":
                         form_action = None
 
                     elif form_action.startswith("./"):

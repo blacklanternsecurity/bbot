@@ -7,10 +7,11 @@ import urllib.parse
 class CmdILightfuzz(BaseLightfuzz):
 
     async def fuzz(self):
+
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.probe_value_incoming()
 
-        canary = self.lightfuzz.helpers.rand_string(8, numeric_only=True)
+        canary = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
         http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
 
         cmdi_probe_strings = [
@@ -30,6 +31,7 @@ class CmdILightfuzz(BaseLightfuzz):
                     echo_probe = urllib.parse.quote(echo_probe.encode(), safe="")
                 cmdi_probe = await self.compare_probe(http_compare, self.event.data["type"], echo_probe, cookies)
                 if cmdi_probe[3]:
+
                     if canary in cmdi_probe[3].text and "echo" not in cmdi_probe[3].text:
                         self.lightfuzz.debug(f"canary [{canary}] found in response when sending probe [{p}]")
                         if p == "AAAA":
