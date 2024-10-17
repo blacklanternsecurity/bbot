@@ -2,8 +2,7 @@ from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
 import re
-import urllib.parse
-
+from urllib.parse import quote
 
 class PathTraversalLightfuzz(BaseLightfuzz):
 
@@ -17,21 +16,36 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             return
 
         # Single dot traversal tolerance test
-
         path_techniques = {
             "single-dot traversal tolerance (no-encoding)": {
+                "singledot_payload": f"./a/../{probe_value}",
+                "doubledot_payload": f"../a/../{probe_value}",
+            },
+            "single-dot traversal tolerance (no-encoding, leading slash)": {
                 "singledot_payload": f"/./a/../{probe_value}",
                 "doubledot_payload": f"/../a/../{probe_value}",
             },
             "single-dot traversal tolerance (url-encoding)": {
-                "singledot_payload": urllib.parse.quote(f"/./a/../{probe_value}".encode(), safe=""),
-                "doubledot_payload": urllib.parse.quote(f"/../a/../{probe_value}".encode(), safe=""),
+                "singledot_payload": quote(f"./a/../{probe_value}".encode(), safe=""),
+                "doubledot_payload": quote(f"../a/../{probe_value}".encode(), safe=""),
+            },
+            "single-dot traversal tolerance (url-encoding, leading slash)": {
+                "singledot_payload": quote(f"/./a/../{probe_value}".encode(), safe=""),
+                "doubledot_payload": quote(f"/../a/../{probe_value}".encode(), safe=""),
             },
             "single-dot traversal tolerance (non-recursive stripping)": {
+                "singledot_payload": f"...//a/....//{probe_value}",
+                "doubledot_payload": f"....//a/....//{probe_value}",
+            },
+            "single-dot traversal tolerance (non-recursive stripping, leading slash)": {
                 "singledot_payload": f"/...//a/....//{probe_value}",
                 "doubledot_payload": f"/....//a/....//{probe_value}",
             },
             "single-dot traversal tolerance (double url-encoding)": {
+                "singledot_payload": f".%252fa%252f..%252f{probe_value}",
+                "doubledot_payload": f"..%252fa%252f..%252f{probe_value}",
+            },
+            "single-dot traversal tolerance (double url-encoding, leading slash)": {
                 "singledot_payload": f"%252f.%252fa%252f..%252f{probe_value}",
                 "doubledot_payload": f"%252f..%252fa%252f..%252f{probe_value}",
             },
@@ -89,7 +103,6 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                     break
 
         # Absolute path test
-
         absolute_paths = {
             r"c:\\windows\\win.ini": "; for 16-bit app support",
             "/etc/passwd": "daemon:x:",

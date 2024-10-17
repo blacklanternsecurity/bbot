@@ -580,7 +580,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             endpoint,
                             additional_params,
                         ) in extracted_params:
-
                             self.excavate.debug(
                                 f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
                             )
@@ -589,14 +588,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             if endpoint and endpoint.startswith(("http://", "https://")):
                                 url = endpoint
 
+                            # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
                             else:
-                                # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
-                                path = event.parsed_url.path if not endpoint else endpoint
-                                # Normalize path by remove leading slash
-                                path = path.lstrip("/")
-
-                                # Ensure the base URL has a single slash between path and endpoint
-                                url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{path}"
+                                # Use the original URL as the base and resolve the endpoint correctly in case of relative paths
+                                base_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{event.parsed_url.path}"
+                                url = urljoin(base_url, endpoint)
 
                             if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
 
