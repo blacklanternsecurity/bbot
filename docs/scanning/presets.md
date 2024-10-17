@@ -77,7 +77,10 @@ config:
     securitytrails:
       api_key: 21a270d5f59c9b05813a72bb41707266
     virustotal:
-      api_key: 4f41243847da693a4f356c0486114bc6
+      # multiple API keys are allowed
+      api_key:
+        - 4f41243847da693a4f356c0486114bc6
+        - 5bc6ed268ab6488270e496d3183a1a27
 ```
 
 To execute your custom preset, you do:
@@ -120,6 +123,16 @@ bbot -p ./mypreset.yml --current-preset
 ## Advanced Usage
 
 BBOT Presets support advanced features like environment variable substitution and custom conditions.
+
+### Custom Modules
+
+If you want to use a custom BBOT `.py` module, you can either move it into `bbot/modules` where BBOT is installed, or add its parent folder to `module_dirs` like so:
+
+```yaml title="custom_modules.yml"
+# load extra BBOT modules from this locaation
+module_dirs:
+  - /home/user/custom_modules
+```
 
 ### Environment Variables
 

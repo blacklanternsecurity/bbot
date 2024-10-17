@@ -661,3 +661,49 @@ config:
 
     preset1_file.unlink()
     preset2_file.unlink()
+
+    # test output dir preset
+    output_dir_preset_file = bbot_test_dir / "output_dir_preset.yml"
+    scan_name = "cli_output_dir_test"
+    output_dir = bbot_test_dir / "cli_output_dir_preset"
+    scan_dir = output_dir / scan_name
+    output_file = scan_dir / "output.txt"
+
+    with open(output_dir_preset_file, "w") as f:
+        f.write(
+            f"""
+output_dir: {output_dir}
+scan_name: {scan_name}
+        """
+        )
+
+    assert not output_dir.exists()
+    assert not scan_dir.exists()
+    assert not output_file.exists()
+
+    monkeypatch.setattr("sys.argv", ["bbot", "-p", str(output_dir_preset_file.resolve()), "--current-preset"])
+    cli.main()
+    captured = capsys.readouterr()
+    stdout_preset = yaml.safe_load(captured.out)
+    assert stdout_preset["output_dir"] == str(output_dir)
+    assert stdout_preset["scan_name"] == scan_name
+
+    shutil.rmtree(output_dir, ignore_errors=True)
+    shutil.rmtree(scan_dir, ignore_errors=True)
+    shutil.rmtree(output_file, ignore_errors=True)
+
+    assert not output_dir.exists()
+    assert not scan_dir.exists()
+    assert not output_file.exists()
+
+    monkeypatch.setattr("sys.argv", ["bbot", "-p", str(output_dir_preset_file.resolve())])
+    cli.main()
+    captured = capsys.readouterr()
+    assert output_dir.is_dir()
+    assert scan_dir.is_dir()
+    assert output_file.is_file()
+
+    shutil.rmtree(output_dir, ignore_errors=True)
+    shutil.rmtree(scan_dir, ignore_errors=True)
+    shutil.rmtree(output_file, ignore_errors=True)
+    output_dir_preset_file.unlink()

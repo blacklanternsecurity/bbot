@@ -47,7 +47,7 @@ class TestDnsbrute_mutations(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 9
+        assert len(events) == 10
         assert 1 == len(
             [
                 e

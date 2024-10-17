@@ -372,3 +372,33 @@ async def test_regex_helper():
         assert matches.count(s) == 2
 
     await scan._cleanup()
+
+    # test yara hostname extractor helper
+    scan = Scanner("evilcorp.com", "www.evilcorp.net", "evilcorp.co.uk")
+    host_blob = """
+    https://evilcorp.com/
+    https://asdf.evilcorp.com/
+    https://asdf.www.evilcorp.net/
+    https://asdf.www.evilcorp.co.uk/
+    https://asdf.www.evilcorp.com/
+    https://asdf.www.evilcorp.com/
+    https://test.api.www.evilcorp.net/
+    """
+    extracted = await scan.extract_in_scope_hostnames(host_blob)
+    assert extracted == {
+        "evilcorp.co.uk",
+        "evilcorp.com",
+        "www.evilcorp.com",
+        "asdf.evilcorp.com",
+        "asdf.www.evilcorp.com",
+        "www.evilcorp.net",
+        "api.www.evilcorp.net",
+        "asdf.www.evilcorp.net",
+        "test.api.www.evilcorp.net",
+        "asdf.www.evilcorp.co.uk",
+        "www.evilcorp.co.uk",
+    }
+
+    scan = Scanner()
+    extracted = await scan.extract_in_scope_hostnames(host_blob)
+    assert extracted == set()

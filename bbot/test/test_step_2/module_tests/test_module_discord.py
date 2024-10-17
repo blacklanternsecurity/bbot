@@ -29,7 +29,7 @@ class TestDiscord(ModuleTestBase):
             if module_test.request_count == 2:
                 return httpx.Response(status_code=429, json={"retry_after": 0.01})
             else:
-                return httpx.Response(status_code=module_test.module.good_status_code)
+                return httpx.Response(status_code=200)
 
         module_test.httpx_mock.add_callback(custom_response, url=self.webhook_url)
 

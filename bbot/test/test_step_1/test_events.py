@@ -4,6 +4,7 @@ import ipaddress
 
 from ..bbot_fixtures import *
 from bbot.scanner import Scanner
+from bbot.core.helpers.regexes import uuid_regex
 
 
 @pytest.mark.asyncio
@@ -311,6 +312,16 @@ async def test_events(events, helpers):
             {"host": "evilcorp.com", "severity": "WACK", "description": "asdf"}, "VULNERABILITY", dummy=True
         )
 
+    # test tagging
+    ip_event_1 = scan.make_event("8.8.8.8", dummy=True)
+    assert "private-ip" not in ip_event_1.tags
+    ip_event_2 = scan.make_event("192.168.0.1", dummy=True)
+    assert "private-ip" in ip_event_2.tags
+    dns_event_1 = scan.make_event("evilcorp.com", dummy=True)
+    assert "domain" in dns_event_1.tags
+    dns_event_2 = scan.make_event("www.evilcorp.com", dummy=True)
+    assert "subdomain" in dns_event_2.tags
+
     # punycode - event type detection
 
     # japanese
@@ -402,33 +413,73 @@ async def test_events(events, helpers):
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 
+    # test event uuid
+    import uuid
+
+    parent_event1 = scan.make_event("evilcorp.com", parent=scan.root_event, context="test context")
+    parent_event2 = scan.make_event("evilcorp.com", parent=scan.root_event, context="test context")
+
+    event1 = scan.make_event("evilcorp.com:80", parent=parent_event1, context="test context")
+    assert hasattr(event1, "uuid")
+    assert isinstance(event1.uuid, uuid.UUID)
+    event2 = scan.make_event("evilcorp.com:80", parent=parent_event2, context="test context")
+    assert hasattr(event2, "uuid")
+    assert isinstance(event2.uuid, uuid.UUID)
+    # ids should match because the event type + data is the same
+    assert event1.id == event2.id
+    # but uuids should be unique!
+    assert event1.uuid != event2.uuid
+    # parent ids should match
+    assert event1.parent_id == event2.parent_id == parent_event1.id == parent_event2.id
+    # uuids should not
+    assert event1.parent_uuid == parent_event1.uuid
+    assert event2.parent_uuid == parent_event2.uuid
+    assert event1.parent_uuid != event2.parent_uuid
+
     # test event serialization
     from bbot.core.event import event_from_json
 
     db_event = scan.make_event("evilcorp.com:80", parent=scan.root_event, context="test context")
+    assert db_event.parent == scan.root_event
+    assert db_event.parent is scan.root_event
     db_event._resolved_hosts = {"127.0.0.1"}
     db_event.scope_distance = 1
     assert db_event.discovery_context == "test context"
-    assert db_event.discovery_path == [["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]]
+    assert db_event.discovery_path == ["test context"]
+    assert len(db_event.parent_chain) == 1
+    assert all([uuid_regex.match(u) for u in db_event.parent_chain])
+    assert db_event.parent_chain[0] == str(db_event.uuid)
+    assert db_event.parent.uuid == scan.root_event.uuid
+    assert db_event.parent_uuid == scan.root_event.uuid
     timestamp = db_event.timestamp.isoformat()
     json_event = db_event.json()
+    assert isinstance(json_event["uuid"], str)
+    assert json_event["uuid"] == str(db_event.uuid)
+    print(f"{json_event} / {db_event.uuid} / {db_event.parent_uuid} / {scan.root_event.uuid}")
+    assert json_event["parent_uuid"] == str(scan.root_event.uuid)
     assert json_event["scope_distance"] == 1
     assert json_event["data"] == "evilcorp.com:80"
     assert json_event["type"] == "OPEN_TCP_PORT"
     assert json_event["host"] == "evilcorp.com"
     assert json_event["timestamp"] == timestamp
     assert json_event["discovery_context"] == "test context"
-    assert json_event["discovery_path"] == [["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]]
+    assert json_event["discovery_path"] == ["test context"]
+    assert json_event["parent_chain"] == db_event.parent_chain
+    assert json_event["parent_chain"][0] == str(db_event.uuid)
     reconstituted_event = event_from_json(json_event)
+    assert isinstance(reconstituted_event.uuid, uuid.UUID)
+    assert str(reconstituted_event.uuid) == json_event["uuid"]
+    assert str(reconstituted_event.parent_uuid) == json_event["parent_uuid"]
+    assert reconstituted_event.uuid == db_event.uuid
+    assert reconstituted_event.parent_uuid == scan.root_event.uuid
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.isoformat() == timestamp
     assert reconstituted_event.data == "evilcorp.com:80"
     assert reconstituted_event.type == "OPEN_TCP_PORT"
     assert reconstituted_event.host == "evilcorp.com"
     assert reconstituted_event.discovery_context == "test context"
-    assert reconstituted_event.discovery_path == [
-        ["OPEN_TCP_PORT:5098b5e3fc65b13bb4a5cee4201c2e160fa4ffac", "test context"]
-    ]
+    assert reconstituted_event.discovery_path == ["test context"]
+    assert reconstituted_event.parent_chain == db_event.parent_chain
     assert "127.0.0.1" in reconstituted_event.resolved_hosts
     hostless_event = scan.make_event("asdf", "ASDF", dummy=True)
     hostless_event_json = hostless_event.json()
@@ -605,7 +656,7 @@ async def test_event_discovery_context():
     )
 
     events = [e async for e in scan.async_start()]
-    assert len(events) == 6
+    assert len(events) == 7
 
     assert 1 == len(
         [
@@ -614,7 +665,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "evilcorp.com"
             and e.discovery_context == f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"
-            and [_[-1] for _ in e.discovery_path] == [f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"]
+            and e.discovery_path == [f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"]
         ]
     )
     assert 1 == len(
@@ -624,7 +675,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "one.evilcorp.com"
             and e.discovery_context == "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com"
-            and [_[-1] for _ in e.discovery_path]
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -639,7 +690,7 @@ async def test_event_discovery_context():
             and e.data == "two.evilcorp.com"
             and e.discovery_context
             == "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com"
-            and [_[-1] for _ in e.discovery_path]
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -654,7 +705,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "three.evilcorp.com"
             and e.discovery_context == "module_2 asked nicely and was given DNS_NAME three.evilcorp.com"
-            and [_[-1] for _ in e.discovery_path]
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -676,11 +727,11 @@ async def test_event_discovery_context():
         if e.type == "DNS_NAME"
         and e.data == "four.evilcorp.com"
         and e.discovery_context == "module_2 used brute force to obtain DNS_NAME four.evilcorp.com"
-        and [_[-1] for _ in e.discovery_path] == final_path
+        and e.discovery_path == final_path
     ]
     assert 1 == len(final_event)
     j = final_event[0].json()
-    assert [_[-1] for _ in j["discovery_path"]] == final_path
+    assert j["discovery_path"] == final_path
 
     await scan._cleanup()
 
@@ -693,7 +744,7 @@ async def test_event_discovery_context():
     events = [e async for e in scan.async_start()]
     blsops_event = [e for e in events if e.type == "DNS_NAME" and e.data == "blsops.com"]
     assert len(blsops_event) == 1
-    assert blsops_event[0].discovery_path[1][-1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
+    assert blsops_event[0].discovery_path[1] == "URL_UNVERIFIED has host DNS_NAME: blacklanternsecurity.com"
 
     await scan._cleanup()
 

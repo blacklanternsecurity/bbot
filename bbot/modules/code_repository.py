@@ -19,6 +19,7 @@ class code_repository(BaseModule):
             (r"gitlab.(?:com|org)/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+", False),
         ],
         "docker": (r"hub.docker.com/r/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+", False),
+        "postman": (r"www.postman.com/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+", False),
     }
 
     scope_distance_modifier = 1

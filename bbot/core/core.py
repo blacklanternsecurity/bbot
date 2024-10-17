@@ -34,8 +34,6 @@ class BBOTCore:
         self._logger = None
         self._files_config = None
 
-        self.bbot_sudo_pass = None
-
         self._config = None
         self._custom_config = None
 

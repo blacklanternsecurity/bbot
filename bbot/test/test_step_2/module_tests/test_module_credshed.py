@@ -69,7 +69,7 @@ class TestCredshed(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 10
+        assert len(events) == 11
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "bob@blacklanternsecurity.com"])
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "judy@blacklanternsecurity.com"])
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "tim@blacklanternsecurity.com"])

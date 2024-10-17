@@ -91,7 +91,7 @@ async def test_manager_deduplication(bbot_scanner):
         _dns_mock=dns_mock_chain,
     )
 
-    assert len(events) == 21
+    assert len(events) == 22
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "accept_dupes.test.notreal" and str(e.module) == "accept_dupes"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "default_module.test.notreal" and str(e.module) == "default_module"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.parent.data == "accept_dupes.test.notreal"])

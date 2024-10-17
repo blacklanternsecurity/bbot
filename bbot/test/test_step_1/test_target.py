@@ -182,14 +182,14 @@ async def test_target(bbot_scanner):
     for org_target in ("ORG:evilcorp", "ORG_STUB:evilcorp"):
         scan = bbot_scanner(org_target)
         events = [e async for e in scan.async_start()]
-        assert len(events) == 2
+        assert len(events) == 3
         assert set([e.type for e in events]) == {"SCAN", "ORG_STUB"}
 
     # test username as target
     for user_target in ("USER:vancerefrigeration", "USERNAME:vancerefrigeration"):
         scan = bbot_scanner(user_target)
         events = [e async for e in scan.async_start()]
-        assert len(events) == 2
+        assert len(events) == 3
         assert set([e.type for e in events]) == {"SCAN", "USERNAME"}
 
     # verify hash values
@@ -225,7 +225,7 @@ async def test_target(bbot_scanner):
     )
     events = [e async for e in scan.async_start()]
     scan_events = [e for e in events if e.type == "SCAN"]
-    assert len(scan_events) == 1
+    assert len(scan_events) == 2
     target_dict = scan_events[0].data["target"]
     assert target_dict["strict_scope"] == False
     assert target_dict["hash"] == b"\x0b\x908\xe3\xef\n=\x13d\xdf\x00;\xack\x0c\xbc\xd2\xcc'\xba".hex()

@@ -1,12 +1,11 @@
 import os
-from pathlib import Path
 
 from bbot.modules.base import BaseModule
 
 
 class unstructured(BaseModule):
     watched_events = ["FILESYSTEM"]
-    produced_events = ["FILESYSTEM", "RAW_TEXT"]
+    produced_events = ["RAW_TEXT"]
     flags = ["passive", "safe"]
     meta = {
         "description": "Module to extract data from files",
@@ -59,11 +58,9 @@ class unstructured(BaseModule):
             "yml",  #  YAML Ain't Markup Language
             "yaml",  #  YAML Ain't Markup Language
         ],
-        "ignore_folders": [".git"],
     }
     options_desc = {
         "extensions": "File extensions to parse",
-        "ignore_folders": "Subfolders to ignore when crawling downloaded folders",
     }
 
     deps_apt = ["libmagic-dev", "poppler-utils", "tesseract-ocr", "libreoffice", "pandoc"]
@@ -73,41 +70,29 @@ class unstructured(BaseModule):
 
     async def setup(self):
         self.extensions = list(set([e.lower().strip(".") for e in self.config.get("extensions", [])]))
-        self.ignored_folders = self.config.get("ignore_folders", [])
         # Do not send user statistics to the unstructured library
         os.environ["SCARF_NO_ANALYTICS"] = "true"
         return True
 
     async def filter_event(self, event):
-        if "file" not in event.tags and "folder" not in event.tags:
-            return False, "Event is not a file or folder"
         if "file" in event.tags:
             if not any(event.data["path"].endswith(f".{ext}") for ext in self.extensions):
                 return False, "File extension not in the allowed list"
+        else:
+            return False, "Event is not a file"
         return True
 
     async def handle_event(self, event):
-        if "folder" in event.tags:
-            folder_path = Path(event.data["path"])
-            for file_path in folder_path.rglob("*"):
-                # If the file is not in an ignored folder and if it has an allowed extension raise it as a FILESYSTEM event
-                if not any(ignored_folder in str(file_path) for ignored_folder in self.ignored_folders):
-                    if any(file_path.name.endswith(f".{ext}") for ext in self.extensions):
-                        file_event = self.make_event(
-                            {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], parent=event
-                        )
-                        await self.emit_event(file_event)
-        elif "file" in event.tags:
-            file_path = event.data["path"]
-            content = await self.scan.helpers.run_in_executor_mp(extract_text, file_path)
-            if content:
-                raw_text_event = self.make_event(
-                    content,
-                    "RAW_TEXT",
-                    context=f"Extracted text from {file_path}",
-                    parent=event,
-                )
-                await self.emit_event(raw_text_event)
+        file_path = event.data["path"]
+        content = await self.scan.helpers.run_in_executor_mp(extract_text, file_path)
+        if content:
+            raw_text_event = self.make_event(
+                content,
+                "RAW_TEXT",
+                context=f"Extracted text from {file_path}",
+                parent=event,
+            )
+            await self.emit_event(raw_text_event)
 
     async def finish(self):
         del os.environ["SCARF_NO_ANALYTICS"]

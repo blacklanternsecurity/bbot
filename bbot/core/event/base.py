@@ -1,5 +1,6 @@
 import io
 import re
+import uuid
 import json
 import base64
 import logging
@@ -58,9 +59,10 @@ class BaseEvent:
 
     Attributes:
         type (str): Specifies the type of the event, e.g., `IP_ADDRESS`, `DNS_NAME`.
-        id (str): A unique identifier for the event.
+        id (str): An identifier for the event (event type + sha1 hash of data). NOT universally unique.
+        uuid (UUID): A universally unique identifier for the event.
         data (str or dict): The main data for the event, e.g., a URL or IP address.
-        data_graph (str): Representation of `self.data` for Neo4j graph nodes.
+        data_graph (str): Representation of `self.data` for graph nodes (e.g. Neo4j).
         data_human (str): Representation of `self.data` for human output.
         data_id (str): Representation of `self.data` used to calculate the event's ID (and ultimately its hash, which is used for deduplication)
         data_json (str): Representation of `self.data` to be used in JSON serialization.
@@ -75,6 +77,7 @@ class BaseEvent:
         resolved_hosts (list of str): List of hosts to which the event data resolves, applicable for URLs and DNS names.
         parent (BaseEvent): The parent event that led to the discovery of this event.
         parent_id (str): The `id` attribute of the parent event.
+        parent_uuid (str): The `uuid` attribute of the parent event.
         tags (set of str): Descriptive tags for the event, e.g., `mx-record`, `in-scope`.
         module (BaseModule): The module that discovered the event.
         module_sequence (str): The sequence of modules that participated in the discovery.
@@ -154,7 +157,7 @@ class BaseEvent:
         Raises:
             ValidationError: If either `scan` or `parent` are not specified and `_dummy` is False.
         """
-
+        self.uuid = uuid.uuid4()
         self._id = None
         self._hash = None
         self._data = None
@@ -166,11 +169,13 @@ class BaseEvent:
         self._parent = None
         self._priority = None
         self._parent_id = None
+        self._parent_uuid = None
         self._host_original = None
         self._scope_distance = None
         self._module_priority = None
         self._resolved_hosts = set()
         self.dns_children = dict()
+        self.raw_dns_records = dict()
         self._discovery_context = ""
         self._discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
         self.web_spider_distance = 0
@@ -379,10 +384,20 @@ class BaseEvent:
         """
         This event's full discovery context, including those of all its parents
         """
-        parent_path = []
+        discovery_path = []
         if self.parent is not None and self.parent is not self:
-            parent_path = self.parent.discovery_path
-        return parent_path + [[self.id, self.discovery_context]]
+            discovery_path = self.parent.discovery_path
+        return discovery_path + [self.discovery_context]
+
+    @property
+    def parent_chain(self):
+        """
+        This event's full discovery context, including those of all its parents
+        """
+        parent_chain = []
+        if self.parent is not None and self.parent is not self:
+            parent_chain = self.parent.parent_chain
+        return parent_chain + [str(self.uuid)]
 
     @property
     def words(self):
@@ -424,11 +439,6 @@ class BaseEvent:
         always_emit_tags = any(t in self.tags for t in self._always_emit_tags)
         no_host_information = not bool(self.host)
         return self._always_emit or always_emit_tags or no_host_information
-
-    @property
-    def quick_emit(self):
-        no_host_information = not bool(self.host)
-        return self._quick_emit or no_host_information
 
     @property
     def id(self):
@@ -555,6 +565,13 @@ class BaseEvent:
         if parent_id is not None:
             return parent_id
         return self._parent_id
+
+    @property
+    def parent_uuid(self):
+        parent_uuid = getattr(self.get_parent(), "uuid", None)
+        if parent_uuid is not None:
+            return parent_uuid
+        return self._parent_uuid
 
     @property
     def validators(self):
@@ -722,12 +739,12 @@ class BaseEvent:
         Returns:
             dict: JSON-serializable dictionary representation of the event object.
         """
-        # type, ID, scope description
         j = dict()
-        for i in ("type", "id", "scope_description"):
+        # type, ID, scope description
+        for i in ("type", "id", "uuid", "scope_description"):
             v = getattr(self, i, "")
             if v:
-                j.update({i: v})
+                j.update({i: str(v)})
         # event data
         data_attr = getattr(self, f"data_{mode}", None)
         if data_attr is not None:
@@ -758,6 +775,9 @@ class BaseEvent:
         parent_id = self.parent_id
         if parent_id:
             j["parent"] = parent_id
+        parent_uuid = self.parent_uuid
+        if parent_uuid:
+            j["parent_uuid"] = parent_uuid
         # tags
         if self.tags:
             j.update({"tags": list(self.tags)})
@@ -770,6 +790,7 @@ class BaseEvent:
         # discovery context
         j["discovery_context"] = self.discovery_context
         j["discovery_path"] = self.discovery_path
+        j["parent_chain"] = self.parent_chain
 
         # normalize non-primitive python objects
         for k, v in list(j.items()):
@@ -907,6 +928,10 @@ class SCAN(BaseEvent):
 
     @property
     def discovery_path(self):
+        return []
+
+    @property
+    def parent_chain(self):
         return []
 
 
@@ -1053,6 +1078,17 @@ class DnsEvent(BaseEvent):
             if parent_module_type == "DNS":
                 self.dns_resolve_distance += 1
         # self.add_tag(f"resolve-distance-{self.dns_resolve_distance}")
+        # tag subdomain / domain
+        if is_subdomain(self.host):
+            self.add_tag("subdomain")
+        elif is_domain(self.host):
+            self.add_tag("domain")
+        # tag private IP
+        try:
+            if self.host.is_private:
+                self.add_tag("private-ip")
+        except AttributeError:
+            pass
 
 
 class IP_RANGE(DnsEvent):
@@ -1069,13 +1105,6 @@ class IP_RANGE(DnsEvent):
 
 
 class DNS_NAME(DnsEvent):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if is_subdomain(self.data):
-            self.add_tag("subdomain")
-        elif is_domain(self.data):
-            self.add_tag("domain")
-
     def sanitize_data(self, data):
         return validators.validate_host(data)
 
@@ -1498,9 +1527,16 @@ class FILESYSTEM(DictPathEvent):
     pass
 
 
-class RAW_DNS_RECORD(DictHostEvent):
+class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
     # don't emit raw DNS records for affiliates
     _always_emit_tags = ["target"]
+
+
+class MOBILE_APP(DictEvent):
+    _always_emit = True
+
+    def _pretty_string(self):
+        return self.data["url"]
 
 
 def make_event(
@@ -1671,6 +1707,9 @@ def event_from_json(j, siem_friendly=False):
             data = j["data"]
         kwargs["data"] = data
         event = make_event(**kwargs)
+        event_uuid = j.get("uuid", None)
+        if event_uuid is not None:
+            event.uuid = uuid.UUID(event_uuid)
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
@@ -1680,6 +1719,9 @@ def event_from_json(j, siem_friendly=False):
         parent_id = j.get("parent", None)
         if parent_id is not None:
             event._parent_id = parent_id
+        parent_uuid = j.get("parent_uuid", None)
+        if parent_uuid is not None:
+            event._parent_uuid = uuid.UUID(parent_uuid)
         return event
     except KeyError as e:
         raise ValidationError(f"Event missing required field: {e}")

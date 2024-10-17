@@ -172,9 +172,6 @@ class httpx(BaseModule):
             httpx_ip = j.get("host", "")
             if httpx_ip:
                 tags.append(f"ip-{httpx_ip}")
-            # detect login pages
-            if self.helpers.web.is_login_page(j.get("body", "")):
-                tags.append("login-page")
             # grab title
             title = self.helpers.tagify(j.get("title", ""), maxlen=30)
             if title:

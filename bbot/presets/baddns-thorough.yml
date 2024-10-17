@@ -1,0 +1,12 @@
+description: Run all baddns modules and submodules.
+
+
+modules:
+  - baddns
+  - baddns_zone
+  - baddns_direct
+
+config:
+  modules:
+    baddns:
+      enabled_submodules: [CNAME,references,MX,NS,TXT]

@@ -4,7 +4,7 @@ Here we'll go over a basic example of writing a custom BBOT module.
 
 ## Create the python file
 
-1. Create a new `.py` file in `bbot/modules`
+1. Create a new `.py` file in `bbot/modules` (or in a [custom module directory](#custom-module-directory))
 1. At the top of the file, import `BaseModule`
 1. Declare a class that inherits from `BaseModule`
    - the class must have the same name as your file (case-insensitive)
@@ -55,9 +55,9 @@ After saving the module, you can run it with `-m`:
 bbot -t evilcorp.com -m whois
 ```
 
-### Debugging Your Module - BBOT's Colorful Log Functions
+### Debugging Your Module
 
-You probably noticed the use of `self.hugesuccess()`. This function is part of BBOT's builtin logging capabilty, and it prints whatever you give it in bright green. These colorful log functions can be useful for debugging.
+BBOT has a variety of colorful logging functions like `self.hugesuccess()` that can be useful for debugging.
 
 **BBOT log levels**:
 
@@ -68,8 +68,8 @@ You probably noticed the use of `self.hugesuccess()`. This function is part of B
 - `error`: red
 - `warning`: orange
 - `info`: blue
-- `verbose`: grey (must use `-v` to see)
-- `debug`: grey (must use `-d` to see)
+- `verbose`: grey (must enable `-v` to see)
+- `debug`: grey (must enable `-d` to see)
 
 
 For details on how tests are written, see [Unit Tests](./tests.md).
@@ -190,4 +190,14 @@ class MyModule(BaseModule):
             "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
+```
+
+## Load Modules from Custom Locations
+
+If you have a custom module and you want to use it with BBOT, you can add its parent folder to `module_dirs`. This saves you from having to copy it into the BBOT install location. To add a custom module directory, add it to `module_dirs` in your preset:
+
+```yaml title="my_preset.yml"
+# load BBOT modules from these additional paths
+module_dirs:
+  - /home/user/my_modules
 ```

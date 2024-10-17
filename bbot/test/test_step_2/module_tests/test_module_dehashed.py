@@ -56,7 +56,7 @@ class TestDehashed(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 11
+        assert len(events) == 12
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"])
         assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity"])
         assert 1 == len(

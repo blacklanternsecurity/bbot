@@ -122,7 +122,8 @@ def test_python_api_validation():
     assert str(error.value) == 'Preset must be of type Preset, not "str"'
     # include nonexistent preset
     with pytest.raises(ValidationError) as error:
-        Preset(include=["asdf"])
+        Preset(include=["nonexistent"])
     assert (
-        str(error.value) == 'Could not find preset at "asdf" - file does not exist. Use -lp to list available presets'
+        str(error.value)
+        == 'Could not find preset at "nonexistent" - file does not exist. Use -lp to list available presets'
     )

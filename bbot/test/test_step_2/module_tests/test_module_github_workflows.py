@@ -477,7 +477,7 @@ class TestGithub_Workflows(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 8
+        assert len(events) == 9
         assert 1 == len(
             [
                 e

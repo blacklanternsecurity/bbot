@@ -14,13 +14,14 @@ class TestSocial(ModuleTestBase):
                 <a href="https://hub.docker.com/r/blacklanternsecurity"/>
                 <a href="https://hub.docker.com/r/blacklanternsecurity/bbot"/>
                 <a href="https://hub.docker.com/r/blacklanternSECURITY/bbot"/>
+                <a href="https://www.postman.com/blacklanternsecurity/bbot"/>
             </html>
             """
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert 3 == len([e for e in events if e.type == "SOCIAL"])
+        assert 4 == len([e for e in events if e.type == "SOCIAL"])
         assert 1 == len(
             [
                 e
@@ -43,6 +44,15 @@ class TestSocial(ModuleTestBase):
                 for e in events
                 if e.type == "SOCIAL"
                 and e.data["platform"] == "github"
+                and e.data["profile_name"] == "blacklanternsecurity"
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "postman"
                 and e.data["profile_name"] == "blacklanternsecurity"
             ]
         )

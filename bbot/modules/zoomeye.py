@@ -22,13 +22,16 @@ class zoomeye(subdomain_enum_apikey):
 
     async def setup(self):
         self.max_pages = self.config.get("max_pages", 20)
-        self.headers = {"API-KEY": self.config.get("api_key", "")}
         self.include_related = self.config.get("include_related", False)
         return await super().setup()
 
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["API-KEY"] = self.api_key
+        return url, kwargs
+
     async def ping(self):
         url = f"{self.base_url}/resources-info"
-        r = await self.helpers.request(url, headers=self.headers)
+        r = await self.api_request(url)
         assert int(r.json()["quota_info"]["remain_total_quota"]) > 0, "No quota remaining"
 
     async def handle_event(self, event):
@@ -54,7 +57,7 @@ class zoomeye(subdomain_enum_apikey):
         query_type = 0 if self.include_related else 1
         url = f"{self.base_url}/domain/search?q={self.helpers.quote(query)}&type={query_type}&page=" + "{page}"
         i = 0
-        agen = self.helpers.api_page_iter(url, headers=self.headers)
+        agen = self.api_page_iter(url)
         try:
             async for j in agen:
                 r = list(self.parse_results(j))

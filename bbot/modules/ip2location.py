@@ -32,12 +32,10 @@ class IP2Location(BaseModule):
 
     async def ping(self):
         url = self.build_url("8.8.8.8")
-        r = await self.request_with_fail_count(url)
-        resp_content = getattr(r, "text", "")
-        assert getattr(r, "status_code", 0) == 200, resp_content
+        await super().ping(url)
 
     def build_url(self, data):
-        url = f"{self.base_url}/?key={self.api_key}&ip={data}&format=json&source=bbot"
+        url = f"{self.base_url}/?key={{api_key}}&ip={data}&format=json&source=bbot"
         if self.lang:
             url = f"{url}&lang={self.lang}"
         return url
@@ -45,7 +43,7 @@ class IP2Location(BaseModule):
     async def handle_event(self, event):
         try:
             url = self.build_url(event.data)
-            result = await self.request_with_fail_count(url)
+            result = await self.api_request(url)
             if result:
                 geo_data = result.json()
                 if not geo_data:

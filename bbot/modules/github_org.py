@@ -104,7 +104,7 @@ class github_org(github):
     async def query_org_repos(self, query):
         repos = []
         url = f"{self.base_url}/orgs/{self.helpers.quote(query)}/repos?per_page=100&page=" + "{page}"
-        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        agen = self.api_page_iter(url, json=False)
         try:
             async for r in agen:
                 if r is None:
@@ -132,7 +132,7 @@ class github_org(github):
     async def query_org_members(self, query):
         members = []
         url = f"{self.base_url}/orgs/{self.helpers.quote(query)}/members?per_page=100&page=" + "{page}"
-        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        agen = self.api_page_iter(url, json=False)
         try:
             async for r in agen:
                 if r is None:
@@ -160,7 +160,7 @@ class github_org(github):
     async def query_user_repos(self, query):
         repos = []
         url = f"{self.base_url}/users/{self.helpers.quote(query)}/repos?per_page=100&page=" + "{page}"
-        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        agen = self.api_page_iter(url, json=False)
         try:
             async for r in agen:
                 if r is None:
@@ -189,7 +189,7 @@ class github_org(github):
         is_org = False
         in_scope = False
         url = f"{self.base_url}/orgs/{org}"
-        r = await self.helpers.request(url, headers=self.headers)
+        r = await self.api_request(url)
         if r is None:
             return is_org, in_scope
         status_code = getattr(r, "status_code", 0)

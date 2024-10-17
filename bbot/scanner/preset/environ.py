@@ -6,6 +6,9 @@ from pathlib import Path
 from bbot.core.helpers.misc import cpu_architecture, os_platform, os_platform_friendly
 
 
+REQUESTS_PATCHED = False
+
+
 def increase_limit(new_limit):
     try:
         import resource
@@ -120,7 +123,10 @@ class BBOTEnviron:
 
         urllib3.disable_warnings()
         ssl_verify = self.preset.config.get("ssl_verify", False)
-        if not ssl_verify:
+
+        global REQUESTS_PATCHED
+        if not ssl_verify and not REQUESTS_PATCHED:
+            REQUESTS_PATCHED = True
             import requests
             import functools
 

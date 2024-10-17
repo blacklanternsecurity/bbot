@@ -15,7 +15,7 @@ class paramminer_headers(BaseModule):
     meta = {
         "description": "Use smart brute-force to check for common HTTP header parameters",
         "created_date": "2022-04-15",
-        "author": "@pmueller",
+        "author": "@liquidsec",
     }
     options = {
         "wordlist": "",  # default is defined within setup function

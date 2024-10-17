@@ -84,3 +84,138 @@ class TestSubdomainEnumLowestParent(TestSubdomainEnumHighestParent):
             "asdf.www.blacklanternsecurity.com",
             "www.blacklanternsecurity.com",
         }
+
+
+class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
+    # oh walmart.cn why are you like this
+    targets = ["www.walmart.cn"]
+    whitelist = ["walmart.cn"]
+    modules_overrides = []
+    config_overrides = {"dns": {"minimal": False}, "scope": {"report_distance": 10}, "omit_event_types": []}
+    dedup_strategy = "highest_parent"
+
+    dns_mock_data = {
+        "walmart.cn": {"A": ["127.0.0.1"]},
+        "www.walmart.cn": {"A": ["127.0.0.1"]},
+        "test.walmart.cn": {"A": ["127.0.0.1"]},
+    }
+
+    async def setup_before_prep(self, module_test):
+        await module_test.mock_dns(self.dns_mock_data)
+        self.queries = []
+
+        async def mock_query(query):
+            self.queries.append(query)
+            return ["walmart.cn", "www.walmart.cn", "test.walmart.cn", "asdf.walmart.cn"]
+
+        # load subdomain enum template as module
+        from bbot.modules.templates.subdomain_enum import subdomain_enum
+
+        subdomain_enum_module = subdomain_enum(module_test.scan)
+
+        subdomain_enum_module.query = mock_query
+        subdomain_enum_module._name = "subdomain_enum"
+        subdomain_enum_module.dedup_strategy = self.dedup_strategy
+        module_test.scan.modules["subdomain_enum"] = subdomain_enum_module
+
+    def check(self, module_test, events):
+        assert self.queries == ["walmart.cn"]
+        assert len(events) == 7
+        assert 2 == len(
+            [
+                e
+                for e in events
+                if e.type == "IP_ADDRESS" and e.data == "127.0.0.1" and str(e.module) == "A" and e.scope_distance == 1
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "DNS_NAME"
+                and e.data == "www.walmart.cn"
+                and str(e.module) == "TARGET"
+                and e.scope_distance == 0
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "DNS_NAME"
+                and e.data == "test.walmart.cn"
+                and str(e.module) == "subdomain_enum"
+                and e.scope_distance == 0
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "DNS_NAME_UNRESOLVED"
+                and e.data == "asdf.walmart.cn"
+                and str(e.module) == "subdomain_enum"
+                and e.scope_distance == 0
+            ]
+        )
+
+
+class TestSubdomainEnumWildcardDefense(TestSubdomainEnumWildcardBaseline):
+    # oh walmart.cn why are you like this
+    targets = ["walmart.cn"]
+    modules_overrides = []
+    config_overrides = {"dns": {"minimal": False}, "scope": {"report_distance": 10}}
+    dedup_strategy = "highest_parent"
+
+    dns_mock_data = {
+        "walmart.cn": {"A": ["127.0.0.2"], "TXT": ["asdf.walmart.cn"]},
+    }
+
+    async def setup_after_prep(self, module_test):
+        # simulate wildcard
+        custom_lookup = """
+def custom_lookup(query, rdtype):
+    import random
+    if rdtype == "A" and query.endswith(".walmart.cn"):
+        ip = ".".join([str(random.randint(0,256)) for _ in range(4)])
+        return {ip}
+"""
+        await module_test.mock_dns(self.dns_mock_data, custom_lookup_fn=custom_lookup)
+
+    def check(self, module_test, events):
+        # no subdomain enum should happen on this domain!
+        assert self.queries == []
+        assert len(events) == 7
+        assert 2 == len(
+            [e for e in events if e.type == "IP_ADDRESS" and str(e.module) == "A" and e.scope_distance == 1]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "DNS_NAME"
+                and e.data == "walmart.cn"
+                and str(e.module) == "TARGET"
+                and e.scope_distance == 0
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "DNS_NAME"
+                and e.data == "asdf.walmart.cn"
+                and str(e.module) == "TXT"
+                and e.scope_distance == 0
+                and "wildcard-possible" in e.tags
+                and "a-wildcard-possible" in e.tags
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "RAW_DNS_RECORD"
+                and e.data == {"host": "walmart.cn", "type": "TXT", "answer": '"asdf.walmart.cn"'}
+            ]
+        )

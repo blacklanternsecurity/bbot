@@ -22,12 +22,12 @@ class bevigil(subdomain_enum_apikey):
 
     async def setup(self):
         self.api_key = self.config.get("api_key", "")
-        self.headers = {"X-Access-Token": self.api_key}
         self.urls = self.config.get("urls", False)
         return await super().setup()
 
-    async def ping(self):
-        pass
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["X-Access-Token"] = self.api_key
+        return url, kwargs
 
     async def handle_event(self, event):
         query = self.make_query(event)
@@ -54,11 +54,11 @@ class bevigil(subdomain_enum_apikey):
 
     async def request_subdomains(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}/subdomains/"
-        return await self.request_with_fail_count(url, headers=self.headers)
+        return await self.api_request(url)
 
     async def request_urls(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}/urls/"
-        return await self.request_with_fail_count(url, headers=self.headers)
+        return await self.api_request(url)
 
     def parse_subdomains(self, r, query=None):
         results = set()

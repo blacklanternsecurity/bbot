@@ -86,12 +86,12 @@ class docker_pull(BaseModule):
                 service = www_authenticate_headers.split('service="')[1].split('"')[0]
                 scope = www_authenticate_headers.split('scope="')[1].split('"')[0]
             except (KeyError, IndexError):
-                self.log.error(f"Could not obtain realm, service or scope from {url}")
+                self.log.warning(f"Could not obtain realm, service or scope from {url}")
                 break
             auth_url = f"{realm}?service={service}&scope={scope}"
             auth_response = await self.helpers.request(auth_url)
             if not auth_response:
-                self.log.error(f"Could not obtain token from {auth_url}")
+                self.log.warning(f"Could not obtain token from {auth_url}")
                 break
             auth_json = auth_response.json()
             token = auth_json["token"]
@@ -103,6 +103,7 @@ class docker_pull(BaseModule):
         r = await self.docker_api_request(url)
         if r is None or r.status_code != 200:
             self.log.warning(f"Could not retrieve all tags for {repository} asuming tag:latest only.")
+            self.log.debug(f"Response: {r}")
             return ["latest"]
         try:
             tags = r.json().get("tags", ["latest"])
@@ -115,14 +116,15 @@ class docker_pull(BaseModule):
                 else:
                     return [tags[-1]]
         except (KeyError, IndexError):
-            self.log.error(f"Could not retrieve tags for {repository}.")
+            self.log.warning(f"Could not retrieve tags for {repository}.")
             return ["latest"]
 
     async def get_manifest(self, registry, repository, tag):
         url = f"{registry}/v2/{repository}/manifests/{tag}"
         r = await self.docker_api_request(url)
         if r is None or r.status_code != 200:
-            self.log.error(f"Could not retrieve manifest for {repository}:{tag}.")
+            self.log.warning(f"Could not retrieve manifest for {repository}:{tag}.")
+            self.log.debug(f"Response: {r}")
             return {}
         response_json = r.json()
         if response_json.get("manifests", []):

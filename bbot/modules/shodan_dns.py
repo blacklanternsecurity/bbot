@@ -17,8 +17,8 @@ class shodan_dns(shodan):
     base_url = "https://api.shodan.io"
 
     async def request_url(self, query):
-        url = f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={self.api_key}"
-        response = await self.request_with_fail_count(url)
+        url = f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={{api_key}}"
+        response = await self.api_request(url)
         return response
 
     def parse_results(self, r, query):

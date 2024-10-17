@@ -20,7 +20,7 @@ class anubisdb(subdomain_enum):
 
     async def request_url(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}"
-        return await self.request_with_fail_count(url)
+        return await self.api_request(url)
 
     def abort_if_pre(self, hostname):
         """

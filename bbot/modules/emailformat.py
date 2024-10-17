@@ -18,7 +18,7 @@ class emailformat(BaseModule):
     async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
         url = f"{self.base_url}/d/{self.helpers.quote(query)}/"
-        r = await self.request_with_fail_count(url)
+        r = await self.api_request(url)
         if not r:
             return
         for email in await self.helpers.re.extract_emails(r.text):

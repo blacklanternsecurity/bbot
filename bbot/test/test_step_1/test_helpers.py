@@ -49,6 +49,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.url_depth("http://evilcorp.com/") == 0
     assert helpers.url_depth("http://evilcorp.com") == 0
 
+    assert helpers.parent_url("http://evilcorp.com/subdir1/subdir2?foo=bar") == "http://evilcorp.com/subdir1"
+
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
     assert not helpers.is_domain("www.evilcorp.co.uk")
@@ -423,6 +425,10 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         helpers.validators.validate_email("!@#$")
 
     assert type(helpers.make_date()) == str
+
+    # string formatter
+    s = "asdf {unused} {used}"
+    assert helpers.safe_format(s, used="fdsa") == "asdf {unused} fdsa"
 
     # punycode
     assert helpers.smart_encode_punycode("ドメイン.テスト") == "xn--eckwd4c7c.xn--zckzah"

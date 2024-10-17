@@ -15,13 +15,8 @@ class hunterio(subdomain_enum_apikey):
     options_desc = {"api_key": "Hunter.IO API key"}
 
     base_url = "https://api.hunter.io/v2"
+    ping_url = f"{base_url}/account?api_key={{api_key}}"
     limit = 100
-
-    async def ping(self):
-        url = f"{self.base_url}/account?api_key={self.api_key}"
-        r = await self.helpers.request(url)
-        resp_content = getattr(r, "text", "")
-        assert getattr(r, "status_code", 0) == 200, resp_content
 
     async def handle_event(self, event):
         query = self.make_query(event)
@@ -56,10 +51,9 @@ class hunterio(subdomain_enum_apikey):
     async def query(self, query):
         emails = []
         url = (
-            f"{self.base_url}/domain-search?domain={query}&api_key={self.api_key}"
-            + "&limit={page_size}&offset={offset}"
+            f"{self.base_url}/domain-search?domain={query}&api_key={{api_key}}" + "&limit={page_size}&offset={offset}"
         )
-        agen = self.helpers.api_page_iter(url, page_size=self.limit)
+        agen = self.api_page_iter(url, page_size=self.limit)
         try:
             async for j in agen:
                 new_emails = j.get("data", {}).get("emails", [])

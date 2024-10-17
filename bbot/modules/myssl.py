@@ -15,7 +15,7 @@ class myssl(subdomain_enum):
 
     async def request_url(self, query):
         url = f"{self.base_url}?domain={self.helpers.quote(query)}"
-        return await self.request_with_fail_count(url)
+        return await self.api_request(url)
 
     def parse_results(self, r, query):
         results = set()

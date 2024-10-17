@@ -37,9 +37,10 @@ class PresetPath:
         for path in paths_to_search:
             for candidate in file_candidates:
                 for file in path.rglob(candidate):
-                    log.verbose(f'Found preset matching "{filename}" at {file}')
-                    self.add_path(file.parent)
-                    return file.resolve()
+                    if file.is_file():
+                        log.verbose(f'Found preset matching "{filename}" at {file}')
+                        self.add_path(file.parent)
+                        return file.resolve()
         raise ValidationError(
             f'Could not find preset at "{filename}" - file does not exist. Use -lp to list available presets'
         )

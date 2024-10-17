@@ -10,9 +10,12 @@ class TestGithub_Org(ModuleTestBase):
             {"blacklanternsecurity.com": {"A": ["127.0.0.99"]}, "github.com": {"A": ["127.0.0.99"]}}
         )
 
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
+        )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
+            match_headers={"Authorization": "token asdf"},
             json={
                 "login": "blacklanternsecurity",
                 "id": 25311592,
@@ -48,6 +51,7 @@ class TestGithub_Org(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
+            match_headers={"Authorization": "token asdf"},
             json=[
                 {
                     "id": 459780477,
@@ -154,6 +158,7 @@ class TestGithub_Org(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/members?per_page=100&page=1",
+            match_headers={"Authorization": "token asdf"},
             json=[
                 {
                     "login": "TheTechromancer",
@@ -179,6 +184,7 @@ class TestGithub_Org(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/users/TheTechromancer/repos?per_page=100&page=1",
+            match_headers={"Authorization": "token asdf"},
             json=[
                 {
                     "id": 688270318,
@@ -284,7 +290,7 @@ class TestGithub_Org(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 6
+        assert len(events) == 7
         assert 1 == len(
             [
                 e
@@ -332,10 +338,10 @@ class TestGithub_Org(ModuleTestBase):
 
 
 class TestGithub_Org_No_Members(TestGithub_Org):
-    config_overrides = {"modules": {"github_org": {"include_members": False}}}
+    config_overrides = {"modules": {"github_org": {"include_members": False}, "github": {"api_key": "asdf"}}}
 
     def check(self, module_test, events):
-        assert len(events) == 5
+        assert len(events) == 6
         assert 1 == len(
             [
                 e
@@ -360,10 +366,10 @@ class TestGithub_Org_No_Members(TestGithub_Org):
 
 
 class TestGithub_Org_MemberRepos(TestGithub_Org):
-    config_overrides = {"modules": {"github_org": {"include_member_repos": True}}}
+    config_overrides = {"modules": {"github_org": {"include_member_repos": True}, "github": {"api_key": "asdf"}}}
 
     def check(self, module_test, events):
-        assert len(events) == 7
+        assert len(events) == 8
         assert 1 == len(
             [
                 e
@@ -378,10 +384,15 @@ class TestGithub_Org_MemberRepos(TestGithub_Org):
 
 class TestGithub_Org_Custom_Target(TestGithub_Org):
     targets = ["ORG:blacklanternsecurity"]
-    config_overrides = {"scope": {"report_distance": 10}, "omit_event_types": [], "speculate": True}
+    config_overrides = {
+        "scope": {"report_distance": 10},
+        "omit_event_types": [],
+        "speculate": True,
+        "modules": {"github": {"api_key": "asdf"}},
+    }
 
     def check(self, module_test, events):
-        assert len(events) == 7
+        assert len(events) == 8
         assert 1 == len(
             [e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity" and e.scope_distance == 0]
         )

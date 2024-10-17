@@ -155,24 +155,25 @@ class dotnetnuke(BaseModule):
 
                 # InstallWizard SuperUser Privilege Escalation
                 result = await self.helpers.request(f'{event.data["url"]}/Install/InstallWizard.aspx')
-                if result.status_code == 200:
-                    result_confirm = await self.helpers.request(
-                        f'{event.data["url"]}/Install/InstallWizard.aspx?__viewstate=1'
-                    )
-                    if result_confirm.status_code == 500:
-                        description = "DotNetNuke InstallWizard SuperUser Privilege Escalation"
-                        await self.emit_event(
-                            {
-                                "severity": "CRITICAL",
-                                "description": description,
-                                "host": str(event.host),
-                                "url": f'{event.data["url"]}/Install/InstallWizard.aspx',
-                            },
-                            "VULNERABILITY",
-                            event,
-                            context=f'{{module}} scanned {event.data["url"]} and found critical {{event.type}}: {description}',
+                if result:
+                    if result.status_code == 200:
+                        result_confirm = await self.helpers.request(
+                            f'{event.data["url"]}/Install/InstallWizard.aspx?__viewstate=1'
                         )
-                        return
+                        if result_confirm.status_code == 500:
+                            description = "DotNetNuke InstallWizard SuperUser Privilege Escalation"
+                            await self.emit_event(
+                                {
+                                    "severity": "CRITICAL",
+                                    "description": description,
+                                    "host": str(event.host),
+                                    "url": f'{event.data["url"]}/Install/InstallWizard.aspx',
+                                },
+                                "VULNERABILITY",
+                                event,
+                                context=f'{{module}} scanned {event.data["url"]} and found critical {{event.type}}: {description}',
+                            )
+                            return
 
                 # DNNImageHandler.ashx Blind SSRF
                 self.event_dict[event.data["url"]] = event

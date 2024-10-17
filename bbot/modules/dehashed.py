@@ -90,7 +90,7 @@ class dehashed(subdomain_enum):
         url = f"{self.base_url}?query={query}&size=10000&page=" + "{page}"
         page = 0
         num_entries = 0
-        agen = self.helpers.api_page_iter(url=url, auth=self.auth, headers=self.headers, json=False)
+        agen = self.api_page_iter(url=url, auth=self.auth, headers=self.headers, json=False)
         async for result in agen:
             result_json = {}
             with suppress(Exception):

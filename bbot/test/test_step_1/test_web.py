@@ -1,4 +1,5 @@
 import re
+import httpx
 
 from ..bbot_fixtures import *
 
@@ -13,6 +14,7 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
     base_url = bbot_httpserver.url_for("/test/")
     bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
+    bbot_httpserver.expect_request(uri=re.compile(r"/nope")).respond_with_data("nope", status=500)
 
     scan = bbot_scanner()
 
@@ -49,15 +51,45 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
         assert response.text.startswith(f"{url}: ")
         assert f"H{custom_tracker}: v{custom_tracker}" in response.text
 
+    # request with raise_error=True
+    with pytest.raises(WebError):
+        await scan.helpers.request("http://www.example.com/", raise_error=True)
+    try:
+        await scan.helpers.request("http://www.example.com/", raise_error=True)
+    except WebError as e:
+        assert hasattr(e, "response")
+        assert e.response is None
+    with pytest.raises(httpx.HTTPStatusError):
+        response = await scan.helpers.request(bbot_httpserver.url_for("/nope"), raise_error=True)
+        response.raise_for_status()
+    try:
+        response = await scan.helpers.request(bbot_httpserver.url_for("/nope"), raise_error=True)
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        assert hasattr(e, "response")
+        assert e.response.status_code == 500
+
     # download
     url = f"{base_url}999"
     filename = await scan.helpers.download(url)
     file_content = open(filename).read()
     assert file_content.startswith(f"{url}: ")
 
-    # raise_error=True
+    # download with raise_error=True
     with pytest.raises(WebError):
-        await scan.helpers.request("http://www.example.com/", raise_error=True)
+        await scan.helpers.download("http://www.example.com/", raise_error=True)
+    try:
+        await scan.helpers.download("http://www.example.com/", raise_error=True)
+    except WebError as e:
+        assert hasattr(e, "response")
+        assert e.response is None
+    with pytest.raises(WebError):
+        await scan.helpers.download(bbot_httpserver.url_for("/nope"), raise_error=True)
+    try:
+        await scan.helpers.download(bbot_httpserver.url_for("/nope"), raise_error=True)
+    except WebError as e:
+        assert hasattr(e, "response")
+        assert e.response.status_code == 500
 
     await scan._cleanup()
 
@@ -121,8 +153,11 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
 
     await scan._cleanup()
 
-    scan1 = bbot_scanner("8.8.8.8")
+    scan1 = bbot_scanner("8.8.8.8", modules=["ipneighbor"])
     scan2 = bbot_scanner("127.0.0.1")
+
+    await scan1._prep()
+    module = scan1.modules["ipneighbor"]
 
     web_config = CORE.config.get("web", {})
     user_agent = web_config.get("user_agent", "")
@@ -220,7 +255,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
         uri=f"{base_path}/3", query_string={"page_size": "100", "offset": "200"}
     ).respond_with_data("page3")
     results = []
-    agen = scan1.helpers.api_page_iter(template_url)
+    agen = module.api_page_iter(template_url)
     try:
         async for result in agen:
             if result and result.text.startswith("page"):
@@ -230,7 +265,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
     finally:
         await agen.aclose()
     assert not results
-    agen = scan1.helpers.api_page_iter(template_url, json=False)
+    agen = module.api_page_iter(template_url, json=False)
     try:
         async for result in agen:
             if result and result.text.startswith("page"):

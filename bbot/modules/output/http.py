@@ -1,4 +1,3 @@
-from bbot.errors import WebError
 from bbot.modules.output.base import BaseOutputModule
 
 
@@ -52,16 +51,23 @@ class HTTP(BaseOutputModule):
 
     async def handle_event(self, event):
         while 1:
-            try:
-                await self.helpers.request(
-                    url=self.url,
-                    method=self.method,
-                    auth=self.auth,
-                    headers=self.headers,
-                    json=event.json(siem_friendly=self.siem_friendly),
-                    raise_error=True,
-                )
-                break
-            except WebError as e:
-                self.warning(f"Error sending {event}: {e}, retrying...")
-                await self.helpers.sleep(1)
+            response = await self.helpers.request(
+                url=self.url,
+                method=self.method,
+                auth=self.auth,
+                headers=self.headers,
+                json=event.json(siem_friendly=self.siem_friendly),
+            )
+            is_success = False if response is None else response.is_success
+            if not is_success:
+                status_code = getattr(response, "status_code", 0)
+                self.warning(f"Error sending {event} (HTTP status code: {status_code}), retrying...")
+                body = getattr(response, "text", "")
+                self.debug(body)
+                if status_code == 429:
+                    sleep_interval = 10
+                else:
+                    sleep_interval = 1
+                await self.helpers.sleep(sleep_interval)
+                continue
+            break

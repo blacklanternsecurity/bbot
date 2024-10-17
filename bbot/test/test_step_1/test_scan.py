@@ -78,6 +78,9 @@ async def test_scan(
     for scan in (scan0, scan1, scan2, scan4, scan5):
         await scan._cleanup()
 
+    scan6 = bbot_scanner("a.foobar.io", "b.foobar.io", "c.foobar.io", "foobar.io")
+    assert len(scan6.dns_strings) == 1
+
 
 @pytest.mark.asyncio
 async def test_url_extension_handling(bbot_scanner):
@@ -115,3 +118,28 @@ async def test_speed_counter():
         await asyncio.sleep(0.2)
     # only 5 should show
     assert 4 <= counter.speed <= 5
+
+
+@pytest.mark.asyncio
+async def test_python_output_matches_json(bbot_scanner):
+    import json
+
+    scan = bbot_scanner(
+        "blacklanternsecurity.com",
+        config={"speculate": True, "dns": {"minimal": False}, "scope": {"report_distance": 10}},
+    )
+    await scan.helpers.dns._mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.1"]}})
+    events = [e.json() async for e in scan.async_start()]
+    output_json = scan.home / "output.json"
+    json_events = []
+    for line in open(output_json):
+        json_events.append(json.loads(line))
+
+    assert len(events) == 5
+    scan_events = [e for e in events if e["type"] == "SCAN"]
+    assert len(scan_events) == 2
+    assert all([isinstance(e["data"]["status"], str) for e in scan_events])
+    assert len([e for e in events if e["type"] == "DNS_NAME"]) == 1
+    assert len([e for e in events if e["type"] == "ORG_STUB"]) == 1
+    assert len([e for e in events if e["type"] == "IP_ADDRESS"]) == 1
+    assert events == json_events
