@@ -608,10 +608,57 @@ class TestExcavateParameterExtraction_getparam(ModuleTestBase):
         excavate_getparam_extraction = False
         for e in events:
             if e.type == "WEB_PARAMETER":
-
                 if "HTTP Extracted Parameter [hack] (HTML Tags Submodule)" in e.data["description"]:
                     excavate_getparam_extraction = True
         assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+
+
+class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    config_overrides = {"web": {"spider_distance": 2, "spider_depth": 3}}
+
+    # Secondary page that has a relative link to a traversal URL
+    secondary_page_html = """
+    <html>
+        <a href="../root.html">Go to root</a>
+    </html>
+    """
+
+    # Primary page that leads to the secondary page
+    primary_page_html = """
+    <html>
+        <a href="/secondary">Go to secondary page</a>
+    </html>
+    """
+
+    # Root page content
+    root_page_html = "<html>Root page</html>"
+
+    async def setup_after_prep(self, module_test):
+
+        module_test.httpserver.expect_request("/").respond_with_data(self.primary_page_html)
+        module_test.httpserver.expect_request("/secondary").respond_with_data(self.secondary_page_html)
+        module_test.httpserver.expect_request("/root.html").respond_with_data(self.root_page_html)
+
+    def check(self, module_test, events):
+        # Validate that the traversal was successful and WEB_PARAMETER was extracted
+        traversed_to_root = False
+        parameter_extraction_found = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter" in e.data["description"]:
+                    parameter_extraction_found = True
+
+            if e.type == "URL":
+                if "root.html" in e.parsed_url.path:
+                    traversed_to_root = True
+
+        assert traversed_to_root, "Failed to follow the relative traversal to /root.html"
+        assert parameter_extraction_found, "Excavate failed to extract parameter after traversal"
 
 
 class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtraction_getparam):
@@ -918,8 +965,7 @@ class TestExcavate_retain_querystring(ModuleTestBase):
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
         "interactsh_disable": True,
-        "web_spider_depth": 4,
-        "web_spider_distance": 4,
+        "web": {"spider_distance": 1, "spider_depth": 1},
         "modules": {
             "excavate": {
                 "retain_querystring": True,
@@ -951,8 +997,7 @@ class TestExcavate_retain_querystring_not(TestExcavate_retain_querystring):
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
         "interactsh_disable": True,
-        "web_spider_depth": 4,
-        "web_spider_distance": 4,
+        "web": {"spider_distance": 4, "spider_depth": 4},
         "modules": {
             "excavate": {
                 "retain_querystring": True,

@@ -63,7 +63,7 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
 
             if e.type == "FINDING":
                 if (
-                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Original Value: [default.jpg] Detection Method: [single-dot traversal tolerance (url-encoding)]"
+                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Original Value: [default.jpg] Detection Method: [single-dot traversal tolerance (url-encoding, leading slash)]"
                     in e.data["description"]
                 ):
                     pathtraversal_finding_emitted = True

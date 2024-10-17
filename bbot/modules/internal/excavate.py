@@ -591,7 +591,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
                             else:
                                 # Use the original URL as the base and resolve the endpoint correctly in case of relative paths
-                                base_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{event.parsed_url.path}"
+                                base_url = (
+                                    f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{event.parsed_url.path}"
+                                )
                                 url = urljoin(base_url, endpoint)
 
                             if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):

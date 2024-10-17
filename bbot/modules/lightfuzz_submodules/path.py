@@ -4,6 +4,7 @@ from bbot.errors import HttpCompareError
 import re
 from urllib.parse import quote
 
+
 class PathTraversalLightfuzz(BaseLightfuzz):
 
     async def fuzz(self):
