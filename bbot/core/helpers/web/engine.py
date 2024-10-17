@@ -206,6 +206,12 @@ class HTTPEngine(EngineServer):
             else:
                 log.trace(f"Error with request to URL: {url}: {e}")
                 log.trace(traceback.format_exc())
+        except httpx.InvalidURL as e:
+            if raise_error:
+                raise
+            else:
+                log.warning(f"Invalid URL (possibly due to dangerous redirect) on request to : {url}: {e}")
+                log.trace(traceback.format_exc())
         except ssl.SSLError as e:
             msg = f"SSL error with request to URL: {url}: {e}"
             if raise_error:
