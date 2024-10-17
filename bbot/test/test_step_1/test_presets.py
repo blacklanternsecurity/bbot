@@ -169,6 +169,11 @@ exclude_flags:
 
 def test_preset_scope():
 
+    # test target merging
+    scan = Scanner("1.2.3.4", preset=Preset.from_dict({"target": ["evilcorp.com"]}))
+    assert set([str(h) for h in scan.preset.target.seeds.hosts]) == {"1.2.3.4", "evilcorp.com"}
+    assert set([e.data for e in scan.target]) == {"1.2.3.4", "evilcorp.com"}
+
     blank_preset = Preset()
     blank_preset = blank_preset.bake()
     assert not blank_preset.target

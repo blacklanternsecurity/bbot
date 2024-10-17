@@ -130,20 +130,22 @@ class Scanner:
         else:
             self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
 
-        preset = kwargs.pop("preset", None)
+        custom_preset = kwargs.pop("preset", None)
         kwargs["_log"] = True
 
         from .preset import Preset
 
-        if preset is None:
-            preset = Preset(*targets, **kwargs)
-        else:
-            if not isinstance(preset, Preset):
-                raise ValidationError(f'Preset must be of type Preset, not "{type(preset).__name__}"')
-        self.preset = preset.bake(self)
+        base_preset = Preset(*targets, **kwargs)
+
+        if custom_preset is not None:
+            if not isinstance(custom_preset, Preset):
+                raise ValidationError(f'Preset must be of type Preset, not "{type(custom_preset).__name__}"')
+            base_preset.merge(custom_preset)
+
+        self.preset = base_preset.bake(self)
 
         # scan name
-        if preset.scan_name is None:
+        if self.preset.scan_name is None:
             tries = 0
             while 1:
                 if tries > 5:
@@ -158,7 +160,7 @@ class Scanner:
                     break
                 tries += 1
         else:
-            scan_name = str(preset.scan_name)
+            scan_name = str(self.preset.scan_name)
         self.name = scan_name
 
         # make sure the preset has a description
@@ -166,8 +168,8 @@ class Scanner:
             self.preset.description = self.name
 
         # scan output dir
-        if preset.output_dir is not None:
-            self.home = Path(preset.output_dir).resolve() / self.name
+        if self.preset.output_dir is not None:
+            self.home = Path(self.preset.output_dir).resolve() / self.name
         else:
             self.home = self.preset.bbot_home / "scans" / self.name
 
