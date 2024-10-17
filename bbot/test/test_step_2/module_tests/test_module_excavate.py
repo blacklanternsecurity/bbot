@@ -965,7 +965,7 @@ class TestExcavate_retain_querystring(ModuleTestBase):
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
         "interactsh_disable": True,
-        "web": {"spider_distance": 1, "spider_depth": 1},
+        "web": {"spider_distance": 4, "spider_depth": 4},
         "modules": {
             "excavate": {
                 "retain_querystring": True,
