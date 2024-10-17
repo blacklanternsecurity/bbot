@@ -63,11 +63,18 @@ class BBOTAsyncClient(httpx.AsyncClient):
         headers = kwargs.get("headers", None)
         if headers is None:
             headers = {}
+
+        # cookies
+        cookies = kwargs.get("cookies", None)
+        if cookies is None:
+            cookies = {}
+
         # user agent
         user_agent = self._web_config.get("user_agent", "BBOT")
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
         kwargs["headers"] = headers
+        kwargs["cookies"] = cookies
         # proxy
         proxies = self._web_config.get("http_proxy", None)
         kwargs["proxies"] = proxies
@@ -78,10 +85,24 @@ class BBOTAsyncClient(httpx.AsyncClient):
             self._cookies = DummyCookies()
 
     def build_request(self, *args, **kwargs):
-        request = super().build_request(*args, **kwargs)
-        # add custom headers if the URL is in-scope
-        # TODO: re-enable this
-        if self._target.in_scope(str(request.url)):
+
+        if args:
+            url = args[0]
+            kwargs["url"] = url
+        url = kwargs["url"]
+
+        target_in_scope = self._target.in_scope(str(url))
+
+        if target_in_scope:
+            if not kwargs.get("cookies", None):
+                kwargs["cookies"] = {}
+            for ck, cv in self._web_config.get("http_cookies", {}).items():
+                if ck not in kwargs["cookies"]:
+                    kwargs["cookies"][ck] = cv
+
+        request = super().build_request(**kwargs)
+
+        if target_in_scope:
             for hk, hv in self._web_config.get("http_headers", {}).items():
                 # don't clobber headers
                 if hk not in request.headers:

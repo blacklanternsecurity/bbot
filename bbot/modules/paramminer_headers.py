@@ -149,6 +149,7 @@ class paramminer_headers(BaseModule):
                     "type": paramtype,
                     "description": description,
                     "name": result,
+                    "original_value": None,
                 },
                 "WEB_PARAMETER",
                 event,
