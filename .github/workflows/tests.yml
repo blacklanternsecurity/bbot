@@ -57,7 +57,9 @@ jobs:
           verbose: true
   test-distros:
     needs: lint
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, debian, archlinux, fedora-latest, gentoo, alpine]
