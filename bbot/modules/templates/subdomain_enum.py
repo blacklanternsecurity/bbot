@@ -31,6 +31,11 @@ class subdomain_enum(BaseModule):
     #   "lowest_parent": dedupe by lowest parent (lowest parent of www.api.test.evilcorp.com is api.test.evilcorp.com)
     dedup_strategy = "highest_parent"
 
+    # how many results to request per API call
+    page_size = 100
+    # arguments to pass to api_page_iter
+    api_page_iter_kwargs = {}
+
     @property
     def source_pretty_name(self):
         return f"{self.__class__.__name__} API"
@@ -61,9 +66,30 @@ class subdomain_enum(BaseModule):
                             context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
                         )
 
+    async def handle_event_paginated(self, event):
+        query = self.make_query(event)
+        async for result_batch in self.query_paginated(query):
+            for hostname in set(result_batch):
+                try:
+                    hostname = self.helpers.validators.validate_host(hostname)
+                except ValueError as e:
+                    self.verbose(e)
+                    continue
+                if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
+                    await self.emit_event(
+                        hostname,
+                        "DNS_NAME",
+                        event,
+                        abort_if=self.abort_if,
+                        context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
+                    )
+
     async def request_url(self, query):
-        url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
+        url = self.make_url(query)
         return await self.api_request(url)
+
+    def make_url(self, query):
+        return f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
 
     def make_query(self, event):
         query = event.data
@@ -86,11 +112,11 @@ class subdomain_enum(BaseModule):
             for hostname in json:
                 yield hostname
 
-    async def query(self, query, parse_fn=None, request_fn=None):
-        if parse_fn is None:
-            parse_fn = self.parse_results
+    async def query(self, query, request_fn=None, parse_fn=None):
         if request_fn is None:
             request_fn = self.request_url
+        if parse_fn is None:
+            parse_fn = self.parse_results
         try:
             response = await request_fn(query)
             if response is None:
@@ -112,6 +138,19 @@ class subdomain_enum(BaseModule):
             self.debug(f'No results for "{query}"')
         except Exception as e:
             self.info(f"Error retrieving results for {query}: {e}", trace=True)
+
+    async def query_paginated(self, query):
+        url = self.make_url(query)
+        agen = self.api_page_iter(url, page_size=self.page_size, **self.api_page_iter_kwargs)
+        try:
+            async for response in agen:
+                subdomains = self.parse_results(response, query)
+                self.verbose(f'Got {len(subdomains):,} subdomains for "{query}"')
+                if not subdomains:
+                    break
+                yield subdomains
+        finally:
+            agen.aclose()
 
     async def _is_wildcard(self, query):
         rdtypes = ("A", "AAAA", "CNAME")

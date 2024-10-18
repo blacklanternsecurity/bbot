@@ -28,39 +28,15 @@ class Trickest(subdomain_enum_apikey):
         return url, kwargs
 
     async def handle_event(self, event):
-        query = self.make_query(event)
-        async for result_batch in self.query(query):
-            for hostname in set(result_batch):
-                try:
-                    hostname = self.helpers.validators.validate_host(hostname)
-                except ValueError as e:
-                    self.verbose(e)
-                    continue
-                if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
-                    await self.emit_event(
-                        hostname,
-                        "DNS_NAME",
-                        event,
-                        abort_if=self.abort_if,
-                        context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
-                    )
+        await self.handle_event_paginated(event)
 
-    async def query(self, query):
+    def make_url(self, query):
         url = f"{self.base_url}/view?q=hostname%20~%20%22.{self.helpers.quote(query)}%22"
         url += f"&dataset_id={self.dataset_id}"
         url += "&limit={page_size}&offset={offset}&select=hostname&orderby=hostname"
-        agen = self.api_page_iter(url, page_size=self.page_size)
-        try:
-            async for response in agen:
-                subdomains = self.parse_results(response)
-                self.verbose(f'Got {len(subdomains):,} subdomains for "{query}"')
-                if not subdomains:
-                    break
-                yield subdomains
-        finally:
-            agen.aclose()
+        return url
 
-    def parse_results(self, j):
+    def parse_results(self, j, query):
         results = j.get("results", [])
         subdomains = set()
         for item in results:

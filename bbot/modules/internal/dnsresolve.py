@@ -16,12 +16,6 @@ class DNSResolve(BaseInterceptModule):
         _name = "host"
         _type = "internal"
 
-        def _outgoing_dedup_hash(self, event):
-            # this exists to ensure a second, more interesting host isn't passed up
-            # because its ugly cousin spent its one dedup token before it arrived
-            # by removing those race conditions, this makes for more consistent results
-            return hash((event, self.name, event.always_emit))
-
     @property
     def module_threads(self):
         return self.dns_config.get("threads", 25)
