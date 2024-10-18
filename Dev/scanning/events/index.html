@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.mf9gb1zl.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.weugwwzd.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -273,6 +273,13 @@
       Table of contents
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#event-attributes">
+<span class="md-ellipsis">
+      Event Attributes
+    </span>
+</a>
+</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#list-of-event-types">
 <span class="md-ellipsis">
@@ -597,48 +604,88 @@
  ^^^^^^^^       ^^^^^^^^^^^^^^^^    ^^^^^^^          ^^^^^^^^^^
 event type      event data          source module    tags
 </code></pre></div>
-<p>In addition to the obvious data (e.g. <code>www.evilcorp.com</code>), an event also contains other useful information such as:</p>
+<h2 id="event-attributes">Event Attributes</h2>
+<p>Each BBOT event has the following attributes. Not all of these attributes are visible in the terminal output. However, they are always saved in <code>output.json</code> in the scan output folder. If you want to see them on the terminal, you can use <code>--json</code>.</p>
 <ul>
-<li>a <code>.discovery_path</code> showing exactly how the event was discovered, starting from the first scan target</li>
-<li>a <code>.timestamp</code> of when the data was discovered</li>
-<li>the <code>.module</code> that discovered it</li>
-<li>the <code>.parent</code> event that led to its discovery</li>
-<li>its <code>.scope_distance</code> (how many hops it is from the main scope, 0 == in-scope)</li>
-<li>a list of <code>.tags</code> that describe the data (<code>mx-record</code>, <code>http-title</code>, etc.)</li>
+<li><code>.type</code>: the event type (e.g. <code>DNS_NAME</code>, <code>IP_ADDRESS</code>, <code>OPEN_TCP_PORT</code>, etc.)</li>
+<li><code>.id</code>: an identifier representing the event type + a SHA1 hash of its data (note: multiple events can have the same <code>.id</code>)</li>
+<li><code>.uuid</code>: a universally unique identifier for the event (e.g. <code>DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13</code>)</li>
+<li><code>.scope_description</code>: describes the scope of the event (e.g. <code>in-scope</code>, <code>affiliate</code>, <code>distance-2</code>)</li>
+<li><code>.data</code>: the actual discovered data (for some events like <code>DNS_NAME</code> or <code>IP_ADDRESS</code>, this is a string. For other more complex events like <code>HTTP_RESPONSE</code>, it's a dictionary)</li>
+<li><code>.host</code>: the hostname or IP address (e.g. <code>evilcorp.com</code> or <code>1.2.3.4</code>)</li>
+<li><code>.port</code>: the port number (e.g. <code>80</code>, <code>443</code>)</li>
+<li><code>.netloc</code>: the network location, including both the hostname and port (e.g. <code>www.evilcorp.com:443</code>)</li>
+<li><code>.resolved_hosts</code>: a list of all resolved hosts for the event (<code>A</code>, <code>AAAA</code>, and <code>CNAME</code> records)</li>
+<li><code>.dns_children</code>: a dictionary of all DNS records for the event (typically only present on <code>DNS_NAME</code>)</li>
+<li><code>.web_spider_distance</code>: a count of how many URL links have been followed in a row to get to this event</li>
+<li><code>.scope_distance</code>: a count of how many hops it is from the main scope (0 == in-scope)</li>
+<li><code>.scan</code>: the ID of the scan that produced the event</li>
+<li><code>.timestamp</code>: the date/time when the event was discovered</li>
+<li><code>.parent</code>: the ID of the parent event that led to the discovery of this event</li>
+<li><code>.parent_uuid</code>: the universally unique identifier for the parent event</li>
+<li><code>.tags</code>: a list of tags describing the event (e.g. <code>mx-record</code>, <code>http-title</code>, etc.)</li>
+<li><code>.module</code>: the module that discovered the event</li>
+<li><code>.module_sequence</code>: the recent sequence of modules that were executed to discover the event (including omitted events)</li>
+<li><code>.discovery_context</code>: a description of the context in which the event was discovered</li>
+<li><code>.discovery_path</code>: a list of every discovery context leading to this event</li>
+<li><code>.parent_chain</code>: a list of every event UUID leading to the discovery of this event (corresponds exactly to <code>.discovery_path</code>)</li>
 </ul>
 <p>These attributes allow us to construct a visual graph of events (e.g. in <a href="../output#neo4j">Neo4j</a>) and query/filter/grep them more easily. Here is what a typical event looks like in JSON format:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">{</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"type"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"id"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:879e47564ff0ed7711b707d3dbecb706ad6af1a3"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"id"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:33bc005c2bdfea4d73e07db733bd11861cf6520e"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"uuid"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13"</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"scope_description"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"in-scope"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"data"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"www.blacklanternsecurity.com"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"host"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"www.blacklanternsecurity.com"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"data"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"link.evilcorp.com"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"host"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"link.evilcorp.com"</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"resolved_hosts"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"185.199.108.153"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"2606:50c0:8003::153"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"blacklanternsecurity.github.io"</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"184.31.52.65"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"2600:1402:b800:d82::700"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"2600:1402:b800:d87::700"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"link.evilcorp.com.edgekey.net"</span>
 <span style="color: #6e7681">  </span><span style="color: #e6edf3">],</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"dns_children"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">{},</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"dns_children"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">{</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">"A"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span>
+<span style="color: #6e7681">      </span><span style="color: #a5d6ff">"184.31.52.65"</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">],</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">"AAAA"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span>
+<span style="color: #6e7681">      </span><span style="color: #a5d6ff">"2600:1402:b800:d82::700"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">      </span><span style="color: #a5d6ff">"2600:1402:b800:d87::700"</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">],</span>
+<span style="color: #6e7681">    </span><span style="color: #7ee787">"CNAME"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span>
+<span style="color: #6e7681">      </span><span style="color: #a5d6ff">"link.evilcorp.com.edgekey.net"</span>
+<span style="color: #6e7681">    </span><span style="color: #e6edf3">]</span>
+<span style="color: #6e7681">  </span><span style="color: #e6edf3">},</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"web_spider_distance"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">0</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"scope_distance"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">0</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"scan"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"SCAN:477d1e6b94be928bf85c554b0845985189cfc81d"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"timestamp"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"2024-08-17T03:49:47.906017+00:00"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"parent"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"scan"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"SCAN:b6ef48bc036bc8d001595ae5061846a7e6beadb6"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"timestamp"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"2024-10-18T15:40:13.716880+00:00"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"parent"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:94c92b7eaed431b37ae2a757fec4e678cc3bd213"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"parent_uuid"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"DNS_NAME:c737dffa-d4f0-4b6e-a72d-cc8c05bd892e"</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"tags"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"cdn-github"</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"subdomain"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"in-scope"</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"a-record"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"cdn-akamai"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"in-scope"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"cname-record"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"aaaa-record"</span>
 <span style="color: #6e7681">  </span><span style="color: #e6edf3">],</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"module"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"otx"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"module_sequence"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"otx"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">  </span><span style="color: #7ee787">"discovery_context"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"otx searched otx API for \"blacklanternsecurity.com\" and found DNS_NAME: www.blacklanternsecurity.com"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"module"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"speculate"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"module_sequence"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"speculate-&gt;speculate"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">  </span><span style="color: #7ee787">"discovery_context"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #a5d6ff">"speculated parent DNS_NAME: link.evilcorp.com"</span><span style="color: #e6edf3">,</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"discovery_path"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"Scan demonic_jimmy seeded with DNS_NAME: blacklanternsecurity.com"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"otx searched otx API for \"blacklanternsecurity.com\" and found DNS_NAME: www.blacklanternsecurity.com"</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"Scan insidious_frederick seeded with DNS_NAME: evilcorp.com"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"TXT record for evilcorp.com contains IP_ADDRESS: 149.72.247.52"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"PTR record for 149.72.247.52 contains DNS_NAME: o1.ptr2410.link.evilcorp.com"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"speculated parent DNS_NAME: ptr2410.link.evilcorp.com"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"speculated parent DNS_NAME: link.evilcorp.com"</span>
 <span style="color: #6e7681">  </span><span style="color: #e6edf3">],</span>
 <span style="color: #6e7681">  </span><span style="color: #7ee787">"parent_chain"</span><span style="color: #e6edf3">:</span><span style="color: #6e7681"> </span><span style="color: #e6edf3">[</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc"</span><span style="color: #e6edf3">,</span>
-<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"DNS_NAME:879e47564ff0ed7711b707d3dbecb706ad6af1a3"</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"DNS_NAME:34c657a3-0bfa-457e-9e6e-0f22f04b8da5"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"IP_ADDRESS:efc0fb3b-1b42-44da-916e-83db2360e10e"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"DNS_NAME:c737dffa-d4f0-4b6e-a72d-cc8c05bd892e"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"DNS_NAME_UNRESOLVED:722a3473-30c6-40f1-90aa-908d47105d5a"</span><span style="color: #e6edf3">,</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13"</span>
 <span style="color: #6e7681">  </span><span style="color: #e6edf3">]</span>
 <span style="color: #e6edf3">}</span>
 </code></pre></div>
