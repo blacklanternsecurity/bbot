@@ -154,7 +154,7 @@ class ExcavateRule:
         yara_rule_settings = YaraRuleSettings(description, tags, emit_match)
         yara_results = {}
         for h in r.strings:
-            yara_results[h.identifier.lstrip("$")] = sorted(set([i.matched_data.decode("utf-8") for i in h.instances]))
+            yara_results[h.identifier.lstrip("$")] = sorted(set([i.matched_data.decode("utf-8", errors="ignore") for i in h.instances]))
         await self.process(yara_results, event, yara_rule_settings, discovery_context)
 
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
