@@ -2,7 +2,8 @@ name: Daily Docs Update
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+    - cron: '30 2 * * *'  # Runs daily at 2:30 AM UTC, a less congested time
+  workflow_dispatch:      # Allows manual triggering of the workflow
 
 jobs:
   update_docs:
