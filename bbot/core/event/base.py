@@ -1503,7 +1503,7 @@ class WEB_PARAMETER(DictHostEvent):
             # Try JSON parsing
             try:
                 decoded_json = json.loads(value)
-                if isinstance(decoded_json, (str, dict, list)):
+                if isinstance(decoded_json, dict):
                     return envelopes, {"json": decoded_json}
             except json.JSONDecodeError:
                 pass  # Not valid JSON
