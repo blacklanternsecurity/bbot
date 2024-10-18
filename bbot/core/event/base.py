@@ -29,6 +29,7 @@ from bbot.core.helpers import (
     is_domain,
     is_subdomain,
     is_ip,
+    is_ip_type,
     is_ptr,
     is_uri,
     url_depth,
@@ -355,6 +356,12 @@ class BaseEvent:
             elif self.parsed_url.scheme == "http":
                 return 80
         return self._port
+
+    @property
+    def netloc(self):
+        if self.host and is_ip_type(self.host, network=False):
+            return make_netloc(self.host, self.port)
+        return None
 
     @property
     def host_stem(self):
@@ -758,7 +765,7 @@ class BaseEvent:
         """
         j = dict()
         # type, ID, scope description
-        for i in ("type", "id", "uuid", "scope_description"):
+        for i in ("type", "id", "uuid", "scope_description", "netloc"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: str(v)})
@@ -777,6 +784,8 @@ class BaseEvent:
             j["host"] = str(self.host)
             j["resolved_hosts"] = sorted(str(h) for h in self.resolved_hosts)
             j["dns_children"] = {k: list(v) for k, v in self.dns_children.items()}
+        if isinstance(self.port, int):
+            j["port"] = self.port
         # web spider distance
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:

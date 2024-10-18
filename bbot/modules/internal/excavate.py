@@ -154,7 +154,9 @@ class ExcavateRule:
         yara_rule_settings = YaraRuleSettings(description, tags, emit_match)
         yara_results = {}
         for h in r.strings:
-            yara_results[h.identifier.lstrip("$")] = sorted(set([i.matched_data.decode("utf-8") for i in h.instances]))
+            yara_results[h.identifier.lstrip("$")] = sorted(
+                set([i.matched_data.decode("utf-8", errors="ignore") for i in h.instances])
+            )
         await self.process(yara_results, event, yara_rule_settings, discovery_context)
 
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
@@ -977,6 +979,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         yara_rules_combined = "\n".join(self.yara_rules_dict.values())
         try:
             self.info(f"Compiling {len(self.yara_rules_dict):,} YARA rules")
+            for rule_name, rule_content in self.yara_rules_dict.items():
+                self.debug(f"  - {rule_name}")
             self.yara_rules = yara.compile(source=yara_rules_combined)
         except yara.SyntaxError as e:
             self.debug(yara_rules_combined)

