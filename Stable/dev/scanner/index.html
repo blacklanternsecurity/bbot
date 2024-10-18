@@ -11,16 +11,16 @@
 <link href="../discord_bot/" rel="prev"/>
 <link href="../presets/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.0, mkdocs-material-9.5.33" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.41" name="generator"/>
 <title>Scanner - BBOT Docs</title>
-<link href="../../assets/stylesheets/main.3cba04c6.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/main.0253249f.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
-<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.fsf9r8v2.min.css" rel="stylesheet"/></head>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.wzv914yo.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -40,7 +40,7 @@
 <img alt="logo" src="../../bbot.png"/>
 </a>
 <label class="md-header__button md-icon" for="__drawer">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
 </label>
 <div class="md-header__title" data-md-component="header-title">
 <div class="md-header__ellipsis">
@@ -61,9 +61,9 @@
 <form class="md-header__option" data-md-component="palette">
 <input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_0" name="__palette" type="radio"/>
 </form>
-<script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
 <label class="md-header__button md-icon" for="__search">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
 </label>
 <div class="md-search" data-md-component="search" role="dialog">
 <label class="md-search__overlay" for="__search"></label>
@@ -71,12 +71,12 @@
 <form class="md-search__form" name="search">
 <input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
 <label class="md-search__icon md-icon" for="__search">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
 </label>
 <nav aria-label="Search" class="md-search__options">
 <button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
 </button>
 </nav>
 </form>
@@ -95,7 +95,7 @@
 <div class="md-header__source">
 <a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
 <div class="md-source__icon md-icon">
-<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"></path></svg>
 </div>
 <div class="md-source__repository">
     blacklanternsecurity/bbot
@@ -142,7 +142,7 @@
 <div class="md-nav__source">
 <a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
 <div class="md-source__icon md-icon">
-<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"></path></svg>
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"></path></svg>
 </div>
 <div class="md-source__repository">
     blacklanternsecurity/bbot
@@ -510,6 +510,13 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.Scanner.extract_in_scope_hostnames">
+<span class="md-ellipsis">
+      extract_in_scope_hostnames
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#bbot.scanner.Scanner.finish">
 <span class="md-ellipsis">
       finish
@@ -693,7 +700,7 @@
 <ul>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.status">status</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Status of scan, representing its current state. It can take on the following string values, each of which is mapped to an integer code in <code>_status_codes</code>:
@@ -711,7 +718,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner._status_code">_status_code</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+              (<code>int</code>)
           –
           <div class="doc-md-description">
 <p>The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in <code>_status_codes</code>.</p>
@@ -727,7 +734,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.preset">preset</span></code></b>
-              (<code><a class="autorefs autorefs-internal" title="bbot.scanner.preset.Preset" href="../presets/#bbot.scanner.Preset">Preset</a></code>)
+              (<code>Preset</code>)
           –
           <div class="doc-md-description">
 <p>The main scan Preset in its baked form.</p>
@@ -735,7 +742,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.config">config</span></code></b>
-              (<code><span title="omegaconf.dictconfig.DictConfig">DictConfig</span></code>)
+              (<code>DictConfig</code>)
           –
           <div class="doc-md-description">
 <p>BBOT config (alias to <code>self.preset.config</code>).</p>
@@ -767,7 +774,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.output_dir">output_dir</span></code></b>
-              (<code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
+              (<code>Path</code>)
           –
           <div class="doc-md-description">
 <p>Output directory for scan (alias to <code>self.preset.output_dir</code>).</p>
@@ -775,7 +782,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.name">name</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code>str</code>)
           –
           <div class="doc-md-description">
 <p>Name of scan (alias to <code>self.preset.scan_name</code>).</p>
@@ -791,7 +798,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.modules">modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
+              (<code>dict</code>)
           –
           <div class="doc-md-description">
 <p>Holds all loaded modules in this format: <code>{"module_name": Module()}</code>.</p>
@@ -807,7 +814,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.home">home</span></code></b>
-              (<code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
+              (<code>Path</code>)
           –
           <div class="doc-md-description">
 <p>Base output directory of the scan (default: <code>~/.bbot/scans/&lt;scan_name&gt;</code>).</p>
@@ -815,7 +822,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.running">running</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether the scan is currently running.</p>
@@ -823,7 +830,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.stopping">stopping</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether the scan is currently stopping.</p>
@@ -831,7 +838,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.stopped">stopped</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether the scan is currently stopped.</p>
@@ -839,7 +846,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.aborting">aborting</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code>bool</code>)
           –
           <div class="doc-md-description">
 <p>Whether the scan is aborted or currently aborting.</p>
@@ -2041,7 +2048,112 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1206</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1207</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1208</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1209</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">Scanner</span><span style="color: #e6edf3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1209</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1210</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1211</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1212</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1213</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1214</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1215</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1216</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1217</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1218</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1219</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1220</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1221</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1222</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1223</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1224</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1225</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1226</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1227</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1228</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1229</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1230</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1231</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1232</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1233</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1234</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1235</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1236</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1237</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1238</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1239</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1240</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1241</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1242</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1243</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1244</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1245</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1246</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1247</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1248</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1249</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1250</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1251</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1252</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1253</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1254</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1255</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1256</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1257</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1258</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1259</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1260</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1261</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1262</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1263</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1264</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1265</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1266</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1267</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1268</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1269</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1270</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1271</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1272</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1273</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1274</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1275</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1276</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1277</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1278</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1279</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1280</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1281</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1282</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1283</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1284</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1285</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1286</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1287</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1288</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1289</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1290</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1291</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1292</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1293</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1294</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1295</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1296</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1297</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1298</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1299</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1300</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1301</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1302</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1303</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1304</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1305</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1306</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1307</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1308</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1309</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1310</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1311</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1312</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1313</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1314</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">class</span> <span style="color: #f0883e; font-weight: bold">Scanner</span><span style="color: #e6edf3">:</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""A class representing a single BBOT scan</span>
 
 <span style="color: #a5d6ff">    Examples:</span>
@@ -2135,25 +2247,37 @@
 <span style="color: #a5d6ff">            dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.</span>
 <span style="color: #a5d6ff">            **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).</span>
 <span style="color: #a5d6ff">        """</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">end_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_human</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_seconds</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+
         <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">scan_id</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">id</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">str(id)</span>
         <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">id</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"SCAN:{</span><span style="color: #e6edf3">sha1(rand_string(</span><span style="color: #a5d6ff">20</span><span style="color: #e6edf3">))</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hexdigest()</span><span style="color: #a5d6ff">}"</span>
 
-        <span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"preset"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">custom_preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"preset"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
         <span style="color: #e6edf3">kwargs[</span><span style="color: #a5d6ff">"_log"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
 
         <span style="color: #ff7b72">from</span> <span style="color: #ff7b72">.preset</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">Preset</span>
 
-        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Preset(</span><span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
-        <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
-            <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">isinstance(preset,</span> <span style="color: #e6edf3">Preset):</span>
-                <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">ValidationError(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Preset must be of type Preset, not "{</span><span style="color: #e6edf3">type(preset)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__name__</span><span style="color: #a5d6ff">}"'</span><span style="color: #e6edf3">)</span>
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">bake(self)</span>
+        <span style="color: #e6edf3">base_preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Preset(</span><span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">custom_preset</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">isinstance(custom_preset,</span> <span style="color: #e6edf3">Preset):</span>
+                <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">ValidationError(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Preset must be of type Preset, not "{</span><span style="color: #e6edf3">type(custom_preset)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__name__</span><span style="color: #a5d6ff">}"'</span><span style="color: #e6edf3">)</span>
+            <span style="color: #e6edf3">base_preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">merge(custom_preset)</span>
+
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">base_preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">bake(self)</span>
 
         <span style="color: #8b949e; font-style: italic"># scan name</span>
-        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan_name</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan_name</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
             <span style="color: #e6edf3">tries</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">0</span>
             <span style="color: #ff7b72">while</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
                 <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">tries</span> <span style="color: #ff7b72; font-weight: bold">&gt;</span> <span style="color: #a5d6ff">5</span><span style="color: #e6edf3">:</span>
@@ -2168,12 +2292,16 @@
                     <span style="color: #ff7b72">break</span>
                 <span style="color: #e6edf3">tries</span> <span style="color: #ff7b72; font-weight: bold">+=</span> <span style="color: #a5d6ff">1</span>
         <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">scan_name</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">str(preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan_name)</span>
+            <span style="color: #e6edf3">scan_name</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">str(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan_name)</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">scan_name</span>
 
+        <span style="color: #8b949e; font-style: italic"># make sure the preset has a description</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">description:</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">description</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span>
+
         <span style="color: #8b949e; font-style: italic"># scan output dir</span>
-        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">output_dir</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">home</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Path(preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">output_dir)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolve()</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">output_dir</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">home</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Path(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">output_dir)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolve()</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span>
         <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">home</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">bbot_home</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #a5d6ff">"scans"</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span>
 
@@ -2251,6 +2379,9 @@
 
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_strings</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes_yara</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules_uncompiled</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
 
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">__log_handlers</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_log_handler_backup</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[]</span>
@@ -2291,7 +2422,9 @@
                 <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">debug(</span>
                     <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Setting intercept module {</span><span style="color: #e6edf3">intercept_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}._incoming_event_queue to previous intercept module {</span><span style="color: #e6edf3">prev_intercept_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">}.outgoing_event_queue"</span>
                 <span style="color: #e6edf3">)</span>
-                <span style="color: #e6edf3">intercept_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_incoming_event_queue</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">prev_intercept_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">outgoing_event_queue</span>
+                <span style="color: #e6edf3">interqueue</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">Queue()</span>
+                <span style="color: #e6edf3">intercept_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_incoming_event_queue</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">interqueue</span>
+                <span style="color: #e6edf3">prev_intercept_module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_outgoing_event_queue</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">interqueue</span>
 
             <span style="color: #8b949e; font-style: italic"># abort if there are no output modules</span>
             <span style="color: #e6edf3">num_output_modules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">len([m</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">m</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">modules</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">values()</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">m</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_type</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"output"</span><span style="color: #e6edf3">])</span>
@@ -2323,13 +2456,13 @@
 
     <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">async_start</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">        </span><span style="color: #a5d6ff">""" """</span>
-        <span style="color: #e6edf3">failed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
-        <span style="color: #e6edf3">scan_start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">datetime</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">now()</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">datetime</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">now()</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data[</span><span style="color: #a5d6ff">"started_at"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">isoformat()</span>
         <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
             <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_prep()</span>
 
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_start_log_handlers()</span>
-            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Ran BBOT {</span><span style="color: #e6edf3">__version__</span><span style="color: #a5d6ff">} at {</span><span style="color: #e6edf3">scan_start_time</span><span style="color: #a5d6ff">}, command: {" "</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">join(sys</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">argv)</span><span style="color: #a5d6ff">}'</span><span style="color: #e6edf3">)</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Ran BBOT {</span><span style="color: #e6edf3">__version__</span><span style="color: #a5d6ff">} at {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span><span style="color: #a5d6ff">}, command: {" "</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">join(sys</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">argv)</span><span style="color: #a5d6ff">}'</span><span style="color: #e6edf3">)</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Target: {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">json</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Preset: {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">to_dict(redact_secrets</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
 
@@ -2380,16 +2513,19 @@
                 <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finished_init</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">modules_finished:</span>
                     <span style="color: #e6edf3">new_activity</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">finish()</span>
                     <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">new_activity:</span>
+                        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
+                        <span style="color: #e6edf3">scan_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_mark_finished()</span>
+                        <span style="color: #ff7b72">yield</span> <span style="color: #e6edf3">scan_finish_event</span>
                         <span style="color: #ff7b72">break</span>
 
                 <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">sleep(</span><span style="color: #a5d6ff">0.1</span><span style="color: #e6edf3">)</span>
 
-            <span style="color: #e6edf3">failed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
 
         <span style="color: #ff7b72">except</span> <span style="color: #f0883e; font-weight: bold">BaseException</span> <span style="color: #ff7b72">as</span> <span style="color: #e6edf3">e:</span>
             <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">in_exception_chain(e,</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">KeyboardInterrupt</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">CancelledError)):</span>
                 <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stop()</span>
-                <span style="color: #e6edf3">failed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
             <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
                 <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
                     <span style="color: #ff7b72">raise</span>
@@ -2413,23 +2549,44 @@
             <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_report()</span>
             <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_cleanup()</span>
 
-            <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugesuccess</span>
-            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"ABORTING"</span><span style="color: #e6edf3">:</span>
-                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"ABORTED"</span>
-                <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugewarning</span>
-            <span style="color: #ff7b72">elif</span> <span style="color: #e6edf3">failed:</span>
-                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"FAILED"</span>
-                <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">critical</span>
-            <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
-                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"FINISHED"</span>
-
-            <span style="color: #e6edf3">scan_run_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">datetime</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">now()</span> <span style="color: #ff7b72; font-weight: bold">-</span> <span style="color: #e6edf3">scan_start_time</span>
-            <span style="color: #e6edf3">scan_run_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">human_timedelta(scan_run_time)</span>
-            <span style="color: #e6edf3">log_fn(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Scan {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">} completed in {</span><span style="color: #e6edf3">scan_run_time</span><span style="color: #a5d6ff">} with status {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
-
             <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dispatcher</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">on_finish(self)</span>
 
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_stop_log_handlers()</span>
+
+    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_mark_finished</span><span style="color: #e6edf3">(self):</span>
+        <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugesuccess</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"ABORTING"</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"ABORTED"</span>
+            <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugewarning</span>
+        <span style="color: #ff7b72">elif</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success:</span>
+            <span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"FAILED"</span>
+            <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">critical</span>
+        <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"FINISHED"</span>
+
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">end_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">datetime</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">now()</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">end_time</span> <span style="color: #ff7b72; font-weight: bold">-</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_seconds</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">total_seconds()</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_human</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">human_timedelta(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration)</span>
+
+        <span style="color: #e6edf3">status_message</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Scan {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">} completed in {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_human</span><span style="color: #a5d6ff">} with status {</span><span style="color: #e6edf3">status</span><span style="color: #a5d6ff">}"</span>
+
+        <span style="color: #e6edf3">scan_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">finish_event(status_message,</span> <span style="color: #e6edf3">status)</span>
+
+        <span style="color: #8b949e; font-style: italic"># queue final scan event with output modules</span>
+        <span style="color: #e6edf3">output_modules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[m</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">m</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">modules</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">values()</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">m</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_type</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"output"</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">m</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span> <span style="color: #ff7b72; font-weight: bold">!=</span> <span style="color: #a5d6ff">"python"</span><span style="color: #e6edf3">]</span>
+        <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">m</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">output_modules:</span>
+            <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">m</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">queue_event(scan_finish_event)</span>
+        <span style="color: #8b949e; font-style: italic"># wait until output modules are flushed</span>
+        <span style="color: #ff7b72">while</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">modules_finished</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">all([m</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">finished</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">m</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">output_modules])</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">modules_finished:</span>
+                <span style="color: #ff7b72">break</span>
+            <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">sleep(</span><span style="color: #a5d6ff">0.05</span><span style="color: #e6edf3">)</span>
+
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">status</span>
+        <span style="color: #e6edf3">log_fn(status_message)</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">scan_finish_event</span>
 
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_start_modules</span><span style="color: #e6edf3">(self):</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">verbose(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Starting module worker loops"</span><span style="color: #e6edf3">)</span>
@@ -2744,8 +2901,8 @@
                 <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">queue_event(finished_event)</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">verbose(</span><span style="color: #a5d6ff">"Completed finish()"</span><span style="color: #e6edf3">)</span>
             <span style="color: #ff7b72">return</span> <span style="color: #79c0ff">True</span>
-        <span style="color: #8b949e; font-style: italic"># Return False if no new events were generated since last time</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">verbose(</span><span style="color: #a5d6ff">"Completed final finish()"</span><span style="color: #e6edf3">)</span>
+        <span style="color: #8b949e; font-style: italic"># Return False if no new events were generated since last time</span>
         <span style="color: #ff7b72">return</span> <span style="color: #79c0ff">False</span>
 
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">_drain_queues</span><span style="color: #e6edf3">(self):</span>
@@ -2964,12 +3121,25 @@
 <span style="color: #a5d6ff">            }</span>
 <span style="color: #a5d6ff">            ```</span>
 <span style="color: #a5d6ff">        """</span>
-        <span style="color: #e6edf3">root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">make_event(data</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">json,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"SCAN"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">make_root_event(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Scan {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">} started at {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data[</span><span style="color: #a5d6ff">"status"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">finish_event</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">context</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">status</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">):</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">context</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span> <span style="color: #ff7b72; font-weight: bold">or</span> <span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+                <span style="color: #ff7b72">raise</span> <span style="color: #f0883e; font-weight: bold">ValueError</span><span style="color: #e6edf3">(</span><span style="color: #a5d6ff">"Must specify context and status"</span><span style="color: #e6edf3">)</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">make_root_event(context)</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data[</span><span style="color: #a5d6ff">"status"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">status</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span>
+
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">make_root_event</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">context):</span>
+        <span style="color: #e6edf3">root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">make_event(data</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">json,</span> <span style="color: #e6edf3">event_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"SCAN"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">dummy</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">context</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">context)</span>
         <span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_id</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">id</span>
         <span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scope_distance</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">0</span>
         <span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">parent</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">root_event</span>
         <span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">module</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_make_dummy_module(name</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"TARGET"</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">_type</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #a5d6ff">"TARGET"</span><span style="color: #e6edf3">)</span>
-        <span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">discovery_context</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Scan {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">} started at {</span><span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">timestamp</span><span style="color: #a5d6ff">}"</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">root_event</span>
 
     <span style="color: #d2a8ff; font-weight: bold">@property</span>
@@ -2978,14 +3148,13 @@
 <span style="color: #a5d6ff">        A list of DNS hostname strings generated from the scan target</span>
 <span style="color: #a5d6ff">        """</span>
         <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_strings</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">dns_targets</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set(t</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">t</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">target</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">t</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">isinstance(t</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">str))</span>
             <span style="color: #e6edf3">dns_whitelist</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set(t</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">t</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">whitelist</span> <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">t</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">isinstance(t</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">host,</span> <span style="color: #e6edf3">str))</span>
-            <span style="color: #e6edf3">dns_targets</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">update(dns_whitelist)</span>
-            <span style="color: #e6edf3">dns_targets</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">sorted(dns_targets,</span> <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">len)</span>
-            <span style="color: #e6edf3">dns_targets_set</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
+            <span style="color: #e6edf3">dns_whitelist</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">sorted(dns_whitelist,</span> <span style="color: #e6edf3">key</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">len)</span>
+            <span style="color: #e6edf3">dns_whitelist_set</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
             <span style="color: #e6edf3">dns_strings</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[]</span>
-            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">t</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">dns_targets:</span>
-                <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">any(x</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">dns_targets_set</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">x</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">domain_parents(t,</span> <span style="color: #e6edf3">include_self</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)):</span>
+            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">t</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">dns_whitelist:</span>
+                <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">any(x</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">dns_whitelist_set</span> <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">x</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">domain_parents(t,</span> <span style="color: #e6edf3">include_self</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)):</span>
+                    <span style="color: #e6edf3">dns_whitelist_set</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(t)</span>
                     <span style="color: #e6edf3">dns_strings</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(t)</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_strings</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">dns_strings</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_strings</span>
@@ -3020,7 +3189,7 @@
 <span style="color: #a5d6ff">            ...     for match in regex.finditer(response.text):</span>
 <span style="color: #a5d6ff">            ...         hostname = match.group().lower()</span>
 <span style="color: #a5d6ff">        """</span>
-        <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes:</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_generate_dns_regexes(</span><span style="color: #79c0ff">r</span><span style="color: #a5d6ff">"((?:(?:[\w-]+)\.)+"</span><span style="color: #e6edf3">)</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes</span>
 
@@ -3029,7 +3198,47 @@
 <span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
 <span style="color: #a5d6ff">        Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.</span>
 <span style="color: #a5d6ff">        """</span>
-        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_generate_dns_regexes(</span><span style="color: #79c0ff">r</span><span style="color: #a5d6ff">"(([a-z0-9-]+\.)+"</span><span style="color: #e6edf3">)</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes_yara</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes_yara</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_generate_dns_regexes(</span><span style="color: #79c0ff">r</span><span style="color: #a5d6ff">"(([a-z0-9-]+\.)*"</span><span style="color: #e6edf3">)</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes_yara</span>
+
+    <span style="color: #d2a8ff; font-weight: bold">@property</span>
+    <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">dns_yara_rules_uncompiled</span><span style="color: #e6edf3">(self):</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules_uncompiled</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">regexes_component_list</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[]</span>
+            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">i,</span> <span style="color: #e6edf3">r</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">enumerate(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dns_regexes_yara):</span>
+                <span style="color: #e6edf3">regexes_component_list</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">append(</span><span style="color: #79c0ff">rf</span><span style="color: #a5d6ff">"$dns_name_{</span><span style="color: #e6edf3">i</span><span style="color: #a5d6ff">} = /\b{</span><span style="color: #e6edf3">r</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pattern</span><span style="color: #a5d6ff">}/ nocase"</span><span style="color: #e6edf3">)</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">regexes_component_list:</span>
+                <span style="color: #e6edf3">regexes_component</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">" "</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">join(regexes_component_list)</span>
+                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules_uncompiled</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'rule hostname_extraction </span><span style="color: #79c0ff">{{</span><span style="color: #a5d6ff">meta: description = "matches DNS hostname pattern derived from target(s)" strings: {</span><span style="color: #e6edf3">regexes_component</span><span style="color: #a5d6ff">} condition: any of them</span><span style="color: #79c0ff">}}</span><span style="color: #a5d6ff">'</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules_uncompiled</span>
+
+    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">dns_yara_rules</span><span style="color: #e6edf3">(self):</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dns_yara_rules_uncompiled</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+                <span style="color: #ff7b72">import</span> <span style="color: #ff7b72">yara</span>
+
+                <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_in_executor(</span>
+                    <span style="color: #e6edf3">yara</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">compile,</span> <span style="color: #e6edf3">source</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dns_yara_rules_uncompiled</span>
+                <span style="color: #e6edf3">)</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules</span>
+
+    <span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">extract_in_scope_hostnames</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">s):</span>
+<span style="color: #6e7681">        </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">        Given a string, uses yara to extract hostnames matching scan targets</span>
+
+<span style="color: #a5d6ff">        Examples:</span>
+<span style="color: #a5d6ff">            &gt;&gt;&gt; await self.scan.extract_in_scope_hostnames("http://www.evilcorp.com")</span>
+<span style="color: #a5d6ff">            ... {"www.evilcorp.com"}</span>
+<span style="color: #a5d6ff">        """</span>
+        <span style="color: #e6edf3">matches</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
+        <span style="color: #e6edf3">dns_yara_rules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dns_yara_rules()</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">dns_yara_rules</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">match</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_in_executor(dns_yara_rules</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">match,</span> <span style="color: #e6edf3">data</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">s):</span>
+                <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">string</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">match</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strings:</span>
+                    <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">instance</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">string</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">instances:</span>
+                        <span style="color: #e6edf3">matches</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(str(instance))</span>
+        <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">matches</span>
 
     <span style="color: #d2a8ff; font-weight: bold">@property</span>
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">json</span><span style="color: #e6edf3">(self):</span>
@@ -3043,6 +3252,14 @@
                 <span style="color: #e6edf3">j</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">update({i:</span> <span style="color: #e6edf3">v})</span>
         <span style="color: #e6edf3">j[</span><span style="color: #a5d6ff">"target"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">json</span>
         <span style="color: #e6edf3">j[</span><span style="color: #a5d6ff">"preset"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">to_dict(redact_secrets</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">j[</span><span style="color: #a5d6ff">"started_at"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">isoformat()</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">end_time</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">j[</span><span style="color: #a5d6ff">"finished_at"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">end_time</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">isoformat()</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">j[</span><span style="color: #a5d6ff">"duration_seconds"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_seconds</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_human</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+            <span style="color: #e6edf3">j[</span><span style="color: #a5d6ff">"duration"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_human</span>
         <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">j</span>
 
     <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">debug</span><span style="color: #e6edf3">(self,</span> <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">args,</span> <span style="color: #e6edf3">trace</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">False</span><span style="color: #e6edf3">,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs):</span>
@@ -3344,7 +3561,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <ul>
 <li class="doc-section-item field-body">
 <b><code>*targets</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>()</code>
 )
           –
@@ -3354,7 +3571,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </li>
 <li class="doc-section-item field-body">
 <b><code>preset</code></b>
-              (<code><a class="autorefs autorefs-internal" title="bbot.scanner.preset.Preset" href="../presets/#bbot.scanner.Preset">Preset</a></code>)
+              (<code>Preset</code>)
           –
           <div class="doc-md-description">
 <p>Preset to use for the scan.</p>
@@ -3362,7 +3579,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </li>
 <li class="doc-section-item field-body">
 <b><code>scan_id</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code>str</code>, default:
                   <code>None</code>
 )
           –
@@ -3372,7 +3589,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </li>
 <li class="doc-section-item field-body">
 <b><code>dispatcher</code></b>
-              (<code><span title="bbot.scanner.dispatcher.Dispatcher">Dispatcher</span></code>, default:
+              (<code>Dispatcher</code>, default:
                   <code>None</code>
 )
           –
@@ -3382,7 +3599,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </li>
 <li class="doc-section-item field-body">
 <b><code>**kwargs</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code>list[str]</code>, default:
                   <code>{}</code>
 )
           –
@@ -3531,7 +3748,26 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">233</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">234</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">235</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">236</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__init__</span><span style="color: #e6edf3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">236</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">237</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">238</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">239</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">240</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">241</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">242</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">243</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">244</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">245</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">246</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">247</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">248</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">249</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">250</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">251</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">252</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">253</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">254</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">255</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">__init__</span><span style="color: #e6edf3">(</span>
     <span style="color: #e6edf3">self,</span>
     <span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span>
     <span style="color: #e6edf3">scan_id</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">None</span><span style="color: #e6edf3">,</span>
@@ -3551,25 +3787,37 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #a5d6ff">        dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.</span>
 <span style="color: #a5d6ff">        **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).</span>
 <span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_root_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">end_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_human</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">duration_seconds</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+
     <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">scan_id</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">id</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">str(id)</span>
     <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">id</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"SCAN:{</span><span style="color: #e6edf3">sha1(rand_string(</span><span style="color: #a5d6ff">20</span><span style="color: #e6edf3">))</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hexdigest()</span><span style="color: #a5d6ff">}"</span>
 
-    <span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"preset"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
+    <span style="color: #e6edf3">custom_preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">kwargs</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">pop(</span><span style="color: #a5d6ff">"preset"</span><span style="color: #e6edf3">,</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">)</span>
     <span style="color: #e6edf3">kwargs[</span><span style="color: #a5d6ff">"_log"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
 
     <span style="color: #ff7b72">from</span> <span style="color: #ff7b72">.preset</span> <span style="color: #ff7b72">import</span> <span style="color: #e6edf3">Preset</span>
 
-    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
-        <span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Preset(</span><span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
-    <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
-        <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">isinstance(preset,</span> <span style="color: #e6edf3">Preset):</span>
-            <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">ValidationError(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Preset must be of type Preset, not "{</span><span style="color: #e6edf3">type(preset)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__name__</span><span style="color: #a5d6ff">}"'</span><span style="color: #e6edf3">)</span>
-    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">bake(self)</span>
+    <span style="color: #e6edf3">base_preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Preset(</span><span style="color: #ff7b72; font-weight: bold">*</span><span style="color: #e6edf3">targets,</span> <span style="color: #ff7b72; font-weight: bold">**</span><span style="color: #e6edf3">kwargs)</span>
+
+    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">custom_preset</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+        <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">isinstance(custom_preset,</span> <span style="color: #e6edf3">Preset):</span>
+            <span style="color: #ff7b72">raise</span> <span style="color: #e6edf3">ValidationError(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Preset must be of type Preset, not "{</span><span style="color: #e6edf3">type(custom_preset)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #79c0ff">__name__</span><span style="color: #a5d6ff">}"'</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">base_preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">merge(custom_preset)</span>
+
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">base_preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">bake(self)</span>
 
     <span style="color: #8b949e; font-style: italic"># scan name</span>
-    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan_name</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan_name</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
         <span style="color: #e6edf3">tries</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">0</span>
         <span style="color: #ff7b72">while</span> <span style="color: #a5d6ff">1</span><span style="color: #e6edf3">:</span>
             <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">tries</span> <span style="color: #ff7b72; font-weight: bold">&gt;</span> <span style="color: #a5d6ff">5</span><span style="color: #e6edf3">:</span>
@@ -3584,12 +3832,16 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
                 <span style="color: #ff7b72">break</span>
             <span style="color: #e6edf3">tries</span> <span style="color: #ff7b72; font-weight: bold">+=</span> <span style="color: #a5d6ff">1</span>
     <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
-        <span style="color: #e6edf3">scan_name</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">str(preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan_name)</span>
+        <span style="color: #e6edf3">scan_name</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">str(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan_name)</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">scan_name</span>
 
+    <span style="color: #8b949e; font-style: italic"># make sure the preset has a description</span>
+    <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">description:</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">description</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span>
+
     <span style="color: #8b949e; font-style: italic"># scan output dir</span>
-    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">output_dir</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">home</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Path(preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">output_dir)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolve()</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span>
+    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">output_dir</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">home</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">Path(self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">output_dir)</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">resolve()</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span>
     <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">home</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">bbot_home</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #a5d6ff">"scans"</span> <span style="color: #ff7b72; font-weight: bold">/</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span>
 
@@ -3667,6 +3919,9 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_strings</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_regexes_yara</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules_uncompiled</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_dns_yara_rules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
 
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">__log_handlers</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">None</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_log_handler_backup</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">[]</span>
@@ -3686,28 +3941,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <div class="doc doc-contents">
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">304</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">305</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">306</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">307</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">308</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">309</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">310</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">311</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">312</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">313</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">314</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">315</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">316</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">317</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">318</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">319</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">320</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">321</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">322</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">323</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">324</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">325</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">325</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">326</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">327</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">328</span>
@@ -3794,15 +4028,25 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">409</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">410</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">411</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">412</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">async_start</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">412</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">413</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">414</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">415</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">416</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">418</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">419</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">420</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">421</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">422</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">async_start</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">""" """</span>
-    <span style="color: #e6edf3">failed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
-    <span style="color: #e6edf3">scan_start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">datetime</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">now()</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">datetime</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">now()</span>
+    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">root_event</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">data[</span><span style="color: #a5d6ff">"started_at"</span><span style="color: #e6edf3">]</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">isoformat()</span>
     <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
         <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_prep()</span>
 
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_start_log_handlers()</span>
-        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Ran BBOT {</span><span style="color: #e6edf3">__version__</span><span style="color: #a5d6ff">} at {</span><span style="color: #e6edf3">scan_start_time</span><span style="color: #a5d6ff">}, command: {" "</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">join(sys</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">argv)</span><span style="color: #a5d6ff">}'</span><span style="color: #e6edf3">)</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">'Ran BBOT {</span><span style="color: #e6edf3">__version__</span><span style="color: #a5d6ff">} at {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">start_time</span><span style="color: #a5d6ff">}, command: {" "</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">join(sys</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">argv)</span><span style="color: #a5d6ff">}'</span><span style="color: #e6edf3">)</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Target: {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">target</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">json</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">trace(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Preset: {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">preset</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">to_dict(redact_secrets</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">)</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
 
@@ -3853,16 +4097,19 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
             <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_finished_init</span> <span style="color: #ff7b72; font-weight: bold">and</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">modules_finished:</span>
                 <span style="color: #e6edf3">new_activity</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">finish()</span>
                 <span style="color: #ff7b72">if</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #e6edf3">new_activity:</span>
+                    <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
+                    <span style="color: #e6edf3">scan_finish_event</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_mark_finished()</span>
+                    <span style="color: #ff7b72">yield</span> <span style="color: #e6edf3">scan_finish_event</span>
                     <span style="color: #ff7b72">break</span>
 
             <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">sleep(</span><span style="color: #a5d6ff">0.1</span><span style="color: #e6edf3">)</span>
 
-        <span style="color: #e6edf3">failed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+        <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
 
     <span style="color: #ff7b72">except</span> <span style="color: #f0883e; font-weight: bold">BaseException</span> <span style="color: #ff7b72">as</span> <span style="color: #e6edf3">e:</span>
         <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">in_exception_chain(e,</span> <span style="color: #e6edf3">(</span><span style="color: #f0883e; font-weight: bold">KeyboardInterrupt</span><span style="color: #e6edf3">,</span> <span style="color: #e6edf3">asyncio</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">CancelledError)):</span>
             <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">stop()</span>
-            <span style="color: #e6edf3">failed</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">False</span>
+            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_success</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #79c0ff">True</span>
         <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
             <span style="color: #ff7b72">try</span><span style="color: #e6edf3">:</span>
                 <span style="color: #ff7b72">raise</span>
@@ -3886,23 +4133,61 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
         <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_report()</span>
         <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_cleanup()</span>
 
-        <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugesuccess</span>
-        <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">==</span> <span style="color: #a5d6ff">"ABORTING"</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"ABORTED"</span>
-            <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">hugewarning</span>
-        <span style="color: #ff7b72">elif</span> <span style="color: #e6edf3">failed:</span>
-            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"FAILED"</span>
-            <span style="color: #e6edf3">log_fn</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">critical</span>
-        <span style="color: #ff7b72">else</span><span style="color: #e6edf3">:</span>
-            <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #a5d6ff">"FINISHED"</span>
-
-        <span style="color: #e6edf3">scan_run_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">datetime</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">now()</span> <span style="color: #ff7b72; font-weight: bold">-</span> <span style="color: #e6edf3">scan_start_time</span>
-        <span style="color: #e6edf3">scan_run_time</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">human_timedelta(scan_run_time)</span>
-        <span style="color: #e6edf3">log_fn(</span><span style="color: #79c0ff">f</span><span style="color: #a5d6ff">"Scan {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">name</span><span style="color: #a5d6ff">} completed in {</span><span style="color: #e6edf3">scan_run_time</span><span style="color: #a5d6ff">} with status {</span><span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">status</span><span style="color: #a5d6ff">}"</span><span style="color: #e6edf3">)</span>
-
         <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dispatcher</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">on_finish(self)</span>
 
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">_stop_log_handlers()</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h2 class="doc doc-heading" id="bbot.scanner.Scanner.extract_in_scope_hostnames">
+<span class="doc doc-object-name doc-function-name">extract_in_scope_hostnames</span>
+<span class="doc doc-labels">
+<small class="doc doc-label doc-label-async"><code>async</code></small>
+</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #e6edf3">extract_in_scope_hostnames(s)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Given a string, uses yara to extract hostnames matching scan targets</p>
+<p><span class="doc-section-title">Examples:</span></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8b949e">&gt;&gt;&gt; </span><span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">scan</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">extract_in_scope_hostnames(</span><span style="color: #a5d6ff">"http://www.evilcorp.com"</span><span style="color: #e6edf3">)</span>
+<span style="color: #8b949e">... </span><span style="color: #e6edf3">{</span><span style="color: #a5d6ff">"www.evilcorp.com"</span><span style="color: #e6edf3">}</span>
+</code></pre></div>
+<details class="quote">
+<summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1094</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1095</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1096</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1097</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1098</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1099</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1100</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1101</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1102</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1103</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1104</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1105</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1106</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1107</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1108</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1109</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">extract_in_scope_hostnames</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">s):</span>
+<span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""</span>
+<span style="color: #a5d6ff">    Given a string, uses yara to extract hostnames matching scan targets</span>
+
+<span style="color: #a5d6ff">    Examples:</span>
+<span style="color: #a5d6ff">        &gt;&gt;&gt; await self.scan.extract_in_scope_hostnames("http://www.evilcorp.com")</span>
+<span style="color: #a5d6ff">        ... {"www.evilcorp.com"}</span>
+<span style="color: #a5d6ff">    """</span>
+    <span style="color: #e6edf3">matches</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #e6edf3">set()</span>
+    <span style="color: #e6edf3">dns_yara_rules</span> <span style="color: #ff7b72; font-weight: bold">=</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">dns_yara_rules()</span>
+    <span style="color: #ff7b72">if</span> <span style="color: #e6edf3">dns_yara_rules</span> <span style="color: #ff7b72; font-weight: bold">is</span> <span style="color: #ff7b72; font-weight: bold">not</span> <span style="color: #79c0ff">None</span><span style="color: #e6edf3">:</span>
+        <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">match</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">helpers</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">run_in_executor(dns_yara_rules</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">match,</span> <span style="color: #e6edf3">data</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #e6edf3">s):</span>
+            <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">string</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">match</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">strings:</span>
+                <span style="color: #ff7b72">for</span> <span style="color: #e6edf3">instance</span> <span style="color: #ff7b72; font-weight: bold">in</span> <span style="color: #e6edf3">string</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">instances:</span>
+                    <span style="color: #e6edf3">matches</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">add(str(instance))</span>
+    <span style="color: #ff7b72">return</span> <span style="color: #e6edf3">matches</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -3935,32 +4220,32 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </details>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">704</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">705</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">706</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">707</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">708</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">709</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">711</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">712</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">713</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">714</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">715</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">716</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">717</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">718</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">719</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">720</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">721</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">722</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">723</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">724</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">725</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">726</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">727</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">728</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">729</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">finish</span><span style="color: #e6edf3">(self):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">749</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">750</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">751</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">752</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">753</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">754</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">755</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">756</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">757</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">758</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">759</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">760</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">761</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">762</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">763</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">764</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">765</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">766</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">767</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">768</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">769</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">770</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">771</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">772</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">773</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">774</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">finish</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""Finalizes the scan by invoking the `finished()` method on all active modules if new activity is detected.</span>
 
 <span style="color: #a5d6ff">    The method is idempotent and will return False if no new activity has been recorded since the last invocation.</span>
@@ -3983,8 +4268,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
             <span style="color: #ff7b72">await</span> <span style="color: #e6edf3">module</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">queue_event(finished_event)</span>
         <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">verbose(</span><span style="color: #a5d6ff">"Completed finish()"</span><span style="color: #e6edf3">)</span>
         <span style="color: #ff7b72">return</span> <span style="color: #79c0ff">True</span>
-    <span style="color: #8b949e; font-style: italic"># Return False if no new events were generated since last time</span>
     <span style="color: #e6edf3">self</span><span style="color: #ff7b72; font-weight: bold">.</span><span style="color: #e6edf3">verbose(</span><span style="color: #a5d6ff">"Completed final finish()"</span><span style="color: #e6edf3">)</span>
+    <span style="color: #8b949e; font-style: italic"># Return False if no new events were generated since last time</span>
     <span style="color: #ff7b72">return</span> <span style="color: #79c0ff">False</span>
 </code></pre></div></td></tr></table></div>
 </details>
@@ -4040,7 +4325,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><span title="bbot.errors.ScanError">ScanError</span></code>
+<code>ScanError</code>
             –
           <div class="doc-md-description">
 <p>If any module dependencies fail to install or modules fail to load, and if <code>self.force_start</code> is False.</p>
@@ -4062,52 +4347,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </details>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">462</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">463</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">464</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">465</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">466</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">467</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">468</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">469</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">470</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">471</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">472</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">473</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">474</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">475</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">476</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">477</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">478</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">479</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">480</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">481</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">482</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">483</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">484</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">485</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">486</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">487</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">488</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">489</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">490</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">491</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">492</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">493</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">494</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">495</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">496</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">497</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">498</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">499</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">500</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">508</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">509</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">510</span>
@@ -4151,7 +4391,52 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">548</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">549</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">550</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">551</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">load_modules</span><span style="color: #e6edf3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">551</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">552</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">553</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">554</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">555</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">556</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">557</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">558</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">559</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">560</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">561</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">562</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">563</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">564</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">565</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">566</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">567</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">568</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">569</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">570</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">571</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">572</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">573</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">574</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">575</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">576</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">577</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">578</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">579</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">580</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">581</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">582</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">583</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">584</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">585</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">586</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">587</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">588</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">589</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">590</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">591</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">593</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">595</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">596</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">load_modules</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""Asynchronously import and instantiate all scan modules, including internal and output modules.</span>
 
 <span style="color: #a5d6ff">    This method is automatically invoked by `setup_modules()`. It performs several key tasks in the following sequence:</span>
@@ -4260,7 +4545,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <ul>
 <li class="doc-section-item field-body">
 <b><code>remove_failed</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code>bool</code>, default:
                   <code>True</code>
 )
           –
@@ -4283,7 +4568,7 @@ soft_failed - List of modules that encountered a soft failure during setup.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code><span title="bbot.errors.ScanError">ScanError</span></code>
+<code>ScanError</code>
             –
           <div class="doc-md-description">
 <p>If no output modules could be loaded.</p>
@@ -4297,48 +4582,48 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 </details>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">419</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">420</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">421</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">422</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">423</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">424</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">425</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">426</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">427</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">428</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">429</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">430</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">431</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">432</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">433</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">434</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">435</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">436</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">437</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">438</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">439</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">440</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">441</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">442</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">443</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">444</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">445</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">446</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">447</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">448</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">449</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">450</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">451</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">452</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">453</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">454</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">455</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">456</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">457</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">458</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">459</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">460</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">setup_modules</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">remove_failed</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">464</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">465</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">466</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">467</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">468</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">469</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">470</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">471</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">472</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">473</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">474</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">475</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">476</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">477</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">478</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">479</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">480</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">481</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">482</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">483</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">484</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">485</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">486</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">487</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">488</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">489</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">490</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">491</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">492</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">493</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">494</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">495</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">496</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">497</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">498</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">499</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">500</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">async</span> <span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">setup_modules</span><span style="color: #e6edf3">(self,</span> <span style="color: #e6edf3">remove_failed</span><span style="color: #ff7b72; font-weight: bold">=</span><span style="color: #79c0ff">True</span><span style="color: #e6edf3">):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""Asynchronously initializes all loaded modules by invoking their `setup()` methods.</span>
 
 <span style="color: #a5d6ff">    Args:</span>
@@ -4404,25 +4689,25 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 </ul>
 <details class="quote">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">684</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">685</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">686</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">687</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">688</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">689</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">690</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">691</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">692</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">693</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">694</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">695</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">696</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">697</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">698</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">699</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">700</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">701</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">702</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">stop</span><span style="color: #e6edf3">(self):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">729</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">730</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">731</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">732</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">733</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">734</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">735</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">736</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">737</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">738</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">739</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">740</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">741</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">742</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">743</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">744</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">745</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">746</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">747</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #ff7b72">def</span> <span style="color: #d2a8ff; font-weight: bold">stop</span><span style="color: #e6edf3">(self):</span>
 <span style="color: #6e7681">    </span><span style="color: #a5d6ff">"""Stops the in-progress scan and performs necessary cleanup.</span>
 
 <span style="color: #a5d6ff">    This method sets the scan's status to "ABORTING," cancels any pending tasks, and drains event queues. It also kills child processes spawned during the scan.</span>
@@ -4471,8 +4756,8 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../assets/javascripts/bundle.af256bd8.min.js"></script>
+<script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
 <script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>
