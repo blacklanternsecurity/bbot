@@ -351,14 +351,6 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     assert result == True
 
-    # enable and exclude the same module
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "ffuf_shortnames", "-em", "ffuf_shortnames"])
-    result = await cli._main()
-    assert result == None
-    assert 'Unable to add scan module "ffuf_shortnames" because the module has been excluded' in caplog.text
-
     # require flags
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "-rf", "passive"])
     result = await cli._main()

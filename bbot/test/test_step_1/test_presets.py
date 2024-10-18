@@ -532,9 +532,22 @@ def test_preset_module_resolution(clean_default_config):
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + module exclusions
-    with pytest.raises(ValidationError) as error:
-        preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
-    assert str(error.value) == 'Unable to add scan module "sslcert" because the module has been excluded'
+    preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    baked_preset = preset.bake()
+    assert baked_preset.modules == {
+        "wayback",
+        "cloudcheck",
+        "python",
+        "json",
+        "speculate",
+        "dnsresolve",
+        "aggregate",
+        "excavate",
+        "txt",
+        "httpx",
+        "csv",
+        "wappalyzer",
+    }
 
 
 @pytest.mark.asyncio
