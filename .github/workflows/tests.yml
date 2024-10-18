@@ -55,42 +55,15 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
           verbose: true
-  update_docs:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref != 'refs/heads/dev' && github.ref != 'refs/heads/stable')
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-      - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install
-      - name: Generate docs
-        run: |
-          poetry run bbot/scripts/docs.py
-      - name: Commit docs
-        uses: EndBug/add-and-commit@v9
-        continue-on-error: true
-        with:
-          add: '["*.md", "docs/data/chord_graph/*.json"]'
-          author_name: "BBOT Docs Autopublish"
-          author_email: info@blacklanternsecurity.com
-          message: "Refresh module docs"
   publish_docs:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
