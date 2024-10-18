@@ -1,0 +1,15 @@
+description: Discovery web parameters and lightly fuzz them for xss vulnerabilities
+modules:
+  - httpx
+  - lightfuzz
+  - paramminer_getparams
+
+config:
+  url_querystring_remove: False
+  url_querystring_collapse: False
+  web:
+    spider_distance: 4
+    spider_depth: 5
+  modules:
+    lightfuzz:
+      enabled_submodules: [xss]

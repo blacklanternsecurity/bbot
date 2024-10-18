@@ -3,6 +3,8 @@ import json
 import tempfile
 import subprocess
 from pathlib import Path
+from http.cookies import SimpleCookie
+
 from bbot.modules.base import BaseModule
 
 
@@ -137,8 +139,20 @@ class httpx(BaseModule):
         if self.probe_all_ips:
             command += ["-probe-all-ips"]
 
+        # Add custom HTTP headers
         for hk, hv in self.scan.custom_http_headers.items():
             command += ["-header", f"{hk}: {hv}"]
+
+        # Add custom HTTP cookies as a single header
+        if self.scan.custom_http_cookies:
+            cookie = SimpleCookie()
+            for ck, cv in self.scan.custom_http_cookies.items():
+                cookie[ck] = cv
+
+            # Build the cookie header
+            cookie_header = f"Cookie: {cookie.output(header='', sep='; ').strip()}"
+            command += ["-header", cookie_header]
+
         proxy = self.scan.http_proxy
         if proxy:
             command += ["-http-proxy", proxy]

@@ -104,8 +104,9 @@ class ModuleLoader:
 
     def file_filter(self, file):
         file = file.resolve()
-        if "templates" in file.parts:
-            return False
+        for part in file.parts:
+            if part.endswith("_submodules") or part == "templates":
+                return False
         return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
 
     def preload(self, module_dirs=None):

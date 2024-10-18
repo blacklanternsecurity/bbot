@@ -2,13 +2,16 @@ import os
 import sys
 import copy
 import json
+import math
 import random
 import string
 import asyncio
 import logging
 import ipaddress
+import ahocorasick
 import regex as re
 import subprocess as sp
+
 from pathlib import Path
 from contextlib import suppress
 from unidecode import unidecode  # noqa F401
@@ -797,17 +800,14 @@ def recursive_decode(data, max_depth=5):
     return data
 
 
-rand_pool = string.ascii_lowercase
-rand_pool_digits = rand_pool + string.digits
-
-
-def rand_string(length=10, digits=True):
+def rand_string(length=10, digits=True, numeric_only=False):
     """
     Generates a random string of specified length.
 
     Args:
         length (int, optional): The length of the random string. Defaults to 10.
         digits (bool, optional): Whether to include digits in the string. Defaults to True.
+        numeric_only (bool, optional): Whether to generate a numeric-only string. Defaults to False.
 
     Returns:
         str: A random string of the specified length.
@@ -819,11 +819,17 @@ def rand_string(length=10, digits=True):
         'ap4rsdtg5iw7ey7y3oa5'
         >>> rand_string(30, digits=False)
         'xdmyxtglqfzqktngkesyulwbfrihva'
+        >>> rand_string(15, numeric_only=True)
+        '934857349857395'
     """
-    pool = rand_pool
-    if digits:
-        pool = rand_pool_digits
-    return "".join([random.choice(pool) for _ in range(int(length))])
+    if numeric_only:
+        pool = string.digits
+    elif digits:
+        pool = string.ascii_lowercase + string.digits
+    else:
+        pool = string.ascii_lowercase
+
+    return "".join(random.choice(pool) for _ in range(length))
 
 
 def truncate_string(s, n):
@@ -921,6 +927,7 @@ valid_chars_dict = {
     "getparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
     "postparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
     "cookie": set(chr(c) for c in range(33, 127) if chr(c) not in '()<>@,;:"/[]?={} \t'),
+    "bodyjson": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
 }
 
 
@@ -2770,6 +2777,35 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
                     continue
             d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
+
+
+def string_scan(substrings, text, case_insensitive=True):
+    automaton = ahocorasick.Automaton()
+    if case_insensitive:
+        substrings = [s.lower() for s in substrings]
+        text = text.lower()
+    for idx, substring in enumerate(substrings):
+        automaton.add_word(substring, (idx, substring))
+    automaton.make_automaton()
+    found_substrings = []
+    for end_index, (insert_order, original_value) in automaton.iter(text):
+        found_substrings.append(original_value)
+    return found_substrings
+
+
+def calculate_entropy(data):
+    """Calculate the Shannon entropy of a byte sequence"""
+    if not data:
+        return 0
+    frequency = {}
+    for byte in data:
+        if byte in frequency:
+            frequency[byte] += 1
+        else:
+            frequency[byte] = 1
+    data_len = len(data)
+    entropy = -sum((count / data_len) * math.log2(count / data_len) for count in frequency.values())
+    return entropy
 
 
 top_ports_cache = None

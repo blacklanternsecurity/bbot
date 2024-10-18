@@ -15,22 +15,24 @@ class HttpCompare:
         parent_helper,
         method="GET",
         data=None,
+        json=None,
         allow_redirects=False,
         include_cache_buster=True,
         headers=None,
         cookies=None,
-        timeout=15,
+        timeout=10,
     ):
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
         self.include_cache_buster = include_cache_buster
         self.method = method
         self.data = data
+        self.json = json
         self.allow_redirects = allow_redirects
         self._baselined = False
         self.headers = headers
         self.cookies = cookies
-        self.timeout = 15
+        self.timeout = 10
 
     @staticmethod
     def merge_dictionaries(headers1, headers2):
@@ -53,6 +55,7 @@ class HttpCompare:
                 follow_redirects=self.allow_redirects,
                 method=self.method,
                 data=self.data,
+                json=self.json,
                 headers=self.headers,
                 cookies=self.cookies,
                 retries=2,
@@ -76,6 +79,7 @@ class HttpCompare:
                 follow_redirects=self.allow_redirects,
                 method=self.method,
                 data=self.data,
+                json=self.json,
                 retries=2,
                 timeout=self.timeout,
             )
@@ -103,11 +107,9 @@ class HttpCompare:
 
             for k, v in ddiff.items():
                 for x in list(ddiff[k]):
-                    log.debug(f"Added {k} filter for path: {x.path()}")
                     self.ddiff_filters.append(x.path())
 
             self.baseline_json = baseline_1_json
-
             self.baseline_ignore_headers = [
                 h.lower()
                 for h in [
@@ -158,7 +160,6 @@ class HttpCompare:
         if len(ddiff.keys()) == 0:
             return True
         else:
-            log.debug(ddiff)
             return False
 
     async def compare(
@@ -169,6 +170,7 @@ class HttpCompare:
         check_reflection=False,
         method="GET",
         data=None,
+        json=None,
         allow_redirects=False,
         timeout=None,
     ):
@@ -199,6 +201,7 @@ class HttpCompare:
             follow_redirects=allow_redirects,
             method=method,
             data=data,
+            json=json,
             timeout=timeout,
         )
 

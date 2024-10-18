@@ -284,11 +284,29 @@ class hunt(BaseModule):
 
     async def handle_event(self, event):
         p = event.data["name"]
+        matching_categories = []
+
+        # Collect all matching categories
         for k in hunt_param_dict.keys():
             if p.lower() in hunt_param_dict[k]:
-                description = f"Found potential {k.upper()} parameter [{p}]"
-                data = {"host": str(event.host), "description": description}
-                url = event.data.get("url", "")
-                if url:
-                    data["url"] = url
-                await self.emit_event(data, "FINDING", event)
+                matching_categories.append(k)
+
+        if matching_categories:
+            # Create a comma-separated string of categories
+            category_str = ", ".join(matching_categories)
+            description = f"Found potentially interesting parameter. Name: [{p}] Parameter Type: [{event.data['type']}] Categories: [{category_str}]"
+
+            if (
+                "original_value" in event.data.keys()
+                and event.data["original_value"] != ""
+                and event.data["original_value"] is not None
+            ):
+                description += (
+                    f" Original Value: [{self.helpers.truncate_string(str(event.data['original_value']), 200)}]"
+                )
+
+            data = {"host": str(event.host), "description": description}
+            url = event.data.get("url", "")
+            if url:
+                data["url"] = url
+            await self.emit_event(data, "FINDING", event)

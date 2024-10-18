@@ -303,7 +303,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     }
 
     options = {
-        "retain_querystring": False,
+        "retain_querystring": True,
         "yara_max_match_data": 2000,
         "custom_yara_rules": "",
     }
@@ -316,6 +316,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     accept_dupes = False
 
     _module_threads = 8
+
+    parameter_blacklist_prefix = ["TS01", "BIGipServerpool_"]  # Big-IP F5 Persistence Cookies
 
     parameter_blacklist = set(
         p.lower()
@@ -331,6 +333,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             "ASP.NET_SessionId",
             "JSESSIONID",
             "PHPSESSID",
+            "AWSALB",
+            "AWSALBCORS",
         ]
     )
 
@@ -338,7 +342,16 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
 
     def in_bl(self, value):
-        return value.lower() in self.parameter_blacklist
+        lower_value = value.lower()
+
+        if lower_value in self.parameter_blacklist:
+            return True
+
+        for bl_param_prefix in self.parameter_blacklist_prefix:
+            if lower_value.startswith(bl_param_prefix.lower()):
+                return True
+
+        return False
 
     def url_unparse(self, param_type, parsed_url):
         if param_type == "GETPARAM":
@@ -393,7 +406,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     for action, extracted_parameters in extracted_results:
                         extracted_parameters_dict = self.convert_to_dict(extracted_parameters)
                         for parameter_name, original_value in extracted_parameters_dict.items():
-                            yield self.output_type, parameter_name, original_value, action, _exclude_key(
+                            yield self.output_type, parameter_name, original_value.strip(), action, _exclude_key(
                                 extracted_parameters_dict, parameter_name
                             )
 
@@ -405,7 +418,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         class HtmlTags(ParameterExtractorRule):
             name = "HTML Tags"
-            discovery_regex = r'/<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ nocase'
+            discovery_regex = r'/<[^>]+(href|src|action)=["\'][^"\']*["\'][^>]*>/ nocase'
             extraction_regex = bbot_regexes.tag_attribute_regex
             output_type = "GETPARAM"
 
@@ -418,41 +431,125 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in query_strings.items()
                     }
                     for parameter_name, original_value in query_strings_dict.items():
-                        yield self.output_type, parameter_name, original_value, url, _exclude_key(
+                        yield self.output_type, parameter_name, original_value.strip(), url, _exclude_key(
                             query_strings_dict, parameter_name
                         )
+
+        class AjaxJquery(ParameterExtractorRule):
+            name = "JQuery Extractor"
+            discovery_regex = r"/\$\.ajax\(\{[^\<$\$]*\}\)/s nocase"
+            extraction_regex = None
+            output_type = "BODYJSON"
+            ajax_content_regexes = {
+                "url": r"url\s*:\s*['\"](.*?)['\"]",
+                "type": r"type\s*:\s*['\"](.*?)['\"]",
+                "content_type": r"contentType\s*:\s*['\"](.*?)['\"]",
+                "data": r"data:.*(\{[^}]*\})",
+            }
+
+            def extract(self):
+                # Iterate through each regex in ajax_content_regexes
+                extracted_values = {}
+                for key, pattern in self.ajax_content_regexes.items():
+                    match = re.search(pattern, self.result)
+                    if match:
+                        # Store the matched value in the dictionary
+                        extracted_values[key] = match.group(1)
+
+                # check to see if the format is defined as JSON
+                if "content_type" in extracted_values.keys():
+                    if extracted_values["content_type"] == "application/json":
+
+                        # If we cant figure out the parameter names, there is no point in continuing
+                        if "data" in extracted_values.keys():
+
+                            if "url" in extracted_values.keys():
+                                form_url = extracted_values["url"]
+                            else:
+                                form_url = None
+
+                            form_parameters = {}
+                            try:
+                                s = extracted_values["data"]
+                                s = re.sub(r"(\w+)\s*:", r'"\1":', s)  # Quote keys
+                                s = re.sub(r":\s*(\w+)", r': "\1"', s)  # Quote values if they are unquoted
+                                data = json.loads(s)
+                            except (ValueError, SyntaxError):
+                                return None
+                            for p in data.keys():
+                                form_parameters[p] = None
+
+                        for parameter_name in form_parameters:
+                            yield "BODYJSON", parameter_name, None, form_url, _exclude_key(
+                                form_parameters, parameter_name
+                            )
 
         class GetForm(ParameterExtractorRule):
             name = "GET Form"
             discovery_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase'
-            form_content_regexes = [
-                bbot_regexes.input_tag_regex,
-                bbot_regexes.select_tag_regex,
-                bbot_regexes.textarea_tag_regex,
-            ]
+            form_content_regexes = {
+                "input_tag_regex": bbot_regexes.input_tag_regex,
+                "input_tag_regex2": bbot_regexes.input_tag_regex2,
+                "input_tag_novalue_regex": bbot_regexes.input_tag_novalue_regex,
+                "select_tag_regex": bbot_regexes.select_tag_regex,
+                "textarea_tag_regex": bbot_regexes.textarea_tag_regex,
+            }
             extraction_regex = bbot_regexes.get_form_regex
             output_type = "GETPARAM"
 
             def extract(self):
                 forms = self.extraction_regex.findall(str(self.result))
                 for form_action, form_content in forms:
+
+                    if not form_action or form_action == "#":
+                        form_action = None
+
+                    elif form_action.startswith("./"):
+                        form_action = form_action.lstrip(".")
+
                     form_parameters = {}
-                    for form_content_regex in self.form_content_regexes:
+                    for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = form_content_regex.findall(form_content)
+                        if input_tags:
 
-                        for parameter_name, original_value in input_tags:
-                            form_parameters[parameter_name] = original_value
+                            if form_content_regex_name == "input_tag_novalue_regex":
+                                form_parameters[input_tags[0]] = None
 
-                        for parameter_name, original_value in form_parameters.items():
-                            yield self.output_type, parameter_name, original_value, form_action, _exclude_key(
-                                form_parameters, parameter_name
-                            )
+                            else:
+                                if form_content_regex_name == "input_tag_regex2":
+                                    input_tags = [(b, a) for a, b in input_tags]
+
+                                for parameter_name, original_value in input_tags:
+                                    form_parameters[parameter_name] = original_value.strip()
+
+                            for parameter_name, original_value in form_parameters.items():
+                                yield self.output_type, parameter_name, original_value, form_action, _exclude_key(
+                                    form_parameters, parameter_name
+                                )
+
+        class GetForm2(GetForm):
+            extraction_regex = bbot_regexes.get_form_regex2
 
         class PostForm(GetForm):
             name = "POST Form"
             discovery_regex = r'/<form[^>]*\bmethod=["\']?post["\']?[^>]*>.*<\/form>/s nocase'
             extraction_regex = bbot_regexes.post_form_regex
             output_type = "POSTPARAM"
+
+        class PostForm2(PostForm):
+            extraction_regex = bbot_regexes.post_form_regex2
+
+        class PostForm_NoAction(PostForm):
+            name = "POST Form (no action)"
+            extraction_regex = bbot_regexes.post_form_regex_noaction
+
+        # underscore ensure generic forms runs last, so it doesn't cause dedupe to stop full form detection
+        class _GenericForm(GetForm):
+            name = "Generic Form"
+            discovery_regex = r"/<form[^>]*>.*<\/form>/s nocase"
+
+            extraction_regex = bbot_regexes.generic_form_regex
+            output_type = "GETPARAM"
 
         def __init__(self, excavate):
             super().__init__(excavate)
@@ -465,7 +562,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 regexes_component_list.append(f"${r.__name__} = {r.discovery_regex}")
             regexes_component = " ".join(regexes_component_list)
             self.yara_rules[f"parameter_extraction"] = (
-                rf'rule parameter_extraction {{meta: description = "contains POST form" strings: {regexes_component} condition: any of them}}'
+                rf'rule parameter_extraction {{meta: description = "contains Parameter" strings: {regexes_component} condition: any of them}}'
             )
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
@@ -485,16 +582,21 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             endpoint,
                             additional_params,
                         ) in extracted_params:
-
                             self.excavate.debug(
                                 f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
                             )
-                            endpoint = event.data["url"] if not endpoint else endpoint
-                            url = (
-                                endpoint
-                                if endpoint.startswith(("http://", "https://"))
-                                else f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{endpoint}"
-                            )
+                            # If we have a full URL, leave it as-is
+
+                            if endpoint and endpoint.startswith(("http://", "https://")):
+                                url = endpoint
+
+                            # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
+                            else:
+                                # Use the original URL as the base and resolve the endpoint correctly in case of relative paths
+                                base_url = (
+                                    f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{event.parsed_url.path}"
+                                )
+                                url = urljoin(base_url, endpoint)
 
                             if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
 
@@ -592,12 +694,13 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     class SerializationExtractor(ExcavateRule):
 
         regexes = {
-            "Java": re.compile(r"[^a-zA-Z0-9\/+]rO0[a-zA-Z0-9+\/]+={0,2}"),
-            "DOTNET": re.compile(r"[^a-zA-Z0-9\/+]AAEAAAD\/\/[a-zA-Z0-9\/+]+={0,2}"),
-            "PHP_Array": re.compile(r"[^a-zA-Z0-9\/+]YTo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
-            "PHP_String": re.compile(r"[^a-zA-Z0-9\/+]czo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
-            "PHP_Object": re.compile(r"[^a-zA-Z0-9\/+]Tzo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
-            "Possible_Compressed": re.compile(r"[^a-zA-Z0-9\/+]H4sIAAAAAAAA[a-zA-Z0-9+\/]+={0,2}"),
+            "Java": re.compile(r"[^a-zA-Z0-9\/+][\"']?rO0[a-zA-Z0-9+\/]+={0,2}"),
+            "Ruby": re.compile(r"[^[^a-zA-Z0-9\/+][\"']?BAh[a-zA-Z0-9+\/]+={0,2}"),
+            "DOTNET": re.compile(r"[^a-zA-Z0-9\/+][\"']?AAEAAAD\/\/[a-zA-Z0-9\/+]+={0,2}"),
+            "PHP_Array": re.compile(r"[^a-zA-Z0-9\/+][\"']?YTo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "PHP_String": re.compile(r"[^a-zA-Z0-9\/+][\"']?czo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "PHP_Object": re.compile(r"[^a-zA-Z0-9\/+][\"']?Tzo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
+            "Possible_Compressed": re.compile(r"[^a-zA-Z0-9\/+][\"']?H4sIAAAA[a-zA-Z0-9+\/]+={0,2}"),
         }
         yara_rules = {}
 
@@ -693,7 +796,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         tags = "spider-danger"
                         description = "contains tag with src or href attribute"
                     strings:
-                        $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/
+                        $url_attr = /<[^>]+(href|src|action)=["\'][^"\']*["\'][^>]*>/
                     condition:
                         $url_attr
                 }
@@ -894,7 +997,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
         if not data:
             return None
-
         decoded_data = await self.helpers.re.recursive_decode(data)
 
         if self.parameter_extraction:
@@ -927,12 +1029,30 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             await self.emit_event(data, "WEB_PARAMETER", event, context=context)
                     return
 
-        for result in self.yara_rules.match(data=f"{data}\n{decoded_data}"):
-            rule_name = result.rule
-            if rule_name in self.yara_preprocess_dict:
-                await self.yara_preprocess_dict[rule_name](result, event, discovery_context)
-            else:
-                self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
+        # Initialize the list of data items to process
+        data_items = []
+
+        # Check if data and decoded_data are identical
+        if data == decoded_data:
+            data_items.append(("data", data))  # Add only one since both are the same
+        else:
+            data_items.append(("data", data))
+            data_items.append(("decoded_data", decoded_data))
+
+        for label, data_instance in data_items:
+            # Your existing processing code
+            for result in self.yara_rules.match(data=f"{data_instance}"):
+                rule_name = result.rule
+
+                # Skip specific operations for 'parameter_extraction' rule on decoded_data
+                if label == "decoded_data" and rule_name == "parameter_extraction":
+                    continue
+
+                # Check if rule processing function exists
+                if rule_name in self.yara_preprocess_dict:
+                    await self.yara_preprocess_dict[rule_name](result, event, discovery_context)
+                else:
+                    self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
     async def handle_event(self, event):
 
@@ -966,6 +1086,43 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         context = f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
                         await self.emit_event(data, "WEB_PARAMETER", event, context=context)
 
+            # If parameter_extraction is enabled and we assigned custom headers, emit them as WEB_PARAMETER
+            if self.parameter_extraction == True:
+
+                custom_cookies = self.scan.web_config.get("http_cookies", {})
+                for custom_cookie_name, custom_cookie_value in custom_cookies.items():
+                    description = f"HTTP Extracted Parameter [{custom_cookie_name}] (Custom Cookie)"
+                    data = {
+                        "host": event.parsed_url.hostname,
+                        "type": "COOKIE",
+                        "name": custom_cookie_name,
+                        "original_value": custom_cookie_value,
+                        "url": self.url_unparse("COOKIE", event.parsed_url),
+                        "description": description,
+                        "additional_params": _exclude_key(custom_cookies, custom_cookie_name),
+                    }
+                    context = (
+                        f"Excavate saw a custom cookie set [{custom_cookie_name}], and emitted a WEB_PARAMETER for it"
+                    )
+                    await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+
+                custom_headers = self.scan.web_config.get("http_headers", {})
+                for custom_header_name, custom_header_value in custom_headers.items():
+                    description = f"HTTP Extracted Parameter [{custom_header_name}] (Custom Header)"
+                    data = {
+                        "host": event.parsed_url.hostname,
+                        "type": "HEADER",
+                        "name": custom_header_name,
+                        "original_value": custom_header_value,
+                        "url": self.url_unparse("HEADER", event.parsed_url),
+                        "description": description,
+                        "additional_params": _exclude_key(custom_headers, custom_header_name),
+                    }
+                    context = (
+                        f"Excavate saw a custom header set [{custom_header_name}], and emitted a WEB_PARAMETER for it"
+                    )
+                    await self.emit_event(data, "WEB_PARAMETER", event, context=context)
+
             data = event.data
 
             # process response data
@@ -985,10 +1142,10 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.debug(f"Cookie found without '=': {header_value}")
                             continue
                         else:
-                            cookie_name = header_value.split("=")[0]
-                            cookie_value = header_value.split("=")[1].split(";")[0]
+                            cookie_name, _, remainder = header_value.partition("=")
+                            cookie_value = remainder.split(";")[0]
 
-                            if self.in_bl(cookie_value) == False:
+                            if self.in_bl(cookie_name) == False:
                                 self.assigned_cookies[cookie_name] = cookie_value
                                 description = f"Set-Cookie Assigned Cookie [{cookie_name}]"
                                 data = {

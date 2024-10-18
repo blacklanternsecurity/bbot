@@ -119,27 +119,48 @@ scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
 
 # For use with excavate paramaters extractor
 input_tag_regex = re.compile(
-    r"<input[^>]+?name=[\"\']?([\.$\w]+)[\"\']?(?:[^>]*?value=[\"\']([=+\/\w]*)[\"\'])?[^>]*>"
+    r"<input[^>]*?name=[\"\']?([\._=+\/\w]+)[\"\']?[^>]*?value=[\"\']?([%\._=+\/\w]*)[\"\']?[^>]*?>"
 )
-jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
-jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
+input_tag_regex2 = re.compile(
+    r"<input[^>]*?value=[\"\']?([%\._=+\/\w]*)[\"\']?[^>]*?name=[\"\']?([\._=+\/\w]+)[\"\']?[^>]*?>"
+)
+input_tag_novalue_regex = re.compile(r"<input(?![^>]*\bvalue=)[^>]*?name=[\"\']?([\._=+\/\w]*)[\"\']?[^>]*?>")
+# jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
+# jquery_get_regex = re.compile(r"\$.get\([\'\"].+[\'\"].+\{(.+)\}")
+# jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
 a_tag_regex = re.compile(r"<a[^>]*href=[\"\']([^\"\'?>]*)\?([^&\"\'=]+)=([^&\"\'=]+)")
 img_tag_regex = re.compile(r"<img[^>]*src=[\"\']([^\"\'?>]*)\?([^&\"\'=]+)=([^&\"\'=]+)")
 get_form_regex = re.compile(
-    r"<form[^>]+(?:action=[\"']?([^\s\'\"]+)[\"\']?)?[^>]*method=[\"']?[gG][eE][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    r"<form[^>]*\bmethod=[\"']?[gG][eE][tT][\"']?[^>]*\baction=[\"']?([^\s\"'<>]+)[\"']?[^>]*>([\s\S]*?)<\/form>",
+    re.DOTALL,
+)
+get_form_regex2 = re.compile(
+    r"<form[^>]*\baction=[\"']?([^\s\"'<>]+)[\"']?[^>]*\bmethod=[\"']?[gG][eE][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
     re.DOTALL,
 )
 post_form_regex = re.compile(
-    r"<form[^>]+(?:action=[\"']?([^\s\'\"]+)[\"\']?)?[^>]*method=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    r"<form[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*\baction=[\"']?([^\s\"'<>]+)[\"']?[^>]*>([\s\S]*?)<\/form>",
     re.DOTALL,
 )
+post_form_regex2 = re.compile(
+    r"<form[^>]*\baction=[\"']?([^\s\"'<>]+)[\"']?[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    re.DOTALL,
+)
+post_form_regex_noaction = re.compile(
+    r"<form[^>]*(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)?[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    re.DOTALL,
+)
+generic_form_regex = re.compile(
+    r"<form(?![^>]*\bmethod=)[^>]+(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)[^>]*>([\s\S]*?)<\/form>", re.DOTALL
+)
+
 select_tag_regex = re.compile(
     r"<select[^>]+?name=[\"\']?(\w+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\'](\w*)[\"\']?[^>]*>)?"
 )
 textarea_tag_regex = re.compile(
     r'<textarea[^>]*\bname=["\']?(\w+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
 )
-tag_attribute_regex = re.compile(r"<[^>]*(?:href|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
+tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
 
 valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
 

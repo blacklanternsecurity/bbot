@@ -212,6 +212,12 @@ class Scanner:
             self.warning(
                 "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
             )
+        # custom HTTP cookies warning
+        self.custom_http_cookies = self.web_config.get("http_cookies", {})
+        if self.custom_http_cookies:
+            self.warning(
+                "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by httpx."
+            )
 
         # url file extensions
         self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))

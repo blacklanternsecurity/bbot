@@ -128,7 +128,8 @@ class ConfigAwareHelper:
         cookies=None,
         method="GET",
         data=None,
-        timeout=15,
+        json=None,
+        timeout=10,
     ):
         return HttpCompare(
             url,
@@ -140,6 +141,7 @@ class ConfigAwareHelper:
             timeout=timeout,
             method=method,
             data=data,
+            json=json,
         )
 
     def temp_filename(self, extension=None):

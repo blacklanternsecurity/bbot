@@ -477,3 +477,24 @@ async def test_web_cookies(bbot_scanner, httpx_mock):
     assert not client2.cookies
 
     await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_http_sendcookies(bbot_scanner, bbot_httpserver):
+    endpoint = "/"
+    url = bbot_httpserver.url_for(endpoint)
+    from werkzeug.wrappers import Response
+
+    def echo_cookies_handler(request):
+        cookies = request.cookies
+        cookie_str = "; ".join([f"{key}={value}" for key, value in cookies.items()])
+        return Response(f"Echoed Cookies: {cookie_str}\nEchoed Headers: {request.headers}")
+
+    bbot_httpserver.expect_request(uri=endpoint).respond_with_handler(echo_cookies_handler)
+    scan1 = bbot_scanner("127.0.0.1", config={"web": {"debug": True}})
+    r1 = await scan1.helpers.request(url, cookies={"foo": "bar"})
+    print(r1.text)
+
+    assert r1 is not None, "Request to self-signed SSL server went through even with ssl_verify=True"
+    assert "bar" in r1.text
+    await scan1._cleanup()
