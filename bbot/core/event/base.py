@@ -162,7 +162,7 @@ class BaseEvent:
         Raises:
             ValidationError: If either `scan` or `parent` are not specified and `_dummy` is False.
         """
-        self.uuid = uuid.uuid4()
+        self._uuid = uuid.uuid4()
         self._id = None
         self._hash = None
         self._data = None
@@ -459,6 +459,13 @@ class BaseEvent:
         if self._id is None:
             self._id = f"{self.type}:{self.data_hash.hex()}"
         return self._id
+
+    @property
+    def uuid(self):
+        """
+        A universally unique identifier for the event
+        """
+        return f"{self.type}:{self._uuid}"
 
     @property
     def data_hash(self):
@@ -2112,7 +2119,7 @@ def event_from_json(j, siem_friendly=False):
         event = make_event(**kwargs)
         event_uuid = j.get("uuid", None)
         if event_uuid is not None:
-            event.uuid = uuid.UUID(event_uuid)
+            event._uuid = uuid.UUID(event_uuid.split(":")[-1])
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
@@ -2123,7 +2130,8 @@ def event_from_json(j, siem_friendly=False):
             event._parent_id = parent_id
         parent_uuid = j.get("parent_uuid", None)
         if parent_uuid is not None:
-            event._parent_uuid = uuid.UUID(parent_uuid)
+            parent_type, parent_uuid = parent_uuid.split(":", 1)
+            event._parent_uuid = parent_type + ":" + str(uuid.UUID(parent_uuid))
         return event
     except KeyError as e:
         raise ValidationError(f"Event missing required field: {e}")
