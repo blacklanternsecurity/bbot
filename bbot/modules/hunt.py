@@ -295,7 +295,7 @@ class hunt(BaseModule):
             # Create a comma-separated string of categories
             category_str = ", ".join(matching_categories)
             description = f"Found potentially interesting parameter. Name: [{p}] Parameter Type: [{event.data['type']}] Categories: [{category_str}]"
-            
+
             if (
                 "original_value" in event.data.keys()
                 and event.data["original_value"] != ""
