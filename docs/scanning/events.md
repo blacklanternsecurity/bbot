@@ -8,50 +8,91 @@ An Event is a piece of data discovered by BBOT. Examples include `IP_ADDRESS`, `
 event type      event data          source module    tags
 ```
 
-In addition to the obvious data (e.g. `www.evilcorp.com`), an event also contains other useful information such as:
+## Event Attributes
 
-- a `.discovery_path` showing exactly how the event was discovered, starting from the first scan target
-- a `.timestamp` of when the data was discovered
-- the `.module` that discovered it
-- the `.parent` event that led to its discovery
-- its `.scope_distance` (how many hops it is from the main scope, 0 == in-scope)
-- a list of `.tags` that describe the data (`mx-record`, `http-title`, etc.)
+Each BBOT event has the following attributes. Not all of these attributes are visible in the terminal output. However, they are always saved in `output.json` in the scan output folder. If you want to see them on the terminal, you can use `--json`.
+
+- `.type`: the event type (e.g. `DNS_NAME`, `IP_ADDRESS`, `OPEN_TCP_PORT`, etc.)
+- `.id`: an identifier representing the event type + a SHA1 hash of its data (note: multiple events can have the same `.id`)
+- `.uuid`: a universally unique identifier for the event (e.g. `DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13`)
+- `.scope_description`: describes the scope of the event (e.g. `in-scope`, `affiliate`, `distance-2`)
+- `.data`: the actual discovered data (for some events like `DNS_NAME` or `IP_ADDRESS`, this is a string. For other more complex events like `HTTP_RESPONSE`, it's a dictionary)
+- `.host`: the hostname or IP address (e.g. `evilcorp.com` or `1.2.3.4`)
+- `.port`: the port number (e.g. `80`, `443`)
+- `.netloc`: the network location, including both the hostname and port (e.g. `www.evilcorp.com:443`)
+- `.resolved_hosts`: a list of all resolved hosts for the event (`A`, `AAAA`, and `CNAME` records)
+- `.dns_children`: a dictionary of all DNS records for the event (typically only present on `DNS_NAME`)
+- `.web_spider_distance`: a count of how many URL links have been followed in a row to get to this event
+- `.scope_distance`: a count of how many hops it is from the main scope (0 == in-scope)
+- `.scan`: the ID of the scan that produced the event
+- `.timestamp`: the date/time when the event was discovered
+- `.parent`: the ID of the parent event that led to the discovery of this event
+- `.parent_uuid`: the universally unique identifier for the parent event
+- `.tags`: a list of tags describing the event (e.g. `mx-record`, `http-title`, etc.)
+- `.module`: the module that discovered the event
+- `.module_sequence`: the recent sequence of modules that were executed to discover the event (including omitted events)
+- `.discovery_context`: a description of the context in which the event was discovered
+- `.discovery_path`: a list of every discovery context leading to this event
+- `.parent_chain`: a list of every event UUID leading to the discovery of this event (corresponds exactly to `.discovery_path`)
 
 These attributes allow us to construct a visual graph of events (e.g. in [Neo4j](../output#neo4j)) and query/filter/grep them more easily. Here is what a typical event looks like in JSON format:
 
 ```json
 {
   "type": "DNS_NAME",
-  "id": "DNS_NAME:879e47564ff0ed7711b707d3dbecb706ad6af1a3",
+  "id": "DNS_NAME:33bc005c2bdfea4d73e07db733bd11861cf6520e",
+  "uuid": "DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13",
   "scope_description": "in-scope",
-  "data": "www.blacklanternsecurity.com",
-  "host": "www.blacklanternsecurity.com",
+  "data": "link.tesla.com",
+  "host": "link.tesla.com",
   "resolved_hosts": [
-    "185.199.108.153",
-    "2606:50c0:8003::153",
-    "blacklanternsecurity.github.io"
+    "184.31.52.65",
+    "2600:1402:b800:d82::700",
+    "2600:1402:b800:d87::700",
+    "link.tesla.com.edgekey.net"
   ],
-  "dns_children": {},
+  "dns_children": {
+    "A": [
+      "184.31.52.65"
+    ],
+    "AAAA": [
+      "2600:1402:b800:d82::700",
+      "2600:1402:b800:d87::700"
+    ],
+    "CNAME": [
+      "link.tesla.com.edgekey.net"
+    ]
+  },
   "web_spider_distance": 0,
   "scope_distance": 0,
-  "scan": "SCAN:477d1e6b94be928bf85c554b0845985189cfc81d",
-  "timestamp": "2024-08-17T03:49:47.906017+00:00",
-  "parent": "DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc",
+  "scan": "SCAN:b6ef48bc036bc8d001595ae5061846a7e6beadb6",
+  "timestamp": "2024-10-18T15:40:13.716880+00:00",
+  "parent": "DNS_NAME:94c92b7eaed431b37ae2a757fec4e678cc3bd213",
+  "parent_uuid": "DNS_NAME:c737dffa-d4f0-4b6e-a72d-cc8c05bd892e",
   "tags": [
-    "cdn-github",
     "subdomain",
-    "in-scope"
+    "a-record",
+    "cdn-akamai",
+    "in-scope",
+    "cname-record",
+    "aaaa-record"
   ],
-  "module": "otx",
-  "module_sequence": "otx",
-  "discovery_context": "otx searched otx API for \"blacklanternsecurity.com\" and found DNS_NAME: www.blacklanternsecurity.com",
+  "module": "speculate",
+  "module_sequence": "speculate->speculate",
+  "discovery_context": "speculated parent DNS_NAME: link.tesla.com",
   "discovery_path": [
-    "Scan demonic_jimmy seeded with DNS_NAME: blacklanternsecurity.com",
-    "otx searched otx API for \"blacklanternsecurity.com\" and found DNS_NAME: www.blacklanternsecurity.com"
+    "Scan insidious_frederick seeded with DNS_NAME: tesla.com",
+    "TXT record for tesla.com contains IP_ADDRESS: 149.72.247.52",
+    "PTR record for 149.72.247.52 contains DNS_NAME: o1.ptr2410.link.tesla.com",
+    "speculated parent DNS_NAME: ptr2410.link.tesla.com",
+    "speculated parent DNS_NAME: link.tesla.com"
   ],
   "parent_chain": [
-    "DNS_NAME:1e57014aa7b0715bca68e4f597204fc4e1e851fc",
-    "DNS_NAME:879e47564ff0ed7711b707d3dbecb706ad6af1a3"
+    "DNS_NAME:34c657a3-0bfa-457e-9e6e-0f22f04b8da5",
+    "IP_ADDRESS:efc0fb3b-1b42-44da-916e-83db2360e10e",
+    "DNS_NAME:c737dffa-d4f0-4b6e-a72d-cc8c05bd892e",
+    "DNS_NAME_UNRESOLVED:722a3473-30c6-40f1-90aa-908d47105d5a",
+    "DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13"
   ]
 }
 ```

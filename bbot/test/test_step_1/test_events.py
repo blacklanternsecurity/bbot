@@ -4,7 +4,7 @@ import ipaddress
 
 from ..bbot_fixtures import *
 from bbot.scanner import Scanner
-from bbot.core.helpers.regexes import uuid_regex
+from bbot.core.helpers.regexes import event_uuid_regex
 
 
 @pytest.mark.asyncio
@@ -443,11 +443,17 @@ async def test_events(events, helpers):
     parent_event2 = scan.make_event("evilcorp.com", parent=scan.root_event, context="test context")
 
     event1 = scan.make_event("evilcorp.com:80", parent=parent_event1, context="test context")
+    assert hasattr(event1, "_uuid")
     assert hasattr(event1, "uuid")
-    assert isinstance(event1.uuid, uuid.UUID)
+    assert isinstance(event1._uuid, uuid.UUID)
+    assert isinstance(event1.uuid, str)
+    assert event1.uuid == f"{event1.type}:{event1._uuid}"
     event2 = scan.make_event("evilcorp.com:80", parent=parent_event2, context="test context")
+    assert hasattr(event2, "_uuid")
     assert hasattr(event2, "uuid")
-    assert isinstance(event2.uuid, uuid.UUID)
+    assert isinstance(event2._uuid, uuid.UUID)
+    assert isinstance(event2.uuid, str)
+    assert event2.uuid == f"{event2.type}:{event2._uuid}"
     # ids should match because the event type + data is the same
     assert event1.id == event2.id
     # but uuids should be unique!
@@ -470,7 +476,7 @@ async def test_events(events, helpers):
     assert db_event.discovery_context == "test context"
     assert db_event.discovery_path == ["test context"]
     assert len(db_event.parent_chain) == 1
-    assert all([uuid_regex.match(u) for u in db_event.parent_chain])
+    assert all([event_uuid_regex.match(u) for u in db_event.parent_chain])
     assert db_event.parent_chain[0] == str(db_event.uuid)
     assert db_event.parent.uuid == scan.root_event.uuid
     assert db_event.parent_uuid == scan.root_event.uuid
@@ -490,7 +496,7 @@ async def test_events(events, helpers):
     assert json_event["parent_chain"] == db_event.parent_chain
     assert json_event["parent_chain"][0] == str(db_event.uuid)
     reconstituted_event = event_from_json(json_event)
-    assert isinstance(reconstituted_event.uuid, uuid.UUID)
+    assert isinstance(reconstituted_event._uuid, uuid.UUID)
     assert str(reconstituted_event.uuid) == json_event["uuid"]
     assert str(reconstituted_event.parent_uuid) == json_event["parent_uuid"]
     assert reconstituted_event.uuid == db_event.uuid
