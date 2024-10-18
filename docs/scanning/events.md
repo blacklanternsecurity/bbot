@@ -43,13 +43,13 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
   "id": "DNS_NAME:33bc005c2bdfea4d73e07db733bd11861cf6520e",
   "uuid": "DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13",
   "scope_description": "in-scope",
-  "data": "link.tesla.com",
-  "host": "link.tesla.com",
+  "data": "link.evilcorp.com",
+  "host": "link.evilcorp.com",
   "resolved_hosts": [
     "184.31.52.65",
     "2600:1402:b800:d82::700",
     "2600:1402:b800:d87::700",
-    "link.tesla.com.edgekey.net"
+    "link.evilcorp.com.edgekey.net"
   ],
   "dns_children": {
     "A": [
@@ -60,7 +60,7 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
       "2600:1402:b800:d87::700"
     ],
     "CNAME": [
-      "link.tesla.com.edgekey.net"
+      "link.evilcorp.com.edgekey.net"
     ]
   },
   "web_spider_distance": 0,
@@ -79,13 +79,13 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
   ],
   "module": "speculate",
   "module_sequence": "speculate->speculate",
-  "discovery_context": "speculated parent DNS_NAME: link.tesla.com",
+  "discovery_context": "speculated parent DNS_NAME: link.evilcorp.com",
   "discovery_path": [
-    "Scan insidious_frederick seeded with DNS_NAME: tesla.com",
-    "TXT record for tesla.com contains IP_ADDRESS: 149.72.247.52",
-    "PTR record for 149.72.247.52 contains DNS_NAME: o1.ptr2410.link.tesla.com",
-    "speculated parent DNS_NAME: ptr2410.link.tesla.com",
-    "speculated parent DNS_NAME: link.tesla.com"
+    "Scan insidious_frederick seeded with DNS_NAME: evilcorp.com",
+    "TXT record for evilcorp.com contains IP_ADDRESS: 149.72.247.52",
+    "PTR record for 149.72.247.52 contains DNS_NAME: o1.ptr2410.link.evilcorp.com",
+    "speculated parent DNS_NAME: ptr2410.link.evilcorp.com",
+    "speculated parent DNS_NAME: link.evilcorp.com"
   ],
   "parent_chain": [
     "DNS_NAME:34c657a3-0bfa-457e-9e6e-0f22f04b8da5",
