@@ -14,12 +14,12 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: psf/black@stable
         with:
           options: "--check"
       - name: Install Python 3
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: Install dependencies
@@ -27,7 +27,7 @@ jobs:
           pip install flake8
       - name: flake8
         run: |
-          flake8 --select F,E722 --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
+          flake8
   test:
     needs: lint
     runs-on: ubuntu-latest
@@ -37,9 +37,9 @@ jobs:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -55,88 +55,36 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
           verbose: true
-  update_docs:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref != 'refs/heads/dev' && github.ref != 'refs/heads/stable')
+  test-distros:
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, debian, archlinux, fedora-latest, gentoo, alpine]
     steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           pip install poetry
           poetry install
-      - name: Generate docs
+      - name: Run tests
         run: |
-          poetry run bbot/scripts/docs.py
-      - name: Commit docs
-        uses: EndBug/add-and-commit@v9
-        continue-on-error: true
-        with:
-          add: '["*.md", "docs/data/chord_graph/*.json"]'
-          author_name: "BBOT Docs Autopublish"
-          author_email: info@blacklanternsecurity.com
-          message: "Refresh module docs"
-  publish_docs:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-      - uses: actions/cache@v3
-        with:
-          key: mkdocs-material-${{ env.cache_id }}
-          path: .cache
-          restore-keys: |
-            mkdocs-material-
-      - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install --only=docs
-      - name: Configure Git
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git fetch origin gh-pages:refs/remotes/origin/gh-pages
-          if git show-ref --verify --quiet refs/heads/gh-pages; then
-            git branch -f gh-pages origin/gh-pages
-          else
-            git branch --track gh-pages origin/gh-pages
-          fi
-      - name: Generate docs (stable branch)
-        if: github.ref == 'refs/heads/stable'
-        run: |
-          poetry run mike deploy Stable
-      - name: Generate docs (dev branch)
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          poetry run mike deploy Dev
-      - name: Publish docs
-        run: |
-          git switch gh-pages
-          git push
+          poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
   publish_code:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: Install dependencies
@@ -185,7 +133,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
   #   steps:
-  #     - uses: actions/checkout@v3
+  #     - uses: actions/checkout@v4
   #       with:
   #         ref: ${{ github.head_ref }}
   #         fetch-depth: 0 # Fetch all history for all tags and branches
