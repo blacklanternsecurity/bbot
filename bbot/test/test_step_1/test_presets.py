@@ -529,7 +529,20 @@ def test_preset_module_resolution(clean_default_config):
     # modules + module exclusions
     preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
     baked_preset = preset.bake()
-    assert baked_preset.modules == {'wayback', 'cloudcheck', 'python', 'json', 'speculate', 'dnsresolve', 'aggregate', 'excavate', 'txt', 'httpx', 'csv', 'wappalyzer'}
+    assert baked_preset.modules == {
+        "wayback",
+        "cloudcheck",
+        "python",
+        "json",
+        "speculate",
+        "dnsresolve",
+        "aggregate",
+        "excavate",
+        "txt",
+        "httpx",
+        "csv",
+        "wappalyzer",
+    }
 
 
 @pytest.mark.asyncio
