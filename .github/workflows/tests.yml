@@ -65,17 +65,27 @@ jobs:
         os: [ubuntu-latest, debian, archlinux, fedora-latest, gentoo, alpine]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
+      - name: Install Python
+        run: |
+          if [ -f /etc/debian_version ]; then
+            sudo apt-get update
+            sudo apt-get install -y python3 python3-pip
+          elif [ -f /etc/arch-release ]; then
+            sudo pacman -Syu --noconfirm python python-pip
+          elif [ -f /etc/fedora-release ]; then
+            sudo dnf install -y python3 python3-pip
+          elif [ -f /etc/gentoo-release ]; then
+            sudo emerge dev-lang/python
+          elif [ -f /etc/alpine-release ]; then
+            sudo apk add --no-cache python3 py3-pip
+          fi
       - name: Install dependencies
         run: |
           pip install poetry
           poetry install
       - name: Run tests
         run: |
-          poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+          poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG .
   publish_code:
     needs: test
     runs-on: ubuntu-latest
