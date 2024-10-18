@@ -81,15 +81,20 @@ class HTTPEngine(EngineServer):
         if client_kwargs:
             client = self.AsyncClient(**client_kwargs)
 
-        async with self._acatch(url, raise_error):
-            if self.http_debug:
-                log.trace(f"Web request: {str(args)}, {str(kwargs)}")
-            response = await client.request(*args, **kwargs)
-            if self.http_debug:
-                log.trace(
-                    f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
-                )
-            return response
+        try:
+            async with self._acatch(url, raise_error):
+                if self.http_debug:
+                    log.trace(f"Web request: {str(args)}, {str(kwargs)}")
+                response = await client.request(*args, **kwargs)
+                if self.http_debug:
+                    log.trace(
+                        f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
+                    )
+                return response
+        except httpx.HTTPError as e:
+            if raise_error:
+                _response = getattr(e, "response", None)
+                return {"_request_error": str(e), "_response": _response}
 
     async def request_batch(self, urls, threads=10, **kwargs):
         async for (args, _, _), response in self.task_pool(
@@ -105,8 +110,8 @@ class HTTPEngine(EngineServer):
 
     async def download(self, url, **kwargs):
         warn = kwargs.pop("warn", True)
+        raise_error = kwargs.pop("raise_error", False)
         filename = kwargs.pop("filename")
-        raise_error = kwargs.get("raise_error", False)
         try:
             result = await self.stream_request(url, **kwargs)
             if result is None:
@@ -123,7 +128,8 @@ class HTTPEngine(EngineServer):
                 log_fn = log.warning
             log_fn(f"Failed to download {url}: {e}")
             if raise_error:
-                raise
+                _response = getattr(e, "response", None)
+                return {"_download_error": str(e), "_response": _response}
 
     async def stream_request(self, url, **kwargs):
         follow_redirects = kwargs.pop("follow_redirects", True)

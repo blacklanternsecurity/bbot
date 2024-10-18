@@ -23,12 +23,13 @@ class badsecrets(BaseModule):
         self.custom_secrets = None
         custom_secrets = self.config.get("custom_secrets", None)
         if custom_secrets:
-            if Path(custom_secrets).is_file():
+            secrets_path = Path(custom_secrets).expanduser()
+            if secrets_path.is_file():
                 self.custom_secrets = custom_secrets
                 self.info(f"Successfully loaded secrets file [{custom_secrets}]")
             else:
                 self.warning(f"custom secrets file [{custom_secrets}] is not valid")
-                return None, "Custom secrets file not valid"
+                return False, "Custom secrets file not valid"
         return True
 
     @property

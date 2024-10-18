@@ -14,13 +14,14 @@ class TestCodeRepository(ModuleTestBase):
                 <a href="https://gitlab.com/blacklanternsecurity/bbot"/>
                 <a href="https://gitlab.org/blacklanternsecurity/bbot"/>
                 <a href="https://hub.docker.com/r/blacklanternsecurity/bbot"/>
+                <a href="https://www.postman.com/blacklanternsecurity/bbot"/>
             </html>
             """
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert 4 == len([e for e in events if e.type == "CODE_REPOSITORY"])
+        assert 5 == len([e for e in events if e.type == "CODE_REPOSITORY"])
         assert 1 == len(
             [
                 e
@@ -55,5 +56,14 @@ class TestCodeRepository(ModuleTestBase):
                 if e.type == "CODE_REPOSITORY"
                 and "docker" in e.tags
                 and e.data["url"] == "https://hub.docker.com/r/blacklanternsecurity/bbot"
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "CODE_REPOSITORY"
+                and "postman" in e.tags
+                and e.data["url"] == "https://www.postman.com/blacklanternsecurity/bbot"
             ]
         )

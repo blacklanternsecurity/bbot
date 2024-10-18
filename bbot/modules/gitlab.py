@@ -16,10 +16,7 @@ class gitlab(BaseModule):
     scope_distance_modifier = 2
 
     async def setup(self):
-        self.headers = {}
-        self.api_key = self.config.get("api_key", "")
-        if self.api_key:
-            self.headers.update({"Authorization": f"Bearer {self.api_key}"})
+        await self.require_api_key()
         return True
 
     async def filter_event(self, event):
@@ -111,7 +108,7 @@ class gitlab(BaseModule):
             await self.handle_namespace(group, event)
 
     async def gitlab_json_request(self, url):
-        response = await self.helpers.request(url, headers=self.headers)
+        response = await self.api_request(url)
         if response is not None:
             try:
                 json = response.json()

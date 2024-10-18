@@ -408,6 +408,7 @@ class ModuleLoader:
                 task["become"] = False
 
         preloaded_data = {
+            "path": str(module_file.resolve()),
             "watched_events": sorted(watched_events),
             "produced_events": sorted(produced_events),
             "flags": sorted(flags),
@@ -467,14 +468,23 @@ class ModuleLoader:
             >>> isinstance(module, object)
             True
         """
-        namespace = self._preloaded[module_name]["namespace"]
-        import_path = f"{namespace}.{module_name}"
-        module_variables = importlib.import_module(import_path, "bbot")
+        preloaded = self._preloaded[module_name]
+        namespace = preloaded["namespace"]
+        try:
+            module_path = preloaded["path"]
+        except KeyError:
+            module_path = preloaded["cache_key"][0]
+        full_namespace = f"{namespace}.{module_name}"
+
+        spec = importlib.util.spec_from_file_location(full_namespace, module_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[full_namespace] = module
+        spec.loader.exec_module(module)
 
         # for every top-level variable in the .py file
-        for variable in module_variables.__dict__.keys():
+        for variable in module.__dict__.keys():
             # get its value
-            value = getattr(module_variables, variable)
+            value = getattr(module, variable)
             with suppress(AttributeError):
                 # if it has watched_events and produced_events
                 if all(

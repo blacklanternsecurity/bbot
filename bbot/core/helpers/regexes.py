@@ -54,6 +54,9 @@ ptr_regex = re.compile(_ptr_regex)
 # uuid regex
 _uuid_regex = r"[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}"
 uuid_regex = re.compile(_uuid_regex, re.I)
+# event uuid regex
+_event_uuid_regex = r"[0-9A-Z_]+:[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}"
+event_uuid_regex = re.compile(_event_uuid_regex, re.I)
 
 _open_port_regexes = (
     _dns_name_regex + r":[0-9]{1,5}",
@@ -152,3 +155,5 @@ extract_host_regex = re.compile(_extract_host_regex, re.I)
 # for use in recursive_decode()
 encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\[ntrbv]")
 backslash_regex = re.compile(r"(?P<slashes>\\+)(?P<char>[ntrvb])")
+
+uuid_regex = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")

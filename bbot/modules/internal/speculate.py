@@ -1,5 +1,6 @@
 import random
 import ipaddress
+from pathlib import Path
 
 from bbot.core.helpers import validators
 from bbot.modules.internal.base import BaseInternalModule
@@ -23,8 +24,9 @@ class speculate(BaseInternalModule):
         "SOCIAL",
         "AZURE_TENANT",
         "USERNAME",
+        "FILESYSTEM",
     ]
-    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
+    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB", "FILESYSTEM"]
     flags = ["passive"]
     meta = {
         "description": "Derive certain event types from others by common sense",
@@ -32,10 +34,11 @@ class speculate(BaseInternalModule):
         "author": "@liquidsec",
     }
 
-    options = {"max_hosts": 65536, "ports": "80,443"}
+    options = {"max_hosts": 65536, "ports": "80,443", "ignore_folders": [".git"]}
     options_desc = {
         "max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events",
         "ports": "The set of ports to speculate on",
+        "ignore_folders": "Subfolders to ignore when crawling downloaded folders",
     }
     scope_distance_modifier = 1
     _priority = 4
@@ -72,6 +75,13 @@ class speculate(BaseInternalModule):
                 self.hugewarning(f'Enabling the "portscan" module is highly recommended')
             self.range_to_ip = False
 
+        self.ignored_folders = self.config.get("ignore_folders", [])
+
+        return True
+
+    async def filter_event(self, event):
+        if event.type == "FILESYSTEM" and "folder" not in event.tags:
+            return False, "Event is not a folder"
         return True
 
     async def handle_event(self, event):
@@ -91,7 +101,7 @@ class speculate(BaseInternalModule):
 
         # parent domains
         if event.type.startswith("DNS_NAME"):
-            parent = self.helpers.parent_domain(event.data)
+            parent = self.helpers.parent_domain(event.host_original)
             if parent != event.data:
                 await self.emit_event(
                     parent, "DNS_NAME", parent=event, context=f"speculated parent {{event.type}}: {{event.data}}"
@@ -102,15 +112,15 @@ class speculate(BaseInternalModule):
         speculate_open_ports = self.emit_open_ports and event_in_scope_distance
 
         # URL --> OPEN_TCP_PORT
-        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
+        event_is_url = event.type == "URL"
+        if event_is_url or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
             # only speculate port from a URL if it wouldn't be speculated naturally from the host
             if event.host and (event.port not in self.ports or not speculate_open_ports):
                 await self.emit_event(
                     self.helpers.make_netloc(event.host, event.port),
                     "OPEN_TCP_PORT",
                     parent=event,
-                    internal=True,
-                    quick=(event.type == "URL"),
+                    internal=not event_is_url,  # if the URL is verified, the port is definitely open
                     context=f"speculated {{event.type}} from {event.type}: {{event.data}}",
                 )
 
@@ -159,7 +169,6 @@ class speculate(BaseInternalModule):
                         "OPEN_TCP_PORT",
                         parent=event,
                         internal=True,
-                        quick=True,
                         context="speculated {event.type}: {event.data}",
                     )
 
@@ -196,3 +205,14 @@ class speculate(BaseInternalModule):
                 email_event = self.make_event(email, "EMAIL_ADDRESS", parent=event, tags=["affiliate"])
                 if email_event:
                     await self.emit_event(email_event, context="detected {event.type}: {event.data}")
+
+        # FILESYSTEM (folder) --> FILESYSTEM (files)
+        if event.type == "FILESYSTEM":
+            folder_path = Path(event.data["path"])
+            for file_path in folder_path.rglob("*"):
+                # If the file is not in an ignored folder and if it has an allowed extension raise it as a FILESYSTEM event
+                if not any(ignored_folder in str(file_path) for ignored_folder in self.ignored_folders):
+                    file_event = self.make_event(
+                        {"path": str(file_path)}, "FILESYSTEM", tags=["parsed_folder", "file"], parent=event
+                    )
+                    await self.emit_event(file_event)

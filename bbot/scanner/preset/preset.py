@@ -355,6 +355,9 @@ class Preset:
         self._blacklist.update(other._blacklist)
         self.strict_scope = self.strict_scope or other.strict_scope
 
+        # module dirs
+        self.module_dirs = self.module_dirs.union(other.module_dirs)
+
         # log verbosity
         if other.silent:
             self.silent = other.silent
@@ -731,6 +734,9 @@ class Preset:
         """
         preset_dict = {}
 
+        if self.description:
+            preset_dict["description"] = self.description
+
         # config
         if full_config:
             config = self.core.config
@@ -838,8 +844,6 @@ class Preset:
 
         if module in self.exclude_modules:
             reason = "the module has been excluded"
-            if raise_error:
-                raise ValidationError(f'Unable to add {module_type} module "{module}" because {reason}')
             return False, reason, {}
 
         module_flags = preloaded.get("flags", [])

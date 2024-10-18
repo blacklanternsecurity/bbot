@@ -16,13 +16,11 @@ class shodan_dns(shodan):
 
     base_url = "https://api.shodan.io"
 
-    async def request_url(self, query):
-        url = f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={self.api_key}"
-        response = await self.request_with_fail_count(url)
-        return response
+    async def handle_event(self, event):
+        await self.handle_event_paginated(event)
 
-    def parse_results(self, r, query):
-        json = r.json()
-        if json:
-            for hostname in json.get("subdomains", []):
-                yield f"{hostname}.{query}"
+    def make_url(self, query):
+        return f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={{api_key}}&page={{page}}"
+
+    def parse_results(self, json, query):
+        return [f"{sub}.{query}" for sub in json.get("subdomains", [])]

@@ -15,15 +15,17 @@ class DNSBrute:
     >>> results = await self.helpers.dns.brute(self, domain, subdomains)
     """
 
-    nameservers_url = (
+    _nameservers_url = (
         "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt"
     )
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.log = logging.getLogger("bbot.helper.dns.brute")
+        self.dns_config = self.parent_helper.config.get("dns", {})
         self.num_canaries = 100
-        self.max_resolvers = self.parent_helper.config.get("dns", {}).get("brute_threads", 1000)
+        self.max_resolvers = self.dns_config.get("brute_threads", 1000)
+        self.nameservers_url = self.dns_config.get("brute_nameservers", self._nameservers_url)
         self.devops_mutations = list(self.parent_helper.word_cloud.devops_mutations)
         self.digit_regex = self.parent_helper.re.compile(r"\d+")
         self._resolver_file = None
@@ -39,18 +41,12 @@ class DNSBrute:
             type = "A"
         type = str(type).strip().upper()
 
-        domain_wildcard_rdtypes = set()
-        for _domain, rdtypes in (await self.parent_helper.dns.is_wildcard_domain(domain)).items():
-            for rdtype, results in rdtypes.items():
-                if results:
-                    domain_wildcard_rdtypes.add(rdtype)
-        if any([r in domain_wildcard_rdtypes for r in (type, "CNAME")]):
-            self.log.info(
-                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(domain_wildcard_rdtypes)})"
+        wildcard_rdtypes = await self.parent_helper.dns.is_wildcard_domain(domain, (type, "CNAME"))
+        if wildcard_rdtypes:
+            self.log.hugewarning(
+                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(wildcard_rdtypes)})"
             )
             return []
-        else:
-            self.log.debug(f"{domain}: A is not in domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
 
         canaries = self.gen_random_subdomains(self.num_canaries)
         canaries_list = list(canaries)
@@ -148,10 +144,15 @@ class DNSBrute:
 
     async def resolver_file(self):
         if self._resolver_file is None:
-            self._resolver_file = await self.parent_helper.wordlist(
+            self._resolver_file_original = await self.parent_helper.wordlist(
                 self.nameservers_url,
                 cache_hrs=24 * 7,
             )
+            nameservers = set(self.parent_helper.read_file(self._resolver_file_original))
+            nameservers.difference_update(self.parent_helper.dns.system_resolvers)
+            # exclude system nameservers from brute-force
+            # this helps prevent rate-limiting which might cause BBOT's main dns queries to fail
+            self._resolver_file = self.parent_helper.tempfile(nameservers, pipe=False)
         return self._resolver_file
 
     def gen_random_subdomains(self, n=50):

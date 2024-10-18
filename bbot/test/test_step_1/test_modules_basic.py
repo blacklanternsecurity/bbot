@@ -365,7 +365,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
 
     scan = bbot_scanner(
         "evilcorp.com",
-        config={"speculate": True},
+        config={"speculate": True, "dns": {"minimal": False}},
         output_modules=["python"],
         force_start=True,
     )
@@ -380,22 +380,23 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     scan.modules["dummy"] = dummy(scan)
     events = [e async for e in scan.async_start()]
 
-    assert len(events) == 8
-    assert 1 == len([e for e in events if e.type == "SCAN"])
-    assert 3 == len([e for e in events if e.type == "DNS_NAME"])
+    assert len(events) == 11
+    assert 2 == len([e for e in events if e.type == "SCAN"])
+    assert 4 == len([e for e in events if e.type == "DNS_NAME"])
     # one from target and one from speculate
     assert 2 == len([e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com"])
-    # the reason we don't have a DNS_NAME for www.evilcorp.com is because FINDING.quick_emit = True
-    assert 0 == len([e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com"])
+    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.com"])
+    assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "asdf.evilcorp.com:443"])
     assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp"])
     assert 1 == len([e for e in events if e.type == "FINDING"])
     assert 1 == len([e for e in events if e.type == "URL_UNVERIFIED"])
 
     assert scan.stats.events_emitted_by_type == {
         "SCAN": 1,
-        "DNS_NAME": 3,
+        "DNS_NAME": 4,
         "URL": 1,
+        "OPEN_TCP_PORT": 1,
         "ORG_STUB": 1,
         "URL_UNVERIFIED": 1,
         "FINDING": 1,
@@ -414,7 +415,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     assert dummy_stats.produced == {"FINDING": 1, "URL": 1}
     assert dummy_stats.produced_total == 2
     assert dummy_stats.consumed == {
-        "DNS_NAME": 2,
+        "DNS_NAME": 3,
         "FINDING": 1,
         "OPEN_TCP_PORT": 1,
         "ORG_STUB": 1,
@@ -422,26 +423,27 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "URL": 1,
         "URL_UNVERIFIED": 1,
     }
-    assert dummy_stats.consumed_total == 8
+    assert dummy_stats.consumed_total == 9
 
     python_stats = scan.stats.module_stats["python"]
     assert python_stats.produced == {}
     assert python_stats.produced_total == 0
     assert python_stats.consumed == {
-        "DNS_NAME": 3,
+        "DNS_NAME": 4,
         "FINDING": 1,
+        "OPEN_TCP_PORT": 1,
         "ORG_STUB": 1,
         "SCAN": 1,
         "URL": 1,
         "URL_UNVERIFIED": 1,
     }
-    assert python_stats.consumed_total == 8
+    assert python_stats.consumed_total == 10
 
     speculate_stats = scan.stats.module_stats["speculate"]
-    assert speculate_stats.produced == {"DNS_NAME": 1, "URL_UNVERIFIED": 1, "ORG_STUB": 1}
-    assert speculate_stats.produced_total == 3
-    assert speculate_stats.consumed == {"URL": 1, "DNS_NAME": 2, "URL_UNVERIFIED": 1}
-    assert speculate_stats.consumed_total == 4
+    assert speculate_stats.produced == {"DNS_NAME": 1, "URL_UNVERIFIED": 1, "ORG_STUB": 1, "OPEN_TCP_PORT": 1}
+    assert speculate_stats.produced_total == 4
+    assert speculate_stats.consumed == {"URL": 1, "DNS_NAME": 3, "URL_UNVERIFIED": 1, "IP_ADDRESS": 3}
+    assert speculate_stats.consumed_total == 8
 
 
 @pytest.mark.asyncio

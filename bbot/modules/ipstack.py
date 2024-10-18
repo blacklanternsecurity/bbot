@@ -23,20 +23,15 @@ class Ipstack(BaseModule):
     suppress_dupes = False
 
     base_url = "http://api.ipstack.com"
+    ping_url = f"{base_url}/check?access_key={{api_key}}"
 
     async def setup(self):
         return await self.require_api_key()
 
-    async def ping(self):
-        url = f"{self.base_url}/check?access_key={self.api_key}"
-        r = await self.request_with_fail_count(url)
-        resp_content = getattr(r, "text", "")
-        assert getattr(r, "status_code", 0) == 200, resp_content
-
     async def handle_event(self, event):
         try:
-            url = f"{self.base_url}/{event.data}?access_key={self.api_key}"
-            result = await self.request_with_fail_count(url)
+            url = f"{self.base_url}/{event.data}?access_key={{api_key}}"
+            result = await self.api_request(url)
             if result:
                 geo_data = result.json()
                 if not geo_data:

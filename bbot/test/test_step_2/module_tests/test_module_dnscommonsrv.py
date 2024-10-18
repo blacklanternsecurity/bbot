@@ -56,7 +56,7 @@ class TestDNSCommonSRV(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 19
+        assert len(events) == 20
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"])
         assert 1 == len(
             [

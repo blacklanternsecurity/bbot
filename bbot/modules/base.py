@@ -63,7 +63,7 @@ class BaseModule:
 
         batch_wait (int): Seconds to wait before force-submitting a batch. Default is 10.
 
-        failed_request_abort_threshold (int): Threshold for setting error state after failed HTTP requests (only takes effect when `request_with_fail_count()` is used. Default is 5.
+        api_failure_abort_threshold (int): Threshold for setting error state after failed HTTP requests (only takes effect when `api_request()` is used. Default is 5.
 
         _preserve_graph (bool): When set to True, accept events that may be duplicates but are necessary for construction of complete graph. Typically only enabled for output modules that need to maintain full chains of events, e.g. `neo4j` and `json`. Default is False.
 
@@ -103,7 +103,13 @@ class BaseModule:
     _module_threads = 1
     _batch_size = 1
     batch_wait = 10
-    failed_request_abort_threshold = 5
+
+    # API retries, etc.
+    _api_retries = 2
+    # disable the module after this many failed attempts in a row
+    _api_failure_abort_threshold = 3
+    # sleep for this many seconds after being rate limited
+    _429_sleep_interval = 30
 
     default_discovery_context = "{module} discovered {event.type}: {event.data}"
 
@@ -148,8 +154,10 @@ class BaseModule:
         # string constant
         self._custom_filter_criteria_msg = "it did not meet custom filter criteria"
 
-        # track number of failures (for .request_with_fail_count())
-        self._request_failures = 0
+        self._api_keys = []
+
+        # track number of failures (for .api_request())
+        self._api_request_failures = 0
 
         self._tasks = []
         self._event_received = asyncio.Condition()
@@ -304,31 +312,75 @@ class BaseModule:
             try:
                 await self.ping()
                 self.hugesuccess(f"API is ready")
-                return True
+                return True, ""
             except Exception as e:
+                self.trace(traceback.format_exc())
                 return None, f"Error with API ({str(e).strip()})"
         else:
             return None, "No API key set"
 
-    async def ping(self):
+    @property
+    def api_key(self):
+        if self._api_keys:
+            return self._api_keys[0]
+
+    @api_key.setter
+    def api_key(self, api_keys):
+        if isinstance(api_keys, str):
+            api_keys = [api_keys]
+        self._api_keys = list(api_keys)
+
+    def cycle_api_key(self):
+        if len(self._api_keys) > 1:
+            self.verbose(f"Cycling API key")
+            self._api_keys.insert(0, self._api_keys.pop())
+        else:
+            self.debug(f"No extra API keys to cycle")
+
+    @property
+    def api_retries(self):
+        return max(self._api_retries + 1, len(self._api_keys))
+
+    @property
+    def api_failure_abort_threshold(self):
+        return (self.api_retries * self._api_failure_abort_threshold) + 1
+
+    async def ping(self, url=None):
         """Asynchronously checks the health of the configured API.
 
-        This method is used in conjunction with require_api_key() to verify that the API is not just configured, but also responsive. This method should include an assert statement to validate the API's health, typically by making a test request to a known endpoint.
+        This method is used in conjunction with require_api_key() to verify that the API is not just configured, but also responsive. It makes a test request to a known endpoint to validate the API's health.
 
-        Example Usage:
-            In your implementation, if the API has a "/ping" endpoint:
-            async def ping(self):
-                r = await self.request_with_fail_count(f"{self.base_url}/ping")
-                resp_content = getattr(r, "text", "")
-                assert getattr(r, "status_code", 0) == 200, resp_content
+        The method uses the `ping_url` attribute if defined, or falls back to a provided URL. If neither is available, no request is made.
+
+        Args:
+            url (str, optional): A specific URL to use for the ping request. If not provided, the method will use the `ping_url` attribute.
 
         Returns:
             None
 
         Raises:
-            AssertionError: If the API does not respond as expected.
+            ValueError: If the API response is not successful (status code != 200).
+
+        Example Usage:
+            To use this method, simply define the `ping_url` attribute in your module:
+
+            class MyModule(BaseModule):
+                ping_url = "https://api.example.com/ping"
+
+            Alternatively, you can override this method for more complex health checks:
+
+            async def ping(self):
+                r = await self.api_request(f"{self.base_url}/complex-health-check")
+                if r.status_code != 200 or r.json().get('status') != 'healthy':
+                    raise ValueError(f"API unhealthy: {r.text}")
         """
-        return
+        if url is None:
+            url = getattr(self, "ping_url", "")
+        if url:
+            r = await self.api_request(url)
+            if getattr(r, "status_code", 0) != 200:
+                response_text = getattr(r, "text", "no response from server")
+                raise ValueError(response_text)
 
     @property
     def batch_size(self):
@@ -932,8 +984,11 @@ class BaseModule:
     def _outgoing_dedup_hash(self, event):
         """
         Determines the criteria for what is considered to be a duplicate event if `suppress_dupes` is True.
+
+        We take into account the `internal` attribute we don't want an internal event (which isn't distributed to output modules)
+        to inadvertently suppress a non-internal event.
         """
-        return hash((event, self.name))
+        return hash((event, self.name, event.internal, event.always_emit))
 
     def get_per_host_hash(self, event):
         """
@@ -1065,31 +1120,121 @@ class BaseModule:
         async for line in self.helpers.run_live(*args, **kwargs):
             yield line
 
-    async def request_with_fail_count(self, *args, **kwargs):
-        """Asynchronously perform an HTTP request while keeping track of consecutive failures.
+    def prepare_api_request(self, url, kwargs):
+        """
+        Prepare an API request by adding the necessary authentication - header, bearer token, etc.
+        """
+        if self.api_key:
+            url = url.format(api_key=self.api_key)
+            if not "headers" in kwargs:
+                kwargs["headers"] = {}
+            kwargs["headers"]["Authorization"] = f"Bearer {self.api_key}"
+        return url, kwargs
 
-        This function wraps the `self.helpers.request` method, incrementing a failure counter if
-        the request returns None. When the failure counter exceeds `self.failed_request_abort_threshold`,
-        the module is set to an error state.
+    async def api_request(self, *args, **kwargs):
+        """
+        Makes an HTTP request while automatically:
+            - avoiding rate limits (sleep/retry)
+            - cycling API keys
+            - cancelling after too many failed attempts
+        """
+        url = args[0] if args else kwargs.pop("url", "")
+
+        # loop until we have a successful request
+        for _ in range(self.api_retries):
+            if not "headers" in kwargs:
+                kwargs["headers"] = {}
+            new_url, kwargs = self.prepare_api_request(url, kwargs)
+            kwargs["url"] = new_url
+
+            r = await self.helpers.request(**kwargs)
+            success = False if r is None else r.is_success
+
+            if success:
+                self._api_request_failures = 0
+            else:
+                status_code = getattr(r, "status_code", 0)
+                response_text = getattr(r, "text", "")
+                self.trace(f"API response to {url} failed with status code {status_code}: {response_text}")
+                self._api_request_failures += 1
+                if self._api_request_failures >= self.api_failure_abort_threshold:
+                    self.set_error_state(
+                        f"Setting error state due to {self._api_request_failures:,} failed HTTP requests"
+                    )
+                else:
+                    # sleep for a bit if we're being rate limited
+                    if status_code == 429:
+                        self.verbose(
+                            f"Sleeping for {self._429_sleep_interval:,} seconds due to rate limit (HTTP status: 429)"
+                        )
+                        await asyncio.sleep(self._429_sleep_interval)
+                    elif self._api_keys:
+                        # if request failed, cycle API keys and try again
+                        self.cycle_api_key()
+                    continue
+            break
+
+        return r
+
+    async def api_page_iter(self, url, page_size=100, json=True, next_key=None, **requests_kwargs):
+        """
+        An asynchronous generator function for iterating through paginated API data.
+
+        This function continuously makes requests to a specified API URL, incrementing the page number
+        or applying a custom pagination function, and yields the received data one page at a time.
+        It is well-suited for APIs that provide paginated results.
 
         Args:
-            *args: Positional arguments to pass to `self.helpers.request`.
-            **kwargs: Keyword arguments to pass to `self.helpers.request`.
+            url (str): The initial API URL. Can contain placeholders for 'page', 'page_size', and 'offset'.
+            page_size (int, optional): The number of items per page. Defaults to 100.
+            json (bool, optional): If True, attempts to deserialize the response content to a JSON object. Defaults to True.
+            next_key (callable, optional): A function that takes the last page's data and returns the URL for the next page. Defaults to None.
+            **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
-        Returns:
-            Any: The response object or None if the request failed.
+        Yields:
+            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
 
-        Raises:
-            None: Sets the module to an error state when the failure threshold is reached.
+        Note:
+            The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.
+
+        Examples:
+            >>> agen = api_page_iter('https://api.example.com/data?page={page}&page_size={page_size}')
+            >>> try:
+            >>>     async for page in agen:
+            >>>         subdomains = page["subdomains"]
+            >>>         self.hugesuccess(subdomains)
+            >>>         if not subdomains:
+            >>>             break
+            >>> finally:
+            >>>     agen.aclose()
         """
-        r = await self.helpers.request(*args, **kwargs)
-        if r is None:
-            self._request_failures += 1
-        else:
-            self._request_failures = 0
-        if self._request_failures >= self.failed_request_abort_threshold:
-            self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
-        return r
+        page = 1
+        offset = 0
+        result = None
+        while 1:
+            if result and callable(next_key):
+                try:
+                    new_url = next_key(result)
+                except Exception as e:
+                    self.debug(f"Failed to extract next page of results from {url}: {e}")
+                    self.debug(traceback.format_exc())
+            else:
+                new_url = self.helpers.safe_format(url, page=page, page_size=page_size, offset=offset)
+            result = await self.api_request(new_url, **requests_kwargs)
+            if result is None:
+                self.verbose(f"api_page_iter() got no response for {url}")
+                break
+            try:
+                if json:
+                    result = result.json()
+                yield result
+            except Exception:
+                self.warning(f'Error in api_page_iter() for url: "{new_url}"')
+                self.trace(traceback.format_exc())
+                break
+            finally:
+                offset += page_size
+                page += 1
 
     @property
     def preset(self):
@@ -1417,7 +1562,7 @@ class BaseModule:
             self.trace()
 
 
-class InterceptModule(BaseModule):
+class BaseInterceptModule(BaseModule):
     """
     An Intercept Module is a special type of high-priority module that gets early access to events.
 
@@ -1429,7 +1574,6 @@ class InterceptModule(BaseModule):
     """
 
     accept_dupes = True
-    suppress_dupes = False
     _intercept = True
 
     async def _worker(self):

@@ -15,15 +15,14 @@ class virustotal(subdomain_enum_apikey):
     options_desc = {"api_key": "VirusTotal API Key"}
 
     base_url = "https://www.virustotal.com/api/v3"
+    api_page_iter_kwargs = {"json": False, "next_key": lambda r: r.json().get("links", {}).get("next", "")}
 
-    async def setup(self):
-        self.api_key = self.config.get("api_key", "")
-        self.headers = {"x-apikey": self.api_key}
-        return await super().setup()
+    def make_url(self, query):
+        return f"{self.base_url}/domains/{self.helpers.quote(query)}/subdomains"
 
-    async def ping(self):
-        # virustotal does not have a ping function
-        return
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["x-apikey"] = self.api_key
+        return url, kwargs
 
     def parse_results(self, r, query):
         results = set()
@@ -32,20 +31,4 @@ class virustotal(subdomain_enum_apikey):
             match = match.lower()
             if match.endswith(query):
                 results.add(match)
-        return results
-
-    async def query(self, query):
-        results = set()
-        url = f"{self.base_url}/domains/{self.helpers.quote(query)}/subdomains"
-        agen = self.helpers.api_page_iter(
-            url, json=False, headers=self.headers, next_key=lambda r: r.json().get("links", {}).get("next", "")
-        )
-        try:
-            async for response in agen:
-                r = self.parse_results(response, query)
-                if not r:
-                    break
-                results.update(r)
-        finally:
-            agen.aclose()
         return results

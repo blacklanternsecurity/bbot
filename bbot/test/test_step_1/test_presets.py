@@ -169,6 +169,11 @@ exclude_flags:
 
 def test_preset_scope():
 
+    # test target merging
+    scan = Scanner("1.2.3.4", preset=Preset.from_dict({"target": ["evilcorp.com"]}))
+    assert set([str(h) for h in scan.preset.target.seeds.hosts]) == {"1.2.3.4", "evilcorp.com"}
+    assert set([e.data for e in scan.target]) == {"1.2.3.4", "evilcorp.com"}
+
     blank_preset = Preset()
     blank_preset = blank_preset.bake()
     assert not blank_preset.target
@@ -527,12 +532,26 @@ def test_preset_module_resolution(clean_default_config):
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + module exclusions
-    with pytest.raises(ValidationError) as error:
-        preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
-    assert str(error.value) == 'Unable to add scan module "sslcert" because the module has been excluded'
+    preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    baked_preset = preset.bake()
+    assert baked_preset.modules == {
+        "wayback",
+        "cloudcheck",
+        "python",
+        "json",
+        "speculate",
+        "dnsresolve",
+        "aggregate",
+        "excavate",
+        "txt",
+        "httpx",
+        "csv",
+        "wappalyzer",
+    }
 
 
-def test_preset_module_loader():
+@pytest.mark.asyncio
+async def test_preset_module_loader():
     custom_module_dir = bbot_test_dir / "custom_module_dir"
     custom_module_dir_2 = custom_module_dir / "asdf"
     custom_output_module_dir = custom_module_dir / "output"
@@ -639,6 +658,43 @@ class TestModule4(BaseModule):
 
     # reset module_loader
     preset2.module_loader.__init__()
+
+    # custom module dir via preset
+    custom_module_dir_3 = bbot_test_dir / "custom_module_dir_3"
+    custom_module_dir_3.mkdir(exist_ok=True, parents=True)
+    custom_module_5 = custom_module_dir_3 / "testmodule5.py"
+    with open(custom_module_5, "w") as f:
+        f.write(
+            """
+from bbot.modules.base import BaseModule
+
+class TestModule5(BaseModule):
+    watched_events = ["TECHNOLOGY"]
+    produced_events = ["FINDING"]
+"""
+        )
+
+    preset = Preset.from_yaml_string(
+        f"""
+modules:
+  - testmodule5
+"""
+    )
+    # should fail
+    with pytest.raises(ValidationError):
+        scan = Scanner(preset=preset)
+
+    preset = Preset.from_yaml_string(
+        f"""
+module_dirs:
+  - {custom_module_dir_3}
+modules:
+  - testmodule5
+"""
+    )
+    scan = Scanner(preset=preset)
+    await scan._prep()
+    assert "testmodule5" in scan.modules
 
 
 def test_preset_include():
@@ -902,3 +958,22 @@ def test_preset_require_exclude():
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
     assert any("aggressive" in flags for module, flags in module_flags)
+
+
+@pytest.mark.asyncio
+async def test_preset_output_dir():
+    output_dir = bbot_test_dir / "preset_output_dir"
+    preset = Preset.from_yaml_string(
+        f"""
+output_dir: {output_dir}
+scan_name: bbot_test
+"""
+    )
+    scan = Scanner(preset=preset)
+    await scan.async_start_without_generator()
+    scan_dir = output_dir / "bbot_test"
+    assert scan_dir.is_dir()
+    output_file = scan_dir / "output.txt"
+    assert output_file.is_file()
+
+    shutil.rmtree(output_dir, ignore_errors=True)

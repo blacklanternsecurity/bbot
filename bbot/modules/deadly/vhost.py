@@ -23,6 +23,7 @@ class vhost(ffuf):
     }
 
     deps_common = ["ffuf"]
+    banned_characters = set([" ", "."])
 
     in_scope_only = True
 
@@ -103,7 +104,7 @@ class vhost(ffuf):
     def mutations_check(self, vhost):
         mutations_list = []
         for mutation in self.helpers.word_cloud.mutations(vhost):
-            for i in ["", ".", "-"]:
+            for i in ["", "-"]:
                 mutations_list.append(i.join(mutation))
         mutations_list_file = self.helpers.tempfile(mutations_list, pipe=False)
         return mutations_list_file

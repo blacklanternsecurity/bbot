@@ -20,7 +20,7 @@ class iis_shortnames(BaseModule):
     meta = {
         "description": "Check for IIS shortname vulnerability",
         "created_date": "2022-04-15",
-        "author": "@pmueller",
+        "author": "@liquidsec",
     }
     options = {"detect_only": True, "max_node_count": 50}
     options_desc = {
@@ -38,37 +38,26 @@ class iis_shortnames(BaseModule):
         control_url = f"{target}{random_string}*~1*/a.aspx"
         test_url = f"{target}*~1*/a.aspx"
 
-        urls_and_kwargs = []
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
             kwargs = dict(method=method, allow_redirects=False, timeout=10)
-            urls_and_kwargs.append((control_url, kwargs, method))
-            urls_and_kwargs.append((test_url, kwargs, method))
-
-        results = {}
-        async for url, kwargs, method, response in self.helpers.request_custom_batch(urls_and_kwargs):
-            try:
-                results[method][url] = response
-            except KeyError:
-                results[method] = {url: response}
-        for method, result in results.items():
             confirmations = 0
-            iterations = 4  # one failed detection is tolerated, as long as its not the first run
+            iterations = 5  # one failed detection is tolerated, as long as its not the first run
             while iterations > 0:
-                control = results[method].get(control_url, None)
-                test = results[method].get(test_url, None)
-                if control and test:
-                    if control.status_code != test.status_code:
+                control_result = await self.helpers.request(control_url, **kwargs)
+                test_result = await self.helpers.request(test_url, **kwargs)
+                if control_result and test_result:
+                    if control_result.status_code != test_result.status_code:
                         confirmations += 1
-                        self.debug(f"New detection, number of confirmations: [{str(confirmations)}]")
-                        if confirmations > 2:
-                            technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
-                            detections.append((method, test.status_code, technique))
+                        self.debug(f"New detection on {target}, number of confirmations: [{str(confirmations)}]")
+                        if confirmations > 3:
+                            technique = f"{str(control_result.status_code)}/{str(test_result.status_code)} HTTP Code"
+                            detections.append((method, test_result.status_code, technique))
                             break
-                    elif ("Error Code</th><td>0x80070002" in control.text) and (
-                        "Error Code</th><td>0x00000000" in test.text
+                    elif ("Error Code</th><td>0x80070002" in control_result.text) and (
+                        "Error Code</th><td>0x00000000" in test_result.text
                     ):
                         confirmations += 1
-                        if confirmations > 2:
+                        if confirmations > 3:
                             detections.append((method, 0, technique))
                             technique = "HTTP Body Error Message"
                             break

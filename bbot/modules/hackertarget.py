@@ -15,7 +15,7 @@ class hackertarget(subdomain_enum):
 
     async def request_url(self, query):
         url = f"{self.base_url}/hostsearch/?q={self.helpers.quote(query)}"
-        response = await self.request_with_fail_count(url)
+        response = await self.api_request(url)
         return response
 
     def parse_results(self, r, query):

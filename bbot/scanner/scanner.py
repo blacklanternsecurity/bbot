@@ -115,25 +115,37 @@ class Scanner:
             dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.
             **kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
         """
+        self._root_event = None
+        self._finish_event = None
+        self.start_time = None
+        self.end_time = None
+        self.duration = None
+        self.duration_human = None
+        self.duration_seconds = None
+
+        self._success = False
+
         if scan_id is not None:
             self.id = str(id)
         else:
             self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
 
-        preset = kwargs.pop("preset", None)
+        custom_preset = kwargs.pop("preset", None)
         kwargs["_log"] = True
 
         from .preset import Preset
 
-        if preset is None:
-            preset = Preset(*targets, **kwargs)
-        else:
-            if not isinstance(preset, Preset):
-                raise ValidationError(f'Preset must be of type Preset, not "{type(preset).__name__}"')
-        self.preset = preset.bake(self)
+        base_preset = Preset(*targets, **kwargs)
+
+        if custom_preset is not None:
+            if not isinstance(custom_preset, Preset):
+                raise ValidationError(f'Preset must be of type Preset, not "{type(custom_preset).__name__}"')
+            base_preset.merge(custom_preset)
+
+        self.preset = base_preset.bake(self)
 
         # scan name
-        if preset.scan_name is None:
+        if self.preset.scan_name is None:
             tries = 0
             while 1:
                 if tries > 5:
@@ -148,12 +160,16 @@ class Scanner:
                     break
                 tries += 1
         else:
-            scan_name = str(preset.scan_name)
+            scan_name = str(self.preset.scan_name)
         self.name = scan_name
 
+        # make sure the preset has a description
+        if not self.preset.description:
+            self.preset.description = self.name
+
         # scan output dir
-        if preset.output_dir is not None:
-            self.home = Path(preset.output_dir).resolve() / self.name
+        if self.preset.output_dir is not None:
+            self.home = Path(self.preset.output_dir).resolve() / self.name
         else:
             self.home = self.preset.bbot_home / "scans" / self.name
 
@@ -231,6 +247,9 @@ class Scanner:
 
         self._dns_strings = None
         self._dns_regexes = None
+        self._dns_regexes_yara = None
+        self._dns_yara_rules_uncompiled = None
+        self._dns_yara_rules = None
 
         self.__log_handlers = None
         self._log_handler_backup = []
@@ -271,7 +290,9 @@ class Scanner:
                 self.debug(
                     f"Setting intercept module {intercept_module.name}._incoming_event_queue to previous intercept module {prev_intercept_module.name}.outgoing_event_queue"
                 )
-                intercept_module._incoming_event_queue = prev_intercept_module.outgoing_event_queue
+                interqueue = asyncio.Queue()
+                intercept_module._incoming_event_queue = interqueue
+                prev_intercept_module._outgoing_event_queue = interqueue
 
             # abort if there are no output modules
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
@@ -303,13 +324,13 @@ class Scanner:
 
     async def async_start(self):
         """ """
-        failed = True
-        scan_start_time = datetime.now()
+        self.start_time = datetime.now()
+        self.root_event.data["started_at"] = self.start_time.isoformat()
         try:
             await self._prep()
 
             self._start_log_handlers()
-            self.trace(f'Ran BBOT {__version__} at {scan_start_time}, command: {" ".join(sys.argv)}')
+            self.trace(f'Ran BBOT {__version__} at {self.start_time}, command: {" ".join(sys.argv)}')
             self.trace(f"Target: {self.preset.target.json}")
             self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 
@@ -360,16 +381,19 @@ class Scanner:
                 if self._finished_init and self.modules_finished:
                     new_activity = await self.finish()
                     if not new_activity:
+                        self._success = True
+                        scan_finish_event = await self._mark_finished()
+                        yield scan_finish_event
                         break
 
                 await asyncio.sleep(0.1)
 
-            failed = False
+            self._success = True
 
         except BaseException as e:
             if self.helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                 self.stop()
-                failed = False
+                self._success = True
             else:
                 try:
                     raise
@@ -393,23 +417,44 @@ class Scanner:
             await self._report()
             await self._cleanup()
 
-            log_fn = self.hugesuccess
-            if self.status == "ABORTING":
-                self.status = "ABORTED"
-                log_fn = self.hugewarning
-            elif failed:
-                self.status = "FAILED"
-                log_fn = self.critical
-            else:
-                self.status = "FINISHED"
-
-            scan_run_time = datetime.now() - scan_start_time
-            scan_run_time = self.helpers.human_timedelta(scan_run_time)
-            log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
-
             await self.dispatcher.on_finish(self)
 
             self._stop_log_handlers()
+
+    async def _mark_finished(self):
+        log_fn = self.hugesuccess
+        if self.status == "ABORTING":
+            status = "ABORTED"
+            log_fn = self.hugewarning
+        elif not self._success:
+            status = "FAILED"
+            log_fn = self.critical
+        else:
+            status = "FINISHED"
+
+        self.end_time = datetime.now()
+        self.duration = self.end_time - self.start_time
+        self.duration_seconds = self.duration.total_seconds()
+        self.duration_human = self.helpers.human_timedelta(self.duration)
+
+        status_message = f"Scan {self.name} completed in {self.duration_human} with status {status}"
+
+        scan_finish_event = self.finish_event(status_message, status)
+
+        # queue final scan event with output modules
+        output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
+        for m in output_modules:
+            await m.queue_event(scan_finish_event)
+        # wait until output modules are flushed
+        while 1:
+            modules_finished = all([m.finished for m in output_modules])
+            if modules_finished:
+                break
+            await asyncio.sleep(0.05)
+
+        self.status = status
+        log_fn(status_message)
+        return scan_finish_event
 
     def _start_modules(self):
         self.verbose(f"Starting module worker loops")
@@ -724,8 +769,8 @@ class Scanner:
                 await module.queue_event(finished_event)
             self.verbose("Completed finish()")
             return True
-        # Return False if no new events were generated since last time
         self.verbose("Completed final finish()")
+        # Return False if no new events were generated since last time
         return False
 
     def _drain_queues(self):
@@ -944,12 +989,25 @@ class Scanner:
             }
             ```
         """
-        root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True)
+        if self._root_event is None:
+            self._root_event = self.make_root_event(f"Scan {self.name} started at {self.start_time}")
+        self._root_event.data["status"] = self.status
+        return self._root_event
+
+    def finish_event(self, context=None, status=None):
+        if self._finish_event is None:
+            if context is None or status is None:
+                raise ValueError("Must specify context and status")
+            self._finish_event = self.make_root_event(context)
+            self._finish_event.data["status"] = status
+        return self._finish_event
+
+    def make_root_event(self, context):
+        root_event = self.make_event(data=self.json, event_type="SCAN", dummy=True, context=context)
         root_event._id = self.id
         root_event.scope_distance = 0
         root_event.parent = root_event
         root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
-        root_event.discovery_context = f"Scan {self.name} started at {root_event.timestamp}"
         return root_event
 
     @property
@@ -958,14 +1016,13 @@ class Scanner:
         A list of DNS hostname strings generated from the scan target
         """
         if self._dns_strings is None:
-            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
             dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
-            dns_targets.update(dns_whitelist)
-            dns_targets = sorted(dns_targets, key=len)
-            dns_targets_set = set()
+            dns_whitelist = sorted(dns_whitelist, key=len)
+            dns_whitelist_set = set()
             dns_strings = []
-            for t in dns_targets:
-                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
+            for t in dns_whitelist:
+                if not any(x in dns_whitelist_set for x in self.helpers.domain_parents(t, include_self=True)):
+                    dns_whitelist_set.add(t)
                     dns_strings.append(t)
             self._dns_strings = dns_strings
         return self._dns_strings
@@ -1000,7 +1057,7 @@ class Scanner:
             ...     for match in regex.finditer(response.text):
             ...         hostname = match.group().lower()
         """
-        if not self._dns_regexes:
+        if self._dns_regexes is None:
             self._dns_regexes = self._generate_dns_regexes(r"((?:(?:[\w-]+)\.)+")
         return self._dns_regexes
 
@@ -1009,7 +1066,47 @@ class Scanner:
         """
         Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
         """
-        return self._generate_dns_regexes(r"(([a-z0-9-]+\.)+")
+        if self._dns_regexes_yara is None:
+            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)*")
+        return self._dns_regexes_yara
+
+    @property
+    def dns_yara_rules_uncompiled(self):
+        if self._dns_yara_rules_uncompiled is None:
+            regexes_component_list = []
+            for i, r in enumerate(self.dns_regexes_yara):
+                regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
+            if regexes_component_list:
+                regexes_component = " ".join(regexes_component_list)
+                self._dns_yara_rules_uncompiled = f'rule hostname_extraction {{meta: description = "matches DNS hostname pattern derived from target(s)" strings: {regexes_component} condition: any of them}}'
+        return self._dns_yara_rules_uncompiled
+
+    async def dns_yara_rules(self):
+        if self._dns_yara_rules is None:
+            if self.dns_yara_rules_uncompiled is not None:
+                import yara
+
+                self._dns_yara_rules = await self.helpers.run_in_executor(
+                    yara.compile, source=self.dns_yara_rules_uncompiled
+                )
+        return self._dns_yara_rules
+
+    async def extract_in_scope_hostnames(self, s):
+        """
+        Given a string, uses yara to extract hostnames matching scan targets
+
+        Examples:
+            >>> await self.scan.extract_in_scope_hostnames("http://www.evilcorp.com")
+            ... {"www.evilcorp.com"}
+        """
+        matches = set()
+        dns_yara_rules = await self.dns_yara_rules()
+        if dns_yara_rules is not None:
+            for match in await self.helpers.run_in_executor(dns_yara_rules.match, data=s):
+                for string in match.strings:
+                    for instance in string.instances:
+                        matches.add(str(instance))
+        return matches
 
     @property
     def json(self):
@@ -1023,6 +1120,14 @@ class Scanner:
                 j.update({i: v})
         j["target"] = self.preset.target.json
         j["preset"] = self.preset.to_dict(redact_secrets=True)
+        if self.start_time is not None:
+            j["started_at"] = self.start_time.isoformat()
+        if self.end_time is not None:
+            j["finished_at"] = self.end_time.isoformat()
+        if self.duration is not None:
+            j["duration_seconds"] = self.duration_seconds
+        if self.duration_human is not None:
+            j["duration"] = self.duration_human
         return j
 
     def debug(self, *args, trace=False, **kwargs):

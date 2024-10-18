@@ -227,13 +227,13 @@ def split_host_port(d):
 
     match = bbot_regexes.extract_open_port_regex.match(netloc)
     if match is None:
-        raise ValueError(f'split_port() failed to parse netloc "{netloc}"')
+        raise ValueError(f'split_port() failed to parse netloc "{netloc}" (original value: {d})')
 
     host = match.group(2)
     if host is None:
         host = match.group(1)
     if host is None:
-        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}"')
+        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}" (original value: {d})')
 
     port = match.group(3)
     if port is None and scheme is not None:
@@ -365,7 +365,7 @@ def parent_url(u):
     if path.parent == path:
         return None
     else:
-        return urlunparse(parsed._replace(path=str(path.parent)))
+        return urlunparse(parsed._replace(path=str(path.parent), query=""))
 
 
 def url_parents(u):
@@ -621,12 +621,13 @@ def is_ip(d, version=None):
     return False
 
 
-def is_ip_type(i):
+def is_ip_type(i, network=None):
     """
     Checks if the given object is an instance of an IPv4 or IPv6 type from the ipaddress module.
 
     Args:
         i (ipaddress._BaseV4 or ipaddress._BaseV6): The IP object to check.
+        network (bool, optional): Whether to restrict the check to network types (IPv4Network or IPv6Network). Defaults to False.
 
     Returns:
         bool: True if the object is an instance of ipaddress._BaseV4 or ipaddress._BaseV6, False otherwise.
@@ -639,6 +640,12 @@ def is_ip_type(i):
         >>> is_ip_type("192.168.1.0/24")
         False
     """
+    if network is not None:
+        is_network = ipaddress._BaseNetwork in i.__class__.__mro__
+        if network:
+            return is_network
+        else:
+            return not is_network
     return ipaddress._IPAddressBase in i.__class__.__mro__
 
 
@@ -1260,7 +1267,7 @@ def gen_numbers(n, padding=2):
     return results
 
 
-def make_netloc(host, port):
+def make_netloc(host, port=None):
     """Constructs a network location string from a given host and port.
 
     Args:
@@ -1289,7 +1296,7 @@ def make_netloc(host, port):
     if is_ip(host, version=6):
         host = f"[{host}]"
     if port is None:
-        return host
+        return str(host)
     return f"{host}:{port}"
 
 
@@ -2788,3 +2795,15 @@ def top_tcp_ports(n, as_string=False):
     if as_string:
         return ",".join([str(s) for s in top_ports])
     return top_ports
+
+
+class SafeDict(dict):
+    def __missing__(self, key):
+        return "{" + key + "}"
+
+
+def safe_format(s, **kwargs):
+    """
+    Format string while ignoring unused keys (prevents KeyError)
+    """
+    return s.format_map(SafeDict(kwargs))

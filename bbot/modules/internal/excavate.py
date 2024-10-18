@@ -6,6 +6,7 @@ import regex as re
 from pathlib import Path
 from bbot.errors import ExcavateError
 import bbot.core.helpers.regexes as bbot_regexes
+from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
 
@@ -153,7 +154,9 @@ class ExcavateRule:
         yara_rule_settings = YaraRuleSettings(description, tags, emit_match)
         yara_results = {}
         for h in r.strings:
-            yara_results[h.identifier.lstrip("$")] = sorted(set([i.matched_data.decode("utf-8") for i in h.instances]))
+            yara_results[h.identifier.lstrip("$")] = sorted(
+                set([i.matched_data.decode("utf-8", errors="ignore") for i in h.instances])
+            )
         await self.process(yara_results, event, yara_rule_settings, discovery_context)
 
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
@@ -279,7 +282,7 @@ class CustomExtractor(ExcavateRule):
                 await self.report(event_data, event, yara_rule_settings, discovery_context)
 
 
-class excavate(BaseInternalModule):
+class excavate(BaseInternalModule, BaseInterceptModule):
     """
     Example (simple) Excavate Rules:
 
@@ -310,32 +313,32 @@ class excavate(BaseInternalModule):
         "custom_yara_rules": "Include custom Yara rules",
     }
     scope_distance_modifier = None
+    accept_dupes = False
 
     _module_threads = 8
 
-    parameter_blacklist = [
-        "__VIEWSTATE",
-        "__EVENTARGUMENT",
-        "__EVENTVALIDATION",
-        "__EVENTTARGET",
-        "__EVENTARGUMENT",
-        "__VIEWSTATEGENERATOR",
-        "__SCROLLPOSITIONY",
-        "__SCROLLPOSITIONX",
-        "ASP.NET_SessionId",
-        "JSESSIONID",
-        "PHPSESSID",
-    ]
+    parameter_blacklist = set(
+        p.lower()
+        for p in [
+            "__VIEWSTATE",
+            "__EVENTARGUMENT",
+            "__EVENTVALIDATION",
+            "__EVENTTARGET",
+            "__EVENTARGUMENT",
+            "__VIEWSTATEGENERATOR",
+            "__SCROLLPOSITIONY",
+            "__SCROLLPOSITIONX",
+            "ASP.NET_SessionId",
+            "JSESSIONID",
+            "PHPSESSID",
+        ]
+    )
 
     yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
 
     def in_bl(self, value):
-        in_bl = False
-        for bl_param in self.parameter_blacklist:
-            if bl_param.lower() == value.lower():
-                in_bl = True
-        return in_bl
+        return value.lower() in self.parameter_blacklist
 
     def url_unparse(self, param_type, parsed_url):
         if param_type == "GETPARAM":
@@ -670,8 +673,32 @@ class excavate(BaseInternalModule):
 
     class URLExtractor(ExcavateRule):
         yara_rules = {
-            "url_full": r'rule url_full { meta: tags = "spider-danger" description = "contains full URL" strings: $url_full = /https?:\/\/([\w\.-]+)([:\/\w\.-]*)/ condition: $url_full }',
-            "url_attr": r'rule url_attr { meta: tags = "spider-danger" description = "contains tag with src or href attribute" strings: $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/ condition: $url_attr }',
+            "url_full": (
+                r"""
+                rule url_full {
+                    meta:
+                        tags = "spider-danger"
+                        description = "contains full URL"
+                    strings:
+                        $url_full = /https?:\/\/([\w\.-]+)(:\d{1,5})?([\/\w\.-]*)/
+                    condition:
+                        $url_full
+                }
+                """
+            ),
+            "url_attr": (
+                r"""
+                rule url_attr {
+                    meta:
+                        tags = "spider-danger"
+                        description = "contains tag with src or href attribute"
+                    strings:
+                        $url_attr = /<[^>]+(href|src)=["\'][^"\']*["\'][^>]*>/
+                    condition:
+                        $url_attr
+                }
+                """
+            ),
         }
         full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
         full_url_regex_strict = re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$")
@@ -742,19 +769,32 @@ class excavate(BaseInternalModule):
 
         def __init__(self, excavate):
             super().__init__(excavate)
-            regexes_component_list = []
-            if excavate.scan.dns_regexes_yara:
-                for i, r in enumerate(excavate.scan.dns_regexes_yara):
-                    regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
-                regexes_component = " ".join(regexes_component_list)
-                self.yara_rules[f"hostname_extraction"] = (
-                    f'rule hostname_extraction {{meta: description = "matches DNS hostname pattern derived from target(s)" strings: {regexes_component} condition: any of them}}'
-                )
+            if excavate.scan.dns_yara_rules_uncompiled:
+                self.yara_rules[f"hostname_extraction"] = excavate.scan.dns_yara_rules_uncompiled
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for domain_str in yara_results[identifier]:
                     await self.report(domain_str, event, yara_rule_settings, discovery_context, event_type="DNS_NAME")
+
+    class LoginPageExtractor(ExcavateRule):
+        yara_rules = {
+            "login_page": r"""
+            rule login_page {
+                meta:
+                    description = "Detects login pages with username and password fields"
+                strings:
+                    $username_field = /<input[^>]+name=["']?(user|login|email)/ nocase
+                    $password_field = /<input[^>]+name=["']?passw?/ nocase
+                condition:
+                    $username_field and $password_field
+            }
+            """
+        }
+
+        async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            if yara_results:
+                event.add_tag("login-page")
 
     def add_yara_rule(self, rule_name, rule_content, rule_instance):
         rule_instance.name = rule_name
@@ -806,9 +846,9 @@ class excavate(BaseInternalModule):
             if Path(self.custom_yara_rules).is_file():
                 with open(self.custom_yara_rules) as f:
                     rules_content = f.read()
-                self.debug(f"Successfully loaded secrets file [{self.custom_yara_rules}]")
+                self.debug(f"Successfully loaded custom yara rules file [{self.custom_yara_rules}]")
             else:
-                self.debug(f"Custom secrets is NOT a file. Will attempt to treat it as rule content")
+                self.debug(f"Custom yara rules file is NOT a file. Will attempt to treat it as rule content")
                 rules_content = self.custom_yara_rules
 
             self.debug(f"Final combined yara rule contents: {rules_content}")
@@ -817,13 +857,11 @@ class excavate(BaseInternalModule):
                 try:
                     yara.compile(source=rule_content)
                 except yara.SyntaxError as e:
-                    self.hugewarning(f"Custom Yara rule failed to compile: {e}")
-                    return False
+                    return False, f"Custom Yara rule failed to compile: {e}"
 
                 rule_match = await self.helpers.re.search(self.yara_rule_name_regex, rule_content)
                 if not rule_match:
-                    self.hugewarning(f"Custom Yara formatted incorrectly: could not find rule name")
-                    return False
+                    return False, f"Custom Yara formatted incorrectly: could not find rule name"
 
                 rule_name = rule_match.groups(1)[0]
                 c = CustomExtractor(self)
@@ -837,11 +875,13 @@ class excavate(BaseInternalModule):
         yara.set_config(max_match_data=yara_max_match_data)
         yara_rules_combined = "\n".join(self.yara_rules_dict.values())
         try:
+            self.info(f"Compiling {len(self.yara_rules_dict):,} YARA rules")
+            for rule_name, rule_content in self.yara_rules_dict.items():
+                self.debug(f"  - {rule_name}")
             self.yara_rules = yara.compile(source=yara_rules_combined)
         except yara.SyntaxError as e:
-            self.hugewarning(f"Yara Rules failed to compile with error: [{e}]")
             self.debug(yara_rules_combined)
-            return False
+            return False, f"Yara Rules failed to compile with error: [{e}]"
 
         # pre-load valid URL schemes
         valid_schemes_filename = self.helpers.wordlist_dir / "valid_url_schemes.txt"

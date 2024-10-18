@@ -25,12 +25,12 @@ class filedownload(BaseModule):
             "bak",  #  Backup File
             "bash",  #  Bash Script or Configuration
             "bashrc",  #  Bash Script or Configuration
-            "conf",  #  Configuration File
             "cfg",  #  Configuration File
+            "conf",  #  Configuration File
             "crt",  #  Certificate File
             "csv",  #  Comma Separated Values File
             "db",  #  SQLite Database File
-            "sqlite",  #  SQLite Database File
+            "dll",  #  Windows Dynamic Link Library
             "doc",  #  Microsoft Word Document (Old Format)
             "docx",  #  Microsoft Word Document
             "exe",  #  Windows PE executable
@@ -39,7 +39,6 @@ class filedownload(BaseModule):
             "ini",  #  Initialization File
             "jar",  #  Java Archive
             "key",  #  Private Key File
-            "pub",  #  Public Key File
             "log",  #  Log File
             "markdown",  #  Markdown File
             "md",  #  Markdown File
@@ -55,23 +54,26 @@ class filedownload(BaseModule):
             "ppt",  #  Microsoft PowerPoint Presentation (Old Format)
             "pptx",  #  Microsoft PowerPoint Presentation
             "ps1",  #  PowerShell Script
+            "pub",  #  Public Key File
             "raw",  #  Raw Image File Format
             "rdp",  #  Remote Desktop Protocol File
             "sh",  #  Shell Script
             "sql",  #  SQL Database Dump
+            "sqlite",  #  SQLite Database File
             "swp",  #  Swap File (temporary file, often Vim)
             "sxw",  #  OpenOffice.org Writer document
-            "tar",  #  Tar Archive
             "tar.gz",  # Gzip-Compressed Tar Archive
-            "zip",  #  Zip Archive
+            "tar",  #  Tar Archive
             "txt",  #  Plain Text Document
             "vbs",  #  Visual Basic Script
+            "war",  #  Java Web Archive
             "wpd",  #  WordPerfect Document
             "xls",  #  Microsoft Excel Spreadsheet (Old Format)
             "xlsx",  #  Microsoft Excel Spreadsheet
             "xml",  #  eXtensible Markup Language File
-            "yml",  #  YAML Ain't Markup Language
             "yaml",  #  YAML Ain't Markup Language
+            "yml",  #  YAML Ain't Markup Language
+            "zip",  #  Zip Archive
         ],
         "max_filesize": "10MB",
         "base_64_encoded_file": "false",
