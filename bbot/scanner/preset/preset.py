@@ -844,8 +844,6 @@ class Preset:
 
         if module in self.exclude_modules:
             reason = "the module has been excluded"
-            if raise_error:
-                raise ValidationError(f'Unable to add {module_type} module "{module}" because {reason}')
             return False, reason, {}
 
         module_flags = preloaded.get("flags", [])
