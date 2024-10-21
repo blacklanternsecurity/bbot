@@ -26,12 +26,13 @@ jobs:
               apt-get update
               apt-get -y install curl git bash build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
             elif [ "$ID" = "alpine" ]; then
-              apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git
+              apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git make openssl-dev bzip2-dev zlib-dev xz-dev
             elif [ "$ID" = "archlinux" ]; then
               pacman -Syu --noconfirm curl git bash base-devel
             elif [ "$ID" = "fedora" ]; then
-              dnf install -y curl git bash gcc make openssl-devel bzip2-devel libffi-devel
+              dnf install -y curl git bash gcc make openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel tk-devel gdbm-devel readline-devel sqlite-devel
             elif [ "$ID" = "gentoo" ]; then
+              emerge-webrsync
               emerge --update --newuse curl git bash
             fi
           fi
@@ -40,6 +41,7 @@ jobs:
           exec bash -c "
             curl https://pyenv.run | bash
             export PATH=\"$HOME/.pyenv/bin:\$PATH\"
+            export PATH=\"$HOME/.local/bin:\$PATH\"
             eval \"\$(pyenv init --path)\"
             eval \"\$(pyenv init -)\"
             eval \"\$(pyenv virtualenv-init -)\"
