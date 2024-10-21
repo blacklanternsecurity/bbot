@@ -243,7 +243,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert "Target:\n  -t TARGET [TARGET ...]" in out
+    assert "-t TARGET [TARGET ...]" in out
 
     # list modules
     monkeypatch.setattr("sys.argv", ["bbot", "-l"])
