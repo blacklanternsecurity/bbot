@@ -30,9 +30,6 @@ jobs:
               if [ "$VERSION_ID" = "24.04" ]; then
                 # Install Python 3.12 and its components directly from Ubuntu repositories
                 apt-get install -y python3.12 python3.12-venv
-                # Handle missing python3.12-distutils
-                curl -O https://bootstrap.pypa.io/pip/3.12/get-pip.py
-                python3.12 get-pip.py
               else
                 # Add deadsnakes PPA for Python 3.12
                 add-apt-repository ppa:deadsnakes/ppa
