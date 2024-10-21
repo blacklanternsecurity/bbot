@@ -24,13 +24,13 @@ jobs:
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kalilinux" ] || [ "$ID" = "parrotsec" ]; then
               export DEBIAN_FRONTEND=noninteractive
               apt-get update
-              apt-get -y install curl git bash
+              apt-get -y install curl git bash build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
             elif [ "$ID" = "alpine" ]; then
               apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git
             elif [ "$ID" = "archlinux" ]; then
-              pacman -Syu --noconfirm curl git bash
+              pacman -Syu --noconfirm curl git bash base-devel
             elif [ "$ID" = "fedora" ]; then
-              dnf install -y curl git bash
+              dnf install -y curl git bash gcc make openssl-devel bzip2-devel libffi-devel
             elif [ "$ID" = "gentoo" ]; then
               emerge --update --newuse curl git bash
             fi
@@ -45,7 +45,7 @@ jobs:
             eval \"\$(pyenv virtualenv-init -)\"
             pyenv install 3.11
             pyenv global 3.11
-            python3.11 -m pip install --user spipx
+            python3.11 -m pip install --user pipx
             python3.11 -m pipx ensurepath
             pipx install poetry
           "
