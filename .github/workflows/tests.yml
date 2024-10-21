@@ -61,8 +61,9 @@ jobs:
     container:
       image: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, debian, archlinux, fedora-latest, gentoo, alpine]
+        os: [ubuntu-latest, debian, archlinux, fedora-latest, gentoo/python, python:3.10-alpine]
     steps:
       - uses: actions/checkout@v4
       - name: Install Python
@@ -74,10 +75,6 @@ jobs:
             pacman -Syu --noconfirm python python-pip
           elif [ -f /etc/fedora-release ]; then
             dnf install -y python3 python3-pip
-          elif [ -f /etc/gentoo-release ]; then
-            emerge dev-lang/python
-          elif [ -f /etc/alpine-release ]; then
-            apk add --no-cache python3 py3-pip
           fi
       - name: Install dependencies
         run: |
