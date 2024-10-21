@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu:20.04", "ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "gentoo/python", "python:3.10-alpine", "kalilinux/kali-rolling", "parrotsec/parrot", "archlinux/archlinux"]
+        os: ["ubuntu:20.04", "ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "gentoo/python", "python:3.10-alpine", "kalilinux/kali-rolling", "parrotsec/security", "archlinux/archlinux"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Python and Poetry
@@ -36,7 +36,7 @@ jobs:
               python3 -m pip install --upgrade pip
               python3 -m pip install pipx
             elif [ "$ID" = "alpine" ]; then
-              apk add --no-cache bash python3 py3-pip gcc musl-dev libffi-dev
+              apk add --no-cache bash python3 py3-pip gcc g++ musl-dev libffi-dev
               python3 -m pip install --upgrade pip
               python3 -m pip install pipx
             elif [ "$ID" = "arch" -o "$ID" = "archlinux" ]; then
