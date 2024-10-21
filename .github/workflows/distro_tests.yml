@@ -67,4 +67,5 @@ jobs:
       - name: Run tests
         run: |
           export PATH="$HOME/.local/bin:$PATH"
+          export BBOT_DISTRO_TESTS=true
           poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG .
