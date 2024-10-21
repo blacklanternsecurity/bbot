@@ -24,9 +24,14 @@ jobs:
             if [ "$ID" = "ubuntu" ]; then
               apt-get update
               apt-get install -y software-properties-common curl
+              # Install necessary Perl modules for debconf
+              apt-get install -y libterm-readline-gnu-perl libterm-readline-perl-perl
               if [ "$VERSION_ID" = "24.04" ]; then
                 # Install Python 3.12 and its components directly from Ubuntu repositories
-                apt-get install -y python3.12 python3.12-venv python3.12-distutils
+                apt-get install -y python3.12 python3.12-venv
+                # Handle missing python3.12-distutils
+                curl -O https://bootstrap.pypa.io/pip/3.12/get-pip.py
+                python3.12 get-pip.py
               else
                 # Add deadsnakes PPA for Python 3.12
                 add-apt-repository ppa:deadsnakes/ppa
