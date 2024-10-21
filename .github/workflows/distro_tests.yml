@@ -21,7 +21,7 @@ jobs:
         run: |
           if [ -f /etc/os-release ]; then
             . /etc/os-release
-            if [ "$ID" = "ubuntu" || "$ID" = "debian" ]; then
+            if [ "$ID" = "ubuntu" -o "$ID" = "debian" ]; then
               # Add deadsnakes PPA for Python 3.12
               apt-get update
               apt-get install -y software-properties-common
