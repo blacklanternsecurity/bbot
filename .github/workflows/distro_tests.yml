@@ -26,7 +26,7 @@ jobs:
               apt-get update
               apt-get -y install curl git bash build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
             elif [ "$ID" = "alpine" ]; then
-              apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git make openssl-dev bzip2-dev zlib-dev xz-dev
+              apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git make openssl-dev bzip2-dev zlib-dev xz-dev sqlite-dev
             elif [ "$ID" = "arch" ]; then
               pacman -Syu --noconfirm curl git bash base-devel
             elif [ "$ID" = "fedora" ]; then
