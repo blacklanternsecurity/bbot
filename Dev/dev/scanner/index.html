@@ -11,7 +11,7 @@
 <link href="../discord_bot/" rel="prev"/>
 <link href="../presets/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.41" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.42" name="generator"/>
 <title>Scanner - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.0253249f.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.weugwwzd.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.56tt5685.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -700,7 +700,7 @@
 <ul>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.status">status</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Status of scan, representing its current state. It can take on the following string values, each of which is mapped to an integer code in <code>_status_codes</code>:
@@ -718,7 +718,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner._status_code">_status_code</span></code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in <code>_status_codes</code>.</p>
@@ -734,7 +734,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.preset">preset</span></code></b>
-              (<code>Preset</code>)
+              (<code><a class="autorefs autorefs-internal" title="bbot.scanner.preset.Preset" href="../presets/#bbot.scanner.Preset">Preset</a></code>)
           –
           <div class="doc-md-description">
 <p>The main scan Preset in its baked form.</p>
@@ -742,7 +742,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.config">config</span></code></b>
-              (<code>DictConfig</code>)
+              (<code><span title="omegaconf.dictconfig.DictConfig">DictConfig</span></code>)
           –
           <div class="doc-md-description">
 <p>BBOT config (alias to <code>self.preset.config</code>).</p>
@@ -774,7 +774,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.output_dir">output_dir</span></code></b>
-              (<code>Path</code>)
+              (<code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>Output directory for scan (alias to <code>self.preset.output_dir</code>).</p>
@@ -782,7 +782,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.name">name</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Name of scan (alias to <code>self.preset.scan_name</code>).</p>
@@ -798,7 +798,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.modules">modules</span></code></b>
-              (<code>dict</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
           –
           <div class="doc-md-description">
 <p>Holds all loaded modules in this format: <code>{"module_name": Module()}</code>.</p>
@@ -814,7 +814,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.home">home</span></code></b>
-              (<code>Path</code>)
+              (<code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>Base output directory of the scan (default: <code>~/.bbot/scans/&lt;scan_name&gt;</code>).</p>
@@ -822,7 +822,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.running">running</span></code></b>
-              (<code>bool</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
           –
           <div class="doc-md-description">
 <p>Whether the scan is currently running.</p>
@@ -830,7 +830,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.stopping">stopping</span></code></b>
-              (<code>bool</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
           –
           <div class="doc-md-description">
 <p>Whether the scan is currently stopping.</p>
@@ -838,7 +838,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.stopped">stopped</span></code></b>
-              (<code>bool</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
           –
           <div class="doc-md-description">
 <p>Whether the scan is currently stopped.</p>
@@ -846,7 +846,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Scanner.aborting">aborting</span></code></b>
-              (<code>bool</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
           –
           <div class="doc-md-description">
 <p>Whether the scan is aborted or currently aborting.</p>
@@ -3561,7 +3561,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <ul>
 <li class="doc-section-item field-body">
 <b><code>*targets</code></b>
-              (<code>list[str]</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
                   <code>()</code>
 )
           –
@@ -3571,7 +3571,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </li>
 <li class="doc-section-item field-body">
 <b><code>preset</code></b>
-              (<code>Preset</code>)
+              (<code><a class="autorefs autorefs-internal" title="bbot.scanner.preset.Preset" href="../presets/#bbot.scanner.Preset">Preset</a></code>)
           –
           <div class="doc-md-description">
 <p>Preset to use for the scan.</p>
@@ -3579,7 +3579,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </li>
 <li class="doc-section-item field-body">
 <b><code>scan_id</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -3589,7 +3589,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </li>
 <li class="doc-section-item field-body">
 <b><code>dispatcher</code></b>
-              (<code>Dispatcher</code>, default:
+              (<code><span title="bbot.scanner.dispatcher.Dispatcher">Dispatcher</span></code>, default:
                   <code>None</code>
 )
           –
@@ -3599,7 +3599,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </li>
 <li class="doc-section-item field-body">
 <b><code>**kwargs</code></b>
-              (<code>list[str]</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
                   <code>{}</code>
 )
           –
@@ -4325,7 +4325,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ScanError</code>
+<code><span title="bbot.errors.ScanError">ScanError</span></code>
             –
           <div class="doc-md-description">
 <p>If any module dependencies fail to install or modules fail to load, and if <code>self.force_start</code> is False.</p>
@@ -4545,7 +4545,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <ul>
 <li class="doc-section-item field-body">
 <b><code>remove_failed</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -4568,7 +4568,7 @@ soft_failed - List of modules that encountered a soft failure during setup.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ScanError</code>
+<code><span title="bbot.errors.ScanError">ScanError</span></code>
             –
           <div class="doc-md-description">
 <p>If no output modules could be loaded.</p>

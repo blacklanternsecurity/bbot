@@ -11,7 +11,7 @@
 <link href="../presets/" rel="prev"/>
 <link href="../target/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.41" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.42" name="generator"/>
 <title>Event - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.0253249f.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.weugwwzd.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.56tt5685.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -579,7 +579,7 @@ it updates the event based on the additional parameters provided.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code>Union[str, dict, BaseEvent]</code>)
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>, <a class="autorefs autorefs-internal" title="bbot.core.event.base.BaseEvent" href="#bbot.core.event.base.BaseEvent">BaseEvent</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The primary data for the event or an existing event object.</p>
@@ -587,7 +587,7 @@ it updates the event based on the additional parameters provided.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>event_type</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -597,7 +597,7 @@ it updates the event based on the additional parameters provided.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>parent</code></b>
-              (<code>BaseEvent</code>, default:
+              (<code><a class="autorefs autorefs-internal" title="bbot.core.event.base.BaseEvent" href="#bbot.core.event.base.BaseEvent">BaseEvent</a></code>, default:
                   <code>None</code>
 )
           –
@@ -607,7 +607,7 @@ it updates the event based on the additional parameters provided.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>context</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -617,7 +617,7 @@ it updates the event based on the additional parameters provided.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>module</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -647,7 +647,7 @@ it updates the event based on the additional parameters provided.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>tags</code></b>
-              (<code>Union[str, List[str]]</code>, default:
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, List[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -657,7 +657,7 @@ it updates the event based on the additional parameters provided.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>confidence</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>100</code>
 )
           –
@@ -667,7 +667,7 @@ it updates the event based on the additional parameters provided.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>dummy</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -698,7 +698,7 @@ it updates the event based on the additional parameters provided.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ValidationError</code>
+<code><span title="bbot.errors.ValidationError">ValidationError</span></code>
             –
           <div class="doc-md-description">
 <p>Raised when there's an error in event data or type sanitization.</p>
@@ -1020,7 +1020,7 @@ based on the input JSON.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ValidationError</code>
+<code><span title="bbot.errors.ValidationError">ValidationError</span></code>
             –
           <div class="doc-md-description">
 <p>Raised when the JSON dictionary is missing required fields.</p>
@@ -1168,7 +1168,7 @@ top of the base class.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.type">type</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Specifies the type of the event, e.g., <code>IP_ADDRESS</code>, <code>DNS_NAME</code>.</p>
@@ -1176,7 +1176,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.id">id</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>An identifier for the event (event type + sha1 hash of data). NOT universally unique.</p>
@@ -1192,7 +1192,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data">data</span></code></b>
-              (<code>str or dict</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
           –
           <div class="doc-md-description">
 <p>The main data for the event, e.g., a URL or IP address.</p>
@@ -1200,7 +1200,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data_graph">data_graph</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Representation of <code>self.data</code> for graph nodes (e.g. Neo4j).</p>
@@ -1208,7 +1208,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data_human">data_human</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Representation of <code>self.data</code> for human output.</p>
@@ -1216,7 +1216,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data_id">data_id</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Representation of <code>self.data</code> used to calculate the event's ID (and ultimately its hash, which is used for deduplication)</p>
@@ -1224,7 +1224,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data_json">data_json</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Representation of <code>self.data</code> to be used in JSON serialization.</p>
@@ -1240,7 +1240,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.host_stem">host_stem</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>An abbreviated representation of hostname that removes the TLD, e.g. "www.evilcorp". Used by the word cloud.</p>
@@ -1248,7 +1248,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.port">port</span></code></b>
-              (<code>int or None</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a> or None</code>)
           –
           <div class="doc-md-description">
 <p>The port associated with the event, if applicable, else None.</p>
@@ -1256,7 +1256,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.words">words</span></code></b>
-              (<code>set</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
           –
           <div class="doc-md-description">
 <p>A list of relevant keywords extracted from the event. Used by the word cloud.</p>
@@ -1264,7 +1264,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.scope_distance">scope_distance</span></code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>Indicates how many hops the event is from the main scope; 0 means in-scope.</p>
@@ -1272,7 +1272,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.web_spider_distance">web_spider_distance</span></code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The spider distance from the web root, specific to web crawling.</p>
@@ -1280,7 +1280,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.scan">scan</span></code></b>
-              (<code>Scanner</code>)
+              (<code><a class="autorefs autorefs-internal" title="bbot.scanner.Scanner" href="../scanner/#bbot.scanner.Scanner">Scanner</a></code>)
           –
           <div class="doc-md-description">
 <p>The scan object that generated the event.</p>
@@ -1288,7 +1288,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.timestamp">timestamp</span></code></b>
-              (<code>datetime</code>)
+              (<code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3.11/library/datetime.html#datetime.datetime">datetime</a></code>)
           –
           <div class="doc-md-description">
 <p>The time at which the data was discovered.</p>
@@ -1304,7 +1304,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.parent">parent</span></code></b>
-              (<code>BaseEvent</code>)
+              (<code><a class="autorefs autorefs-internal" title="bbot.core.event.base.BaseEvent" href="#bbot.core.event.base.BaseEvent">BaseEvent</a></code>)
           –
           <div class="doc-md-description">
 <p>The parent event that led to the discovery of this event.</p>
@@ -1312,7 +1312,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.parent_id">parent_id</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The <code>id</code> attribute of the parent event.</p>
@@ -1320,7 +1320,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.parent_uuid">parent_uuid</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The <code>uuid</code> attribute of the parent event.</p>
@@ -1344,7 +1344,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><a class="autorefs autorefs-internal" title="bbot.core.event.base.BaseEvent.module_sequence" href="#bbot.core.event.base.BaseEvent.module_sequence">module_sequence</a></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The sequence of modules that participated in the discovery.</p>
@@ -3215,7 +3215,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 <ul>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.data">data</span></code></b>
-              (<code>(str, dict)</code>)
+              (<code>(<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>)</code>)
           –
           <div class="doc-md-description">
 <p>The primary data for the event.</p>
@@ -3223,7 +3223,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.event_type">event_type</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Type of the event, e.g., 'IP_ADDRESS'.</p>
@@ -3231,7 +3231,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.parent">parent</span></code></b>
-              (<code>BaseEvent</code>)
+              (<code><a class="autorefs autorefs-internal" title="bbot.core.event.base.BaseEvent" href="#bbot.core.event.base.BaseEvent">BaseEvent</a></code>)
           –
           <div class="doc-md-description">
 <p>Parent event that led to this event's discovery. Defaults to None.</p>
@@ -3239,7 +3239,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.module">module</span></code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Module that discovered the event. Defaults to None.</p>
@@ -3271,7 +3271,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.confidence">confidence</span></code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>Confidence level for the event, on a scale of 1-100. Defaults to 100.</p>
@@ -3279,7 +3279,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.timestamp">timestamp</span></code></b>
-              (<code>datetime</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/datetime.html#module-datetime">datetime</a></code>)
           –
           <div class="doc-md-description">
 <p>Time of event discovery. Defaults to current UTC time.</p>
@@ -3287,7 +3287,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__._dummy">_dummy</span></code></b>
-              (<code>bool</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
           –
           <div class="doc-md-description">
 <p>If True, disables certain data validations. Defaults to False.</p>
@@ -3305,7 +3305,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ValidationError</code>
+<code><span title="bbot.errors.ValidationError">ValidationError</span></code>
             –
           <div class="doc-md-description">
 <p>If either <code>scan</code> or <code>parent</code> are not specified and <code>_dummy</code> is False.</p>
@@ -3565,7 +3565,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <ul>
 <li class="doc-section-item field-body">
 <b><code>mode</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>'json'</code>
 )
           –
@@ -3575,7 +3575,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 </li>
 <li class="doc-section-item field-body">
 <b><code>siem_friendly</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -3772,7 +3772,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <ul>
 <li class="doc-section-item field-body">
 <b><code>j</code></b>
-              (<code>dict</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
           –
           <div class="doc-md-description">
 <p>The JSON-compatible dictionary containing event data.</p>

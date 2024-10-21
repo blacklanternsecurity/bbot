@@ -11,7 +11,7 @@
 <link href="../interactsh/" rel="prev"/>
 <link href="../web/" rel="next"/>
 <link href="../../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.5.41" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.5.42" name="generator"/>
 <title>Miscellaneous - BBOT Docs</title>
 <link href="../../../assets/stylesheets/main.0253249f.min.css" rel="stylesheet"/>
 <link href="../../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.weugwwzd.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.56tt5685.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -582,7 +582,7 @@ updates or adds these parameters to the URL, and returns a new URL.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>url</code></b>
-              (<code>Union[str, ParseResult]</code>)
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="urllib.parse.ParseResult" href="https://docs.python.org/3.11/library/urllib.parse.html#urllib.parse.ParseResult">ParseResult</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The original URL.</p>
@@ -590,7 +590,7 @@ updates or adds these parameters to the URL, and returns a new URL.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>params</code></b>
-              (<code>Dict[str, Any]</code>)
+              (<code>Dict[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, Any]</code>)
           –
           <div class="doc-md-description">
 <p>A dictionary containing the query parameters to be added or updated.</p>
@@ -773,7 +773,7 @@ files up to a specified maximum number of backups.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>filename</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The file to backup.</p>
@@ -781,7 +781,7 @@ files up to a specified maximum number of backups.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>max_backups</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>10</code>
 )
           –
@@ -893,7 +893,7 @@ Between different classes, the order of preference is 2xx &gt; 3xx &gt; 1xx &gt;
 <ul>
 <li class="doc-section-item field-body">
 <b><code>code1</code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The first HTTP status code.</p>
@@ -901,7 +901,7 @@ Between different classes, the order of preference is 2xx &gt; 3xx &gt; 1xx &gt;
 </li>
 <li class="doc-section-item field-body">
 <b><code>code2</code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The second HTTP status code.</p>
@@ -1028,7 +1028,7 @@ with the appropriate unit symbol (B, KB, MB, GB, etc.).</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>_bytes</code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The number of bytes to convert.</p>
@@ -1201,7 +1201,7 @@ It runs a command with sudo and checks the return code to determine this.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>tasks</code></b>
-              (<code>list[Task]</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[Task]</code>)
           –
           <div class="doc-md-description">
 <p>A list of asyncio Task objects to cancel.</p>
@@ -1209,7 +1209,7 @@ It runs a command with sudo and checks the return code to determine this.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>ignore_errors</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -1313,7 +1313,7 @@ It runs a command with sudo and checks the return code to determine this.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>tasks</code></b>
-              (<code>list[Task]</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[Task]</code>)
           –
           <div class="doc-md-description">
 <p>A list of asyncio Task objects to cancel.</p>
@@ -1392,7 +1392,7 @@ It also allows you to optionally open entries as files and add their contents to
 <ul>
 <li class="doc-section-item field-body">
 <b><code>l</code></b>
-              (<code>list</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>)
           –
           <div class="doc-md-description">
 <p>The list of strings to chain together.</p>
@@ -1400,7 +1400,7 @@ It also allows you to optionally open entries as files and add their contents to
 </li>
 <li class="doc-section-item field-body">
 <b><code>try_files</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -1410,7 +1410,7 @@ It also allows you to optionally open entries as files and add their contents to
 </li>
 <li class="doc-section-item field-body">
 <b><code>msg</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -1420,7 +1420,7 @@ It also allows you to optionally open entries as files and add their contents to
 </li>
 <li class="doc-section-item field-body">
 <b><code>remove_blank</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -1430,7 +1430,7 @@ It also allows you to optionally open entries as files and add their contents to
 </li>
 <li class="doc-section-item field-body">
 <b><code>validate</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -1440,7 +1440,7 @@ It also allows you to optionally open entries as files and add their contents to
 </li>
 <li class="doc-section-item field-body">
 <b><code>validate_chars</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>'&lt;&gt;:"/\\|?*)'</code>
 )
           –
@@ -1461,7 +1461,7 @@ It also allows you to optionally open entries as files and add their contents to
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ValueError</code>
+<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#ValueError">ValueError</a></code>
             –
           <div class="doc-md-description">
 <p>If the input string contains invalid characters, when enabled (off by default).</p>
@@ -1610,7 +1610,7 @@ It also allows you to optionally open entries as files and add their contents to
 <ul>
 <li class="doc-section-item field-body">
 <b><code>p</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The string whose character set is to be determined.</p>
@@ -1737,7 +1737,7 @@ Useful for removing secrets from a config.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>dict</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
           –
           <div class="doc-md-description">
 <p>The input dictionary.</p>
@@ -1752,7 +1752,7 @@ Useful for removing secrets from a config.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>fuzzy</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -1762,7 +1762,7 @@ Useful for removing secrets from a config.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>exclude_keys</code></b>
-              (<code>(list, None)</code>, default:
+              (<code>(<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>, None)</code>, default:
                   <code>None</code>
 )
           –
@@ -1772,7 +1772,7 @@ Useful for removing secrets from a config.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_prev_key</code></b>
-              (<code>(str, None)</code>, default:
+              (<code>(<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, None)</code>, default:
                   <code>None</code>
 )
           –
@@ -1867,7 +1867,7 @@ It also removes any trailing dots and converts the record to lowercase.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>record</code></b>
-              (<code>str or Rdata</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <span title="bbot.core.helpers.dns.rdata.Rdata">Rdata</span></code>)
           –
           <div class="doc-md-description">
 <p>The DNS record to clean.</p>
@@ -1962,7 +1962,7 @@ sorted by a key function, defaulting to latest modification time.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The directory path to clean up.</p>
@@ -1970,7 +1970,7 @@ sorted by a key function, defaulting to latest modification time.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>keep</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>10</code>
 )
           –
@@ -1992,7 +1992,7 @@ sorted by a key function, defaulting to latest modification time.</p>
 <li class="doc-section-item field-body">
 <b><code>key</code></b>
               (<code>Callable</code>, default:
-                  <code>latest_mtime</code>
+                  <code><a class="autorefs autorefs-internal" title="bbot.core.helpers.misc.latest_mtime" href="#bbot.core.helpers.misc.latest_mtime">latest_mtime</a></code>
 )
           –
           <div class="doc-md-description">
@@ -2001,7 +2001,7 @@ sorted by a key function, defaulting to latest modification time.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>reverse</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -2011,7 +2011,7 @@ sorted by a key function, defaulting to latest modification time.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>raise_error</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -2108,7 +2108,7 @@ It can return either the single best match or a list of the top <code>n</code> b
 <ul>
 <li class="doc-section-item field-body">
 <b><code>s</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The string for which to find the closest match.</p>
@@ -2116,7 +2116,7 @@ It can return either the single best match or a list of the top <code>n</code> b
 </li>
 <li class="doc-section-item field-body">
 <b><code>choices</code></b>
-              (<code>list</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>)
           –
           <div class="doc-md-description">
 <p>A list of strings to compare against.</p>
@@ -2124,7 +2124,7 @@ It can return either the single best match or a list of the top <code>n</code> b
 </li>
 <li class="doc-section-item field-body">
 <b><code>n</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>1</code>
 )
           –
@@ -2134,7 +2134,7 @@ It can return either the single best match or a list of the top <code>n</code> b
 </li>
 <li class="doc-section-item field-body">
 <b><code>cutoff</code></b>
-              (<code>float</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#float">float</a></code>, default:
                   <code>0.0</code>
 )
           –
@@ -2233,7 +2233,7 @@ It can return either the single best match or a list of the top <code>n</code> b
 <ul>
 <li class="doc-section-item field-body">
 <b><code>ip</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The IP address to check.</p>
@@ -2376,7 +2376,7 @@ It maps common identifiers like "x86_64" to more general types like "amd64".</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>path</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The path to the file to be deleted.</p>
@@ -2437,7 +2437,7 @@ If <code>include_self</code> is set to True, the list will also include the inpu
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string representing a domain or subdomain.</p>
@@ -2445,7 +2445,7 @@ If <code>include_self</code> is set to True, the list will also include the inpu
 </li>
 <li class="doc-section-item field-body">
 <b><code>include_self</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -2556,7 +2556,7 @@ If <code>include_self</code> is set to True, the list will also include the inpu
 <ul>
 <li class="doc-section-item field-body">
 <b><code>domain</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The full domain name to be abbreviated.</p>
@@ -2758,7 +2758,7 @@ regular expressions for email pattern matching.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>s</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string from which to extract email addresses.</p>
@@ -2835,7 +2835,7 @@ regular expressions for email pattern matching.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>s</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The string from which to extract the host.</p>
@@ -2995,7 +2995,7 @@ regular expressions for email pattern matching.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>json_data</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>JSON-formatted string containing key-value pairs.</p>
@@ -3116,7 +3116,7 @@ regular expressions for email pattern matching.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>xml_data</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>XML-formatted string containing elements.</p>
@@ -3223,7 +3223,7 @@ from a given text string. Thanks to wordninja it can handle concatenated words i
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The data from which words are to be extracted.</p>
@@ -3231,7 +3231,7 @@ from a given text string. Thanks to wordninja it can handle concatenated words i
 </li>
 <li class="doc-section-item field-body">
 <b><code>acronyms</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -3241,7 +3241,7 @@ from a given text string. Thanks to wordninja it can handle concatenated words i
 </li>
 <li class="doc-section-item field-body">
 <b><code>wordninja</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -3251,7 +3251,7 @@ from a given text string. Thanks to wordninja it can handle concatenated words i
 </li>
 <li class="doc-section-item field-body">
 <b><code>model</code></b>
-              (<code>object</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#object">object</a></code>, default:
                   <code>None</code>
 )
           –
@@ -3261,7 +3261,7 @@ from a given text string. Thanks to wordninja it can handle concatenated words i
 </li>
 <li class="doc-section-item field-body">
 <b><code>max_length</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>100</code>
 )
           –
@@ -3271,7 +3271,7 @@ from a given text string. Thanks to wordninja it can handle concatenated words i
 </li>
 <li class="doc-section-item field-body">
 <b><code>word_regexes</code></b>
-              (<code>list</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>, default:
                   <code>None</code>
 )
           –
@@ -3422,7 +3422,7 @@ does not point to a file, the function returns 0.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>f</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The file path for which to get the size.</p>
@@ -3499,7 +3499,7 @@ does not point to a file, the function returns 0.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>dict</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
           –
           <div class="doc-md-description">
 <p>The input dictionary.</p>
@@ -3514,7 +3514,7 @@ does not point to a file, the function returns 0.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>fuzzy</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -3524,7 +3524,7 @@ does not point to a file, the function returns 0.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>exclude_keys</code></b>
-              (<code>(list, None)</code>, default:
+              (<code>(<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>, None)</code>, default:
                   <code>None</code>
 )
           –
@@ -3534,7 +3534,7 @@ does not point to a file, the function returns 0.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_prev_key</code></b>
-              (<code>(str, None)</code>, default:
+              (<code>(<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, None)</code>, default:
                   <code>None</code>
 )
           –
@@ -3645,7 +3645,7 @@ does not point to a file, the function returns 0.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>n</code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The upper limit of numbers to generate, exclusive.</p>
@@ -3653,7 +3653,7 @@ does not point to a file, the function returns 0.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>padding</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>2</code>
 )
           –
@@ -3749,7 +3749,7 @@ does not point to a file, the function returns 0.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>s</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The string for which to find the closest match.</p>
@@ -3757,7 +3757,7 @@ does not point to a file, the function returns 0.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>choices</code></b>
-              (<code>list</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>)
           –
           <div class="doc-md-description">
 <p>A list of strings to compare against.</p>
@@ -3765,7 +3765,7 @@ does not point to a file, the function returns 0.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>msg</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -3775,7 +3775,7 @@ does not point to a file, the function returns 0.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>loglevel</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The log level to use for the warning message. Defaults to "HUGEWARNING".</p>
@@ -3783,7 +3783,7 @@ does not point to a file, the function returns 0.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>exitcode</code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The exit code to use when exiting the program. Defaults to 2.</p>
@@ -3855,7 +3855,7 @@ does not point to a file, the function returns 0.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>e</code></b>
-              (<code>BaseException</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#BaseException">BaseException</a></code>)
           –
           <div class="doc-md-description">
 <p>The exception for which to get the chain.</p>
@@ -3947,7 +3947,7 @@ does not point to a file, the function returns 0.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>s</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The string from which to extract the file extension.</p>
@@ -4036,7 +4036,7 @@ does not point to a file, the function returns 0.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>url</code></b>
-              (<code>Union[str, ParseResult]</code>)
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="urllib.parse.ParseResult" href="https://docs.python.org/3.11/library/urllib.parse.html#urllib.parse.ParseResult">ParseResult</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The URL from which to extract query parameters.</p>
@@ -4242,7 +4242,7 @@ represented in dot notation.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>obj</code></b>
-              (<code>any</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#any">any</a></code>)
           –
           <div class="doc-md-description">
 <p>The object whose size is to be determined.</p>
@@ -4250,7 +4250,7 @@ represented in dot notation.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>max_depth</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>5</code>
 )
           –
@@ -4260,7 +4260,7 @@ represented in dot notation.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>seen</code></b>
-              (<code>set</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>, default:
                   <code>None</code>
 )
           –
@@ -4418,7 +4418,7 @@ represented in dot notation.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>e</code></b>
-              (<code>BaseException</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#BaseException">BaseException</a></code>)
           –
           <div class="doc-md-description">
 <p>The exception for which to get traceback details.</p>
@@ -4519,7 +4519,7 @@ represented in dot notation.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>n</code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The size of each chunk.</p>
@@ -4594,7 +4594,7 @@ represented in dot notation.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>url</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The URL to be hashed.</p>
@@ -4707,7 +4707,7 @@ is easier to read and understand.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>timedelta</code>)
+              (<code><a class="autorefs autorefs-external" title="datetime.timedelta" href="https://docs.python.org/3.11/library/datetime.html#datetime.timedelta">timedelta</a></code>)
           –
           <div class="doc-md-description">
 <p>The TimeDelta object to convert.</p>
@@ -4819,7 +4819,7 @@ to its equivalent number of bytes.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>filesize</code></b>
-              (<code>str or int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The human-readable file size string or integer bytes value to convert.</p>
@@ -4838,7 +4838,7 @@ to its equivalent number of bytes.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ValueError</code>
+<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#ValueError">ValueError</a></code>
             –
           <div class="doc-md-description">
 <p>If the input string cannot be converted to bytes.</p>
@@ -4942,7 +4942,7 @@ to its equivalent number of bytes.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>e</code></b>
-              (<code>BaseException</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#BaseException">BaseException</a></code>)
           –
           <div class="doc-md-description">
 <p>The exception to check</p>
@@ -4950,7 +4950,7 @@ to its equivalent number of bytes.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>exc_types</code></b>
-              (<code>list[Exception]</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#Exception">Exception</a>]</code>)
           –
           <div class="doc-md-description">
 <p>Exception types to consider intentional cancellations. Default is KeyboardInterrupt</p>
@@ -5028,7 +5028,7 @@ to its equivalent number of bytes.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>n</code></b>
-              (<code>int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The integer to convert.</p>
@@ -5159,7 +5159,7 @@ to its equivalent number of bytes.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>i</code></b>
-              (<code>str or IPv4Network / IPv6Network</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="ipaddress.IPv4Network" href="https://docs.python.org/3.11/library/ipaddress.html#ipaddress.IPv4Network">IPv4Network</a> / <a class="autorefs autorefs-external" title="ipaddress.IPv6Network" href="https://docs.python.org/3.11/library/ipaddress.html#ipaddress.IPv6Network">IPv6Network</a></code>)
           –
           <div class="doc-md-description">
 <p>The IP address or network to find parents for.</p>
@@ -5167,7 +5167,7 @@ to its equivalent number of bytes.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>include_self</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -5331,7 +5331,7 @@ to its equivalent number of bytes.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The string to be checked.</p>
@@ -5339,7 +5339,7 @@ to its equivalent number of bytes.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>include_local</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -5446,7 +5446,7 @@ Otherwise, it returns False.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string containing the domain.</p>
@@ -5558,7 +5558,7 @@ Otherwise, it returns False.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>f</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Path to the file.</p>
@@ -5638,7 +5638,7 @@ Otherwise, it returns False.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str or IPvXAddress</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <span title="ipaddress.IPvXAddress">IPvXAddress</span></code>)
           –
           <div class="doc-md-description">
 <p>The IP address to check.</p>
@@ -5646,7 +5646,7 @@ Otherwise, it returns False.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>version</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>None</code>
 )
           –
@@ -5747,7 +5747,7 @@ Otherwise, it returns False.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>i</code></b>
-              (<code>_BaseV4 or _BaseV6</code>)
+              (<code><span title="ipaddress._BaseV4">_BaseV4</span> or <span title="ipaddress._BaseV6">_BaseV6</span></code>)
           –
           <div class="doc-md-description">
 <p>The IP object to check.</p>
@@ -5755,7 +5755,7 @@ Otherwise, it returns False.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>network</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>None</code>
 )
           –
@@ -5850,7 +5850,7 @@ Otherwise, it returns False.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>p</code></b>
-              (<code>str or int</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The port number to check.</p>
@@ -5929,7 +5929,7 @@ Otherwise, it returns False.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string potentially representing a PTR record domain.</p>
@@ -6013,7 +6013,7 @@ Otherwise, it returns False.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string containing the domain or subdomain.</p>
@@ -6127,7 +6127,7 @@ When <code>return_scheme</code> is True, it returns the URI scheme instead of a 
 <ul>
 <li class="doc-section-item field-body">
 <b><code>u</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string potentially representing a URI.</p>
@@ -6135,7 +6135,7 @@ When <code>return_scheme</code> is True, it returns the URI scheme instead of a 
 </li>
 <li class="doc-section-item field-body">
 <b><code>return_scheme</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -6251,7 +6251,7 @@ Otherwise, it returns False.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>u</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string potentially representing a URL.</p>
@@ -6411,7 +6411,7 @@ modified time for cleanup or other purposes.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The directory path to search for the latest modified time.</p>
@@ -6500,7 +6500,7 @@ modified time for cleanup or other purposes.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>directory</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The directory where to list files.</p>
@@ -6508,7 +6508,7 @@ modified time for cleanup or other purposes.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>filter</code></b>
-              (<code>callable</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#callable">callable</a></code>, default:
                   <code>lambda x: True</code>
 )
           –
@@ -6594,7 +6594,7 @@ modified time for cleanup or other purposes.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>datetime</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/datetime.html#module-datetime">datetime</a></code>, default:
                   <code>None</code>
 )
           –
@@ -6604,7 +6604,7 @@ modified time for cleanup or other purposes.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>microseconds</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -6697,7 +6697,7 @@ or an IPv4 or IPv6 network object. If none of these conversions are possible, th
 <ul>
 <li class="doc-section-item field-body">
 <b><code>s</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string to be converted.</p>
@@ -6804,7 +6804,7 @@ or an IPv4 or IPv6 network object. If none of these conversions are possible, th
 <ul>
 <li class="doc-section-item field-body">
 <b><code>host</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The hostname or IP address.</p>
@@ -6812,7 +6812,7 @@ or an IPv4 or IPv6 network object. If none of these conversions are possible, th
 </li>
 <li class="doc-section-item field-body">
 <b><code>port</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>None</code>
 )
           –
@@ -7162,7 +7162,7 @@ about system virtual memory usage.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>path</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The directory to create.</p>
@@ -7170,7 +7170,7 @@ about system virtual memory usage.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>check_writable</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -7180,7 +7180,7 @@ about system virtual memory usage.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>raise_error</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -7423,7 +7423,7 @@ Specifically, it changes "darwin" to "macOS".</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>p</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The parameter whose type is to be evaluated.</p>
@@ -7533,7 +7533,7 @@ If the input does not represent a subdomain, it returns the input as is.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string representing a subdomain or domain.</p>
@@ -7653,7 +7653,7 @@ If the input URL does not have a parent (i.e., it's already the top-level), it r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>u</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string representing a URL.</p>
@@ -7760,7 +7760,7 @@ If the input URL does not have a parent (i.e., it's already the top-level), it r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>port_string</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The string containing individual ports and port ranges separated by commas.</p>
@@ -7779,7 +7779,7 @@ If the input URL does not have a parent (i.e., it's already the top-level), it r
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ValueError</code>
+<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#ValueError">ValueError</a></code>
             –
           <div class="doc-md-description">
 <p>If the input string contains invalid ports or port ranges.</p>
@@ -7906,7 +7906,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>url</code></b>
-              (<code>Union[str, ParseResult]</code>)
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="urllib.parse.ParseResult" href="https://docs.python.org/3.11/library/urllib.parse.html#urllib.parse.ParseResult">ParseResult</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The URL string or ParseResult object to be parsed.</p>
@@ -7985,7 +7985,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>length</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>10</code>
 )
           –
@@ -7995,7 +7995,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 </li>
 <li class="doc-section-item field-body">
 <b><code>digits</code></b>
-              (<code>bool</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>True</code>
 )
           –
@@ -8084,7 +8084,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>filename</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The path to the file to read.</p>
@@ -8163,7 +8163,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The data to decode.</p>
@@ -8171,7 +8171,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 </li>
 <li class="doc-section-item field-body">
 <b><code>max_depth</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>5</code>
 )
           –
@@ -8294,7 +8294,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>path</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The path to the file to be deleted upon program exit.</p>
@@ -8345,7 +8345,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>f</code></b>
-              (<code>str or Path</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path">Path</a></code>)
           –
           <div class="doc-md-description">
 <p>The directory path to delete.</p>
@@ -8419,7 +8419,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>key</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The key to search for.</p>
@@ -8427,7 +8427,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 </li>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>Union[dict, list]</code>)
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The dictionary or list of dictionaries to search.</p>
@@ -8511,7 +8511,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>Union[dict, list, str]</code>)
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The dictionary, list, or string to search.</p>
@@ -8645,7 +8645,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>Union[dict, list, str]</code>)
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The dictionary, list, or string to format.</p>
@@ -8735,7 +8735,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code>str or dict</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
           –
           <div class="doc-md-description">
 <p>The data to hash. If a dictionary, it is first converted to a JSON string with sorted keys.</p>
@@ -8810,7 +8810,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code>str or bytes</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#bytes">bytes</a></code>)
           –
           <div class="doc-md-description">
 <p>The data to decode.</p>
@@ -8934,7 +8934,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code>str or bytes</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#bytes">bytes</a></code>)
           –
           <div class="doc-md-description">
 <p>The data to encode.</p>
@@ -9056,7 +9056,7 @@ it returns the object as-is. Otherwise, it parses the given URL string using
 <ul>
 <li class="doc-section-item field-body">
 <b><code>hostname</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The full hostname to be split.</p>
@@ -9156,7 +9156,7 @@ based on the scheme if not provided.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string containing the host and possibly the port.</p>
@@ -9341,7 +9341,7 @@ based on the scheme if not provided.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>alist</code></b>
-              (<code>list</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>)
           –
           <div class="doc-md-description">
 <p>The list to be split.</p>
@@ -9349,7 +9349,7 @@ based on the scheme if not provided.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>wanted_parts</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>2</code>
 )
           –
@@ -9424,7 +9424,7 @@ If it fails to open <code>s</code> as a file, it treats <code>s</code> as a regu
 <ul>
 <li class="doc-section-item field-body">
 <b><code>s</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The string or file path to read.</p>
@@ -9511,7 +9511,7 @@ If it fails to open <code>s</code> as a file, it treats <code>s</code> as a regu
 <ul>
 <li class="doc-section-item field-body">
 <b><code>d</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The domain name to analyze.</p>
@@ -9660,7 +9660,7 @@ about system swap memory usage.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>s</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string to sanitize.</p>
@@ -9668,7 +9668,7 @@ about system swap memory usage.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>maxlen</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>None</code>
 )
           –
@@ -9755,7 +9755,7 @@ about system swap memory usage.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The URL string to be processed.</p>
@@ -9894,7 +9894,7 @@ about system swap memory usage.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>file_path</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The original file path.</p>
@@ -9902,7 +9902,7 @@ about system swap memory usage.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>max_length</code></b>
-              (<code>int</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
                   <code>255</code>
 )
           –
@@ -9923,7 +9923,7 @@ about system swap memory usage.</p>
 <p><span class="doc-section-title">Raises:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<code>ValueError</code>
+<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/exceptions.html#ValueError">ValueError</a></code>
             –
           <div class="doc-md-description">
 <p>If the directory path is too long to accommodate any filename within the limit.</p>
@@ -10024,7 +10024,7 @@ PosixPath('/path/to/example.txt')</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>url</code></b>
-              (<code>Union[str, ParseResult]</code>)
+              (<code>Union[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="urllib.parse.ParseResult" href="https://docs.python.org/3.11/library/urllib.parse.html#urllib.parse.ParseResult">ParseResult</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The URL whose depth is to be calculated.</p>
@@ -10109,7 +10109,7 @@ PosixPath('/path/to/example.txt')</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>u</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The input string representing a URL.</p>
@@ -10211,7 +10211,7 @@ It runs a command with sudo, feeding in the password via stdin, and checks the r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>sudo_pass</code></b>
-              (<code>str</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The sudo password to verify.</p>
@@ -10302,7 +10302,7 @@ It runs a command with sudo, feeding in the password via stdin, and checks the r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>items</code></b>
-              (<code>list</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>)
           –
           <div class="doc-md-description">
 <p>The list of items to shuffle.</p>
@@ -10310,7 +10310,7 @@ It runs a command with sudo, feeding in the password via stdin, and checks the r
 </li>
 <li class="doc-section-item field-body">
 <b><code>weights</code></b>
-              (<code>list</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>)
           –
           <div class="doc-md-description">
 <p>The list of weights corresponding to each item.</p>
@@ -10449,7 +10449,7 @@ It runs a command with sudo, feeding in the password via stdin, and checks the r
 <ul>
 <li class="doc-section-item field-body">
 <b><code>*executables</code></b>
-              (<code>str</code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>()</code>
 )
           –
