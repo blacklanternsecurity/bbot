@@ -14,13 +14,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu:20.04", "ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "gentoo/python", "python:3.10-alpine", "kalilinux/kali-rolling", "parrotsec/security", "archlinux/archlinux"]
+        os: ["ubuntu:20.04", "ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "gentoo/python", "python:3.10-alpine", "kalilinux/kali-rolling", "parrotsec/security"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Python and Poetry
         run: |
           if [ -f /etc/os-release ]; then
             . /etc/os-release
+            export DEBIAN_FRONTEND=noninteractive  # Set debconf to noninteractive mode
             if [ "$ID" = "ubuntu" ]; then
               apt-get update
               apt-get install -y software-properties-common curl
