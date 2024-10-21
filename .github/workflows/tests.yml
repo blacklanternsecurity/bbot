@@ -63,22 +63,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "debian", "archlinux", "fedora-latest", "gentoo/python", "python:3.10-alpine"]
+        os: ["ubuntu:20.04", "ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "gentoo/python", "python:3.10-alpine"]
     steps:
       - uses: actions/checkout@v4
-      - name: Install Python
+      - name: Install Python and Poetry
         run: |
           if [ -f /etc/debian_version ]; then
             apt-get update
-            apt-get install -y python3 python3-pip
+            apt-get install -y python3 python3-pip python3-poetry
           elif [ -f /etc/arch-release ]; then
-            pacman -Syu --noconfirm python python-pip
+            pacman -Syu --noconfirm python python-pip poetry
           elif [ -f /etc/fedora-release ]; then
-            dnf install -y python3 python3-pip
+            dnf install -y python3 python3-pip poetry
+          elif [ -f /etc/gentoo-release ]; then
+            emerge --update --newuse dev-python/poetry
+          elif [ -f /etc/alpine-release ]; then
+            apk add --no-cache python3 py3-pip py3-poetry
           fi
       - name: Install dependencies
         run: |
-          pip install poetry
           poetry install
       - name: Run tests
         run: |
