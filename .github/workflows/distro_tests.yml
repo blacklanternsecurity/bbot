@@ -30,6 +30,7 @@ jobs:
               if [ "$VERSION_ID" = "24.04" ]; then
                 # Install Python 3.12 and its components directly from Ubuntu repositories
                 apt-get install -y python3.12 python3.12-venv
+
               else
                 # Add deadsnakes PPA for Python 3.12
                 add-apt-repository ppa:deadsnakes/ppa
@@ -42,7 +43,7 @@ jobs:
               update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
               update-alternatives --set python3 /usr/bin/python3.12
               python3 -m pip install --upgrade pip
-              python3 -m pip install pipx
+              python3 -m pip install pipx --break-system-packages
             elif [ "$ID" = "alpine" ]; then
               apk add --no-cache bash python3 py3-pip gcc g++ musl-dev libffi-dev
               python3 -m pip install --upgrade pip
