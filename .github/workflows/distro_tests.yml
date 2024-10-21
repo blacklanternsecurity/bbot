@@ -34,8 +34,13 @@ jobs:
                 update-alternatives --set python3 /usr/bin/python3.12
               else
                 apt-get update
-                apt-get install -y python3 python3-pip
+                apt-get install -y python3 python3-pip python3-venv
               fi
+              python3 -m pip install --upgrade pip
+              python3 -m pip install pipx
+            elif [ "$ID" = "debian" ]; then
+              apt-get update
+              apt-get install -y python3 python3-pip python3-venv
               python3 -m pip install --upgrade pip
               python3 -m pip install pipx
             elif [ "$ID" = "alpine" ]; then
@@ -43,9 +48,9 @@ jobs:
               python3 -m pip install --upgrade pip
               python3 -m pip install pipx
             elif [ "$ID" = "arch" ]; then
-              pacman -Syu --noconfirm python python-pip pipx
+              pacman -Syu --noconfirm python python-pip python-pipx
             elif [ "$ID" = "fedora" ]; then
-              dnf install -y python3 python3-pip pipx
+              dnf install -y python3 python3-pip pipx poetry
             elif [ "$ID" = "gentoo" ]; then
               # Initialize and sync Gentoo repository
               emerge-webrsync
@@ -59,13 +64,13 @@ jobs:
             echo "Operating system not recognized"
             exit 1
           fi
-          # Add $HOME/.local/bin to PATH
-          export PATH="$HOME/.local/bin:$PATH"
           python3 -m pipx ensurepath
           pipx install poetry
       - name: Install dependencies
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           poetry install
       - name: Run tests
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG .
