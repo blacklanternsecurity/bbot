@@ -22,12 +22,17 @@ jobs:
           if [ -f /etc/os-release ]; then
             . /etc/os-release
             if [ "$ID" = "ubuntu" ]; then
-              # Add deadsnakes PPA for Python 3.12
               apt-get update
               apt-get install -y software-properties-common curl
-              add-apt-repository ppa:deadsnakes/ppa
-              apt-get update
-              apt-get install -y python3.12 python3.12-venv python3.12-distutils
+              if [ "$VERSION_ID" = "24.04" ]; then
+                # Install Python 3.12 and its components directly from Ubuntu repositories
+                apt-get install -y python3.12 python3.12-venv python3.12-distutils
+              else
+                # Add deadsnakes PPA for Python 3.12
+                add-apt-repository ppa:deadsnakes/ppa
+                apt-get update
+                apt-get install -y python3.12 python3.12-venv python3.12-distutils
+              fi
               # Install pip for Python 3.12
               curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
               # Update alternatives to use python3.12
