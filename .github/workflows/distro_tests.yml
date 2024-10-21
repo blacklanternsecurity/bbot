@@ -24,28 +24,31 @@ jobs:
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kalilinux" ] || [ "$ID" = "parrotsec" ]; then
               export DEBIAN_FRONTEND=noninteractive
               apt-get update
-              apt-get -y install curl git
+              apt-get -y install curl git bash
             elif [ "$ID" = "alpine" ]; then
               apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git
             elif [ "$ID" = "archlinux" ]; then
-              pacman -Syu --noconfirm curl git
+              pacman -Syu --noconfirm curl git bash
             elif [ "$ID" = "fedora" ]; then
-              dnf install -y curl git
+              dnf install -y curl git bash
             elif [ "$ID" = "gentoo" ]; then
-              emerge --update --newuse curl git
+              emerge --update --newuse curl git bash
             fi
           fi
 
-          curl https://pyenv.run | bash
-          export PATH="$HOME/.pyenv/bin:$PATH"
-          eval "$(pyenv init --path)"
-          eval "$(pyenv init -)"
-          eval "$(pyenv virtualenv-init -)"
-          pyenv install 3.11
-          pyenv global 3.11
-          python3.11 -m pip install --user spipx
-          python3.11 -m pipx ensurepath
-          pipx install poetry
+          # Re-run the script with bash
+          exec bash -c "
+            curl https://pyenv.run | bash
+            export PATH=\"$HOME/.pyenv/bin:\$PATH\"
+            eval \"\$(pyenv init --path)\"
+            eval \"\$(pyenv init -)\"
+            eval \"\$(pyenv virtualenv-init -)\"
+            pyenv install 3.11
+            pyenv global 3.11
+            python3.11 -m pip install --user spipx
+            python3.11 -m pipx ensurepath
+            pipx install poetry
+          "
       - name: Run tests
         run: |
           export PATH="$HOME/.local/bin:$PATH"
