@@ -68,16 +68,16 @@ jobs:
       - name: Install Python
         run: |
           if [ -f /etc/debian_version ]; then
-            sudo apt-get update
-            sudo apt-get install -y python3 python3-pip
+            apt-get update
+            apt-get install -y python3 python3-pip
           elif [ -f /etc/arch-release ]; then
-            sudo pacman -Syu --noconfirm python python-pip
+            pacman -Syu --noconfirm python python-pip
           elif [ -f /etc/fedora-release ]; then
-            sudo dnf install -y python3 python3-pip
+            dnf install -y python3 python3-pip
           elif [ -f /etc/gentoo-release ]; then
-            sudo emerge dev-lang/python
+            emerge dev-lang/python
           elif [ -f /etc/alpine-release ]; then
-            sudo apk add --no-cache python3 py3-pip
+            apk add --no-cache python3 py3-pip
           fi
       - name: Install dependencies
         run: |
