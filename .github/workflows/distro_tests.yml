@@ -1,0 +1,67 @@
+name: Linux Distro Tests
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-distros:
+    needs: lint
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu:20.04", "ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "gentoo/python", "python:3.10-alpine"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python and Poetry
+        run: |
+          if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            if [ "$ID" = "ubuntu" ] && [ "$VERSION_ID" = "20.04" ]; then
+              # Add deadsnakes PPA for Python 3.12
+              apt-get update
+              apt-get install -y software-properties-common
+              add-apt-repository ppa:deadsnakes/ppa
+              apt-get update
+              apt-get install -y python3.12 python3.12-venv python3.12-distutils python3-pip
+              # Update alternatives to use python3.12
+              update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+              update-alternatives --set python3 /usr/bin/python3.12
+              python3 -m pip install --upgrade pip
+              python3 -m pip install pipx
+            elif [ "$ID" = "alpine" ]; then
+              apk add --no-cache python3 py3-pip
+              python3 -m pip install --upgrade pip
+              python3 -m pip install pipx
+            elif [ "$ID" = "arch" ]; then
+              pacman -Syu --noconfirm python python-pip pipx
+            elif [ "$ID" = "fedora" ]; then
+              dnf install -y python3 python3-pip pipx
+            elif [ "$ID" = "gentoo" ]; then
+              # Initialize and sync Gentoo repository
+              emerge-webrsync
+              emerge --sync
+              emerge --update --newuse dev-lang/python dev-python/pipx
+            else
+              echo "Unsupported Linux distribution"
+              exit 1
+            fi
+          else
+            echo "Operating system not recognized"
+            exit 1
+          fi
+          # Add $HOME/.local/bin to PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          python3 -m pipx ensurepath
+          pipx install poetry
+      - name: Install dependencies
+        run: |
+          poetry install
+      - name: Run tests
+        run: |
+          poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG .
