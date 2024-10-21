@@ -22,16 +22,17 @@ jobs:
           if [ -f /etc/os-release ]; then
             . /etc/os-release
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kalilinux" ] || [ "$ID" = "parrotsec" ]; then
+              export DEBIAN_FRONTEND=noninteractive
               apt-get update
-              apt-get -y install curl
+              apt-get -y install curl git
             elif [ "$ID" = "alpine" ]; then
-              apk add --no-cache bash gcc g++ musl-dev libffi-dev
+              apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git
             elif [ "$ID" = "archlinux" ]; then
-              pacman -Syu --noconfirm curl
+              pacman -Syu --noconfirm curl git
             elif [ "$ID" = "fedora" ]; then
-              dnf install -y curl
+              dnf install -y curl git
             elif [ "$ID" = "gentoo" ]; then
-              emerge --update --newuse curl
+              emerge --update --newuse curl git
             fi
           fi
 
