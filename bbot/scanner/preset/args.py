@@ -91,7 +91,6 @@ class BBOTArgs:
             *self.parsed.targets,
             whitelist=self.parsed.whitelist,
             blacklist=self.parsed.blacklist,
-            strict_scope=self.parsed.strict_scope,
             name="args_preset",
         )
 
@@ -164,6 +163,10 @@ class BBOTArgs:
                 args_preset.core.merge_custom(OmegaConf.from_cli([config_arg]))
             except Exception as e:
                 raise BBOTArgumentError(f'Error parsing command-line config option: "{config_arg}": {e}')
+
+        # strict scope
+        if self.parsed.strict_scope:
+            args_preset.core.merge_custom({"scope": {"strict": True}})
 
         return args_preset
 

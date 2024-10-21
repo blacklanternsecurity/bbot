@@ -14,6 +14,9 @@ folder_blobs: false
 ### SCOPE ###
 
 scope:
+  # strict scope means only exact DNS names are considered in-scope
+  # subdomains are not included unless they are explicitly provided in the target list
+  strict: false
   # Filter by scope distance which events are displayed in the output
   # 0 == show only in-scope events (affiliates are always shown)
   # 1 == show all events up to distance-1 (1 hop from target)
