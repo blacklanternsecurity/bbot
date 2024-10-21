@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, debian, archlinux, fedora-latest, gentoo/python, python:3.10-alpine]
+        os: ["ubuntu-latest", "debian", "archlinux", "fedora-latest", "gentoo/python", "python:3.10-alpine"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Python
