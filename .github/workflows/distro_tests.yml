@@ -1,0 +1,63 @@
+name: Linux Distro Tests
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-distros:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu:20.04", "ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "gentoo/python", "python:3.10-alpine", "kalilinux/kali-rolling", "parrotsec/security"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python and Poetry
+        run: |
+          if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kali" ] || [ "$ID" = "parrotsec" ]; then
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get -y install curl git bash build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
+            elif [ "$ID" = "alpine" ]; then
+              apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git make openssl-dev bzip2-dev zlib-dev xz-dev sqlite-dev
+            elif [ "$ID" = "arch" ]; then
+              pacman -Syu --noconfirm curl git bash base-devel
+            elif [ "$ID" = "fedora" ]; then
+              dnf install -y curl git bash gcc make openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel tk-devel gdbm-devel readline-devel sqlite-devel
+            elif [ "$ID" = "gentoo" ]; then
+              emerge-webrsync
+              emerge --update --newuse dev-vcs/git curl bash
+            fi
+          fi
+
+          # Re-run the script with bash
+          exec bash -c "
+            curl https://pyenv.run | bash
+            export PATH=\"$HOME/.pyenv/bin:\$PATH\"
+            export PATH=\"$HOME/.local/bin:\$PATH\"
+            eval \"\$(pyenv init --path)\"
+            eval \"\$(pyenv init -)\"
+            eval \"\$(pyenv virtualenv-init -)\"
+            pyenv install 3.11
+            pyenv global 3.11
+            pyenv rehash
+            python3.11 -m pip install --user pipx
+            python3.11 -m pipx ensurepath
+            pipx install poetry
+          "
+      - name: Run tests
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          export PATH="$HOME/.pyenv/bin:$PATH"
+          export PATH="$HOME/.pyenv/shims:$PATH"
+          export BBOT_DISTRO_TESTS=true
+          poetry env use python3.11
+          poetry install
+          poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG .
