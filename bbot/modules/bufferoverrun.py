@@ -17,18 +17,20 @@ class BufferOverrun(subdomain_enum_apikey):
     base_url = "https://tls.bufferover.run/dns"
     commercial_base_url = "https://bufferover-run-tls.p.rapidapi.com/ipv4/dns"
 
+    async def setup(self):
+        self.commercial = self.config.get("commercial", False)
+        return await super().setup()
+
     def prepare_api_request(self, url, kwargs):
-        if "x-rapidapi-key" in kwargs["headers"]:
+        if self.commercial:
             kwargs["headers"]["x-rapidapi-host"] = "bufferover-run-tls.p.rapidapi.com"
+            kwargs["headers"]["x-rapidapi-key"] = self.api_key
         else:
             kwargs["headers"]["x-api-key"] = self.api_key
         return url, kwargs
 
-    async def request_url(self, query, commercial=None):
-        if commercial is None:
-            commercial = self.options.get("commercial", False)
-        _, domain = self.helpers.split_domain(query)
-        url = f"{self.commercial_base_url if commercial else self.base_url}?q=.{domain}"
+    async def request_url(self, query):
+        url = f"{self.commercial_base_url if self.commercial else self.base_url}?q=.{query}"
         return await self.api_request(url)
 
     def parse_results(self, r, query):
