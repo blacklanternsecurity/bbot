@@ -25,6 +25,10 @@ else:
     for h in root_logger.handlers:
         h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
 
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)  # Prevent DEBUG logs from going to console
+root_logger.addHandler(console_handler)
+
 CORE.merge_default(test_config)
 
 
