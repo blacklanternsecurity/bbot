@@ -13,6 +13,7 @@ from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async
 from bbot.core.helpers.interactsh import server_list as interactsh_servers
 
+root_logger = logging.getLogger()
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
@@ -21,7 +22,6 @@ if test_config.get("debug", False):
     CORE.logger.log_level = logging.DEBUG
 else:
     # silence stdout + trace
-    root_logger = logging.getLogger()
     for h in root_logger.handlers:
         h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
 
