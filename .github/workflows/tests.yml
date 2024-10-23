@@ -48,7 +48,12 @@ jobs:
           poetry install
       - name: Run tests
         run: |
-          poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+          poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-level=INFO --log-file=pytest_debug.log --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+      - name: Upload Debug Logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-debug-logs
+          path: pytest_debug.log
       - name: Upload Code Coverage
         uses: codecov/codecov-action@v3
         with:
