@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bbot"
-version = "2.1.0"
+version = "2.1.1"
 description = "OSINT automation for hackers."
 authors = [
     "TheTechromancer",
@@ -100,7 +100,7 @@ extend-exclude = "(test_step_1/test_manager_*)"
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v2.1.0{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v2.1.1{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]
