@@ -27,7 +27,7 @@ bbot = 'bbot.cli:main'
 [tool.poetry.dependencies]
 python = "^3.9"
 omegaconf = "^2.3.0"
-psutil = "^5.9.4"
+psutil = ">=5.9.4,<7.0.0"
 wordninja = "^2.0.0"
 ansible-runner = "^2.3.2"
 deepdiff = ">=6.2.3,<8.0.0"
@@ -70,7 +70,7 @@ pytest-timeout = "^2.3.1"
 pytest-httpx = "^0.30.0"
 pytest-httpserver = "^1.0.11"
 pytest = "^8.3.1"
-pytest-asyncio = "0.23.8"
+pytest-asyncio = "0.24.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"
