@@ -3,6 +3,7 @@ name: Daily Docs Update
 on:
   schedule:
     - cron: '0 0 * * *'  # Runs daily at midnight UTC
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   update_docs:
@@ -23,14 +24,17 @@ jobs:
       - name: Generate docs
         run: |
           poetry run bbot/scripts/docs.py
-      - name: Commit changes
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: '["*.md", "docs/data/chord_graph/*.json"]'
-          author_name: "BBOT Docs Autopublish"
-          author_email: info@blacklanternsecurity.com
-          message: "Refresh module docs"
-      - name: Create Pull Request
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "BBOT Docs Autopublish"
+          git config user.email "info@blacklanternsecurity.com"
+          git checkout -b update-docs
+          git add "*.md" "docs/data/chord_graph/*.json"
+          git commit -m "Refresh module docs"
+          git push -u origin update-docs --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
+      - name: Create or Update Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
@@ -38,3 +42,4 @@ jobs:
           base: dev
           title: "Daily Docs Update"
           body: "This is an automated pull request to update the documentation."
+          update-existing: true
