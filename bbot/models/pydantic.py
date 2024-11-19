@@ -2,9 +2,9 @@ import json
 import logging
 from datetime import datetime
 from typing import Optional, List, Union, Annotated
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, Field
 
-from bbot.models.helpers import NaiveUTC, naive_datetime_validator
+from bbot.models.helpers import NaiveUTC, naive_datetime_validator, naive_utc_now
 
 log = logging.getLogger("bbot_server.models")
 
@@ -12,14 +12,30 @@ log = logging.getLogger("bbot_server.models")
 class BBOTBaseModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    def to_json(self, **kwargs):
-        return json.dumps(self.model_dump(), sort_keys=True, **kwargs)
+    def to_json(self, preserve_datetime=False):
+        ret = self.model_dump()
+        if preserve_datetime:
+            for key in ret:
+                val = getattr(self, key, None)
+                if isinstance(val, datetime):
+                    ret[key] = val
+        return ret
+
+    def to_json_string(self, preserve_datetime=False, **kwargs):
+        kwargs['sort_keys'] = True
+        return json.dumps(self.to_json(preserve_datetime=preserve_datetime), **kwargs)
 
     def __hash__(self):
         return hash(self.to_json())
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+    @classmethod
+    def _indexed_fields(cls):
+        return sorted(
+            field_name for field_name, field in cls.model_fields.items() if "indexed" in field.metadata
+        )
 
 
 ### EVENT ###
@@ -42,6 +58,7 @@ class Event(BBOTBaseModel):
     scope_distance: int = 10
     scan: Annotated[str, "indexed"]
     timestamp: Annotated[NaiveUTC, "indexed"]
+    inserted_at: Optional[Annotated[NaiveUTC, "indexed"]] = Field(default_factory=naive_utc_now)
     parent: Annotated[str, "indexed"]
     parent_uuid: Annotated[str, "indexed"]
     tags: List = []
@@ -61,12 +78,6 @@ class Event(BBOTBaseModel):
         if isinstance(data, dict) and list(data) == [type]:
             return data[type]
         return data
-
-    @classmethod
-    def _indexed_fields(cls):
-        return sorted(
-            field_name for field_name, field in cls.model_fields.items() if "indexed" in field.metadata
-        )
 
     @field_serializer("timestamp")
     def serialize_timestamp(self, timestamp: datetime, _info):

@@ -1,6 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from bbot.models.pydantic import Event
+from bbot.models.pydantic import Event, Scan, Target
 from bbot.modules.output.base import BaseOutputModule
 
 
@@ -42,9 +42,11 @@ class Mongo(BaseOutputModule):
         self.targets_collection = self.db[f"{self.collection_prefix}targets"]
 
         # Build an index for each field in reverse_host and host
-        for field in Event._indexed_fields():
-            await self.collection.create_index([(field, 1)])
-            self.verbose(f"Index created for field: {field}")
+        for field in Event.model_fields:
+            if "indexed" in field.metadata:
+                unique = "unique" in field.metadata
+                await self.collection.create_index([(field, 1)], unique=unique)
+                self.verbose(f"Index created for field: {field}")
 
         return True
 
@@ -52,17 +54,14 @@ class Mongo(BaseOutputModule):
         event_json = event.json()
         event_pydantic = Event(**event_json)
         await self.events_collection.insert_one(event_pydantic.model_dump())
+
         if event.type == "SCAN":
-            # here we merge the scan with the one sharing its UUID.
+            scan_json = Scan.from_event(event).model_dump()
             existing_scan = await self.scans_collection.find_one({"uuid": event_pydantic.uuid})
             if existing_scan:
-                # Merge logic here, for example, update the existing scan with new data
-                updated_scan = {**existing_scan, **event_pydantic.model_dump()}
-                await self.scans_collection.replace_one({"uuid": event_pydantic.uuid}, updated_scan)
+                await self.scans_collection.replace_one({"uuid": event_pydantic.uuid}, scan_json)
                 self.verbose(f"Updated scan event with UUID: {event_pydantic.uuid}")
             else:
                 # Insert as a new scan if no existing scan is found
                 await self.scans_collection.insert_one(event_pydantic.model_dump())
                 self.verbose(f"Inserted new scan event with UUID: {event_pydantic.uuid}")
-
-            

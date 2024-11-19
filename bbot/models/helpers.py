@@ -3,7 +3,7 @@ from typing_extensions import Annotated
 from pydantic.functional_validators import AfterValidator
 
 
-def naive_datetime_validator(d: datetime):
+def naive_datetime_validator(d: datetime) -> datetime:
     """
     Converts all dates into UTC, then drops timezone information.
 
@@ -11,6 +11,10 @@ def naive_datetime_validator(d: datetime):
     """
     # drop timezone info
     return d.replace(tzinfo=None)
+
+
+def naive_utc_now() -> datetime:
+    return naive_datetime_validator(datetime.now())
 
 
 NaiveUTC = Annotated[datetime, AfterValidator(naive_datetime_validator)]
