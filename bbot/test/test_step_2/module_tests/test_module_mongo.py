@@ -17,6 +17,7 @@ class TestMongo(ModuleTestBase):
             }
         }
     }
+    skip_distro_tests = True
 
     async def setup_before_prep(self, module_test):
 
@@ -48,7 +49,7 @@ class TestMongo(ModuleTestBase):
                 await events_collection.count_documents({})
                 break  # Exit the loop if connection is successful
             except Exception as e:
-                print(f"Connection failed: {e}. Retrying in 5 seconds...")
+                print(f"Connection failed: {e}. Retrying...")
                 time.sleep(0.5)
 
         # Check that there are no events in the collection
