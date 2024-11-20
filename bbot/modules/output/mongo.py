@@ -14,18 +14,24 @@ class Mongo(BaseOutputModule):
     options = {
         "uri": "mongodb://localhost:27017",
         "database": "bbot",
+        "username": "",
+        "password": "",
         "collection_prefix": "",
     }
     options_desc = {
         "uri": "The URI of the MongoDB server",
         "database": "The name of the database to use",
+        "username": "The username to use to connect to the database",
+        "password": "The password to use to connect to the database",
         "collection_prefix": "Prefix each collection with this string",
     }
     deps_pip = ["motor~=3.6.0"]
 
     async def setup(self):
         self.uri = self.config.get("uri", "mongodb://localhost:27017")
-        self.db_client = AsyncIOMotorClient(self.uri)
+        self.username = self.config.get("username", "")
+        self.password = self.config.get("password", "")
+        self.db_client = AsyncIOMotorClient(self.uri, username=self.username, password=self.password)
 
         # Ping the server to confirm a successful connection
         try:
@@ -42,11 +48,11 @@ class Mongo(BaseOutputModule):
         self.targets_collection = self.db[f"{self.collection_prefix}targets"]
 
         # Build an index for each field in reverse_host and host
-        for field in Event.model_fields:
+        for field_name, field in Event.model_fields.items():
             if "indexed" in field.metadata:
                 unique = "unique" in field.metadata
-                await self.collection.create_index([(field, 1)], unique=unique)
-                self.verbose(f"Index created for field: {field}")
+                await self.events_collection.create_index([(field_name, 1)], unique=unique)
+                self.verbose(f"Index created for field: {field_name} (unique={unique})")
 
         return True
 
@@ -55,13 +61,13 @@ class Mongo(BaseOutputModule):
         event_pydantic = Event(**event_json)
         await self.events_collection.insert_one(event_pydantic.model_dump())
 
-        if event.type == "SCAN":
-            scan_json = Scan.from_event(event).model_dump()
-            existing_scan = await self.scans_collection.find_one({"uuid": event_pydantic.uuid})
-            if existing_scan:
-                await self.scans_collection.replace_one({"uuid": event_pydantic.uuid}, scan_json)
-                self.verbose(f"Updated scan event with UUID: {event_pydantic.uuid}")
-            else:
-                # Insert as a new scan if no existing scan is found
-                await self.scans_collection.insert_one(event_pydantic.model_dump())
-                self.verbose(f"Inserted new scan event with UUID: {event_pydantic.uuid}")
+        # if event.type == "SCAN":
+        #     scan_json = Scan.from_event(event).model_dump()
+        #     existing_scan = await self.scans_collection.find_one({"uuid": event_pydantic.uuid})
+        #     if existing_scan:
+        #         await self.scans_collection.replace_one({"uuid": event_pydantic.uuid}, scan_json)
+        #         self.verbose(f"Updated scan event with UUID: {event_pydantic.uuid}")
+        #     else:
+        #         # Insert as a new scan if no existing scan is found
+        #         await self.scans_collection.insert_one(event_pydantic.model_dump())
+        #         self.verbose(f"Inserted new scan event with UUID: {event_pydantic.uuid}")

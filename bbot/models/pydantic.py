@@ -1,10 +1,9 @@
-import json
 import logging
 from datetime import datetime
-from typing import Optional, List, Union, Annotated
-from pydantic import BaseModel, ConfigDict, field_serializer, Field
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, List, Union, Annotated, get_type_hints
 
-from bbot.models.helpers import NaiveUTC, naive_datetime_validator, naive_utc_now
+from bbot.models.helpers import NaiveUTC, naive_utc_now
 
 log = logging.getLogger("bbot_server.models")
 
@@ -12,18 +11,13 @@ log = logging.getLogger("bbot_server.models")
 class BBOTBaseModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    def to_json(self, preserve_datetime=False):
-        ret = self.model_dump()
-        if preserve_datetime:
-            for key in ret:
-                val = getattr(self, key, None)
-                if isinstance(val, datetime):
-                    ret[key] = val
+    def model_dump(self, preserve_datetime=False, **kwargs):
+        ret = super().model_dump(**kwargs)
+        if not preserve_datetime:
+            for datetime_field in self._datetime_fields():
+                if datetime_field in ret:
+                    ret[datetime_field] = ret[datetime_field].isoformat()
         return ret
-
-    def to_json_string(self, preserve_datetime=False, **kwargs):
-        kwargs['sort_keys'] = True
-        return json.dumps(self.to_json(preserve_datetime=preserve_datetime), **kwargs)
 
     def __hash__(self):
         return hash(self.to_json())
@@ -33,12 +27,36 @@ class BBOTBaseModel(BaseModel):
 
     @classmethod
     def _indexed_fields(cls):
-        return sorted(
-            field_name for field_name, field in cls.model_fields.items() if "indexed" in field.metadata
-        )
+        return sorted(field_name for field_name, field in cls.model_fields.items() if "indexed" in field.metadata)
+
+    @classmethod
+    def _get_type_hints(cls):
+        """
+        Drills down past all the Annotated, Optional, and Union layers to get the underlying type hint
+        """
+        type_hints = get_type_hints(cls)
+        unwrapped_type_hints = {}
+        for field_name in cls.model_fields:
+            type_hint = type_hints[field_name]
+            while 1:
+                if getattr(type_hint, "__origin__", None) in (Annotated, Optional, Union):
+                    type_hint = type_hint.__args__[0]
+                else:
+                    break
+            unwrapped_type_hints[field_name] = type_hint
+        return unwrapped_type_hints
+
+    @classmethod
+    def _datetime_fields(cls):
+        datetime_fields = []
+        for field_name, type_hint in cls._get_type_hints().items():
+            if type_hint == datetime:
+                datetime_fields.append(field_name)
+        return sorted(datetime_fields)
 
 
 ### EVENT ###
+
 
 class Event(BBOTBaseModel):
     uuid: Annotated[str, "indexed", "unique"]
@@ -73,18 +91,9 @@ class Event(BBOTBaseModel):
         if self.host:
             self.reverse_host = self.host[::-1]
 
-    @staticmethod
-    def _get_data(data, type):
-        if isinstance(data, dict) and list(data) == [type]:
-            return data[type]
-        return data
-
-    @field_serializer("timestamp")
-    def serialize_timestamp(self, timestamp: datetime, _info):
-        return naive_datetime_validator(timestamp).isoformat()
-
 
 ### SCAN ###
+
 
 class Scan(BBOTBaseModel):
     id: Annotated[str, "indexed", "unique"]
@@ -108,6 +117,7 @@ class Scan(BBOTBaseModel):
 
 
 ### TARGET ###
+
 
 class Target(BBOTBaseModel):
     name: str = "Default Target"
