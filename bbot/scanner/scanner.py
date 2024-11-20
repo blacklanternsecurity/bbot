@@ -500,7 +500,8 @@ class Scanner:
                 self.modules[module.name].set_error_state()
                 hard_failed.append(module.name)
             else:
-                self.info(f"Setup soft-failed for {module.name}: {msg}")
+                log_fn = self.warning if module._type == "output" else self.info
+                log_fn(f"Setup soft-failed for {module.name}: {msg}")
                 soft_failed.append(module.name)
             if (not status) and (module._intercept or remove_failed):
                 # if a intercept module fails setup, we always remove it

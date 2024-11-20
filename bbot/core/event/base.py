@@ -40,6 +40,7 @@ from bbot.core.helpers import (
     validators,
     get_file_extension,
 )
+from bbot.db.helpers import naive_datetime_validator
 
 
 log = logging.getLogger("bbot.core.event")
@@ -802,7 +803,7 @@ class BaseEvent:
         if self.scan:
             j["scan"] = self.scan.id
         # timestamp
-        j["timestamp"] = self.timestamp.isoformat()
+        j["timestamp"] = naive_datetime_validator(self.timestamp).isoformat()
         # parent event
         parent_id = self.parent_id
         if parent_id:
@@ -811,8 +812,7 @@ class BaseEvent:
         if parent_uuid:
             j["parent_uuid"] = parent_uuid
         # tags
-        if self.tags:
-            j.update({"tags": list(self.tags)})
+        j.update({"tags": list(self.tags)})
         # parent module
         if self.module:
             j.update({"module": str(self.module)})
