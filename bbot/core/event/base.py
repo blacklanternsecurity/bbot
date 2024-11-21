@@ -40,7 +40,7 @@ from bbot.core.helpers import (
     validators,
     get_file_extension,
 )
-from bbot.db.helpers import naive_datetime_validator
+from bbot.models.helpers import naive_datetime_validator
 
 
 log = logging.getLogger("bbot.core.event")

@@ -3,7 +3,7 @@ from sqlmodel import SQLModel
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
-from bbot.db.sql.models import Event, Scan, Target
+from bbot.models.sql import Event, Scan, Target
 from bbot.modules.output.base import BaseOutputModule
 
 
