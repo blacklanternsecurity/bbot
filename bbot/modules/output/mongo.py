@@ -61,13 +61,13 @@ class Mongo(BaseOutputModule):
         event_pydantic = Event(**event_json)
         await self.events_collection.insert_one(event_pydantic.model_dump())
 
-        # if event.type == "SCAN":
-        #     scan_json = Scan.from_event(event).model_dump()
-        #     existing_scan = await self.scans_collection.find_one({"uuid": event_pydantic.uuid})
-        #     if existing_scan:
-        #         await self.scans_collection.replace_one({"uuid": event_pydantic.uuid}, scan_json)
-        #         self.verbose(f"Updated scan event with UUID: {event_pydantic.uuid}")
-        #     else:
-        #         # Insert as a new scan if no existing scan is found
-        #         await self.scans_collection.insert_one(event_pydantic.model_dump())
-        #         self.verbose(f"Inserted new scan event with UUID: {event_pydantic.uuid}")
+        if event.type == "SCAN":
+            scan_json = Scan.from_event(event).model_dump()
+            existing_scan = await self.scans_collection.find_one({"uuid": event_pydantic.uuid})
+            if existing_scan:
+                await self.scans_collection.replace_one({"uuid": event_pydantic.uuid}, scan_json)
+                self.verbose(f"Updated scan event with UUID: {event_pydantic.uuid}")
+            else:
+                # Insert as a new scan if no existing scan is found
+                await self.scans_collection.insert_one(event_pydantic.model_dump())
+                self.verbose(f"Inserted new scan event with UUID: {event_pydantic.uuid}")

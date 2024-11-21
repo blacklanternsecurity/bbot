@@ -11,12 +11,12 @@ log = logging.getLogger("bbot_server.models")
 class BBOTBaseModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    def model_dump(self, preserve_datetime=False, **kwargs):
+    def model_dump(self, **kwargs):
         ret = super().model_dump(**kwargs)
-        if not preserve_datetime:
-            for datetime_field in self._datetime_fields():
-                if datetime_field in ret:
-                    ret[datetime_field] = ret[datetime_field].isoformat()
+        # convert datetime fields to unix timestamps
+        for datetime_field in self._datetime_fields():
+            if datetime_field in ret:
+                ret[datetime_field] = ret[datetime_field].timestamp()
         return ret
 
     def __hash__(self):

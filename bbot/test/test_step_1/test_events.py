@@ -494,7 +494,7 @@ async def test_events(events, helpers):
     assert db_event.parent_chain[0] == str(db_event.uuid)
     assert db_event.parent.uuid == scan.root_event.uuid
     assert db_event.parent_uuid == scan.root_event.uuid
-    timestamp = db_event.timestamp.isoformat()
+    timestamp = db_event.timestamp.replace(tzinfo=None).timestamp()
     json_event = db_event.json()
     assert isinstance(json_event["uuid"], str)
     assert json_event["uuid"] == str(db_event.uuid)
@@ -515,7 +515,7 @@ async def test_events(events, helpers):
     assert reconstituted_event.uuid == db_event.uuid
     assert reconstituted_event.parent_uuid == scan.root_event.uuid
     assert reconstituted_event.scope_distance == 1
-    assert reconstituted_event.timestamp.isoformat() == timestamp
+    assert reconstituted_event.timestamp.timestamp() == timestamp
     assert reconstituted_event.data == "evilcorp.com:80"
     assert reconstituted_event.type == "OPEN_TCP_PORT"
     assert reconstituted_event.host == "evilcorp.com"
@@ -538,7 +538,7 @@ async def test_events(events, helpers):
     assert json_event_siemfriendly["timestamp"] == timestamp
     reconstituted_event2 = event_from_json(json_event_siemfriendly, siem_friendly=True)
     assert reconstituted_event2.scope_distance == 1
-    assert reconstituted_event2.timestamp.isoformat() == timestamp
+    assert reconstituted_event2.timestamp.timestamp() == timestamp
     assert reconstituted_event2.data == "evilcorp.com:80"
     assert reconstituted_event2.type == "OPEN_TCP_PORT"
     assert reconstituted_event2.host == "evilcorp.com"
