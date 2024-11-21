@@ -90,7 +90,7 @@ class httpx(BaseModule):
         else:
             url = str(event.data)
             url_hash = hash((event.host, event.port, has_spider_max))
-        if url_hash == None:
+        if url_hash is None:
             url_hash = hash((url, has_spider_max))
         return url, url_hash
 

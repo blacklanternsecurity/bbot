@@ -139,14 +139,14 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "--version"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert len(out.splitlines()) == 1
     assert out.count(".") > 1
 
     # list modules
     monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
     result = await cli._main()
-    assert result == None
+    assert result is None
     out, err = capsys.readouterr()
     # internal modules
     assert "| excavate " in out
@@ -173,7 +173,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "--list-module-options"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "| modules.wayback.urls" in out
     assert "| bool" in out
     assert "| emit URLs in addition to DNS_NAMEs" in out
@@ -185,7 +185,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "--list-module-options"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "| modules.wayback.urls" in out
     assert "| bool" in out
     assert "| emit URLs in addition to DNS_NAMEs" in out
@@ -197,7 +197,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "dnsbrute", "-lmo"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert out.count("modules.") == out.count("modules.dnsbrute.")
     assert not "| modules.wayback.urls" in out
     assert "| modules.dnsbrute.wordlist" in out
@@ -207,14 +207,14 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "stdout", "-lmo"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert out.count("modules.") == out.count("modules.stdout.")
 
     # list flags
     monkeypatch.setattr("sys.argv", ["bbot", "--list-flags"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "| safe " in out
     assert "| Non-intrusive, safe to run " in out
     assert "| active " in out
@@ -224,7 +224,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "--list-flags"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert not "| safe " in out
     assert "| active " in out
     assert not "| passive " in out
@@ -233,7 +233,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "safe", "--list-flags"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "| safe " in out
     assert "| active " in out
     assert not "| passive " in out
@@ -242,14 +242,14 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "Target:\n  -t TARGET [TARGET ...]" in out
 
     # list modules
     monkeypatch.setattr("sys.argv", ["bbot", "-l"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "| dnsbrute " in out
     assert "| httpx " in out
     assert "| robots " in out
@@ -258,7 +258,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-l"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "| dnsbrute " in out
     assert "| httpx " in out
     assert not "| robots " in out
@@ -267,7 +267,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-rf", "passive", "-l"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "| chaos " in out
     assert not "| httpx " in out
 
@@ -275,7 +275,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert "| chaos " in out
     assert not "| httpx " in out
 
@@ -283,7 +283,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "-l"])
     result = await cli._main()
     out, err = capsys.readouterr()
-    assert result == None
+    assert result is None
     assert not "| dnsbrute " in out
     assert "| httpx " in out
 
@@ -396,7 +396,7 @@ async def test_cli_customheaders(monkeypatch, caplog, capsys):
         "sys.argv", ["bbot", "--custom-headers", "foo=bar", "foo2=bar2", "foo3=bar=3", "--current-preset"]
     )
     success = await cli._main()
-    assert success == None, "setting custom headers on command line failed"
+    assert success is None, "setting custom headers on command line failed"
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
     assert stdout_preset["config"]["web"]["http_headers"] == {"foo": "bar", "foo2": "bar2", "foo3": "bar=3"}
@@ -404,21 +404,21 @@ async def test_cli_customheaders(monkeypatch, caplog, capsys):
     # test custom headers invalid (no "=")
     monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "justastring", "--current-preset"])
     result = await cli._main()
-    assert result == None
+    assert result is None
     assert "Custom headers not formatted correctly (missing '=')" in caplog.text
     caplog.clear()
 
     # test custom headers invalid (missing key)
     monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "=nokey", "--current-preset"])
     result = await cli._main()
-    assert result == None
+    assert result is None
     assert "Custom headers not formatted correctly (missing header name or value)" in caplog.text
     caplog.clear()
 
     # test custom headers invalid (missing value)
     monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "missingvalue=", "--current-preset"])
     result = await cli._main()
-    assert result == None
+    assert result is None
     assert "Custom headers not formatted correctly (missing header name or value)" in caplog.text
 
 

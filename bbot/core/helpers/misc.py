@@ -391,7 +391,7 @@ def url_parents(u):
     parent_list = []
     while 1:
         parent = parent_url(u)
-        if parent == None:
+        if parent is None:
             return parent_list
         elif parent not in parent_list:
             parent_list.append(parent)

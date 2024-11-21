@@ -183,7 +183,7 @@ class HttpCompare:
 
         await self._baseline()
 
-        if timeout == None:
+        if timeout is None:
             timeout = self.timeout
 
         reflection = False

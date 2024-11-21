@@ -174,7 +174,7 @@ class paramminer_headers(BaseModule):
                 self.debug(f"Error initializing compare helper: {e}")
                 return
             batch_size = await self.count_test(url)
-            if batch_size == None or batch_size <= 0:
+            if batch_size is None or batch_size <= 0:
                 self.debug(f"Failed to get baseline max {self.compare_mode} count, aborting")
                 return
             self.debug(f"Resolved batch_size at {str(batch_size)}")

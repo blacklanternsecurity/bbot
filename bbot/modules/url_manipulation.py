@@ -69,7 +69,7 @@ class url_manipulation(BaseModule):
 
             if subject_response:
                 subject_content = "".join([str(x) for x in subject_response.headers])
-                if subject_response.text != None:
+                if subject_response.text is not None:
                     subject_content += subject_response.text
 
                 if self.rand_string not in subject_content:
