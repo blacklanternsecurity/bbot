@@ -60,8 +60,6 @@ def get_compression(mime_type):
         "application/x-ace": "ace",  # ACE archive
         "application/x-zoo": "zoo",  # Zoo archive
         "application/x-arc": "arc",  # ARC archive
-        "application/x-zstd-compressed-tar": "zstd",  # Zstandard compressed Tar archive
-        "application/x-lz4-compressed-tar": "lz4",  # LZ4 compressed Tar archive
         "application/vnd.comicbook-rar": "rar",  # Comic book archive (RAR)
     }
 
