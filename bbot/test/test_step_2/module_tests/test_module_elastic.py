@@ -48,7 +48,7 @@ class TestElastic(ModuleTestBase):
                     response.raise_for_status()
                     break
                 except Exception as e:
-                    self.log.verbose(f"Connection failed: {e}. Retrying...", flush=True)
+                    self.log.verbose(f"Connection failed: {e}. Retrying...")
                     time.sleep(0.5)
 
             # Ensure the index is empty
@@ -117,7 +117,7 @@ class TestElastic(ModuleTestBase):
                     auth=("elastic", "bbotislife"),
                     params={"ignore": "400,404"},
                 )
-                print(f"Deleted documents from index", flush=True)
+                self.log.verbose(f"Deleted documents from index")
             await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-elastic", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
