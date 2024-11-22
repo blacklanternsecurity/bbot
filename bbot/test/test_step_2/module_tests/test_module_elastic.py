@@ -48,12 +48,11 @@ class TestElastic(ModuleTestBase):
                     response.raise_for_status()
                     break
                 except Exception as e:
-                    print(f"Connection failed: {e}. Retrying...", flush=True)
+                    self.log.verbose(f"Connection failed: {e}. Retrying...", flush=True)
                     time.sleep(0.5)
 
             # Ensure the index is empty
             await client.delete(f"https://localhost:9200/bbot_test_events", auth=("elastic", "bbotislife"))
-            print("Elasticsearch index cleaned up", flush=True)
 
     async def check(self, module_test, events):
         try:
@@ -65,17 +64,11 @@ class TestElastic(ModuleTestBase):
             # Connect to Elasticsearch
             async with httpx.AsyncClient(verify=False) as client:
 
-                # refresh the index
-                await client.post(f"https://localhost:9200/bbot_test_events/_refresh", auth=("elastic", "bbotislife"))
-
                 # Fetch all events from the index
                 response = await client.get(
                     f"https://localhost:9200/bbot_test_events/_search?size=100", auth=("elastic", "bbotislife")
                 )
                 response_json = response.json()
-                import json
-
-                print(f"response: {json.dumps(response_json, indent=2)}")
                 db_events = [hit["_source"] for hit in response_json["hits"]["hits"]]
 
                 # make sure we have the same number of events
