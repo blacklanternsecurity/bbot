@@ -1,23 +1,14 @@
 import logging
-from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Union, Annotated, get_type_hints
+from typing import Optional, List, Union, Annotated
 
-from bbot.models.helpers import NaiveUTC, naive_utc_now
+from bbot.models.helpers import utc_now_timestamp
 
 log = logging.getLogger("bbot_server.models")
 
 
 class BBOTBaseModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
-
-    def model_dump(self, **kwargs):
-        ret = super().model_dump(**kwargs)
-        # convert datetime fields to unix timestamps
-        for datetime_field in self._datetime_fields():
-            if datetime_field in ret:
-                ret[datetime_field] = ret[datetime_field].timestamp()
-        return ret
 
     def __hash__(self):
         return hash(self.to_json())
@@ -29,33 +20,36 @@ class BBOTBaseModel(BaseModel):
     def _indexed_fields(cls):
         return sorted(field_name for field_name, field in cls.model_fields.items() if "indexed" in field.metadata)
 
-    @classmethod
-    def _get_type_hints(cls):
-        """
-        Drills down past all the Annotated, Optional, and Union layers to get the underlying type hint
-        """
-        type_hints = get_type_hints(cls)
-        unwrapped_type_hints = {}
-        for field_name in cls.model_fields:
-            type_hint = type_hints[field_name]
-            while 1:
-                if getattr(type_hint, "__origin__", None) in (Annotated, Optional, Union):
-                    type_hint = type_hint.__args__[0]
-                else:
-                    break
-            unwrapped_type_hints[field_name] = type_hint
-        return unwrapped_type_hints
+    # we keep these because they were a lot of work to make and maybe someday they'll be useful again
 
-    @classmethod
-    def _datetime_fields(cls):
-        datetime_fields = []
-        for field_name, type_hint in cls._get_type_hints().items():
-            if type_hint == datetime:
-                datetime_fields.append(field_name)
-        return sorted(datetime_fields)
+    # @classmethod
+    # def _get_type_hints(cls):
+    #     """
+    #     Drills down past all the Annotated, Optional, and Union layers to get the underlying type hint
+    #     """
+    #     type_hints = get_type_hints(cls)
+    #     unwrapped_type_hints = {}
+    #     for field_name in cls.model_fields:
+    #         type_hint = type_hints[field_name]
+    #         while 1:
+    #             if getattr(type_hint, "__origin__", None) in (Annotated, Optional, Union):
+    #                 type_hint = type_hint.__args__[0]
+    #             else:
+    #                 break
+    #         unwrapped_type_hints[field_name] = type_hint
+    #     return unwrapped_type_hints
+
+    # @classmethod
+    # def _datetime_fields(cls):
+    #     datetime_fields = []
+    #     for field_name, type_hint in cls._get_type_hints().items():
+    #         if type_hint == datetime:
+    #             datetime_fields.append(field_name)
+    #     return sorted(datetime_fields)
 
 
 ### EVENT ###
+
 
 class Event(BBOTBaseModel):
     uuid: Annotated[str, "indexed", "unique"]
@@ -76,7 +70,7 @@ class Event(BBOTBaseModel):
     scope_distance: int = 10
     scan: Annotated[str, "indexed"]
     timestamp: Annotated[float, "indexed"]
-    inserted_at: Annotated[Optional[float], "indexed"] = Field(default_factory=naive_utc_now)
+    inserted_at: Annotated[Optional[float], "indexed"] = Field(default_factory=utc_now_timestamp)
     parent: Annotated[str, "indexed"]
     parent_uuid: Annotated[str, "indexed"]
     tags: List = []
@@ -99,12 +93,13 @@ class Event(BBOTBaseModel):
 
 ### SCAN ###
 
+
 class Scan(BBOTBaseModel):
     id: Annotated[str, "indexed", "unique"]
     name: str
     status: Annotated[str, "indexed"]
-    started_at: Annotated[NaiveUTC, "indexed"]
-    finished_at: Optional[Annotated[NaiveUTC, "indexed"]] = None
+    started_at: Annotated[float, "indexed"]
+    finished_at: Annotated[Optional[float], "indexed"] = None
     duration_seconds: Optional[float] = None
     duration: Optional[str] = None
     target: dict

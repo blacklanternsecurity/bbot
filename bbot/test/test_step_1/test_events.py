@@ -494,7 +494,7 @@ async def test_events(events, helpers):
     assert db_event.parent_chain[0] == str(db_event.uuid)
     assert db_event.parent.uuid == scan.root_event.uuid
     assert db_event.parent_uuid == scan.root_event.uuid
-    timestamp = db_event.timestamp.replace(tzinfo=None).timestamp()
+    timestamp = db_event.timestamp.timestamp()
     json_event = db_event.json()
     assert isinstance(json_event["uuid"], str)
     assert json_event["uuid"] == str(db_event.uuid)

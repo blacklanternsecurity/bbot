@@ -3,12 +3,14 @@
 
 import json
 import logging
+from datetime import datetime
 from pydantic import ConfigDict
 from typing import List, Optional
-from datetime import datetime, timezone
 from typing_extensions import Annotated
 from pydantic.functional_validators import AfterValidator
 from sqlmodel import inspect, Column, Field, SQLModel, JSON, String, DateTime as SQLADateTime
+
+from bbot.models.helpers import utc_now_timestamp
 
 
 log = logging.getLogger("bbot_server.models")
@@ -25,14 +27,6 @@ def naive_datetime_validator(d: datetime):
 
 
 NaiveUTC = Annotated[datetime, AfterValidator(naive_datetime_validator)]
-
-
-class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        # handle datetime
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        return super().default(obj)
 
 
 class BBOTBaseModel(SQLModel):
@@ -52,7 +46,7 @@ class BBOTBaseModel(SQLModel):
             return self
 
     def to_json(self, **kwargs):
-        return json.dumps(self.validated.model_dump(), sort_keys=True, cls=CustomJSONEncoder, **kwargs)
+        return json.dumps(self.validated.model_dump(), sort_keys=True, **kwargs)
 
     @classmethod
     def _pk_column_names(cls):
@@ -67,11 +61,10 @@ class BBOTBaseModel(SQLModel):
 
 ### EVENT ###
 
+
 class Event(BBOTBaseModel, table=True):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.data is None and self.data_json is None:
-            raise ValueError("data or data_json must be provided")
         if self.host:
             self.reverse_host = self.host[::-1]
 
@@ -87,12 +80,12 @@ class Event(BBOTBaseModel, table=True):
     )
     id: str = Field(index=True)
     type: str = Field(index=True)
-    scope_description: str
     data: Optional[str] = Field(default=None, index=True)
-    data_json: Optional[dict] = Field(default=None)
+    data_json: Optional[dict] = Field(default=None, sa_type=JSON)
     host: Optional[str]
     port: Optional[int]
     netloc: Optional[str]
+    scope_description: str
     # store the host in reversed form for efficient lookups by domain
     reverse_host: Optional[str] = Field(default="", exclude=True, index=True)
     resolved_hosts: List = Field(default=[], sa_type=JSON)
@@ -100,7 +93,8 @@ class Event(BBOTBaseModel, table=True):
     web_spider_distance: int = 10
     scope_distance: int = Field(default=10, index=True)
     scan: str = Field(index=True)
-    timestamp: NaiveUTC = Field(index=True)
+    timestamp: float = Field(index=True)
+    inserted_at: float = Field(default_factory=utc_now_timestamp)
     parent: str = Field(index=True)
     tags: List = Field(default=[], sa_type=JSON)
     module: str = Field(index=True)
@@ -108,10 +102,10 @@ class Event(BBOTBaseModel, table=True):
     discovery_context: str = ""
     discovery_path: List[str] = Field(default=[], sa_type=JSON)
     parent_chain: List[str] = Field(default=[], sa_type=JSON)
-    inserted_at: NaiveUTC = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 ### SCAN ###
+
 
 class Scan(BBOTBaseModel, table=True):
     id: str = Field(primary_key=True)
@@ -126,6 +120,7 @@ class Scan(BBOTBaseModel, table=True):
 
 
 ### TARGET ###
+
 
 class Target(BBOTBaseModel, table=True):
     name: str = "Default Target"

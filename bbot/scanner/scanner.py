@@ -6,7 +6,7 @@ import contextlib
 import regex as re
 from pathlib import Path
 from sys import exc_info
-from datetime import datetime
+from datetime import datetime, UTC
 from collections import OrderedDict
 
 from bbot import __version__
@@ -327,8 +327,8 @@ class Scanner:
 
     async def async_start(self):
         """ """
-        self.start_time = datetime.now()
-        self.root_event.data["started_at"] = self.start_time.isoformat()
+        self.start_time = datetime.now(UTC)
+        self.root_event.data["started_at"] = self.start_time.timestamp()
         try:
             await self._prep()
 
@@ -436,7 +436,7 @@ class Scanner:
         else:
             status = "FINISHED"
 
-        self.end_time = datetime.now()
+        self.end_time = datetime.now(UTC)
         self.duration = self.end_time - self.start_time
         self.duration_seconds = self.duration.total_seconds()
         self.duration_human = self.helpers.human_timedelta(self.duration)
@@ -1130,9 +1130,9 @@ class Scanner:
         j["target"] = self.preset.target.json
         j["preset"] = self.preset.to_dict(redact_secrets=True)
         if self.start_time is not None:
-            j["started_at"] = self.start_time.isoformat()
+            j["started_at"] = self.start_time.timestamp()
         if self.end_time is not None:
-            j["finished_at"] = self.end_time.isoformat()
+            j["finished_at"] = self.end_time.timestamp()
         if self.duration is not None:
             j["duration_seconds"] = self.duration_seconds
         if self.duration_human is not None:

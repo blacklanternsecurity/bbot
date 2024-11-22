@@ -129,7 +129,17 @@ class TestMongo(ModuleTestBase):
             db_scans = await cursor.to_list(length=None)
             assert len(db_scans) == 1, "There should be exactly one scan"
             db_scan = db_scans[0]
-            assert db_scan["scan"]["id"] == main_event["scan"], "Scan id should match main event scan"
+            assert db_scan["id"] == main_event["scan"], "Scan id should match main event scan"
+
+            ### TARGETS ###
+
+            # Fetch all targets from the collection
+            cursor = db.get_collection(self.test_collection_prefix + "targets").find({})
+            db_targets = await cursor.to_list(length=None)
+            assert len(db_targets) == 1, "There should be exactly one target"
+            db_target = db_targets[0]
+            scan_event = next(e for e in events if e.type == "SCAN")
+            assert db_target["hash"] == scan_event.data["target"]["hash"], "Target hash should match scan target hash"
 
         finally:
             # Clean up: Delete all documents in the collection

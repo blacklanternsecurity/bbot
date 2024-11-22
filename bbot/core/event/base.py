@@ -12,6 +12,7 @@ import traceback
 from copy import copy
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
 from contextlib import suppress
 from radixtarget import RadixTarget
 from urllib.parse import urljoin, parse_qs
@@ -40,7 +41,7 @@ from bbot.core.helpers import (
     validators,
     get_file_extension,
 )
-from bbot.models.helpers import naive_datetime_validator
+from bbot.models.helpers import utc_datetime_validator
 
 
 log = logging.getLogger("bbot.core.event")
@@ -804,7 +805,7 @@ class BaseEvent:
         if self.scan:
             j["scan"] = self.scan.id
         # timestamp
-        j["timestamp"] = naive_datetime_validator(self.timestamp).timestamp()
+        j["timestamp"] = utc_datetime_validator(self.timestamp).timestamp()
         # parent event
         parent_id = self.parent_id
         if parent_id:
@@ -1770,7 +1771,7 @@ def event_from_json(j):
 
         # accept both isoformat and unix timestamp
         try:
-            event.timestamp = datetime.datetime.fromtimestamp(j["timestamp"])
+            event.timestamp = datetime.datetime.fromtimestamp(j["timestamp"], ZoneInfo("UTC"))
         except Exception:
             event.timestamp = datetime.datetime.fromisoformat(j["timestamp"])
         event.scope_distance = j["scope_distance"]

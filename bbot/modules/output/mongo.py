@@ -23,7 +23,7 @@ class Mongo(BaseOutputModule):
         "database": "The name of the database to use",
         "username": "The username to use to connect to the database",
         "password": "The password to use to connect to the database",
-        "collection_prefix": "Prefix each collection with this string",
+        "collection_prefix": "Prefix the name of each collection with this string",
     }
     deps_pip = ["motor~=3.6.0"]
 
@@ -62,20 +62,20 @@ class Mongo(BaseOutputModule):
         await self.events_collection.insert_one(event_pydantic.model_dump())
 
         if event.type == "SCAN":
-            scan_json = Scan.from_event(event).model_dump()
-            existing_scan = await self.scans_collection.find_one({"uuid": event_pydantic.uuid})
+            scan_json = Scan(**event.data_json).model_dump()
+            existing_scan = await self.scans_collection.find_one({"id": event_pydantic.id})
             if existing_scan:
-                await self.scans_collection.replace_one({"uuid": event_pydantic.uuid}, scan_json)
-                self.verbose(f"Updated scan event with UUID: {event_pydantic.uuid}")
+                await self.scans_collection.replace_one({"id": event_pydantic.id}, scan_json)
+                self.verbose(f"Updated scan event with ID: {event_pydantic.id}")
             else:
                 # Insert as a new scan if no existing scan is found
                 await self.scans_collection.insert_one(event_pydantic.model_dump())
-                self.verbose(f"Inserted new scan event with UUID: {event_pydantic.uuid}")
+                self.verbose(f"Inserted new scan event with ID: {event_pydantic.id}")
 
             target_data = scan_json.get("target", {})
             target = Target(**target_data)
-            existing_target = await self.targets_collection.find_one({"uuid": target.uuid})
+            existing_target = await self.targets_collection.find_one({"hash": target.hash})
             if existing_target:
-                await self.targets_collection.replace_one({"uuid": target.uuid}, target.model_dump())
+                await self.targets_collection.replace_one({"hash": target.hash}, target.model_dump())
             else:
                 await self.targets_collection.insert_one(target.model_dump())
