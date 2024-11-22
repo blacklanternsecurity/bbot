@@ -1,3 +1,4 @@
+from bbot.models.pydantic import Event
 from bbot.modules.output.base import BaseOutputModule
 
 
@@ -48,12 +49,15 @@ class HTTP(BaseOutputModule):
 
     async def handle_event(self, event):
         while 1:
+            event_json = event.json()
+            event_pydantic = Event(**event_json)
+            event_json = event_pydantic.model_dump(exclude_none=True)
             response = await self.helpers.request(
                 url=self.url,
                 method=self.method,
                 auth=self.auth,
                 headers=self.headers,
-                json=event.json(),
+                json=event_json,
             )
             is_success = False if response is None else response.is_success
             if not is_success:
