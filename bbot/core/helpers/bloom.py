@@ -64,8 +64,15 @@ class BloomFilter:
             hash = (hash * 0x01000193) % 2**32  # 16777619
         return hash
 
-    def __del__(self):
+    def close(self):
+        """Explicitly close the memory-mapped file."""
         self.mmap_file.close()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
 
     def __contains__(self, item):
         return self.check(item)

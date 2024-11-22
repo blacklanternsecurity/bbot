@@ -38,7 +38,7 @@ class ScanIngress(BaseInterceptModule):
             - It also marks the Scan object as finished with initialization by setting `_finished_init` to True.
         """
         if events is None:
-            events = self.scan.target.events
+            events = self.scan.target.seeds.events
         async with self.scan._acatch(self.init_events), self._task_counter.count(self.init_events):
             sorted_events = sorted(events, key=lambda e: len(e.data))
             for event in [self.scan.root_event] + sorted_events:
@@ -49,7 +49,6 @@ class ScanIngress(BaseInterceptModule):
                     event.parent = self.scan.root_event
                 if event.module is None:
                     event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
-                event.add_tag("target")
                 if event != self.scan.root_event:
                     event.discovery_context = f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}"
                 self.verbose(f"Target: {event}")

@@ -91,7 +91,6 @@ class BBOTArgs:
             *self.parsed.targets,
             whitelist=self.parsed.whitelist,
             blacklist=self.parsed.blacklist,
-            strict_scope=self.parsed.strict_scope,
             name="args_preset",
         )
 
@@ -149,6 +148,9 @@ class BBOTArgs:
         if self.parsed.force:
             args_preset.force_start = self.parsed.force
 
+        if self.parsed.proxy:
+            args_preset.core.merge_custom({"web": {"http_proxy": self.parsed.proxy}})
+
         if self.parsed.custom_headers:
             args_preset.core.merge_custom({"web": {"http_headers": self.parsed.custom_headers}})
 
@@ -164,6 +166,10 @@ class BBOTArgs:
                 args_preset.core.merge_custom(OmegaConf.from_cli([config_arg]))
             except Exception as e:
                 raise BBOTArgumentError(f'Error parsing command-line config option: "{config_arg}": {e}')
+
+        # strict scope
+        if self.parsed.strict_scope:
+            args_preset.core.merge_custom({"scope": {"strict": True}})
 
         return args_preset
 
@@ -217,7 +223,7 @@ class BBOTArgs:
             "--modules",
             nargs="+",
             default=[],
-            help=f'Modules to enable. Choices: {",".join(self.preset.module_loader.scan_module_choices)}',
+            help=f'Modules to enable. Choices: {",".join(sorted(self.preset.module_loader.scan_module_choices))}',
             metavar="MODULE",
         )
         modules.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
@@ -232,7 +238,7 @@ class BBOTArgs:
             "--flags",
             nargs="+",
             default=[],
-            help=f'Enable modules by flag. Choices: {",".join(self.preset.module_loader.flag_choices)}',
+            help=f'Enable modules by flag. Choices: {",".join(sorted(self.preset.module_loader.flag_choices))}',
             metavar="FLAG",
         )
         modules.add_argument("-lf", "--list-flags", action="store_true", help=f"List available flags.")
@@ -265,6 +271,11 @@ class BBOTArgs:
             help="Run scan even in the case of condition violations or failed module setups",
         )
         scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
+        scan.add_argument(
+            "--fast-mode",
+            action="store_true",
+            help="Scan only the provided targets as fast as possible, with no extra discovery",
+        )
         scan.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
         scan.add_argument(
             "--current-preset",
@@ -289,7 +300,7 @@ class BBOTArgs:
             "--output-modules",
             nargs="+",
             default=[],
-            help=f'Output module(s). Choices: {",".join(self.preset.module_loader.output_module_choices)}',
+            help=f'Output module(s). Choices: {",".join(sorted(self.preset.module_loader.output_module_choices))}',
             metavar="MODULE",
         )
         output.add_argument("--json", "-j", action="store_true", help="Output scan data in JSON format")
@@ -310,6 +321,7 @@ class BBOTArgs:
 
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
+        misc.add_argument("--proxy", help="Use this proxy for all HTTP requests", metavar="HTTP_PROXY")
         misc.add_argument(
             "-H",
             "--custom-headers",
@@ -358,6 +370,10 @@ class BBOTArgs:
                 )
             custom_headers_dict[k] = v
         self.parsed.custom_headers = custom_headers_dict
+
+        # --fast-mode
+        if self.parsed.fast_mode:
+            self.parsed.preset += ["fast"]
 
     def validate(self):
         # validate config options

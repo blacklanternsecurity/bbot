@@ -20,6 +20,8 @@ class ModuleTestBase:
     config_overrides = {}
     modules_overrides = None
     log = logging.getLogger("bbot")
+    # if True, the test will be skipped (useful for tests that require docker)
+    skip_distro_tests = False
 
     class ModuleTest:
         def __init__(
@@ -90,7 +92,7 @@ class ModuleTestBase:
         self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
     ):
         # Skip dastardly test if we're in the distro tests (because dastardly uses docker)
-        if os.getenv("BBOT_DISTRO_TESTS") and self.name == "dastardly":
+        if os.getenv("BBOT_DISTRO_TESTS") and self.skip_distro_tests:
             pytest.skip("Skipping module_test for dastardly module due to BBOT_DISTRO_TESTS environment variable")
 
         self.log.info(f"Starting {self.name} module test")
@@ -112,7 +114,9 @@ class ModuleTestBase:
 
     @pytest.mark.asyncio
     async def test_module_run(self, module_test):
-        self.check(module_test, module_test.events)
+        from bbot.core.helpers.misc import execute_sync_or_async
+
+        await execute_sync_or_async(self.check, module_test, module_test.events)
         module_test.log.info(f"Finished {self.name} module test")
         current_task = asyncio.current_task()
         tasks = [t for t in asyncio.all_tasks() if t != current_task]

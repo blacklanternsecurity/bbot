@@ -1,0 +1,16 @@
+description: Scan only the provided targets as fast as possible - no extra discovery
+
+exclude_modules:
+  - excavate
+
+config:
+  # only scan the exact targets specified
+  scope:
+    strict: true
+  # speed up dns resolution by doing A/AAAA only - not MX/NS/SRV/etc
+  dns:
+    minimal: true
+  # essential speculation only
+  modules:
+    speculate:
+      essential_only: true

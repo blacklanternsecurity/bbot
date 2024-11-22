@@ -66,4 +66,6 @@ async def test_bloom_filter():
     # ensure false positives are less than .02 percent
     assert false_positive_percent < 0.02
 
+    bloom_filter.close()
+
     await scan._cleanup()

@@ -79,7 +79,16 @@ class DNSResolve(BaseInterceptModule):
                 await self.resolve_event(main_host_event, types=non_minimal_rdtypes)
                 # check for wildcards if the event is within the scan's search distance
                 if new_event and main_host_event.scope_distance <= self.scan.scope_search_distance:
-                    await self.handle_wildcard_event(main_host_event)
+                    event_data_changed = await self.handle_wildcard_event(main_host_event)
+                    if event_data_changed:
+                        # since data has changed, we check again whether it's a duplicate
+                        if self.scan.ingress_module.is_incoming_duplicate(event, add=True):
+                            if not event._graph_important:
+                                return False, "event was already emitted by its module"
+                            else:
+                                self.debug(
+                                    f"Event {event} was already emitted by its module, but it's graph-important so it gets a pass"
+                                )
 
         # if there weren't any DNS children and it's not an IP address, tag as unresolved
         if not main_host_event.raw_dns_records and not event_is_ip:
@@ -152,6 +161,8 @@ class DNSResolve(BaseInterceptModule):
                     if wildcard_data != event.data:
                         self.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
                         event.data = wildcard_data
+                        return True
+        return False
 
     async def emit_dns_children(self, event):
         for rdtype, children in event.dns_children.items():

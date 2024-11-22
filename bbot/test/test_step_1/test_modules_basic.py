@@ -10,9 +10,6 @@ from bbot.modules.internal.base import BaseInternalModule
 
 @pytest.mark.asyncio
 async def test_modules_basic_checks(events, httpx_mock):
-    for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
-        httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
-
     from bbot.scanner import Scanner
 
     scan = Scanner(config={"omit_event_types": ["URL_UNVERIFIED"]})

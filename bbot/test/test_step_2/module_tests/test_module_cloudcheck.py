@@ -51,6 +51,10 @@ class TestCloudCheck(ModuleTestBase):
             await module.handle_event(event)
             assert "cloud-amazon" in event.tags, f"{event} was not properly cloud-tagged"
 
+        assert "cloud-domain" in aws_event1.tags
+        assert "cloud-ip" in other_event2.tags
+        assert "cloud-cname" in other_event3.tags
+
         for event in (aws_event3, other_event1):
             await module.handle_event(event)
             assert "cloud-amazon" not in event.tags, f"{event} was improperly cloud-tagged"

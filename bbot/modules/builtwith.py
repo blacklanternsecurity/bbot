@@ -62,7 +62,7 @@ class builtwith(subdomain_enum_apikey):
         url = f"{self.base_url}/redirect1/api.json?KEY={{api_key}}&LOOKUP={query}"
         return await self.api_request(url)
 
-    def parse_domains(self, r, query):
+    async def parse_domains(self, r, query):
         """
         This method returns a set of subdomains.
         Each subdomain is an "FQDN" that was reported in the "Detailed Technology Profile" page on builtwith.com
@@ -92,7 +92,7 @@ class builtwith(subdomain_enum_apikey):
                     self.verbose(f"No results for {query}: {error}")
         return results_set
 
-    def parse_redirects(self, r, query):
+    async def parse_redirects(self, r, query):
         """
         This method creates a set.
         Each entry in the set is either an Inbound or Outbound Redirect reported in the "Redirect Profile" page on builtwith.com

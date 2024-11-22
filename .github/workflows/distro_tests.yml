@@ -24,17 +24,17 @@ jobs:
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kali" ] || [ "$ID" = "parrotsec" ]; then
               export DEBIAN_FRONTEND=noninteractive
               apt-get update
-              apt-get -y install curl git bash build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
+              apt-get -y install curl git bash build-essential docker.io libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
             elif [ "$ID" = "alpine" ]; then
-              apk add --no-cache bash gcc g++ musl-dev libffi-dev curl git make openssl-dev bzip2-dev zlib-dev xz-dev sqlite-dev
+              apk add --no-cache bash gcc g++ musl-dev libffi-dev docker curl git make openssl-dev bzip2-dev zlib-dev xz-dev sqlite-dev
             elif [ "$ID" = "arch" ]; then
-              pacman -Syu --noconfirm curl git bash base-devel
+              pacman -Syu --noconfirm curl docker git bash base-devel
             elif [ "$ID" = "fedora" ]; then
-              dnf install -y curl git bash gcc make openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel tk-devel gdbm-devel readline-devel sqlite-devel python3-libdnf5
+              dnf install -y curl docker git bash gcc make openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel tk-devel gdbm-devel readline-devel sqlite-devel python3-libdnf5
             elif [ "$ID" = "gentoo" ]; then
               echo "media-libs/libglvnd X" >> /etc/portage/package.use/libglvnd
               emerge-webrsync
-              emerge --update --newuse dev-vcs/git media-libs/mesa curl bash
+              emerge --update --newuse dev-vcs/git media-libs/mesa curl docker bash
             fi
           fi
 

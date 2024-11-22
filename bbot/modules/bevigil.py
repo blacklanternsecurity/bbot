@@ -60,14 +60,14 @@ class bevigil(subdomain_enum_apikey):
         url = f"{self.base_url}/{self.helpers.quote(query)}/urls/"
         return await self.api_request(url)
 
-    def parse_subdomains(self, r, query=None):
+    async def parse_subdomains(self, r, query=None):
         results = set()
         subdomains = r.json().get("subdomains")
         if subdomains:
             results.update(subdomains)
         return results
 
-    def parse_urls(self, r, query=None):
+    async def parse_urls(self, r, query=None):
         results = set()
         urls = r.json().get("urls")
         if urls:

@@ -2,11 +2,12 @@ from .base import ModuleTestBase
 
 
 class TestCensys(ModuleTestBase):
-    config_overrides = {"modules": {"censys": {"api_id": "api_id", "api_secret": "api_secret"}}}
+    config_overrides = {"modules": {"censys": {"api_key": "api_id:api_secret"}}}
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://search.censys.io/api/v1/account",
+            match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             json={
                 "email": "info@blacklanternsecurity.com",
                 "login": "nope",
@@ -17,6 +18,7 @@ class TestCensys(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://search.censys.io/api/v2/certificates/search",
+            match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             match_content=b'{"q": "names: blacklanternsecurity.com", "per_page": 100}',
             json={
                 "code": 200,
@@ -45,6 +47,7 @@ class TestCensys(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://search.censys.io/api/v2/certificates/search",
+            match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             match_content=b'{"q": "names: blacklanternsecurity.com", "per_page": 100, "cursor": "NextToken"}',
             json={
                 "code": 200,

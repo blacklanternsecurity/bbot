@@ -22,5 +22,5 @@ class shodan_dns(shodan):
     def make_url(self, query):
         return f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={{api_key}}&page={{page}}"
 
-    def parse_results(self, json, query):
+    async def parse_results(self, json, query):
         return [f"{sub}.{query}" for sub in json.get("subdomains", [])]

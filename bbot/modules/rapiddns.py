@@ -18,11 +18,6 @@ class rapiddns(subdomain_enum):
         response = await self.api_request(url, timeout=self.http_timeout + 10)
         return response
 
-    def parse_results(self, r, query):
-        results = set()
+    async def parse_results(self, r, query):
         text = getattr(r, "text", "")
-        for match in self.helpers.regexes.dns_name_regex.findall(text):
-            match = match.lower()
-            if match.endswith(query):
-                results.add(match)
-        return results
+        return await self.scan.extract_in_scope_hostnames(text)

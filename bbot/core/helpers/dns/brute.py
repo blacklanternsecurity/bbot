@@ -41,10 +41,13 @@ class DNSBrute:
             type = "A"
         type = str(type).strip().upper()
 
-        wildcard_rdtypes = await self.parent_helper.dns.is_wildcard_domain(domain, (type, "CNAME"))
-        if wildcard_rdtypes:
+        wildcard_domains = await self.parent_helper.dns.is_wildcard_domain(domain, (type, "CNAME"))
+        wildcard_rdtypes = set()
+        for domain, rdtypes in wildcard_domains.items():
+            wildcard_rdtypes.update(rdtypes)
+        if wildcard_domains:
             self.log.hugewarning(
-                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(wildcard_rdtypes)})"
+                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(sorted(wildcard_rdtypes))})"
             )
             return []
 

@@ -42,6 +42,7 @@ async def test_events(events, helpers):
     # ip tests
     assert events.ipv4 == scan.make_event("8.8.8.8", dummy=True)
     assert "8.8.8.8" in events.ipv4
+    assert events.ipv4.host_filterable == "8.8.8.8"
     assert "8.8.8.8" == events.ipv4
     assert "8.8.8.8" in events.netv4
     assert "8.8.8.9" not in events.ipv4
@@ -59,11 +60,19 @@ async def test_events(events, helpers):
     assert events.emoji not in events.ipv4
     assert events.emoji not in events.netv6
     assert events.netv6 not in events.emoji
-    assert "dead::c0de" == scan.make_event(" [DEaD::c0De]:88", "DNS_NAME", dummy=True)
+    ipv6_event = scan.make_event(" [DEaD::c0De]:88", "DNS_NAME", dummy=True)
+    assert "dead::c0de" == ipv6_event
+    assert ipv6_event.host_filterable == "dead::c0de"
+    range_to_ip = scan.make_event("1.2.3.4/32", dummy=True)
+    assert range_to_ip.type == "IP_ADDRESS"
+    range_to_ip = scan.make_event("dead::beef/128", dummy=True)
+    assert range_to_ip.type == "IP_ADDRESS"
 
     # hostname tests
     assert events.domain.host == "publicapis.org"
+    assert events.domain.host_filterable == "publicapis.org"
     assert events.subdomain.host == "api.publicapis.org"
+    assert events.subdomain.host_filterable == "api.publicapis.org"
     assert events.domain.host_stem == "publicapis"
     assert events.subdomain.host_stem == "api.publicapis"
     assert "api.publicapis.org" in events.domain
@@ -86,7 +95,11 @@ async def test_events(events, helpers):
         assert "port" not in e.json()
 
     # url tests
-    assert scan.make_event("http://evilcorp.com", dummy=True) == scan.make_event("http://evilcorp.com/", dummy=True)
+    url_no_trailing_slash = scan.make_event("http://evilcorp.com", dummy=True)
+    url_trailing_slash = scan.make_event("http://evilcorp.com/", dummy=True)
+    assert url_no_trailing_slash == url_trailing_slash
+    assert url_no_trailing_slash.host_filterable == "http://evilcorp.com/"
+    assert url_trailing_slash.host_filterable == "http://evilcorp.com/"
     assert events.url_unverified.host == "api.publicapis.org"
     assert events.url_unverified in events.domain
     assert events.url_unverified in events.subdomain
@@ -129,6 +142,7 @@ async def test_events(events, helpers):
     assert events.http_response.port == 80
     assert events.http_response.parsed_url.scheme == "http"
     assert events.http_response.with_port().geturl() == "http://example.com:80/"
+    assert events.http_response.host_filterable == "http://example.com/"
 
     http_response = scan.make_event(
         {
@@ -484,7 +498,6 @@ async def test_events(events, helpers):
     json_event = db_event.json()
     assert isinstance(json_event["uuid"], str)
     assert json_event["uuid"] == str(db_event.uuid)
-    print(f"{json_event} / {db_event.uuid} / {db_event.parent_uuid} / {scan.root_event.uuid}")
     assert json_event["parent_uuid"] == str(scan.root_event.uuid)
     assert json_event["scope_distance"] == 1
     assert json_event["data"] == "evilcorp.com:80"
@@ -966,3 +979,35 @@ def test_event_magic():
     assert event.tags == {"folder"}
 
     zip_file.unlink()
+
+
+def test_event_hashing():
+    scan = Scanner("example.com")
+    url_event = scan.make_event("https://api.example.com/", "URL_UNVERIFIED", parent=scan.root_event)
+    host_event_1 = scan.make_event("www.example.com", "DNS_NAME", parent=url_event)
+    host_event_2 = scan.make_event("test.example.com", "DNS_NAME", parent=url_event)
+    finding_data = {"description": "Custom Yara Rule [find_string] Matched via identifier [str1]"}
+    finding1 = scan.make_event(finding_data, "FINDING", parent=host_event_1)
+    finding2 = scan.make_event(finding_data, "FINDING", parent=host_event_2)
+    finding3 = scan.make_event(finding_data, "FINDING", parent=host_event_2)
+
+    assert finding1.data == {
+        "description": "Custom Yara Rule [find_string] Matched via identifier [str1]",
+        "host": "www.example.com",
+    }
+    assert finding2.data == {
+        "description": "Custom Yara Rule [find_string] Matched via identifier [str1]",
+        "host": "test.example.com",
+    }
+    assert finding3.data == {
+        "description": "Custom Yara Rule [find_string] Matched via identifier [str1]",
+        "host": "test.example.com",
+    }
+    assert finding1.id != finding2.id
+    assert finding2.id == finding3.id
+    assert finding1.data_id != finding2.data_id
+    assert finding2.data_id == finding3.data_id
+    assert finding1.data_hash != finding2.data_hash
+    assert finding2.data_hash == finding3.data_hash
+    assert hash(finding1) != hash(finding2)
+    assert hash(finding2) == hash(finding3)

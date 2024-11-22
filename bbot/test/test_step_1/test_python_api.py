@@ -84,6 +84,10 @@ def test_python_api_sync():
 def test_python_api_validation():
     from bbot.scanner import Scanner, Preset
 
+    # invalid target
+    with pytest.raises(ValidationError) as error:
+        Scanner("asdf:::asdf")
+    assert str(error.value) == 'Unable to autodetect event type from "asdf:::asdf"'
     # invalid module
     with pytest.raises(ValidationError) as error:
         Scanner(modules=["asdf"])

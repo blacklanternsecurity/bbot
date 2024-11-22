@@ -10,9 +10,9 @@ class TestSQLite(ModuleTestBase):
         assert sqlite_output_file.exists(), "SQLite output file not found"
         with sqlite3.connect(sqlite_output_file) as db:
             cursor = db.cursor()
-            cursor.execute("SELECT * FROM event")
-            assert len(cursor.fetchall()) > 0, "No events found in SQLite database"
-            cursor.execute("SELECT * FROM scan")
-            assert len(cursor.fetchall()) > 0, "No scans found in SQLite database"
-            cursor.execute("SELECT * FROM target")
-            assert len(cursor.fetchall()) > 0, "No targets found in SQLite database"
+            results = cursor.execute("SELECT * FROM event").fetchall()
+            assert len(results) == 3, "No events found in SQLite database"
+            results = cursor.execute("SELECT * FROM scan").fetchall()
+            assert len(results) == 1, "No scans found in SQLite database"
+            results = cursor.execute("SELECT * FROM target").fetchall()
+            assert len(results) == 1, "No targets found in SQLite database"

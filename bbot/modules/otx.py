@@ -17,10 +17,12 @@ class otx(subdomain_enum):
         url = f"{self.base_url}/api/v1/indicators/domain/{self.helpers.quote(query)}/passive_dns"
         return self.api_request(url)
 
-    def parse_results(self, r, query):
+    async def parse_results(self, r, query):
+        results = set()
         j = r.json()
         if isinstance(j, dict):
             for entry in j.get("passive_dns", []):
                 subdomain = entry.get("hostname", "")
                 if subdomain:
-                    yield subdomain
+                    results.add(subdomain)
+        return results

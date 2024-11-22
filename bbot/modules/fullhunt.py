@@ -35,5 +35,5 @@ class fullhunt(subdomain_enum_apikey):
         response = await self.api_request(url)
         return response
 
-    def parse_results(self, r, query):
+    async def parse_results(self, r, query):
         return r.json().get("hosts", [])

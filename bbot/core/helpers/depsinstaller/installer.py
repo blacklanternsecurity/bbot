@@ -14,7 +14,7 @@ from secrets import token_bytes
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
-from ..misc import can_sudo_without_password, os_platform, rm_at_exit
+from ..misc import can_sudo_without_password, os_platform, rm_at_exit, get_python_constraints
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -44,7 +44,13 @@ class DepsInstaller:
         self.parent_helper.mkdir(self.command_status)
         self.setup_status = self.read_setup_status()
 
-        self.deps_behavior = self.parent_helper.config.get("deps_behavior", "abort_on_failure").lower()
+        # make sure we're using a minimal git config
+        self.minimal_git_config = self.data_dir / "minimal_git.config"
+        self.minimal_git_config.touch()
+        os.environ["GIT_CONFIG_GLOBAL"] = str(self.minimal_git_config)
+
+        self.deps_config = self.parent_helper.config.get("deps", {})
+        self.deps_behavior = self.deps_config.get("behavior", "abort_on_failure").lower()
         self.ansible_debug = self.core.logger.log_level <= logging.DEBUG
         self.venv = ""
         if sys.prefix != sys.base_prefix:
@@ -171,10 +177,13 @@ class DepsInstaller:
 
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
 
-        if constraints:
-            constraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)
-            command.append("--constraint")
-            command.append(constraints_tempfile)
+        # if no custom constraints are provided, use the constraints of the currently installed version of bbot
+        if constraints is not None:
+            constraints = get_python_constraints()
+
+        constraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)
+        command.append("--constraint")
+        command.append(constraints_tempfile)
 
         process = None
         try:

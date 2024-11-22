@@ -93,7 +93,22 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         ipaddress.ip_network("0.0.0.0/0"),
     ]
     assert helpers.is_ip("127.0.0.1")
+    assert helpers.is_ip("127.0.0.1", include_network=True)
+    assert helpers.is_ip("127.0.0.1", version=4)
+    assert not helpers.is_ip("127.0.0.1", version=6)
     assert not helpers.is_ip("127.0.0.0.1")
+
+    assert helpers.is_ip("dead::beef")
+    assert helpers.is_ip("dead::beef", include_network=True)
+    assert not helpers.is_ip("dead::beef", version=4)
+    assert helpers.is_ip("dead::beef", version=6)
+    assert not helpers.is_ip("dead:::beef")
+
+    assert not helpers.is_ip("1.2.3.4/24")
+    assert helpers.is_ip("1.2.3.4/24", include_network=True)
+    assert not helpers.is_ip("1.2.3.4/24", version=4)
+    assert helpers.is_ip("1.2.3.4/24", include_network=True, version=4)
+    assert not helpers.is_ip("1.2.3.4/24", include_network=True, version=6)
 
     assert not helpers.is_ip_type("127.0.0.1")
     assert helpers.is_ip_type(ipaddress.ip_address("127.0.0.1"))
@@ -104,6 +119,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert not helpers.is_ip_type(ipaddress.ip_network("127.0.0.0/8"), network=False)
 
     assert helpers.is_dns_name("evilcorp.com")
+    assert not helpers.is_dns_name("evilcorp.com:80")
+    assert not helpers.is_dns_name("http://evilcorp.com:80")
     assert helpers.is_dns_name("evilcorp")
     assert not helpers.is_dns_name("evilcorp", include_local=False)
     assert helpers.is_dns_name("ドメイン.テスト")

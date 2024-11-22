@@ -24,11 +24,6 @@ class virustotal(subdomain_enum_apikey):
         kwargs["headers"]["x-apikey"] = self.api_key
         return url, kwargs
 
-    def parse_results(self, r, query):
-        results = set()
+    async def parse_results(self, r, query):
         text = getattr(r, "text", "")
-        for match in self.helpers.regexes.dns_name_regex.findall(text):
-            match = match.lower()
-            if match.endswith(query):
-                results.add(match)
-        return results
+        return await self.scan.extract_in_scope_hostnames(text)

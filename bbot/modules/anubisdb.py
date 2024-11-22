@@ -38,7 +38,7 @@ class anubisdb(subdomain_enum):
             return True, "DNS name is unresolved"
         return await super().abort_if(event)
 
-    def parse_results(self, r, query):
+    async def parse_results(self, r, query):
         results = set()
         json = r.json()
         if json:

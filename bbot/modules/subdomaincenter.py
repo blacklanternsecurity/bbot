@@ -33,7 +33,7 @@ class subdomaincenter(subdomain_enum):
                 break
         return response
 
-    def parse_results(self, r, query):
+    async def parse_results(self, r, query):
         results = set()
         json = r.json()
         if json and isinstance(json, list):

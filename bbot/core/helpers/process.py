@@ -1,13 +1,9 @@
 import logging
 import traceback
 import threading
-import multiprocessing
 from multiprocessing.context import SpawnProcess
 
 from .misc import in_exception_chain
-
-
-current_process = multiprocessing.current_process()
 
 
 class BBOTThread(threading.Thread):
@@ -57,17 +53,3 @@ class BBOTProcess(SpawnProcess):
             if not in_exception_chain(e, (KeyboardInterrupt,)):
                 log.warning(f"Error in {self.name}: {e}")
             log.trace(traceback.format_exc())
-
-
-if current_process.name == "MainProcess":
-    # if this is the main bbot process, set the logger and queue for the first time
-    from bbot.core import CORE
-    from functools import partialmethod
-
-    BBOTProcess.__init__ = partialmethod(
-        BBOTProcess.__init__, log_level=CORE.logger.log_level, log_queue=CORE.logger.queue
-    )
-
-# this makes our process class the default for process pools, etc.
-mp_context = multiprocessing.get_context("spawn")
-mp_context.Process = BBOTProcess

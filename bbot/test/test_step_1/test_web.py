@@ -471,6 +471,9 @@ async def test_web_cookies(bbot_scanner, httpx_mock):
     # but that they're not sent in the response
     with pytest.raises(httpx.TimeoutException):
         r = await client2.get(url="http://www2.evilcorp.com/cookies/test")
+    # make sure cookies are sent
+    r = await client2.get(url="http://www2.evilcorp.com/cookies/test", cookies={"wats": "fdsa"})
+    assert r.status_code == 200
     # make sure we can manually send cookies
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test2", match_headers={"Cookie": "fdsa=wats"})
     r = await client2.get(url="http://www2.evilcorp.com/cookies/test2", cookies={"fdsa": "wats"})

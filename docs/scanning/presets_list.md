@@ -189,6 +189,34 @@ Enumerate email addresses from APIs, web crawling, etc.
 
 Modules: [7]("`dehashed`, `dnscaa`, `emailformat`, `hunterio`, `pgp`, `skymem`, `sslcert`")
 
+## **fast**
+
+Scan only the provided targets as fast as possible - no extra discovery
+
+??? note "`fast.yml`"
+    ```yaml title="~/.bbot/presets/fast.yml"
+    description: Scan only the provided targets as fast as possible - no extra discovery
+    
+    exclude_modules:
+      - excavate
+    
+    config:
+      # only scan the exact targets specified
+      scope:
+        strict: true
+      # speed up dns resolution by doing A/AAAA only - not MX/NS/SRV/etc
+      dns:
+        minimal: true
+      # essential speculation only
+      modules:
+        speculate:
+          essential_only: true
+    ```
+
+
+
+Modules: [0]("")
+
 ## **iis-shortnames**
 
 Recursively enumerate IIS shortnames
@@ -277,6 +305,10 @@ Recursive web spider
     
     modules:
       - httpx
+    
+    blacklist:
+      # Prevent spider from invalidating sessions by logging out
+      - "RE:/.*(sign|log)[_-]?out"
     
     config:
       web:
@@ -406,6 +438,7 @@ Here is a the same data, but in a table:
 | dirbust-light   | web        | Basic web directory brute-force (surface-level directories only)         | 4           | ffuf, ffuf_shortnames, httpx, iis_shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | dotnet-audit    | web        | Comprehensive scan for all IIS/.NET specific modules and module settings | 8           | ajaxpro, badsecrets, dotnetnuke, ffuf, ffuf_shortnames, httpx, iis_shortnames, telerik                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | email-enum      |            | Enumerate email addresses from APIs, web crawling, etc.                  | 7           | dehashed, dnscaa, emailformat, hunterio, pgp, skymem, sslcert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| fast            |            | Scan only the provided targets as fast as possible - no extra discovery  | 0           |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | iis-shortnames  | web        | Recursively enumerate IIS shortnames                                     | 3           | ffuf_shortnames, httpx, iis_shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | kitchen-sink    |            | Everything everywhere all at once                                        | 86          | anubisdb, apkpure, asn, azure_realm, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bufferoverrun, builtwith, c99, censys, certspotter, chaos, code_repository, columbus, crt, dehashed, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, docker_pull, dockerhub, emailformat, ffuf, ffuf_shortnames, filedownload, fullhunt, git, git_clone, github_codesearch, github_org, github_workflows, gitlab, google_playstore, gowitness, hackertarget, httpx, hunterio, iis_shortnames, internetdb, ipneighbor, leakix, myssl, ntlm, oauth, otx, paramminer_cookies, paramminer_getparams, paramminer_headers, passivetotal, pgp, postman, postman_download, rapiddns, robots, secretsdb, securitytrails, securitytxt, shodan_dns, sitedossier, skymem, social, sslcert, subdomaincenter, subdomainradar, trickest, trufflehog, urlscan, virustotal, wappalyzer, wayback, zoomeye |
 | paramminer      | web        | Discover new web parameters via brute-force                              | 4           | httpx, paramminer_cookies, paramminer_getparams, paramminer_headers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |

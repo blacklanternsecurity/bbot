@@ -11,23 +11,25 @@ class passivetotal(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"username": "", "api_key": ""}
-    options_desc = {"username": "RiskIQ Username", "api_key": "RiskIQ API Key"}
+    options = {"api_key": ""}
+    options_desc = {"api_key": "PassiveTotal API Key in the format of 'username:api_key'"}
 
     base_url = "https://api.passivetotal.org/v2"
 
     async def setup(self):
-        self.username = self.config.get("username", "")
-        self.api_key = self.config.get("api_key", "")
-        self.auth = (self.username, self.api_key)
         return await super().setup()
 
     async def ping(self):
         url = f"{self.base_url}/account/quota"
-        j = (await self.api_request(url, auth=self.auth)).json()
+        j = (await self.api_request(url)).json()
         limit = j["user"]["limits"]["search_api"]
         used = j["user"]["counts"]["search_api"]
         assert used < limit, "No quota remaining"
+
+    def prepare_api_request(self, url, kwargs):
+        api_username, api_key = self.api_key.split(":", 1)
+        kwargs["auth"] = (api_username, api_key)
+        return url, kwargs
 
     async def abort_if(self, event):
         # RiskIQ is famous for their junk data
@@ -35,12 +37,10 @@ class passivetotal(subdomain_enum_apikey):
 
     async def request_url(self, query):
         url = f"{self.base_url}/enrichment/subdomains?query={self.helpers.quote(query)}"
-        return await self.api_request(url, auth=self.auth)
+        return await self.api_request(url)
 
-    def parse_results(self, r, query):
+    async def parse_results(self, r, query):
+        results = set()
         for subdomain in r.json().get("subdomains", []):
-            yield f"{subdomain}.{query}"
-
-    @property
-    def auth_secret(self):
-        return self.username and self.api_key
+            results.add(f"{subdomain}.{query}")
+        return results

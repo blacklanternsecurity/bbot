@@ -3,6 +3,10 @@ description: Recursive web spider
 modules:
   - httpx
 
+blacklist:
+  # Prevent spider from invalidating sessions by logging out
+  - "RE:/.*(sign|log)[_-]?out"
+
 config:
   web:
     # how many links to follow in a row

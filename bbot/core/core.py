@@ -6,6 +6,7 @@ from contextlib import suppress
 from omegaconf import OmegaConf
 
 from bbot.errors import BBOTError
+from .multiprocess import SHARED_INTERPRETER_STATE
 
 
 DEFAULT_CONFIG = None
@@ -41,9 +42,23 @@ class BBOTCore:
         self.logger
         self.log = logging.getLogger("bbot.core")
 
-        import multiprocessing
+        self._prep_multiprocessing()
 
-        self.process_name = multiprocessing.current_process().name
+    def _prep_multiprocessing(self):
+        import multiprocessing
+        from .helpers.process import BBOTProcess
+
+        if SHARED_INTERPRETER_STATE.is_main_process:
+            # if this is the main bbot process, set the logger and queue for the first time
+            from functools import partialmethod
+
+            BBOTProcess.__init__ = partialmethod(
+                BBOTProcess.__init__, log_level=self.logger.log_level, log_queue=self.logger.queue
+            )
+
+        # this makes our process class the default for process pools, etc.
+        mp_context = multiprocessing.get_context("spawn")
+        mp_context.Process = BBOTProcess
 
     @property
     def home(self):
@@ -187,12 +202,14 @@ class BBOTCore:
         if os.environ.get("BBOT_TESTING", "") == "True":
             process = self.create_thread(*args, **kwargs)
         else:
-            if self.process_name == "MainProcess":
+            if SHARED_INTERPRETER_STATE.is_scan_process:
                 from .helpers.process import BBOTProcess
 
                 process = BBOTProcess(*args, **kwargs)
             else:
-                raise BBOTError(f"Tried to start server from process {self.process_name}")
+                import multiprocessing
+
+                raise BBOTError(f"Tried to start server from process {multiprocessing.current_process().name}")
         process.daemon = True
         return process
 

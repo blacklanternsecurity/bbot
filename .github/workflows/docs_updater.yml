@@ -30,5 +30,5 @@ jobs:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           branch: update-docs
           base: dev
-          title: "Daily Docs Update"
+          title: "Automated Docs Update"
           body: "This is an automated pull request to update the documentation."

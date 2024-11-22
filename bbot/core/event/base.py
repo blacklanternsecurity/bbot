@@ -342,6 +342,21 @@ class BaseEvent:
         return self._host_original
 
     @property
+    def host_filterable(self):
+        """
+        A string version of the event that's used for regex-based blacklisting.
+
+        For example, the user can specify "REGEX:.*.evilcorp.com" in their blacklist, and this regex
+        will be applied against this property.
+        """
+        parsed_url = getattr(self, "parsed_url", None)
+        if parsed_url is not None:
+            return parsed_url.geturl()
+        if self.host is not None:
+            return str(self.host)
+        return ""
+
+    @property
     def port(self):
         self.host
         if getattr(self, "parsed_url", None):
@@ -1003,13 +1018,15 @@ class ClosestHostEvent(DictHostEvent):
                     if parent_url is not None:
                         self.data["url"] = parent_url.geturl()
                 # inherit closest path
-                if not "path" in self.data and isinstance(parent.data, dict):
+                if not "path" in self.data and isinstance(parent.data, dict) and not parent.type == "HTTP_RESPONSE":
                     parent_path = parent.data.get("path", None)
                     if parent_path is not None:
                         self.data["path"] = parent_path
                 # inherit closest host
                 if parent.host:
                     self.data["host"] = str(parent.host)
+                    # we do this to refresh the hash
+                    self.data = self.data
                     break
         # die if we still haven't found a host
         if not self.host:
@@ -1112,8 +1129,7 @@ class DnsEvent(BaseEvent):
 class IP_RANGE(DnsEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        net = ipaddress.ip_network(self.data, strict=False)
-        self.add_tag(f"ipv{net.version}")
+        self.add_tag(f"ipv{self.host.version}")
 
     def sanitize_data(self, data):
         return str(ipaddress.ip_network(str(data), strict=False))
@@ -1559,6 +1575,8 @@ class FILESYSTEM(DictPathEvent):
                 self.add_tag("compressed")
                 self.add_tag(f"{compression}-archive")
                 self.data["compression"] = compression
+            # refresh hash
+            self.data = self.data
 
 
 class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
@@ -1639,23 +1657,23 @@ def make_event(
     tags = set(tags)
 
     if is_event(data):
-        data = copy(data)
-        if scan is not None and not data.scan:
-            data.scan = scan
-        if scans is not None and not data.scans:
-            data.scans = scans
+        event = copy(data)
+        if scan is not None and not event.scan:
+            event.scan = scan
+        if scans is not None and not event.scans:
+            event.scans = scans
         if module is not None:
-            data.module = module
+            event.module = module
         if parent is not None:
-            data.parent = parent
+            event.parent = parent
         if context is not None:
-            data.discovery_context = context
+            event.discovery_context = context
         if internal == True:
-            data.internal = True
+            event.internal = True
         if tags:
-            data.tags = tags.union(data.tags)
+            event.tags = tags.union(event.tags)
         event_type = data.type
-        return data
+        return event
     else:
         if event_type is None:
             event_type, data = get_event_type(data)
@@ -1685,6 +1703,13 @@ def make_event(
         if event_type == "USERNAME" and validators.soft_validate(data, "email"):
             event_type = "EMAIL_ADDRESS"
             tags.add("affiliate")
+        # Convert single-host IP_RANGE to IP_ADDRESS
+        if event_type == "IP_RANGE":
+            with suppress(Exception):
+                net = ipaddress.ip_network(data, strict=False)
+                if net.prefixlen == net.max_prefixlen:
+                    event_type = "IP_ADDRESS"
+                    data = net.network_address
 
         event_class = globals().get(event_type, DefaultEvent)
 

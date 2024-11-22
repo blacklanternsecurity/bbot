@@ -1,6 +1,6 @@
 import logging
 
-from bbot.core.helpers.regexes import dns_name_regex
+from bbot.core.helpers.regexes import dns_name_extraction_regex
 from bbot.core.helpers.misc import clean_dns_record, smart_decode
 
 log = logging.getLogger("bbot.core.helpers.dns")
@@ -198,7 +198,7 @@ def extract_targets(record):
     elif rdtype == "TXT":
         for s in record.strings:
             s = smart_decode(s)
-            for match in dns_name_regex.finditer(s):
+            for match in dns_name_extraction_regex.finditer(s):
                 start, end = match.span()
                 host = s[start:end]
                 add_result(rdtype, host)

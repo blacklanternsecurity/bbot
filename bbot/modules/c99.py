@@ -26,7 +26,8 @@ class c99(subdomain_enum_apikey):
         url = f"{self.base_url}/subdomainfinder?key={{api_key}}&domain={self.helpers.quote(query)}&json"
         return await self.api_request(url)
 
-    def parse_results(self, r, query):
+    async def parse_results(self, r, query):
+        results = set()
         j = r.json()
         if isinstance(j, dict):
             subdomains = j.get("subdomains", [])
@@ -34,4 +35,5 @@ class c99(subdomain_enum_apikey):
                 for s in subdomains:
                     subdomain = s.get("subdomain", "")
                     if subdomain:
-                        yield subdomain
+                        results.add(subdomain)
+        return results

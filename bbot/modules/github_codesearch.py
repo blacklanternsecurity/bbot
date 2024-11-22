@@ -50,9 +50,10 @@ class github_codesearch(github, subdomain_enum):
                     break
                 status_code = getattr(r, "status_code", 0)
                 if status_code == 429:
-                    "Github is rate-limiting us (HTTP status: 429)"
+                    self.info("Github is rate-limiting us (HTTP status: 429)")
                     break
                 if status_code != 200:
+                    self.info(f"Unexpected response (HTTP status: {status_code})")
                     break
                 try:
                     j = r.json()

@@ -86,12 +86,15 @@ def test_preset_yaml(clean_default_config):
         debug=False,
         silent=True,
         config={"preset_test_asdf": 1},
-        strict_scope=False,
     )
     preset1 = preset1.bake()
-    assert "evilcorp.com" in preset1.target
+    assert "evilcorp.com" in preset1.target.seeds
+    assert "evilcorp.ce" not in preset1.target.seeds
+    assert "asdf.www.evilcorp.ce" in preset1.target.seeds
     assert "evilcorp.ce" in preset1.whitelist
+    assert "asdf.evilcorp.ce" in preset1.whitelist
     assert "test.www.evilcorp.ce" in preset1.blacklist
+    assert "asdf.test.www.evilcorp.ce" in preset1.blacklist
     assert "sslcert" in preset1.scan_modules
     assert preset1.whitelisted("evilcorp.ce")
     assert preset1.whitelisted("www.evilcorp.ce")
@@ -171,12 +174,14 @@ def test_preset_scope():
 
     # test target merging
     scan = Scanner("1.2.3.4", preset=Preset.from_dict({"target": ["evilcorp.com"]}))
-    assert set([str(h) for h in scan.preset.target.seeds.hosts]) == {"1.2.3.4", "evilcorp.com"}
-    assert set([e.data for e in scan.target]) == {"1.2.3.4", "evilcorp.com"}
+    assert set([str(h) for h in scan.preset.target.seeds.hosts]) == {"1.2.3.4/32", "evilcorp.com"}
+    assert set([e.data for e in scan.target.seeds]) == {"1.2.3.4", "evilcorp.com"}
+    assert set([e.data for e in scan.target.whitelist]) == {"1.2.3.4", "evilcorp.com"}
 
     blank_preset = Preset()
     blank_preset = blank_preset.bake()
-    assert not blank_preset.target
+    assert not blank_preset.target.seeds
+    assert not blank_preset.target.whitelist
     assert blank_preset.strict_scope == False
 
     preset1 = Preset(
@@ -188,10 +193,11 @@ def test_preset_scope():
     preset1_baked = preset1.bake()
 
     # make sure target logic works as expected
-    assert "evilcorp.com" in preset1_baked.target
-    assert "asdf.evilcorp.com" in preset1_baked.target
-    assert "asdf.www.evilcorp.ce" in preset1_baked.target
-    assert not "evilcorp.ce" in preset1_baked.target
+    assert "evilcorp.com" in preset1_baked.target.seeds
+    assert not "evilcorp.com" in preset1_baked.target.whitelist
+    assert "asdf.evilcorp.com" in preset1_baked.target.seeds
+    assert not "asdf.evilcorp.com" in preset1_baked.target.whitelist
+    assert "asdf.evilcorp.ce" in preset1_baked.whitelist
     assert "evilcorp.ce" in preset1_baked.whitelist
     assert "test.www.evilcorp.ce" in preset1_baked.blacklist
     assert not "evilcorp.ce" in preset1_baked.blacklist
@@ -210,7 +216,7 @@ def test_preset_scope():
         "evilcorp.org",
         whitelist=["evilcorp.de"],
         blacklist=["test.www.evilcorp.de"],
-        strict_scope=True,
+        config={"scope": {"strict": True}},
     )
 
     preset1.merge(preset3)
@@ -218,17 +224,21 @@ def test_preset_scope():
     preset1_baked = preset1.bake()
 
     # targets should be merged
-    assert "evilcorp.com" in preset1_baked.target
-    assert "www.evilcorp.ce" in preset1_baked.target
-    assert "evilcorp.org" in preset1_baked.target
+    assert "evilcorp.com" in preset1_baked.target.seeds
+    assert "www.evilcorp.ce" in preset1_baked.target.seeds
+    assert "evilcorp.org" in preset1_baked.target.seeds
     # strict scope is enabled
-    assert not "asdf.evilcorp.com" in preset1_baked.target
-    assert not "asdf.www.evilcorp.ce" in preset1_baked.target
+    assert not "asdf.www.evilcorp.ce" in preset1_baked.target.seeds
+    assert not "asdf.evilcorp.org" in preset1_baked.target.seeds
+    assert not "asdf.evilcorp.com" in preset1_baked.target.seeds
+    assert not "asdf.www.evilcorp.ce" in preset1_baked.target.seeds
     assert "evilcorp.ce" in preset1_baked.whitelist
     assert "evilcorp.de" in preset1_baked.whitelist
     assert not "asdf.evilcorp.de" in preset1_baked.whitelist
     assert not "asdf.evilcorp.ce" in preset1_baked.whitelist
     # blacklist should be merged, strict scope does not apply
+    assert "test.www.evilcorp.ce" in preset1_baked.blacklist
+    assert "test.www.evilcorp.de" in preset1_baked.blacklist
     assert "asdf.test.www.evilcorp.ce" in preset1_baked.blacklist
     assert "asdf.test.www.evilcorp.de" in preset1_baked.blacklist
     assert not "asdf.test.www.evilcorp.org" in preset1_baked.blacklist
@@ -264,14 +274,14 @@ def test_preset_scope():
     }
     assert preset_whitelist_baked.to_dict(include_target=True) == {
         "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.0/24", "evilcorp.net"],
-        "blacklist": ["evilcorp.co.uk"],
+        "whitelist": ["1.2.3.0/24", "http://evilcorp.net/"],
+        "blacklist": ["bob@evilcorp.co.uk", "evilcorp.co.uk:443"],
         "config": {"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
     }
     assert preset_whitelist_baked.to_dict(include_target=True, redact_secrets=True) == {
         "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.0/24", "evilcorp.net"],
-        "blacklist": ["evilcorp.co.uk"],
+        "whitelist": ["1.2.3.0/24", "http://evilcorp.net/"],
+        "blacklist": ["bob@evilcorp.co.uk", "evilcorp.co.uk:443"],
         "config": {"modules": {"secretsdb": {"otherthing": "asdf"}}},
     }
 
@@ -279,7 +289,8 @@ def test_preset_scope():
     assert not preset_nowhitelist_baked.in_scope("www.evilcorp.de")
     assert not preset_nowhitelist_baked.in_scope("1.2.3.4/24")
 
-    assert "www.evilcorp.org" in preset_whitelist_baked.target
+    assert "www.evilcorp.org" in preset_whitelist_baked.target.seeds
+    assert not "www.evilcorp.org" in preset_whitelist_baked.target.whitelist
     assert "1.2.3.4" in preset_whitelist_baked.whitelist
     assert not preset_whitelist_baked.in_scope("www.evilcorp.org")
     assert not preset_whitelist_baked.in_scope("www.evilcorp.de")
@@ -292,17 +303,17 @@ def test_preset_scope():
     assert preset_whitelist_baked.whitelisted("1.2.3.4/28")
     assert preset_whitelist_baked.whitelisted("1.2.3.4/24")
 
-    assert set([e.data for e in preset_nowhitelist_baked.target]) == {"evilcorp.com"}
-    assert set([e.data for e in preset_whitelist_baked.target]) == {"evilcorp.org"}
+    assert set([e.data for e in preset_nowhitelist_baked.seeds]) == {"evilcorp.com"}
     assert set([e.data for e in preset_nowhitelist_baked.whitelist]) == {"evilcorp.com"}
-    assert set([e.data for e in preset_whitelist_baked.whitelist]) == {"1.2.3.0/24", "evilcorp.net"}
+    assert set([e.data for e in preset_whitelist_baked.seeds]) == {"evilcorp.org"}
+    assert set([e.data for e in preset_whitelist_baked.whitelist]) == {"1.2.3.0/24", "http://evilcorp.net/"}
 
     preset_nowhitelist.merge(preset_whitelist)
     preset_nowhitelist_baked = preset_nowhitelist.bake()
-    assert set([e.data for e in preset_nowhitelist_baked.target]) == {"evilcorp.com", "evilcorp.org"}
-    assert set([e.data for e in preset_nowhitelist_baked.whitelist]) == {"1.2.3.0/24", "evilcorp.net"}
-    assert "www.evilcorp.org" in preset_nowhitelist_baked.target
-    assert "www.evilcorp.com" in preset_nowhitelist_baked.target
+    assert set([e.data for e in preset_nowhitelist_baked.seeds]) == {"evilcorp.com", "evilcorp.org"}
+    assert set([e.data for e in preset_nowhitelist_baked.whitelist]) == {"1.2.3.0/24", "http://evilcorp.net/"}
+    assert "www.evilcorp.org" in preset_nowhitelist_baked.seeds
+    assert "www.evilcorp.com" in preset_nowhitelist_baked.seeds
     assert "1.2.3.4" in preset_nowhitelist_baked.whitelist
     assert not preset_nowhitelist_baked.in_scope("www.evilcorp.org")
     assert not preset_nowhitelist_baked.in_scope("www.evilcorp.com")
@@ -314,10 +325,12 @@ def test_preset_scope():
     preset_whitelist = Preset("evilcorp.org", whitelist=["1.2.3.4/24"])
     preset_whitelist.merge(preset_nowhitelist)
     preset_whitelist_baked = preset_whitelist.bake()
-    assert set([e.data for e in preset_whitelist_baked.target]) == {"evilcorp.com", "evilcorp.org"}
+    assert set([e.data for e in preset_whitelist_baked.seeds]) == {"evilcorp.com", "evilcorp.org"}
     assert set([e.data for e in preset_whitelist_baked.whitelist]) == {"1.2.3.0/24"}
-    assert "www.evilcorp.org" in preset_whitelist_baked.target
-    assert "www.evilcorp.com" in preset_whitelist_baked.target
+    assert "www.evilcorp.org" in preset_whitelist_baked.seeds
+    assert "www.evilcorp.com" in preset_whitelist_baked.seeds
+    assert not "www.evilcorp.org" in preset_whitelist_baked.target.whitelist
+    assert not "www.evilcorp.com" in preset_whitelist_baked.target.whitelist
     assert "1.2.3.4" in preset_whitelist_baked.whitelist
     assert not preset_whitelist_baked.in_scope("www.evilcorp.org")
     assert not preset_whitelist_baked.in_scope("www.evilcorp.com")
@@ -329,18 +342,18 @@ def test_preset_scope():
     preset_nowhitelist2 = Preset("evilcorp.de")
     preset_nowhitelist1_baked = preset_nowhitelist1.bake()
     preset_nowhitelist2_baked = preset_nowhitelist2.bake()
-    assert set([e.data for e in preset_nowhitelist1_baked.target]) == {"evilcorp.com"}
-    assert set([e.data for e in preset_nowhitelist2_baked.target]) == {"evilcorp.de"}
+    assert set([e.data for e in preset_nowhitelist1_baked.seeds]) == {"evilcorp.com"}
+    assert set([e.data for e in preset_nowhitelist2_baked.seeds]) == {"evilcorp.de"}
     assert set([e.data for e in preset_nowhitelist1_baked.whitelist]) == {"evilcorp.com"}
     assert set([e.data for e in preset_nowhitelist2_baked.whitelist]) == {"evilcorp.de"}
     preset_nowhitelist1.merge(preset_nowhitelist2)
     preset_nowhitelist1_baked = preset_nowhitelist1.bake()
-    assert set([e.data for e in preset_nowhitelist1_baked.target]) == {"evilcorp.com", "evilcorp.de"}
-    assert set([e.data for e in preset_nowhitelist2_baked.target]) == {"evilcorp.de"}
+    assert set([e.data for e in preset_nowhitelist1_baked.seeds]) == {"evilcorp.com", "evilcorp.de"}
+    assert set([e.data for e in preset_nowhitelist2_baked.seeds]) == {"evilcorp.de"}
     assert set([e.data for e in preset_nowhitelist1_baked.whitelist]) == {"evilcorp.com", "evilcorp.de"}
     assert set([e.data for e in preset_nowhitelist2_baked.whitelist]) == {"evilcorp.de"}
-    assert "www.evilcorp.com" in preset_nowhitelist1_baked.target
-    assert "www.evilcorp.de" in preset_nowhitelist1_baked.target
+    assert "www.evilcorp.com" in preset_nowhitelist1_baked.seeds
+    assert "www.evilcorp.de" in preset_nowhitelist1_baked.seeds
     assert "www.evilcorp.com" in preset_nowhitelist1_baked.target.seeds
     assert "www.evilcorp.de" in preset_nowhitelist1_baked.target.seeds
     assert "www.evilcorp.com" in preset_nowhitelist1_baked.whitelist
@@ -357,8 +370,8 @@ def test_preset_scope():
     preset_nowhitelist2.merge(preset_nowhitelist1)
     preset_nowhitelist1_baked = preset_nowhitelist1.bake()
     preset_nowhitelist2_baked = preset_nowhitelist2.bake()
-    assert set([e.data for e in preset_nowhitelist1_baked.target]) == {"evilcorp.com"}
-    assert set([e.data for e in preset_nowhitelist2_baked.target]) == {"evilcorp.com", "evilcorp.de"}
+    assert set([e.data for e in preset_nowhitelist1_baked.seeds]) == {"evilcorp.com"}
+    assert set([e.data for e in preset_nowhitelist2_baked.seeds]) == {"evilcorp.com", "evilcorp.de"}
     assert set([e.data for e in preset_nowhitelist1_baked.whitelist]) == {"evilcorp.com"}
     assert set([e.data for e in preset_nowhitelist2_baked.whitelist]) == {"evilcorp.com", "evilcorp.de"}
 

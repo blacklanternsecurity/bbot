@@ -1,7 +1,7 @@
+from contextlib import suppress
 from sqlmodel import SQLModel
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy_utils.functions import database_exists, create_database
 
 from bbot.db.sql.models import Event, Scan, Target
 from bbot.modules.output.base import BaseOutputModule
@@ -10,7 +10,6 @@ from bbot.modules.output.base import BaseOutputModule
 class SQLTemplate(BaseOutputModule):
     meta = {"description": "SQL output module template"}
     options = {
-        "protocol": "",
         "database": "bbot",
         "username": "",
         "password": "",
@@ -18,13 +17,14 @@ class SQLTemplate(BaseOutputModule):
         "port": 0,
     }
     options_desc = {
-        "protocol": "The protocol to use to connect to the database",
         "database": "The database to use",
         "username": "The username to use to connect to the database",
         "password": "The password to use to connect to the database",
         "host": "The host to use to connect to the database",
         "port": "The port to use to connect to the database",
     }
+
+    protocol = ""
 
     async def setup(self):
         self.database = self.config.get("database", "bbot")
@@ -33,11 +33,6 @@ class SQLTemplate(BaseOutputModule):
         self.host = self.config.get("host", "127.0.0.1")
         self.port = self.config.get("port", 0)
 
-        self.log.info(f"Connecting to {self.connection_string(mask_password=True)}")
-
-        self.engine = create_async_engine(self.connection_string())
-        # Create a session factory bound to the engine
-        self.async_session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
         await self.init_database()
         return True
 
@@ -65,12 +60,19 @@ class SQLTemplate(BaseOutputModule):
 
                 await session.commit()
 
+    async def create_database(self):
+        pass
+
     async def init_database(self):
+        await self.create_database()
+
+        # Now create the engine for the actual database
+        self.engine = create_async_engine(self.connection_string())
+        # Create a session factory bound to the engine
+        self.async_session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
+
+        # Use the engine directly to create all tables
         async with self.engine.begin() as conn:
-            # Check if the database exists using the connection's engine URL
-            if not await conn.run_sync(lambda sync_conn: database_exists(sync_conn.engine.url)):
-                await conn.run_sync(lambda sync_conn: create_database(sync_conn.engine.url))
-            # Create all tables
             await conn.run_sync(SQLModel.metadata.create_all)
 
     def connection_string(self, mask_password=False):
@@ -87,3 +89,7 @@ class SQLTemplate(BaseOutputModule):
         if self.database:
             connection_string += f"/{self.database}"
         return connection_string
+
+    async def cleanup(self):
+        with suppress(Exception):
+            await self.engine.dispose()

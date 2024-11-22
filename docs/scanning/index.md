@@ -178,6 +178,8 @@ Note that `--strict-scope` only applies to targets and whitelists, but not black
 
 BBOT allows precise control over scope with whitelists and blacklists. These both use the same syntax as `--target`, meaning they accept the same event types, and you can specify an unlimited number of them, via a file, the CLI, or both.
 
+#### Whitelists
+
 `--whitelist` enables you to override what's in scope. For example, if you want to run nuclei against `evilcorp.com`, but stay only inside their corporate IP range of `1.2.3.0/24`, you can accomplish this like so:
 
 ```bash
@@ -185,11 +187,56 @@ BBOT allows precise control over scope with whitelists and blacklists. These bot
 bbot -t evilcorp.com --whitelist 1.2.3.0/24 -f subdomain-enum -m nmap nuclei --allow-deadly
 ```
 
+#### Blacklists
+
 `--blacklist` takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it's in the whitelist.
 
 ```bash
 # Scan evilcorp.com, but exclude internal.evilcorp.com and its children
 bbot -t evilcorp.com --blacklist internal.evilcorp.com -f subdomain-enum -m nmap nuclei --allow-deadly
+```
+
+#### Blacklist by Regex
+
+Blacklists also accept regex patterns. These regexes are are checked against the full URL, including the host and path.
+
+To specify a regex, prefix the pattern with `RE:`. For example, to exclude all events containing "signout", you could do:
+
+```bash
+bbot -t evilcorp.com --blacklist "RE:signout"
+```
+
+Note that this would blacklist both of the following events:
+
+- `[URL]       http://evilcorp.com/signout.aspx`
+- `[DNS_NAME]  signout.evilcorp.com`
+
+If you only want to blacklist the URL, you could narrow the regex like so:
+
+```bash
+bbot -t evilcorp.com --blacklist 'RE:signout\.aspx$'
+```
+
+Similar to targets and whitelists, blacklists can be specified in your preset. The `spider` preset makes use of this to prevent the spider from following logout links:
+
+```yaml title="spider.yml"
+description: Recursive web spider
+
+modules:
+  - httpx
+
+blacklist:
+  # Prevent spider from invalidating sessions by logging out
+  - "RE:/.*(sign|log)[_-]?out"
+
+config:
+  web:
+    # how many links to follow in a row
+    spider_distance: 2
+    # don't follow links whose directory depth is higher than 4
+    spider_depth: 4
+    # maximum number of links to follow per page
+    spider_links_per_page: 25
 ```
 
 ## DNS Wildcards

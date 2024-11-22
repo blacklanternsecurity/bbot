@@ -2,7 +2,7 @@
 #
 # Checks for and parses CAA DNS TXT records for IODEF reporting destination email addresses and/or URL's.
 #
-# NOTE: when the target domain is initially resolved basic "dns_name_regex" matched targets will be extracted so we do not perform that again here.
+# NOTE: when the target domain is initially resolved basic "dns_name_extraction_regex" matched targets will be extracted so we do not perform that again here.
 #
 # Example CAA records,
 #   0 iodef "mailto:dnsadmin@example.com"
@@ -23,7 +23,7 @@ from bbot.modules.base import BaseModule
 
 import re
 
-from bbot.core.helpers.regexes import dns_name_regex, email_regex, url_regexes
+from bbot.core.helpers.regexes import dns_name_extraction_regex, email_regex, url_regexes
 
 # Handle '0 iodef "mailto:support@hcaptcha.com"'
 # Handle '1 iodef "https://some.host.tld/caa;"'
@@ -109,7 +109,7 @@ class dnscaa(BaseModule):
 
                     elif caa_match.group("property").lower().startswith("issue"):
                         if self._dns_names:
-                            for match in dns_name_regex.finditer(caa_match.group("text")):
+                            for match in dns_name_extraction_regex.finditer(caa_match.group("text")):
                                 start, end = match.span()
                                 name = caa_match.group("text")[start:end]
 

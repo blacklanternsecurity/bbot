@@ -19,7 +19,7 @@ class digitorus(subdomain_enum):
         url = f"{self.base_url}/{self.helpers.quote(query)}"
         return await self.helpers.request(url)
 
-    def parse_results(self, r, query):
+    async def parse_results(self, r, query):
         results = set()
         content = getattr(r, "text", "")
         extract_regex = re.compile(r"[\w.-]+\." + query, re.I)

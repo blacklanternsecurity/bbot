@@ -12,7 +12,7 @@ class SQLite(SQLTemplate):
     options_desc = {
         "database": "The path to the sqlite database file",
     }
-    deps_pip = ["sqlmodel", "sqlalchemy-utils", "aiosqlite"]
+    deps_pip = ["sqlmodel", "aiosqlite"]
 
     async def setup(self):
         db_file = self.config.get("database", "")

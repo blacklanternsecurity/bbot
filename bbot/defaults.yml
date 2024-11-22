@@ -14,6 +14,9 @@ folder_blobs: false
 ### SCOPE ###
 
 scope:
+  # strict scope means only exact DNS names are considered in-scope
+  # subdomains are not included unless they are explicitly provided in the target list
+  strict: false
   # Filter by scope distance which events are displayed in the output
   # 0 == show only in-scope events (affiliates are always shown)
   # 1 == show all events up to distance-1 (1 hop from target)
@@ -109,6 +112,13 @@ engine:
 deps:
   ffuf:
     version: "2.1.0"
+  # How to handle installation of module dependencies
+  # Choices are:
+  #  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
+  #  - retry_failed - try again to install failed dependencies
+  #  - ignore_failed - run the scan regardless of what happens with dependency installation
+  #  - disable - completely disable BBOT's dependency system (you are responsible for installing tools, pip packages, etc.)
+  behavior: abort_on_failure
 
 ### ADVANCED OPTIONS ###
 
@@ -125,14 +135,6 @@ aggregate: True
 dnsresolve: True
 # Cloud provider tagging
 cloudcheck: True
-
-# How to handle installation of module dependencies
-# Choices are:
-#  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
-#  - retry_failed - try again to install failed dependencies
-#  - ignore_failed - run the scan regardless of what happens with dependency installation
-#  - disable - completely disable BBOT's dependency system (you are responsible for installing tools, pip packages, etc.)
-deps_behavior: abort_on_failure
 
 # Strip querystring from URLs by default
 url_querystring_remove: True

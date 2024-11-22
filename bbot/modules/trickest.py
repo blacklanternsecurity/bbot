@@ -36,7 +36,7 @@ class Trickest(subdomain_enum_apikey):
         url += "&limit={page_size}&offset={offset}&select=hostname&orderby=hostname"
         return url
 
-    def parse_results(self, j, query):
+    async def parse_results(self, j, query):
         results = j.get("results", [])
         subdomains = set()
         for item in results:

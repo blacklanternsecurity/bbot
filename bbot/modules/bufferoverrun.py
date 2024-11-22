@@ -33,7 +33,7 @@ class BufferOverrun(subdomain_enum_apikey):
         url = f"{self.commercial_base_url if self.commercial else self.base_url}?q=.{query}"
         return await self.api_request(url)
 
-    def parse_results(self, r, query):
+    async def parse_results(self, r, query):
         j = r.json()
         subdomains_set = set()
         if isinstance(j, dict):
@@ -44,5 +44,4 @@ class BufferOverrun(subdomain_enum_apikey):
                     subdomain = parts[4].strip()
                     if subdomain and subdomain.endswith(f".{query}"):
                         subdomains_set.add(subdomain)
-            for subdomain in subdomains_set:
-                yield subdomain
+        return subdomains_set

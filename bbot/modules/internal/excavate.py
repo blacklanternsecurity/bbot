@@ -527,9 +527,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for csp_str in yara_results[identifier]:
-                    domains = await self.helpers.re.findall(bbot_regexes.dns_name_regex, csp_str)
-                    unique_domains = set(domains)
-                    for domain in unique_domains:
+                    domains = await self.excavate.scan.extract_in_scope_hostnames(csp_str)
+                    for domain in domains:
                         await self.report(domain, event, yara_rule_settings, discovery_context, event_type="DNS_NAME")
 
     class EmailExtractor(ExcavateRule):

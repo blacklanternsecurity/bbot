@@ -33,7 +33,9 @@ class PresetPath:
         if "/" in str(filename):
             if filename_path.parent not in paths_to_search:
                 paths_to_search.append(filename_path.parent)
-        log.debug(f"Searching for preset in {paths_to_search}, file candidates: {file_candidates_str}")
+        log.debug(
+            f"Searching for preset in {[str(p) for p in paths_to_search]}, file candidates: {file_candidates_str}"
+        )
         for path in paths_to_search:
             for candidate in file_candidates:
                 for file in path.rglob(candidate):

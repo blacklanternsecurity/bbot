@@ -15,31 +15,32 @@ class censys(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_id": "", "api_secret": "", "max_pages": 5}
+    options = {"api_key": "", "max_pages": 5}
     options_desc = {
-        "api_id": "Censys.io API ID",
-        "api_secret": "Censys.io API Secret",
+        "api_key": "Censys.io API Key in the format of 'key:secret'",
         "max_pages": "Maximum number of pages to fetch (100 results per page)",
     }
 
     base_url = "https://search.censys.io/api"
 
     async def setup(self):
-        self.api_id = self.config.get("api_id", "")
-        self.api_secret = self.config.get("api_secret", "")
-        self.auth = (self.api_id, self.api_secret)
         self.max_pages = self.config.get("max_pages", 5)
         return await super().setup()
 
     async def ping(self):
         url = f"{self.base_url}/v1/account"
-        resp = await self.helpers.request(url, auth=self.auth)
+        resp = await self.api_request(url)
         d = resp.json()
         assert isinstance(d, dict), f"Invalid response from {url}: {resp}"
         quota = d.get("quota", {})
         used = int(quota.get("used", 0))
         allowance = int(quota.get("allowance", 0))
         assert used < allowance, "No quota remaining"
+
+    def prepare_api_request(self, url, kwargs):
+        api_id, api_secret = self.api_key.split(":", 1)
+        kwargs["auth"] = (api_id, api_secret)
+        return url, kwargs
 
     async def query(self, query):
         results = set()
@@ -52,11 +53,10 @@ class censys(subdomain_enum_apikey):
             }
             if cursor:
                 json_data.update({"cursor": cursor})
-            resp = await self.helpers.request(
+            resp = await self.api_request(
                 url,
                 method="POST",
                 json=json_data,
-                auth=self.auth,
             )
 
             if resp is None:
@@ -96,7 +96,3 @@ class censys(subdomain_enum_apikey):
                     break
 
         return results
-
-    @property
-    def auth_secret(self):
-        return self.api_id and self.api_secret

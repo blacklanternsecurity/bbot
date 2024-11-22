@@ -3,9 +3,9 @@
 
 import json
 import logging
-from datetime import datetime
 from pydantic import ConfigDict
 from typing import List, Optional
+from datetime import datetime, timezone
 from typing_extensions import Annotated
 from pydantic.functional_validators import AfterValidator
 from sqlmodel import inspect, Column, Field, SQLModel, JSON, String, DateTime as SQLADateTime
@@ -114,6 +114,7 @@ class Event(BBOTBaseModel, table=True):
     discovery_context: str = ""
     discovery_path: List[str] = Field(default=[], sa_type=JSON)
     parent_chain: List[str] = Field(default=[], sa_type=JSON)
+    inserted_at: NaiveUTC = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 ### SCAN ###
@@ -140,8 +141,8 @@ class Target(BBOTBaseModel, table=True):
     seeds: List = Field(default=[], sa_type=JSON)
     whitelist: List = Field(default=None, sa_type=JSON)
     blacklist: List = Field(default=[], sa_type=JSON)
-    hash: str = Field(sa_column=Column("hash", String, unique=True, primary_key=True, index=True))
-    scope_hash: str = Field(sa_column=Column("scope_hash", String, index=True))
-    seed_hash: str = Field(sa_column=Column("seed_hashhash", String, index=True))
-    whitelist_hash: str = Field(sa_column=Column("whitelist_hash", String, index=True))
-    blacklist_hash: str = Field(sa_column=Column("blacklist_hash", String, index=True))
+    hash: str = Field(sa_column=Column("hash", String(length=255), unique=True, primary_key=True, index=True))
+    scope_hash: str = Field(sa_column=Column("scope_hash", String(length=255), index=True))
+    seed_hash: str = Field(sa_column=Column("seed_hashhash", String(length=255), index=True))
+    whitelist_hash: str = Field(sa_column=Column("whitelist_hash", String(length=255), index=True))
+    blacklist_hash: str = Field(sa_column=Column("blacklist_hash", String(length=255), index=True))
