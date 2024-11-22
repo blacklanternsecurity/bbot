@@ -6,7 +6,8 @@ import contextlib
 import regex as re
 from pathlib import Path
 from sys import exc_info
-from datetime import datetime, UTC
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from collections import OrderedDict
 
 from bbot import __version__
@@ -327,7 +328,7 @@ class Scanner:
 
     async def async_start(self):
         """ """
-        self.start_time = datetime.now(UTC)
+        self.start_time = datetime.now(ZoneInfo("UTC"))
         self.root_event.data["started_at"] = self.start_time.timestamp()
         try:
             await self._prep()
@@ -436,7 +437,7 @@ class Scanner:
         else:
             status = "FINISHED"
 
-        self.end_time = datetime.now(UTC)
+        self.end_time = datetime.now(ZoneInfo("UTC"))
         self.duration = self.end_time - self.start_time
         self.duration_seconds = self.duration.total_seconds()
         self.duration_human = self.helpers.human_timedelta(self.duration)

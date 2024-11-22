@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from bbot.models.pydantic import Event
@@ -13,7 +13,7 @@ def test_pydantic_models(events):
     now = datetime.now(ZoneInfo("America/New_York"))
     utc_now = utc_datetime_validator(now)
     assert now.timestamp() == utc_now.timestamp()
-    now2 = datetime.fromtimestamp(utc_now.timestamp(), UTC)
+    now2 = datetime.fromtimestamp(utc_now.timestamp(), ZoneInfo("UTC"))
     assert now2.timestamp() == utc_now.timestamp()
     utc_now2 = utc_datetime_validator(now2)
     assert utc_now2.timestamp() == utc_now.timestamp()
