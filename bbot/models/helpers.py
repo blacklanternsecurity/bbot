@@ -1,7 +1,5 @@
 from datetime import UTC
 from datetime import datetime
-from typing_extensions import Annotated
-from pydantic.functional_validators import AfterValidator
 
 
 def utc_datetime_validator(d: datetime) -> datetime:
