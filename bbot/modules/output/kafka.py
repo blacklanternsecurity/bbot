@@ -34,7 +34,12 @@ class Kafka(BaseOutputModule):
     async def handle_event(self, event):
         event_json = event.json()
         event_data = json.dumps(event_json).encode("utf-8")
-        await self.producer.send_and_wait(self.topic, event_data)
+        while 1:
+            try:
+                await self.producer.send_and_wait(self.topic, event_data)
+            except Exception as e:
+                self.warning(f"Error sending event to Kafka: {e}, retrying...")
+                await self.helpers.sleep(1)
 
     async def cleanup(self):
         # Stop the producer
