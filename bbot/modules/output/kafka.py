@@ -37,6 +37,7 @@ class Kafka(BaseOutputModule):
         while 1:
             try:
                 await self.producer.send_and_wait(self.topic, event_data)
+                break
             except Exception as e:
                 self.warning(f"Error sending event to Kafka: {e}, retrying...")
                 await self.helpers.sleep(1)
