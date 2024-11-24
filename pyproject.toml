@@ -56,6 +56,8 @@ yara-python = "^4.5.1"
 pyzmq = "^26.0.3"
 httpx = "^0.27.0"
 puremagic = "^1.28"
+baddns = "^1.4.0"
+pyOpenSSL = "^24.2.1"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = ">=6,<8"
