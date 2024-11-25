@@ -306,9 +306,7 @@ class DNSResolve(BaseInterceptModule):
     @property
     def emit_raw_records(self):
         if self._emit_raw_records is None:
-            watching_raw_records = any(
-                "RAW_DNS_RECORD" in m.get_watched_events() for m in self.scan.modules.values()
-            )
+            watching_raw_records = any("RAW_DNS_RECORD" in m.get_watched_events() for m in self.scan.modules.values())
             omitted_event_types = self.scan.config.get("omit_event_types", [])
             omit_raw_records = "RAW_DNS_RECORD" in omitted_event_types
             self._emit_raw_records = watching_raw_records or not omit_raw_records

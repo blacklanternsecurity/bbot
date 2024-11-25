@@ -337,7 +337,6 @@ async def test_target(bbot_scanner):
 
 @pytest.mark.asyncio
 async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
-
     from bbot.scanner.target import ScanBlacklist
 
     blacklist = ScanBlacklist("evilcorp.com")

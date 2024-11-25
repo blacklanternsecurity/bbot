@@ -57,7 +57,9 @@ class CloudCheck(BaseInterceptModule):
         for provider in self.helpers.cloud.providers.values():
             provider_name = provider.name.lower()
             base_kwargs = {
-                "parent": event, "tags": [f"{provider.provider_type}-{provider_name}"], "_provider": provider_name
+                "parent": event,
+                "tags": [f"{provider.provider_type}-{provider_name}"],
+                "_provider": provider_name,
             }
             # loop through the provider's regex signatures, if any
             for event_type, sigs in provider.signatures.items():

@@ -16,5 +16,3 @@ config:
   modules:
     baddns:
       enable_references: True
-
-
