@@ -119,7 +119,7 @@ def test_python_api_validation():
     # normal module as output module
     with pytest.raises(ValidationError) as error:
         Scanner(output_modules=["robots"])
-    assert str(error.value) == 'Could not find output module "robots". Did you mean "web_report"?'
+    assert str(error.value) == 'Could not find output module "robots". Did you mean "rabbitmq"?'
     # invalid preset type
     with pytest.raises(ValidationError) as error:
         Scanner(preset="asdf")
