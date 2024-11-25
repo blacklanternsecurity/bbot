@@ -7,7 +7,7 @@ site_description: >-
 # Repository
 repo_name: blacklanternsecurity/bbot
 repo_url: https://github.com/blacklanternsecurity/bbot
-watch: 
+watch:
   - "mkdocs.yml"
   - "bbot"
   - "docs"
@@ -29,7 +29,7 @@ nav:
     - Tips and Tricks: scanning/tips_and_tricks.md
     - Advanced Usage: scanning/advanced.md
     - Configuration: scanning/configuration.md
-  - Modules: 
+  - Modules:
     - List of Modules: modules/list_of_modules.md
     - Nuclei: modules/nuclei.md
     - Custom YARA Rules: modules/custom_yara_rules.md

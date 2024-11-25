@@ -857,7 +857,6 @@ def test_liststring_invalidfnchars(helpers):
 # test parameter validation
 @pytest.mark.asyncio
 async def test_parameter_validation(helpers):
-
     getparam_valid_params = {
         "name",
         "age",

@@ -8,7 +8,7 @@ class Kafka(BaseOutputModule):
     watched_events = ["*"]
     meta = {
         "description": "Output scan data to a Kafka topic",
-        "created_date": "2024-11-17",
+        "created_date": "2024-11-22",
         "author": "@TheTechromancer",
     }
     options = {
