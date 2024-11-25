@@ -72,11 +72,15 @@ class TestMongo(ModuleTestBase):
             db = client[self.test_db_name]
             events_collection = db.get_collection(self.test_collection_prefix + "events")
 
+            ### INDEXES ###
+
             # make sure the collection has all the right indexes
             cursor = events_collection.list_indexes()
             indexes = await cursor.to_list(length=None)
             for field in Event._indexed_fields():
                 assert any(field in index["key"] for index in indexes), f"Index for {field} not found"
+
+            ### EVENTS ###
 
             # Fetch all events from the collection
             cursor = events_collection.find({})
@@ -86,11 +90,8 @@ class TestMongo(ModuleTestBase):
             assert len(events_json) == len(db_events)
 
             for db_event in db_events:
-                # we currently don't store timestamps as datetime objects because mongodb has lower precision
-                # assert isinstance(db_event["timestamp"], datetime)
-                # assert isinstance(db_event["inserted_at"], datetime)
-                assert isinstance(db_event["timestamp"], str)
-                assert isinstance(db_event["inserted_at"], str)
+                assert isinstance(db_event["timestamp"], float)
+                assert isinstance(db_event["inserted_at"], float)
 
             # Convert to Pydantic objects and dump them
             db_events_pydantic = [Event(**e).model_dump(exclude_none=True) for e in db_events]
@@ -120,6 +121,15 @@ class TestMongo(ModuleTestBase):
                 db_event.pop("inserted_at")
             # They should match after removing reverse_host
             assert events_json == db_events_pydantic, "Events do not match"
+
+            ### SCANS ###
+
+            # Fetch all scans from the collection
+            cursor = db.get_collection(self.test_collection_prefix + "scans").find({})
+            db_scans = await cursor.to_list(length=None)
+            assert len(db_scans) == 1, "There should be exactly one scan"
+            db_scan = db_scans[0]
+            assert db_scan["scan"]["id"] == main_event["scan"], "Scan id should match main event scan"
 
         finally:
             # Clean up: Delete all documents in the collection

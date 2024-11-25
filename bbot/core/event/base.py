@@ -756,7 +756,7 @@ class BaseEvent:
             return bool(radixtarget.search(other.host))
         return False
 
-    def json(self, mode="json", siem_friendly=False):
+    def json(self, mode="json"):
         """
         Serializes the event object to a JSON-compatible dictionary.
 
@@ -765,7 +765,6 @@ class BaseEvent:
 
         Parameters:
             mode (str): Specifies the data serialization mode. Default is "json". Other options include "graph", "human", and "id".
-            siem_friendly (bool): Whether to format the JSON in a way that's friendly to SIEM ingestion by Elastic, Splunk, etc. This ensures the value of "data" is always the same type (a dictionary).
 
         Returns:
             dict: JSON-serializable dictionary representation of the event object.
@@ -782,10 +781,12 @@ class BaseEvent:
             data = data_attr
         else:
             data = smart_decode(self.data)
-        if siem_friendly:
-            j["data"] = {self.type: data}
-        else:
+        if isinstance(data, str):
             j["data"] = data
+        elif isinstance(data, dict):
+            j["data_json"] = data
+        else:
+            raise ValueError(f"Invalid data type: {type(data)}")
         # host, dns children
         if self.host:
             j["host"] = str(self.host)
@@ -1725,7 +1726,7 @@ def make_event(
         )
 
 
-def event_from_json(j, siem_friendly=False):
+def event_from_json(j):
     """
     Creates an event object from a JSON dictionary.
 
@@ -1757,10 +1758,7 @@ def event_from_json(j, siem_friendly=False):
             "context": j.get("discovery_context", None),
             "dummy": True,
         }
-        if siem_friendly:
-            data = j["data"][event_type]
-        else:
-            data = j["data"]
+        data = j.get("data_json", j.get("data", None))
         kwargs["data"] = data
         event = make_event(**kwargs)
         event_uuid = j.get("uuid", None)

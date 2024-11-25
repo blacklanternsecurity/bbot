@@ -71,3 +71,11 @@ class Mongo(BaseOutputModule):
                 # Insert as a new scan if no existing scan is found
                 await self.scans_collection.insert_one(event_pydantic.model_dump())
                 self.verbose(f"Inserted new scan event with UUID: {event_pydantic.uuid}")
+
+            target_data = scan_json.get("target", {})
+            target = Target(**target_data)
+            existing_target = await self.targets_collection.find_one({"uuid": target.uuid})
+            if existing_target:
+                await self.targets_collection.replace_one({"uuid": target.uuid}, target.model_dump())
+            else:
+                await self.targets_collection.insert_one(target.model_dump())

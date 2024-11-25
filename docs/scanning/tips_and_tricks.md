@@ -108,24 +108,6 @@ config:
 bbot -t evilcorp.com -p skip_cdns.yml
 ```
 
-### Ingest BBOT Data Into SIEM (Elastic, Splunk)
-
-If your goal is to run a BBOT scan and later feed its data into a SIEM such as Elastic, be sure to enable this option when scanning:
-
-```bash
-bbot -t evilcorp.com -c modules.json.siem_friendly=true
-```
-
-This ensures the `.data` event attribute is always the same type (a dictionary), by nesting it like so:
-```json
-{
-  "type": "DNS_NAME",
-  "data": {
-    "DNS_NAME": "blacklanternsecurity.com"
-  }
-}
-```
-
 ### Custom HTTP Proxy
 
 Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `web.http_proxy` config option like so:

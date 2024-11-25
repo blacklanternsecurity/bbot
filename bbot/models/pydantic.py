@@ -57,13 +57,13 @@ class BBOTBaseModel(BaseModel):
 
 ### EVENT ###
 
-
 class Event(BBOTBaseModel):
     uuid: Annotated[str, "indexed", "unique"]
     id: Annotated[str, "indexed"]
     type: Annotated[str, "indexed"]
     scope_description: str
-    data: Union[dict, str]
+    data: Annotated[Optional[str], "indexed"] = None
+    data_json: Optional[dict] = None
     host: Annotated[Optional[str], "indexed"] = None
     port: Optional[int] = None
     netloc: Optional[str] = None
@@ -75,8 +75,8 @@ class Event(BBOTBaseModel):
     web_spider_distance: int = 10
     scope_distance: int = 10
     scan: Annotated[str, "indexed"]
-    timestamp: Annotated[NaiveUTC, "indexed"]
-    inserted_at: Optional[Annotated[NaiveUTC, "indexed"]] = Field(default_factory=naive_utc_now)
+    timestamp: Annotated[float, "indexed"]
+    inserted_at: Annotated[Optional[float], "indexed"] = Field(default_factory=naive_utc_now)
     parent: Annotated[str, "indexed"]
     parent_uuid: Annotated[str, "indexed"]
     tags: List = []
@@ -91,9 +91,13 @@ class Event(BBOTBaseModel):
         if self.host:
             self.reverse_host = self.host[::-1]
 
+    def get_data(self):
+        if self.data is not None:
+            return self.data
+        return self.data_json
+
 
 ### SCAN ###
-
 
 class Scan(BBOTBaseModel):
     id: Annotated[str, "indexed", "unique"]

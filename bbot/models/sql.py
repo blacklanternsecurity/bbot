@@ -67,24 +67,18 @@ class BBOTBaseModel(SQLModel):
 
 ### EVENT ###
 
-
 class Event(BBOTBaseModel, table=True):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        data = self._get_data(self.data, self.type)
-        self.data = {self.type: data}
+        if self.data is None and self.data_json is None:
+            raise ValueError("data or data_json must be provided")
         if self.host:
             self.reverse_host = self.host[::-1]
 
     def get_data(self):
-        return self._get_data(self.data, self.type)
-
-    @staticmethod
-    def _get_data(data, type):
-        # handle SIEM-friendly format
-        if isinstance(data, dict) and list(data) == [type]:
-            return data[type]
-        return data
+        if self.data is not None:
+            return self.data
+        return self.data_json
 
     uuid: str = Field(
         primary_key=True,
@@ -94,7 +88,8 @@ class Event(BBOTBaseModel, table=True):
     id: str = Field(index=True)
     type: str = Field(index=True)
     scope_description: str
-    data: dict = Field(sa_type=JSON)
+    data: Optional[str] = Field(default=None, index=True)
+    data_json: Optional[dict] = Field(default=None)
     host: Optional[str]
     port: Optional[int]
     netloc: Optional[str]
@@ -118,7 +113,6 @@ class Event(BBOTBaseModel, table=True):
 
 ### SCAN ###
 
-
 class Scan(BBOTBaseModel, table=True):
     id: str = Field(primary_key=True)
     name: str
@@ -132,7 +126,6 @@ class Scan(BBOTBaseModel, table=True):
 
 
 ### TARGET ###
-
 
 class Target(BBOTBaseModel, table=True):
     name: str = "Default Target"

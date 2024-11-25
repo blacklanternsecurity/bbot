@@ -52,12 +52,3 @@ class TestHTTP(ModuleTestBase):
         assert self.headers_correct is True
         assert self.method_correct is True
         assert self.url_correct is True
-
-
-class TestHTTPSIEMFriendly(TestHTTP):
-    modules_overrides = ["http"]
-    config_overrides = {"modules": {"http": dict(TestHTTP.config_overrides["modules"]["http"])}}
-    config_overrides["modules"]["http"]["siem_friendly"] = True
-
-    def verify_data(self, j):
-        return j["data"] == {"DNS_NAME": "blacklanternsecurity.com"} and j["type"] == "DNS_NAME"
