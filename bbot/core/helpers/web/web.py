@@ -451,7 +451,7 @@ class WebHelper(EngineClient):
             Perform an html parse of the 'markup' argument and return a soup instance
 
             >>> email_type = soup.find(type="email")
-            Searches the soup instance for all occurances of the passed in argument
+            Searches the soup instance for all occurrences of the passed in argument
         """
         try:
             soup = BeautifulSoup(

@@ -64,7 +64,7 @@ werkzeug = ">=2.3.4,<4.0.0"
 pytest-env = ">=0.8.2,<1.2.0"
 pre-commit = ">=3.4,<5.0"
 pytest-cov = ">=5,<7"
-pytest-rerunfailures = "^14.0"
+pytest-rerunfailures = ">=14,<16"
 pytest-timeout = "^2.3.1"
 pytest-httpserver = "^1.0.11"
 pytest = "^8.3.1"
@@ -94,6 +94,10 @@ asyncio_default_fixture_loop_scope = "function"
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.codespell]
+ignore-words-list = "bu,cna,couldn,dialin,nd,ned,thirdparty"
+skip = "./docs/javascripts/vega*.js,./bbot/wordlists/*"
 
 [tool.ruff]
 line-length = 119

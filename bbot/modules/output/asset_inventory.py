@@ -259,7 +259,7 @@ class Asset:
         # ips
         self.ip_addresses = set(_make_ip_list(row.get("IP (External)", "")))
         self.ip_addresses.update(set(_make_ip_list(row.get("IP (Internal)", ""))))
-        # If user reqests a recheck dont import the following fields to force them to be rechecked
+        # If user requests a recheck dont import the following fields to force them to be rechecked
         if not self.recheck:
             # ports
             ports = [i.strip() for i in row.get("Open Ports", "").split(",")]

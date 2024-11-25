@@ -1,3 +1,4 @@
+import time
 import asyncio
 
 from .base import ModuleTestBase
@@ -36,7 +37,27 @@ class TestMongo(ModuleTestBase):
             "mongo",
         )
 
-        await self.wait_for_port_open(27017)
+        from motor.motor_asyncio import AsyncIOMotorClient
+
+        # Connect to the MongoDB collection with retry logic
+        while True:
+            try:
+                client = AsyncIOMotorClient("mongodb://localhost:27017", username="bbot", password="bbotislife")
+                db = client[self.test_db_name]
+                events_collection = db.get_collection(self.test_collection_prefix + "events")
+                # Attempt a simple operation to confirm the connection
+                await events_collection.count_documents({})
+                break  # Exit the loop if connection is successful
+            except Exception as e:
+                print(f"Connection failed: {e}. Retrying...")
+                time.sleep(0.5)
+
+        # Check that there are no events in the collection
+        count = await events_collection.count_documents({})
+        assert count == 0, "There are existing events in the database"
+
+        # Close the MongoDB connection
+        client.close()
 
     async def check(self, module_test, events):
         try:

@@ -15,7 +15,7 @@ poetry run ruff check
 # format code with ruff
 poetry run ruff format
 
-# run all tests with pytest (takes rougly 30 minutes)
+# run all tests with pytest (takes roughly 30 minutes)
 poetry run pytest
 ```
 

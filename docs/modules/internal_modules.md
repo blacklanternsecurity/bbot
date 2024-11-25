@@ -31,7 +31,7 @@ The cloud module looks at events and tries to determine if they are associated w
 
 ### dns
 
-The DNS internal module controls the basic DNS resoultion the BBOT performs, and all of the supporting machinery like wildcard detection, etc.
+The DNS internal module controls the basic DNS resolution the BBOT performs, and all of the supporting machinery like wildcard detection, etc.
 
 ### excavate
 
@@ -60,7 +60,7 @@ Scans for verbose error messages in HTTP responses and raw text data. By identif
 The CSP extraction capability focuses on extracting domains from Content-Security-Policy headers. By analyzing these headers, BBOT can identify additional domains which can get fed back into the scan.
 
 #### Serialization Detection
-Serialized objects are a common source of serious security vulnerablities. Excavate aims to detect those used in Java, .NET, and PHP applications. 
+Serialized objects are a common source of serious security vulnerabilities. Excavate aims to detect those used in Java, .NET, and PHP applications. 
 
 #### Functionality Detection
 Looks for specific web functionalities such as file upload fields and WSDL URLs. By identifying these elements, BBOT can pinpoint areas of the application that may require further scrutiny for security vulnerabilities.
@@ -70,7 +70,7 @@ The non-HTTP scheme detection capability extracts URLs with non-HTTP schemes, su
 
 #### Custom Yara Rules
 
-Excavate supports the use of custom YARA rules, which wil be added to the other rules before the scan start. For more info, view this.
+Excavate supports the use of custom YARA rules, which will be added to the other rules before the scan start. For more info, view this.
 
 ### speculate
 

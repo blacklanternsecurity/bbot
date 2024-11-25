@@ -733,7 +733,7 @@ async def test_dns_raw_records(bbot_scanner):
     dummy_module = DummyModule(scan)
     scan.modules["dummy_module"] = dummy_module
     events = [e async for e in scan.async_start()]
-    # no raw records should be ouptut
+    # no raw records should be output
     assert 0 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
     # but they should still make it to the module
     assert 1 == len(

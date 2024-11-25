@@ -94,7 +94,7 @@ class HttpCompare:
                 baseline_1_json = xmltodict.parse(baseline_1.text)
                 baseline_2_json = xmltodict.parse(baseline_2.text)
             except ExpatError:
-                log.debug(f"Cant HTML parse for {self.baseline_url}. Switching to text parsing as a backup")
+                log.debug(f"Can't HTML parse for {self.baseline_url}. Switching to text parsing as a backup")
                 baseline_1_json = baseline_1.text.split("\n")
                 baseline_2_json = baseline_2.text.split("\n")
 
@@ -203,7 +203,7 @@ class HttpCompare:
         )
 
         if subject_response is None:
-            # this can be caused by a WAF not liking the header, so we really arent interested in it
+            # this can be caused by a WAF not liking the header, so we really aren't interested in it
             return (True, "403", reflection, subject_response)
 
         if check_reflection:
@@ -225,7 +225,7 @@ class HttpCompare:
             subject_json = xmltodict.parse(subject_response.text)
 
         except ExpatError:
-            log.debug(f"Cant HTML parse for {subject.split('?')[0]}. Switching to text parsing as a backup")
+            log.debug(f"Can't HTML parse for {subject.split('?')[0]}. Switching to text parsing as a backup")
             subject_json = subject_response.text.split("\n")
 
         diff_reasons = []

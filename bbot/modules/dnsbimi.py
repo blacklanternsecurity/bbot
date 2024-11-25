@@ -19,7 +19,7 @@
 #
 # NOTE: .svg file extensions are filtered from inclusion by default, modify "url_extension_blacklist" appropriately if you want the .svg image to be considered for download.
 #
-# NOTE: use the "filedownload" module if you to download .svg and .pem files. .pem will be downloaded by defaut, .svg will require a customised configuration for that module.
+# NOTE: use the "filedownload" module if you to download .svg and .pem files. .pem will be downloaded by default, .svg will require a customised configuration for that module.
 #
 # The domain portion of any URL_UNVERIFIED's will be extracted by the various internal modules if .svg is not filtered.
 #

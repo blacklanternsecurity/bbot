@@ -1,3 +1,4 @@
+import time
 import httpx
 import asyncio
 
@@ -48,13 +49,11 @@ class TestElastic(ModuleTestBase):
                     break
                 except Exception as e:
                     print(f"Connection failed: {e}. Retrying...", flush=True)
-                    await asyncio.sleep(0.5)
+                    time.sleep(0.5)
 
-
-        # Connect to Elasticsearch with retry logic
-        async with httpx.AsyncClient(verify=False) as client:
             # Ensure the index is empty
             await client.delete(f"https://localhost:9200/bbot_test_events", auth=("elastic", "bbotislife"))
+            print("Elasticsearch index cleaned up", flush=True)
 
     async def check(self, module_test, events):
         try:
@@ -66,11 +65,17 @@ class TestElastic(ModuleTestBase):
             # Connect to Elasticsearch
             async with httpx.AsyncClient(verify=False) as client:
 
+                # refresh the index
+                await client.post(f"https://localhost:9200/bbot_test_events/_refresh", auth=("elastic", "bbotislife"))
+
                 # Fetch all events from the index
                 response = await client.get(
                     f"https://localhost:9200/bbot_test_events/_search?size=100", auth=("elastic", "bbotislife")
                 )
                 response_json = response.json()
+                import json
+
+                print(f"response: {json.dumps(response_json, indent=2)}")
                 db_events = [hit["_source"] for hit in response_json["hits"]["hits"]]
 
                 # make sure we have the same number of events
@@ -119,7 +124,7 @@ class TestElastic(ModuleTestBase):
                     auth=("elastic", "bbotislife"),
                     params={"ignore": "400,404"},
                 )
-                self.log.verbose(f"Deleted documents from index")
+                print(f"Deleted documents from index", flush=True)
             await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-elastic", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )

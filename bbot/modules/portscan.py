@@ -104,7 +104,7 @@ class portscan(BaseModule):
         return True
 
     async def handle_batch(self, *events):
-        # on our first run, we automatically include all our intial scan targets
+        # on our first run, we automatically include all our initial scan targets
         if not self.scanned_initial_targets:
             self.scanned_initial_targets = True
             events = set(events)

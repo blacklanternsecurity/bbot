@@ -23,7 +23,7 @@ num_regex = re.compile(r"\d+")
 _ipv4_regex = r"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}"
 ipv4_regex = re.compile(_ipv4_regex, re.I)
 
-# IPv6 is complicated, so we have accomodate alternative patterns,
+# IPv6 is complicated, so we have accommodate alternative patterns,
 # :(:[A-F0-9]{1,4}){1,7} == ::1, ::ffff:1
 # ([A-F0-9]{1,4}:){1,7}: == 2001::, 2001:db8::, 2001:db8:0:1:2:3::
 # ([A-F0-9]{1,4}:){1,6}:([A-F0-9]{1,4}) == 2001::1, 2001:db8::1, 2001:db8:0:1:2:3::1
@@ -118,7 +118,7 @@ event_type_regexes = OrderedDict(
 scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
 
 
-# For use with excavate paramaters extractor
+# For use with excavate parameters extractor
 input_tag_regex = re.compile(
     r"<input[^>]+?name=[\"\']?([\.$\w]+)[\"\']?(?:[^>]*?value=[\"\']([=+\/\w]*)[\"\'])?[^>]*>"
 )
