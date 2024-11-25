@@ -15,19 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: psf/black@stable
-        with:
-          options: "--check"
-      - name: Install Python 3
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Install dependencies
-        run: |
-          pip install flake8
-      - name: flake8
-        run: |
-          flake8
+      - run: |
+          pipx install ruff
+          ruff check
+          ruff format
   test:
     needs: lint
     runs-on: ubuntu-latest

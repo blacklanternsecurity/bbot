@@ -28,7 +28,7 @@ class shodan(subdomain_enum):
         self.api_key = api_keys
         try:
             await self.ping()
-            self.hugesuccess(f"API is ready")
+            self.hugesuccess("API is ready")
             return True
         except Exception as e:
             self.trace(traceback.format_exc())

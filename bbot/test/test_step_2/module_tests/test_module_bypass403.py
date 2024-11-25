@@ -26,7 +26,7 @@ class TestBypass403_collapsethreshold(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         respond_args = {"response_data": "alive"}
 
-        # some of these wont work outside of the module because of the complex logic. This doesn't matter, we just need to get more alerts than the threshold.
+        # some of these won't work outside of the module because of the complex logic. This doesn't matter, we just need to get more alerts than the threshold.
 
         query_payloads = [
             "%09",

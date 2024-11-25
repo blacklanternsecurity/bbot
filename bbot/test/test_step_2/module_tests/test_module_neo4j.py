@@ -41,4 +41,4 @@ class TestNeo4j(ModuleTestBase):
         module_test.monkeypatch.setattr("neo4j.AsyncGraphDatabase.driver", MockDriver)
 
     def check(self, module_test, events):
-        assert self.neo4j_used == True
+        assert self.neo4j_used is True

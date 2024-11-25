@@ -5,7 +5,6 @@ log = logging.getLogger("bbot.core.helpers.dns.mock")
 
 
 class MockResolver:
-
     def __init__(self, mock_data=None, custom_lookup_fn=None):
         self.mock_data = mock_data if mock_data else {}
         self._custom_lookup_fn = custom_lookup_fn

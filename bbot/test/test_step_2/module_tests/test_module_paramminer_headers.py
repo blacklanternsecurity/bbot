@@ -31,7 +31,7 @@ class Paramminer_Headers(ModuleTestBase):
         module_test.monkeypatch.setattr(
             helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
         )
-        expect_args = dict(headers={"tracestate": "AAAAAAAAAAAAAA"})
+        expect_args = {"headers": {"tracestate": "AAAAAAAAAAAAAA"}}
         respond_args = {"response_data": self.headers_body_match}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -39,7 +39,6 @@ class Paramminer_Headers(ModuleTestBase):
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-
         found_reflected_header = False
         false_positive_match = False
 
@@ -60,7 +59,6 @@ class TestParamminer_Headers(Paramminer_Headers):
 
 
 class TestParamminer_Headers_noreflection(Paramminer_Headers):
-
     found_nonreflected_header = False
 
     headers_body_match = """
@@ -82,7 +80,6 @@ class TestParamminer_Headers_noreflection(Paramminer_Headers):
 
 
 class TestParamminer_Headers_extract(Paramminer_Headers):
-
     modules_overrides = ["httpx", "paramminer_headers", "excavate"]
     config_overrides = {
         "modules": {
@@ -115,7 +112,7 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
         module_test.monkeypatch.setattr(
             helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
         )
-        expect_args = dict(headers={"foo": "AAAAAAAAAAAAAA"})
+        expect_args = {"headers": {"foo": "AAAAAAAAAAAAAA"}}
         respond_args = {"response_data": self.headers_body_match}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -123,7 +120,6 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-
         excavate_extracted_web_parameter = False
         used_recycled_parameter = False
 
@@ -139,17 +135,14 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
 
 
 class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
-
     modules_overrides = ["httpx", "excavate"]
     config_overrides = {}
 
     async def setup_after_prep(self, module_test):
-
         respond_args = {"response_data": self.headers_body}
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-
         excavate_extracted_web_parameter = False
 
         for e in events:

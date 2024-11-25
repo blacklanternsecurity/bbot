@@ -24,7 +24,6 @@ all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
 
 
 class DNSEngine(EngineServer):
-
     CMDS = {
         0: "resolve",
         1: "resolve_raw",
@@ -55,7 +54,7 @@ class DNSEngine(EngineServer):
         dns_omit_queries = self.dns_config.get("omit_queries", None)
         if not dns_omit_queries:
             dns_omit_queries = []
-        self.dns_omit_queries = dict()
+        self.dns_omit_queries = {}
         for d in dns_omit_queries:
             d = d.split(":")
             if len(d) == 2:
@@ -73,7 +72,7 @@ class DNSEngine(EngineServer):
             self.wildcard_ignore = []
         self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
         self.wildcard_tests = self.dns_config.get("wildcard_tests", 5)
-        self._wildcard_cache = dict()
+        self._wildcard_cache = {}
         # since wildcard detection takes some time, This is to prevent multiple
         # modules from kicking off wildcard detection for the same domain at the same time
         self._wildcard_lock = NamedLock()
@@ -83,7 +82,7 @@ class DNSEngine(EngineServer):
         self._last_connectivity_warning = time.time()
         # keeps track of warnings issued for wildcard detection to prevent duplicate warnings
         self._dns_warnings = set()
-        self._errors = dict()
+        self._errors = {}
         self._debug = self.dns_config.get("debug", False)
         self._dns_cache = LRUCache(maxsize=10000)
 
@@ -476,7 +475,6 @@ class DNSEngine(EngineServer):
         # for every parent domain, starting with the shortest
         parents = list(domain_parents(query))
         for parent in parents[::-1]:
-
             # check if the parent domain is set up with wildcards
             wildcard_results = await self.is_wildcard_domain(parent, rdtypes_to_check)
 
@@ -640,7 +638,7 @@ class DNSEngine(EngineServer):
                     self._last_dns_success = time.time()
                     return True
         if time.time() - self._last_connectivity_warning > interval:
-            self.log.warning(f"DNS queries are failing, please check your internet connection")
+            self.log.warning("DNS queries are failing, please check your internet connection")
             self._last_connectivity_warning = time.time()
         self._errors.clear()
         return False

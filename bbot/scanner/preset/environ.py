@@ -65,7 +65,6 @@ omegaconf.OmegaConf.register_new_resolver("env", env_resolver)
 
 
 class BBOTEnviron:
-
     def __init__(self, preset):
         self.preset = preset
 

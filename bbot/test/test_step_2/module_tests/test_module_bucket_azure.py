@@ -21,7 +21,7 @@ class TestBucket_Azure_NoDup(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://tesla.blob.core.windows.net/tesla?restype=container",
+            url="https://tesla.blob.core.windows.net/tesla?restype=container",
             text="",
         )
         await module_test.mock_dns(

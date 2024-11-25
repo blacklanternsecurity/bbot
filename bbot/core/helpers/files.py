@@ -83,7 +83,7 @@ def _feed_pipe(self, pipe, content, text=True):
                     for c in content:
                         p.write(decode_fn(c) + newline)
         except BrokenPipeError:
-            log.debug(f"Broken pipe in _feed_pipe()")
+            log.debug("Broken pipe in _feed_pipe()")
         except ValueError:
             log.debug(f"Error _feed_pipe(): {traceback.format_exc()}")
     except KeyboardInterrupt:

@@ -2,20 +2,20 @@
 
 BBOT takes tests seriously. Every module *must* have a custom-written test that *actually tests* its functionality. Don't worry if you want to contribute but you aren't used to writing tests. If you open a draft PR, we will help write them :)
 
-We use [black](https://github.com/psf/black) and [flake8](https://flake8.pycqa.org/en/latest/) for linting, and [pytest](https://docs.pytest.org/en/8.2.x/) for tests.
+We use [ruff](https://docs.astral.sh/ruff/) for linting, and [pytest](https://docs.pytest.org/en/8.2.x/) for tests.
 
 ## Running tests locally
 
-We have Github actions that automatically run tests whenever you open a Pull Request. However, you can also run the tests locally with `pytest`:
+We have GitHub Actions that automatically run tests whenever you open a Pull Request. However, you can also run the tests locally with `pytest`:
 
 ```bash
-# format code with black
-poetry run black .
+# lint with ruff
+poetry run ruff check
 
-# lint with flake8
-poetry run flake8
+# format code with ruff
+poetry run ruff format
 
-# run all tests with pytest (takes rougly 30 minutes)
+# run all tests with pytest (takes roughly 30 minutes)
 poetry run pytest
 ```
 

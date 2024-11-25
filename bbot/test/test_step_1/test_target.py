@@ -106,24 +106,24 @@ async def test_target(bbot_scanner):
     assert scan1.target.whitelist.get("publicapis.org") is None
 
     target = RadixTarget("evilcorp.com")
-    assert not "com" in target
+    assert "com" not in target
     assert "evilcorp.com" in target
     assert "www.evilcorp.com" in target
     strict_target = RadixTarget("evilcorp.com", strict_dns_scope=True)
-    assert not "com" in strict_target
+    assert "com" not in strict_target
     assert "evilcorp.com" in strict_target
-    assert not "www.evilcorp.com" in strict_target
+    assert "www.evilcorp.com" not in strict_target
 
     target = RadixTarget()
     target.add("evilcorp.com")
-    assert not "com" in target
+    assert "com" not in target
     assert "evilcorp.com" in target
     assert "www.evilcorp.com" in target
     strict_target = RadixTarget(strict_dns_scope=True)
     strict_target.add("evilcorp.com")
-    assert not "com" in strict_target
+    assert "com" not in strict_target
     assert "evilcorp.com" in strict_target
-    assert not "www.evilcorp.com" in strict_target
+    assert "www.evilcorp.com" not in strict_target
 
     # test target hashing
 
@@ -164,8 +164,8 @@ async def test_target(bbot_scanner):
     bbottarget = BBOTTarget("http://1.2.3.4:8443", "bob@evilcorp.com")
     assert bbottarget.seeds.hosts == {ip_network("1.2.3.4"), "evilcorp.com"}
     assert bbottarget.whitelist.hosts == {ip_network("1.2.3.4"), "evilcorp.com"}
-    assert set([e.data for e in bbottarget.seeds.events]) == {"http://1.2.3.4:8443/", "bob@evilcorp.com"}
-    assert set([e.data for e in bbottarget.whitelist.events]) == {"1.2.3.4", "evilcorp.com"}
+    assert {e.data for e in bbottarget.seeds.events} == {"http://1.2.3.4:8443/", "bob@evilcorp.com"}
+    assert {e.data for e in bbottarget.whitelist.events} == {"1.2.3.4", "evilcorp.com"}
 
     bbottarget1 = BBOTTarget("evilcorp.com", "evilcorp.net", whitelist=["1.2.3.4/24"], blacklist=["1.2.3.4"])
     bbottarget2 = BBOTTarget("evilcorp.com", "evilcorp.net", whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"])
@@ -228,22 +228,22 @@ async def test_target(bbot_scanner):
     with pytest.raises(TypeError):
         assert list(bbottarget) == ["http://evilcorp.com:8080"]
     assert list(bbottarget.seeds) == ["http://evilcorp.com:8080"]
-    assert set([e.data for e in bbottarget.whitelist]) == {"evilcorp.net:443", "http://evilcorp.net:8080/"}
-    assert set([e.data for e in bbottarget.blacklist]) == {"http://evilcorp.org:8080/", "evilcorp.org:443"}
+    assert {e.data for e in bbottarget.whitelist} == {"evilcorp.net:443", "http://evilcorp.net:8080/"}
+    assert {e.data for e in bbottarget.blacklist} == {"http://evilcorp.org:8080/", "evilcorp.org:443"}
 
     # test org stub as target
     for org_target in ("ORG:evilcorp", "ORG_STUB:evilcorp"):
         scan = bbot_scanner(org_target)
         events = [e async for e in scan.async_start()]
         assert len(events) == 3
-        assert set([e.type for e in events]) == {"SCAN", "ORG_STUB"}
+        assert {e.type for e in events} == {"SCAN", "ORG_STUB"}
 
     # test username as target
     for user_target in ("USER:vancerefrigeration", "USERNAME:vancerefrigeration"):
         scan = bbot_scanner(user_target)
         events = [e async for e in scan.async_start()]
         assert len(events) == 3
-        assert set([e.type for e in events]) == {"SCAN", "USERNAME"}
+        assert {e.type for e in events} == {"SCAN", "USERNAME"}
 
     # verify hash values
     bbottarget = BBOTTarget(
@@ -253,17 +253,17 @@ async def test_target(bbot_scanner):
         whitelist=["evilcorp.com", "bob@www.evilcorp.com", "evilcorp.net"],
         blacklist=["1.2.3.4", "4.3.2.1/24", "http://1.2.3.4", "bob@asdf.evilcorp.net"],
     )
-    assert set([e.data for e in bbottarget.seeds.events]) == {
+    assert {e.data for e in bbottarget.seeds.events} == {
         "1.2.3.0/24",
         "http://www.evilcorp.net/",
         "bob@fdsa.evilcorp.net",
     }
-    assert set([e.data for e in bbottarget.whitelist.events]) == {
+    assert {e.data for e in bbottarget.whitelist.events} == {
         "evilcorp.com",
         "evilcorp.net",
         "bob@www.evilcorp.com",
     }
-    assert set([e.data for e in bbottarget.blacklist.events]) == {
+    assert {e.data for e in bbottarget.blacklist.events} == {
         "1.2.3.4",
         "4.3.2.0/24",
         "http://1.2.3.4/",
@@ -293,7 +293,7 @@ async def test_target(bbot_scanner):
     assert target_dict["seeds"] == ["1.2.3.0/24", "bob@fdsa.evilcorp.net", "http://www.evilcorp.net/"]
     assert target_dict["whitelist"] == ["bob@www.evilcorp.com", "evilcorp.com", "evilcorp.net"]
     assert target_dict["blacklist"] == ["1.2.3.4", "4.3.2.0/24", "bob@asdf.evilcorp.net", "http://1.2.3.4/"]
-    assert target_dict["strict_scope"] == False
+    assert target_dict["strict_scope"] is False
     assert target_dict["hash"] == "b36955a8238a71842fc5f23b11110c26ea07d451"
     assert target_dict["seed_hash"] == "560af51d1f3d69bc5c156fc270b28497fe52dec1"
     assert target_dict["whitelist_hash"] == "8ed0a7368e6d34630e1cfd419d2a73767debc4c4"
@@ -321,8 +321,8 @@ async def test_target(bbot_scanner):
     assert set(target.hosts) == {"evilcorp.co.uk", "www.evilcorp.co.uk"}
     assert "evilcorp.co.uk" in target
     assert "www.evilcorp.co.uk" in target
-    assert not "api.evilcorp.co.uk" in target
-    assert not "api.www.evilcorp.co.uk" in target
+    assert "api.evilcorp.co.uk" not in target
+    assert "api.www.evilcorp.co.uk" not in target
 
     # test 'single' boolean argument
     target = ScanSeeds("http://evilcorp.com", "evilcorp.com:443")
@@ -332,7 +332,7 @@ async def test_target(bbot_scanner):
     assert event.host == "evilcorp.com"
     events = target.get("www.evilcorp.com", single=False)
     assert len(events) == 2
-    assert set([e.data for e in events]) == {"http://evilcorp.com/", "evilcorp.com:443"}
+    assert {e.data for e in events} == {"http://evilcorp.com/", "evilcorp.com:443"}
 
 
 @pytest.mark.asyncio
@@ -361,13 +361,13 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
         blacklist.get("www.evil.com", raise_error=True)
     assert "test.com" in blacklist
     assert "http://evilcorp.com/test.aspx" in blacklist
-    assert not "http://tes.com" in blacklist
+    assert "http://tes.com" not in blacklist
 
     blacklist = ScanBlacklist("evilcorp.com", r"RE:[0-9]{6}\.aspx$")
     assert "http://evilcorp.com" in blacklist
-    assert not "http://test.com/123456" in blacklist
-    assert not "http://test.com/12345.aspx?a=asdf" in blacklist
-    assert not "http://test.com/asdf/123456.aspx/asdf" in blacklist
+    assert "http://test.com/123456" not in blacklist
+    assert "http://test.com/12345.aspx?a=asdf" not in blacklist
+    assert "http://test.com/asdf/123456.aspx/asdf" not in blacklist
     assert "http://test.com/asdf/123456.aspx?a=asdf" in blacklist
     assert "http://test.com/asdf/123456.aspx" in blacklist
 
@@ -382,7 +382,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
 
     # make sure URL is detected normally
     scan = bbot_scanner("http://127.0.0.1:8888/", presets=["spider"], config={"excavate": True}, debug=True)
-    assert set([r.pattern for r in scan.target.blacklist.blacklist_regexes]) == {r"/.*(sign|log)[_-]?out"}
+    assert {r.pattern for r in scan.target.blacklist.blacklist_regexes} == {r"/.*(sign|log)[_-]?out"}
     events = [e async for e in scan.async_start()]
     urls = [e.data for e in events if e.type == "URL"]
     assert len(urls) == 2
@@ -397,7 +397,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
         debug=True,
     )
     assert scan.target.blacklist.blacklist_regexes
-    assert set([r.pattern for r in scan.target.blacklist.blacklist_regexes]) == {
+    assert {r.pattern for r in scan.target.blacklist.blacklist_regexes} == {
         r"evil[0-9]{3}",
         r"/.*(sign|log)[_-]?out",
     }

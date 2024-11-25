@@ -64,8 +64,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert not helpers.is_subdomain("notreal")
     assert helpers.is_url("http://evilcorp.co.uk/asdf?a=b&c=d#asdf")
     assert helpers.is_url("https://evilcorp.co.uk/asdf?a=b&c=d#asdf")
-    assert helpers.is_uri("ftp://evilcorp.co.uk") == True
-    assert helpers.is_uri("http://evilcorp.co.uk") == True
+    assert helpers.is_uri("ftp://evilcorp.co.uk") is True
+    assert helpers.is_uri("http://evilcorp.co.uk") is True
     assert helpers.is_uri("evilcorp.co.uk", return_scheme=True) == ""
     assert helpers.is_uri("ftp://evilcorp.co.uk", return_scheme=True) == "ftp"
     assert helpers.is_uri("FTP://evilcorp.co.uk", return_scheme=True) == "ftp"
@@ -283,7 +283,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     replaced = helpers.search_format_dict(
         {"asdf": [{"wat": {"here": "#{replaceme}!"}}, {500: True}]}, replaceme="asdf"
     )
-    assert replaced["asdf"][1][500] == True
+    assert replaced["asdf"][1][500] is True
     assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
 
     filtered_dict = helpers.filter_dict(
@@ -315,7 +315,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         fuzzy=True,
         exclude_keys="modules",
     )
-    assert not "secrets_db" in filtered_dict4["modules"]
+    assert "secrets_db" not in filtered_dict4["modules"]
     assert "ipneighbor" in filtered_dict4["modules"]
     assert "secret" in filtered_dict4["modules"]["ipneighbor"]
     assert "asdf" not in filtered_dict4["modules"]["ipneighbor"]
@@ -408,15 +408,15 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.validators.validate_host("LOCALHOST ") == "localhost"
     assert helpers.validators.validate_host(" 192.168.1.1") == "192.168.1.1"
     assert helpers.validators.validate_host(" Dead::c0dE ") == "dead::c0de"
-    assert helpers.validators.soft_validate(" evilCorp.COM", "host") == True
-    assert helpers.validators.soft_validate("!@#$", "host") == False
+    assert helpers.validators.soft_validate(" evilCorp.COM", "host") is True
+    assert helpers.validators.soft_validate("!@#$", "host") is False
     with pytest.raises(ValueError):
         assert helpers.validators.validate_host("!@#$")
     # ports
     assert helpers.validators.validate_port(666) == 666
     assert helpers.validators.validate_port(666666) == 65535
-    assert helpers.validators.soft_validate(666, "port") == True
-    assert helpers.validators.soft_validate("!@#$", "port") == False
+    assert helpers.validators.soft_validate(666, "port") is True
+    assert helpers.validators.soft_validate("!@#$", "port") is False
     with pytest.raises(ValueError):
         helpers.validators.validate_port("asdf")
     # top tcp ports
@@ -428,7 +428,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert top_tcp_ports[-10:] == [65526, 65527, 65528, 65529, 65530, 65531, 65532, 65533, 65534, 65535]
     assert len(top_tcp_ports) == 65535
     assert len(set(top_tcp_ports)) == 65535
-    assert all([isinstance(i, int) for i in top_tcp_ports])
+    assert all(isinstance(i, int) for i in top_tcp_ports)
     top_tcp_ports = helpers.top_tcp_ports(10, as_string=True)
     assert top_tcp_ports == "80,23,443,21,22,25,3389,110,445,139"
     # urls
@@ -437,20 +437,20 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         helpers.validators.validate_url_parsed(" httP://evilcorP.com/asdf?a=b&c=d#e").geturl()
         == "http://evilcorp.com/asdf"
     )
-    assert helpers.validators.soft_validate(" httP://evilcorP.com/asdf?a=b&c=d#e", "url") == True
-    assert helpers.validators.soft_validate("!@#$", "url") == False
+    assert helpers.validators.soft_validate(" httP://evilcorP.com/asdf?a=b&c=d#e", "url") is True
+    assert helpers.validators.soft_validate("!@#$", "url") is False
     with pytest.raises(ValueError):
         helpers.validators.validate_url("!@#$")
     # severities
     assert helpers.validators.validate_severity(" iNfo") == "INFO"
-    assert helpers.validators.soft_validate(" iNfo", "severity") == True
-    assert helpers.validators.soft_validate("NOPE", "severity") == False
+    assert helpers.validators.soft_validate(" iNfo", "severity") is True
+    assert helpers.validators.soft_validate("NOPE", "severity") is False
     with pytest.raises(ValueError):
         helpers.validators.validate_severity("NOPE")
     # emails
     assert helpers.validators.validate_email(" bOb@eViLcorp.COM") == "bob@evilcorp.com"
-    assert helpers.validators.soft_validate(" bOb@eViLcorp.COM", "email") == True
-    assert helpers.validators.soft_validate("!@#$", "email") == False
+    assert helpers.validators.soft_validate(" bOb@eViLcorp.COM", "email") is True
+    assert helpers.validators.soft_validate("!@#$", "email") is False
     with pytest.raises(ValueError):
         helpers.validators.validate_email("!@#$")
 
@@ -533,9 +533,9 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     truncated_filename.unlink()
 
     # misc DNS helpers
-    assert helpers.is_ptr("wsc-11-22-33-44-wat.evilcorp.com") == True
-    assert helpers.is_ptr("wsc-11-22-33-wat.evilcorp.com") == False
-    assert helpers.is_ptr("11wat.evilcorp.com") == False
+    assert helpers.is_ptr("wsc-11-22-33-44-wat.evilcorp.com") is True
+    assert helpers.is_ptr("wsc-11-22-33-wat.evilcorp.com") is False
+    assert helpers.is_ptr("11wat.evilcorp.com") is False
 
     ## NTLM
     testheader = "TlRMTVNTUAACAAAAHgAeADgAAAAVgorilwL+bvnVipUAAAAAAAAAAJgAmABWAAAACgBjRQAAAA9XAEkATgAtAFMANAAyAE4ATwBCAEQAVgBUAEsAOAACAB4AVwBJAE4ALQBTADQAMgBOAE8AQgBEAFYAVABLADgAAQAeAFcASQBOAC0AUwA0ADIATgBPAEIARABWAFQASwA4AAQAHgBXAEkATgAtAFMANAAyAE4ATwBCAEQAVgBUAEsAOAADAB4AVwBJAE4ALQBTADQAMgBOAE8AQgBEAFYAVABLADgABwAIAHUwOZlfoNgBAAAAAA=="
@@ -613,8 +613,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         assert len(helpers.get_exception_chain(e)) == 2
         assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, KeyboardInterrupt)]) == 1
         assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, ValueError)]) == 1
-        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) == True
-        assert helpers.in_exception_chain(e, (TypeError, OSError)) == False
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) is True
+        assert helpers.in_exception_chain(e, (TypeError, OSError)) is False
         test_ran = True
     assert test_ran
     test_ran = False
@@ -627,9 +627,9 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         assert len(helpers.get_exception_chain(e)) == 2
         assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, AttributeError)]) == 1
         assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, ValueError)]) == 1
-        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) == False
-        assert helpers.in_exception_chain(e, (KeyboardInterrupt, AttributeError)) == True
-        assert helpers.in_exception_chain(e, (AttributeError,)) == True
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) is False
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, AttributeError)) is True
+        assert helpers.in_exception_chain(e, (AttributeError,)) is True
         test_ran = True
     assert test_ran
 
@@ -886,7 +886,7 @@ async def test_parameter_validation(helpers):
         if helpers.validate_parameter(p, "getparam"):
             assert p in getparam_valid_params and p not in getparam_invalid_params
         else:
-            assert p in getparam_invalid_params and not p in getparam_valid_params
+            assert p in getparam_invalid_params and p not in getparam_valid_params
 
     header_valid_params = {
         "name",
@@ -917,7 +917,7 @@ async def test_parameter_validation(helpers):
         if helpers.validate_parameter(p, "header"):
             assert p in header_valid_params and p not in header_invalid_params
         else:
-            assert p in header_invalid_params and not p in header_valid_params
+            assert p in header_invalid_params and p not in header_valid_params
 
     cookie_valid_params = {
         "name",
@@ -947,4 +947,4 @@ async def test_parameter_validation(helpers):
         if helpers.validate_parameter(p, "cookie"):
             assert p in cookie_valid_params and p not in cookie_invalid_params
         else:
-            assert p in cookie_invalid_params and not p in cookie_valid_params
+            assert p in cookie_invalid_params and p not in cookie_valid_params

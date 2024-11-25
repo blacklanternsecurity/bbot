@@ -69,11 +69,11 @@ class url_manipulation(BaseModule):
 
             if subject_response:
                 subject_content = "".join([str(x) for x in subject_response.headers])
-                if subject_response.text != None:
+                if subject_response.text is not None:
                     subject_content += subject_response.text
 
                 if self.rand_string not in subject_content:
-                    if match == False:
+                    if match is False:
                         if str(subject_response.status_code).startswith("2"):
                             if "body" in reasons:
                                 reported_signature = f"Modified URL: {sig[1]}"
@@ -98,7 +98,7 @@ class url_manipulation(BaseModule):
         return False
 
     def format_signature(self, sig, event):
-        if sig[2] == True:
+        if sig[2] is True:
             cleaned_path = event.parsed_url.path.strip("/")
         else:
             cleaned_path = event.parsed_url.path.lstrip("/")

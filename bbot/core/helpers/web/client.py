@@ -56,7 +56,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
 
         # timeout
         http_timeout = self._web_config.get("http_timeout", 20)
-        if not "timeout" in kwargs:
+        if "timeout" not in kwargs:
             kwargs["timeout"] = http_timeout
 
         # headers

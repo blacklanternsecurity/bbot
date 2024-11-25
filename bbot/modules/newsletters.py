@@ -46,11 +46,11 @@ class newsletters(BaseModule):
                 body = _event.data["body"]
                 soup = self.helpers.beautifulsoup(body, "html.parser")
                 if soup is False:
-                    self.debug(f"BeautifulSoup returned False")
+                    self.debug("BeautifulSoup returned False")
                     return
                 result = self.find_type(soup)
                 if result:
-                    description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
+                    description = "Found a Newsletter Submission Form that could be used for email bombing attacks"
                     data = {"host": str(_event.host), "description": description, "url": _event.data["url"]}
                     await self.emit_event(
                         data,

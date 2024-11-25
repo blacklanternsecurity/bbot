@@ -102,7 +102,7 @@ class azure_tenant(BaseModule):
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200, 421):
             self.verbose(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
-            return set(), dict()
+            return set(), {}
         found_domains = list(set(await self.helpers.re.findall(self.d_xml_regex, r.text)))
         domains = set()
 
@@ -116,7 +116,7 @@ class azure_tenant(BaseModule):
             self.scan.word_cloud.absorb_word(d)
 
         r = await openid_task
-        openid_config = dict()
+        openid_config = {}
         with suppress(Exception):
             openid_config = r.json()
 

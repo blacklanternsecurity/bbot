@@ -31,11 +31,11 @@ class TestHTTPXBase(ModuleTestBase):
 </html>"""
 
     async def setup_after_prep(self, module_test):
-        request_args = dict(uri="/", headers={"test": "header"})
-        respond_args = dict(response_data=self.html_without_login)
+        request_args = {"uri": "/", "headers": {"test": "header"}}
+        respond_args = {"response_data": self.html_without_login}
         module_test.set_expect_requests(request_args, respond_args)
-        request_args = dict(uri="/url", headers={"test": "header"})
-        respond_args = dict(response_data=self.html_with_login)
+        request_args = {"uri": "/url", "headers": {"test": "header"}}
+        respond_args = {"response_data": self.html_with_login}
         module_test.set_expect_requests(request_args, respond_args)
 
     def check(self, module_test, events):
@@ -44,7 +44,7 @@ class TestHTTPXBase(ModuleTestBase):
         for e in events:
             if e.type == "HTTP_RESPONSE":
                 if e.data["path"] == "/":
-                    assert not "login-page" in e.tags
+                    assert "login-page" not in e.tags
                     open_port = True
                 elif e.data["path"] == "/url":
                     assert "login-page" in e.tags
@@ -124,8 +124,8 @@ class TestHTTPX_URLBlacklist(ModuleTestBase):
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/test.aspx"])
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/test.txt"])
-        assert not any([e for e in events if "URL" in e.type and ".svg" in e.data])
-        assert not any([e for e in events if "URL" in e.type and ".woff" in e.data])
+        assert not any(e for e in events if "URL" in e.type and ".svg" in e.data)
+        assert not any(e for e in events if "URL" in e.type and ".woff" in e.data)
 
 
 class TestHTTPX_querystring_removed(ModuleTestBase):

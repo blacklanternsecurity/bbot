@@ -33,11 +33,11 @@ class TestNewsletters(ModuleTestBase):
     """
 
     async def setup_after_prep(self, module_test):
-        request_args = dict(uri="/found", headers={"test": "header"})
-        respond_args = dict(response_data=self.html_with_newsletter)
+        request_args = {"uri": "/found", "headers": {"test": "header"}}
+        respond_args = {"response_data": self.html_with_newsletter}
         module_test.set_expect_requests(request_args, respond_args)
-        request_args = dict(uri="/missing", headers={"test": "header"})
-        respond_args = dict(response_data=self.html_without_newsletter)
+        request_args = {"uri": "/missing", "headers": {"test": "header"}}
+        respond_args = {"response_data": self.html_without_newsletter}
         module_test.set_expect_requests(request_args, respond_args)
 
     def check(self, module_test, events):
@@ -53,5 +53,5 @@ class TestNewsletters(ModuleTestBase):
                 # Verify Negative Result (should skip this statement if correct)
                 elif event.data["url"] == self.missing_tgt:
                     missing = False
-        assert found, f"NEWSLETTER 'Found' Error - Expect status of True but got False"
-        assert missing, f"NEWSLETTER 'Missing' Error - Expect status of True but got False"
+        assert found, "NEWSLETTER 'Found' Error - Expect status of True but got False"
+        assert missing, "NEWSLETTER 'Missing' Error - Expect status of True but got False"

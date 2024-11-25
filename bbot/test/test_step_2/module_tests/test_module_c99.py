@@ -51,10 +51,10 @@ class TestC99AbortThreshold1(TestC99):
 
     def check(self, module_test, events):
         assert module_test.module.api_failure_abort_threshold == 13
-        assert module_test.module.errored == False
+        assert module_test.module.errored is False
         # assert module_test.module._api_request_failures == 4
         assert module_test.module.api_retries == 4
-        assert set([e.data for e in events if e.type == "DNS_NAME"]) == {"blacklanternsecurity.com"}
+        assert {e.data for e in events if e.type == "DNS_NAME"} == {"blacklanternsecurity.com"}
         assert self.url_count == {
             "https://api.c99.nl/randomnumber?key=6789&between=1,100&json": 1,
             "https://api.c99.nl/randomnumber?key=4321&between=1,100&json": 1,
@@ -82,10 +82,10 @@ class TestC99AbortThreshold2(TestC99AbortThreshold1):
 
     def check(self, module_test, events):
         assert module_test.module.api_failure_abort_threshold == 13
-        assert module_test.module.errored == False
+        assert module_test.module.errored is False
         assert module_test.module._api_request_failures == 8
         assert module_test.module.api_retries == 4
-        assert set([e.data for e in events if e.type == "DNS_NAME"]) == {"blacklanternsecurity.com", "evilcorp.com"}
+        assert {e.data for e in events if e.type == "DNS_NAME"} == {"blacklanternsecurity.com", "evilcorp.com"}
         assert self.url_count == {
             "https://api.c99.nl/randomnumber?key=6789&between=1,100&json": 1,
             "https://api.c99.nl/randomnumber?key=4321&between=1,100&json": 1,
@@ -106,10 +106,10 @@ class TestC99AbortThreshold3(TestC99AbortThreshold2):
 
     def check(self, module_test, events):
         assert module_test.module.api_failure_abort_threshold == 13
-        assert module_test.module.errored == False
+        assert module_test.module.errored is False
         assert module_test.module._api_request_failures == 12
         assert module_test.module.api_retries == 4
-        assert set([e.data for e in events if e.type == "DNS_NAME"]) == {
+        assert {e.data for e in events if e.type == "DNS_NAME"} == {
             "blacklanternsecurity.com",
             "evilcorp.com",
             "evilcorp.net",
@@ -138,14 +138,14 @@ class TestC99AbortThreshold4(TestC99AbortThreshold3):
 
     def check(self, module_test, events):
         assert module_test.module.api_failure_abort_threshold == 13
-        assert module_test.module.errored == True
+        assert module_test.module.errored is True
         assert module_test.module._api_request_failures == 13
         assert module_test.module.api_retries == 4
-        assert set([e.data for e in events if e.type == "DNS_NAME"]) == {
+        assert {e.data for e in events if e.type == "DNS_NAME"} == {
             "blacklanternsecurity.com",
             "evilcorp.com",
             "evilcorp.net",
             "evilcorp.co.uk",
         }
         assert len(self.url_count) == 16
-        assert all([v == 1 for v in self.url_count.values()])
+        assert all(v == 1 for v in self.url_count.values())

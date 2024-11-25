@@ -45,7 +45,7 @@ class TestDehashed(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://api.dehashed.com/search?query=domain:blacklanternsecurity.com&size=10000&page=1",
+            url="https://api.dehashed.com/search?query=domain:blacklanternsecurity.com&size=10000&page=1",
             json=dehashed_domain_response,
         )
         await module_test.mock_dns(

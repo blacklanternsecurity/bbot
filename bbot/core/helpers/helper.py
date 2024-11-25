@@ -153,7 +153,9 @@ class ConfigAwareHelper:
         return self.temp_dir / filename
 
     def clean_old_scans(self):
-        _filter = lambda x: x.is_dir() and self.regexes.scan_name_regex.match(x.name)
+        def _filter(x):
+            return x.is_dir() and self.regexes.scan_name_regex.match(x.name)
+
         self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
 
     def make_target(self, *targets, **kwargs):

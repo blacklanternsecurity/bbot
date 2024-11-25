@@ -68,7 +68,7 @@ class BBOTLogger:
         self.listener = None
 
         # if we haven't set up logging yet, do it now
-        if not "_BBOT_LOGGING_SETUP" in os.environ:
+        if "_BBOT_LOGGING_SETUP" not in os.environ:
             os.environ["_BBOT_LOGGING_SETUP"] = "1"
             self.queue = multiprocessing.Queue()
             self.setup_queue_handler()

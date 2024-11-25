@@ -167,7 +167,7 @@ class TestOAUTH(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         await module_test.mock_dns({"evilcorp.com": {"A": ["127.0.0.1"]}})
         module_test.httpx_mock.add_response(
-            url=f"https://login.microsoftonline.com/getuserrealm.srf?login=test@evilcorp.com",
+            url="https://login.microsoftonline.com/getuserrealm.srf?login=test@evilcorp.com",
             json=Azure_Realm.response_json,
         )
         module_test.httpx_mock.add_response(

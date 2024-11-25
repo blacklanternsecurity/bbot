@@ -5,14 +5,14 @@ import mmap
 
 class BloomFilter:
     """
-    Simple bloom filter implementation capable of rougly 400K lookups/s.
+    Simple bloom filter implementation capable of roughly 400K lookups/s.
 
     BBOT uses bloom filters in scenarios like DNS brute-forcing, where it's useful to keep track
     of which mutations have been tried so far.
 
     A 100-megabyte bloom filter (800M bits) can store 10M entries with a .01% false-positive rate.
     A python hash is 36 bytes. So if you wanted to store these in a set, this would take up
-    36 * 10M * 2 (key+value) == 720 megabytes. So we save rougly 7 times the space.
+    36 * 10M * 2 (key+value) == 720 megabytes. So we save roughly 7 times the space.
     """
 
     def __init__(self, size=8000000):

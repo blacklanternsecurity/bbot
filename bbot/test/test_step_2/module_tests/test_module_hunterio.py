@@ -17,7 +17,7 @@ class TestHunterio(ModuleTestBase):
                     "reset_date": "1917-05-23",
                     "team_id": 1234,
                     "calls": {
-                        "_deprecation_notice": "Sums the searches and the verifications, giving an unprecise look of the available requests",
+                        "_deprecation_notice": "Sums the searches and the verifications, giving an imprecise look of the available requests",
                         "used": 999,
                         "available": 2000,
                     },

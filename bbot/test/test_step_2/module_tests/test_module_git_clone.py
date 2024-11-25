@@ -202,7 +202,7 @@ class TestGit_Clone(ModuleTestBase):
         ]
         assert 1 == len(filesystem_events), "Failed to git clone CODE_REPOSITORY"
         # make sure the binary blob isn't here
-        assert not any(["blob" in e.data for e in [e for e in events if e.type == "FILESYSTEM"]])
+        assert not any("blob" in e.data for e in [e for e in events if e.type == "FILESYSTEM"])
         filesystem_event = filesystem_events[0]
         folder = Path(filesystem_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
@@ -217,7 +217,7 @@ class TestGit_CloneWithBlob(TestGit_Clone):
     def check(self, module_test, events):
         filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
         assert len(filesystem_events) == 1
-        assert all(["blob" in e.data for e in filesystem_events])
+        assert all("blob" in e.data for e in filesystem_events)
         filesystem_event = filesystem_events[0]
         blob = filesystem_event.data["blob"]
         tar_bytes = base64.b64decode(blob)

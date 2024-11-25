@@ -1144,7 +1144,7 @@ class TestTrufflehog(ModuleTestBase):
             assert content == self.file_content, "File content doesn't match"
         filesystem_events = [e.parent for e in vuln_events]
         assert len(filesystem_events) == 4
-        assert all([e.type == "FILESYSTEM" for e in filesystem_events])
+        assert all(e.type == "FILESYSTEM" for e in filesystem_events)
         assert 1 == len(
             [
                 e
@@ -1206,7 +1206,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             assert content == self.file_content, "File content doesn't match"
         filesystem_events = [e.parent for e in finding_events]
         assert len(filesystem_events) == 4
-        assert all([e.type == "FILESYSTEM" for e in filesystem_events])
+        assert all(e.type == "FILESYSTEM" for e in filesystem_events)
         assert 1 == len(
             [
                 e

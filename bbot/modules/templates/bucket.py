@@ -159,7 +159,7 @@ class bucket_template(BaseModule):
         valid = self.cloud_helper.is_valid_bucket_name(bucket_name)
         if valid and not self.helpers.is_ip(bucket_name):
             bucket_hash = hash(bucket_name)
-            if not bucket_hash in self.buckets_tried:
+            if bucket_hash not in self.buckets_tried:
                 self.buckets_tried.add(bucket_hash)
                 return True
         return False

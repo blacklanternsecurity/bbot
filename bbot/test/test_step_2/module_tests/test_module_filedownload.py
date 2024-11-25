@@ -15,28 +15,28 @@ trailer <</Root 1 0 R>>"""
 
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests(
-            dict(uri="/"),
-            dict(
-                response_data='<a href="/Test_File.txt"/><a href="/Test_PDF"/><a href="/test.html"/><a href="/test2"/>'
-            ),
+            {"uri": "/"},
+            {
+                "response_data": '<a href="/Test_File.txt"/><a href="/Test_PDF"/><a href="/test.html"/><a href="/test2"/>'
+            },
         )
         module_test.set_expect_requests(
-            dict(uri="/Test_File.txt"),
-            dict(
-                response_data="juicy stuff",
-            ),
+            {"uri": "/Test_File.txt"},
+            {
+                "response_data": "juicy stuff",
+            },
         )
         module_test.set_expect_requests(
-            dict(uri="/Test_PDF"),
-            dict(response_data=self.pdf_data, headers={"Content-Type": "application/pdf"}),
+            {"uri": "/Test_PDF"},
+            {"response_data": self.pdf_data, "headers": {"Content-Type": "application/pdf"}},
         )
         module_test.set_expect_requests(
-            dict(uri="/test.html"),
-            dict(response_data="<!DOCTYPE html>", headers={"Content-Type": "text/html"}),
+            {"uri": "/test.html"},
+            {"response_data": "<!DOCTYPE html>", "headers": {"Content-Type": "text/html"}},
         )
         module_test.set_expect_requests(
-            dict(uri="/test2"),
-            dict(response_data="<!DOCTYPE html>", headers={"Content-Type": "text/html"}),
+            {"uri": "/test2"},
+            {"response_data": "<!DOCTYPE html>", "headers": {"Content-Type": "text/html"}},
         )
 
     def check(self, module_test, events):

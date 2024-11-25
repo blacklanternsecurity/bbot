@@ -72,7 +72,7 @@ async def test_engine():
 
     # test async generator
     assert counter == 0
-    assert yield_cancelled == False
+    assert yield_cancelled is False
     yield_res = [r async for r in test_engine.yield_stuff(13)]
     assert yield_res == [f"thing{i}" for i in range(13)]
     assert len(yield_res) == 13
@@ -88,8 +88,8 @@ async def test_engine():
             await agen.aclose()
             break
     await asyncio.sleep(5)
-    assert yield_cancelled == True
-    assert yield_errored == False
+    assert yield_cancelled is True
+    assert yield_errored is False
     assert counter < 15
 
     # test async generator with error
@@ -99,8 +99,8 @@ async def test_engine():
     with pytest.raises(BBOTEngineError):
         async for _ in agen:
             pass
-    assert yield_cancelled == False
-    assert yield_errored == True
+    assert yield_cancelled is False
+    assert yield_errored is True
 
     # test return with cancellation
     return_started = False
@@ -113,10 +113,10 @@ async def test_engine():
     with pytest.raises(asyncio.CancelledError):
         await task
     await asyncio.sleep(0.1)
-    assert return_started == True
-    assert return_finished == False
-    assert return_cancelled == True
-    assert return_errored == False
+    assert return_started is True
+    assert return_finished is False
+    assert return_cancelled is True
+    assert return_errored is False
 
     # test return with late cancellation
     return_started = False
@@ -128,10 +128,10 @@ async def test_engine():
     task.cancel()
     result = await task
     assert result == "thing1"
-    assert return_started == True
-    assert return_finished == True
-    assert return_cancelled == False
-    assert return_errored == False
+    assert return_started is True
+    assert return_finished is True
+    assert return_cancelled is False
+    assert return_errored is False
 
     # test return with error
     return_started = False
@@ -140,9 +140,9 @@ async def test_engine():
     return_errored = False
     with pytest.raises(BBOTEngineError):
         result = await test_engine.return_thing(None)
-    assert return_started == True
-    assert return_finished == False
-    assert return_cancelled == False
-    assert return_errored == True
+    assert return_started is True
+    assert return_finished is False
+    assert return_cancelled is False
+    assert return_errored is True
 
     await test_engine.shutdown()

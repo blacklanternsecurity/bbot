@@ -31,9 +31,9 @@ class TestBaddns_cname_nxdomain(BaseTestBaddns):
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
     def check(self, module_test, events):
-        assert any([e.data == "baddns.azurewebsites.net" for e in events]), "CNAME detection failed"
-        assert any([e.type == "VULNERABILITY" for e in events]), "Failed to emit VULNERABILITY"
-        assert any(["baddns-cname" in e.tags for e in events]), "Failed to add baddns tag"
+        assert any(e.data == "baddns.azurewebsites.net" for e in events), "CNAME detection failed"
+        assert any(e.type == "VULNERABILITY" for e in events), "Failed to emit VULNERABILITY"
+        assert any("baddns-cname" in e.tags for e in events), "Failed to add baddns tag"
 
 
 class TestBaddns_cname_signature(BaseTestBaddns):
@@ -60,8 +60,8 @@ class TestBaddns_cname_signature(BaseTestBaddns):
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
     def check(self, module_test, events):
-        assert any([e for e in events])
+        assert any(e for e in events)
         assert any(
-            [e.type == "VULNERABILITY" and "bigcartel.com" in e.data["description"] for e in events]
+            e.type == "VULNERABILITY" and "bigcartel.com" in e.data["description"] for e in events
         ), "Failed to emit VULNERABILITY"
-        assert any(["baddns-cname" in e.tags for e in events]), "Failed to add baddns tag"
+        assert any("baddns-cname" in e.tags for e in events), "Failed to add baddns tag"

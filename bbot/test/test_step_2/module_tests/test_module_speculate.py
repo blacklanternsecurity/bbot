@@ -62,10 +62,8 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
         for e in module_test.scan.modules["dummy"].events:
             events_data.add(e.data)
         assert all(
-            [
-                x in events_data
+            x in events_data
                 for x in ("evilcorp.com:80", "evilcorp.com:443", "asdf.evilcorp.com:80", "asdf.evilcorp.com:443")
-            ]
         )
 
 
@@ -79,8 +77,6 @@ class TestSpeculate_OpenPorts_Portscanner(TestSpeculate_OpenPorts):
         for e in module_test.scan.modules["dummy"].events:
             events_data.add(e.data)
         assert not any(
-            [
-                x in events_data
+            x in events_data
                 for x in ("evilcorp.com:80", "evilcorp.com:443", "asdf.evilcorp.com:80", "asdf.evilcorp.com:443")
-            ]
         )
