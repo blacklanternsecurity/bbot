@@ -93,7 +93,6 @@ class Event(BBOTBaseModel):
 
 ### SCAN ###
 
-
 class Scan(BBOTBaseModel):
     id: Annotated[str, "indexed", "unique"]
     name: str
@@ -116,7 +115,6 @@ class Scan(BBOTBaseModel):
 
 
 ### TARGET ###
-
 
 class Target(BBOTBaseModel):
     name: str = "Default Target"
