@@ -158,6 +158,8 @@ class ModuleTestBase:
         while not await self.is_port_open("localhost", port):
             self.log.verbose(f"Waiting for port {port} to be open...")
             await asyncio.sleep(0.5)
+        # allow an extra second for things to settle
+        await asyncio.sleep(1)
 
     async def is_port_open(self, host, port):
         try:
