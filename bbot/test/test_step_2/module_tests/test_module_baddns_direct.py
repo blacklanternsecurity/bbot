@@ -55,8 +55,8 @@ class TestBaddns_direct_cloudflare(BaseTestBaddns):
     def check(self, module_test, events):
         assert any(
             e.type == "FINDING"
-                and "Possible [AWS Bucket Takeover Detection] via direct BadDNS analysis. Indicator: [[Words: The specified bucket does not exist | Condition: and | Part: body] Matchers-Condition: and] Trigger: [self] baddns Module: [CNAME]"
-                in e.data["description"]
-                for e in events
+            and "Possible [AWS Bucket Takeover Detection] via direct BadDNS analysis. Indicator: [[Words: The specified bucket does not exist | Condition: and | Part: body] Matchers-Condition: and] Trigger: [self] baddns Module: [CNAME]"
+            in e.data["description"]
+            for e in events
         ), "Failed to emit FINDING"
         assert any("baddns-cname" in e.tags for e in events), "Failed to add baddns tag"

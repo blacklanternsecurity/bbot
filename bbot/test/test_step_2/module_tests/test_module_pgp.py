@@ -9,10 +9,10 @@ class TestPGP(ModuleTestBase):
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <link href='/assets/css/pks.min.css' rel='stylesheet' type='text/css'>
 <style type="text/css">
- 
+
  .uid { color: green; text-decoration: underline; }
  .warn { color: red; font-weight: bold; }
- 
+
 </style></head><body><h1>Search results for 'blacklanternsecurity.com'</h1><pre>Type bits/keyID            cr. time   exp time   key expir
 </pre>
 

@@ -16,7 +16,7 @@ from bbot.scanner import Scanner, Preset
 def test_preset_descriptions():
     # ensure very preset has a description
     preset = Preset()
-    for (loaded_preset, category, preset_path, original_filename) in preset.all_presets.values():
+    for loaded_preset, category, preset_path, original_filename in preset.all_presets.values():
         assert (
             loaded_preset.description
         ), f'Preset "{loaded_preset.name}" at {original_filename} does not have a description.'
@@ -68,7 +68,6 @@ def test_core():
 
 
 def test_preset_yaml(clean_default_config):
-
     import yaml
 
     preset1 = Preset(
@@ -171,7 +170,6 @@ exclude_flags:
 
 
 def test_preset_scope():
-
     # test target merging
     scan = Scanner("1.2.3.4", preset=Preset.from_dict({"target": ["evilcorp.com"]}))
     assert {str(h) for h in scan.preset.target.seeds.hosts} == {"1.2.3.4/32", "evilcorp.com"}
@@ -378,7 +376,6 @@ def test_preset_scope():
 
 @pytest.mark.asyncio
 async def test_preset_logging():
-
     scan = Scanner()
 
     # test individual verbosity levels
@@ -711,7 +708,6 @@ modules:
 
 
 def test_preset_include():
-
     # test recursive preset inclusion
 
     custom_preset_dir_1 = bbot_test_dir / "custom_preset_dir"
@@ -883,7 +879,6 @@ def test_preset_module_disablement(clean_default_config):
 
 
 def test_preset_require_exclude():
-
     def get_module_flags(p):
         for m in p.scan_modules:
             preloaded = p.preloaded_module(m)

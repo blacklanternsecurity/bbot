@@ -8,13 +8,13 @@ Run all baddns modules and submodules.
 ??? note "`baddns-thorough.yml`"
     ```yaml title="~/.bbot/presets/baddns-thorough.yml"
     description: Run all baddns modules and submodules.
-    
-    
+
+
     modules:
       - baddns
       - baddns_zone
       - baddns_direct
-    
+
     config:
       modules:
         baddns:
@@ -32,10 +32,10 @@ Enumerate cloud resources such as storage buckets, etc.
 ??? note "`cloud-enum.yml`"
     ```yaml title="~/.bbot/presets/cloud-enum.yml"
     description: Enumerate cloud resources such as storage buckets, etc.
-    
+
     include:
       - subdomain-enum
-    
+
     flags:
       - cloud-enum
     ```
@@ -51,7 +51,7 @@ Enumerate Git repositories, Docker images, etc.
 ??? note "`code-enum.yml`"
     ```yaml title="~/.bbot/presets/code-enum.yml"
     description: Enumerate Git repositories, Docker images, etc.
-    
+
     flags:
       - code-enum
     ```
@@ -67,17 +67,17 @@ Recursive web directory brute-force (aggressive)
 ??? note "`dirbust-heavy.yml`"
     ```yaml title="~/.bbot/presets/web/dirbust-heavy.yml"
     description: Recursive web directory brute-force (aggressive)
-    
+
     include:
       - spider
-    
+
     flags:
       - iis-shortnames
-    
+
     modules:
       - ffuf
       - wayback
-    
+
     config:
       modules:
         iis_shortnames:
@@ -118,13 +118,13 @@ Basic web directory brute-force (surface-level directories only)
 ??? note "`dirbust-light.yml`"
     ```yaml title="~/.bbot/presets/web/dirbust-light.yml"
     description: Basic web directory brute-force (surface-level directories only)
-    
+
     include:
       - iis-shortnames
-    
+
     modules:
       - ffuf
-    
+
     config:
       modules:
         ffuf:
@@ -143,11 +143,11 @@ Comprehensive scan for all IIS/.NET specific modules and module settings
 ??? note "`dotnet-audit.yml`"
     ```yaml title="~/.bbot/presets/web/dotnet-audit.yml"
     description: Comprehensive scan for all IIS/.NET specific modules and module settings
-    
-    
+
+
     include:
       - iis-shortnames
-    
+
     modules:
       - httpx
       - badsecrets
@@ -156,14 +156,14 @@ Comprehensive scan for all IIS/.NET specific modules and module settings
       - telerik
       - ajaxpro
       - dotnetnuke
-    
+
     config:
       modules:
         ffuf:
           extensions: asp,aspx,ashx,asmx,ascx
         telerik:
           exploit_RAU_crypto: True
-    
+
     ```
 
 Category: web
@@ -177,10 +177,10 @@ Enumerate email addresses from APIs, web crawling, etc.
 ??? note "`email-enum.yml`"
     ```yaml title="~/.bbot/presets/email-enum.yml"
     description: Enumerate email addresses from APIs, web crawling, etc.
-    
+
     flags:
       - email-enum
-    
+
     output_modules:
       - emails
     ```
@@ -196,10 +196,10 @@ Scan only the provided targets as fast as possible - no extra discovery
 ??? note "`fast.yml`"
     ```yaml title="~/.bbot/presets/fast.yml"
     description: Scan only the provided targets as fast as possible - no extra discovery
-    
+
     exclude_modules:
       - excavate
-    
+
     config:
       # only scan the exact targets specified
       scope:
@@ -224,10 +224,10 @@ Recursively enumerate IIS shortnames
 ??? note "`iis-shortnames.yml`"
     ```yaml title="~/.bbot/presets/web/iis-shortnames.yml"
     description: Recursively enumerate IIS shortnames
-    
+
     flags:
       - iis-shortnames
-    
+
     config:
       modules:
         iis_shortnames:
@@ -246,7 +246,7 @@ Everything everywhere all at once
 ??? note "`kitchen-sink.yml`"
     ```yaml title="~/.bbot/presets/kitchen-sink.yml"
     description: Everything everywhere all at once
-    
+
     include:
       - subdomain-enum
       - cloud-enum
@@ -258,13 +258,13 @@ Everything everywhere all at once
       - dirbust-light
       - web-screenshots
       - baddns-thorough
-    
+
     config:
       modules:
         baddns:
           enable_references: True
-    
-    
+
+
     ```
 
 
@@ -278,13 +278,13 @@ Discover new web parameters via brute-force
 ??? note "`paramminer.yml`"
     ```yaml title="~/.bbot/presets/web/paramminer.yml"
     description: Discover new web parameters via brute-force
-    
+
     flags:
       - web-paramminer
-    
+
     modules:
       - httpx
-    
+
     config:
       web:
         spider_distance: 1
@@ -302,14 +302,14 @@ Recursive web spider
 ??? note "`spider.yml`"
     ```yaml title="~/.bbot/presets/spider.yml"
     description: Recursive web spider
-    
+
     modules:
       - httpx
-    
+
     blacklist:
       # Prevent spider from invalidating sessions by logging out
       - "RE:/.*(sign|log)[_-]?out"
-    
+
     config:
       web:
         # how many links to follow in a row
@@ -331,15 +331,15 @@ Enumerate subdomains via APIs, brute-force
 ??? note "`subdomain-enum.yml`"
     ```yaml title="~/.bbot/presets/subdomain-enum.yml"
     description: Enumerate subdomains via APIs, brute-force
-    
+
     flags:
       # enable every module with the subdomain-enum flag
       - subdomain-enum
-    
+
     output_modules:
       # output unique subdomains to TXT file
       - subdomains
-    
+
     config:
       dns:
         threads: 25
@@ -365,10 +365,10 @@ Quick web scan
 ??? note "`web-basic.yml`"
     ```yaml title="~/.bbot/presets/web-basic.yml"
     description: Quick web scan
-    
+
     include:
       - iis-shortnames
-    
+
     flags:
       - web-basic
     ```
@@ -384,10 +384,10 @@ Take screenshots of webpages
 ??? note "`web-screenshots.yml`"
     ```yaml title="~/.bbot/presets/web-screenshots.yml"
     description: Take screenshots of webpages
-    
+
     flags:
       - web-screenshots
-    
+
     config:
       modules:
         gowitness:
@@ -410,11 +410,11 @@ Aggressive web scan
 ??? note "`web-thorough.yml`"
     ```yaml title="~/.bbot/presets/web-thorough.yml"
     description: Aggressive web scan
-    
+
     include:
       # include the web-basic preset
       - web-basic
-    
+
     flags:
       - web-thorough
     ```

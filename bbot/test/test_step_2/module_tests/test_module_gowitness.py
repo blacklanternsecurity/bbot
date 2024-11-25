@@ -101,6 +101,4 @@ class TestGoWitnessWithBlob(TestGowitness):
     def check(self, module_test, events):
         webscreenshots = [e for e in events if e.type == "WEBSCREENSHOT"]
         assert webscreenshots, "failed to raise WEBSCREENSHOT events"
-        assert all(
-            "blob" in e.data and e.data["blob"] for e in webscreenshots
-        ), "blob not found in WEBSCREENSHOT data"
+        assert all("blob" in e.data and e.data["blob"] for e in webscreenshots), "blob not found in WEBSCREENSHOT data"

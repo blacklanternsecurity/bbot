@@ -6,7 +6,6 @@ import random
 
 @pytest.mark.asyncio
 async def test_bloom_filter():
-
     def generate_random_strings(n, length=10):
         """Generate a list of n random strings."""
         return ["".join(random.choices(string.ascii_letters + string.digits, k=length)) for _ in range(n)]

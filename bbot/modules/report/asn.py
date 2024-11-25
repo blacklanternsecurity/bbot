@@ -207,7 +207,14 @@ class asn(BaseReportModule):
                     return False
                 asns_tried.add(asn)
             asns.append(
-                {"asn": asn, "subnet": subnet, "name": name, "description": description, "country": country, "emails": emails}
+                {
+                    "asn": asn,
+                    "subnet": subnet,
+                    "name": name,
+                    "description": description,
+                    "country": country,
+                    "emails": emails,
+                }
             )
         if not asns:
             self.debug(f'No results for "{ip}"')

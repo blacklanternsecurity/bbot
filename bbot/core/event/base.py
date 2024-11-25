@@ -814,7 +814,7 @@ class BaseEvent:
         if parent_uuid:
             j["parent_uuid"] = parent_uuid
         # tags
-        j.update({"tags": list(self.tags)})
+        j.update({"tags": sorted(self.tags)})
         # parent module
         if self.module:
             j.update({"module": str(self.module)})

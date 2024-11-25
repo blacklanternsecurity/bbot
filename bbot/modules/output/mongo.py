@@ -59,7 +59,13 @@ class Mongo(BaseOutputModule):
     async def handle_event(self, event):
         event_json = event.json()
         event_pydantic = Event(**event_json)
-        await self.events_collection.insert_one(event_pydantic.model_dump())
+        while 1:
+            try:
+                await self.events_collection.insert_one(event_pydantic.model_dump())
+                break
+            except Exception as e:
+                self.warning(f"Error inserting event into MongoDB: {e}, retrying...")
+                await self.helpers.sleep(1)
 
         if event.type == "SCAN":
             scan_json = Scan(**event.data_json).model_dump()
