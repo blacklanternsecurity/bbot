@@ -1759,7 +1759,12 @@ def event_from_json(j):
             "context": j.get("discovery_context", None),
             "dummy": True,
         }
-        data = j.get("data_json", j.get("data", None))
+        data = j.get("data_json", None)
+        if data is None:
+            data = j.get("data", None)
+        if data is None:
+            json_pretty = json.dumps(j, indent=2)
+            raise ValueError(f"data or data_json must be provided. JSON: {json_pretty}")
         kwargs["data"] = data
         event = make_event(**kwargs)
         event_uuid = j.get("uuid", None)

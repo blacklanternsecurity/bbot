@@ -23,7 +23,7 @@ class TestSplunk(ModuleTestBase):
         if not j["index"] == "bbot_index":
             return False
         data = j["event"]
-        if not data["data"] == "blacklanternsecurity.com" and data["type"] == "DNS_NAME":
+        if not data["data_json"] == "blacklanternsecurity.com" and data["type"] == "DNS_NAME":
             return False
         return True
 

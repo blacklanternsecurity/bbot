@@ -144,7 +144,7 @@ async def test_python_output_matches_json(bbot_scanner):
     assert len(events) == 5
     scan_events = [e for e in events if e["type"] == "SCAN"]
     assert len(scan_events) == 2
-    assert all(isinstance(e["data"]["status"], str) for e in scan_events)
+    assert all(isinstance(e["data_json"]["status"], str) for e in scan_events)
     assert len([e for e in events if e["type"] == "DNS_NAME"]) == 1
     assert len([e for e in events if e["type"] == "ORG_STUB"]) == 1
     assert len([e for e in events if e["type"] == "IP_ADDRESS"]) == 1

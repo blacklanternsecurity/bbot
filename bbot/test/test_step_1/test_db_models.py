@@ -18,12 +18,12 @@ def test_pydantic_models(events):
     utc_now2 = utc_datetime_validator(now2)
     assert utc_now2.timestamp() == utc_now.timestamp()
 
-    assert Event._datetime_fields() == ["inserted_at", "timestamp"]
-
     test_event = Event(**events.ipv4.json())
     assert sorted(test_event._indexed_fields()) == [
+        "data",
         "host",
         "id",
+        "inserted_at",
         "module",
         "parent",
         "parent_uuid",
@@ -40,10 +40,10 @@ def test_pydantic_models(events):
         event_json = e.json()
         event_pydantic = Event(**event_json)
         event_pydantic_dict = event_pydantic.model_dump()
-        event_reconstituted = BaseEvent.from_json(event_pydantic_dict)
+        event_reconstituted = BaseEvent.from_json(event_pydantic.model_dump(exclude_none=True))
         assert isinstance(event_json["timestamp"], float)
         assert isinstance(e.timestamp, datetime)
-        assert isinstance(event_pydantic.timestamp, datetime)
+        assert isinstance(event_pydantic.timestamp, float)
         assert not "inserted_at" in event_json
         assert isinstance(event_pydantic_dict["timestamp"], float)
         assert isinstance(event_pydantic_dict["inserted_at"], float)
