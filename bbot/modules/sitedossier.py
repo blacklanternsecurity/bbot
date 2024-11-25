@@ -52,5 +52,5 @@ class sitedossier(subdomain_enum):
                     results.add(hostname)
                     yield hostname
             if '<a href="/parentdomain/' not in response.text:
-                self.debug(f"Next page not found")
+                self.debug("Next page not found")
                 break

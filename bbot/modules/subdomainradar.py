@@ -46,7 +46,7 @@ class SubdomainRadar(subdomain_enum_apikey):
             try:
                 j = response.json()
             except Exception:
-                return False, f"Failed to get enumerators: failed to parse response as JSON"
+                return False, "Failed to get enumerators: failed to parse response as JSON"
             for group in j:
                 group_name = group.get("name", "").strip().lower()
                 if group_name:

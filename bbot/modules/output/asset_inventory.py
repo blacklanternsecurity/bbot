@@ -91,15 +91,15 @@ class asset_inventory(CSV):
             self.assets[hostkey].absorb_event(event)
 
     async def report(self):
-        stats = dict()
-        totals = dict()
+        stats = {}
+        totals = {}
 
         def increment_stat(stat, value):
             try:
                 totals[stat] += 1
             except KeyError:
                 totals[stat] = 1
-            if not stat in stats:
+            if stat not in stats:
                 stats[stat] = {}
             try:
                 stats[stat][value] += 1
@@ -259,17 +259,17 @@ class Asset:
         # ips
         self.ip_addresses = set(_make_ip_list(row.get("IP (External)", "")))
         self.ip_addresses.update(set(_make_ip_list(row.get("IP (Internal)", ""))))
-        # If user reqests a recheck dont import the following fields to force them to be rechecked
+        # If user requests a recheck dont import the following fields to force them to be rechecked
         if not self.recheck:
             # ports
             ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
-            self.ports.update(set(i for i in ports if i and is_port(i)))
+            self.ports.update({i for i in ports if i and is_port(i)})
             # findings
             findings = [i.strip() for i in row.get("Findings", "").splitlines()]
-            self.findings.update(set(i for i in findings if i))
+            self.findings.update({i for i in findings if i})
             # technologies
             technologies = [i.strip() for i in row.get("Technologies", "").splitlines()]
-            self.technologies.update(set(i for i in technologies if i))
+            self.technologies.update({i for i in technologies if i})
             # risk rating
             risk_rating = row.get("Risk Rating", "").strip()
             if risk_rating and risk_rating.isdigit() and int(risk_rating) > self.risk_rating:

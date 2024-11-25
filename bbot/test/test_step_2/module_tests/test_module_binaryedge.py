@@ -6,7 +6,7 @@ class TestBinaryEdge(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://api.binaryedge.io/v2/query/domains/subdomain/blacklanternsecurity.com",
+            url="https://api.binaryedge.io/v2/query/domains/subdomain/blacklanternsecurity.com",
             match_headers={"X-Key": "asdf"},
             json={
                 "query": "blacklanternsecurity.com",
@@ -19,7 +19,7 @@ class TestBinaryEdge(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url=f"https://api.binaryedge.io/v2/user/subscription",
+            url="https://api.binaryedge.io/v2/user/subscription",
             match_headers={"X-Key": "asdf"},
             json={
                 "subscription": {"name": "Free"},

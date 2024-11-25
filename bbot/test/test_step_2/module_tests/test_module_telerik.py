@@ -11,7 +11,7 @@ class TestTelerik(ModuleTestBase):
         # Simulate Telerik.Web.UI.WebResource.axd?type=rau detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"}
         respond_args = {
-            "response_data": '{ "message" : "RadAsyncUpload handler is registered succesfully, however, it may not be accessed directly." }'
+            "response_data": '{ "message" : "RadAsyncUpload handler is registered successfully, however, it may not be accessed directly." }'
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 

@@ -391,7 +391,7 @@ def url_parents(u):
     parent_list = []
     while 1:
         parent = parent_url(u)
-        if parent == None:
+        if parent is None:
             return parent_list
         elif parent not in parent_list:
             parent_list.append(parent)
@@ -512,7 +512,7 @@ def domain_stem(domain):
         - Utilizes the `tldextract` function for domain parsing.
     """
     parsed = tldextract(str(domain))
-    return f".".join(parsed.subdomain.split(".") + parsed.domain.split(".")).strip(".")
+    return ".".join(parsed.subdomain.split(".") + parsed.domain.split(".")).strip(".")
 
 
 def ip_network_parents(i, include_self=False):
@@ -921,12 +921,12 @@ def extract_params_xml(xml_data, compare_mode="getparam"):
 
 # Define valid characters for each mode based on RFCs
 valid_chars_dict = {
-    "header": set(
+    "header": {
         chr(c) for c in range(33, 127) if chr(c) in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
-    ),
-    "getparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
-    "postparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
-    "cookie": set(chr(c) for c in range(33, 127) if chr(c) not in '()<>@,;:"/[]?={} \t'),
+    },
+    "getparam": {chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="},
+    "postparam": {chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="},
+    "cookie": {chr(c) for c in range(33, 127) if chr(c) not in '()<>@,;:"/[]?={} \t'},
 }
 
 
@@ -1148,7 +1148,7 @@ def chain_lists(
     """
     if isinstance(l, str):
         l = [l]
-    final_list = dict()
+    final_list = {}
     for entry in l:
         for s in split_regex.split(entry):
             f = s.strip()
@@ -1345,7 +1345,7 @@ def search_dict_by_key(key, d):
     if isinstance(d, dict):
         if key in d:
             yield d[key]
-        for k, v in d.items():
+        for v in d.values():
             yield from search_dict_by_key(key, v)
     elif isinstance(d, list):
         for v in d:
@@ -1412,7 +1412,7 @@ def search_dict_values(d, *regexes):
                     results.add(h)
                     yield result
     elif isinstance(d, dict):
-        for _, v in d.items():
+        for v in d.values():
             yield from search_dict_values(v, *regexes)
     elif isinstance(d, list):
         for v in d:
@@ -2397,7 +2397,7 @@ def in_exception_chain(e, exc_types):
         ...     if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
         ...         raise
     """
-    return any([isinstance(_, exc_types) for _ in get_exception_chain(e)])
+    return any(isinstance(_, exc_types) for _ in get_exception_chain(e))
 
 
 def get_traceback_details(e):

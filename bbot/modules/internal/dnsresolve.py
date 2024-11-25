@@ -131,9 +131,9 @@ class DNSResolve(BaseInterceptModule):
             event.host, rdtypes=rdtypes, raw_dns_records=event.raw_dns_records
         )
         for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
-            if is_wildcard == False:
+            if is_wildcard is False:
                 continue
-            elif is_wildcard == True:
+            elif is_wildcard is True:
                 event.add_tag("wildcard")
                 wildcard_tag = "wildcard"
             else:
@@ -142,16 +142,16 @@ class DNSResolve(BaseInterceptModule):
             event.add_tag(f"{rdtype}-{wildcard_tag}")
 
         # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-        if wildcard_rdtypes and not "target" in event.tags:
+        if wildcard_rdtypes and "target" not in event.tags:
             # these are the rdtypes that have wildcards
             wildcard_rdtypes_set = set(wildcard_rdtypes)
             # consider the event a full wildcard if all its records are wildcards
             event_is_wildcard = False
             if wildcard_rdtypes_set:
-                event_is_wildcard = all(r[0] == True for r in wildcard_rdtypes.values())
+                event_is_wildcard = all(r[0] is True for r in wildcard_rdtypes.values())
 
             if event_is_wildcard:
-                if event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
+                if event.type in ("DNS_NAME",) and "_wildcard" not in event.data.split("."):
                     wildcard_parent = self.helpers.parent_domain(event.host)
                     for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
                         if _is_wildcard:
@@ -273,7 +273,7 @@ class DNSResolve(BaseInterceptModule):
         # tag event with errors
         for rdtype, errors in dns_errors.items():
             # only consider it an error if there weren't any results for that rdtype
-            if errors and not rdtype in event.dns_children:
+            if errors and rdtype not in event.dns_children:
                 event.add_tag(f"{rdtype}-error")
 
     def get_dns_parent(self, event):
@@ -307,7 +307,7 @@ class DNSResolve(BaseInterceptModule):
     def emit_raw_records(self):
         if self._emit_raw_records is None:
             watching_raw_records = any(
-                ["RAW_DNS_RECORD" in m.get_watched_events() for m in self.scan.modules.values()]
+                "RAW_DNS_RECORD" in m.get_watched_events() for m in self.scan.modules.values()
             )
             omitted_event_types = self.scan.config.get("omit_event_types", [])
             omit_raw_records = "RAW_DNS_RECORD" in omitted_event_types

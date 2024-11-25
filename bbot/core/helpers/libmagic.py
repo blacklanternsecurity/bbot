@@ -2,7 +2,6 @@ import puremagic
 
 
 def get_magic_info(file):
-
     magic_detections = puremagic.magic_file(file)
     if magic_detections:
         magic_detections.sort(key=lambda x: x.confidence, reverse=True)

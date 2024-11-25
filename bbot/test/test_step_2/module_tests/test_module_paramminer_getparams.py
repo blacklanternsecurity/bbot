@@ -89,7 +89,6 @@ class TestParamminer_Getparams_boring_off(TestParamminer_Getparams):
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-
         emitted_boring_parameter = False
         for e in events:
             if e.type == "WEB_PARAMETER":
@@ -106,7 +105,6 @@ class TestParamminer_Getparams_boring_on(TestParamminer_Getparams_boring_off):
     }
 
     def check(self, module_test, events):
-
         emitted_boring_parameter = False
 
         for e in events:
@@ -160,15 +158,12 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-
         excavate_extracted_web_parameter = False
         found_hidden_getparam_recycled = False
         emitted_excavate_paramminer_duplicate = False
 
         for e in events:
-
             if e.type == "WEB_PARAMETER":
-
                 if (
                     "http://127.0.0.1:8888/test2.php" in e.data["url"]
                     and "HTTP Extracted Parameter [abcd1234] (HTML Tags Submodule)" in e.data["description"]
@@ -213,7 +208,6 @@ class TestParamminer_Getparams_xmlspeculative(Paramminer_Headers):
     """
 
     async def setup_after_prep(self, module_test):
-
         module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         module_test.monkeypatch.setattr(
             helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}

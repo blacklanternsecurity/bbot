@@ -48,7 +48,7 @@ class TestPostgres(ModuleTestBase):
                 await asyncio.sleep(1)
 
         if process.returncode != 0:
-            self.log.error(f"Failed to start PostgreSQL server")
+            self.log.error("Failed to start PostgreSQL server")
 
     async def check(self, module_test, events):
         import asyncpg

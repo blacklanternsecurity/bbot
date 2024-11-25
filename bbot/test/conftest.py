@@ -95,7 +95,7 @@ def bbot_httpserver_ssl():
 
 
 def should_mock(request):
-    return not request.url.host in ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
+    return request.url.host not in ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
 
 
 def pytest_collection_modifyitems(config, items):

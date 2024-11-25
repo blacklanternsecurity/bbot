@@ -64,7 +64,7 @@ class CSV(BaseOutputModule):
                 ),
                 "Source Module": str(getattr(event, "module_sequence", "")),
                 "Scope Distance": str(getattr(event, "scope_distance", "")),
-                "Event Tags": ",".join(sorted(list(getattr(event, "tags", [])))),
+                "Event Tags": ",".join(sorted(getattr(event, "tags", []))),
                 "Discovery Path": " --> ".join(discovery_path),
             }
         )

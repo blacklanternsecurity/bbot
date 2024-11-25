@@ -60,7 +60,7 @@ class WebhookOutputModule(BaseOutputModule):
     async def filter_event(self, event):
         if event.type == "VULNERABILITY":
             severity = event.data.get("severity", "UNKNOWN")
-            if not severity in self.allowed_severities:
+            if severity not in self.allowed_severities:
                 return False, f"{severity} is below min_severity threshold"
         return True
 

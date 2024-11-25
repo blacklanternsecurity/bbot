@@ -41,7 +41,7 @@ class RegexHelper:
         """
         if not isinstance(compiled_regexes, dict):
             raise ValueError('compiled_regexes must be a dictionary like this: {"regex_name": <compiled_regex>}')
-        for k, v in compiled_regexes.items():
+        for v in compiled_regexes.values():
             self.ensure_compiled_regex(v)
 
         tasks = {}

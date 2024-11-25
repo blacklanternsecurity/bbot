@@ -31,7 +31,7 @@ class dockerhub(BaseModule):
     async def handle_org_stub(self, event):
         profile_name = event.data
         # docker usernames are case sensitive, so if there are capitalizations we also try a lowercase variation
-        profiles_to_check = set([profile_name, profile_name.lower()])
+        profiles_to_check = {profile_name, profile_name.lower()}
         for p in profiles_to_check:
             api_url = f"{self.api_url}/users/{p}"
             api_result = await self.helpers.request(api_url, follow_redirects=True)

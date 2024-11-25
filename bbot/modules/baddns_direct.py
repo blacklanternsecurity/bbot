@@ -51,7 +51,6 @@ class baddns_direct(BaseModule):
 
         CNAME_direct_instance = CNAME_direct_module(event.host, **kwargs)
         if await CNAME_direct_instance.dispatch():
-
             results = CNAME_direct_instance.analyze()
             if results and len(results) > 0:
                 for r in results:

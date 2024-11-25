@@ -19,7 +19,7 @@ from bbot.core.helpers.async_helpers import get_event_loop
 from bbot.core.helpers.misc import mkdir, rand_string, get_python_constraints
 
 
-log = logging.getLogger(f"bbot.test.fixtures")
+log = logging.getLogger("bbot.test.fixtures")
 
 
 bbot_test_dir = Path("/tmp/.bbot_test")

@@ -81,8 +81,8 @@ async def test_events(events, helpers):
     assert "fsocie.ty" not in events.subdomain
     assert events.subdomain in events.domain
     assert events.domain not in events.subdomain
-    assert not events.ipv4 in events.domain
-    assert not events.netv6 in events.domain
+    assert events.ipv4 not in events.domain
+    assert events.netv6 not in events.domain
     assert events.emoji not in events.domain
     assert events.domain not in events.emoji
     open_port_event = scan.make_event(" eViLcorp.COM.:88", "DNS_NAME", dummy=True)
@@ -207,7 +207,7 @@ async def test_events(events, helpers):
 
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
-    assert event1._scope_distance == None
+    assert event1._scope_distance is None
     event1.scope_distance = 0
     assert event1._scope_distance == 0
     event2 = scan.make_event("2.3.4.5", parent=event1)
@@ -228,7 +228,7 @@ async def test_events(events, helpers):
 
     org_stub_1 = scan.make_event("STUB1", "ORG_STUB", parent=scan.root_event)
     org_stub_1.scope_distance == 1
-    assert org_stub_1.netloc == None
+    assert org_stub_1.netloc is None
     assert "netloc" not in org_stub_1.json()
     org_stub_2 = scan.make_event("STUB2", "ORG_STUB", parent=org_stub_1)
     org_stub_2.scope_distance == 2
@@ -237,7 +237,7 @@ async def test_events(events, helpers):
     root_event = scan.make_event("0.0.0.0", dummy=True)
     root_event.scope_distance = 0
     internal_event1 = scan.make_event("1.2.3.4", parent=root_event, internal=True)
-    assert internal_event1._internal == True
+    assert internal_event1._internal is True
     assert "internal" in internal_event1.tags
 
     # tag inheritance
@@ -269,8 +269,8 @@ async def test_events(events, helpers):
     # updating module
     event3 = scan.make_event("127.0.0.1", parent=scan.root_event)
     updated_event = scan.make_event(event3, internal=True)
-    assert event3.internal == False
-    assert updated_event.internal == True
+    assert event3.internal is False
+    assert updated_event.internal is True
 
     # event sorting
     parent1 = scan.make_event("127.0.0.1", parent=scan.root_event)
@@ -490,7 +490,7 @@ async def test_events(events, helpers):
     assert db_event.discovery_context == "test context"
     assert db_event.discovery_path == ["test context"]
     assert len(db_event.parent_chain) == 1
-    assert all([event_uuid_regex.match(u) for u in db_event.parent_chain])
+    assert all(event_uuid_regex.match(u) for u in db_event.parent_chain)
     assert db_event.parent_chain[0] == str(db_event.uuid)
     assert db_event.parent.uuid == scan.root_event.uuid
     assert db_event.parent_uuid == scan.root_event.uuid
@@ -527,7 +527,7 @@ async def test_events(events, helpers):
     hostless_event_json = hostless_event.json()
     assert hostless_event_json["type"] == "ASDF"
     assert hostless_event_json["data"] == "asdf"
-    assert not "host" in hostless_event_json
+    assert "host" not in hostless_event_json
 
     http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
     assert http_response.parent_id == scan.root_event.id
@@ -794,7 +794,7 @@ async def test_event_web_spider_distance(bbot_scanner):
     )
     assert url_event_3.web_spider_distance == 1
     assert "spider-danger" in url_event_3.tags
-    assert not "spider-max" in url_event_3.tags
+    assert "spider-max" not in url_event_3.tags
     social_event = scan.make_event(
         {"platform": "github", "url": "http://www.evilcorp.com/test4"}, "SOCIAL", parent=url_event_3
     )
@@ -817,42 +817,42 @@ async def test_event_web_spider_distance(bbot_scanner):
 
     url_event = scan.make_event("http://www.evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event)
     assert url_event.web_spider_distance == 0
-    assert not "spider-danger" in url_event.tags
-    assert not "spider-max" in url_event.tags
+    assert "spider-danger" not in url_event.tags
+    assert "spider-max" not in url_event.tags
     url_event_2 = scan.make_event(
         "http://www.evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event, tags="spider-danger"
     )
     # spider distance shouldn't increment because it's not the same host
     assert url_event_2.web_spider_distance == 0
     assert "spider-danger" in url_event_2.tags
-    assert not "spider-max" in url_event_2.tags
+    assert "spider-max" not in url_event_2.tags
     url_event_3 = scan.make_event(
         "http://www.evilcorp.com/3", "URL_UNVERIFIED", parent=url_event_2, tags="spider-danger"
     )
     assert url_event_3.web_spider_distance == 1
     assert "spider-danger" in url_event_3.tags
-    assert not "spider-max" in url_event_3.tags
+    assert "spider-max" not in url_event_3.tags
     url_event_4 = scan.make_event("http://evilcorp.com", "URL_UNVERIFIED", parent=url_event_3)
     assert url_event_4.web_spider_distance == 0
-    assert not "spider-danger" in url_event_4.tags
-    assert not "spider-max" in url_event_4.tags
+    assert "spider-danger" not in url_event_4.tags
+    assert "spider-max" not in url_event_4.tags
     url_event_4.add_tag("spider-danger")
     assert url_event_4.web_spider_distance == 0
     assert "spider-danger" in url_event_4.tags
-    assert not "spider-max" in url_event_4.tags
+    assert "spider-max" not in url_event_4.tags
     url_event_4.remove_tag("spider-danger")
     assert url_event_4.web_spider_distance == 0
-    assert not "spider-danger" in url_event_4.tags
-    assert not "spider-max" in url_event_4.tags
+    assert "spider-danger" not in url_event_4.tags
+    assert "spider-max" not in url_event_4.tags
     url_event_5 = scan.make_event("http://evilcorp.com/5", "URL_UNVERIFIED", parent=url_event_4)
     assert url_event_5.web_spider_distance == 0
-    assert not "spider-danger" in url_event_5.tags
-    assert not "spider-max" in url_event_5.tags
+    assert "spider-danger" not in url_event_5.tags
+    assert "spider-max" not in url_event_5.tags
     url_event_5.add_tag("spider-danger")
     # if host is the same as parent, web spider distance should auto-increment after adding spider-danger tag
     assert url_event_5.web_spider_distance == 1
     assert "spider-danger" in url_event_5.tags
-    assert not "spider-max" in url_event_5.tags
+    assert "spider-max" not in url_event_5.tags
 
 
 def test_event_confidence():

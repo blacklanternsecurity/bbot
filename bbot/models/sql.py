@@ -63,7 +63,6 @@ class BBOTBaseModel(SQLModel):
 
 
 class Event(BBOTBaseModel, table=True):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.host:

@@ -155,7 +155,7 @@ class subdomain_enum(BaseModule):
     async def _is_wildcard(self, query):
         rdtypes = ("A", "AAAA", "CNAME")
         if self.helpers.is_dns_name(query):
-            for domain, wildcard_rdtypes in (await self.helpers.is_wildcard_domain(query, rdtypes=rdtypes)).items():
+            for wildcard_rdtypes in (await self.helpers.is_wildcard_domain(query, rdtypes=rdtypes)).values():
                 if any(t in wildcard_rdtypes for t in rdtypes):
                     return True
         return False

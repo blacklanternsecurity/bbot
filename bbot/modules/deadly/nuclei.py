@@ -15,7 +15,7 @@ class nuclei(BaseModule):
     }
 
     options = {
-        "version": "3.3.5",
+        "version": "3.3.6",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -226,8 +226,8 @@ class nuclei(BaseModule):
                 command.append(f"-{cli_option}")
                 command.append(option)
 
-        if self.scan.config.get("interactsh_disable") == True:
-            self.info("Disbling interactsh in accordance with global settings")
+        if self.scan.config.get("interactsh_disable") is True:
+            self.info("Disabling interactsh in accordance with global settings")
             command.append("-no-interactsh")
 
         if self.mode == "technology":

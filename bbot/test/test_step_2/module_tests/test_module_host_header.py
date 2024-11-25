@@ -31,7 +31,7 @@ class TestHost_Header(ModuleTestBase):
         if subdomain_tag_overrides:
             return Response(f"Alive, host is: {subdomain_tag}.{self.fake_host}", status=200)
 
-        return Response(f"Alive, host is: defaulthost.com", status=200)
+        return Response("Alive, host is: defaulthost.com", status=200)
 
     async def setup_before_prep(self, module_test):
         self.interactsh_mock_instance = module_test.mock_interactsh("host_header")

@@ -311,7 +311,7 @@ class BaseModule:
         if self.auth_secret:
             try:
                 await self.ping()
-                self.hugesuccess(f"API is ready")
+                self.hugesuccess("API is ready")
                 return True, ""
             except Exception as e:
                 self.trace(traceback.format_exc())
@@ -332,10 +332,10 @@ class BaseModule:
 
     def cycle_api_key(self):
         if len(self._api_keys) > 1:
-            self.verbose(f"Cycling API key")
+            self.verbose("Cycling API key")
             self._api_keys.insert(0, self._api_keys.pop())
         else:
-            self.debug(f"No extra API keys to cycle")
+            self.debug("No extra API keys to cycle")
 
     @property
     def api_retries(self):
@@ -669,7 +669,7 @@ class BaseModule:
                             if self.incoming_event_queue is not False:
                                 event = await self.incoming_event_queue.get()
                             else:
-                                self.debug(f"Event queue is in bad state")
+                                self.debug("Event queue is in bad state")
                                 break
                         except asyncio.queues.QueueEmpty:
                             continue
@@ -700,7 +700,7 @@ class BaseModule:
                 else:
                     self.error(f"Critical failure in module {self.name}: {e}")
                     self.error(traceback.format_exc())
-        self.log.trace(f"Worker stopped")
+        self.log.trace("Worker stopped")
 
     @property
     def max_scope_distance(self):
@@ -743,7 +743,7 @@ class BaseModule:
         if event.type in ("FINISHED",):
             return True, "its type is FINISHED"
         if self.errored:
-            return False, f"module is in error state"
+            return False, "module is in error state"
         # exclude non-watched types
         if not any(t in self.get_watched_events() for t in ("*", event.type)):
             return False, "its type is not in watched_events"
@@ -770,7 +770,7 @@ class BaseModule:
             # check duplicates
             is_incoming_duplicate, reason = self.is_incoming_duplicate(event, add=True)
             if is_incoming_duplicate and not self.accept_dupes:
-                return False, f"module has already seen it" + (f" ({reason})" if reason else "")
+                return False, "module has already seen it" + (f" ({reason})" if reason else "")
 
         return acceptable, reason
 
@@ -863,7 +863,7 @@ class BaseModule:
         """
         async with self._task_counter.count("queue_event()", _log=False):
             if self.incoming_event_queue is False:
-                self.debug(f"Not in an acceptable state to queue incoming event")
+                self.debug("Not in an acceptable state to queue incoming event")
                 return
             acceptable, reason = self._event_precheck(event)
             if not acceptable:
@@ -879,7 +879,7 @@ class BaseModule:
                 if event.type != "FINISHED":
                     self.scan._new_activity = True
             except AttributeError:
-                self.debug(f"Not in an acceptable state to queue incoming event")
+                self.debug("Not in an acceptable state to queue incoming event")
 
     async def queue_outgoing_event(self, event, **kwargs):
         """
@@ -904,7 +904,7 @@ class BaseModule:
         try:
             await self.outgoing_event_queue.put((event, kwargs))
         except AttributeError:
-            self.debug(f"Not in an acceptable state to queue outgoing event")
+            self.debug("Not in an acceptable state to queue outgoing event")
 
     def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False):
         """
@@ -939,7 +939,7 @@ class BaseModule:
             self.errored = True
             # clear incoming queue
             if self.incoming_event_queue is not False:
-                self.debug(f"Emptying event_queue")
+                self.debug("Emptying event_queue")
                 with suppress(asyncio.queues.QueueEmpty):
                     while 1:
                         self.incoming_event_queue.get_nowait()
@@ -1126,7 +1126,7 @@ class BaseModule:
         """
         if self.api_key:
             url = url.format(api_key=self.api_key)
-            if not "headers" in kwargs:
+            if "headers" not in kwargs:
                 kwargs["headers"] = {}
             kwargs["headers"]["Authorization"] = f"Bearer {self.api_key}"
         return url, kwargs
@@ -1142,7 +1142,7 @@ class BaseModule:
 
         # loop until we have a successful request
         for _ in range(self.api_retries):
-            if not "headers" in kwargs:
+            if "headers" not in kwargs:
                 kwargs["headers"] = {}
             new_url, kwargs = self.prepare_api_request(url, kwargs)
             kwargs["url"] = new_url
@@ -1589,7 +1589,7 @@ class BaseInterceptModule(BaseModule):
                                 event = incoming
                                 kwargs = {}
                         else:
-                            self.debug(f"Event queue is in bad state")
+                            self.debug("Event queue is in bad state")
                             break
                     except asyncio.queues.QueueEmpty:
                         await asyncio.sleep(0.1)
@@ -1644,7 +1644,7 @@ class BaseInterceptModule(BaseModule):
                 else:
                     self.critical(f"Critical failure in intercept module {self.name}: {e}")
                     self.critical(traceback.format_exc())
-        self.log.trace(f"Worker stopped")
+        self.log.trace("Worker stopped")
 
     async def get_incoming_event(self):
         """
@@ -1675,7 +1675,7 @@ class BaseInterceptModule(BaseModule):
         try:
             self.incoming_event_queue.put_nowait((event, kwargs))
         except AttributeError:
-            self.debug(f"Not in an acceptable state to queue incoming event")
+            self.debug("Not in an acceptable state to queue incoming event")
 
     async def _event_postcheck(self, event):
         return await self._event_postcheck_inner(event)

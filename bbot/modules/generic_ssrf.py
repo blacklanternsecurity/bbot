@@ -163,7 +163,7 @@ class generic_ssrf(BaseModule):
         self.severity = None
         self.generic_only = self.config.get("generic_only", False)
 
-        if self.scan.config.get("interactsh_disable", False) == False:
+        if self.scan.config.get("interactsh_disable", False) is False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
                 self.interactsh_domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
@@ -216,7 +216,7 @@ class generic_ssrf(BaseModule):
                 self.debug("skipping result because subdomain tag was missing")
 
     async def cleanup(self):
-        if self.scan.config.get("interactsh_disable", False) == False:
+        if self.scan.config.get("interactsh_disable", False) is False:
             try:
                 await self.interactsh_instance.deregister()
                 self.debug(
@@ -226,7 +226,7 @@ class generic_ssrf(BaseModule):
                 self.warning(f"Interactsh failure: {e}")
 
     async def finish(self):
-        if self.scan.config.get("interactsh_disable", False) == False:
+        if self.scan.config.get("interactsh_disable", False) is False:
             await self.helpers.sleep(5)
             try:
                 for r in await self.interactsh_instance.poll():

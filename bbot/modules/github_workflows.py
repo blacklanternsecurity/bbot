@@ -166,7 +166,7 @@ class github_workflows(github):
             main_logs = []
             with zipfile.ZipFile(file_destination, "r") as logzip:
                 for name in logzip.namelist():
-                    if fnmatch.fnmatch(name, "*.txt") and not "/" in name:
+                    if fnmatch.fnmatch(name, "*.txt") and "/" not in name:
                         logzip.extract(name, folder)
                         main_logs.append(folder / name)
             return main_logs

@@ -29,7 +29,6 @@ scan_name = ""
 
 
 async def _main():
-
     import asyncio
     import traceback
     from contextlib import suppress
@@ -45,7 +44,6 @@ async def _main():
     global scan_name
 
     try:
-
         # start by creating a default scan preset
         preset = Preset(_log=True, name="bbot_cli_main")
         # parse command line arguments and merge into preset
@@ -81,7 +79,6 @@ async def _main():
 
         # if we're listing modules or their options
         if options.list_modules or options.list_module_options:
-
             # if no modules or flags are specified, enable everything
             if not (options.modules or options.output_modules or options.flags):
                 for module, preloaded in preset.module_loader.preloaded().items():
@@ -133,8 +130,8 @@ async def _main():
         ]
         if deadly_modules and not options.allow_deadly:
             log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
-            log.hugewarning(f"Deadly modules are highly intrusive")
-            log.hugewarning(f"Please specify --allow-deadly to continue")
+            log.hugewarning("Deadly modules are highly intrusive")
+            log.hugewarning("Please specify --allow-deadly to continue")
             return False
 
         # --current-preset
@@ -172,7 +169,6 @@ async def _main():
             log.trace(f"Command: {' '.join(sys.argv)}")
 
             if sys.stdin.isatty():
-
                 # warn if any targets belong directly to a cloud provider
                 for event in scan.target.seeds.events:
                     if event.type == "DNS_NAME":

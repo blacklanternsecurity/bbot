@@ -23,7 +23,7 @@ class vhost(ffuf):
     }
 
     deps_common = ["ffuf"]
-    banned_characters = set([" ", "."])
+    banned_characters = {" ", "."}
 
     in_scope_only = True
 
@@ -73,7 +73,7 @@ class vhost(ffuf):
 
     async def ffuf_vhost(self, host, basehost, event, wordlist=None, skip_dns_host=False):
         filters = await self.baseline_ffuf(f"{host}/", exts=[""], suffix=basehost, mode="hostheader")
-        self.debug(f"Baseline completed and returned these filters:")
+        self.debug("Baseline completed and returned these filters:")
         self.debug(filters)
         if not wordlist:
             wordlist = self.tempfile
@@ -90,7 +90,7 @@ class vhost(ffuf):
                     parent=event,
                     context=f"{{module}} brute-forced virtual hosts for {event.data} and found {{event.type}}: {vhost_str}",
                 )
-                if skip_dns_host == False:
+                if skip_dns_host is False:
                     await self.emit_event(
                         f"{vhost_dict['vhost']}{basehost}",
                         "DNS_NAME",

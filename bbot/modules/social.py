@@ -45,7 +45,7 @@ class social(BaseModule):
                 url = f"https://{url}"
                 event_data = {"platform": platform, "url": url, "profile_name": profile_name}
                 # only emit if the same event isn't already in the parent chain
-                if not any([e.type == "SOCIAL" and e.data == event_data for e in event.get_parents()]):
+                if not any(e.type == "SOCIAL" and e.data == event_data for e in event.get_parents()):
                     social_event = self.make_event(
                         event_data,
                         "SOCIAL",

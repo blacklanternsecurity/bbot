@@ -9,13 +9,13 @@ jobs:
   update-nuclei-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: dev
           fetch-depth: 0
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install dependencies
@@ -44,7 +44,7 @@ jobs:
         run: "sed -i '0,/\"version\": \".*\",/ s/\"version\": \".*\",/\"version\": \"${{ env.latest_version }}\",/g' bbot/modules/deadly/nuclei.py"
       - name: Create pull request to update the version
         if: steps.update-version.outcome == 'success'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           commit-message: "Update nuclei"
@@ -61,13 +61,13 @@ jobs:
   update-trufflehog-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: dev
           fetch-depth: 0
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install dependencies
@@ -96,7 +96,7 @@ jobs:
         run: "sed -i '0,/\"version\": \".*\",/ s/\"version\": \".*\",/\"version\": \"${{ env.latest_version }}\",/g' bbot/modules/trufflehog.py"
       - name: Create pull request to update the version
         if: steps.update-version.outcome == 'success'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           commit-message: "Update trufflehog"

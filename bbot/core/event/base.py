@@ -177,8 +177,8 @@ class BaseEvent:
         self._scope_distance = None
         self._module_priority = None
         self._resolved_hosts = set()
-        self.dns_children = dict()
-        self.raw_dns_records = dict()
+        self.dns_children = {}
+        self.raw_dns_records = {}
         self._discovery_context = ""
         self._discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
         self.web_spider_distance = 0
@@ -205,7 +205,7 @@ class BaseEvent:
         # self.scan holds the instantiated scan object (for helpers, etc.)
         self.scan = scan
         if (not self.scan) and (not self._dummy):
-            raise ValidationError(f"Must specify scan")
+            raise ValidationError("Must specify scan")
         # self.scans holds a list of scan IDs from scans that encountered this event
         self.scans = []
         if scans is not None:
@@ -224,7 +224,7 @@ class BaseEvent:
 
         self.parent = parent
         if (not self.parent) and (not self._dummy):
-            raise ValidationError(f"Must specify event parent")
+            raise ValidationError("Must specify event parent")
 
         if tags is not None:
             for tag in tags:
@@ -303,9 +303,9 @@ class BaseEvent:
         The purpose of internal events is to enable speculative/explorative discovery without cluttering
         the console with irrelevant or uninteresting events.
         """
-        if not value in (True, False):
+        if value not in (True, False):
             raise ValueError(f'"internal" must be boolean, not {type(value)}')
-        if value == True:
+        if value is True:
             self.add_tag("internal")
         else:
             self.remove_tag("internal")
@@ -770,7 +770,7 @@ class BaseEvent:
         Returns:
             dict: JSON-serializable dictionary representation of the event object.
         """
-        j = dict()
+        j = {}
         # type, ID, scope description
         for i in ("type", "id", "uuid", "scope_description", "netloc"):
             v = getattr(self, i, "")
@@ -814,7 +814,7 @@ class BaseEvent:
         if parent_uuid:
             j["parent_uuid"] = parent_uuid
         # tags
-        j.update({"tags": sorted(self.tags)})
+        j.update({"tags": list(self.tags)})
         # parent module
         if self.module:
             j.update({"module": str(self.module)})
@@ -1015,12 +1015,12 @@ class ClosestHostEvent(DictHostEvent):
         if not self.host:
             for parent in self.get_parents(include_self=True):
                 # inherit closest URL
-                if not "url" in self.data:
+                if "url" not in self.data:
                     parent_url = getattr(parent, "parsed_url", None)
                     if parent_url is not None:
                         self.data["url"] = parent_url.geturl()
                 # inherit closest path
-                if not "path" in self.data and isinstance(parent.data, dict) and not parent.type == "HTTP_RESPONSE":
+                if "path" not in self.data and isinstance(parent.data, dict) and not parent.type == "HTTP_RESPONSE":
                     parent_path = parent.data.get("path", None)
                     if parent_path is not None:
                         self.data["path"] = parent_path
@@ -1182,7 +1182,6 @@ class URL_UNVERIFIED(BaseEvent):
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
     def _data_id(self):
-
         data = super()._data_id()
 
         # remove the querystring for URL/URL_UNVERIFIED events, because we will conditionally add it back in (based on settings)
@@ -1230,7 +1229,7 @@ class URL_UNVERIFIED(BaseEvent):
 
     def add_tag(self, tag):
         host_same_as_parent = self.parent and self.host == self.parent.host
-        if tag == "spider-danger" and host_same_as_parent and not "spider-danger" in self.tags:
+        if tag == "spider-danger" and host_same_as_parent and "spider-danger" not in self.tags:
             # increment the web spider distance
             if self.type == "URL_UNVERIFIED":
                 self.web_spider_distance += 1
@@ -1252,7 +1251,7 @@ class URL_UNVERIFIED(BaseEvent):
 
     def _words(self):
         first_elem = self.parsed_url.path.lstrip("/").split("/")[0]
-        if not "." in first_elem:
+        if "." not in first_elem:
             return extract_words(first_elem)
         return set()
 
@@ -1269,7 +1268,6 @@ class URL_UNVERIFIED(BaseEvent):
 
 
 class URL(URL_UNVERIFIED):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1281,7 +1279,7 @@ class URL(URL_UNVERIFIED):
     @property
     def resolved_hosts(self):
         # TODO: remove this when we rip out httpx
-        return set(".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-"))
+        return {".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")}
 
     @property
     def pretty_string(self):
@@ -1311,7 +1309,6 @@ class URL_HINT(URL_UNVERIFIED):
 
 
 class WEB_PARAMETER(DictHostEvent):
-
     def _data_id(self):
         # dedupe by url:name:param_type
         url = self.data.get("url", "")
@@ -1670,7 +1667,7 @@ def make_event(
             event.parent = parent
         if context is not None:
             event.discovery_context = context
-        if internal == True:
+        if internal is True:
             event.internal = True
         if tags:
             event.tags = tags.union(event.tags)

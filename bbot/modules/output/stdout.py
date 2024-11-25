@@ -20,7 +20,7 @@ class Stdout(BaseOutputModule):
 
     async def setup(self):
         self.text_format = self.config.get("format", "text").strip().lower()
-        if not self.text_format in self.format_choices:
+        if self.text_format not in self.format_choices:
             return (
                 False,
                 f'Invalid text format choice, "{self.text_format}" (choices: {",".join(self.format_choices)})',
@@ -33,7 +33,7 @@ class Stdout(BaseOutputModule):
 
     async def filter_event(self, event):
         if self.accept_event_types:
-            if not event.type in self.accept_event_types:
+            if event.type not in self.accept_event_types:
                 return False, f'Event type "{event.type}" is not in the allowed event_types'
         return True
 

@@ -102,7 +102,7 @@ class docker_pull(BaseModule):
         url = f"{registry}/v2/{repository}/tags/list"
         r = await self.docker_api_request(url)
         if r is None or r.status_code != 200:
-            self.log.warning(f"Could not retrieve all tags for {repository} asuming tag:latest only.")
+            self.log.warning(f"Could not retrieve all tags for {repository} assuming tag:latest only.")
             self.log.debug(f"Response: {r}")
             return ["latest"]
         try:

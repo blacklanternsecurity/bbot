@@ -7,7 +7,6 @@ from .misc import in_exception_chain
 
 
 class BBOTThread(threading.Thread):
-
     default_name = "default bbot thread"
 
     def __init__(self, *args, **kwargs):
@@ -24,7 +23,6 @@ class BBOTThread(threading.Thread):
 
 
 class BBOTProcess(SpawnProcess):
-
     default_name = "bbot process pool"
 
     def __init__(self, *args, **kwargs):

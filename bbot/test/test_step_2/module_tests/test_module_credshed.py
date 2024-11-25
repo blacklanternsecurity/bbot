@@ -58,12 +58,12 @@ class TestCredshed(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://credshed.com/api/auth",
+            url="https://credshed.com/api/auth",
             json=credshed_auth_response,
             method="POST",
         )
         module_test.httpx_mock.add_response(
-            url=f"https://credshed.com/api/search",
+            url="https://credshed.com/api/search",
             json=credshed_response,
             method="POST",
         )

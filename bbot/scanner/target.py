@@ -78,7 +78,7 @@ class BaseTarget(RadixTarget):
         if args and is_event(args[0]):
             return args[0]
         # otherwise make a new one
-        if not "tags" in kwargs:
+        if "tags" not in kwargs:
             kwargs["tags"] = set()
         kwargs["tags"].update(self.tags)
         return make_event(*args, dummy=True, scan=self.scan, **kwargs)

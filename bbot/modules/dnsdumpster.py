@@ -31,7 +31,7 @@ class dnsdumpster(subdomain_enum):
 
         html = self.helpers.beautifulsoup(res1.content, "html.parser")
         if html is False:
-            self.verbose(f"BeautifulSoup returned False")
+            self.verbose("BeautifulSoup returned False")
             return ret
 
         csrftoken = None
@@ -82,7 +82,7 @@ class dnsdumpster(subdomain_enum):
             return ret
         html = self.helpers.beautifulsoup(res2.content, "html.parser")
         if html is False:
-            self.verbose(f"BeautifulSoup returned False")
+            self.verbose("BeautifulSoup returned False")
             return ret
         escaped_domain = re.escape(domain)
         match_pattern = re.compile(r"^[\w\.-]+\." + escaped_domain + r"$")

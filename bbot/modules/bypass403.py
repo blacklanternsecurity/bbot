@@ -92,7 +92,7 @@ class bypass403(BaseModule):
                 return None
 
             sig = self.format_signature(sig, event)
-            if sig[2] != None:
+            if sig[2] is not None:
                 headers = dict(sig[2])
             else:
                 headers = None
@@ -106,13 +106,13 @@ class bypass403(BaseModule):
                 continue
 
             # In some cases WAFs will respond with a 200 code which causes a false positive
-            if subject_response != None:
+            if subject_response is not None:
                 for ws in waf_strings:
                     if ws in subject_response.text:
                         self.debug("Rejecting result based on presence of WAF string")
                         return
 
-            if match == False:
+            if match is False:
                 if str(subject_response.status_code)[0] != "4":
                     if sig[2]:
                         added_header_tuple = next(iter(sig[2].items()))
@@ -165,13 +165,13 @@ class bypass403(BaseModule):
         return False
 
     def format_signature(self, sig, event):
-        if sig[3] == True:
+        if sig[3] is True:
             cleaned_path = event.parsed_url.path.strip("/")
         else:
             cleaned_path = event.parsed_url.path.lstrip("/")
         kwargs = {"scheme": event.parsed_url.scheme, "netloc": event.parsed_url.netloc, "path": cleaned_path}
         formatted_url = sig[1].format(**kwargs)
-        if sig[2] != None:
+        if sig[2] is not None:
             formatted_headers = {k: v.format(**kwargs) for k, v in sig[2].items()}
         else:
             formatted_headers = None
