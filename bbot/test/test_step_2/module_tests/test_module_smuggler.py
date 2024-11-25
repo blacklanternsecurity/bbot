@@ -1,13 +1,13 @@
 from .base import ModuleTestBase
 
 smuggler_text = r"""
-              ______ _              
-     / _____)                       | |             
-    ( (____  ____  _   _  ____  ____| | _____  ____ 
+              ______ _
+     / _____)                       | |
+    ( (____  ____  _   _  ____  ____| | _____  ____
      \____ \|    \| | | |/ _  |/ _  | || ___ |/ ___)
-     _____) ) | | | |_| ( (_| ( (_| | || ____| |    
-    (______/|_|_|_|____/ \___ |\___ |\_)_____)_|    
-                        (_____(_____|               
+     _____) ) | | | |_| ( (_| ( (_| | || ____| |
+    (______/|_|_|_|____/ \___ |\___ |\_)_____)_|
+                        (_____(_____|
 
          @defparam v1.1
 
@@ -16,13 +16,13 @@ smuggler_text = r"""
     [+] Endpoint   : /
     [+] Configfile : default.py
     [+] Timeout    : 5.0 seconds
-    [+] Cookies    : 1 (Appending to the attack)                   
-    [nameprefix1]  : Checking TECL...                
-    [nameprefix1]  : Checking CLTE...             
-    [nameprefix1]  : OK (TECL: 0.61 - 405) (CLTE: 0.62 - 405)       
-    [tabprefix1]   : Checking TECL...git 
-    [tabprefix1]   : Checking CLTE...          
-    [tabprefix1]   : Checking TECL...                 
+    [+] Cookies    : 1 (Appending to the attack)
+    [nameprefix1]  : Checking TECL...
+    [nameprefix1]  : Checking CLTE...
+    [nameprefix1]  : OK (TECL: 0.61 - 405) (CLTE: 0.62 - 405)
+    [tabprefix1]   : Checking TECL...git
+    [tabprefix1]   : Checking CLTE...
+    [tabprefix1]   : Checking TECL...
     [tabprefix1]   : Checking CLTE...
     [tabprefix1]   : Checking TECL...
     [tabprefix1]   : Checking CLTE...

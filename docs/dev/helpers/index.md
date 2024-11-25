@@ -6,7 +6,7 @@ The vast majority of these helpers can be accessed directly from the `.helpers` 
 
 ```python
 class MyModule(BaseModule):
-    
+
     ...
 
     async def handle_event(self, event):

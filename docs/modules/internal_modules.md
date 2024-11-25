@@ -50,7 +50,7 @@ The parameter extraction functionality identifies and extracts key web parameter
 
 #### Email Extraction
 
-Detect email addresses within HTTP_RESPONSE data. 
+Detect email addresses within HTTP_RESPONSE data.
 
 #### Error Detection
 
@@ -60,7 +60,7 @@ Scans for verbose error messages in HTTP responses and raw text data. By identif
 The CSP extraction capability focuses on extracting domains from Content-Security-Policy headers. By analyzing these headers, BBOT can identify additional domains which can get fed back into the scan.
 
 #### Serialization Detection
-Serialized objects are a common source of serious security vulnerabilities. Excavate aims to detect those used in Java, .NET, and PHP applications. 
+Serialized objects are a common source of serious security vulnerabilities. Excavate aims to detect those used in Java, .NET, and PHP applications.
 
 #### Functionality Detection
 Looks for specific web functionalities such as file upload fields and WSDL URLs. By identifying these elements, BBOT can pinpoint areas of the application that may require further scrutiny for security vulnerabilities.
