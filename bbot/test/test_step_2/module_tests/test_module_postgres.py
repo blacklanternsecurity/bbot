@@ -1,4 +1,3 @@
-import time
 import asyncio
 
 from .base import ModuleTestBase
@@ -25,27 +24,8 @@ class TestPostgres(ModuleTestBase):
             "postgres",
         )
 
-        import asyncpg
-
         # wait for the container to start
-        start_time = time.time()
-        while True:
-            try:
-                # Connect to the default 'postgres' database to create 'bbot'
-                conn = await asyncpg.connect(
-                    user="postgres", password="bbotislife", database="postgres", host="127.0.0.1"
-                )
-                await conn.execute("CREATE DATABASE bbot")
-                await conn.close()
-                break
-            except asyncpg.exceptions.DuplicateDatabaseError:
-                # If the database already exists, break the loop
-                break
-            except Exception as e:
-                if time.time() - start_time > 60:  # timeout after 60 seconds
-                    self.log.error("PostgreSQL server did not start in time.")
-                    raise e
-                await asyncio.sleep(1)
+        await self.wait_for_port_open(5432)
 
         if process.returncode != 0:
             self.log.error("Failed to start PostgreSQL server")

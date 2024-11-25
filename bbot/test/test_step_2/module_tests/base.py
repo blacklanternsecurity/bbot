@@ -153,3 +153,19 @@ class ModuleTestBase:
 
     async def setup_after_prep(self, module_test):
         pass
+
+    async def wait_for_port_open(self, port):
+        while not await self.is_port_open("localhost", port):
+            self.log.verbose(f"Waiting for port {port} to be open...")
+            await asyncio.sleep(0.5)
+        # allow an extra second for things to settle
+        await asyncio.sleep(1)
+
+    async def is_port_open(self, host, port):
+        try:
+            reader, writer = await asyncio.open_connection(host, port)
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except (ConnectionRefusedError, OSError):
+            return False

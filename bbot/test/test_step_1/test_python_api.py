@@ -95,7 +95,7 @@ def test_python_api_validation():
     # invalid output module
     with pytest.raises(ValidationError) as error:
         Scanner(output_modules=["asdf"])
-    assert str(error.value) == 'Could not find output module "asdf". Did you mean "teams"?'
+    assert str(error.value) == 'Could not find output module "asdf". Did you mean "nats"?'
     # invalid excluded module
     with pytest.raises(ValidationError) as error:
         Scanner(exclude_modules=["asdf"])

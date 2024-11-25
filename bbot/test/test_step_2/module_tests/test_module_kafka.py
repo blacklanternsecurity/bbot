@@ -1,6 +1,5 @@
 import json
 import asyncio
-from contextlib import suppress
 
 from .base import ModuleTestBase
 
@@ -23,18 +22,7 @@ class TestKafka(ModuleTestBase):
         )
 
         # Wait for Zookeeper to be ready
-        while True:
-            try:
-                # Attempt to connect to Zookeeper with a timeout
-                reader, writer = await asyncio.wait_for(asyncio.open_connection("localhost", 2181), timeout=0.5)
-                break  # Exit the loop if the connection is successful
-            except Exception as e:
-                self.log.verbose(f"Waiting for Zookeeper to be ready: {e}")
-                await asyncio.sleep(0.5)  # Wait a bit before retrying
-            finally:
-                with suppress(Exception):
-                    writer.close()
-                    await writer.wait_closed()
+        await self.wait_for_port_open(2181)
 
         # Start Kafka using wurstmeister/kafka
         await asyncio.create_subprocess_exec(
@@ -59,23 +47,17 @@ class TestKafka(ModuleTestBase):
             "wurstmeister/kafka",
         )
 
+        # Wait for Kafka to be ready
+        await self.wait_for_port_open(9092)
+
         from aiokafka import AIOKafkaConsumer
 
-        # Wait for Kafka to be ready
-        while True:
-            try:
-                self.consumer = AIOKafkaConsumer(
-                    "bbot_events",
-                    bootstrap_servers="localhost:9092",
-                    group_id="test_group",
-                )
-                await self.consumer.start()
-                break  # Exit the loop if the consumer starts successfully
-            except Exception as e:
-                self.log.verbose(f"Waiting for Kafka to be ready: {e}")
-                if hasattr(self, "consumer") and not self.consumer._closed:
-                    await self.consumer.stop()
-                await asyncio.sleep(0.5)  # Wait a bit before retrying
+        self.consumer = AIOKafkaConsumer(
+            "bbot_events",
+            bootstrap_servers="localhost:9092",
+            group_id="test_group",
+        )
+        await self.consumer.start()
 
     async def check(self, module_test, events):
         try:

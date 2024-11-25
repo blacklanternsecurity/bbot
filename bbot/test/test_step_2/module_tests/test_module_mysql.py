@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 from .base import ModuleTestBase
 
@@ -28,20 +27,8 @@ class TestMySQL(ModuleTestBase):
         )
         stdout, stderr = await process.communicate()
 
-        import aiomysql
-
         # wait for the container to start
-        start_time = time.time()
-        while True:
-            try:
-                conn = await aiomysql.connect(user="root", password="bbotislife", db="bbot", host="localhost")
-                conn.close()
-                break
-            except Exception as e:
-                if time.time() - start_time > 60:  # timeout after 60 seconds
-                    self.log.error("MySQL server did not start in time.")
-                    raise e
-                await asyncio.sleep(1)
+        await self.wait_for_port_open(3306)
 
         if process.returncode != 0:
             self.log.error(f"Failed to start MySQL server: {stderr.decode()}")
