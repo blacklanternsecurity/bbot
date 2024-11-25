@@ -97,11 +97,11 @@ class DepsInstaller:
                         or self.deps_behavior == "force_install"
                     ):
                         if not notified:
-                            log.hugeinfo(f"Installing module dependencies. Please be patient, this may take a while.")
+                            log.hugeinfo("Installing module dependencies. Please be patient, this may take a while.")
                             notified = True
                         log.verbose(f'Installing dependencies for module "{m}"')
                         # get sudo access if we need it
-                        if preloaded.get("sudo", False) == True:
+                        if preloaded.get("sudo", False) is True:
                             self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
                         success = await self.install_module(m)
                         self.setup_status[module_hash] = success
@@ -159,7 +159,7 @@ class DepsInstaller:
         deps_common = preloaded["deps"]["common"]
         if deps_common:
             for dep_common in deps_common:
-                if self.setup_status.get(dep_common, False) == True:
+                if self.setup_status.get(dep_common, False) is True:
                     log.debug(
                         f'Skipping installation of dependency "{dep_common}" for module "{module}" since it is already installed'
                     )
@@ -244,7 +244,7 @@ class DepsInstaller:
         if success:
             log.info(f"Successfully ran {len(commands):,} shell commands")
         else:
-            log.warning(f"Failed to run shell dependencies")
+            log.warning("Failed to run shell dependencies")
         return success
 
     def tasks(self, module, tasks):
@@ -310,7 +310,7 @@ class DepsInstaller:
         return success, err
 
     def read_setup_status(self):
-        setup_status = dict()
+        setup_status = {}
         if self.setup_status_cache.is_file():
             with open(self.setup_status_cache) as f:
                 with suppress(Exception):

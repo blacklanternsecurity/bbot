@@ -78,5 +78,5 @@ class urlscan(subdomain_enum):
             else:
                 self.debug(f'No results for "{query}"')
         except Exception:
-            self.verbose(f"Error retrieving urlscan results")
+            self.verbose("Error retrieving urlscan results")
         return results

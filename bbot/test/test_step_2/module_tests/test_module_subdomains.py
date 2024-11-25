@@ -6,7 +6,7 @@ class TestSubdomains(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://api.subdomain.center/?domain=blacklanternsecurity.com",
+            url="https://api.subdomain.center/?domain=blacklanternsecurity.com",
             json=["asdfasdf.blacklanternsecurity.com", "zzzzzzzz.blacklanternsecurity.com"],
         )
 

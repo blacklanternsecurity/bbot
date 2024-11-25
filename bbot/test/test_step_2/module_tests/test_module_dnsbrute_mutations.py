@@ -11,7 +11,6 @@ class TestDnsbrute_mutations(ModuleTestBase):
     ]
 
     async def setup_after_prep(self, module_test):
-
         old_run_live = module_test.scan.helpers.run_live
 
         async def new_run_live(*command, check=False, text=True, **kwargs):

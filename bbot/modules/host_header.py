@@ -19,7 +19,7 @@ class host_header(BaseModule):
 
     async def setup(self):
         self.subdomain_tags = {}
-        if self.scan.config.get("interactsh_disable", False) == False:
+        if self.scan.config.get("interactsh_disable", False) is False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
                 self.domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
@@ -60,7 +60,7 @@ class host_header(BaseModule):
                 self.debug("skipping results because subdomain tag was missing")
 
     async def finish(self):
-        if self.scan.config.get("interactsh_disable", False) == False:
+        if self.scan.config.get("interactsh_disable", False) is False:
             await self.helpers.sleep(5)
             try:
                 for r in await self.interactsh_instance.poll():
@@ -69,7 +69,7 @@ class host_header(BaseModule):
                 self.debug(f"Error in interact.sh: {e}")
 
     async def cleanup(self):
-        if self.scan.config.get("interactsh_disable", False) == False:
+        if self.scan.config.get("interactsh_disable", False) is False:
             try:
                 await self.interactsh_instance.deregister()
                 self.debug(
@@ -84,7 +84,7 @@ class host_header(BaseModule):
 
         added_cookies = {}
 
-        for header, header_values in event.data["header-dict"].items():
+        for header_values in event.data["header-dict"].values():
             for header_value in header_values:
                 if header_value.lower() == "set-cookie":
                     header_split = header_value.split("=")
@@ -136,7 +136,7 @@ class host_header(BaseModule):
 
         split_output = output.split("\n")
         if " 4" in split_output:
-            description = f"Duplicate Host Header Tolerated"
+            description = "Duplicate Host Header Tolerated"
             await self.emit_event(
                 {
                     "host": str(event.host),

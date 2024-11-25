@@ -39,7 +39,7 @@ class iis_shortnames(BaseModule):
         test_url = f"{target}*~1*/a.aspx"
 
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
-            kwargs = dict(method=method, allow_redirects=False, timeout=10)
+            kwargs = {"method": method, "allow_redirects": False, "timeout": 10}
             confirmations = 0
             iterations = 5  # one failed detection is tolerated, as long as its not the first run
             while iterations > 0:
@@ -128,7 +128,7 @@ class iis_shortnames(BaseModule):
         suffix = "/a.aspx"
 
         urls_and_kwargs = []
-        kwargs = dict(method=method, allow_redirects=False, retries=2, timeout=10)
+        kwargs = {"method": method, "allow_redirects": False, "retries": 2, "timeout": 10}
         for c in valid_chars:
             for file_part in ("stem", "ext"):
                 payload = encode_all(f"*{c}*~1*")
@@ -160,7 +160,7 @@ class iis_shortnames(BaseModule):
         url_hint_list = []
         found_results = False
 
-        cl = ext_char_list if extension_mode == True else char_list
+        cl = ext_char_list if extension_mode is True else char_list
 
         urls_and_kwargs = []
 
@@ -169,7 +169,7 @@ class iis_shortnames(BaseModule):
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
-            kwargs = dict(method=method)
+            kwargs = {"method": method}
             urls_and_kwargs.append((url, kwargs, c))
 
         async for url, kwargs, c, response in self.helpers.request_custom_batch(urls_and_kwargs):
@@ -209,7 +209,7 @@ class iis_shortnames(BaseModule):
                         extension_mode,
                         node_count=node_count,
                     )
-        if len(prefix) > 0 and found_results == False:
+        if len(prefix) > 0 and found_results is False:
             url_hint_list.append(f"{prefix}")
             self.verbose(f"Found new (possibly partial) URL_HINT: {prefix} from node {target}")
         return url_hint_list
@@ -234,7 +234,7 @@ class iis_shortnames(BaseModule):
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
                 event,
-                context=f"{{module}} detected low {{event.type}}: IIS shortname enumeration",
+                context="{module} detected low {event.type}: IIS shortname enumeration",
             )
             if not self.config.get("detect_only"):
                 for detection in detections:

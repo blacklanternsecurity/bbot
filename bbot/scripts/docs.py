@@ -124,7 +124,7 @@ def find_replace_file(file, keyword, replace):
         content = f.read()
         new_content = find_replace_markdown(content, keyword, replace)
     if new_content != content:
-        if not "BBOT_TESTING" in os.environ:
+        if "BBOT_TESTING" not in os.environ:
             with open(file, "w") as f:
                 f.write(new_content)
 

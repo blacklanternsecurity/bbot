@@ -173,8 +173,8 @@ class telerik(BaseModule):
             webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
             result, _ = await self.test_detector(event.data, webresource)
             if result:
-                if "RadAsyncUpload handler is registered succesfully" in result.text:
-                    self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
+                if "RadAsyncUpload handler is registered successfully" in result.text:
+                    self.debug("Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
 
                     probe_data = {
                         "rauPostData": (
@@ -216,7 +216,7 @@ class telerik(BaseModule):
                         event,
                         context=f"{{module}} scanned {event.data} and identified {{event.type}}: Telerik RAU AXD Handler",
                     )
-                    if self.config.get("exploit_RAU_crypto") == True:
+                    if self.config.get("exploit_RAU_crypto") is True:
                         hostname = urlparse(event.data).netloc
                         if hostname not in self.RAUConfirmed:
                             self.RAUConfirmed.append(hostname)
@@ -270,7 +270,7 @@ class telerik(BaseModule):
                 else:
                     if "Cannot deserialize dialog parameters" in response.text:
                         self.debug(f"Detected Telerik UI instance ({dh})")
-                        description = f"Telerik DialogHandler detected"
+                        description = "Telerik DialogHandler detected"
                         await self.emit_event(
                             {"host": str(event.host), "url": f"{event.data}{dh}", "description": description},
                             "FINDING",
@@ -289,8 +289,8 @@ class telerik(BaseModule):
                 self.debug(validate_result)
                 validate_status_code = getattr(validate_result, "status_code", 0)
                 if validate_status_code not in (0, 500):
-                    self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
-                    description = f"Telerik SpellCheckHandler detected"
+                    self.debug("Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
+                    description = "Telerik SpellCheckHandler detected"
                     await self.emit_event(
                         {
                             "host": str(event.host),
@@ -334,7 +334,7 @@ class telerik(BaseModule):
                         },
                         "FINDING",
                         event,
-                        context=f"{{module}} searched HTTP_RESPONSE and identified {{event.type}}: Telerik ChartImage AXD Handler",
+                        context="{module} searched HTTP_RESPONSE and identified {event.type}: Telerik ChartImage AXD Handler",
                     )
                 elif '"_serializedConfiguration":"' in resp_body:
                     await self.emit_event(
@@ -345,7 +345,7 @@ class telerik(BaseModule):
                         },
                         "FINDING",
                         event,
-                        context=f"{{module}} searched HTTP_RESPONSE and identified {{event.type}}: Telerik AsyncUpload",
+                        context="{module} searched HTTP_RESPONSE and identified {event.type}: Telerik AsyncUpload",
                     )
 
         # Check for RAD Controls in URL

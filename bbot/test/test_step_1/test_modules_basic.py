@@ -23,27 +23,27 @@ async def test_modules_basic_checks(events, httpx_mock):
     localhost = scan.make_event("127.0.0.1", parent=scan.root_event)
     # ip addresses should be accepted
     result, reason = base_output_module_1._event_precheck(localhost)
-    assert result == True
+    assert result is True
     assert reason == "precheck succeeded"
     # internal events should be rejected
     localhost._internal = True
     result, reason = base_output_module_1._event_precheck(localhost)
-    assert result == False
+    assert result is False
     assert reason == "_internal is True"
     localhost._internal = False
     result, reason = base_output_module_1._event_precheck(localhost)
-    assert result == True
+    assert result is True
     assert reason == "precheck succeeded"
     # unwatched events should be rejected
     dns_name = scan.make_event("evilcorp.com", parent=scan.root_event)
     result, reason = base_output_module_1._event_precheck(dns_name)
-    assert result == False
+    assert result is False
     assert reason == "its type is not in watched_events"
     # omitted events matching watched types should be accepted
     url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
     url_unverified._omit = True
     result, reason = base_output_module_1._event_precheck(url_unverified)
-    assert result == True
+    assert result is True
     assert reason == "its type is explicitly in watched_events"
 
     base_output_module_2 = BaseOutputModule(scan)
@@ -51,42 +51,42 @@ async def test_modules_basic_checks(events, httpx_mock):
     # normal events should be accepted
     localhost = scan.make_event("127.0.0.1", parent=scan.root_event)
     result, reason = base_output_module_2._event_precheck(localhost)
-    assert result == True
+    assert result is True
     assert reason == "precheck succeeded"
     # internal events should be rejected
     localhost._internal = True
     result, reason = base_output_module_2._event_precheck(localhost)
-    assert result == False
+    assert result is False
     assert reason == "_internal is True"
     localhost._internal = False
     result, reason = base_output_module_2._event_precheck(localhost)
-    assert result == True
+    assert result is True
     assert reason == "precheck succeeded"
     # omitted events should be rejected
     localhost._omit = True
     result, reason = base_output_module_2._event_precheck(localhost)
-    assert result == False
+    assert result is False
     assert reason == "_omit is True"
     # normal event should be accepted
     url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
     result, reason = base_output_module_2._event_precheck(url_unverified)
-    assert result == True
+    assert result is True
     assert reason == "precheck succeeded"
     # omitted event types should be marked during scan egress
     await scan.egress_module.handle_event(url_unverified)
     result, reason = base_output_module_2._event_precheck(url_unverified)
-    assert result == False
+    assert result is False
     assert reason == "_omit is True"
     # omitted events that are targets should be accepted
     dns_name = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
     dns_name._omit = True
     result, reason = base_output_module_2._event_precheck(dns_name)
-    assert result == False
+    assert result is False
     assert reason == "_omit is True"
     # omitted results that are targets should be accepted
     dns_name.add_tag("target")
     result, reason = base_output_module_2._event_precheck(dns_name)
-    assert result == True
+    assert result is True
     assert reason == "it's a target"
 
     # common event filtering tests
@@ -97,18 +97,18 @@ async def test_modules_basic_checks(events, httpx_mock):
         # base cases
         base_module._watched_events = None
         base_module.watched_events = ["*"]
-        assert base_module._event_precheck(events.emoji)[0] == True
+        assert base_module._event_precheck(events.emoji)[0] is True
         base_module._watched_events = None
         base_module.watched_events = ["IP_ADDRESS"]
-        assert base_module._event_precheck(events.ipv4)[0] == True
-        assert base_module._event_precheck(events.domain)[0] == False
-        assert base_module._event_precheck(events.localhost)[0] == True
-        assert base_module._event_precheck(localhost2)[0] == True
+        assert base_module._event_precheck(events.ipv4)[0] is True
+        assert base_module._event_precheck(events.domain)[0] is False
+        assert base_module._event_precheck(events.localhost)[0] is True
+        assert base_module._event_precheck(localhost2)[0] is True
         # target only
         base_module.target_only = True
-        assert base_module._event_precheck(localhost2)[0] == False
+        assert base_module._event_precheck(localhost2)[0] is False
         localhost2.add_tag("target")
-        assert base_module._event_precheck(localhost2)[0] == True
+        assert base_module._event_precheck(localhost2)[0] is True
         base_module.target_only = False
 
         # in scope only
@@ -147,11 +147,11 @@ async def test_modules_basic_checks(events, httpx_mock):
         for flag in flags:
             all_flags.add(flag)
         if preloaded["type"] == "scan":
-            assert ("active" in flags and not "passive" in flags) or (
-                not "active" in flags and "passive" in flags
+            assert ("active" in flags and "passive" not in flags) or (
+                "active" not in flags and "passive" in flags
             ), f'module "{module_name}" must have either "active" or "passive" flag'
-            assert ("safe" in flags and not "aggressive" in flags) or (
-                not "safe" in flags and "aggressive" in flags
+            assert ("safe" in flags and "aggressive" not in flags) or (
+                "safe" not in flags and "aggressive" in flags
             ), f'module "{module_name}" must have either "safe" or "aggressive" flag'
             assert not (
                 "web-basic" in flags and "web-thorough" in flags
@@ -174,15 +174,15 @@ async def test_modules_basic_checks(events, httpx_mock):
 
         assert type(watched_events) == list
         assert type(produced_events) == list
-        if not preloaded.get("type", "") in ("internal",):
+        if preloaded.get("type", "") not in ("internal",):
             assert watched_events, f"{module_name}.watched_events must not be empty"
         assert type(watched_events) == list, f"{module_name}.watched_events must be of type list"
         assert type(produced_events) == list, f"{module_name}.produced_events must be of type list"
         assert all(
-            [type(t) == str for t in watched_events]
+            type(t) == str for t in watched_events
         ), f"{module_name}.watched_events entries must be of type string"
         assert all(
-            [type(t) == str for t in produced_events]
+            type(t) == str for t in produced_events
         ), f"{module_name}.produced_events entries must be of type string"
 
         assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pip must be of type list"
@@ -268,35 +268,35 @@ async def test_modules_basic_perhostonly(bbot_scanner):
         valid_5, reason_5 = await module._event_postcheck(url_5)
 
         if mod_name == "mod_normal":
-            assert valid_1 == True
-            assert valid_2 == True
-            assert valid_3 == True
-            assert valid_4 == True
-            assert valid_5 == True
+            assert valid_1 is True
+            assert valid_2 is True
+            assert valid_3 is True
+            assert valid_4 is True
+            assert valid_5 is True
         elif mod_name == "mod_host_only":
-            assert valid_1 == True
-            assert valid_2 == False
+            assert valid_1 is True
+            assert valid_2 is False
             assert "per_host_only=True" in reason_2
-            assert valid_3 == False
+            assert valid_3 is False
             assert "per_host_only=True" in reason_3
-            assert valid_4 == True
-            assert valid_5 == True
+            assert valid_4 is True
+            assert valid_5 is True
         elif mod_name == "mod_hostport_only":
-            assert valid_1 == True
-            assert valid_2 == False
+            assert valid_1 is True
+            assert valid_2 is False
             assert "per_hostport_only=True" in reason_2
-            assert valid_3 == True
-            assert valid_4 == True
-            assert valid_5 == True
+            assert valid_3 is True
+            assert valid_4 is True
+            assert valid_5 is True
         elif mod_name == "mod_domain_only":
-            assert valid_1 == True
-            assert valid_2 == False
+            assert valid_1 is True
+            assert valid_2 is False
             assert "per_domain_only=True" in reason_2
-            assert valid_3 == False
+            assert valid_3 is False
             assert "per_domain_only=True" in reason_3
-            assert valid_4 == False
+            assert valid_4 is False
             assert "per_domain_only=True" in reason_4
-            assert valid_5 == True
+            assert valid_5 is True
 
     await scan._cleanup()
 
@@ -331,15 +331,15 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
             valid_1, reason_1 = await module._event_postcheck(url_1)
             valid_2, reason_2 = await module._event_postcheck(url_2)
 
-            if module.per_domain_only == True:
-                assert valid_1 == True
-                assert valid_2 == False
+            if module.per_domain_only is True:
+                assert valid_1 is True
+                assert valid_2 is False
                 assert hash("evilcorp.com") in module._per_host_tracker
                 assert reason_2 == "per_domain_only enabled and already seen domain"
 
             else:
-                assert valid_1 == True
-                assert valid_2 == True
+                assert valid_1 is True
+                assert valid_2 is True
 
     await per_domain_scan._cleanup()
 
@@ -397,7 +397,6 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "ORG_STUB": 1,
         "URL_UNVERIFIED": 1,
         "FINDING": 1,
-        "ORG_STUB": 1,
     }
 
     assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "dnsresolve"}

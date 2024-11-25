@@ -52,7 +52,7 @@ class TestSplunk(ModuleTestBase):
         module_test.httpx_mock.add_response()
 
     def check(self, module_test, events):
-        assert self.got_event == True
-        assert self.headers_correct == True
-        assert self.method_correct == True
-        assert self.url_correct == True
+        assert self.got_event is True
+        assert self.headers_correct is True
+        assert self.method_correct is True
+        assert self.url_correct is True

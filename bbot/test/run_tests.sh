@@ -3,14 +3,14 @@
 bbot_dir="$( realpath "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")"
 echo -e "[+] BBOT dir: $bbot_dir\n"
 
-echo "[+] Checking code formatting with black"
+echo "[+] Checking code formatting with ruff"
 echo "======================================="
-black --check "$bbot_dir" || exit 1
+ruff format "$bbot_dir" || exit 1
 echo
 
-echo "[+] Linting with flake8"
+echo "[+] Linting with ruff"
 echo "======================="
-flake8 "$bbot_dir" || exit 1
+ruff check "$bbot_dir" || exit 1
 echo
 
 if [ "${1}x" != "x" ] ; then

@@ -146,14 +146,12 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
         return Response("alive", status=200)
 
     async def setup_before_prep(self, module_test):
-
         self.interactsh_mock_instance = module_test.mock_interactsh("dotnetnuke_blindssrf")
         module_test.monkeypatch.setattr(
             module_test.scan.helpers, "interactsh", lambda *args, **kwargs: self.interactsh_mock_instance
         )
 
     async def setup_after_prep(self, module_test):
-
         # Simulate DotNetNuke Instance
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": dotnetnuke_http_response}

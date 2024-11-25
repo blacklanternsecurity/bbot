@@ -59,15 +59,13 @@ cloudcheck = "^6.0.0.602"
 radixtarget = "^2.0.0.50"
 
 [tool.poetry.group.dev.dependencies]
-flake8 = ">=6,<8"
 poetry-dynamic-versioning = ">=0.21.4,<1.5.0"
 urllib3 = "^2.0.2"
 werkzeug = ">=2.3.4,<4.0.0"
 pytest-env = ">=0.8.2,<1.2.0"
 pre-commit = ">=3.4,<5.0"
-black = "^24.1.1"
 pytest-cov = ">=5,<7"
-pytest-rerunfailures = "^14.0"
+pytest-rerunfailures = ">=14,<16"
 pytest-timeout = "^2.3.1"
 pytest-httpserver = "^1.0.11"
 pytest = "^8.3.1"
@@ -75,6 +73,7 @@ pytest-asyncio = "0.24.0"
 uvicorn = "^0.32.0"
 fastapi = "^0.115.5"
 pytest-httpx = ">=0.33,<0.35"
+ruff = "^0.8.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"
@@ -97,9 +96,14 @@ asyncio_default_fixture_loop_scope = "function"
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
 
-[tool.black]
+[tool.codespell]
+ignore-words-list = "bu,cna,couldn,dialin,nd,ned,thirdparty"
+skip = "./docs/javascripts/vega*.js,./bbot/wordlists/*"
+
+[tool.ruff]
 line-length = 119
-extend-exclude = "(test_step_1/test_manager_*)"
+format.exclude = ["bbot/test/test_step_1/test_manager_*"]
+lint.ignore = ["E402", "E711", "E712", "E713", "E721", "E731", "E741", "F401", "F403", "F405", "F541", "F601"]
 
 [tool.poetry-dynamic-versioning]
 enable = true

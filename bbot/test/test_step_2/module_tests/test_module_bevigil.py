@@ -9,7 +9,7 @@ class TestBeVigil(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://osint.bevigil.com/api/blacklanternsecurity.com/subdomains/",
+            url="https://osint.bevigil.com/api/blacklanternsecurity.com/subdomains/",
             match_headers={"X-Access-Token": "asdf"},
             json={
                 "domain": "blacklanternsecurity.com",
@@ -19,7 +19,7 @@ class TestBeVigil(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url=f"https://osint.bevigil.com/api/blacklanternsecurity.com/urls/",
+            url="https://osint.bevigil.com/api/blacklanternsecurity.com/urls/",
             json={"domain": "blacklanternsecurity.com", "urls": ["https://asdf.blacklanternsecurity.com"]},
         )
 
@@ -35,7 +35,7 @@ class TestBeVigilMultiKey(TestBeVigil):
 
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://osint.bevigil.com/api/blacklanternsecurity.com/subdomains/",
+            url="https://osint.bevigil.com/api/blacklanternsecurity.com/subdomains/",
             match_headers={"X-Access-Token": "fdsa"},
             json={
                 "domain": "blacklanternsecurity.com",
@@ -46,6 +46,6 @@ class TestBeVigilMultiKey(TestBeVigil):
         )
         module_test.httpx_mock.add_response(
             match_headers={"X-Access-Token": "asdf"},
-            url=f"https://osint.bevigil.com/api/blacklanternsecurity.com/urls/",
+            url="https://osint.bevigil.com/api/blacklanternsecurity.com/urls/",
             json={"domain": "blacklanternsecurity.com", "urls": ["https://asdf.blacklanternsecurity.com"]},
         )

@@ -32,7 +32,6 @@ class dotnetnuke(BaseModule):
         self.interactsh_instance = None
 
         if self.scan.config.get("interactsh_disable", False) == False:
-
             try:
                 self.interactsh_instance = self.helpers.interactsh()
                 self.interactsh_domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
@@ -114,7 +113,6 @@ class dotnetnuke(BaseModule):
                         )
 
             if "endpoint" not in event.tags:
-
                 # NewsArticlesSlider ImageHandler.ashx File Read
                 result = await self.helpers.request(
                     f'{event.data["url"]}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx?img=~/web.config'

@@ -91,7 +91,7 @@ def test_ip_regexes():
                     ip == "2001:db8::1/128" and event_type == "IP_RANGE"
                 ), f"Event type for IP_ADDRESS {ip} was not properly detected"
         else:
-            matches = list(r.match(ip) for r in ip_address_regexes)
+            matches = [r.match(ip) for r in ip_address_regexes]
             assert any(matches), f"Good IP ADDRESS {ip} did not match regexes"
 
 
@@ -138,7 +138,7 @@ def test_ip_range_regexes():
             pytest.fail(f"BAD IP_RANGE: {bad_ip_range} raised unknown error: {e}: {traceback.format_exc()}")
 
     for good_ip_range in good_ip_ranges:
-        matches = list(r.match(good_ip_range) for r in ip_range_regexes)
+        matches = [r.match(good_ip_range) for r in ip_range_regexes]
         assert any(matches), f"Good IP_RANGE {good_ip_range} did not match regexes"
 
 
@@ -191,7 +191,7 @@ def test_dns_name_regexes():
             pytest.fail(f"BAD DNS NAME: {dns} raised unknown error: {e}")
 
     for dns in good_dns:
-        matches = list(r.match(dns) for r in dns_name_regexes)
+        matches = [r.match(dns) for r in dns_name_regexes]
         assert any(matches), f"Good DNS_NAME {dns} did not match regexes"
         event_type, _ = get_event_type(dns)
         if not event_type == "DNS_NAME":
@@ -253,7 +253,7 @@ def test_open_port_regexes():
             pytest.fail(f"BAD OPEN_TCP_PORT: {open_port} raised unknown error: {e}")
 
     for open_port in good_ports:
-        matches = list(r.match(open_port) for r in open_port_regexes)
+        matches = [r.match(open_port) for r in open_port_regexes]
         assert any(matches), f"Good OPEN_TCP_PORT {open_port} did not match regexes"
         event_type, _ = get_event_type(open_port)
         assert event_type == "OPEN_TCP_PORT"
@@ -318,7 +318,7 @@ def test_url_regexes():
             pytest.fail(f"BAD URL: {bad_url} raised unknown error: {e}: {traceback.format_exc()}")
 
     for good_url in good_urls:
-        matches = list(r.match(good_url) for r in url_regexes)
+        matches = [r.match(good_url) for r in url_regexes]
         assert any(matches), f"Good URL {good_url} did not match regexes"
         assert (
             get_event_type(good_url)[0] == "URL_UNVERIFIED"

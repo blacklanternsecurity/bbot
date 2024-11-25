@@ -106,7 +106,7 @@ class BBOTCore:
         if DEFAULT_CONFIG is None:
             self.default_config = self.files_config.get_default_config()
             # ensure bbot home dir
-            if not "home" in self.default_config:
+            if "home" not in self.default_config:
                 self.default_config["home"] = "~/.bbot"
         return DEFAULT_CONFIG
 

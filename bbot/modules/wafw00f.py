@@ -52,7 +52,7 @@ class wafw00f(BaseModule):
                     context=f"{{module}} scanned {url} and identified {{event.type}}: {waf}",
                 )
         else:
-            if self.config.get("generic_detect") == True:
+            if self.config.get("generic_detect") is True:
                 generic = await self.helpers.run_in_executor(WW.genericdetect)
                 if generic:
                     waf = "generic detection"

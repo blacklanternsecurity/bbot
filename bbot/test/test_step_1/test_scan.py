@@ -100,13 +100,13 @@ async def test_url_extension_handling(bbot_scanner):
     assert "blacklisted" not in bad_event.tags
     assert "httpx-only" not in httpx_event.tags
     result = await scan.ingress_module.handle_event(good_event)
-    assert result == None
+    assert result is None
     result, reason = await scan.ingress_module.handle_event(bad_event)
-    assert result == False
+    assert result is False
     assert reason == "event is blacklisted"
     assert "blacklisted" in bad_event.tags
     result = await scan.ingress_module.handle_event(httpx_event)
-    assert result == None
+    assert result is None
     assert "httpx-only" in httpx_event.tags
 
     await scan._cleanup()
@@ -144,7 +144,7 @@ async def test_python_output_matches_json(bbot_scanner):
     assert len(events) == 5
     scan_events = [e for e in events if e["type"] == "SCAN"]
     assert len(scan_events) == 2
-    assert all([isinstance(e["data"]["status"], str) for e in scan_events])
+    assert all(isinstance(e["data"]["status"], str) for e in scan_events)
     assert len([e for e in events if e["type"] == "DNS_NAME"]) == 1
     assert len([e for e in events if e["type"] == "ORG_STUB"]) == 1
     assert len([e for e in events if e["type"] == "IP_ADDRESS"]) == 1

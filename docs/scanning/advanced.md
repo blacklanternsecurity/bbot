@@ -70,7 +70,7 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,azure_realm,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,binaryedge,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bufferoverrun,builtwith,bypass403,c99,censys,certspotter,chaos,code_repository,columbus,credshed,crt,dastardly,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,docker_pull,dockerhub,dotnetnuke,emailformat,extractous,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,github_codesearch,github_org,github_workflows,gitlab,google_playstore,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,internetdb,ip2location,ipneighbor,ipstack,jadx,leakix,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portscan,postman,postman_download,rapiddns,robots,secretsdb,securitytrails,securitytxt,shodan_dns,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,wpscan,zoomeye
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,azure_realm,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,binaryedge,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bufferoverrun,builtwith,bypass403,c99,censys,certspotter,chaos,code_repository,columbus,credshed,crt,dastardly,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,extractous,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,github_codesearch,github_org,github_workflows,gitlab,google_playstore,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,internetdb,ip2location,ipneighbor,ipstack,jadx,leakix,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portscan,postman,postman_download,rapiddns,robots,secretsdb,securitytrails,securitytxt,shodan_dns,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,wpscan,zoomeye
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
@@ -103,7 +103,7 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,json,neo4j,postgres,python,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_report,websocket
+                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,json,mysql,neo4j,postgres,python,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_report,websocket
   --json, -j            Output scan data in JSON format
   --brief, -br          Output only the data itself
   --event-types EVENT_TYPES [EVENT_TYPES ...]

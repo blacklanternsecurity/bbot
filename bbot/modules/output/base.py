@@ -24,7 +24,7 @@ class BaseOutputModule(BaseModule):
         if event.type in ("FINISHED",):
             return True, "its type is FINISHED"
         if self.errored:
-            return False, f"module is in error state"
+            return False, "module is in error state"
         # exclude non-watched types
         if not any(t in self.get_watched_events() for t in ("*", event.type)):
             return False, "its type is not in watched_events"

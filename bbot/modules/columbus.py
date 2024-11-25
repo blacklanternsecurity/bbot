@@ -21,5 +21,5 @@ class columbus(subdomain_enum):
         results = set()
         json = r.json()
         if json and isinstance(json, list):
-            return set([f"{s.lower()}.{query}" for s in json])
+            return {f"{s.lower()}.{query}" for s in json}
         return results

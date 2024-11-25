@@ -33,14 +33,14 @@ class robots(BaseModule):
                 for l in lines:
                     if len(l) > 0:
                         split_l = l.split(": ")
-                        if (split_l[0].lower() == "allow" and self.config.get("include_allow") == True) or (
-                            split_l[0].lower() == "disallow" and self.config.get("include_disallow") == True
+                        if (split_l[0].lower() == "allow" and self.config.get("include_allow") is True) or (
+                            split_l[0].lower() == "disallow" and self.config.get("include_disallow") is True
                         ):
                             unverified_url = f"{host}{split_l[1].lstrip('/')}".replace(
                                 "*", self.helpers.rand_string(4)
                             )
 
-                        elif split_l[0].lower() == "sitemap" and self.config.get("include_sitemap") == True:
+                        elif split_l[0].lower() == "sitemap" and self.config.get("include_sitemap") is True:
                             unverified_url = split_l[1]
                         else:
                             continue

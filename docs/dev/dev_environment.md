@@ -33,7 +33,7 @@ bbot --help
 
 ```bash
 # auto-format code indentation, etc.
-black .
+ruff format
 
 # run tests
 ./bbot/test/run_tests.sh

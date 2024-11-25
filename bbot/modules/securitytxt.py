@@ -121,7 +121,7 @@ class securitytxt(BaseModule):
                         start, end = match.span()
                         found_url = v[start:end]
 
-                        if found_url != url and self._urls == True:
+                        if found_url != url and self._urls is True:
                             await self.emit_event(found_url, "URL_UNVERIFIED", parent=event, tags=tags)
 
 

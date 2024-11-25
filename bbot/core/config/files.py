@@ -10,7 +10,6 @@ bbot_code_dir = Path(__file__).parent.parent.parent
 
 
 class BBOTConfigFiles:
-
     config_dir = (Path.home() / ".config" / "bbot").resolve()
     defaults_filename = (bbot_code_dir / "defaults.yml").resolve()
     config_filename = (config_dir / "bbot.yml").resolve()

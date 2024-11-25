@@ -28,7 +28,7 @@ class ffuf(BaseModule):
 
     deps_common = ["ffuf"]
 
-    banned_characters = set([" "])
+    banned_characters = {" "}
     blacklist = ["images", "css", "image"]
 
     in_scope_only = True
@@ -52,7 +52,7 @@ class ffuf(BaseModule):
 
     async def handle_event(self, event):
         if self.helpers.url_depth(event.data) > self.config.get("max_depth"):
-            self.debug(f"Exceeded max depth, aborting event")
+            self.debug("Exceeded max depth, aborting event")
             return
 
         # only FFUF against a directory
@@ -122,7 +122,7 @@ class ffuf(BaseModule):
                 continue
 
             # if the codes are different, we should abort, this should also be a warning, as it is highly unusual behavior
-            if len(set(d["status"] for d in canary_results)) != 1:
+            if len({d["status"] for d in canary_results}) != 1:
                 self.warning("Got different codes for each baseline. This could indicate load balancing")
                 filters[ext] = ["ABORT", "BASELINE_CHANGED_CODES"]
                 continue
@@ -148,7 +148,7 @@ class ffuf(BaseModule):
                 continue
 
             # we start by seeing if all of the baselines have the same character count
-            if len(set(d["length"] for d in canary_results)) == 1:
+            if len({d["length"] for d in canary_results}) == 1:
                 self.debug("All baseline results had the same char count, we can make a filter on that")
                 filters[ext] = [
                     "-fc",
@@ -161,7 +161,7 @@ class ffuf(BaseModule):
                 continue
 
             # if that doesn't work we can try words
-            if len(set(d["words"] for d in canary_results)) == 1:
+            if len({d["words"] for d in canary_results}) == 1:
                 self.debug("All baseline results had the same word count, we can make a filter on that")
                 filters[ext] = [
                     "-fc",
@@ -174,7 +174,7 @@ class ffuf(BaseModule):
                 continue
 
             # as a last resort we will try lines
-            if len(set(d["lines"] for d in canary_results)) == 1:
+            if len({d["lines"] for d in canary_results}) == 1:
                 self.debug("All baseline results had the same word count, we can make a filter on that")
                 filters[ext] = [
                     "-fc",
@@ -252,7 +252,7 @@ class ffuf(BaseModule):
                         self.warning(f"Exiting from FFUF run early, received an ABORT filter: [{filters[ext][1]}]")
                         continue
 
-                    elif filters[ext] == None:
+                    elif filters[ext] is None:
                         pass
 
                     else:
@@ -282,7 +282,7 @@ class ffuf(BaseModule):
                         else:
                             if mode == "normal":
                                 # before emitting, we are going to send another baseline. This will immediately catch things like a WAF flipping blocking on us mid-scan
-                                if baseline == False:
+                                if baseline is False:
                                     pre_emit_temp_canary = [
                                         f
                                         async for f in self.execute_ffuf(

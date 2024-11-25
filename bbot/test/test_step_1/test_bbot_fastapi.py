@@ -28,7 +28,7 @@ def test_bbot_multiprocess(bbot_httpserver):
     assert len(events) >= 3
     scan_events = [e for e in events if e["type"] == "SCAN"]
     assert len(scan_events) == 2
-    assert any([e["data"] == "test@blacklanternsecurity.com" for e in events])
+    assert any(e["data"] == "test@blacklanternsecurity.com" for e in events)
 
 
 def test_bbot_fastapi(bbot_httpserver):
@@ -61,7 +61,7 @@ def test_bbot_fastapi(bbot_httpserver):
         assert len(events) >= 3
         scan_events = [e for e in events if e["type"] == "SCAN"]
         assert len(scan_events) == 2
-        assert any([e["data"] == "test@blacklanternsecurity.com" for e in events])
+        assert any(e["data"] == "test@blacklanternsecurity.com" for e in events)
 
     finally:
         with suppress(Exception):

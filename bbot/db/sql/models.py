@@ -69,7 +69,6 @@ class BBOTBaseModel(SQLModel):
 
 
 class Event(BBOTBaseModel, table=True):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         data = self._get_data(self.data, self.type)

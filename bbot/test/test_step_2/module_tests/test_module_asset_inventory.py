@@ -10,7 +10,6 @@ class TestAsset_Inventory(ModuleTestBase):
     masscan_output = """{   "ip": "127.0.0.1",   "timestamp": "1680197558", "ports": [ {"port": 9999, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
 
     async def setup_before_prep(self, module_test):
-
         async def run_masscan(command, *args, **kwargs):
             if "masscan" in command[:2]:
                 targets = open(command[11]).read().splitlines()

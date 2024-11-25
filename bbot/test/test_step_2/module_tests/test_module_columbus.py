@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestColumbus(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://columbus.elmasy.com/api/lookup/blacklanternsecurity.com?days=365",
+            url="https://columbus.elmasy.com/api/lookup/blacklanternsecurity.com?days=365",
             json=["asdf", "zzzz"],
         )
 

@@ -38,7 +38,7 @@ class asn(BaseReportModule):
 
     async def handle_event(self, event):
         host = event.host
-        if self.cache_get(host) == False:
+        if self.cache_get(host) is False:
             asns, source = await self.get_asn(host)
             if not asns:
                 self.cache_put(self.unknown_asn)
@@ -96,7 +96,7 @@ class asn(BaseReportModule):
         for p in self.helpers.ip_network_parents(ip):
             try:
                 self.asn_counts[p] += 1
-                if ret == False:
+                if ret is False:
                     ret = p
             except KeyError:
                 continue
@@ -112,7 +112,7 @@ class asn(BaseReportModule):
             for i, source in enumerate(list(self.sources)):
                 get_asn_fn = getattr(self, f"get_asn_{source}")
                 res = await get_asn_fn(ip)
-                if res == False:
+                if res is False:
                     # demote the current source to lowest priority since it just failed
                     self.sources.append(self.sources.pop(i))
                     self.verbose(f"Failed to contact {source}, retrying")
@@ -125,7 +125,7 @@ class asn(BaseReportModule):
         url = f"https://stat.ripe.net/data/network-info/data.json?resource={ip}"
         response = await self.get_url(url, "ASN")
         asns = []
-        if response == False:
+        if response is False:
             return False
         data = response.get("data", {})
         if not data:
@@ -138,7 +138,7 @@ class asn(BaseReportModule):
             asn_numbers = []
         for number in asn_numbers:
             asn = await self.get_asn_metadata_ripe(number)
-            if asn == False:
+            if asn is False:
                 return False
             asn["subnet"] = prefix
             asns.append(asn)
@@ -155,7 +155,7 @@ class asn(BaseReportModule):
             }
             url = f"https://stat.ripe.net/data/whois/data.json?resource={asn_number}"
             response = await self.get_url(url, "ASN Metadata", cache=True)
-            if response == False:
+            if response is False:
                 return False
             data = response.get("data", {})
             if not data:
@@ -187,7 +187,7 @@ class asn(BaseReportModule):
         data = await self.get_url(url, "ASN")
         asns = []
         asns_tried = set()
-        if data == False:
+        if data is False:
             return False
         data = data.get("data", {})
         prefixes = data.get("prefixes", [])
@@ -201,13 +201,13 @@ class asn(BaseReportModule):
             description = details.get("description") or prefix.get("description") or ""
             country = details.get("country_code") or prefix.get("country_code") or ""
             emails = []
-            if not asn in asns_tried:
+            if asn not in asns_tried:
                 emails = await self.get_emails_bgpview(asn)
-                if emails == False:
+                if emails is False:
                     return False
                 asns_tried.add(asn)
             asns.append(
-                dict(asn=asn, subnet=subnet, name=name, description=description, country=country, emails=emails)
+                {"asn": asn, "subnet": subnet, "name": name, "description": description, "country": country, "emails": emails}
             )
         if not asns:
             self.debug(f'No results for "{ip}"')
@@ -217,7 +217,7 @@ class asn(BaseReportModule):
         contacts = []
         url = f"https://api.bgpview.io/asn/{asn}"
         data = await self.get_url(url, "ASN metadata", cache=True)
-        if data == False:
+        if data is False:
             return False
         data = data.get("data", {})
         if not data:

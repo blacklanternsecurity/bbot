@@ -21,7 +21,6 @@ class TestPortscan(ModuleTestBase):
     masscan_output_ping = """{   "ip": "8.8.8.8",   "timestamp": "1719862594", "ports": [ {"port": 0, "proto": "icmp", "status": "open", "reason": "none", "ttl": 54} ] }"""
 
     async def setup_after_prep(self, module_test):
-
         from bbot.modules.base import BaseModule
 
         class DummyModule(BaseModule):
@@ -123,7 +122,7 @@ class TestPortscan(ModuleTestBase):
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "asdf.evilcorp.net:80"])
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "dummy.asdf.evilcorp.net:80"])
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "dummy.evilcorp.com:631"])
-        assert not any([e for e in events if e.type == "OPEN_TCP_PORT" and e.host == "dummy.www.evilcorp.com"])
+        assert not any(e for e in events if e.type == "OPEN_TCP_PORT" and e.host == "dummy.www.evilcorp.com")
 
 
 class TestPortscanPingFirst(TestPortscan):
@@ -137,7 +136,7 @@ class TestPortscanPingFirst(TestPortscan):
         assert self.ping_runs == 1
         open_port_events = [e for e in events if e.type == "OPEN_TCP_PORT"]
         assert len(open_port_events) == 3
-        assert set([e.data for e in open_port_events]) == {"8.8.8.8:443", "evilcorp.com:443", "www.evilcorp.com:443"}
+        assert {e.data for e in open_port_events} == {"8.8.8.8:443", "evilcorp.com:443", "www.evilcorp.com:443"}
 
 
 class TestPortscanPingOnly(TestPortscan):
@@ -155,4 +154,4 @@ class TestPortscanPingOnly(TestPortscan):
         assert len(open_port_events) == 0
         ip_events = [e for e in events if e.type == "IP_ADDRESS"]
         assert len(ip_events) == 1
-        assert set([e.data for e in ip_events]) == {"8.8.8.8"}
+        assert {e.data for e in ip_events} == {"8.8.8.8"}

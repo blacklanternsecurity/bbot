@@ -45,10 +45,10 @@ class speculate(BaseInternalModule):
 
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
-        self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in scan_modules])
+        self.open_port_consumers = any("OPEN_TCP_PORT" in m.watched_events for m in scan_modules)
         # only consider active portscanners (still speculate if only passive ones are enabled)
         self.portscanner_enabled = any(
-            ["portscan" in m.flags and "active" in m.flags for m in self.scan.modules.values()]
+            "portscan" in m.flags and "active" in m.flags for m in self.scan.modules.values()
         )
         self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         self.range_to_ip = True
@@ -71,7 +71,7 @@ class speculate(BaseInternalModule):
                 self.hugewarning(
                     f"Selected target ({target_len:,} hosts) is too large, skipping IP_RANGE --> IP_ADDRESS speculation"
                 )
-                self.hugewarning(f'Enabling the "portscan" module is highly recommended')
+                self.hugewarning('Enabling the "portscan" module is highly recommended')
             self.range_to_ip = False
 
         return True
@@ -126,7 +126,7 @@ class speculate(BaseInternalModule):
             parent = self.helpers.parent_domain(event.host_original)
             if parent != event.data:
                 await self.emit_event(
-                    parent, "DNS_NAME", parent=event, context=f"speculated parent {{event.type}}: {{event.data}}"
+                    parent, "DNS_NAME", parent=event, context="speculated parent {event.type}: {event.data}"
                 )
 
         # URL --> OPEN_TCP_PORT
