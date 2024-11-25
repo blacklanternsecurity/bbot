@@ -865,15 +865,15 @@ class Scanner:
         if not self._cleanedup:
             self._cleanedup = True
             self.status = "CLEANING_UP"
+            # clean up modules
+            for mod in self.modules.values():
+                await mod._cleanup()
             # clean up dns engine
             if self.helpers._dns is not None:
                 await self.helpers.dns.shutdown()
             # clean up web engine
             if self.helpers._web is not None:
                 await self.helpers.web.shutdown()
-            # clean up modules
-            for mod in self.modules.values():
-                await mod._cleanup()
             with contextlib.suppress(Exception):
                 self.home.rmdir()
             self.helpers.clean_old_scans()
