@@ -50,7 +50,6 @@ class BBOTBaseModel(BaseModel):
 
 ### EVENT ###
 
-
 class Event(BBOTBaseModel):
     uuid: Annotated[str, "indexed", "unique"]
     id: Annotated[str, "indexed"]
