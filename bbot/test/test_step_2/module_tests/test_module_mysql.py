@@ -28,7 +28,7 @@ class TestMySQL(ModuleTestBase):
         stdout, stderr = await process.communicate()
 
         # wait for the container to start
-        await self.wait_for_port(3306)
+        await self.wait_for_port_open(3306)
 
         if process.returncode != 0:
             self.log.error(f"Failed to start MySQL server: {stderr.decode()}")

@@ -25,7 +25,7 @@ class TestPostgres(ModuleTestBase):
         )
 
         # wait for the container to start
-        await self.wait_for_port(5432)
+        await self.wait_for_port_open(5432)
 
         if process.returncode != 0:
             self.log.error("Failed to start PostgreSQL server")
