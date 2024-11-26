@@ -46,7 +46,7 @@ class bucket_google(bucket_template):
     async def check_bucket_open(self, bucket_name, url):
         bad_permissions = []
         try:
-            list_permissions = "&".join(["=".join(("permissions", p)) for p in self.bad_permissions])
+            list_permissions = "&".join(f"permissions={p}" for p in self.bad_permissions)
             url = f"https://www.googleapis.com/storage/v1/b/{bucket_name}/iam/testPermissions?" + list_permissions
             response = await self.helpers.request(url)
             permissions = response.json()

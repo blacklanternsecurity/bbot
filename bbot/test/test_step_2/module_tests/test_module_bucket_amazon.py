@@ -3,7 +3,7 @@ import re
 from .base import ModuleTestBase
 from bbot.core.helpers.misc import rand_string
 
-__all__ = ["random_bucket_name_1", "random_bucket_name_2", "random_bucket_name_3", "Bucket_Amazon_Base"]
+__all__ = ["Bucket_Amazon_Base", "random_bucket_name_1", "random_bucket_name_2", "random_bucket_name_3"]
 
 # first one is a normal bucket
 random_bucket_name_1 = rand_string(15, digits=False)

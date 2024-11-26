@@ -100,7 +100,7 @@ class filedownload(BaseModule):
         with open(self.mime_db_file) as f:
             mime_db = json.load(f)
             for content_type, attrs in mime_db.items():
-                if "extensions" in attrs and attrs["extensions"]:
+                if attrs.get("extensions"):
                     self.mime_db[content_type] = attrs["extensions"][0].lower()
         return True
 

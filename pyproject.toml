@@ -102,7 +102,82 @@ skip = "./docs/javascripts/vega*.js,./bbot/wordlists/*"
 [tool.ruff]
 line-length = 119
 format.exclude = ["bbot/test/test_step_1/test_manager_*"]
-lint.ignore = ["E402", "E721", "E741", "F401", "F403", "F405"]
+
+[tool.ruff.lint]
+ignore = ["E402", "E501", "E721", "E741", "F401", "F403", "F405"]
+mccabe.max-complexity = 31
+select = [
+  "AIR",     # Airflow
+  "C4",      # flake8-comprehensions
+  "C90",     # McCabe cyclomatic complexity
+  "DJ",      # flake8-django
+  "E",       # pycodestyle
+  "F",       # Pyflakes
+  "FAST",    # FastAPI
+  "FLY",     # flynt
+  "ICN",     # flake8-import-conventions
+  "INT",     # flake8-gettext
+  "LOG",     # flake8-logging
+  "NPY",     # NumPy-specific rules
+  "PD",      # pandas-vet
+  "PLR091",  # Pylint Refactor just for max-args, max-branches, etc.
+  "PYI",     # flake8-pyi
+  "RSE",     # flake8-raise
+  "SLOT",    # flake8-slots
+  "T10",     # flake8-debugger
+  "TC",      # flake8-type-checking
+  "W",       # pycodestyle
+  "YTT",     # flake8-2020
+  # "A",     # flake8-builtins
+  # "ANN",   # flake8-annotations
+  # "ARG",   # flake8-unused-arguments
+  # "ASYNC", # flake8-async
+  # "B",     # flake8-bugbear
+  # "BLE",   # flake8-blind-except
+  # "COM",   # flake8-commas
+  # "CPY",   # flake8-copyright
+  # "D",     # pydocstyle
+  # "DOC",   # pydoclint
+  # "DTZ",   # flake8-datetimez
+  # "EM",    # flake8-errmsg
+  # "ERA",   # eradicate
+  # "EXE",   # flake8-executable
+  # "FA",    # flake8-future-annotations
+  # "FBT",   # flake8-boolean-trap
+  # "FIX",   # flake8-fixme
+  # "FURB",  # refurb
+  # "G",     # flake8-logging-format
+  # "I",     # isort
+  # "INP",   # flake8-no-pep420
+  # "ISC",   # flake8-implicit-str-concat
+  # "N",     # pep8-naming
+  # "PERF",  # Perflint
+  # "PGH",   # pygrep-hooks
+  # "PIE",   # flake8-pie
+  # "PL",    # Pylint
+  # "PT",    # flake8-pytest-style
+  # "PTH",   # flake8-use-pathlib
+  # "Q",     # flake8-quotes
+  # "RET",   # flake8-return
+  # "RUF",   # Ruff-specific rules
+  # "S",     # flake8-bandit
+  # "SIM",   # flake8-simplify
+  # "SLF",   # flake8-self
+  # "T20",   # flake8-print
+  # "TD",    # flake8-todos
+  # "TID",   # flake8-tidy-imports
+  # "TRY",   # tryceratops
+  # "UP",    # pyupgrade
+]
+
+[tool.ruff.lint.per-file-ignores]
+"bbot/test/test_step_1/test_*" = ["PLR0915"]
+
+[tool.ruff.lint.pylint]
+max-args = 21  # Default is 5
+max-branches = 31  # Default is 12
+max-returns = 10  # Default is 6
+max-statements = 100  # Default is 50
 
 [tool.poetry-dynamic-versioning]
 enable = true

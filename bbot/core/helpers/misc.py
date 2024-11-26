@@ -1684,7 +1684,7 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
         except Exception as e:
             msg = f"Failed to delete directory: {path}, {e}"
             if raise_error:
-                raise errors.DirectoryDeletionError()
+                raise errors.DirectoryDeletionError
             log.warning(msg)
 
 

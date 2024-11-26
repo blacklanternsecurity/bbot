@@ -267,7 +267,7 @@ class ModuleLoader:
     def check_type(self, module, type):
         return self._preloaded[module]["type"] == type
 
-    def preload_module(self, module_file):
+    def preload_module(self, module_file):  # noqa: C901,PLR0912
         """
         Preloads a BBOT module to gather its meta-information and dependencies.
 
@@ -315,6 +315,10 @@ class ModuleLoader:
                 },
                 "sudo": false
             }
+
+        Future modifications should consider refactoring to reduce complexity.
+        * The McCabe cyclomatiic complexity is currently 43 vs 10 recommended.
+        * There are currently 42 branches vs 12 recommended.
         """
         watched_events = set()
         produced_events = set()

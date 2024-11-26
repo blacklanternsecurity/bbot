@@ -28,7 +28,13 @@ www.blacklanternsecurity.com/bbot
 scan_name = ""
 
 
-async def _main():
+async def _main():  # noqa: C901,PLR0911,PLR0915
+    """
+    Future modifications should consider refactoring to reduce complexity.
+    * The McCabe cyclomatiic complexity is currently 43 vs 10 recommended.
+    * There are currently 13 return statements vs 6 recommended.
+    * There are currently 148 statements vs 50 recommended.
+    """
     import asyncio
     import traceback
     from contextlib import suppress

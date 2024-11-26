@@ -7,7 +7,7 @@ class BaseTestBaddns_zone(ModuleTestBase):
     targets = ["bad.dns"]
     config_overrides = {"dns": {"minimal": False}}
 
-    async def dispatchWHOIS(x):
+    async def dispatchWHOIS(self):
         return None
 
 

@@ -12,7 +12,7 @@ class TestNeo4j(ModuleTestBase):
         self.neo4j_used = False
 
         class MockResult:
-            async def data(s):
+            async def data(s):  # noqa: N805
                 self.neo4j_used = True
                 return [
                     {
@@ -22,7 +22,7 @@ class TestNeo4j(ModuleTestBase):
                 ]
 
         class MockSession:
-            async def run(s, *args, **kwargs):
+            async def run(self, *args, **kwargs):
                 return MockResult()
 
             async def close(self):

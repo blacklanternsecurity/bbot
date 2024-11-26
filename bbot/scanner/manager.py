@@ -137,7 +137,7 @@ class ScanIngress(BaseInterceptModule):
                 return q.get_nowait()
             except (asyncio.queues.QueueEmpty, AttributeError):
                 continue
-        raise asyncio.queues.QueueEmpty()
+        raise asyncio.queues.QueueEmpty
 
     def is_incoming_duplicate(self, event, add=False):
         """
