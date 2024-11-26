@@ -61,7 +61,7 @@ class lightfuzz(BaseModule):
                 setattr(self, submodule, True)
                 self.hugeinfo(f"Lightfuzz {submodule_dict['description']} Submodule Enabled")
 
-                if submodule == "cmdi" and self.scan.config.get("interactsh_disable", False) == False:
+                if submodule == "cmdi" and self.scan.config.get("interactsh_disable", False) is False:
                     try:
                         self.interactsh_instance = self.helpers.interactsh()
                         self.interactsh_domain = await self.interactsh_instance.register(
@@ -149,7 +149,7 @@ class lightfuzz(BaseModule):
     async def handle_event(self, event):
 
         if event.type == "URL":
-            if self.config.get("force_common_headers", False) == False:
+            if self.config.get("force_common_headers", False) is False:
 
                 return False
 

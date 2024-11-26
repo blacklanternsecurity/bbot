@@ -75,9 +75,9 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                     )
 
                     if (
-                        singledot_probe[0] == True
-                        and doubledot_probe[0] == False
-                        and doubledot_probe[3] != None
+                        singledot_probe[0] is True
+                        and doubledot_probe[0] is False
+                        and doubledot_probe[3] is not None
                         and doubledot_probe[1] != ["header"]
                         and "The requested URL was rejected" not in doubledot_probe[3].text
                     ):

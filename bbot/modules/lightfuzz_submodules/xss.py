@@ -61,7 +61,7 @@ class XSSLightfuzz(BaseLightfuzz):
         if reflection_probe_result and random_string in reflection_probe_result:
             reflection = True
 
-        if not reflection or reflection == False:
+        if not reflection or reflection is False:
             return
 
         between_tags, in_tag_attribute, in_javascript = self.determine_context(reflection_probe_result, random_string)
@@ -74,7 +74,7 @@ class XSSLightfuzz(BaseLightfuzz):
             for tag in tags:
                 between_tags_probe = f"<{tag}>{random_string}</{tag}>"
                 result = await self.check_probe(between_tags_probe, between_tags_probe, f"Between Tags ({tag} tag)")
-                if result == True:
+                if result is True:
                     break
 
         if in_tag_attribute:
@@ -85,7 +85,7 @@ class XSSLightfuzz(BaseLightfuzz):
         if in_javascript:
             in_javascript_probe = rf"</script><script>{random_string}</script>"
             result = await self.check_probe(in_javascript_probe, in_javascript_probe, "In Javascript")
-            if result == False:
+            if result is False:
                 in_javasscript_escape_probe = rf"a\';zzzzz({random_string})\\"
                 in_javasscript_escape_match = rf"a\\';zzzzz({random_string})\\"
                 await self.check_probe(

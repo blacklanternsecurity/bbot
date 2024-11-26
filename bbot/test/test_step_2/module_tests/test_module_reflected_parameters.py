@@ -10,7 +10,7 @@ class TestReflected_parameters_fromexcavate(ModuleTestBase):
     modules_overrides = ["httpx", "reflected_parameters", "excavate"]
 
     def request_handler(self, request):
-        normal_block = f'<html><a href="/?reflected=foo">foo</a></html>'
+        normal_block = '<html><a href="/?reflected=foo">foo</a></html>'
         qs = str(request.query_string.decode())
         if "reflected=" in qs:
             value = qs.split("=")[1]

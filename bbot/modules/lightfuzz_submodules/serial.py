@@ -37,7 +37,7 @@ class SerialLightfuzz(BaseLightfuzz):
         for type, payload in serialization_payloads.items():
             try:
                 serialization_probe = await self.compare_probe(http_compare, self.event.data["type"], payload, cookies)
-                if serialization_probe[0] == False and serialization_probe[1] != ["header"]:
+                if serialization_probe[0] is False and serialization_probe[1] != ["header"]:
                     if (
                         serialization_probe[3].status_code == 200
                         and "code" in serialization_probe[1]

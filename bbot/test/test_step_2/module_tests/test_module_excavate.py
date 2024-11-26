@@ -794,7 +794,7 @@ class TestExcavateParameterExtraction_jqueryjsonajax(ModuleTestBase):
             if e.type == "WEB_PARAMETER":
                 if (
                     "HTTP Extracted Parameter [username] (JQuery Extractor Submodule)" == e.data["description"]
-                    and e.data["original_value"] == None
+                    and e.data["original_value"] is None
                 ):
                     excavate_ajaxpost_extraction = True
         assert excavate_ajaxpost_extraction, "Excavate failed to extract web parameter"
@@ -1334,6 +1334,6 @@ class TestExcavateHeaders_blacklist(ModuleTestBase):
                 if e.data["name"] == "TS0113CC91":
                     found_third_cookie = True
 
-        assert found_first_cookie == True
-        assert found_second_cookie == False
-        assert found_third_cookie == False
+        assert found_first_cookie is True
+        assert found_second_cookie is False
+        assert found_third_cookie is False
