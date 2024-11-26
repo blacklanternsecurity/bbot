@@ -1,7 +1,7 @@
 # Custom Yara Rules
 
-### Overview 
-Through the `excavate` internal module, BBOT supports searching through HTTP response data using custom YARA rules. 
+### Overview
+Through the `excavate` internal module, BBOT supports searching through HTTP response data using custom YARA rules.
 
 This feature can be utilized with the command line option `--custom-yara-rules` or `-cy`, followed by a file containing the YARA rules.
 
@@ -53,7 +53,7 @@ rule find_AAAABBBB_regex {
 
 *Note: YARA uses it's own regex engine that is not a 1:1 match with python regexes. This means many existing regexes will have to be modified before they will work with YARA. The good news is: YARA's regex engine is FAST, immensely more fast than pythons!*
 
-Further discussion of art of writing complex YARA rules goes far beyond the scope of this documentation. A good place to start learning more is the [official YARA documentation](https://yara.readthedocs.io/en/stable/writingrules.html). 
+Further discussion of art of writing complex YARA rules goes far beyond the scope of this documentation. A good place to start learning more is the [official YARA documentation](https://yara.readthedocs.io/en/stable/writingrules.html).
 
 The YARA engine provides plenty of room to make highly complex signatures possible, with various conditional operators available. Multiple signatures can be linked together to create sophisticated detection rules that can identify a wide range of specific content. This flexibility allows the crafting of efficient rules for detecting security vulnerabilities, leveraging logical operators, regular expressions, and other powerful features. Additionally, YARA's modular structure supports easy updates and maintenance of signature sets.
 

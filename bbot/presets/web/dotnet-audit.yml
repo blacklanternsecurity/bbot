@@ -19,4 +19,3 @@ config:
       extensions: asp,aspx,ashx,asmx,ascx
     telerik:
       exploit_RAU_crypto: True
-

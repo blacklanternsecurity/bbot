@@ -6,7 +6,6 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
-
     from werkzeug.wrappers import Response
 
     def server_handler(request):
@@ -134,7 +133,6 @@ async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, httpx_m
 
 @pytest.mark.asyncio
 async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
-
     # json conversion
     scan = bbot_scanner("evilcorp.com")
     url = "http://www.evilcorp.com/json_test?a=b"

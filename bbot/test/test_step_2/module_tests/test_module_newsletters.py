@@ -10,16 +10,16 @@ class TestNewsletters(ModuleTestBase):
     modules_overrides = ["speculate", "httpx", "newsletters"]
 
     html_with_newsletter = """
-    <input aria-required="true" 
-    class="form-input form-input-text required" 
-    data-at="form-email" 
-    data-describedby="form-validation-error-box-element-5" 
-    data-label-inside="Enter your email" 
-    id="field-5f329905b4bfe1027b44513f94b50363-0" 
-    name="Enter your email" 
-    placeholder="Enter your email" 
-    required="" 
-    title="Enter your email" 
+    <input aria-required="true"
+    class="form-input form-input-text required"
+    data-at="form-email"
+    data-describedby="form-validation-error-box-element-5"
+    data-label-inside="Enter your email"
+    id="field-5f329905b4bfe1027b44513f94b50363-0"
+    name="Enter your email"
+    placeholder="Enter your email"
+    required=""
+    title="Enter your email"
     type="email" value=""/>
     """
 

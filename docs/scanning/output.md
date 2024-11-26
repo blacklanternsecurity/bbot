@@ -291,7 +291,7 @@ bbot -f subdomain-enum -t evilcorp.com -om neo4j
 
 ### Cypher Queries and Tips
 
-Neo4j uses the Cypher Query Language for its graph query language. Cypher uses common clauses to craft relational queries and present the desired data in multiple formats. 
+Neo4j uses the Cypher Query Language for its graph query language. Cypher uses common clauses to craft relational queries and present the desired data in multiple formats.
 
 Cypher queries can be broken down into three required pieces; selection, filter, and presentation. The selection piece identifies what data that will be searched against - 90% of the time the "MATCH" clause will be enough but there are means to read from csv or json data files. In all of these examples the "MATCH" clause will be used. The filter piece helps to focus in on the required data and used the "WHERE" clause to accomplish this effort (most basic operators can be used). Finally, the presentation section identifies how the data should be presented back to the querier. While neo4j is a graph database, it can be used in a traditional table view.
 
@@ -300,7 +300,7 @@ A simple query to grab every URL event with ".com" in the BBOT data field would 
 
 In this query the following can be identified:
 - Within the MATCH statement "u" is a variable and can be any value needed by the user while the "URL" label is a direct relationship to the BBOT event type.
-- The WHERE statement allows the query to filter on any of the BBOT event properties like data, tag, or even the label itself. 
+- The WHERE statement allows the query to filter on any of the BBOT event properties like data, tag, or even the label itself.
 - The RETURN statement is a general presentation of the whole URL event but this can be narrowed down to present any of the specific properties of the BBOT event (`RETURN u.data, u.tags`).
 
 The following are a few recommended queries to get started with:
@@ -337,6 +337,6 @@ RETURN n.data, collect(distinct port)
 MATCH (n) DETACH DELETE n
 ```
 
-This is not an exhaustive list of clauses, filters, or other means to use cypher and should be considered a starting point. To build more advanced queries consider reading Neo4j's Cypher [documentation](https://neo4j.com/docs/cypher-manual/current/introduction/). 
+This is not an exhaustive list of clauses, filters, or other means to use cypher and should be considered a starting point. To build more advanced queries consider reading Neo4j's Cypher [documentation](https://neo4j.com/docs/cypher-manual/current/introduction/).
 
-Additional note: these sample queries are dependent on the existence of the data in the target neo4j database. 
+Additional note: these sample queries are dependent on the existence of the data in the target neo4j database.
