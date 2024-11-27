@@ -291,35 +291,6 @@ class TextEnvelope(BaseEnvelope):
 #         return s
 
 
-class BaseSubparamEnvelope(BaseEnvelope):
-    """
-    An envelope that contains subparameters
-    """
-
-    end_format = True
-
-    # def get_subparam(self, dot_key=None):
-    #     if dot_key is None:
-    #         dot_key = self.subparam
-    #     data = self.unpacked_data
-    #     for key in dot_key.split("."):
-    #         data = data[key]
-    #     return data
-
-    # def values(self):
-    #     """
-    #     Returns the values of the unpacked data
-
-    #     {
-    #         "key1": "value1",
-    #         "key2": "value2"
-    #     }
-    #     """
-    #     if isinstance(self.unpacked_data, dict):
-    #         return self.unpacked_data.values()
-    #     return [self.unpacked_data]
-
-
 class JSONEnvelope(BaseEnvelope):
     """
     JSON encoding
