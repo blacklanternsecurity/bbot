@@ -120,12 +120,12 @@ scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
 
 # For use with excavate parameters extractor
 input_tag_regex = re.compile(
-    r"<input[^>]*?name=[\"\']?([\._=+\/\w]+)[\"\']?[^>]*?value=[\"\']?([%\._=+\/\w]*)[\"\']?[^>]*?>"
+    r"<input[^>]*?name=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?value=[\"\']?([%\-\._=+\/\w]*)[\"\']?[^>]*?>"
 )
 input_tag_regex2 = re.compile(
-    r"<input[^>]*?value=[\"\']?([%\._=+\/\w]*)[\"\']?[^>]*?name=[\"\']?([\._=+\/\w]+)[\"\']?[^>]*?>"
+    r"<input[^>]*?value=[\"\']?([\-%\._=+\/\w]*)[\"\']?[^>]*?name=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
 )
-input_tag_novalue_regex = re.compile(r"<input(?![^>]*\bvalue=)[^>]*?name=[\"\']?([\._=+\/\w]*)[\"\']?[^>]*?>")
+input_tag_novalue_regex = re.compile(r"<input(?![^>]*\bvalue=)[^>]*?name=[\"\']?([\-\._=+\/\w]*)[\"\']?[^>]*?>")
 # jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
 # jquery_get_regex = re.compile(r"\$.get\([\'\"].+[\'\"].+\{(.+)\}")
 # jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
@@ -156,10 +156,10 @@ generic_form_regex = re.compile(
 )
 
 select_tag_regex = re.compile(
-    r"<select[^>]+?name=[\"\']?(\w+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\'](\w*)[\"\']?[^>]*>)?"
+    r"<select[^>]+?name=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\']?([_\.\-\w]*)[\"\']?[^>]*>)?"
 )
 textarea_tag_regex = re.compile(
-    r'<textarea[^>]*\bname=["\']?(\w+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
+    r'<textarea[^>]*\bname=["\']?([_\-\.\w]+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
 )
 tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
 
