@@ -9,7 +9,7 @@ from xml.parsers.expat import ExpatError
 from bbot.core.helpers.misc import is_printable
 
 
-# TODO: This logic is perfect for extracting params. We should expand it outwards to other higher-level envelopes:
+# TODO: This logic is perfect for extracting params. We should expand it outwards to include other higher-level envelopes:
 #    - QueryStringEnvelope
 #    - MultipartFormEnvelope
 #    - HeaderEnvelope
