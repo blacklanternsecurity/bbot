@@ -451,7 +451,6 @@ class TestExcavateParameterExtraction(TestExcavate):
         </script>
     </head>
     <body>
-    <body>
         <h1>Simple GET Form</h1>
         <p>Use the form below to submit a GET request:</p>
         <form action="/search" method="get">
@@ -476,7 +475,11 @@ class TestExcavateParameterExtraction(TestExcavate):
         <p>Links</p>
         <a href="/validPath?id=123&age=456">href</a>
         <img src="http://127.0.0.1:8888/validPath?size=m&fit=slim">img</a>
-    </body>
+        <form class="login-form" name="change-email-form" action="/my-account/change-email" method="POST">
+        <select id=blog-post-author-display name=blog-post-author-display form=blog-post-author-display-form>
+        <option value=user.name selected>Name</option>
+        <input required type="hidden" name="csrf" value="O0A5UIhlB2ezuMGC1oWr6XA6GhG4sUVj">
+        </form>
     </body>
     </html>
     """
@@ -497,6 +500,7 @@ class TestExcavateParameterExtraction(TestExcavate):
         found_form_generic_original_value = False
         found_htmltags_a = False
         found_htmltags_img = False
+        found_select_noquotes = False
 
         for e in events:
 
@@ -537,6 +541,11 @@ class TestExcavateParameterExtraction(TestExcavate):
                         if "fit" in e.data["additional_params"].keys():
                             found_htmltags_img = True
 
+                if e.data["description"] == "HTTP Extracted Parameter [blog-post-author-display] (POST Form Submodule)":
+                    if e.data["original_value"] == "user.name":
+                        if "csrf" in e.data["additional_params"].keys():
+                            found_select_noquotes = True
+
         assert found_jquery_get, "Did not extract Jquery GET parameters"
         assert found_jquery_post, "Did not extract Jquery POST parameters"
         assert found_form_get, "Did not extract Form GET parameters"
@@ -549,7 +558,7 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_form_generic_original_value, "Did not extract Form (Generic) parameter original_value"
         assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
-
+        assert found_select_noquotes, "Did not extract parameter(s) from select-tag" 
 
 class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
 
