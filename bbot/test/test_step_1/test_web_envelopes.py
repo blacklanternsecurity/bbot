@@ -328,7 +328,7 @@ async def test_web_envelopes():
     # null
     null_envelope = BaseEnvelope.detect("null")
     assert isinstance(null_envelope, JSONEnvelope)
-    assert null_envelope.unpacked_data() == None
+    assert null_envelope.unpacked_data() is None
     assert null_envelope.pack() == "null"
     expected_subparams = [([], None)]
     assert list(null_envelope.get_subparams()) == expected_subparams

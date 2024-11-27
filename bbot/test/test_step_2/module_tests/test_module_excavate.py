@@ -539,7 +539,10 @@ class TestExcavateParameterExtraction(TestExcavate):
                         if "fit" in e.data["additional_params"].keys():
                             found_htmltags_img = True
 
-                if e.data["description"] == "HTTP Extracted Parameter [blog-post-author-display] (POST Form Submodule)":
+                if (
+                    e.data["description"]
+                    == "HTTP Extracted Parameter [blog-post-author-display] (POST Form Submodule)"
+                ):
                     if e.data["original_value"] == "user.name":
                         if "csrf" in e.data["additional_params"].keys():
                             found_select_noquotes = True
@@ -556,7 +559,8 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_form_generic_original_value, "Did not extract Form (Generic) parameter original_value"
         assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
-        assert found_select_noquotes, "Did not extract parameter(s) from select-tag" 
+        assert found_select_noquotes, "Did not extract parameter(s) from select-tag"
+
 
 class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]

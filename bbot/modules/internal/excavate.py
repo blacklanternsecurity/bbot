@@ -758,8 +758,10 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         continue
                     if parsed_url.scheme in ["http", "https"]:
                         continue
+
                     def abort_if(e):
                         return e.scope_distance > 0
+
                     finding_data = {"host": str(host), "description": f"Non-HTTP URI: {parsed_url.geturl()}"}
                     await self.report(finding_data, event, yara_rule_settings, discovery_context, abort_if=abort_if)
                     protocol_data = {"protocol": parsed_url.scheme, "host": str(host)}
