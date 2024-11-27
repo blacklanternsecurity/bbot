@@ -104,7 +104,6 @@ class BaseLightfuzz:
         additional_params_override={},
         speculative_mode="GETPARAM",
     ):
-
         probe = self.probe_value_outgoing(probe)
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
         if additional_params_override:
@@ -150,7 +149,6 @@ class BaseLightfuzz:
         additional_params_populate_empty=False,
         speculative_mode="GETPARAM",
     ):
-
         probe = self.probe_value_outgoing(probe)
 
         if event_type == "SPECULATIVE":
@@ -209,7 +207,6 @@ class BaseLightfuzz:
         )
 
     def metadata(self):
-
         metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]"
         if self.event.data["original_value"] != "" and self.event.data["original_value"] != None:
             metadata_string += (
@@ -218,20 +215,31 @@ class BaseLightfuzz:
         return metadata_string
 
     def probe_value_incoming(self, populate_empty=True):
-        probe_value = self.event.data.get("original_value", "")
-        if (probe_value is None or len(str(probe_value)) == 0) and populate_empty == True:
-            probe_value = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
-        self.lightfuzz.debug(f"probe_value_incoming (before modification): {probe_value}")
-        envelopes_instance = getattr(self.event, "envelopes", None)
-        probe_value = envelopes_instance.remove_envelopes(probe_value)
-        self.lightfuzz.debug(f"probe_value_incoming (after modification): {probe_value}")
+        envelopes = getattr(self.event, "envelopes", None)
+        probe_value = ""
+        if envelopes is not None:
+            probe_value = envelopes.get_subparam()
+        if not probe_value:
+            if populate_empty is True:
+                probe_value = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
+            else:
+                probe_value = ""
+        self.lightfuzz.debug(f"probe_value_incoming (before unpacking): {probe_value}")
+        if envelopes is not None:
+            envelopes.set_subparam(value=probe_value)
+            probe_value = envelopes.pack()
+        self.lightfuzz.debug(f"probe_value_incoming (after unpacking): {probe_value}")
         if not isinstance(probe_value, str):
-            probe_value = str(probe_value)
+            raise ValueError(
+                f"probe_value_incoming should always be a string (got {type(probe_value)} / {probe_value})"
+            )
         return probe_value
 
     def probe_value_outgoing(self, outgoing_probe_value):
-        self.lightfuzz.debug(f"probe_value_outgoing (before modification): {outgoing_probe_value}")
-        envelopes_instance = getattr(self.event, "envelopes", None)
-        outgoing_probe_value = envelopes_instance.add_envelopes(outgoing_probe_value)
-        self.lightfuzz.debug(f"probe_value_outgoing (after modification): {outgoing_probe_value}")
+        self.lightfuzz.debug(f"probe_value_outgoing (before packing): {outgoing_probe_value} / {self.event}")
+        envelopes = getattr(self.event, "envelopes", None)
+        if envelopes is not None:
+            envelopes.set_subparam(value=outgoing_probe_value)
+            outgoing_probe_value = envelopes.pack()
+        self.lightfuzz.debug(f"probe_value_outgoing (after packing): {outgoing_probe_value} / {self.event}")
         return outgoing_probe_value

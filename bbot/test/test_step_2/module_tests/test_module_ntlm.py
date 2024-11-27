@@ -10,7 +10,8 @@ class TestNTLM(ModuleTestBase):
         request_args = {"uri": "/", "headers": {"test": "header"}}
         module_test.set_expect_requests(request_args, {})
         request_args = {
-            "uri": "/oab/", "headers": {"Authorization": "NTLM TlRMTVNTUAABAAAAl4II4gAAAAAAAAAAAAAAAAAAAAAKAGFKAAAADw=="}
+            "uri": "/oab/",
+            "headers": {"Authorization": "NTLM TlRMTVNTUAABAAAAl4II4gAAAAAAAAAAAAAAAAAAAAAKAGFKAAAADw=="},
         }
         respond_args = {
             "headers": {

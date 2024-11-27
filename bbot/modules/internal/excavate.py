@@ -460,10 +460,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 # check to see if the format is defined as JSON
                 if "content_type" in extracted_values.keys():
                     if extracted_values["content_type"] == "application/json":
-
                         # If we cant figure out the parameter names, there is no point in continuing
                         if "data" in extracted_values.keys():
-
                             if "url" in extracted_values.keys():
                                 form_url = extracted_values["url"]
                             else:
@@ -481,8 +479,12 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 form_parameters[p] = None
 
                         for parameter_name in form_parameters:
-                            yield "BODYJSON", parameter_name, None, form_url, _exclude_key(
-                                form_parameters, parameter_name
+                            yield (
+                                "BODYJSON",
+                                parameter_name,
+                                None,
+                                form_url,
+                                _exclude_key(form_parameters, parameter_name),
                             )
 
         class GetForm(ParameterExtractorRule):
@@ -501,7 +503,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             def extract(self):
                 forms = self.extraction_regex.findall(str(self.result))
                 for form_action, form_content in forms:
-
                     if not form_action or form_action == "#":
                         form_action = None
 
@@ -512,7 +513,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = form_content_regex.findall(form_content)
                         if input_tags:
-
                             if form_content_regex_name == "input_tag_novalue_regex":
                                 form_parameters[input_tags[0]] = None
 
@@ -525,11 +525,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
                             for parameter_name, original_value in form_parameters.items():
                                 yield (
-                                self.output_type,
-                                parameter_name,
-                                original_value,
+                                    self.output_type,
+                                    parameter_name,
+                                    original_value,
                                     form_action,
-                                _exclude_key(form_parameters, parameter_name),
+                                    _exclude_key(form_parameters, parameter_name),
                                 )
 
         class GetForm2(GetForm):
@@ -993,6 +993,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         return True
 
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
+        # TODO: replace this JSON/XML extraction with our lightfuzz envelope stuff
+
         if not data:
             return None
         decoded_data = await self.helpers.re.recursive_decode(data)
@@ -1084,7 +1086,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
             # If parameter_extraction is enabled and we assigned custom headers, emit them as WEB_PARAMETER
             if self.parameter_extraction == True:
-
                 custom_cookies = self.scan.web_config.get("http_cookies", {})
                 for custom_cookie_name, custom_cookie_value in custom_cookies.items():
                     description = f"HTTP Extracted Parameter [{custom_cookie_name}] (Custom Cookie)"

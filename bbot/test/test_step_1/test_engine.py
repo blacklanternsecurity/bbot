@@ -14,7 +14,6 @@ async def test_engine():
     return_errored = False
 
     class TestEngineServer(EngineServer):
-
         CMDS = {
             0: "return_thing",
             1: "yield_stuff",
@@ -54,7 +53,6 @@ async def test_engine():
                 raise
 
     class TestEngineClient(EngineClient):
-
         SERVER_CLASS = TestEngineServer
 
         async def return_thing(self, n):

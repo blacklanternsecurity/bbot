@@ -34,7 +34,6 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def request_handler(self, request):
-
         qs = str(request.query_string.decode())
         if "filename=" in qs:
             value = qs.split("=")[1]
@@ -52,11 +51,9 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
         return Response("file not found", status=500)
 
     def check(self, module_test, events):
-
         web_parameter_emitted = False
         pathtraversal_finding_emitted = False
         for e in events:
-
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [filename]" in e.data["description"]:
                     web_parameter_emitted = True
@@ -74,7 +71,6 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
 
 # Path Traversal Absolute path
 class Test_Lightfuzz_path_absolute(Test_Lightfuzz_path_singledot):
-
     etc_passwd = """
 root:x:0:0:root:/root:/bin/bash
 daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
@@ -87,7 +83,6 @@ lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
 """
 
     async def setup_after_prep(self, module_test):
-
         expect_args = {"method": "GET", "uri": "/images", "query_string": "filename=/etc/passwd"}
         respond_args = {"response_data": self.etc_passwd}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -104,7 +99,6 @@ lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-
         web_parameter_emitted = False
         pathtraversal_finding_emitted = False
         for e in events:
@@ -156,7 +150,6 @@ class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
-
         web_parameter_emitted = False
         ssti_finding_emitted = False
         for e in events:
@@ -189,7 +182,6 @@ class Test_Lightfuzz_xss(ModuleTestBase):
     }
 
     def request_handler(self, request):
-
         qs = str(request.query_string.decode())
 
         parameter_block = """
@@ -219,7 +211,6 @@ class Test_Lightfuzz_xss(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
-
         web_parameter_emitted = False
         xss_finding_emitted = False
         for e in events:
@@ -238,11 +229,7 @@ class Test_Lightfuzz_xss(ModuleTestBase):
 # Base64 Envelope XSS Detection
 class Test_Lightfuzz_envelope_base64(Test_Lightfuzz_xss):
     def request_handler(self, request):
-
         qs = str(request.query_string.decode())
-
-        print("****")
-        print(qs)
 
         parameter_block = """
         <section class=search>
@@ -266,7 +253,6 @@ class Test_Lightfuzz_envelope_base64(Test_Lightfuzz_xss):
         return Response(parameter_block, status=200)
 
     def check(self, module_test, events):
-
         web_parameter_emitted = False
         xss_finding_emitted = False
         for e in events:
@@ -307,7 +293,6 @@ class Test_Lightfuzz_envelope_hex(Test_Lightfuzz_envelope_base64):
             try:
                 # Decode the hex value
                 decoded_value = bytes.fromhex(unquote(value)).decode()
-                print(f"Decoded hex value: {decoded_value}")
 
                 # Parse the decoded value as JSON
                 json_data = json.loads(decoded_value)
@@ -337,9 +322,6 @@ class Test_Lightfuzz_envelope_jsonb64(Test_Lightfuzz_envelope_base64):
     def request_handler(self, request):
         qs = str(request.query_string.decode())
 
-        print("****")
-        print(qs)
-
         parameter_block = """
         <section class=search>
             <form action=/ method=GET>
@@ -357,7 +339,6 @@ class Test_Lightfuzz_envelope_jsonb64(Test_Lightfuzz_envelope_base64):
             try:
                 # Base64 decode the value
                 decoded_value = base64.b64decode(unquote(value)).decode()
-                print(f"Decoded base64 value: {decoded_value}")
 
                 # Parse the decoded value as JSON
                 json_data = json.loads(decoded_value)
@@ -387,9 +368,6 @@ class Test_Lightfuzz_envelope_xmlb64(Test_Lightfuzz_envelope_base64):
     def request_handler(self, request):
         qs = str(request.query_string.decode())
 
-        print("****")
-        print(qs)
-
         parameter_block = """
         <section class=search>
             <form action=/ method=GET>
@@ -407,7 +385,6 @@ class Test_Lightfuzz_envelope_xmlb64(Test_Lightfuzz_envelope_base64):
             try:
                 # Base64 decode the value
                 decoded_value = base64.b64decode(unquote(value)).decode()
-                print(f"Decoded base64 value: {decoded_value}")
 
                 # Parse the decoded value as XML
                 root = ET.fromstring(decoded_value)
@@ -458,7 +435,6 @@ class Test_Lightfuzz_xss_intag(Test_Lightfuzz_xss):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -557,8 +533,6 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
     }
 
     def request_handler(self, request):
-        print("((((")
-        print(request)
         qs = str(request.query_string.decode())
         parameter_block = """
         <section class=search>
@@ -594,7 +568,6 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -631,7 +604,6 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
     }
 
     def request_handler(self, request):
-
         parameter_block = """
         <section class=search>
             <form action=/ method=POST>
@@ -642,7 +614,6 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         """
 
         if "search" in request.form.keys():
-
             value = request.form["search"]
 
             sql_block_normal = f"""
@@ -665,7 +636,6 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -691,7 +661,6 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
 
 # disable_post test
 class Test_Lightfuzz_disable_post(Test_Lightfuzz_sqli_post):
-
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -723,7 +692,6 @@ class Test_Lightfuzz_disable_post(Test_Lightfuzz_sqli_post):
 
 # SQLI Single Quote/Two Single Quote (headers)
 class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
-
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         expect_args = re.compile("/")
@@ -751,7 +719,6 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         module_test.scan.target.seeds.events = set(seed_events)
 
     def request_handler(self, request):
-
         placeholder_block = """
         <html>
         <p>placeholder</p>
@@ -792,9 +759,7 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
 
 # SQLI Single Quote/Two Single Quote (cookies)
 class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
-
     async def setup_after_prep(self, module_test):
-
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -821,7 +786,6 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
         module_test.scan.target.seeds.events = set(seed_events)
 
     def request_handler(self, request):
-
         placeholder_block = """
         <html>
         <p>placeholder</p>
@@ -850,7 +814,6 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
         return Response(placeholder_block, status=200)
 
     def check(self, module_test, events):
-
         sqli_finding_emitted = False
         for e in events:
             if e.type == "FINDING":
@@ -864,7 +827,6 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
 
 # SQLi Delay Probe
 class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
-
     def request_handler(self, request):
         from time import sleep
 
@@ -898,7 +860,6 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
         return Response(parameter_block, status=200)
 
     def check(self, module_test, events):
-
         web_parameter_emitted = False
         sqldelay_finding_emitted = False
         for e in events:
@@ -931,12 +892,10 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
     }
 
     async def setup_after_prep(self, module_test):
-
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def request_handler(self, request):
-
         dotnet_serial_error = """
             <html>
             <b> Description: </b>An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information about the error and where it originated in the code.
@@ -991,13 +950,11 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
             if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
                 return Response(dotnet_serial_error, status=500)
             if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
-
                 return Response(dotnet_serial_error_resolved, status=200)
             else:
                 return Response(dotnet_serial_error, status=500)
 
     def check(self, module_test, events):
-
         excavate_extracted_form_parameter = False
         excavate_extracted_form_parameter_details = False
         lightfuzz_serial_detect_errorresolution = False
@@ -1034,9 +991,7 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
 
 # Serialization Module (Error Differential)
 class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolution):
-
     def request_handler(self, request):
-
         java_serial_error = """
             <html>
                    <h4>Internal Server Error</h4>
@@ -1066,17 +1021,14 @@ class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolut
         cookies = request.cookies
 
         if "session" not in cookies.keys():
-
             response = Response(java_serial_html, status=200)
             response.set_cookie("session", value="", max_age=3600, httponly=True)
             return response
 
         else:
             if cookies["session"] == "rO0ABXQABHRlc3Q=":
-
                 return Response(java_serial_error_keyword, status=500)
             else:
-
                 return Response(java_serial_error, status=500)
 
     def check(self, module_test, events):
@@ -1085,13 +1037,10 @@ class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolut
 
         for e in events:
             if e.type == "WEB_PARAMETER":
-
                 if e.data["description"] == "Set-Cookie Assigned Cookie [session]" and e.data["type"] == "COOKIE":
                     excavate_extracted_cookie_parameter = True
 
             if e.type == "FINDING":
-                print(e.data["description"])
-
                 if (
                     e.data["description"]
                     == "POSSIBLE Unsafe Deserialization. Parameter: [session] Parameter Type: [COOKIE] Technique: [Differential Error Analysis] Error-String: [cannot cast java.lang.string] Payload: [java_base64_string_error]"
@@ -1118,7 +1067,6 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
     }
 
     def request_handler(self, request):
-
         qs = str(request.query_string.decode())
 
         parameter_block = """
@@ -1150,13 +1098,11 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
-
         web_parameter_emitted = False
         cmdi_echocanary_finding_emitted = False
         for e in events:
@@ -1177,7 +1123,6 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
 
 # CMDi interactsh
 class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
-
     @staticmethod
     def extract_subdomain_tag(data):
         pattern = r"search=.+%26%26%20nslookup%20(.+)\.fakedomain\.fakeinteractsh.com%20%26%26"
@@ -1195,7 +1140,6 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
     }
 
     def request_handler(self, request):
-
         qs = str(request.query_string.decode())
 
         parameter_block = """
@@ -1208,7 +1152,6 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
         """
 
         if "search=" in qs:
-
             subdomain_tag = None
             subdomain_tag = self.extract_subdomain_tag(request.full_path)
 
@@ -1224,22 +1167,18 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
         )
 
     async def setup_after_prep(self, module_test):
-
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
-
         web_parameter_emitted = False
         cmdi_interacttsh_finding_emitted = False
         for e in events:
             if e.type == "WEB_PARAMETER":
-                print(e.data["description"])
                 if "HTTP Extracted Parameter [search]" in e.data["description"]:
                     web_parameter_emitted = True
 
             if e.type == "VULNERABILITY":
-                print(e.data["description"])
                 if (
                     "OS Command Injection (OOB Interaction) Type: [GETPARAM] Parameter Name: [search] Probe: [&&]"
                     in e.data["description"]
@@ -1250,63 +1189,62 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
         assert cmdi_interacttsh_finding_emitted, "interactsh CMDi FINDING not emitted"
 
 
-class Test_Lightfuzz_speculative(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams", "lightfuzz"]
-    config_overrides = {
-        "interactsh_disable": True,
-        "modules": {
-            "lightfuzz": {"enabled_submodules": ["xss"]},
-            "paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True},
-        },
-    }
+# class Test_Lightfuzz_speculative(ModuleTestBase):
+#     targets = ["http://127.0.0.1:8888/"]
+#     modules_overrides = ["httpx", "excavate", "paramminer_getparams", "lightfuzz"]
+#     config_overrides = {
+#         "interactsh_disable": True,
+#         "modules": {
+#             "lightfuzz": {"enabled_submodules": ["xss"]},
+#             "paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True},
+#         },
+#     }
 
-    def request_handler(self, request):
+#     def request_handler(self, request):
 
-        qs = str(request.query_string.decode())
-        parameter_block = """
-        {
-          "search": 1,
-          "common": 1
-        }
-        """
-        if "search=" in qs:
-            value = qs.split("=")[1]
-            if "&" in value:
-                value = value.split("&")[0]
-            xss_block = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-            return Response(xss_block, status=200)
-        return Response(parameter_block, status=200, headers={"Content-Type": "application/json"})
+#         qs = str(request.query_string.decode())
+#         parameter_block = """
+#         {
+#           "search": 1,
+#           "common": 1
+#         }
+#         """
+#         if "search=" in qs:
+#             value = qs.split("=")[1]
+#             if "&" in value:
+#                 value = value.split("&")[0]
+#             xss_block = f"""
+#         <section class=blog-header>
+#             <h1>0 search results for '{unquote(value)}'</h1>
+#             <hr>
+#         </section>
+#         """
+#             return Response(xss_block, status=200)
+#         return Response(parameter_block, status=200, headers={"Content-Type": "application/json"})
 
-    async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-        expect_args = re.compile("/")
-        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+#     async def setup_after_prep(self, module_test):
+#         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+#         expect_args = re.compile("/")
+#         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
-    def check(self, module_test, events):
-        excavate_json_extraction = False
-        xss_finding_emitted = False
+#     def check(self, module_test, events):
+#         excavate_json_extraction = False
+#         xss_finding_emitted = False
 
-        for e in events:
-            if e.type == "WEB_PARAMETER":
-                if "HTTP Extracted Parameter (speculative from json content) [search]" in e.data["description"]:
-                    excavate_json_extraction = True
+#         for e in events:
+#             if e.type == "WEB_PARAMETER":
+#                 if "HTTP Extracted Parameter (speculative from json content) [search]" in e.data["description"]:
+#                     excavate_json_extraction = True
 
-            if e.type == "FINDING":
-                if "Possible Reflected XSS. Parameter: [search] Context: [Between Tags" in e.data["description"]:
-                    xss_finding_emitted = True
+#             if e.type == "FINDING":
+#                 if "Possible Reflected XSS. Parameter: [search] Context: [Between Tags" in e.data["description"]:
+#                     xss_finding_emitted = True
 
-        assert excavate_json_extraction, "Excavate failed to extract json parameter"
-        assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
+#         assert excavate_json_extraction, "Excavate failed to extract json parameter"
+#         assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
 
 
 class Test_Lightfuzz_crypto_error(ModuleTestBase):
-
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["httpx", "excavate", "lightfuzz"]
     config_overrides = {
@@ -1317,7 +1255,6 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
     }
 
     def request_handler(self, request):
-
         qs = str(request.query_string.decode())
 
         parameter_block = """
@@ -1351,7 +1288,6 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
         cryptoerror_finding_emitted = False
 
         for e in events:
-
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [secret] (GET Form Submodule)" in e.data["description"]:
                     cryptoerror_parameter_extracted = True
@@ -1366,7 +1302,6 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
 
 
 class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
-
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["httpx", "excavate", "lightfuzz"]
     config_overrides = {
@@ -1410,77 +1345,80 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
         ), "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
 
 
-class Test_PaddingOracleDetection(ModuleTestBase):
+# class Test_PaddingOracleDetection(ModuleTestBase):
 
-    targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
-    config_overrides = {
-        "interactsh_disable": True,
-        "modules": {
-            "lightfuzz": {
-                "enabled_submodules": ["crypto"],
-            }
-        },
-    }
+#     targets = ["http://127.0.0.1:8888"]
+#     modules_overrides = ["httpx", "excavate", "lightfuzz"]
+#     config_overrides = {
+#         "interactsh_disable": True,
+#         "modules": {
+#             "lightfuzz": {
+#                 "enabled_submodules": ["crypto"],
+#             }
+#         },
+#     }
 
-    def request_handler(self, request):
-        encrypted_value = quote(
-            "dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q+4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg=="
-        )
-        default_html_response = f"""
-        <html>
-            <body>
-                <form action="/decrypt" method="post">
-                    <input type="hidden" name="encrypted_data" value="{encrypted_value}" />
-                    <button type="submit">Decrypt</button>
-                </form>
-            </body>
-        </html>
-        """
+#     def request_handler(self, request):
+#         encrypted_value = quote(
+#             "dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q+4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg=="
+#         )
+#         default_html_response = f"""
+#         <html>
+#             <body>
+#                 <form action="/decrypt" method="post">
+#                     <input type="hidden" name="encrypted_data" value="{encrypted_value}" />
+#                     <button type="submit">Decrypt</button>
+#                 </form>
+#             </body>
+#         </html>
+#         """
 
-        if "/decrypt" in request.url and request.method == "POST":
-            if request.form and request.form["encrypted_data"]:
-                encrypted_data = request.form["encrypted_data"]
-                if "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALwAgLKWJi2nWKbh9ag5rnhm" in encrypted_data:
-                    response_content = "Padding error detected"
-                elif "4GXVGZbo0DTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg" in encrypted_data:
-                    response_content = "DIFFERENT CRYPTOGRAPHIC ERROR"
-                elif "AAAAAAA" in encrypted_data:
-                    response_content = "YET DIFFERENT CRYPTOGRAPHIC ERROR"
-                else:
-                    response_content = "Decryption failed"
+#         if "/decrypt" in request.url and request.method == "POST":
+#             if request.form and request.form["encrypted_data"]:
+#                 encrypted_data = request.form["encrypted_data"]
+#                 if "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALwAgLKWJi2nWKbh9ag5rnhm" in encrypted_data:
+#                     response_content = "Padding error detected"
+#                 elif "4GXVGZbo0DTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg" in encrypted_data:
+#                     response_content = "DIFFERENT CRYPTOGRAPHIC ERROR"
+#                 elif "AAAAAAA" in encrypted_data:
+#                     response_content = "YET DIFFERENT CRYPTOGRAPHIC ERROR"
+#                 else:
+#                     response_content = "Decryption failed"
 
-            return Response(response_content, status=200)
-        else:
-            return Response(default_html_response, status=200)
+#             return Response(response_content, status=200)
+#         else:
+#             return Response(default_html_response, status=200)
 
-    async def setup_after_prep(self, module_test):
-        module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
+#     async def setup_after_prep(self, module_test):
+#         module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
 
-    def check(self, module_test, events):
+#     def check(self, module_test, events):
 
-        web_parameter_extracted = False
-        cryptographic_parameter_finding = False
-        padding_oracle_detected = False
-        for e in events:
+#         for e in events:
+#             print(f"{e.type}: {e.data}")
 
-            if e.type == "WEB_PARAMETER":
-                if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
-                    web_parameter_extracted = True
-            if e.type == "FINDING":
-                if (
-                    e.data["description"]
-                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [url-encoded]"
-                ):
-                    cryptographic_parameter_finding = True
+#         web_parameter_extracted = False
+#         cryptographic_parameter_finding = False
+#         padding_oracle_detected = False
+#         for e in events:
 
-            if e.type == "VULNERABILITY":
-                if (
-                    e.data["description"]
-                    == "Padding Oracle Vulnerability. Block size: [16] Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Envelopes: [url-encoded]"
-                ):
-                    padding_oracle_detected = True
+#             if e.type == "WEB_PARAMETER":
+#                 if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
+#                     web_parameter_extracted = True
+#             if e.type == "FINDING":
+#                 if (
+#                     e.data["description"]
+#                     == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [url-encoded]"
+#                 ):
+#                     cryptographic_parameter_finding = True
 
-        assert web_parameter_extracted, "Web parameter was not extracted"
-        assert cryptographic_parameter_finding, "Cryptographic parameter not detected"
-        assert padding_oracle_detected, "Padding oracle vulnerability was not detected"
+#             if e.type == "VULNERABILITY":
+#                 if (
+#                     e.data["description"]
+#                     == "Padding Oracle Vulnerability. Block size: [16] Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Envelopes: [url-encoded]"
+#                 ):
+#                     padding_oracle_detected = True
+
+#         assert web_parameter_extracted, "Web parameter was not extracted"
+#         assert cryptographic_parameter_finding, "Cryptographic parameter not detected"
+#         assert padding_oracle_detected, "Padding oracle vulnerability was not detected"

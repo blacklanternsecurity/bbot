@@ -15,7 +15,6 @@ module_test_files = [m.name.split("test_module_")[-1].split(".")[0] for m in _mo
 
 
 def test__module__tests():
-
     preset = Preset()
 
     # make sure each module has a .py file

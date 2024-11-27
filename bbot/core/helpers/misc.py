@@ -2867,3 +2867,15 @@ def get_python_constraints():
 
     dist = distribution("bbot")
     return [clean_requirement(r) for r in dist.requires]
+
+
+printable_chars = set(string.printable)
+
+
+def is_printable(s):
+    """
+    Check if a string is printable
+    """
+    if not isinstance(s, str):
+        raise ValueError(f"Expected a string, got {type(s)}")
+    return set(s) <= printable_chars

@@ -23,7 +23,6 @@ class TestHunt(ModuleTestBase):
 
 
 class TestHunt_Multiple(TestHunt):
-
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": '<html><a href="/hackme.php?id=1234">ping</a></html>'}

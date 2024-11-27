@@ -967,7 +967,7 @@ class Preset:
         header = ["Preset", "Category", "Description", "# Modules"]
         if include_modules:
             header.append("Modules")
-        for (loaded_preset, category, preset_path, original_file) in self.all_presets.values():
+        for loaded_preset, category, preset_path, original_file in self.all_presets.values():
             loaded_preset = loaded_preset.bake()
             num_modules = f"{len(loaded_preset.scan_modules):,}"
             row = [loaded_preset.name, category, loaded_preset.description, num_modules]

@@ -185,7 +185,6 @@ async def test_dns_resolution(bbot_scanner):
 
 @pytest.mark.asyncio
 async def test_wildcards(bbot_scanner):
-
     scan = bbot_scanner("1.1.1.1")
     helpers = scan.helpers
 
@@ -634,7 +633,6 @@ def custom_lookup(query, rdtype):
 
 @pytest.mark.asyncio
 async def test_wildcard_deduplication(bbot_scanner):
-
     custom_lookup = """
 def custom_lookup(query, rdtype):
     if rdtype == "TXT" and query.strip(".").endswith("evilcorp.com"):
@@ -670,7 +668,6 @@ def custom_lookup(query, rdtype):
 
 @pytest.mark.asyncio
 async def test_dns_raw_records(bbot_scanner):
-
     from bbot.modules.base import BaseModule
 
     class DummyModule(BaseModule):

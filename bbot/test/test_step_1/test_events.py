@@ -9,7 +9,6 @@ from bbot.core.helpers.regexes import event_uuid_regex
 
 @pytest.mark.asyncio
 async def test_events(events, helpers):
-
     scan = Scanner()
     await scan._prep()
 
@@ -617,7 +616,6 @@ async def test_events(events, helpers):
 
 @pytest.mark.asyncio
 async def test_event_discovery_context():
-
     from bbot.modules.base import BaseModule
 
     scan = Scanner("evilcorp.com")
