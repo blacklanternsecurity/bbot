@@ -37,7 +37,7 @@ bbot -lp
 Enable them with `-p`:
 
 ```bash
-# do a subdomain enumeration 
+# do a subdomain enumeration
 bbot -t evilcorp.com -p subdomain-enum
 
 # multiple presets - subdomain enumeration + web spider

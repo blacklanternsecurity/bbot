@@ -31,7 +31,7 @@ class dotnetnuke(BaseModule):
         self.interactsh_subdomain_tags = {}
         self.interactsh_instance = None
 
-        if self.scan.config.get("interactsh_disable", False) == False:
+        if self.scan.config.get("interactsh_disable", False) is False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
                 self.interactsh_domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
@@ -93,7 +93,7 @@ class dotnetnuke(BaseModule):
                     detected = True
                     break
 
-        if detected == True:
+        if detected is True:
             # DNNPersonalization Deserialization Detection
             for probe_url in [f'{event.data["url"]}/__', f'{event.data["url"]}/', f'{event.data["url"]}']:
                 result = await self.helpers.request(probe_url, cookies=self.exploit_probe)

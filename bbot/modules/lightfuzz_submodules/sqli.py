@@ -60,7 +60,7 @@ class SQLiLightfuzz(BaseLightfuzz):
                 additional_params_populate_empty=True,
             )
 
-            if single_quote[0] == False:
+            if single_quote[0] is False:
                 for sqli_error_string in self.sqli_error_strings:
                     if sqli_error_string.lower() in single_quote[3].text.lower():
                         self.results.append(

@@ -152,11 +152,11 @@ class CryptoLightfuzz(BaseLightfuzz):
                 self.format_agnostic_encode(ivblock + paddingblock[:-1] + byte + datablock, encoding),
                 cookies,
             )
-            if oracle_probe[0] == False and "body" in oracle_probe[1]:
+            if oracle_probe[0] is False and "body" in oracle_probe[1]:
                 differ_count += 1
 
                 if i == 2:
-                    if possible_first_byte == True:
+                    if possible_first_byte is True:
                         # Thats two results which appear "different". Since this is the first run, it's entirely possible \x00 was the correct padding.
                         # We will break from this loop and redo it with the last byte as the baseline instead of the first
                         return None
@@ -173,7 +173,7 @@ class CryptoLightfuzz(BaseLightfuzz):
 
         for block_size in possible_block_sizes:
             padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
-            if padding_oracle_result == None:
+            if padding_oracle_result is None:
                 self.lightfuzz.debug(
                     "still could be in a possible_first_byte situation - retrying with different first byte"
                 )
@@ -181,7 +181,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                     data, encoding, block_size, cookies, possible_first_byte=False
                 )
 
-            if padding_oracle_result == True:
+            if padding_oracle_result is True:
                 context = f"Lightfuzz Cryptographic Probe Submodule detected a probable padding oracle vulnerability after manipulating parameter: [{self.event.data['name']}]"
                 self.results.append(
                     {
@@ -275,14 +275,14 @@ class CryptoLightfuzz(BaseLightfuzz):
             return
 
         confirmed_techniques = []
-        if mutate_probe[0] == False and "body" in mutate_probe[1]:
-            if (http_compare.compare_body(mutate_probe[3].text, arbitrary_probe[3].text) == False) or mutate_probe[
+        if mutate_probe[0] is False and "body" in mutate_probe[1]:
+            if (http_compare.compare_body(mutate_probe[3].text, arbitrary_probe[3].text) is False) or mutate_probe[
                 3
             ].text == "":
                 confirmed_techniques.append("Single-byte Mutation")
 
-        if mutate_probe[0] == False and "body" in mutate_probe[1]:
-            if (http_compare.compare_body(truncate_probe[3].text, arbitrary_probe[3].text) == False) or truncate_probe[
+        if mutate_probe[0] is False and "body" in mutate_probe[1]:
+            if (http_compare.compare_body(truncate_probe[3].text, arbitrary_probe[3].text) is False) or truncate_probe[
                 3
             ].text == "":
                 confirmed_techniques.append("Data Truncation")
@@ -339,7 +339,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                             self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
                             continue
                         # the additional parameter affects the potential hash parameter (suggesting its calculated in the hash)
-                        if additional_param_probe[0] == False and (additional_param_probe[1] == mutate_probe[1]):
+                        if additional_param_probe[0] is False and (additional_param_probe[1] == mutate_probe[1]):
                             context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) that is a likely a hash, which is connected to another parameter {additional_param_name})"
                             self.results.append(
                                 {

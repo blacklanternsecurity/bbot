@@ -451,7 +451,6 @@ class TestExcavateParameterExtraction(TestExcavate):
         </script>
     </head>
     <body>
-    <body>
         <h1>Simple GET Form</h1>
         <p>Use the form below to submit a GET request:</p>
         <form action="/search" method="get">
@@ -476,7 +475,11 @@ class TestExcavateParameterExtraction(TestExcavate):
         <p>Links</p>
         <a href="/validPath?id=123&age=456">href</a>
         <img src="http://127.0.0.1:8888/validPath?size=m&fit=slim">img</a>
-    </body>
+        <form class="login-form" name="change-email-form" action="/my-account/change-email" method="POST">
+        <select id=blog-post-author-display name=blog-post-author-display form=blog-post-author-display-form>
+        <option value=user.name selected>Name</option>
+        <input required type="hidden" name="csrf" value="O0A5UIhlB2ezuMGC1oWr6XA6GhG4sUVj">
+        </form>
     </body>
     </html>
     """
@@ -497,6 +500,7 @@ class TestExcavateParameterExtraction(TestExcavate):
         found_form_generic_original_value = False
         found_htmltags_a = False
         found_htmltags_img = False
+        found_select_noquotes = False
 
         for e in events:
             if e.type == "WEB_PARAMETER":
@@ -535,6 +539,11 @@ class TestExcavateParameterExtraction(TestExcavate):
                         if "fit" in e.data["additional_params"].keys():
                             found_htmltags_img = True
 
+                if e.data["description"] == "HTTP Extracted Parameter [blog-post-author-display] (POST Form Submodule)":
+                    if e.data["original_value"] == "user.name":
+                        if "csrf" in e.data["additional_params"].keys():
+                            found_select_noquotes = True
+
         assert found_jquery_get, "Did not extract Jquery GET parameters"
         assert found_jquery_post, "Did not extract Jquery POST parameters"
         assert found_form_get, "Did not extract Form GET parameters"
@@ -547,7 +556,7 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_form_generic_original_value, "Did not extract Form (Generic) parameter original_value"
         assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
-
+        assert found_select_noquotes, "Did not extract parameter(s) from select-tag" 
 
 class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
@@ -787,7 +796,7 @@ class TestExcavateParameterExtraction_jqueryjsonajax(ModuleTestBase):
             if e.type == "WEB_PARAMETER":
                 if (
                     "HTTP Extracted Parameter [username] (JQuery Extractor Submodule)" == e.data["description"]
-                    and e.data["original_value"] == None
+                    and e.data["original_value"] is None
                 ):
                     excavate_ajaxpost_extraction = True
         assert excavate_ajaxpost_extraction, "Excavate failed to extract web parameter"
@@ -1077,7 +1086,7 @@ endobj
 /Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
 >> /Rotate 0 /Trans <<
 
->> 
+>>
   /Type /Page
 >>
 endobj
@@ -1088,7 +1097,7 @@ endobj
 endobj
 5 0 obj
 <<
-/Author (anonymous) /CreationDate (D:20240807182842+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240807182842+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+/Author (anonymous) /CreationDate (D:20240807182842+00'00') /Creator (ReportLab PDF Library - www.reportlab.com) /Keywords () /ModDate (D:20240807182842+00'00') /Producer (ReportLab PDF Library - www.reportlab.com)
   /Subject (unspecified) /Title (untitled) /Trapped /False
 >>
 endobj
@@ -1106,17 +1115,17 @@ Gas2F;0/Hc'SYHA/+V9II1V!>b>-epMEjN4$Udfu3WXha!?H`crq_UNGP5IS$'WT'SF]Hm/eEhd_JY>@
 endobj
 xref
 0 8
-0000000000 65535 f 
-0000000073 00000 n 
-0000000104 00000 n 
-0000000211 00000 n 
-0000000414 00000 n 
-0000000482 00000 n 
-0000000778 00000 n 
-0000000837 00000 n 
+0000000000 65535 f
+0000000073 00000 n
+0000000104 00000 n
+0000000211 00000 n
+0000000414 00000 n
+0000000482 00000 n
+0000000778 00000 n
+0000000837 00000 n
 trailer
 <<
-/ID 
+/ID
 [<3c7340500fa2fe72523c5e6f07511599><3c7340500fa2fe72523c5e6f07511599>]
 % ReportLab generated PDF document -- digest (http://www.reportlab.com)
 
@@ -1323,6 +1332,6 @@ class TestExcavateHeaders_blacklist(ModuleTestBase):
                 if e.data["name"] == "TS0113CC91":
                     found_third_cookie = True
 
-        assert found_first_cookie == True
-        assert found_second_cookie == False
-        assert found_third_cookie == False
+        assert found_first_cookie is True
+        assert found_second_cookie is False
+        assert found_third_cookie is False

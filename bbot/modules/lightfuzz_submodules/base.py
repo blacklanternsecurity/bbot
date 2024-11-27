@@ -8,11 +8,11 @@ class BaseLightfuzz:
         self.results = []
 
     def additional_params_process(self, additional_params, additional_params_populate_blank_empty):
-        if additional_params_populate_blank_empty == False:
+        if additional_params_populate_blank_empty is False:
             return additional_params
         new_additional_params = {}
         for k, v in additional_params.items():
-            if v == "" or v == None:
+            if v == "" or v is None:
                 new_additional_params[k] = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
             else:
                 new_additional_params[k] = v
@@ -208,7 +208,7 @@ class BaseLightfuzz:
 
     def metadata(self):
         metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]"
-        if self.event.data["original_value"] != "" and self.event.data["original_value"] != None:
+        if self.event.data["original_value"] != "" and self.event.data["original_value"] is not None:
             metadata_string += (
                 f" Original Value: [{self.lightfuzz.helpers.truncate_string(self.event.data['original_value'],200)}]"
             )

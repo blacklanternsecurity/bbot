@@ -41,7 +41,7 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
             if "&" in value:
                 value = value.split("&")[0]
 
-            block = f"""
+            block = """
 <svg xmlns="http://www.w3.org/2000/svg" width="1" height="1">
   <rect width="1" height="1" fill="black"/>
 </svg>
@@ -555,7 +555,7 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
         </section>
         """
 
-            sql_block_error = f"""
+            sql_block_error = """
         <section class=error>
             <h1>Found error in SQL query</h1>
             <hr>
@@ -623,7 +623,7 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         </section>
         """
 
-            sql_block_error = f"""
+            sql_block_error = """
         <section class=error>
             <h1>Found error in SQL query</h1>
             <hr>
@@ -734,7 +734,7 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
             <p>test: {header_value}</p>
             </html>
             """
-            header_block_error = f"""
+            header_block_error = """
             <html>
             <p>placeholder</p>
             <p>Error!</p>
@@ -802,7 +802,7 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
             </html>
             """
 
-            header_block_error = f"""
+            header_block_error = """
             <html>
             <p>placeholder</p>
             <p>Error!</p>
@@ -847,7 +847,7 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
             if "&" in value:
                 value = value.split("&")[0]
 
-            sql_block = f"""
+            sql_block = """
         <section class=blog-header>
             <h1>0 search results found</h1>
             <hr>
@@ -1265,7 +1265,7 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
             </form>
         </section>
         """
-        crypto_block = f"""
+        crypto_block = """
         <section class=blog-header>
             <h1>Access Denied!</h1>
             <hr>

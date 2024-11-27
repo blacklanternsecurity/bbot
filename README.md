@@ -380,6 +380,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [List of Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/list_of_modules)
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/Stable/modules/nuclei)
         - [Custom YARA Rules](https://www.blacklanternsecurity.com/bbot/Stable/modules/custom_yara_rules)
+        - [Lightfuzz](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
     - **Misc**
         - [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution)
         - [Release History](https://www.blacklanternsecurity.com/bbot/Stable/release_history)
