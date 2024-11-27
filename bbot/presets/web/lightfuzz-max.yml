@@ -21,6 +21,6 @@ config:
     lightfuzz:
       force_common_headers: True
       enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss]
-       disable_post: False
+      disable_post: False
     excavate:
       retain_querystring: True
