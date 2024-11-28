@@ -525,14 +525,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 for parameter_name, original_value in input_tags:
                                     form_parameters[parameter_name] = original_value.strip()
 
-                            for parameter_name, original_value in form_parameters.items():
-                                yield (
-                                self.output_type,
-                                parameter_name,
-                                original_value,
-                                    form_action,
-                                _exclude_key(form_parameters, parameter_name),
-                                )
+                    for parameter_name, original_value in form_parameters.items():
+                        yield (
+                        self.output_type,
+                        parameter_name,
+                        original_value,
+                            form_action,
+                        _exclude_key(form_parameters, parameter_name),
+                        )
 
         class GetForm2(GetForm):
             extraction_regex = bbot_regexes.get_form_regex2
