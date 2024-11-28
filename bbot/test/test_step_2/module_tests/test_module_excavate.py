@@ -592,6 +592,47 @@ class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
         assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
 
 
+class TestExcavateParameterExtraction_additionalparams(ModuleTestBase):
+
+    targets = ["http://127.0.0.1:8888/"]
+
+    # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    postformnoaction_extract_multiparams_html = """
+<body>
+    <h1>Post for without action</h1>
+ <form id="templateForm" method="POST">
+                        <input required type="hidden" name="csrf" value="MwARfZ19btvV2OjHIvTU5vVSGp9OyrcI">
+                        <label>Template:</label>
+                        <textarea required rows="12" cols="300" name="template">somenonsense</textarea>
+                        <button class="button" type="submit" name="template-action" value="save">
+                            Save
+                        </button>
+                    </form>
+</body>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.postformnoaction_extract_multiparams_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+
+        excavate_additionalparam_extraction_param1 = False
+        excavate_additionalparam_extraction_param2 = False
+        excavate_additionalparam_extraction_param3 = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if e.data["name"] == "template-action" and "csrf" in e.data["additional_params"].keys() and "template" in e.data["additional_params"].keys():
+                    excavate_additionalparam_extraction_param1 = True
+                if e.data["name"] == "template" and "csrf" in e.data["additional_params"].keys() and "template-action" in e.data["additional_params"].keys():
+                    excavate_additionalparam_extraction_param2 = True
+                if e.data["name"] == "csrf" and "template" in e.data["additional_params"].keys() and "template-action" in e.data["additional_params"].keys():
+                    excavate_additionalparam_extraction_param3 = True           
+        assert excavate_additionalparam_extraction_param1, "Excavate failed to extract web parameter with correct additional data (param 1)"
+        assert excavate_additionalparam_extraction_param2, "Excavate failed to extract web parameter with correct additional data (param 2)"
+        assert excavate_additionalparam_extraction_param3, "Excavate failed to extract web parameter with correct additional data (param 3)"
+
 class TestExcavateParameterExtraction_getparam(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 

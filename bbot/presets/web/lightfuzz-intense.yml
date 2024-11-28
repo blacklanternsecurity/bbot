@@ -24,3 +24,7 @@ config:
       disable_post: False
     excavate:
       retain_querystring: True
+
+blacklist:
+  # Prevent spider from invalidating sessions by logging out
+  - "RE:/.*(sign|log)[_-]?out"

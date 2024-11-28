@@ -15,3 +15,7 @@ config:
     lightfuzz:
       enabled_submodules: [xss]
       disable_post: True
+
+blacklist:
+  # Prevent spider from invalidating sessions by logging out
+  - "RE:/.*(sign|log)[_-]?out"

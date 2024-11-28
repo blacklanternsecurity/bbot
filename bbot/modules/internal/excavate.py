@@ -417,7 +417,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         class HtmlTags(ParameterExtractorRule):
             name = "HTML Tags"
-            discovery_regex = r'/<[^>]+(href|src|action)=["\'][^"\']*["\'][^>]*>/ nocase'
+            discovery_regex = r'/<[^>]+(href|src|action)=["\']?[^"\'>\s]*["\']?[^>]*>/ nocase'
             extraction_regex = bbot_regexes.tag_attribute_regex
             output_type = "GETPARAM"
 
@@ -496,6 +496,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 "input_tag_novalue_regex": bbot_regexes.input_tag_novalue_regex,
                 "select_tag_regex": bbot_regexes.select_tag_regex,
                 "textarea_tag_regex": bbot_regexes.textarea_tag_regex,
+                "button_tag_regex": bbot_regexes.button_tag_regex,
+                "button_tag_regex2": bbot_regexes.button_tag_regex2,
             }
             extraction_regex = bbot_regexes.get_form_regex
             output_type = "GETPARAM"
@@ -517,20 +519,20 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 form_parameters[input_tags[0]] = None
 
                             else:
-                                if form_content_regex_name == "input_tag_regex2":
+                                if form_content_regex_name in ["input_tag_regex2", "button_tag_regex2"]:
                                     input_tags = [(b, a) for a, b in input_tags]
 
                                 for parameter_name, original_value in input_tags:
                                     form_parameters[parameter_name] = original_value.strip()
 
-                            for parameter_name, original_value in form_parameters.items():
-                                yield (
-                                    self.output_type,
-                                    parameter_name,
-                                    original_value,
-                                    form_action,
-                                    _exclude_key(form_parameters, parameter_name),
-                                )
+                    for parameter_name, original_value in form_parameters.items():
+                        yield (
+                        self.output_type,
+                        parameter_name,
+                        original_value,
+                        form_action,
+                        _exclude_key(form_parameters, parameter_name),
+                        )
 
         class GetForm2(GetForm):
             extraction_regex = bbot_regexes.get_form_regex2
@@ -572,7 +574,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier, results in yara_results.items():
-                for result in results:
+                for result in results:                 
                     if identifier not in self.parameterExtractorCallbackDict.keys():
                         raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
                     parameterExtractorSubModule = self.parameterExtractorCallbackDict[identifier](
@@ -601,6 +603,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 base_url = (
                                     f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{event.parsed_url.path}"
                                 )
+                                if self.excavate.retain_querystring and len(event.parsed_url.query) > 0:
+                                    base_url += f"?{event.parsed_url.query}"
                                 url = urljoin(base_url, endpoint)
 
                             if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
@@ -798,7 +802,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         tags = "spider-danger"
                         description = "contains tag with src or href attribute"
                     strings:
-                        $url_attr = /<[^>]+(href|src|action)=["\'][^"\']*["\'][^>]*>/
+                        $url_attr = /<[^>]+(href|src|action)=["\']?[^"\']*["\']?[^>]*>/
                     condition:
                         $url_attr
                 }
