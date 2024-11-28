@@ -120,7 +120,7 @@ class BaseEnvelope(metaclass=EnvelopeChildTracker):
                 if envelope is not False:
                     return envelope
                 del envelope
-        raise Exception("No envelope detected")
+        raise Exception(f"No envelope detected for data: '{s}' ({type(s)})")
 
     def get_subparams(self, key=None, data=None, recursive=True):
         if data is None:
@@ -266,13 +266,14 @@ class TextEnvelope(BaseEnvelope):
     # lowest priority means text is the ultimate fallback
     priority = 10
     transparent = True
+    ignore_exceptions = ()
 
     def _pack(self, s):
         return s
 
     def _unpack(self, s):
         if not is_printable(s):
-            raise Exception("Non-printable data detected in TextEnvelope")
+            raise ValueError(f"Non-printable data detected in TextEnvelope: '{s}' ({type(s)})")
         return s
 
 

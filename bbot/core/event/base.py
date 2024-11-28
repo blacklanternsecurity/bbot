@@ -1342,12 +1342,15 @@ class WEB_PARAMETER(DictHostEvent):
                     children.append(clone)
         return children
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        original_value = self.data.get("original_value", None)
+    def sanitize_data(self, data):
+        original_value = data.get("original_value", None)
         if original_value is not None:
-            envelopes = BaseEnvelope.detect(original_value)
-            setattr(self, "envelopes", envelopes)
+            try:
+                envelopes = BaseEnvelope.detect(original_value)
+                setattr(self, "envelopes", envelopes)
+            except ValueError as e:
+                log.verbose(f"Error detecting envelopes for {self}: {e}")
+        return data
 
     def _data_id(self):
         # dedupe by url:name:param_type

@@ -460,6 +460,13 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     s = "asdf {unused} {used}"
     assert helpers.safe_format(s, used="fdsa") == "asdf {unused} fdsa"
 
+    # is_printable
+    assert helpers.is_printable("asdf") is True
+    assert helpers.is_printable(r"""~!@#$^&*()_+=-<>:"?,./;'[]\{}|""") is True
+    assert helpers.is_printable("ドメイン.テスト") is True
+    assert helpers.is_printable("4") is True
+    assert helpers.is_printable("asdf\x00") is False
+
     # punycode
     assert helpers.smart_encode_punycode("ドメイン.テスト") == "xn--eckwd4c7c.xn--zckzah"
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah") == "ドメイン.テスト"
