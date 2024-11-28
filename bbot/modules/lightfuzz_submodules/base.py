@@ -149,8 +149,8 @@ class BaseLightfuzz:
         timeout=10,
         additional_params_populate_empty=False,
         speculative_mode="GETPARAM",
+        allow_redirects=False,
     ):
-
         probe = self.probe_value_outgoing(probe)
 
         if event_type == "SPECULATIVE":
@@ -177,6 +177,7 @@ class BaseLightfuzz:
         json_data = None
 
         if event_type == "POSTPARAM":
+
             method = "POST"
             data = {self.event.data["name"]: probe}
             if self.event.data["additional_params"] is not None:
@@ -203,10 +204,11 @@ class BaseLightfuzz:
             data=data,
             json=json_data,
             url=url,
-            allow_redirects=False,
+            allow_redirects=allow_redirects,
             retries=0,
             timeout=timeout,
         )
+        
 
     def metadata(self):
 

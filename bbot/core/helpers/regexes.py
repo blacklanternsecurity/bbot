@@ -152,16 +152,24 @@ post_form_regex_noaction = re.compile(
     re.DOTALL,
 )
 generic_form_regex = re.compile(
-    r"<form(?![^>]*\bmethod=)[^>]+(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)[^>]*>([\s\S]*?)<\/form>", re.DOTALL
+    r"<form(?![^>]*\bmethod=)[^>]+(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)[^>]*>([\s\S]*?)<\/form>", re.IGNORECASE | re.DOTALL
 )
 
 select_tag_regex = re.compile(
-    r"<select[^>]+?name=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\']?([_\.\-\w]*)[\"\']?[^>]*>)?"
+    r"<select[^>]+?name=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\']?([_\.\-\w]*)[\"\']?[^>]*>)?", re.IGNORECASE | re.DOTALL
 )
+
 textarea_tag_regex = re.compile(
     r'<textarea[^>]*\bname=["\']?([_\-\.\w]+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
 )
-tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
+
+button_tag_regex = re.compile(
+    r"<button[^>]*?name=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?value=[\"\']?([%\-\._=+\/\w]*)[\"\']?[^>]*?>"
+)
+button_tag_regex2 = re.compile(
+    r"<button[^>]*?value=[\"\']?([\-%\._=+\/\w]*)[\"\']?[^>]*?name=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
+)
+tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']?([^\s\'\"\>]+)[\"\']?[^>]*>")
 
 valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
 
