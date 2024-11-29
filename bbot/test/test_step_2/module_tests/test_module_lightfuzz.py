@@ -362,6 +362,38 @@ class Test_Lightfuzz_envelope_jsonb64(Test_Lightfuzz_envelope_base64):
 
         return Response(parameter_block, status=200)
 
+# Base64 (JSON) Multiple Envelope Detection
+class Test_Lightfuzz_envelope_multiple_json(Test_Lightfuzz_envelope_base64):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text value='%65%79%4a%7a%64%48%4a%70%62%6d%63%78%49%6a%6f%69%64%6d%46%73%64%57%55%78%49%69%77%69%63%33%52%79%61%57%35%6e%4d%69%49%36%49%6e%5a%68%62%48%56%6c%4d%69%4a%39' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        return Response(parameter_block, status=200)
+
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        web_parameter_clone_emitted  = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                for subparam in e.envelopes.get_subparams():
+                    if len(subparam[0]) > 0:
+                        if subparam[0][0] == "string1" and subparam[1] == "value1":
+                            web_parameter_emitted = True
+                        if subparam[0][0] == "string2" and subparam[1] == "value2":
+                            web_parameter_clone_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert web_parameter_clone_emitted, "WEB_PARAMETER clone was not emitted"
+
 
 # Base64 (XML) Envelope XSS Detection
 class Test_Lightfuzz_envelope_xmlb64(Test_Lightfuzz_envelope_base64):
@@ -1189,59 +1221,59 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
         assert cmdi_interacttsh_finding_emitted, "interactsh CMDi FINDING not emitted"
 
 
-# class Test_Lightfuzz_speculative(ModuleTestBase):
-#     targets = ["http://127.0.0.1:8888/"]
-#     modules_overrides = ["httpx", "excavate", "paramminer_getparams", "lightfuzz"]
-#     config_overrides = {
-#         "interactsh_disable": True,
-#         "modules": {
-#             "lightfuzz": {"enabled_submodules": ["xss"]},
-#             "paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True},
-#         },
-#     }
+class Test_Lightfuzz_speculative(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "paramminer_getparams", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["xss"]},
+            "paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True},
+        },
+    }
 
-#     def request_handler(self, request):
+    def request_handler(self, request):
 
-#         qs = str(request.query_string.decode())
-#         parameter_block = """
-#         {
-#           "search": 1,
-#           "common": 1
-#         }
-#         """
-#         if "search=" in qs:
-#             value = qs.split("=")[1]
-#             if "&" in value:
-#                 value = value.split("&")[0]
-#             xss_block = f"""
-#         <section class=blog-header>
-#             <h1>0 search results for '{unquote(value)}'</h1>
-#             <hr>
-#         </section>
-#         """
-#             return Response(xss_block, status=200)
-#         return Response(parameter_block, status=200, headers={"Content-Type": "application/json"})
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        {
+          "search": 1,
+          "common": 1
+        }
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            xss_block = f"""
+        <section class=blog-header>
+            <h1>0 search results for '{unquote(value)}'</h1>
+            <hr>
+        </section>
+        """
+            return Response(xss_block, status=200)
+        return Response(parameter_block, status=200, headers={"Content-Type": "application/json"})
 
-#     async def setup_after_prep(self, module_test):
-#         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-#         expect_args = re.compile("/")
-#         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
-#     def check(self, module_test, events):
-#         excavate_json_extraction = False
-#         xss_finding_emitted = False
+    def check(self, module_test, events):
+        excavate_json_extraction = False
+        xss_finding_emitted = False
 
-#         for e in events:
-#             if e.type == "WEB_PARAMETER":
-#                 if "HTTP Extracted Parameter (speculative from json content) [search]" in e.data["description"]:
-#                     excavate_json_extraction = True
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter (speculative from json content) [search]" in e.data["description"]:
+                    excavate_json_extraction = True
 
-#             if e.type == "FINDING":
-#                 if "Possible Reflected XSS. Parameter: [search] Context: [Between Tags" in e.data["description"]:
-#                     xss_finding_emitted = True
+            if e.type == "FINDING":
+                if "Possible Reflected XSS. Parameter: [search] Context: [Between Tags" in e.data["description"]:
+                    xss_finding_emitted = True
 
-#         assert excavate_json_extraction, "Excavate failed to extract json parameter"
-#         assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
+        assert excavate_json_extraction, "Excavate failed to extract json parameter"
+        assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
 
 
 class Test_Lightfuzz_crypto_error(ModuleTestBase):
@@ -1345,80 +1377,80 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
         ), "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
 
 
-# class Test_PaddingOracleDetection(ModuleTestBase):
+class Test_PaddingOracleDetection(ModuleTestBase):
 
-#     targets = ["http://127.0.0.1:8888"]
-#     modules_overrides = ["httpx", "excavate", "lightfuzz"]
-#     config_overrides = {
-#         "interactsh_disable": True,
-#         "modules": {
-#             "lightfuzz": {
-#                 "enabled_submodules": ["crypto"],
-#             }
-#         },
-#     }
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["crypto"],
+            }
+        },
+    }
 
-#     def request_handler(self, request):
-#         encrypted_value = quote(
-#             "dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q+4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg=="
-#         )
-#         default_html_response = f"""
-#         <html>
-#             <body>
-#                 <form action="/decrypt" method="post">
-#                     <input type="hidden" name="encrypted_data" value="{encrypted_value}" />
-#                     <button type="submit">Decrypt</button>
-#                 </form>
-#             </body>
-#         </html>
-#         """
+    def request_handler(self, request):
+        encrypted_value = quote(
+            "dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q+4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg=="
+        )
+        default_html_response = f"""
+        <html>
+            <body>
+                <form action="/decrypt" method="post">
+                    <input type="hidden" name="encrypted_data" value="{encrypted_value}" />
+                    <button type="submit">Decrypt</button>
+                </form>
+            </body>
+        </html>
+        """
 
-#         if "/decrypt" in request.url and request.method == "POST":
-#             if request.form and request.form["encrypted_data"]:
-#                 encrypted_data = request.form["encrypted_data"]
-#                 if "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALwAgLKWJi2nWKbh9ag5rnhm" in encrypted_data:
-#                     response_content = "Padding error detected"
-#                 elif "4GXVGZbo0DTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg" in encrypted_data:
-#                     response_content = "DIFFERENT CRYPTOGRAPHIC ERROR"
-#                 elif "AAAAAAA" in encrypted_data:
-#                     response_content = "YET DIFFERENT CRYPTOGRAPHIC ERROR"
-#                 else:
-#                     response_content = "Decryption failed"
+        if "/decrypt" in request.url and request.method == "POST":
+            if request.form and request.form["encrypted_data"]:
+                encrypted_data = request.form["encrypted_data"]
+                if "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALwAgLKWJi2nWKbh9ag5rnhm" in encrypted_data:
+                    response_content = "Padding error detected"
+                elif "4GXVGZbo0DTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg" in encrypted_data:
+                    response_content = "DIFFERENT CRYPTOGRAPHIC ERROR"
+                elif "AAAAAAA" in encrypted_data:
+                    response_content = "YET DIFFERENT CRYPTOGRAPHIC ERROR"
+                else:
+                    response_content = "Decryption failed"
 
-#             return Response(response_content, status=200)
-#         else:
-#             return Response(default_html_response, status=200)
+            return Response(response_content, status=200)
+        else:
+            return Response(default_html_response, status=200)
 
-#     async def setup_after_prep(self, module_test):
-#         module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
 
-#     def check(self, module_test, events):
+    def check(self, module_test, events):
 
-#         for e in events:
-#             print(f"{e.type}: {e.data}")
+        for e in events:
+            print(f"{e.type}: {e.data}")
 
-#         web_parameter_extracted = False
-#         cryptographic_parameter_finding = False
-#         padding_oracle_detected = False
-#         for e in events:
+        web_parameter_extracted = False
+        cryptographic_parameter_finding = False
+        padding_oracle_detected = False
+        for e in events:
 
-#             if e.type == "WEB_PARAMETER":
-#                 if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
-#                     web_parameter_extracted = True
-#             if e.type == "FINDING":
-#                 if (
-#                     e.data["description"]
-#                     == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [url-encoded]"
-#                 ):
-#                     cryptographic_parameter_finding = True
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
+                    web_parameter_extracted = True
+            if e.type == "FINDING":
+                if (
+                    e.data["description"]
+                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [url-encoded]"
+                ):
+                    cryptographic_parameter_finding = True
 
-#             if e.type == "VULNERABILITY":
-#                 if (
-#                     e.data["description"]
-#                     == "Padding Oracle Vulnerability. Block size: [16] Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Envelopes: [url-encoded]"
-#                 ):
-#                     padding_oracle_detected = True
+            if e.type == "VULNERABILITY":
+                if (
+                    e.data["description"]
+                    == "Padding Oracle Vulnerability. Block size: [16] Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Envelopes: [url-encoded]"
+                ):
+                    padding_oracle_detected = True
 
-#         assert web_parameter_extracted, "Web parameter was not extracted"
-#         assert cryptographic_parameter_finding, "Cryptographic parameter not detected"
-#         assert padding_oracle_detected, "Padding oracle vulnerability was not detected"
+        assert web_parameter_extracted, "Web parameter was not extracted"
+        assert cryptographic_parameter_finding, "Cryptographic parameter not detected"
+        assert padding_oracle_detected, "Padding oracle vulnerability was not detected"
