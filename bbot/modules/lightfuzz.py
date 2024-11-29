@@ -133,7 +133,7 @@ class lightfuzz(BaseModule):
                 envelope_summary = getattr(envelopes, "summary", None)
                 if envelope_summary:
                     # Append the envelope summary to the description
-                    event_data["description"] += f" Envelopes: {envelope_summary}"
+                    event_data["description"] += f" Envelopes: [{envelope_summary}]"
 
                 if r["type"] == "VULNERABILITY":
                     event_data["severity"] = r["severity"]

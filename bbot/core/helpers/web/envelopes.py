@@ -71,6 +71,13 @@ class BaseEnvelope(metaclass=EnvelopeChildTracker):
             return self.unpacked_data(recursive=False).final_envelope
         except AttributeError:
             return self
+        
+    @property
+    def friendly_name(self):
+        if self.friendly_name:
+            return self.friendly_name
+        else:
+            return self.name
 
     def pack(self, data=None):
         if data is None:
@@ -194,21 +201,32 @@ class BaseEnvelope(metaclass=EnvelopeChildTracker):
     def summary(self):
         if self.transparent:
             return ""
-        self_string = f"{self.name}"
-        if self.selected_subparam:
-            self_string += f" [{self.selected_subparam}]"
+        self_string = f"{self.friendly_name}"
         with suppress(AttributeError):
             child_envelope = self.unpacked_data(recursive=False)
             child_summary = child_envelope.summary
             if child_summary:
                 self_string += f" -> {child_summary}"
+
+        if self.selected_subparam:
+            self_string += f" [{'.'.join(self.selected_subparam)}]"
         return self_string
+    
+    def to_dict(self):
+        return self.summary
+    
+    def __str__(self):
+        return self.summary
+
+    __repr__ = __str__
 
 
 class HexEnvelope(BaseEnvelope):
     """
     Hexadecimal encoding
     """
+
+    friendly_name = "Hexadecimal-Encoded"
 
     ignore_exceptions = (ValueError, UnicodeDecodeError)
 
@@ -223,6 +241,8 @@ class B64Envelope(BaseEnvelope):
     """
     Base64 encoding
     """
+
+    friendly_name = "Base64-Encoded"
 
     ignore_exceptions = (binascii.Error, UnicodeDecodeError, ValueError)
 
@@ -243,6 +263,8 @@ class URLEnvelope(BaseEnvelope):
     """
     URL encoding
     """
+
+    friendly_name = "URL-Encoded"
 
     def unpack(self, s):
         unpacked = super().unpack(s)
@@ -297,6 +319,7 @@ class JSONEnvelope(BaseEnvelope):
     JSON encoding
     """
 
+    friendly_name = "JSON-formatted"
     end_format = True
     priority = 8
     ignore_exceptions = (json.JSONDecodeError,)
@@ -313,6 +336,7 @@ class XMLEnvelope(BaseEnvelope):
     XML encoding
     """
 
+    friendly_name = "XML-formatted"
     end_format = True
     priority = 9
     ignore_exceptions = (ExpatError,)

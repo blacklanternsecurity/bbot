@@ -365,7 +365,6 @@ class Test_Lightfuzz_envelope_jsonb64(Test_Lightfuzz_envelope_base64):
 # Base64 (JSON) Multiple Envelope Detection
 class Test_Lightfuzz_envelope_multiple_json(Test_Lightfuzz_envelope_base64):
     def request_handler(self, request):
-        qs = str(request.query_string.decode())
 
         parameter_block = """
         <section class=search>
@@ -1425,7 +1424,6 @@ class Test_PaddingOracleDetection(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
 
     def check(self, module_test, events):
-
         for e in events:
             print(f"{e.type}: {e.data}")
 
@@ -1440,14 +1438,14 @@ class Test_PaddingOracleDetection(ModuleTestBase):
             if e.type == "FINDING":
                 if (
                     e.data["description"]
-                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [url-encoded]"
+                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [URL-Encoded]"
                 ):
                     cryptographic_parameter_finding = True
 
             if e.type == "VULNERABILITY":
                 if (
                     e.data["description"]
-                    == "Padding Oracle Vulnerability. Block size: [16] Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Envelopes: [url-encoded]"
+                    == "Padding Oracle Vulnerability. Block size: [16] Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Envelopes: [URL-Encoded]"
                 ):
                     padding_oracle_detected = True
 

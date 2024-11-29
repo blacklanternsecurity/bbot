@@ -75,6 +75,8 @@ class CryptoLightfuzz(BaseLightfuzz):
     def modify_string(input_string, action="truncate", position=None, extension_length=1):
         if not isinstance(input_string, str):
             input_string = str(input_string)
+        print("#####")
+        print(input_string)
 
         data, encoding = CryptoLightfuzz.format_agnostic_decode(input_string)
         if encoding != "base64" and encoding != "hex":
@@ -232,8 +234,10 @@ class CryptoLightfuzz(BaseLightfuzz):
             return hash_functions[hash_length]
 
     async def fuzz(self):
+        
         cookies = self.event.data.get("assigned_cookies", {})
-        probe_value = self.probe_value_incoming(populate_empty=False)
+        probe_value = self.incoming_probe_value(populate_empty=False)
+
         if not probe_value:
             self.lightfuzz.debug(
                 f"The Cryptography Probe Submodule requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
@@ -250,7 +254,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             mutate_probe_value = self.modify_string(probe_value, action="mutate")
         except ValueError as e:
             self.lightfuzz.debug(
-                f"Encountered error modifying value for parameter {self.event.data['name']}: {e} , aborting"
+                f"Encountered error modifying value for parameter [{self.event.data['name']}]: {e} , aborting"
             )
             return
 
