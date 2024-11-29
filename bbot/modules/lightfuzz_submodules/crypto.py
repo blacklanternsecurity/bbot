@@ -75,8 +75,6 @@ class CryptoLightfuzz(BaseLightfuzz):
     def modify_string(input_string, action="truncate", position=None, extension_length=1):
         if not isinstance(input_string, str):
             input_string = str(input_string)
-        print("#####")
-        print(input_string)
 
         data, encoding = CryptoLightfuzz.format_agnostic_decode(input_string)
         if encoding != "base64" and encoding != "hex":
