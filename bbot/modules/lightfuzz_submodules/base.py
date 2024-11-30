@@ -229,7 +229,7 @@ class BaseLightfuzz:
             else:
                 probe_value = ""
         if not isinstance(probe_value, str):
-            self.debug(
+            self.lightfuzz.debug(
                 f"incoming_probe_value was [{type(probe_value)}] with value [{probe_value}] - converting to str"
             )
             probe_value = str(probe_value)
