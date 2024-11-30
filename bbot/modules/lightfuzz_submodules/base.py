@@ -229,9 +229,10 @@ class BaseLightfuzz:
             else:
                 probe_value = ""
         if not isinstance(probe_value, str):
-            raise ValueError(
-                f"incoming_probe_value should always be a string (got {type(probe_value)} / {probe_value})"
+            self.debug(
+                f"incoming_probe_value was [{type(probe_value)}] with value [{probe_value}] - converting to str"
             )
+            probe_value = str(probe_value)
         return probe_value
 
     def outgoing_probe_value(self, outgoing_probe_value):
