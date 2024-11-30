@@ -1331,15 +1331,18 @@ class WEB_PARAMETER(DictHostEvent):
         children = []
         envelopes = getattr(self, "envelopes", None)
         if envelopes is not None:
-            subparams = list(self.envelopes.get_subparams())
+            subparams = sorted(list(self.envelopes.get_subparams()))
 
             if envelopes.selected_subparam is None:
-                for subparam, _ in subparams:
-                    clone = self.clone()
-                    clone.envelopes = deepcopy(envelopes)
-                    clone.envelopes.selected_subparam = subparam
-                    clone.parent = self
-                    children.append(clone)
+                current_subparam = subparams[0]
+                envelopes.selected_subparam = current_subparam[0]
+                if len(subparams) > 1:
+                    for subparam, _ in subparams[1:]:
+                        clone = self.clone()
+                        clone.envelopes = deepcopy(envelopes)
+                        clone.envelopes.selected_subparam = subparam
+                        clone.parent = self
+                        children.append(clone)
         return children
 
     def sanitize_data(self, data):

@@ -7,7 +7,7 @@ import urllib.parse
 class CmdILightfuzz(BaseLightfuzz):
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
-        probe_value = self.probe_value_incoming()
+        probe_value = self.incoming_probe_value()
 
         canary = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
         http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)

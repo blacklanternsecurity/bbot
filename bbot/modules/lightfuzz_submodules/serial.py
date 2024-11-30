@@ -26,7 +26,7 @@ class SerialLightfuzz(BaseLightfuzz):
             "java.io.optionaldataexception",
         ]
 
-        probe_value = self.probe_value_incoming(populate_empty=False)
+        probe_value = self.incoming_probe_value(populate_empty=False)
         if probe_value:
             self.lightfuzz.debug(
                 f"The Serialization Submodule only operates when there if no original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
