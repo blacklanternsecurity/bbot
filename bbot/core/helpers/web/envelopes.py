@@ -143,7 +143,7 @@ class BaseEnvelope(metaclass=EnvelopeChildTracker):
                 else:
                     yield full_key, v
         else:
-            yield [], str(data)
+            yield [], data
 
     def get_subparam(self, key=None, recursive=True):
         if key is None:
@@ -160,7 +160,7 @@ class BaseEnvelope(metaclass=EnvelopeChildTracker):
         else:
             for segment in key:
                 data = data[segment]
-        return str(data)
+        return data
 
     def set_subparam(self, key=None, value=None, recursive=True):
         envelope = self
