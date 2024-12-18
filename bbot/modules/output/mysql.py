@@ -3,7 +3,11 @@ from bbot.modules.templates.sql import SQLTemplate
 
 class MySQL(SQLTemplate):
     watched_events = ["*"]
-    meta = {"description": "Output scan data to a MySQL database"}
+    meta = {
+        "description": "Output scan data to a MySQL database",
+        "created_date": "2024-11-13",
+        "author": "@TheTechromancer",
+    }
     options = {
         "username": "root",
         "password": "bbotislife",

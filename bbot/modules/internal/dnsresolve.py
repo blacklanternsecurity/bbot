@@ -9,6 +9,8 @@ from bbot.modules.base import BaseInterceptModule, BaseModule
 
 class DNSResolve(BaseInterceptModule):
     watched_events = ["*"]
+    produced_events = ["DNS_NAME", "IP_ADDRESS", "RAW_DNS_RECORD"]
+    meta = {"description": "Perform DNS resolution", "created_date": "2022-04-08", "author": "@TheTechromancer"}
     _priority = 1
     scope_distance_modifier = None
 

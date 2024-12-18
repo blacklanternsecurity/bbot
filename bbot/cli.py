@@ -78,7 +78,7 @@ async def _main():
             return
 
         # if we're listing modules or their options
-        if options.list_modules or options.list_module_options:
+        if options.list_modules or options.list_output_modules or options.list_module_options:
             # if no modules or flags are specified, enable everything
             if not (options.modules or options.output_modules or options.flags):
                 for module, preloaded in preset.module_loader.preloaded().items():
@@ -96,7 +96,17 @@ async def _main():
                 print("")
                 print("### MODULES ###")
                 print("")
-                for row in preset.module_loader.modules_table(preset.modules).splitlines():
+                modules = sorted(set(preset.scan_modules + preset.internal_modules))
+                for row in preset.module_loader.modules_table(modules).splitlines():
+                    print(row)
+                return
+
+            # --list-output-modules
+            if options.list_output_modules:
+                print("")
+                print("### OUTPUT MODULES ###")
+                print("")
+                for row in preset.module_loader.modules_table(preset.output_modules).splitlines():
                     print(row)
                 return
 
@@ -250,9 +260,7 @@ async def _main():
     finally:
         # save word cloud
         with suppress(BaseException):
-            save_success, filename = scan.helpers.word_cloud.save()
-            if save_success:
-                log_to_stderr(f"Saved word cloud ({len(scan.helpers.word_cloud):,} words) to {filename}")
+            scan.helpers.word_cloud.save()
         # remove output directory if empty
         with suppress(BaseException):
             scan.home.rmdir()

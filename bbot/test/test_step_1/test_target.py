@@ -2,7 +2,7 @@ from ..bbot_fixtures import *  # noqa: F401
 
 
 @pytest.mark.asyncio
-async def test_target(bbot_scanner):
+async def test_target_basic(bbot_scanner):
     from radixtarget import RadixTarget
     from ipaddress import ip_address, ip_network
     from bbot.scanner.target import BBOTTarget, ScanSeeds
@@ -245,6 +245,17 @@ async def test_target(bbot_scanner):
         assert len(events) == 3
         assert {e.type for e in events} == {"SCAN", "USERNAME"}
 
+    # users + orgs + domains
+    scan = bbot_scanner("USER:evilcorp", "ORG:evilcorp", "evilcorp.com")
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {"A": ["1.2.3.4"]},
+        },
+    )
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 5
+    assert {e.type for e in events} == {"SCAN", "USERNAME", "ORG_STUB", "DNS_NAME"}
+
     # verify hash values
     bbottarget = BBOTTarget(
         "1.2.3.0/24",
@@ -395,6 +406,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
         config={"excavate": True},
         debug=True,
     )
+    assert len(scan.target.blacklist) == 2
     assert scan.target.blacklist.blacklist_regexes
     assert {r.pattern for r in scan.target.blacklist.blacklist_regexes} == {
         r"evil[0-9]{3}",

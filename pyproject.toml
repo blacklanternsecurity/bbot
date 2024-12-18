@@ -57,6 +57,7 @@ pyahocorasick = "^2.1.0"
 puremagic = "^1.28"
 cloudcheck = "^6.0.0.602"
 radixtarget = "^2.0.0.50"
+orjson = "^3.10.12"
 
 [tool.poetry.group.dev.dependencies]
 poetry-dynamic-versioning = ">=0.21.4,<1.5.0"
@@ -69,8 +70,8 @@ pytest-rerunfailures = ">=14,<16"
 pytest-timeout = "^2.3.1"
 pytest-httpserver = "^1.0.11"
 pytest = "^8.3.1"
-pytest-asyncio = "0.24.0"
-uvicorn = "^0.32.0"
+pytest-asyncio = "0.25.0"
+uvicorn = ">=0.32,<0.35"
 fastapi = "^0.115.5"
 pytest-httpx = ">=0.33,<0.35"
 ruff = "^0.8.0"
@@ -103,7 +104,7 @@ skip = "./docs/javascripts/vega*.js,./bbot/wordlists/*"
 [tool.ruff]
 line-length = 119
 format.exclude = ["bbot/test/test_step_1/test_manager_*"]
-lint.ignore = ["E402", "E721", "E741", "F401", "F403", "F405", "E713"]
+lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F401", "F403", "F405"]
 
 [tool.poetry-dynamic-versioning]
 enable = true

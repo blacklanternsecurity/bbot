@@ -156,17 +156,15 @@ async def test_modules_basic_checks(events, httpx_mock):
             assert not (
                 "web-basic" in flags and "web-thorough" in flags
             ), f'module "{module_name}" should have either "web-basic" or "web-thorough" flags, not both'
-            meta = preloaded.get("meta", {})
-            # make sure every module has a description
-            assert meta.get("description", ""), f"{module_name} must have a description"
-            # make sure every module has an author
-            assert meta.get("author", ""), f"{module_name} must have an author"
-            # make sure every module has a created date
-            created_date = meta.get("created_date", "")
-            assert created_date, f"{module_name} must have a created date"
-            assert created_date_regex.match(
-                created_date
-            ), f"{module_name}'s created_date must match the format YYYY-MM-DD"
+        meta = preloaded.get("meta", {})
+        # make sure every module has a description
+        assert meta.get("description", ""), f"{module_name} must have a description"
+        # make sure every module has an author
+        assert meta.get("author", ""), f"{module_name} must have an author"
+        # make sure every module has a created date
+        created_date = meta.get("created_date", "")
+        assert created_date, f"{module_name} must have a created date"
+        assert created_date_regex.match(created_date), f"{module_name}'s created_date must match the format YYYY-MM-DD"
 
         # attribute checks
         watched_events = preloaded.get("watched_events")
