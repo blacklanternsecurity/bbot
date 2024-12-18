@@ -4,7 +4,7 @@ import re
 
 
 class XSSLightfuzz(BaseLightfuzz):
-    def determine_context(self, html, random_string):
+    def determine_context(self, cookies, html, random_string):
         between_tags = False
         in_tag_attribute = False
         in_javascript = False
@@ -29,20 +29,22 @@ class XSSLightfuzz(BaseLightfuzz):
 
         return between_tags, in_tag_attribute, in_javascript
 
-    async def check_probe(self, probe, match, context):
-        probe_result = await self.send_probe(probe)
-        if probe_result and match in probe_result:
+    async def check_probe(self, cookies, probe, match, context):
+        probe_result = await self.standard_probe(self.event.data["type"], cookies, probe)
+        if probe_result and match in probe_result.text:
             self.results.append(
                 {
                     "type": "FINDING",
-                    "description": f"Possible Reflected XSS. Parameter: [{self.event.data['name']}] Context: [{context}]",
+                    "description": f"Possible Reflected XSS. Parameter: [{self.event.data['name']}] Context: [{context}] Parameter Type: [{self.event.data['type']}]",
                 }
             )
             return True
         return False
 
     async def fuzz(self):
+
         lightfuzz_event = self.event.parent
+        cookies = self.event.data.get("assigned_cookies", {})
 
         # If this came from paramminer_getparams and didn't have a http_reflection tag, we don't need to check again
         if (
@@ -57,15 +59,16 @@ class XSSLightfuzz(BaseLightfuzz):
 
         reflection = None
         random_string = self.lightfuzz.helpers.rand_string(8)
-        reflection_probe_result = await self.send_probe(random_string)
-        if reflection_probe_result and random_string in reflection_probe_result:
+
+        reflection_probe_result = await self.standard_probe(self.event.data["type"], cookies, random_string)
+        self.lightfuzz.hugeinfo(reflection_probe_result.text)
+        if reflection_probe_result and random_string in reflection_probe_result.text:
             reflection = True
 
         if not reflection or reflection is False:
             return
 
-        between_tags, in_tag_attribute, in_javascript = self.determine_context(reflection_probe_result, random_string)
-
+        between_tags, in_tag_attribute, in_javascript = self.determine_context(cookies, reflection_probe_result.text, random_string)
         self.lightfuzz.debug(
             f"determine_context returned: between_tags [{between_tags}], in_tag_attribute [{in_tag_attribute}], in_javascript [{in_javascript}]"
         )
@@ -73,22 +76,27 @@ class XSSLightfuzz(BaseLightfuzz):
         if between_tags:
             for tag in tags:
                 between_tags_probe = f"<{tag}>{random_string}</{tag}>"
-                result = await self.check_probe(between_tags_probe, between_tags_probe, f"Between Tags ({tag} tag)")
+                result = await self.check_probe(cookies, between_tags_probe, between_tags_probe, f"Between Tags ({tag} tag)")
                 if result is True:
                     break
 
         if in_tag_attribute:
             in_tag_attribute_probe = f'{random_string}"'
             in_tag_attribute_match = f'"{random_string}""'
-            await self.check_probe(in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute")
+            await self.check_probe(cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute")
+
+
+            in_tag_attribute_probe = f'javascript:{random_string}'
+            in_tag_attribute_match = f'action="javascript:{random_string}'
+            await self.check_probe(cookies, in_tag_attribute_probe, in_tag_attribute_match, "Form Action Injection")
 
         if in_javascript:
             in_javascript_probe = rf"</script><script>{random_string}</script>"
-            result = await self.check_probe(in_javascript_probe, in_javascript_probe, "In Javascript")
+            result = await self.check_probe(cookies, in_javascript_probe, in_javascript_probe, "In Javascript")
             if result is False:
                 in_javasscript_escape_probe = rf"a\';zzzzz({random_string})\\"
                 in_javasscript_escape_match = rf"a\\';zzzzz({random_string})\\"
-                await self.check_probe(
+                await self.check_probe(cookies, 
                     in_javasscript_escape_probe,
                     in_javasscript_escape_match,
                     "In Javascript (escaping the escape character)",

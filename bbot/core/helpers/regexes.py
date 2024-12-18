@@ -120,12 +120,13 @@ scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
 
 # For use with excavate parameters extractor
 input_tag_regex = re.compile(
-    r"<input[^>]*?name=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?value=[\"\']?([%\-\._=+\/\w]*)[\"\']?[^>]*?>"
+    r"<input[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?\svalue=[\"\']?([:%\-\._=+\/\w]*)[\"\']?[^>]*?>"
 )
 input_tag_regex2 = re.compile(
-    r"<input[^>]*?value=[\"\']?([\-%\._=+\/\w]*)[\"\']?[^>]*?name=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
+    r"<input[^>]*?\svalue=[\"\']?([:\-%\._=+\/\w]*)[\"\']?[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
 )
 input_tag_novalue_regex = re.compile(r"<input(?![^>]*\bvalue=)[^>]*?name=[\"\']?([\-\._=+\/\w]*)[\"\']?[^>]*?>")
+input_tag_novalue_regex = re.compile(r"<input(?![^>]*\b\svalue=)[^>]*?\sname=[\"\']?([\-\._=+\/\w]*)[\"\']?[^>]*?>")
 # jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
 # jquery_get_regex = re.compile(r"\$.get\([\'\"].+[\'\"].+\{(.+)\}")
 # jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")

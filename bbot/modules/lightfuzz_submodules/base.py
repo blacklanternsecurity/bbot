@@ -18,15 +18,6 @@ class BaseLightfuzz:
                 new_additional_params[k] = v
         return new_additional_params
 
-    async def send_probe(self, probe):
-        probe = self.outgoing_probe_value(probe)
-        getparams = {self.event.data["name"]: probe}
-        url = self.lightfuzz.helpers.add_get_params(self.event.data["url"], getparams, encode=False).geturl()
-        self.lightfuzz.debug(f"lightfuzz sending probe with URL: {url}")
-        r = await self.lightfuzz.helpers.request(method="GET", url=url, allow_redirects=False, retries=2, timeout=10)
-        if r:
-            return r.text
-
     def compare_baseline(
         self, event_type, probe, cookies, additional_params_populate_empty=False, speculative_mode="GETPARAM"
     ):
@@ -131,6 +122,7 @@ class BaseLightfuzz:
             compare_result = await http_compare.compare(
                 self.event.data["url"], method="POST", data=data, cookies=cookies
             )
+
         elif event_type == "BODYJSON":
             data = {self.event.data["name"]: f"{probe}"}
             if additional_params:
@@ -150,6 +142,11 @@ class BaseLightfuzz:
         speculative_mode="GETPARAM",
         allow_redirects=False,
     ):
+
+
+
+
+
         probe = self.outgoing_probe_value(probe)
 
         if event_type == "SPECULATIVE":
@@ -177,6 +174,8 @@ class BaseLightfuzz:
 
         if event_type == "POSTPARAM":
 
+
+
             method = "POST"
             data = {self.event.data["name"]: probe}
             if self.event.data["additional_params"] is not None:
@@ -185,6 +184,7 @@ class BaseLightfuzz:
                         self.event.data["additional_params"], additional_params_populate_empty
                     )
                 )
+
         elif event_type == "BODYJSON":
             method = "POST"
             json_data = {self.event.data["name"]: probe}

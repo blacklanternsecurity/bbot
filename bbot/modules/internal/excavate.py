@@ -493,11 +493,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             form_content_regexes = {
                 "input_tag_regex": bbot_regexes.input_tag_regex,
                 "input_tag_regex2": bbot_regexes.input_tag_regex2,
-                "input_tag_novalue_regex": bbot_regexes.input_tag_novalue_regex,
                 "select_tag_regex": bbot_regexes.select_tag_regex,
                 "textarea_tag_regex": bbot_regexes.textarea_tag_regex,
                 "button_tag_regex": bbot_regexes.button_tag_regex,
                 "button_tag_regex2": bbot_regexes.button_tag_regex2,
+                "_input_tag_novalue_regex": bbot_regexes.input_tag_novalue_regex,
             }
             extraction_regex = bbot_regexes.get_form_regex
             output_type = "GETPARAM"
@@ -515,15 +515,17 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = form_content_regex.findall(form_content)
                         if input_tags:
-                            if form_content_regex_name == "input_tag_novalue_regex":
-                                form_parameters[input_tags[0]] = None
+                            if form_content_regex_name == "_input_tag_novalue_regex":
+                                form_parameters.setdefault(input_tags[0], None)
 
                             else:
                                 if form_content_regex_name in ["input_tag_regex2", "button_tag_regex2"]:
                                     input_tags = [(b, a) for a, b in input_tags]
 
                                 for parameter_name, original_value in input_tags:
-                                    form_parameters[parameter_name] = original_value.strip()
+                                   # form_parameters[parameter_name] = original_value.strip()
+                                    form_parameters.setdefault(parameter_name, original_value.strip())
+                   
 
                     for parameter_name, original_value in form_parameters.items():
                         yield (

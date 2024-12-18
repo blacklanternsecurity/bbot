@@ -225,6 +225,53 @@ class Test_Lightfuzz_xss(ModuleTestBase):
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
 
+# Form Action Injection Detection
+class Test_Lightfuzz_xss_formaction(Test_Lightfuzz_xss):
+
+    def request_handler(self, request):
+        form_data = request.form
+        value = form_data.get("func", None)
+
+        parameter_block = """
+        <section class=search>
+            <form action="/" method=POST>
+                <input type=text placeholder='Search the blog...' name=search>
+                <input type=text name=func value="/">
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+
+        if value:
+            xss_block = f"""
+            <section class=search>
+                <form action="{value}" method=POST>
+                    <input type=text placeholder='Search the blog...' name=search>
+                    <input type=text name=func value="{value}">
+                    <button type=submit class=button>Search</button>
+                </form>
+            </section>
+            """
+
+
+            return Response(xss_block, status=200)
+
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        xss_finding_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [search]" in e.data["description"]:
+                    web_parameter_emitted = True
+
+            if e.type == "FINDING":
+                if "Possible Reflected XSS. Parameter: [func] Context: [Form Action Injection] Parameter Type: [POSTPARAM]" in e.data["description"]:
+                    xss_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert xss_finding_emitted, "Form Action XSS FINDING not emitted"
 
 # Base64 Envelope XSS Detection
 class Test_Lightfuzz_envelope_base64(Test_Lightfuzz_xss):
