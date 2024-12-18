@@ -61,7 +61,6 @@ class XSSLightfuzz(BaseLightfuzz):
         random_string = self.lightfuzz.helpers.rand_string(8)
 
         reflection_probe_result = await self.standard_probe(self.event.data["type"], cookies, random_string)
-        self.lightfuzz.hugeinfo(reflection_probe_result.text)
         if reflection_probe_result and random_string in reflection_probe_result.text:
             reflection = True
 
