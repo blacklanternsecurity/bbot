@@ -83,9 +83,14 @@ class DNSResolve(BaseInterceptModule):
                     event_data_changed = await self.handle_wildcard_event(main_host_event)
                     if event_data_changed:
                         # since data has changed, we check again whether it's a duplicate
-                        if event.type == "DNS_NAME" and self.scan.ingress_module.is_incoming_duplicate(event, add=True):
+                        if event.type == "DNS_NAME" and self.scan.ingress_module.is_incoming_duplicate(
+                            event, add=True
+                        ):
                             if not event._graph_important:
-                                return False, "it's a DNS wildcard, and its module already emitted a similar wildcard event"
+                                return (
+                                    False,
+                                    "it's a DNS wildcard, and its module already emitted a similar wildcard event",
+                                )
                             else:
                                 self.debug(
                                     f"Event {event} was already emitted by its module, but it's graph-important so it gets a pass"

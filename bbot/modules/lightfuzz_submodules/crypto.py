@@ -6,7 +6,6 @@ from urllib.parse import unquote, quote
 
 
 class CryptoLightfuzz(BaseLightfuzz):
-
     @staticmethod
     def is_hex(s):
         try:
@@ -21,7 +20,6 @@ class CryptoLightfuzz(BaseLightfuzz):
             if base64.b64encode(base64.b64decode(s)).decode() == s:
                 return True
         except Exception:
-
             return False
         return False
 
@@ -75,7 +73,6 @@ class CryptoLightfuzz(BaseLightfuzz):
 
     @staticmethod
     def modify_string(input_string, action="truncate", position=None, extension_length=1):
-
         if not isinstance(input_string, str):
             input_string = str(input_string)
 
@@ -136,7 +133,7 @@ class CryptoLightfuzz(BaseLightfuzz):
         paddingblock = b"\x00" * block_size
         datablock = original_data[-block_size:]
         if possible_first_byte:
-            baseline_byte = b"\xFF"
+            baseline_byte = b"\xff"
             starting_pos = 0
         else:
             baseline_byte = b"\x00"
@@ -148,7 +145,6 @@ class CryptoLightfuzz(BaseLightfuzz):
         )
         differ_count = 0
         for i in range(starting_pos, starting_pos + 254):
-
             byte = bytes([i])
             oracle_probe = await self.compare_probe(
                 baseline,
@@ -176,7 +172,6 @@ class CryptoLightfuzz(BaseLightfuzz):
         possible_block_sizes = self.possible_block_sizes(len(data))
 
         for block_size in possible_block_sizes:
-
             padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
             if padding_oracle_result is None:
                 self.lightfuzz.debug(
@@ -198,7 +193,6 @@ class CryptoLightfuzz(BaseLightfuzz):
                 )
 
     async def error_string_search(self, text_dict, baseline_text):
-
         matching_techniques = set()
         matching_strings = set()
 
@@ -238,8 +232,10 @@ class CryptoLightfuzz(BaseLightfuzz):
             return hash_functions[hash_length]
 
     async def fuzz(self):
+        
         cookies = self.event.data.get("assigned_cookies", {})
-        probe_value = self.probe_value_incoming(populate_empty=False)
+        probe_value = self.incoming_probe_value(populate_empty=False)
+
         if not probe_value:
             self.lightfuzz.debug(
                 f"The Cryptography Probe Submodule requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
@@ -256,7 +252,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             mutate_probe_value = self.modify_string(probe_value, action="mutate")
         except ValueError as e:
             self.lightfuzz.debug(
-                f"Encountered error modifying value for parameter {self.event.data['name']}: {e} , aborting"
+                f"Encountered error modifying value for parameter [{self.event.data['name']}]: {e} , aborting"
             )
             return
 
@@ -311,7 +307,6 @@ class CryptoLightfuzz(BaseLightfuzz):
         if confirmed_techniques or (
             "padding" in truncate_probe[3].text.lower() or "padding" in mutate_probe[3].text.lower()
         ):
-
             # Padding Oracle Test
 
             if possible_block_cipher:

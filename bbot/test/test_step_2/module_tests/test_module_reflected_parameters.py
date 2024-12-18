@@ -26,7 +26,6 @@ class TestReflected_parameters_fromexcavate(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
-
         assert any(
             e.type == "FINDING"
             and e.data["description"]
@@ -39,7 +38,6 @@ class TestReflected_parameters_fromparamminer(TestParamminer_Getparams):
     modules_overrides = ["httpx", "paramminer_getparams", "reflected_parameters"]
 
     def check(self, module_test, events):
-
         assert any(
             e.type == "FINDING"
             and "GET Parameter value reflected in response body. Name: [id] Source Module: [paramminer_getparams]"

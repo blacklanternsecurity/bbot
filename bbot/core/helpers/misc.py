@@ -2867,3 +2867,15 @@ def get_python_constraints():
 
     dist = distribution("bbot")
     return [clean_requirement(r) for r in dist.requires]
+
+
+def is_printable(s):
+    """
+    Check if a string is printable
+    """
+    if not isinstance(s, str):
+        raise ValueError(f"Expected a string, got {type(s)}")
+
+    # Exclude control characters that break display/printing
+    s = set(s)
+    return all(ord(c) >= 32 or c in "\t\n\r" for c in s)

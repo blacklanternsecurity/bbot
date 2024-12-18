@@ -503,9 +503,7 @@ class TestExcavateParameterExtraction(TestExcavate):
         found_select_noquotes = False
 
         for e in events:
-
             if e.type == "WEB_PARAMETER":
-
                 if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
                     found_jquery_get = True
                     if e.data["original_value"] == "value1":
@@ -541,7 +539,10 @@ class TestExcavateParameterExtraction(TestExcavate):
                         if "fit" in e.data["additional_params"].keys():
                             found_htmltags_img = True
 
-                if e.data["description"] == "HTTP Extracted Parameter [blog-post-author-display] (POST Form Submodule)":
+                if (
+                    e.data["description"]
+                    == "HTTP Extracted Parameter [blog-post-author-display] (POST Form Submodule)"
+                ):
                     if e.data["original_value"] == "user.name":
                         if "csrf" in e.data["additional_params"].keys():
                             found_select_noquotes = True
@@ -558,10 +559,10 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_form_generic_original_value, "Did not extract Form (Generic) parameter original_value"
         assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
-        assert found_select_noquotes, "Did not extract parameter(s) from select-tag" 
+        assert found_select_noquotes, "Did not extract parameter(s) from select-tag"
+
 
 class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
-
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
@@ -583,7 +584,6 @@ class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-
         excavate_getparam_extraction = False
         for e in events:
             if e.type == "WEB_PARAMETER":
@@ -656,7 +656,6 @@ class TestExcavateParameterExtraction_getparam(ModuleTestBase):
 
 
 class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
-
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
@@ -681,7 +680,6 @@ class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
     root_page_html = "<html>Root page</html>"
 
     async def setup_after_prep(self, module_test):
-
         module_test.httpserver.expect_request("/").respond_with_data(self.primary_page_html)
         module_test.httpserver.expect_request("/secondary").respond_with_data(self.secondary_page_html)
         module_test.httpserver.expect_request("/root.html").respond_with_data(self.root_page_html)
@@ -781,7 +779,6 @@ class TestExcavateParameterExtraction_xml(ModuleTestBase):
 
 
 class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
-
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
@@ -1262,7 +1259,6 @@ class TestExcavate(ModuleTestBase):
     config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
 
     async def setup_before_prep(self, module_test):
-
         response_data = """
         ftp://ftp.test.notreal
         \\nhttps://www1.test.notreal
@@ -1350,13 +1346,11 @@ class TestExcavate(ModuleTestBase):
 
 
 class TestExcavateHeaders_blacklist(ModuleTestBase):
-
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["excavate", "httpx", "hunt"]
     config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
 
     async def setup_before_prep(self, module_test):
-
         module_test.httpserver.expect_request("/").respond_with_data(
             "<html><p>test</p></html>",
             status=200,
@@ -1370,7 +1364,6 @@ class TestExcavateHeaders_blacklist(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-
         found_first_cookie = False
         found_second_cookie = False
         found_third_cookie = False

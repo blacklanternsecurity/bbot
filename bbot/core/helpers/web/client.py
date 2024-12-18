@@ -85,7 +85,6 @@ class BBOTAsyncClient(httpx.AsyncClient):
             self._cookies = DummyCookies()
 
     def build_request(self, *args, **kwargs):
-
         if args:
             url = args[0]
             kwargs["url"] = url

@@ -38,9 +38,8 @@ class SQLiLightfuzz(BaseLightfuzz):
             return False
 
     async def fuzz(self):
-
         cookies = self.event.data.get("assigned_cookies", {})
-        probe_value = self.probe_value_incoming(populate_empty=True)
+        probe_value = self.incoming_probe_value(populate_empty=True)
         http_compare = self.compare_baseline(
             self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
         )

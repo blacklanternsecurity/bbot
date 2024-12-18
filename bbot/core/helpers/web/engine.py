@@ -50,7 +50,6 @@ class HTTPEngine(EngineServer):
             return client
 
     async def request(self, *args, **kwargs):
-
         raise_error = kwargs.pop("raise_error", False)
         # TODO: use this
         cache_for = kwargs.pop("cache_for", None)  # noqa
@@ -75,7 +74,6 @@ class HTTPEngine(EngineServer):
         client_kwargs = {}
         for k in list(kwargs):
             if k in self.client_only_options:
-
                 v = kwargs.pop(k)
                 client_kwargs[k] = v
 

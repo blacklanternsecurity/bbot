@@ -130,13 +130,10 @@ class lightfuzz(BaseModule):
                 event_data = {"host": str(event.host), "url": event.data["url"], "description": r["description"]}
 
                 envelopes = getattr(event, "envelopes", None)
-                if envelopes and envelopes.envelopes:
-                    envelope_summary = f'[{"->".join(envelopes.envelopes)}]'
-                    if envelopes.end_format_type:
-                        envelope_summary += f" Format: [{envelopes.end_format_type}] with subparameter [{envelopes.end_format_subparameter}])"
-
+                envelope_summary = getattr(envelopes, "summary", None)
+                if envelope_summary:
                     # Append the envelope summary to the description
-                    event_data["description"] += f" Envelopes: {envelope_summary}"
+                    event_data["description"] += f" Envelopes: [{envelope_summary}]"
 
                 if r["type"] == "VULNERABILITY":
                     event_data["severity"] = r["severity"]
@@ -147,10 +144,8 @@ class lightfuzz(BaseModule):
                 )
 
     async def handle_event(self, event):
-
         if event.type == "URL":
             if self.config.get("force_common_headers", False) is False:
-
                 return False
 
             for h in self.common_headers:
@@ -166,7 +161,6 @@ class lightfuzz(BaseModule):
                 await self.emit_event(data, "WEB_PARAMETER", event)
 
         elif event.type == "WEB_PARAMETER":
-
             # check connectivity to url
             connectivity_test = await self.helpers.request(event.data["url"], timeout=10)
 
@@ -199,5 +193,5 @@ class lightfuzz(BaseModule):
 
     async def filter_event(self, event):
         if event.type == "WEB_PARAMETER" and self.disable_post and event.data["type"] == "POSTPARAM":
-            return False, "POST parameter disabled in lilghtfuzz module"
+            return False, "POST parameter disabled in lightfuzz module"
         return True
