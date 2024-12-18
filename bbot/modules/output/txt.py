@@ -5,7 +5,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class TXT(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Output to text"}
+    meta = {"description": "Output to text", "created_date": "2024-04-03", "author": "@TheTechromancer"}
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to file"}
 

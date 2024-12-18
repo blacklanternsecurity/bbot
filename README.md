@@ -226,8 +226,6 @@ config:
     baddns:
       enable_references: True
 
-
-
 ```
 
 </details>

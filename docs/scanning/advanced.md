@@ -39,8 +39,8 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]]
                [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
                [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d]
                [-s] [--force] [-y] [--fast-mode] [--dry-run]
-               [--current-preset] [--current-preset-full] [-o DIR]
-               [-om MODULE [MODULE ...]] [--json] [--brief]
+               [--current-preset] [--current-preset-full]
+               [-om MODULE [MODULE ...]] [-lo] [-o DIR] [--json] [--brief]
                [--event-types EVENT_TYPES [EVENT_TYPES ...]]
                [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps]
                [--version] [--proxy HTTP_PROXY]
@@ -100,10 +100,12 @@ Scan:
                         Show the current preset in its full form, including defaults
 
 Output:
+  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
+                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,json,mysql,neo4j,nmap_xml,postgres,python,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_report,websocket
+  -lo, --list-output-modules
+                        List available output modules
   -o DIR, --output-dir DIR
                         Directory to output scan results
-  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,json,mysql,neo4j,postgres,python,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_report,websocket
   --json, -j            Output scan data in JSON format
   --brief, -br          Output only the data itself
   --event-types EVENT_TYPES [EVENT_TYPES ...]
@@ -148,6 +150,9 @@ EXAMPLES
 
     List modules:
         bbot -l
+
+    List output modules:
+        bbot -lo
 
     List presets:
         bbot -lp

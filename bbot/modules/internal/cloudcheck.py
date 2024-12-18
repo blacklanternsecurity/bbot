@@ -5,7 +5,11 @@ from bbot.modules.base import BaseInterceptModule
 
 class CloudCheck(BaseInterceptModule):
     watched_events = ["*"]
-    meta = {"description": "Tag events by cloud provider, identify cloud resources like storage buckets"}
+    meta = {
+        "description": "Tag events by cloud provider, identify cloud resources like storage buckets",
+        "created_date": "2024-07-07",
+        "author": "@TheTechromancer",
+    }
     scope_distance_modifier = 1
     _priority = 3
 
@@ -68,9 +72,10 @@ class CloudCheck(BaseInterceptModule):
                 base_kwargs["event_type"] = event_type
                 for sig in sigs:
                     matches = []
-                    if event.type == "HTTP_RESPONSE":
-                        matches = await self.helpers.re.findall(sig, event.data.get("body", ""))
-                    elif event.type.startswith("DNS_NAME"):
+                    # TODO: convert this to an excavate YARA hook
+                    # if event.type == "HTTP_RESPONSE":
+                    #     matches = await self.helpers.re.findall(sig, event.data.get("body", ""))
+                    if event.type.startswith("DNS_NAME"):
                         for host in str_hosts_to_check:
                             match = sig.match(host)
                             if match:

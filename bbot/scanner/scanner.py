@@ -124,6 +124,7 @@ class Scanner:
         self.duration_seconds = None
 
         self._success = False
+        self._scan_finish_status_message = None
 
         if scan_id is not None:
             self.id = str(scan_id)
@@ -431,14 +432,19 @@ class Scanner:
 
             self._stop_log_handlers()
 
+            if self._scan_finish_status_message:
+                log_fn = self.hugesuccess
+                if self.status.startswith("ABORT"):
+                    log_fn = self.hugewarning
+                elif not self._success:
+                    log_fn = self.critical
+                log_fn(self._scan_finish_status_message)
+
     async def _mark_finished(self):
-        log_fn = self.hugesuccess
         if self.status == "ABORTING":
             status = "ABORTED"
-            log_fn = self.hugewarning
         elif not self._success:
             status = "FAILED"
-            log_fn = self.critical
         else:
             status = "FINISHED"
 
@@ -447,9 +453,9 @@ class Scanner:
         self.duration_seconds = self.duration.total_seconds()
         self.duration_human = self.helpers.human_timedelta(self.duration)
 
-        status_message = f"Scan {self.name} completed in {self.duration_human} with status {status}"
+        self._scan_finish_status_message = f"Scan {self.name} completed in {self.duration_human} with status {status}"
 
-        scan_finish_event = self.finish_event(status_message, status)
+        scan_finish_event = self.finish_event(self._scan_finish_status_message, status)
 
         # queue final scan event with output modules
         output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
@@ -463,7 +469,6 @@ class Scanner:
             await asyncio.sleep(0.05)
 
         self.status = status
-        log_fn(status_message)
         return scan_finish_event
 
     def _start_modules(self):

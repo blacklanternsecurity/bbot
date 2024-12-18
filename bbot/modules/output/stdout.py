@@ -6,7 +6,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class Stdout(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Output to text"}
+    meta = {"description": "Output to text", "created_date": "2024-04-03", "author": "@TheTechromancer"}
     options = {"format": "text", "event_types": [], "event_fields": [], "in_scope_only": False, "accept_dupes": True}
     options_desc = {
         "format": "Which text format to display, choices: text,json",

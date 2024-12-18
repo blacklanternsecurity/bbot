@@ -53,6 +53,11 @@ class BBOTArgs:
             "bbot -l",
         ),
         (
+            "List output modules",
+            "",
+            "bbot -lo",
+        ),
+        (
             "List presets",
             "",
             "bbot -lp",
@@ -130,14 +135,17 @@ class BBOTArgs:
             args_preset.core.merge_custom({"modules": {"stdout": {"event_types": self.parsed.event_types}}})
 
         # dependencies
+        deps_config = args_preset.core.custom_config.get("deps", {})
         if self.parsed.retry_deps:
-            args_preset.core.custom_config["deps_behavior"] = "retry_failed"
+            deps_config["behavior"] = "retry_failed"
         elif self.parsed.force_deps:
-            args_preset.core.custom_config["deps_behavior"] = "force_install"
+            deps_config["behavior"] = "force_install"
         elif self.parsed.no_deps:
-            args_preset.core.custom_config["deps_behavior"] = "disable"
+            deps_config["behavior"] = "disable"
         elif self.parsed.ignore_failed_deps:
-            args_preset.core.custom_config["deps_behavior"] = "ignore_failed"
+            deps_config["behavior"] = "ignore_failed"
+        if deps_config:
+            args_preset.core.merge_custom({"deps": deps_config})
 
         # other scan options
         if self.parsed.name is not None:
@@ -307,6 +315,7 @@ class BBOTArgs:
             help=f'Output module(s). Choices: {",".join(sorted(self.preset.module_loader.output_module_choices))}',
             metavar="MODULE",
         )
+        output.add_argument("-lo", "--list-output-modules", action="store_true", help="List available output modules")
         output.add_argument("--json", "-j", action="store_true", help="Output scan data in JSON format")
         output.add_argument("--brief", "-br", action="store_true", help="Output only the data itself")
         output.add_argument("--event-types", nargs="+", default=[], help="Choose which event types to display")

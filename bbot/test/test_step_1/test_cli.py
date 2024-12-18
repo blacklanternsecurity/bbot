@@ -1,3 +1,5 @@
+import yaml
+
 from ..bbot_fixtures import *
 
 from bbot import cli
@@ -143,6 +145,20 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert len(out.splitlines()) == 1
     assert out.count(".") > 1
 
+    # deps behavior
+    monkeypatch.setattr("sys.argv", ["bbot", "-n", "depstest", "--retry-deps", "--current-preset"])
+    result = await cli._main()
+    assert result is None
+    out, err = capsys.readouterr()
+    print(out)
+    # parse YAML output
+    preset = yaml.safe_load(out)
+    assert preset == {
+        "description": "depstest",
+        "scan_name": "depstest",
+        "config": {"deps": {"behavior": "retry_failed"}},
+    }
+
     # list modules
     monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
     result = await cli._main()
@@ -150,10 +166,22 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     # internal modules
     assert "| excavate " in out
-    # output modules
-    assert "| csv " in out
+    # no output modules
+    assert not "| csv " in out
     # scan modules
     assert "| wayback " in out
+
+    # list output modules
+    monkeypatch.setattr("sys.argv", ["bbot", "--list-output-modules"])
+    result = await cli._main()
+    assert result == None
+    out, err = capsys.readouterr()
+    # no internal modules
+    assert not "| excavate " in out
+    # output modules
+    assert "| csv " in out
+    # no scan modules
+    assert not "| wayback " in out
 
     # output dir and scan name
     output_dir = bbot_test_dir / "bbot_cli_args_output"
@@ -389,7 +417,6 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
 async def test_cli_customheaders(monkeypatch, caplog, capsys):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
-    import yaml
 
     # test custom headers
     monkeypatch.setattr(
