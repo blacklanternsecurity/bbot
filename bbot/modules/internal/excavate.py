@@ -612,6 +612,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
                                 if self.excavate.in_bl(parameter_name) is False:
                                     parsed_url = urlparse(url)
+                                    if not parsed_url.hostname:
+                                        self.excavate.warning(f"Error Parsing reconstructed URL [{url}] during parameter extraction, missing hostname")
+                                        continue
                                     description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
                                     data = {
                                         "host": parsed_url.hostname,
