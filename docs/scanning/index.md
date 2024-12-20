@@ -22,6 +22,11 @@ Targets declare what's in-scope, and seed a scan with initial data. BBOT accepts
 - `IP_RANGE` (`1.2.3.0/24`)
 - `OPEN_TCP_PORT` (`192.168.0.1:80`)
 - `URL` (`https://www.evilcorp.com`)
+- `EMAIL_ADDRESS` (`bob@evilcorp.com`)
+- `ORG_STUB` (`ORG:evilcorp`)
+- `USER_STUB` (`USER:bobsmith`)
+- `FILESYSTEM` (`FILESYSTEM:/tmp/asdf`)
+- `MOBILE_APP` (`MOBILE_APP:https://play.google.com/store/apps/details?id=com.evilcorp.app`)
 
 Note that BBOT only discriminates down to the host level. This means, for example, if you specify a URL `https://www.evilcorp.com` as the target, the scan will be *seeded* with that URL, but the scope of the scan will be the entire host, `www.evilcorp.com`. Other ports/URLs on that same host may also be scanned.
 

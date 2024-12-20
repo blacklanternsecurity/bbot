@@ -55,8 +55,8 @@ pyzmq = "^26.0.3"
 httpx = "^0.27.0"
 pyahocorasick = "^2.1.0"
 puremagic = "^1.28"
-cloudcheck = "^6.0.0.602"
-radixtarget = "^2.0.0.50"
+radixtarget = "^3.0.13"
+cloudcheck = "^7.0.12"
 orjson = "^3.10.12"
 
 [tool.poetry.group.dev.dependencies]

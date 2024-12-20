@@ -14,8 +14,8 @@ from typing import Optional
 from copy import copy, deepcopy
 from contextlib import suppress
 from radixtarget import RadixTarget
-from urllib.parse import urljoin, parse_qs
 from pydantic import BaseModel, field_validator
+from urllib.parse import urlparse, urljoin, parse_qs
 
 
 from .helpers import *
@@ -1645,6 +1645,27 @@ class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
 
 class MOBILE_APP(DictEvent):
     _always_emit = True
+
+    def _sanitize_data(self, data):
+        if isinstance(data, str):
+            data = {"url": data}
+        if "url" not in data:
+            raise ValidationError("url is required for MOBILE_APP events")
+        url = data["url"]
+        # parse URL
+        try:
+            self.parsed_url = urlparse(url)
+        except Exception as e:
+            raise ValidationError(f"Error parsing URL {url}: {e}")
+        if not "id" in data:
+            # extract "id" getparam
+            params = parse_qs(self.parsed_url.query)
+            try:
+                _id = params["id"][0]
+            except Exception:
+                raise ValidationError("id is required for MOBILE_APP events")
+            data["id"] = _id
+        return data
 
     def _pretty_string(self):
         return self.data["url"]

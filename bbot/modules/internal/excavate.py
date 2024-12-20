@@ -613,7 +613,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 if self.excavate.in_bl(parameter_name) is False:
                                     parsed_url = urlparse(url)
                                     if not parsed_url.hostname:
-                                        self.excavate.warning(f"Error Parsing reconstructed URL [{url}] during parameter extraction, missing hostname")
+                                        self.excavate.warning(
+                                            f"Error Parsing reconstructed URL [{url}] during parameter extraction, missing hostname"
+                                        )
                                         continue
                                     description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
                                     data = {
@@ -814,7 +816,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 """
             ),
         }
-        full_url_regex = re.compile(r"(https?)://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
+        full_url_regex = re.compile(r"(https?)://(\w(?:[\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)")
         full_url_regex_strict = re.compile(r"^(https?):\/\/([\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$")
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
 

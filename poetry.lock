@@ -385,20 +385,20 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "6.0.0.686"
+version = "7.0.33"
 description = "Check whether an IP address belongs to a cloud provider"
 category = "main"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "cloudcheck-6.0.0.686-py3-none-any.whl", hash = "sha256:bd2494ffc5e3ee2c6ab6c13bf2842407da02a2ff27edd9788d73e13a276f1c39"},
-    {file = "cloudcheck-6.0.0.686.tar.gz", hash = "sha256:70ef41a1e03dcc35093322d7bb1cd6636ea945bdbeceda15e9120013023ee5cb"},
+    {file = "cloudcheck-7.0.33-py3-none-any.whl", hash = "sha256:005d6888b3b4526888f98f9514487e801d521d756b48c7ff55daa9a638fda570"},
+    {file = "cloudcheck-7.0.33.tar.gz", hash = "sha256:36699d3868ffcdd3ac36e761e3c074a69d32120c787013d36820f6766ab73543"},
 ]
 
 [package.dependencies]
 httpx = ">=0.26,<0.29"
 pydantic = ">=2.4.2,<3.0.0"
-radixtarget = ">=2.0.0.32,<3.0.0.0"
+radixtarget = ">=3.0.13,<4.0.0"
 regex = ">=2024.4.16,<2025.0.0"
 
 [[package]]
@@ -2450,14 +2450,14 @@ cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
 name = "radixtarget"
-version = "2.0.0.58"
+version = "3.0.15"
 description = "Check whether an IP address belongs to a cloud provider"
 category = "main"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "radixtarget-2.0.0.58-py3-none-any.whl", hash = "sha256:da1feb277012a115c26b370f5e2102dd31ff8745294fddc75f2d2664cc8820ad"},
-    {file = "radixtarget-2.0.0.58.tar.gz", hash = "sha256:2d909608503698495b135cf1c2446c23c1d6f9dc4dfc6e6ed5517fcb5f7ee46e"},
+    {file = "radixtarget-3.0.15-py3-none-any.whl", hash = "sha256:1e1d0dd3e8742ffcfc42084eb238f31f6785626b876ab63a9f28a29e97bd3bb0"},
+    {file = "radixtarget-3.0.15.tar.gz", hash = "sha256:dedfad3aea1e973f261b7bc0d8936423f59ae4d082648fd496c6cdfdfa069fea"},
 ]
 
 [[package]]
@@ -3317,3 +3317,4 @@ type = ["pytest-mypy"]
 lock-version = "2.0"
 python-versions = "^3.9"
 content-hash = "5b7316c4fbfddce5a1d70a874070d8edc83320ff73fea32801fecc0acffc0d17"
+

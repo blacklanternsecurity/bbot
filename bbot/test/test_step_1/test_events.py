@@ -979,6 +979,45 @@ def test_event_magic():
     zip_file.unlink()
 
 
+@pytest.mark.asyncio
+async def test_mobile_app():
+    scan = Scanner()
+    with pytest.raises(ValidationError):
+        scan.make_event("com.evilcorp.app", "MOBILE_APP", parent=scan.root_event)
+    with pytest.raises(ValidationError):
+        scan.make_event({"id": "com.evilcorp.app"}, "MOBILE_APP", parent=scan.root_event)
+    with pytest.raises(ValidationError):
+        scan.make_event({"url": "https://play.google.com/store/apps/details"}, "MOBILE_APP", parent=scan.root_event)
+    mobile_app = scan.make_event(
+        {"url": "https://play.google.com/store/apps/details?id=com.evilcorp.app"}, "MOBILE_APP", parent=scan.root_event
+    )
+    assert sorted(mobile_app.data.items()) == [
+        ("id", "com.evilcorp.app"),
+        ("url", "https://play.google.com/store/apps/details?id=com.evilcorp.app"),
+    ]
+
+    scan = Scanner("MOBILE_APP:https://play.google.com/store/apps/details?id=com.evilcorp.app")
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 3
+    mobile_app_event = [e for e in events if e.type == "MOBILE_APP"][0]
+    assert mobile_app_event.type == "MOBILE_APP"
+    assert sorted(mobile_app_event.data.items()) == [
+        ("id", "com.evilcorp.app"),
+        ("url", "https://play.google.com/store/apps/details?id=com.evilcorp.app"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_filesystem():
+    scan = Scanner("FILESYSTEM:/tmp/asdf")
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 3
+    filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
+    assert len(filesystem_events) == 1
+    assert filesystem_events[0].type == "FILESYSTEM"
+    assert filesystem_events[0].data == {"path": "/tmp/asdf"}
+
+
 def test_event_hashing():
     scan = Scanner("example.com")
     url_event = scan.make_event("https://api.example.com/", "URL_UNVERIFIED", parent=scan.root_event)

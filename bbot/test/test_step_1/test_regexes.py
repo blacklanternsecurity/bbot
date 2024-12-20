@@ -267,7 +267,6 @@ def test_url_regexes():
         "http:///evilcorp.com",
         "http:// evilcorp.com",
         "http://evilcorp com",
-        "http://evilcorp.",
         "http://.com",
         "evilcorp.com",
         "http://ex..ample.com",
@@ -288,6 +287,7 @@ def test_url_regexes():
 
     good_urls = [
         "https://evilcorp.com",
+        "http://evilcorp.",
         "https://asdf.www.evilcorp.com",
         "https://asdf.www-test.evilcorp.com",
         "https://a.www-test.evilcorp.c",
