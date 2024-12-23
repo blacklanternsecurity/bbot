@@ -1,3 +1,4 @@
+import json
 import logging
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Union, Annotated
@@ -9,6 +10,9 @@ log = logging.getLogger("bbot_server.models")
 
 class BBOTBaseModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
+
+    def to_json(self, **kwargs):
+        return json.dumps(self.validated.model_dump(), sort_keys=True, **kwargs)
 
     def __hash__(self):
         return hash(self.to_json())

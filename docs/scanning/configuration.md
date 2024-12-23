@@ -30,7 +30,7 @@ You can specify config options either via the command line or the config. For ex
 bbot -t evilcorp.com -c http_proxy=http://127.0.0.1:8080
 ```
 
-Or, in `~/.config/bbot/config.yml`:
+Or, in `~/.config/bbot/bbot.yml`:
 
 ```yaml title="~/.bbot/config/bbot.yml"
 http_proxy: http://127.0.0.1:8080
