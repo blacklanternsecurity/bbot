@@ -8,7 +8,7 @@ class TestCloudCheck(ModuleTestBase):
     modules_overrides = ["httpx", "excavate", "cloudcheck"]
 
     async def setup_after_prep(self, module_test):
-        module_test.set_expect_requests({"uri": "/"}, {"response_data": "<a href='asdf.s3.amazonaws.com'/>"})
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": "<a href='http://asdf.s3.amazonaws.com'/>"})
 
         scan = Scanner(config={"cloudcheck": True})
         await scan._prep()

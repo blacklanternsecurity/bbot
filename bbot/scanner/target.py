@@ -95,13 +95,13 @@ class BaseTarget(RadixTarget):
             else:
                 event = self.make_event(target)
                 if event:
+                    self.inputs.add(target)
                     _events = [event]
             for event in _events:
-                self.inputs.add(event.data)
                 events.add(event)
 
         # sort by host size to ensure consistency
-        events = sorted(events, key=lambda e: (0 if not e.host else host_size_key(e.host)))
+        events = sorted(events, key=lambda e: ((0, 0) if not e.host else host_size_key(e.host)))
         for event in events:
             self.events.add(event)
             self._add(event.host, data=event)
@@ -138,6 +138,20 @@ class ScanSeeds(BaseTarget):
         username_event = self.make_event(match.group(1), event_type="USERNAME")
         if username_event:
             return [username_event]
+        return []
+
+    @special_target_type(r"^(?:FILESYSTEM|FILE|FOLDER|DIR|PATH):(.*)")
+    def handle_filesystem(self, match):
+        filesystem_event = self.make_event({"path": match.group(1)}, event_type="FILESYSTEM")
+        if filesystem_event:
+            return [filesystem_event]
+        return []
+
+    @special_target_type(r"^(?:MOBILE_APP|APK|IPA|APP):(.*)")
+    def handle_mobile_app(self, match):
+        mobile_app_event = self.make_event({"url": match.group(1)}, event_type="MOBILE_APP")
+        if mobile_app_event:
+            return [mobile_app_event]
         return []
 
     def get(self, event, single=True, **kwargs):
@@ -192,7 +206,6 @@ class ScanBlacklist(ACLTarget):
     @special_target_type(r"^(?:RE|REGEX):(.*)")
     def handle_regex(self, match):
         pattern = match.group(1)
-        log.info(f"Blacklisting by custom regex: {pattern}")
         blacklist_regex = re.compile(pattern, re.IGNORECASE)
         self.blacklist_regexes.add(blacklist_regex)
         return []
@@ -224,6 +237,12 @@ class ScanBlacklist(ACLTarget):
         regex_patterns = [str(r.pattern).encode() for r in self.blacklist_regexes]
         hosts = [str(h).encode() for h in self.sorted_hosts]
         return hosts + regex_patterns
+
+    def __len__(self):
+        return super().__len__() + len(self.blacklist_regexes)
+
+    def __bool__(self):
+        return bool(len(self))
 
 
 class BBOTTarget:

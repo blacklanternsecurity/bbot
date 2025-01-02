@@ -272,13 +272,13 @@ def test_preset_scope():
     }
     assert preset_whitelist_baked.to_dict(include_target=True) == {
         "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.0/24", "http://evilcorp.net/"],
+        "whitelist": ["1.2.3.4/24", "http://evilcorp.net"],
         "blacklist": ["bob@evilcorp.co.uk", "evilcorp.co.uk:443"],
         "config": {"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
     }
     assert preset_whitelist_baked.to_dict(include_target=True, redact_secrets=True) == {
         "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.0/24", "http://evilcorp.net/"],
+        "whitelist": ["1.2.3.4/24", "http://evilcorp.net"],
         "blacklist": ["bob@evilcorp.co.uk", "evilcorp.co.uk:443"],
         "config": {"modules": {"secretsdb": {"otherthing": "asdf"}}},
     }

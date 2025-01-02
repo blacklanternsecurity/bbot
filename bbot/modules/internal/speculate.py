@@ -104,7 +104,7 @@ class speculate(BaseInternalModule):
             # don't act on unresolved DNS_NAMEs
             usable_dns = False
             if event.type == "DNS_NAME":
-                if self.dns_disable or ("a-record" in event.tags or "aaaa-record" in event.tags):
+                if self.dns_disable or event.resolved_hosts:
                     usable_dns = True
 
             if event.type == "IP_ADDRESS" or usable_dns:

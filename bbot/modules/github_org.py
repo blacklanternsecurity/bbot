@@ -206,11 +206,7 @@ class github_org(github):
         for k, v in json.items():
             if (
                 isinstance(v, str)
-                and (
-                    self.helpers.is_dns_name(v, include_local=False)
-                    or self.helpers.is_url(v)
-                    or self.helpers.is_email(v)
-                )
+                and (self.helpers.is_dns_name(v) and "." in v or self.helpers.is_url(v) or self.helpers.is_email(v))
                 and self.scan.in_scope(v)
             ):
                 self.verbose(f'Found in-scope key "{k}": "{v}" for {org}, it appears to be in-scope')

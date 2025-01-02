@@ -51,7 +51,7 @@ class BaseModule:
 
         target_only (bool): Accept only the initial target event(s). Default is False.
 
-        in_scope_only (bool): Accept only explicitly in-scope events. Default is False.
+        in_scope_only (bool): Accept only explicitly in-scope events, regardless of the scan's search distance. Default is False.
 
         options (Dict): Customizable options for the module, e.g., {"api_key": ""}. Empty dict by default.
 

@@ -3,7 +3,11 @@ from bbot.modules.templates.sql import SQLTemplate
 
 class Postgres(SQLTemplate):
     watched_events = ["*"]
-    meta = {"description": "Output scan data to a SQLite database"}
+    meta = {
+        "description": "Output scan data to a SQLite database",
+        "created_date": "2024-11-08",
+        "author": "@TheTechromancer",
+    }
     options = {
         "username": "postgres",
         "password": "bbotislife",

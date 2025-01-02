@@ -5,7 +5,11 @@ from bbot.modules.base import BaseInterceptModule
 
 class CloudCheck(BaseInterceptModule):
     watched_events = ["*"]
-    meta = {"description": "Tag events by cloud provider, identify cloud resources like storage buckets"}
+    meta = {
+        "description": "Tag events by cloud provider, identify cloud resources like storage buckets",
+        "created_date": "2024-07-07",
+        "author": "@TheTechromancer",
+    }
     scope_distance_modifier = 1
     _priority = 3
 
@@ -37,7 +41,12 @@ class CloudCheck(BaseInterceptModule):
 
         for i, host in enumerate(hosts_to_check):
             host_is_ip = self.helpers.is_ip(host)
-            for provider, provider_type, subnet in self.helpers.cloudcheck(host):
+            try:
+                cloudcheck_results = self.helpers.cloudcheck(host)
+            except Exception as e:
+                self.trace(f"Error running cloudcheck against {event} (host: {host}): {e}")
+                continue
+            for provider, provider_type, subnet in cloudcheck_results:
                 if provider:
                     event.add_tag(f"{provider_type}-{provider}")
                     if host_is_ip:
@@ -68,9 +77,10 @@ class CloudCheck(BaseInterceptModule):
                 base_kwargs["event_type"] = event_type
                 for sig in sigs:
                     matches = []
-                    if event.type == "HTTP_RESPONSE":
-                        matches = await self.helpers.re.findall(sig, event.data.get("body", ""))
-                    elif event.type.startswith("DNS_NAME"):
+                    # TODO: convert this to an excavate YARA hook
+                    # if event.type == "HTTP_RESPONSE":
+                    #     matches = await self.helpers.re.findall(sig, event.data.get("body", ""))
+                    if event.type.startswith("DNS_NAME"):
                         for host in str_hosts_to_check:
                             match = sig.match(host)
                             if match:

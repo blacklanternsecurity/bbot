@@ -559,13 +559,12 @@ def is_port(p):
     return p and p.isdigit() and 0 <= int(p) <= 65535
 
 
-def is_dns_name(d, include_local=True):
+def is_dns_name(d):
     """
     Determines if the given string is a valid DNS name.
 
     Args:
         d (str): The string to be checked.
-        include_local (bool): Consider local hostnames to be valid (hostnames without periods)
 
     Returns:
         bool: True if the string is a valid DNS name, False otherwise.
@@ -575,17 +574,12 @@ def is_dns_name(d, include_local=True):
         True
         >>> is_dns_name('localhost')
         True
-        >>> is_dns_name('localhost', include_local=False)
-        False
         >>> is_dns_name('192.168.1.1')
         False
     """
     if is_ip(d):
         return False
     d = smart_decode(d)
-    if include_local:
-        if bbot_regexes.hostname_regex.match(d):
-            return True
     if bbot_regexes.dns_name_validation_regex.match(d):
         return True
     return False

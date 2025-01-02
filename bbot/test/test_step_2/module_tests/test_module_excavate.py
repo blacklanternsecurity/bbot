@@ -29,6 +29,7 @@ class TestExcavate(ModuleTestBase):
         # these ones should
         <a href="/a_relative.txt">
         <link href="/link_relative.txt">
+        <a href="mailto:bob@evilcorp.org?subject=help">Help</a>
         """
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": response_data}
@@ -1010,3 +1011,29 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert (
             "/donot_detect.js" not in url_events
         ), f"URL extracted from extractous text is incorrect, got {url_events}"
+
+
+class TestExcavateBadURLs(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["excavate", "httpx", "hunt"]
+    config_overrides = {"interactsh_disable": True, "scope": {"report_distance": 10}}
+
+    bad_url_data = """
+<a href='mailto:bob@evilcorp.org?subject=help'>Help</a>
+<a href='https://ssl.'>Help</a>
+"""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": self.bad_url_data})
+
+    def check(self, module_test, events):
+        log_file = module_test.scan.home / "debug.log"
+        log_text = log_file.read_text()
+        # make sure our logging is working
+        assert "Setting scan status to STARTING" in log_text
+        # make sure we don't have any URL validation errors
+        assert "Error Parsing reconstructed URL" not in log_text
+        assert "Error sanitizing event data" not in log_text
+
+        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        assert sorted([e.data for e in url_events]) == sorted(["https://ssl/", "http://127.0.0.1:8888/"])

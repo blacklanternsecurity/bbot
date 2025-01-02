@@ -39,13 +39,9 @@ _ip_range_regexes = (
 ip_range_regexes = [re.compile(r, re.I) for r in _ip_range_regexes]
 
 # dns names with periods
-_dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+(?:[xX][nN]--)?[^\W_]{1,63}\.?"
+_dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.?)+(?:[xX][nN]--)?[^\W_]{1,63}\.?"
 dns_name_extraction_regex = re.compile(_dns_name_regex, re.I)
 dns_name_validation_regex = re.compile(r"^" + _dns_name_regex + r"$", re.I)
-
-# dns names without periods
-_hostname_regex = r"(?!\w*\.\w+)\w(?:[\w-]{0,100}\w)?"
-hostname_regex = re.compile(r"^" + _hostname_regex + r"$", re.I)
 
 _email_regex = r"(?:[^\W_][\w\-\.\+']{,100})@" + _dns_name_regex
 email_regex = re.compile(_email_regex, re.I)
@@ -61,14 +57,12 @@ event_uuid_regex = re.compile(_event_uuid_regex, re.I)
 
 _open_port_regexes = (
     _dns_name_regex + r":[0-9]{1,5}",
-    _hostname_regex + r":[0-9]{1,5}",
     r"\[" + _ipv6_regex + r"\]:[0-9]{1,5}",
 )
 open_port_regexes = [re.compile(r, re.I) for r in _open_port_regexes]
 
 _url_regexes = (
     r"https?://" + _dns_name_regex + r"(?::[0-9]{1,5})?(?:(?:/|\?).*)?",
-    r"https?://" + _hostname_regex + r"(?::[0-9]{1,5})?(?:(?:/|\?).*)?",
     r"https?://\[" + _ipv6_regex + r"\](?::[0-9]{1,5})?(?:(?:/|\?).*)?",
 )
 url_regexes = [re.compile(r, re.I) for r in _url_regexes]
@@ -83,10 +77,7 @@ event_type_regexes = OrderedDict(
         for k, regexes in (
             (
                 "DNS_NAME",
-                (
-                    r"^" + _dns_name_regex + r"$",
-                    r"^" + _hostname_regex + r"$",
-                ),
+                (r"^" + _dns_name_regex + r"$",),
             ),
             (
                 "EMAIL_ADDRESS",
@@ -140,7 +131,7 @@ select_tag_regex = re.compile(
 textarea_tag_regex = re.compile(
     r'<textarea[^>]*\bname=["\']?(\w+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
 )
-tag_attribute_regex = re.compile(r"<[^>]*(?:href|src)\s*=\s*[\"\']([^\"\']+)[\"\'][^>]*>")
+tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']?(?!mailto:)([^\s\'\"\>]+)[\"\']?[^>]*>")
 
 valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
 
