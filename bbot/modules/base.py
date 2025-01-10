@@ -1176,7 +1176,14 @@ class BaseModule:
 
         return r
 
-    async def api_page_iter(self, url, page_size=100, json=True, next_key=None, **requests_kwargs):
+    def _prepare_api_iter_req(self, url, page, page_size, offset, **requests_kwargs):
+        """
+        Default function for preparing an API request for iterating through paginated data.
+        """
+        url = self.helpers.safe_format(url, page=page, page_size=page_size, offset=offset)
+        return url, requests_kwargs
+
+    async def api_page_iter(self, url, page_size=100, _json=True, next_key=None, iter_key=None, **requests_kwargs):
         """
         An asynchronous generator function for iterating through paginated API data.
 
@@ -1189,6 +1196,7 @@ class BaseModule:
             page_size (int, optional): The number of items per page. Defaults to 100.
             json (bool, optional): If True, attempts to deserialize the response content to a JSON object. Defaults to True.
             next_key (callable, optional): A function that takes the last page's data and returns the URL for the next page. Defaults to None.
+            iter_key (callable, optional): A function that builds each new request based on the page number, page size, and offset. Defaults to a simple implementation that autoreplaces {page} and {page_size} in the url.
             **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Yields:
@@ -1211,6 +1219,8 @@ class BaseModule:
         page = 1
         offset = 0
         result = None
+        if iter_key is None:
+            iter_key = self._prepare_api_iter_req
         while 1:
             if result and callable(next_key):
                 try:
@@ -1219,13 +1229,13 @@ class BaseModule:
                     self.debug(f"Failed to extract next page of results from {url}: {e}")
                     self.debug(traceback.format_exc())
             else:
-                new_url = self.helpers.safe_format(url, page=page, page_size=page_size, offset=offset)
-            result = await self.api_request(new_url, **requests_kwargs)
+                new_url, new_kwargs = iter_key(url, page, page_size, offset, **requests_kwargs)
+            result = await self.api_request(new_url, **new_kwargs)
             if result is None:
                 self.verbose(f"api_page_iter() got no response for {url}")
                 break
             try:
-                if json:
+                if _json:
                     result = result.json()
                 yield result
             except Exception:

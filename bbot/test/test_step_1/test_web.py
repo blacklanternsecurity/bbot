@@ -215,7 +215,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
     # pretty_print = soup.prettify()
     # assert pretty_print, f"PrettyPrint is False"
     # scan1.helpers.log.info(f"{pretty_print}")
-    html_text = soup.find(text="Example Domain")
+    html_text = soup.find(string="Example Domain")
     assert html_text, "Find HTML Text is False"
 
     # 404
@@ -263,7 +263,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
     finally:
         await agen.aclose()
     assert not results
-    agen = module.api_page_iter(template_url, json=False)
+    agen = module.api_page_iter(template_url, _json=False)
     try:
         async for result in agen:
             if result and result.text.startswith("page"):
@@ -272,6 +272,40 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
                 break
     finally:
         await agen.aclose()
+    assert [r.text for r in results] == ["page1", "page2", "page3"]
+
+    # page iteration with custom iter_key
+    url_path = "/test_http_page_iteration_custom_iter_key"
+    full_url = bbot_httpserver.url_for(url_path)
+    bbot_httpserver.expect_request(
+        uri=url_path, headers={"page": "1"}
+    ).respond_with_data("page1")
+    bbot_httpserver.expect_request(
+        uri=url_path, headers={"page": "2"}
+    ).respond_with_data("page2")
+    bbot_httpserver.expect_request(
+        uri=url_path, headers={"page": "3"}
+    ).respond_with_data("page3")
+    results = []
+
+    # url, page, page_size, offset, **requests_kwargs
+    def iter_key(url, page, page_size, offset, **requests_kwargs):
+        headers = requests_kwargs.get("headers", {}).copy()
+        headers["page"] = str(page)
+        new_kwargs = requests_kwargs.copy()
+        new_kwargs["headers"] = headers
+        return url, new_kwargs
+
+    agen = module.api_page_iter(full_url, iter_key=iter_key, _json=False)
+    try:
+        async for result in agen:
+            if result and result.text.startswith("page"):
+                results.append(result)
+            else:
+                break
+    finally:
+        await agen.aclose()
+
     assert [r.text for r in results] == ["page1", "page2", "page3"]
 
     await scan1._cleanup()

@@ -104,7 +104,7 @@ class github_org(github):
     async def query_org_repos(self, query):
         repos = []
         url = f"{self.base_url}/orgs/{self.helpers.quote(query)}/repos?per_page=100&page=" + "{page}"
-        agen = self.api_page_iter(url, json=False)
+        agen = self.api_page_iter(url, _json=False)
         try:
             async for r in agen:
                 if r is None:
@@ -132,7 +132,7 @@ class github_org(github):
     async def query_org_members(self, query):
         members = []
         url = f"{self.base_url}/orgs/{self.helpers.quote(query)}/members?per_page=100&page=" + "{page}"
-        agen = self.api_page_iter(url, json=False)
+        agen = self.api_page_iter(url, _json=False)
         try:
             async for r in agen:
                 if r is None:
@@ -160,7 +160,7 @@ class github_org(github):
     async def query_user_repos(self, query):
         repos = []
         url = f"{self.base_url}/users/{self.helpers.quote(query)}/repos?per_page=100&page=" + "{page}"
-        agen = self.api_page_iter(url, json=False)
+        agen = self.api_page_iter(url, _json=False)
         try:
             async for r in agen:
                 if r is None:

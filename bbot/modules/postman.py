@@ -55,7 +55,38 @@ class postman(postman):
                 context=f'{{module}} searched postman.com for "{org_name}" and found matching workspace "{name}" at {{event.type}}: {workspace_url}',
             )
 
+    async def process_workspaces(self, user=None, org=None):
+        in_scope_workspaces = []
+        owner = user or org
+        if owner:
+            self.verbose(f"Searching for postman workspaces, collections, requests for {owner}")
+            for item in await self.query(owner):
+                workspace = item["document"]
+                self.hugesuccess(workspace)
+                slug = workspace["slug"]
+                profile = workspace["publisherHandle"]
+                repo_url = f"{self.html_url}/{profile}/{slug}"
+                workspace_id = await self.get_workspace_id(repo_url)
+                if (org and workspace_id) or (user and owner.lower() == profile.lower()):
+                    self.verbose(f"Found workspace ID {workspace_id} for {repo_url}")
+                    data = await self.request_workspace(workspace_id)
+                    in_scope = await self.validate_workspace(
+                        data["workspace"], data["environments"], data["collections"]
+                    )
+                    if in_scope:
+                        in_scope_workspaces.append({"url": repo_url, "repo_name": slug})
+                    else:
+                        self.verbose(
+                            f"Failed to validate {repo_url} is in our scope as it does not contain any in-scope dns_names / emails"
+                        )
+        return in_scope_workspaces
+
     async def query(self, query):
+
+        def api_page_iter(url, page, page_size, offset, **kwargs):
+            kwargs["json"]["body"]["from"] = offset
+            return url, kwargs
+
         data = []
         url = f"{self.base_url}/ws/proxy"
         json = {
@@ -67,7 +98,7 @@ class postman(postman):
                     "collaboration.workspace",
                 ],
                 "queryText": self.helpers.quote(query),
-                "size": 100,
+                "size": 25,
                 "from": 0,
                 "clientTraceId": "",
                 "requestOrigin": "srp",
@@ -76,13 +107,15 @@ class postman(postman):
                 "domain": "public",
             },
         }
-        r = await self.helpers.request(url, method="POST", json=json, headers=self.headers)
-        if r is None:
-            return data
-        status_code = getattr(r, "status_code", 0)
-        try:
-            json = r.json()
-        except Exception as e:
-            self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
-            return None
-        return json.get("data", [])
+
+        agen = self.api_page_iter(url, iter_key=api_page_iter, json=json, _json=False, headers=self.headers)
+        async for r in agen:
+            status_code = getattr(r, "status_code", 0)
+            try:
+                data.extend(json.get("data", []))
+                self.hugesuccess(len(data))
+            except Exception as e:
+                self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+                return None
+
+        return data

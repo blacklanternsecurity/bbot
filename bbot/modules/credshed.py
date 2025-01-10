@@ -31,7 +31,7 @@ class credshed(subdomain_enum):
             return None, "Must set username, password, and credshed_url"
 
         auth_setup = await self.helpers.request(
-            f"{self.base_url}/api/auth", method="POST", json={"username": self.username, "password": self.password}
+            f"{self.base_url}/api/auth", method="POST", _json={"username": self.username, "password": self.password}
         )
         self.auth_token = ""
         with suppress(Exception):
