@@ -31,7 +31,7 @@ class TestFFUFShortnames(ModuleTestBase):
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
-                tags=["shortname-file"],
+                tags=["shortname-endpoint"],
             )
         )
         seed_events.append(
@@ -40,7 +40,7 @@ class TestFFUFShortnames(ModuleTestBase):
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
-                tags=["shortname-file"],
+                tags=["shortname-endpoint"],
             )
         )
         seed_events.append(
@@ -49,7 +49,7 @@ class TestFFUFShortnames(ModuleTestBase):
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
-                tags=["shortname-file"],
+                tags=["shortname-endpoint"],
             )
         )
         seed_events.append(
@@ -58,7 +58,7 @@ class TestFFUFShortnames(ModuleTestBase):
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
-                tags=["shortname-file"],
+                tags=["shortname-endpoint"],
             )
         )
         seed_events.append(
@@ -67,7 +67,7 @@ class TestFFUFShortnames(ModuleTestBase):
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
-                tags=["shortname-file"],
+                tags=["shortname-endpoint"],
             )
         )
         seed_events.append(
@@ -76,7 +76,7 @@ class TestFFUFShortnames(ModuleTestBase):
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
-                tags=["shortname-file"],
+                tags=["shortname-endpoint"],
             )
         )
         seed_events.append(
@@ -139,7 +139,7 @@ class TestFFUFShortnames(ModuleTestBase):
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
-                tags=["shortname-file"],
+                tags=["shortname-endpoint"],
             )
         )
         module_test.scan.target.seeds.events = set(seed_events)
@@ -191,7 +191,7 @@ class TestFFUFShortnames(ModuleTestBase):
                     prefix_detection = True
                 if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
                     delimiter_detection = True
-                if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
+                if e.data == "http://127.0.0.1:8888/adm_directory/":
                     directory_delimiter_detection = True
                 if e.data == "http://127.0.0.1:8888/xyzdirectory/":
                     prefix_delimiter_detection = True

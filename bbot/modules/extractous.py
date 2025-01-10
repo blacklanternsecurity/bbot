@@ -28,6 +28,7 @@ class extractous(BaseModule):
             "ica",  #  Citrix Independent Computing Architecture File
             "indd",  #  Adobe InDesign Document
             "ini",  #  Initialization File
+            "json",  #  JSON File
             "key",  #  Private Key File
             "pub",  #  Public Key File
             "log",  #  Log File
@@ -45,6 +46,7 @@ class extractous(BaseModule):
             "pptx",  #  Microsoft PowerPoint Presentation
             "ps1",  #  PowerShell Script
             "rdp",  #  Remote Desktop Protocol File
+            "rsa",  #  RSA Private Key File
             "sh",  #  Shell Script
             "sql",  #  SQL Database Dump
             "swp",  #  Swap File (temporary file, often Vim)

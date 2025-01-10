@@ -41,7 +41,12 @@ class CloudCheck(BaseInterceptModule):
 
         for i, host in enumerate(hosts_to_check):
             host_is_ip = self.helpers.is_ip(host)
-            for provider, provider_type, subnet in self.helpers.cloudcheck(host):
+            try:
+                cloudcheck_results = self.helpers.cloudcheck(host)
+            except Exception as e:
+                self.trace(f"Error running cloudcheck against {event} (host: {host}): {e}")
+                continue
+            for provider, provider_type, subnet in cloudcheck_results:
                 if provider:
                     event.add_tag(f"{provider_type}-{provider}")
                     if host_is_ip:

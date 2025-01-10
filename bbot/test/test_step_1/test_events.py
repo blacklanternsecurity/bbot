@@ -149,6 +149,7 @@ async def test_events(events, helpers):
             "title": "HTTP%20RESPONSE",
             "url": "http://www.evilcorp.com:80",
             "input": "http://www.evilcorp.com:80",
+            "raw_header": "HTTP/1.1 301 Moved Permanently\r\nLocation: http://www.evilcorp.com/asdf\r\n\r\n",
             "location": "/asdf",
             "status_code": 301,
         },
@@ -161,7 +162,13 @@ async def test_events(events, helpers):
 
     # http response url validation
     http_response_2 = scan.make_event(
-        {"port": "80", "url": "http://evilcorp.com:80/asdf"}, "HTTP_RESPONSE", dummy=True
+        {
+            "port": "80",
+            "url": "http://evilcorp.com:80/asdf",
+            "raw_header": "HTTP/1.1 301 Moved Permanently\r\nLocation: http://www.evilcorp.com/asdf\r\n\r\n",
+        },
+        "HTTP_RESPONSE",
+        dummy=True,
     )
     assert http_response_2.data["url"] == "http://evilcorp.com/asdf"
 
@@ -546,6 +553,10 @@ async def test_events(events, helpers):
     http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
     assert http_response.parent_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com:80"
+    assert (
+        http_response.raw_response
+        == 'HTTP/1.1 200 OK\r\nConnection: close\r\nAge: 526111\r\nCache-Control: max-age=604800\r\nContent-Type: text/html; charset=UTF-8\r\nDate: Mon, 14 Nov 2022 17:14:27 GMT\r\nEtag: "3147526947+ident+gzip"\r\nExpires: Mon, 21 Nov 2022 17:14:27 GMT\r\nLast-Modified: Thu, 17 Oct 2019 07:18:26 GMT\r\nServer: ECS (agb/A445)\r\nVary: Accept-Encoding\r\nX-Cache: HIT\r\n\r\n<!doctype html>\n<html>\n<head>\n    <title>Example Domain</title>\n\n    <meta charset="utf-8" />\n    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />\n    <meta name="viewport" content="width=device-width, initial-scale=1" />\n    <style type="text/css">\n    body {\n        background-color: #f0f0f2;\n        margin: 0;\n        padding: 0;\n        font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;\n        \n    }\n    div {\n        width: 600px;\n        margin: 5em auto;\n        padding: 2em;\n        background-color: #fdfdff;\n        border-radius: 0.5em;\n        box-shadow: 2px 3px 7px 2px rgba(0,0,0,0.02);\n    }\n    a:link, a:visited {\n        color: #38488f;\n        text-decoration: none;\n    }\n    @media (max-width: 700px) {\n        div {\n            margin: 0 auto;\n            width: auto;\n        }\n    }\n    </style>    \n</head>\n\n<body>\n<div>\n    <h1>Example Domain</h1>\n    <p>This domain is for use in illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.</p>\n    <p><a href="https://www.iana.org/domains/example">More information...</a></p>\n</div>\n</body>\n</html>\n'
+    )
     json_event = http_response.json(mode="graph")
     assert isinstance(json_event["data"], str)
     json_event = http_response.json()
@@ -610,6 +621,10 @@ async def test_events(events, helpers):
     parent_event_3 = scan.make_event("127.0.0.3", module=module, parent=parent_event_2)
     assert str(parent_event_3.module) == "mymodule"
     assert str(parent_event_3.module_sequence) == "mymodule->mymodule->mymodule"
+
+    # event with no data
+    with pytest.raises(ValidationError):
+        event = scan.make_event(None, "DNS_NAME", parent=scan.root_event)
 
     await scan._cleanup()
 
@@ -793,6 +808,8 @@ async def test_event_discovery_context():
 async def test_event_web_spider_distance(bbot_scanner):
     # make sure web spider distance inheritance works as intended
     # and we don't have any runaway situations with SOCIAL events + URLs
+
+    # URL_UNVERIFIED events should not increment web spider distance
     scan = bbot_scanner(config={"web": {"spider_distance": 1}})
     url_event_1 = scan.make_event("http://www.evilcorp.com/test1", "URL_UNVERIFIED", parent=scan.root_event)
     assert url_event_1.web_spider_distance == 0
@@ -801,9 +818,24 @@ async def test_event_web_spider_distance(bbot_scanner):
     url_event_3 = scan.make_event(
         "http://www.evilcorp.com/test3", "URL_UNVERIFIED", parent=url_event_2, tags=["spider-danger"]
     )
+    assert url_event_3.web_spider_distance == 0
+    assert "spider-danger" in url_event_3.tags
+    assert "spider-max" not in url_event_3.tags
+
+    # URL events should increment web spider distance
+    scan = bbot_scanner(config={"web": {"spider_distance": 1}})
+    url_event_1 = scan.make_event("http://www.evilcorp.com/test1", "URL", parent=scan.root_event, tags="status-200")
+    assert url_event_1.web_spider_distance == 0
+    url_event_2 = scan.make_event("http://www.evilcorp.com/test2", "URL", parent=url_event_1, tags="status-200")
+    assert url_event_2.web_spider_distance == 0
+    url_event_3 = scan.make_event(
+        "http://www.evilcorp.com/test3", "URL_UNVERIFIED", parent=url_event_2, tags=["spider-danger"]
+    )
     assert url_event_3.web_spider_distance == 1
     assert "spider-danger" in url_event_3.tags
     assert "spider-max" not in url_event_3.tags
+
+    # SOCIAL events should inherit spider distance
     social_event = scan.make_event(
         {"platform": "github", "url": "http://www.evilcorp.com/test4"}, "SOCIAL", parent=url_event_3
     )
@@ -831,17 +863,17 @@ async def test_event_web_spider_distance(bbot_scanner):
     url_event_2 = scan.make_event(
         "http://www.evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event, tags="spider-danger"
     )
-    # spider distance shouldn't increment because it's not the same host
-    assert url_event_2.web_spider_distance == 0
-    assert "spider-danger" in url_event_2.tags
-    assert "spider-max" not in url_event_2.tags
+    url_event_2b = scan.make_event("http://www.evilcorp.com", "URL", parent=url_event_2, tags="status-200")
+    assert url_event_2b.web_spider_distance == 0
+    assert "spider-danger" in url_event_2b.tags
+    assert "spider-max" not in url_event_2b.tags
     url_event_3 = scan.make_event(
-        "http://www.evilcorp.com/3", "URL_UNVERIFIED", parent=url_event_2, tags="spider-danger"
+        "http://www.evilcorp.com/3", "URL_UNVERIFIED", parent=url_event_2b, tags="spider-danger"
     )
     assert url_event_3.web_spider_distance == 1
     assert "spider-danger" in url_event_3.tags
     assert "spider-max" not in url_event_3.tags
-    url_event_4 = scan.make_event("http://evilcorp.com", "URL_UNVERIFIED", parent=url_event_3)
+    url_event_4 = scan.make_event("http://evilcorp.com", "URL", parent=url_event_3, tags="status-200")
     assert url_event_4.web_spider_distance == 0
     assert "spider-danger" not in url_event_4.tags
     assert "spider-max" not in url_event_4.tags
@@ -906,7 +938,12 @@ def test_event_closest_host():
     assert event1.host == "evilcorp.com"
     # second event has a host + url
     event2 = scan.make_event(
-        {"method": "GET", "url": "http://www.evilcorp.com/asdf", "hash": {"header_mmh3": "1", "body_mmh3": "2"}},
+        {
+            "method": "GET",
+            "url": "http://www.evilcorp.com/asdf",
+            "hash": {"header_mmh3": "1", "body_mmh3": "2"},
+            "raw_header": "HTTP/1.1 301 Moved Permanently\r\nLocation: http://www.evilcorp.com/asdf\r\n\r\n",
+        },
         "HTTP_RESPONSE",
         parent=event1,
     )

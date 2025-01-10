@@ -141,10 +141,10 @@ class wpscan(BaseModule):
 
     def parse_wpscan_output(self, output, base_url, source_event):
         json_output = json.loads(output)
-        interesting_json = json_output.get("interesting_findings", {})
-        version_json = json_output.get("version", {})
-        theme_json = json_output.get("main_theme", {})
-        plugins_json = json_output.get("plugins", {})
+        interesting_json = json_output.get("interesting_findings", {}) or {}
+        version_json = json_output.get("version", {}) or {}
+        theme_json = json_output.get("main_theme", {}) or {}
+        plugins_json = json_output.get("plugins", {}) or {}
         if interesting_json:
             yield from self.parse_wp_misc(interesting_json, base_url, source_event)
         if version_json:
