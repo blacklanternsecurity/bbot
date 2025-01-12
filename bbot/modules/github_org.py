@@ -207,13 +207,10 @@ class github_org(github):
         except Exception as e:
             self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
             return is_org, in_scope
-        for k, v in json.items():
-            if (
-                isinstance(v, str)
-                and (self.helpers.is_dns_name(v) and "." in v or self.helpers.is_url(v) or self.helpers.is_email(v))
-                and self.scan.in_scope(v)
-            ):
-                self.verbose(f'Found in-scope key "{k}": "{v}" for {org}, it appears to be in-scope')
-                in_scope = True
-                break
+        in_scope_hosts = await self.scan.extract_in_scope_hostnames(str(json))
+        if in_scope_hosts:
+            self.verbose(
+                f'Found in-scope hostname(s): "{in_scope_hosts}" for github org: {org}, it appears to be in-scope'
+            )
+            in_scope = True
         return is_org, in_scope

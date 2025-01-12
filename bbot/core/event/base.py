@@ -1032,8 +1032,8 @@ class ClosestHostEvent(DictHostEvent):
                     self.data = self.data
                     break
         # die if we still haven't found a host
-        if not self.host:
-            raise ValueError("No host was found in event parents. Host must be specified!")
+        if not self.host and not self.data.get("path", ""):
+            raise ValueError(f"No host was found in event parents: {self.get_parents()}. Host must be specified!")
 
 
 class DictPathEvent(DictEvent):
@@ -1408,7 +1408,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         """
         raw_header = self.data.get("raw_header", "")
         body = self.data.get("body", "")
-        return f'{raw_header}{body}'
+        return f"{raw_header}{body}"
 
     @property
     def http_status(self):
