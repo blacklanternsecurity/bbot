@@ -1089,9 +1089,19 @@ class Scanner:
             regexes_component_list = []
             for i, r in enumerate(self.dns_regexes_yara):
                 regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
-            if regexes_component_list:
-                regexes_component = " ".join(regexes_component_list)
-                self._dns_yara_rules_uncompiled = f'rule hostname_extraction {{meta: description = "matches DNS hostname pattern derived from target(s)" strings: {regexes_component} condition: any of them}}'
+
+            # Chunk the regexes into groups of 10,000
+            chunk_size = 10000
+            rules = {}
+            for chunk_index in range(0, len(regexes_component_list), chunk_size):
+                chunk = regexes_component_list[chunk_index : chunk_index + chunk_size]
+                if chunk:
+                    regexes_component = " ".join(chunk)
+                    rule_name = f"hostname_extraction_{chunk_index // chunk_size}"
+                    rule = f'rule {rule_name} {{meta: description = "matches DNS hostname pattern derived from target(s)" strings: {regexes_component} condition: any of them}}'
+                    rules[rule_name] = rule
+
+            self._dns_yara_rules_uncompiled = rules
         return self._dns_yara_rules_uncompiled
 
     async def dns_yara_rules(self):
@@ -1100,7 +1110,7 @@ class Scanner:
                 import yara
 
                 self._dns_yara_rules = await self.helpers.run_in_executor(
-                    yara.compile, source=self.dns_yara_rules_uncompiled
+                    yara.compile, source="\n".join(self.dns_yara_rules_uncompiled.values())
                 )
         return self._dns_yara_rules
 

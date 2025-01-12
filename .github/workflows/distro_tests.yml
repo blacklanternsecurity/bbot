@@ -62,3 +62,9 @@ jobs:
           poetry env use python3.11
           poetry install
           poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
+      - name: Upload Debug Logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-debug-logs
+          path: pytest_debug.log

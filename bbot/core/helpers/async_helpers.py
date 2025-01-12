@@ -51,11 +51,17 @@ class NamedLock:
 class TaskCounter:
     def __init__(self):
         self.tasks = {}
-        self.lock = asyncio.Lock()  # create a new lock
+        self._lock = None
 
     @property
     def value(self):
         return sum([t.n for t in self.tasks.values()])
+
+    @property
+    def lock(self):
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     def count(self, task_name, n=1, _log=True):
         if callable(task_name):

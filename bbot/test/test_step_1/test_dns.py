@@ -777,6 +777,39 @@ async def test_dns_graph_structure(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_hostname_extraction(bbot_scanner):
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"minimal": False}})
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {
+                "A": ["127.0.0.1"],
+                "TXT": [
+                    "v=spf1 include:spf-a.evilcorp.com include:spf-b.evilcorp.com include:icpbounce.com include:shops.shopify.com include:_spf.qemailserver.com include:spf.mandrillapp.com include:spf.protection.office365.us include:spf-003ea501.gpphosted.com 127.0.0.1 -all"
+                ],
+            }
+        }
+    )
+    events = [e async for e in scan.async_start()]
+    dns_name_events = [e for e in events if e.type == "DNS_NAME"]
+    main_dns_event = [e for e in dns_name_events if e.data == "evilcorp.com"]
+    assert len(main_dns_event) == 1
+    main_dns_event = main_dns_event[0]
+    dns_children = main_dns_event.dns_children
+    assert dns_children["A"] == {"127.0.0.1"}
+    assert dns_children["TXT"] == {
+        "spf-a.evilcorp.com",
+        "spf-b.evilcorp.com",
+        "icpbounce.com",
+        "shops.shopify.com",
+        "_spf.qemailserver.com",
+        "spf.mandrillapp.com",
+        "spf.protection.office365.us",
+        "spf-003ea501.gpphosted.com",
+        "127.0.0.1",
+    }
+
+
+@pytest.mark.asyncio
 async def test_dns_helpers(bbot_scanner):
     assert service_record("") is False
     assert service_record("localhost") is False

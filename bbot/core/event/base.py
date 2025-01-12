@@ -1406,7 +1406,9 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         """
         Formats the status code, headers, and body into a single string formatted as an HTTP/1.1 response.
         """
-        return f'{self.data["raw_header"]}{self.data["body"]}'
+        raw_header = self.data.get("raw_header", "")
+        body = self.data.get("body", "")
+        return f'{raw_header}{body}'
 
     @property
     def http_status(self):

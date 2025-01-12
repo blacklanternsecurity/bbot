@@ -224,12 +224,12 @@ def events(scan):
     return bbot_events
 
 
-@pytest.fixture(scope="session", autouse=True)
-def install_all_python_deps():
-    deps_pip = set()
-    for module in DEFAULT_PRESET.module_loader.preloaded().values():
-        deps_pip.update(set(module.get("deps", {}).get("pip", [])))
+# @pytest.fixture(scope="session", autouse=True)
+# def install_all_python_deps():
+#     deps_pip = set()
+#     for module in DEFAULT_PRESET.module_loader.preloaded().values():
+#         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
 
-    constraint_file = tempwordlist(get_python_constraints())
+#     constraint_file = tempwordlist(get_python_constraints())
 
-    subprocess.run([sys.executable, "-m", "pip", "install", "--constraint", constraint_file] + list(deps_pip))
+#     subprocess.run([sys.executable, "-m", "pip", "install", "--constraint", constraint_file] + list(deps_pip))

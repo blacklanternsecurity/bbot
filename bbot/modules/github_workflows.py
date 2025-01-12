@@ -30,6 +30,10 @@ class github_workflows(github):
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 
+    def _api_response_is_success(self, r):
+        # we allow 404s because they're normal
+        return r.is_success or getattr(r, "status_code", 0) == 404
+
     async def filter_event(self, event):
         if event.type == "CODE_REPOSITORY":
             if "git" not in event.tags and "github" not in event.data.get("url", ""):
