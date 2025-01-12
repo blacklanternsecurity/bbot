@@ -62,7 +62,7 @@ class ajaxpro(BaseModule):
         self.debug("Ajaxpro detected, attempting to confirm exploitability")
         parsed_url = urlparse(detection_url)
         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-        path = parsed_url.path.rsplit('/', 1)[0]
+        path = parsed_url.path.rsplit("/", 1)[0]
         full_url = f"{base_url}{path}/AjaxPro.Services.ICartService,AjaxPro.2.ashx"
 
         # Payload and headers defined inline

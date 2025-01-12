@@ -1,11 +1,10 @@
 from .base import ModuleTestBase
 
+
 class TestAjaxpro(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "ajaxpro"]
-    exploit_headers = {
-        "X-Ajaxpro-Method": "AddItem", "Content-Type": "text/json; charset=UTF-8"
-    }
+    exploit_headers = {"X-Ajaxpro-Method": "AddItem", "Content-Type": "text/json; charset=UTF-8"}
     exploit_response = """
     null; r.error = {"Message":"Constructor on type 'AjaxPro.Services.ICartService' not found.","Type":"System.MissingMethodException"};/*
     """
@@ -28,19 +27,22 @@ class TestAjaxpro(ModuleTestBase):
         # Simulate Vulnerability
         expect_args = {"method": "POST", "uri": "/ajaxpro/AjaxPro.Services.ICartService,AjaxPro.2.ashx"}
         respond_args = {"response_data": self.exploit_response}
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)        
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
         ajaxpro_url_detection = False
         ajaxpro_exploit_detection = False
 
         for e in events:
-            if (e.type == "VULNERABILITY" and "Ajaxpro Deserialization RCE (CVE-2021-23758)" in e.data["description"] and "http://127.0.0.1:8888/ajaxpro/AjaxPro.Services.ICartService,AjaxPro.2.ashx" in e.data["description"]):
-                ajaxpro_exploit_detection = True
-      
             if (
-                e.type == "TECHNOLOGY" and e.data["technology"] == "ajaxpro"
+                e.type == "VULNERABILITY"
+                and "Ajaxpro Deserialization RCE (CVE-2021-23758)" in e.data["description"]
+                and "http://127.0.0.1:8888/ajaxpro/AjaxPro.Services.ICartService,AjaxPro.2.ashx"
+                in e.data["description"]
             ):
+                ajaxpro_exploit_detection = True
+
+            if e.type == "TECHNOLOGY" and e.data["technology"] == "ajaxpro":
                 ajaxpro_url_detection = True
 
         assert ajaxpro_url_detection, "Ajaxpro URL probe detection failed"
@@ -69,8 +71,6 @@ class TestAjaxpro_httpdetect(TestAjaxpro):
     def check(self, module_test, events):
         ajaxpro_httpresponse_detection = False
         for e in events:
-            if (
-                e.type == "TECHNOLOGY" and e.data["technology"] == "ajaxpro"
-            ):
+            if e.type == "TECHNOLOGY" and e.data["technology"] == "ajaxpro":
                 ajaxpro_httpresponse_detection = True
         assert ajaxpro_httpresponse_detection, "Ajaxpro HTTP_RESPONSE detection failed"

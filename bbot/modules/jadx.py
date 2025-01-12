@@ -6,7 +6,7 @@ from bbot.modules.internal.base import BaseModule
 class jadx(BaseModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe"]
+    flags = ["passive", "safe", "code-enum"]
     meta = {
         "description": "Decompile APKs and XAPKs using JADX",
         "created_date": "2024-11-04",
@@ -60,7 +60,7 @@ class jadx(BaseModule):
             await self.emit_event(
                 {"path": str(output_dir)},
                 "FILESYSTEM",
-                tags="folder",
+                tags=["folder", "unarchived-folder"],
                 parent=event,
                 context=f'extracted "{path}" to: {output_dir}',
             )
