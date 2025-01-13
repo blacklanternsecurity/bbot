@@ -33,8 +33,6 @@ class reflected_parameters(BaseModule):
         probe_parameter_name = event.data["name"]
         probe_parameter_value = self.helpers.rand_string()
         canary_parameter_value = self.helpers.rand_string()
-
-        # Call the new function to send the probe with the canary
         probe_response = await self.send_probe_with_canary(
             event,
             probe_parameter_name,
