@@ -42,7 +42,9 @@ class TestGeneric_SSRF(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "VULNERABILITY" and "Out-of-band interaction: [Generic SSRF (GET)]" and "[Triggering Parameter: Dest]" in e.data["description"]
+            e.type == "VULNERABILITY"
+            and "Out-of-band interaction: [Generic SSRF (GET)]"
+            and "[Triggering Parameter: Dest]" in e.data["description"]
             for e in events
         ), "Failed to detect Generic SSRF (GET)"
         assert any(

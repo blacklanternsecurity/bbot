@@ -26,7 +26,7 @@ class iis_shortnames(BaseModule):
     options_desc = {
         "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
         "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
-        "speculate_magic_urls": "Attempt to discover iis 'magic' special folders"
+        "speculate_magic_urls": "Attempt to discover iis 'magic' special folders",
     }
     in_scope_only = True
 
@@ -239,15 +239,15 @@ class iis_shortnames(BaseModule):
                 "VULNERABILITY",
                 event,
                 context="{module} detected low {event.type}: IIS shortname enumeration",
-                tags=["iis-magic-url"]
+                tags=["iis-magic-url"],
             )
 
-
             if self.config.get("speculate_magic_urls") and "iis-magic-url" not in event.tags:
-
                 magic_url_bin = f"{normalized_url}bin::$INDEX_ALLOCATION/"
                 self.debug(f"making IIS magic URL: {magic_url_bin}")
-                magic_url_event = self.make_event(magic_url_bin, "URL", parent=event, tags=["iis-magic-url","status-403"])
+                magic_url_event = self.make_event(
+                    magic_url_bin, "URL", parent=event, tags=["iis-magic-url", "status-403"]
+                )
                 await self.scan.modules["iis_shortnames"].incoming_event_queue.put(magic_url_event)
 
             if not self.config.get("detect_only"):

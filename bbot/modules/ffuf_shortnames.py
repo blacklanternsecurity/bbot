@@ -5,6 +5,7 @@ import string
 
 from bbot.modules.deadly.ffuf import ffuf
 
+
 class ffuf_shortnames(ffuf):
     watched_events = ["URL_HINT"]
     produced_events = ["URL_UNVERIFIED"]
@@ -37,7 +38,7 @@ class ffuf_shortnames(ffuf):
         "ignore_redirects": "Explicitly ignore redirects (301,302)",
         "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional ffuf runs against them",
         "find_delimiters": "Attempt to detect common delimiters and make additional ffuf runs against them",
-        "max_predictions": "The maximum number of predictions to generate per shortname prefix"
+        "max_predictions": "The maximum number of predictions to generate per shortname prefix",
     }
 
     deps_common = ["ffuf"]
@@ -46,14 +47,14 @@ class ffuf_shortnames(ffuf):
 
     def generate_templist(self, prefix, shortname_type):
         virtual_file = []
-        
+
         for prediction, score in self.predict(prefix, self.max_predictions, model=shortname_type):
             self.debug(f"Got prediction: [{prediction}] from prefix [{prefix}] with score [{score}]")
             virtual_file.append(prediction)
         virtual_file.append(self.canary)
         return self.helpers.tempfile(virtual_file, pipe=False), len(virtual_file)
 
-    def predict(self,prefix,n=25,model="endpoint"):
+    def predict(self, prefix, n=25, model="endpoint"):
         predictor_name = f"{model}_predictor"
         predictor = getattr(self, predictor_name)
         return predictor.predict(prefix, n)
@@ -92,44 +93,45 @@ class ffuf_shortnames(ffuf):
         self.ignore_redirects = self.config.get("ignore_redirects")
         self.max_predictions = self.config.get("max_predictions")
 
-
         class MinimalWordPredictor:
             def __init__(self):
                 self.word_frequencies = {}
 
             def predict(self, prefix, top_n):
                 prefix = prefix.lower()
-                matches = [(word, freq) for word, freq in self.word_frequencies.items() 
-                        if word.startswith(prefix)]
-                
+                matches = [(word, freq) for word, freq in self.word_frequencies.items() if word.startswith(prefix)]
+
                 if not matches:
                     return []
 
                 matches.sort(key=lambda x: x[1], reverse=True)
                 matches = matches[:top_n]
-                
+
                 max_freq = matches[0][1]
-                return [(word, freq/max_freq) for word, freq in matches]
+                return [(word, freq / max_freq) for word, freq in matches]
 
         class CustomUnpickler(pickle.Unpickler):
             def find_class(self, module, name):
-                if name == 'MinimalWordPredictor':
+                if name == "MinimalWordPredictor":
                     return MinimalWordPredictor
                 return super().find_class(module, name)
 
-        endpoint_model = await self.helpers.download("https://raw.githubusercontent.com/blacklanternsecurity/wordpredictor/refs/heads/main/trained_models/endpoints.bin")
-        directory_model = await self.helpers.download("https://raw.githubusercontent.com/blacklanternsecurity/wordpredictor/refs/heads/main/trained_models/directories.bin")
+        endpoint_model = await self.helpers.download(
+            "https://raw.githubusercontent.com/blacklanternsecurity/wordpredictor/refs/heads/main/trained_models/endpoints.bin"
+        )
+        directory_model = await self.helpers.download(
+            "https://raw.githubusercontent.com/blacklanternsecurity/wordpredictor/refs/heads/main/trained_models/directories.bin"
+        )
 
         self.debug(f"Loading endpoint model from: {endpoint_model}")
-        with open(endpoint_model, 'rb') as f:
+        with open(endpoint_model, "rb") as f:
             unpickler = CustomUnpickler(f)
             self.endpoint_predictor = unpickler.load()
 
         self.debug(f"Loading directory model from: {directory_model}")
-        with open(directory_model, 'rb') as f:
+        with open(directory_model, "rb") as f:
             unpickler = CustomUnpickler(f)
             self.directory_predictor = unpickler.load()
-
 
         self.per_host_collection = {}
         self.shortname_to_event = {}
@@ -255,7 +257,6 @@ class ffuf_shortnames(ffuf):
                             )
 
     async def finish(self):
-
         if self.config.get("find_common_prefixes"):
             per_host_collection = dict(self.per_host_collection)
             self.per_host_collection.clear()
@@ -269,7 +270,6 @@ class ffuf_shortnames(ffuf):
                     for hint_tuple in hint_tuple_list:
                         hint, url = hint_tuple
                         if hint.startswith(prefix):
-
                             if "shortname-endpoint" in self.shortname_to_event[hint].tags:
                                 shortname_type = "endpoint"
                             elif "shortname-directory" in self.shortname_to_event[hint].tags:
@@ -277,7 +277,6 @@ class ffuf_shortnames(ffuf):
                             else:
                                 self.error("ffuf_shortnames received URL_HINT without proper 'shortname-' tag")
                                 continue
-
 
                             partial_hint = hint[len(prefix) :]
 

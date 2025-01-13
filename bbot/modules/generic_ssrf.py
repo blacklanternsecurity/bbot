@@ -93,7 +93,7 @@ class Generic_SSRF(BaseSubmodule):
             ssrf_canary = f"{subdomain_tag}.{self.generic_ssrf.interactsh_domain}"
             self.generic_ssrf.parameter_subdomain_tags_map[subdomain_tag] = param
             query_string += f"{param}=http://{ssrf_canary}&"
-            test_paths.append((f"?{query_string.rstrip('&')}",subdomain_tag))
+            test_paths.append((f"?{query_string.rstrip('&')}", subdomain_tag))
         return test_paths
 
 
@@ -107,7 +107,6 @@ class Generic_SSRF_POST(BaseSubmodule):
     async def test(self, event):
         test_url = f"{event.data}"
 
-        
         post_data = {}
         for param in ssrf_params:
             subdomain_tag = self.generic_ssrf.helpers.rand_string(4, digits=False)
@@ -194,7 +193,7 @@ class generic_ssrf(BaseModule):
     async def interactsh_callback(self, r):
         full_id = r.get("full-id", None)
         subdomain_tag = full_id.split(".")[0]
-        
+
         if full_id:
             if "." in full_id:
                 match = self.interactsh_subdomain_tags.get(subdomain_tag)

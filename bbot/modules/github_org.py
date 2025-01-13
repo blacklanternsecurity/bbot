@@ -24,6 +24,10 @@ class github_org(github):
         self.include_member_repos = self.config.get("include_member_repos", False)
         return await super().setup()
 
+    def _api_response_is_success(self, r):
+        # we allow 404s because they're normal
+        return r.is_success or getattr(r, "status_code", 0) == 404
+
     async def filter_event(self, event):
         if event.type == "SOCIAL":
             if event.data.get("platform", "") != "github":
