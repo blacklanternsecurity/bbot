@@ -29,7 +29,7 @@ class TestReflected_parameters_fromexcavate(ModuleTestBase):
         assert any(
             e.type == "FINDING"
             and e.data["description"]
-            == "GET Parameter value reflected in response body. Name: [reflected] Source Module: [excavate] Original Value: [foo]"
+            == "[GETPARAM] Parameter value reflected in response body. Name: [reflected] Source Module: [excavate] Original Value: [foo]"
             for e in events
         )
 
@@ -40,7 +40,7 @@ class TestReflected_parameters_fromparamminer(TestParamminer_Getparams):
     def check(self, module_test, events):
         assert any(
             e.type == "FINDING"
-            and "GET Parameter value reflected in response body. Name: [id] Source Module: [paramminer_getparams]"
+            and "[GETPARAM] Parameter value reflected in response body. Name: [id] Source Module: [paramminer_getparams]"
             in e.data["description"]
             for e in events
         )

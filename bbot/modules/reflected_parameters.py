@@ -19,8 +19,9 @@ class reflected_parameters(BaseModule):
         )
 
         if reflection_detected:
+            param_type = event.data.get("type", "UNKNOWN")
             description = (
-                f"GET Parameter value reflected in response body. Name: [{event.data['name']}] "
+                f"[{param_type}] Parameter value reflected in response body. Name: [{event.data['name']}] "
                 f"Source Module: [{str(event.module)}]"
             )
             if event.data.get("original_value"):
@@ -35,15 +36,16 @@ class reflected_parameters(BaseModule):
         probe_parameter_name = event.data["name"]
         probe_parameter_value = self.helpers.rand_string()
         canary_parameter_value = self.helpers.rand_string()
-        probe_url = self.helpers.add_get_params(
-            url, 
-            {
-                probe_parameter_name: probe_parameter_value,
-                "c4n4ry": canary_parameter_value
-            }
-        ).geturl()
 
-        probe_response = await self.helpers.request(probe_url, method="GET")
+        # Call the new function to send the probe with the canary
+        probe_response = await self.send_probe_with_canary(
+            event,
+            probe_parameter_name,
+            probe_parameter_value,
+            canary_parameter_value,
+            cookies=event.data.get("assigned_cookies", {}),
+            timeout=10
+        )
 
         # Check if the probe parameter value is reflected AND the canary is not
         if probe_response:
@@ -54,3 +56,34 @@ class reflected_parameters(BaseModule):
             )
             return reflection_result
         return False
+
+    async def send_probe_with_canary(self, event, parameter_name, parameter_value, canary_value, cookies, timeout=10):
+        method = "GET"
+        url = event.data["url"]
+        headers = {}
+        data = None
+        json_data = None
+
+        if event.data["type"] == "GETPARAM":
+            url = f"{url}?{parameter_name}={parameter_value}&c4n4ry={canary_value}"
+        elif event.data["type"] == "COOKIE":
+            cookies = {**cookies, parameter_name: f"{parameter_value}; c4n4ry={canary_value}"}
+        elif event.data["type"] == "HEADER":
+            headers = {parameter_name: f"{parameter_value}; c4n4ry={canary_value}"}
+        elif event.data["type"] == "POSTPARAM":
+            method = "POST"
+            data = {parameter_name: parameter_value, "c4n4ry": canary_value}
+        elif event.data["type"] == "BODYJSON":
+            method = "POST"
+            json_data = {parameter_name: parameter_value, "c4n4ry": canary_value}
+
+        response = await self.helpers.request(
+            method=method,
+            url=url,
+            headers=headers,
+            cookies=cookies,
+            data=data,
+            json=json_data,
+            timeout=timeout
+        )
+        return response
