@@ -12,13 +12,11 @@ class TestReflected_parameters_fromexcavate(ModuleTestBase):
     def request_handler(self, request):
         normal_block = '<html><a href="/?reflected=foo">foo</a></html>'
         qs = str(request.query_string.decode())
-        if qs:
-            # Split the query string into key-value pairs
-            params = qs.split("&")
-            # Construct the reflected block with all parameters
-            reflected_block = '<html><a href="/?'
-            reflected_block += '&'.join(params)
-            reflected_block += '"></a></html>'
+        if "reflected=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            reflected_block = f'<html><a href="/?reflected={value}"></a></html>'
             return Response(reflected_block, status=200)
         else:
             return Response(normal_block, status=200)
