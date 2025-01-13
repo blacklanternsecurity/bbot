@@ -160,8 +160,7 @@ class BaseModule:
         self._api_request_failures = 0
 
         self._tasks = []
-        self._event_received = asyncio.Condition()
-        self._event_queued = asyncio.Condition()
+        self._event_received = None
 
         # used for optional "per host" tracking
         self._per_host_tracker = set()
@@ -408,6 +407,12 @@ class BaseModule:
             bool: True if the module is properly configured for authentication, otherwise False.
         """
         return getattr(self, "api_key", "")
+
+    @property
+    def event_received(self):
+        if self._event_received is None:
+            self._event_received = asyncio.Condition()
+        return self._event_received
 
     def get_watched_events(self):
         """Retrieve the set of events that the module is interested in observing.
@@ -658,11 +663,12 @@ class BaseModule:
                         await asyncio.sleep(0.1)
                         continue
 
+                    # if batch wasn't big enough, we wait for the next event before continuing
                     if self.batch_size > 1:
                         submitted = await self._handle_batch()
                         if not submitted:
-                            async with self._event_received:
-                                await self._event_received.wait()
+                            async with self.event_received:
+                                await self.event_received.wait()
 
                     else:
                         try:
@@ -874,8 +880,8 @@ class BaseModule:
                 self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
-                async with self._event_received:
-                    self._event_received.notify()
+                async with self.event_received:
+                    self.event_received.notify()
                 if event.type != "FINISHED":
                     self.scan._new_activity = True
             except AttributeError:

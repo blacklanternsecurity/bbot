@@ -133,6 +133,8 @@ class BBOTArgs:
             )
         if self.parsed.event_types:
             args_preset.core.merge_custom({"modules": {"stdout": {"event_types": self.parsed.event_types}}})
+        if self.parsed.exclude_cdn:
+            args_preset.explicit_scan_modules.add("portfilter")
 
         # dependencies
         deps_config = args_preset.core.custom_config.get("deps", {})
@@ -316,6 +318,12 @@ class BBOTArgs:
         output.add_argument("--json", "-j", action="store_true", help="Output scan data in JSON format")
         output.add_argument("--brief", "-br", action="store_true", help="Output only the data itself")
         output.add_argument("--event-types", nargs="+", default=[], help="Choose which event types to display")
+        output.add_argument(
+            "--exclude-cdn",
+            "-ec",
+            action="store_true",
+            help="Filter out unwanted open ports on CDNs/WAFs (80,443 only)",
+        )
 
         deps = p.add_argument_group(
             title="Module dependencies", description="Control how modules install their dependencies"

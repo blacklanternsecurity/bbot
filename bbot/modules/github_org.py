@@ -202,12 +202,7 @@ class github_org(github):
             return is_org, in_scope
         if status_code == 200:
             is_org = True
-        try:
-            json = r.json()
-        except Exception as e:
-            self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
-            return is_org, in_scope
-        in_scope_hosts = await self.scan.extract_in_scope_hostnames(str(json))
+        in_scope_hosts = await self.scan.extract_in_scope_hostnames(getattr(r, "text", ""))
         if in_scope_hosts:
             self.verbose(
                 f'Found in-scope hostname(s): "{in_scope_hosts}" for github org: {org}, it appears to be in-scope'

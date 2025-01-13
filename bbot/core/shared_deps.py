@@ -119,6 +119,20 @@ DEP_CHROMIUM = [
         "when": "ansible_facts['os_family'] == 'Debian'",
         "ignore_errors": True,
     },
+    # Because Ubuntu is a special snowflake, we have to bend over backwards to fix the chrome sandbox
+    # see https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+    {
+        "name": "Chown chrome_sandbox to root:root",
+        "command": {"cmd": "chown -R root:root #{BBOT_TOOLS}/chrome-linux/chrome_sandbox"},
+        "when": "ansible_facts['os_family'] == 'Debian'",
+        "become": True,
+    },
+    {
+        "name": "Chmod chrome_sandbox to 4755",
+        "command": {"cmd": "chmod -R 4755 #{BBOT_TOOLS}/chrome-linux/chrome_sandbox"},
+        "when": "ansible_facts['os_family'] == 'Debian'",
+        "become": True,
+    },
 ]
 
 DEP_MASSCAN = [

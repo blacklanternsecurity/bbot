@@ -52,7 +52,7 @@ class TestIIS_Shortnames(ModuleTestBase):
         vulnerabilityEmitted = False
         url_hintEmitted = False
         for e in events:
-            if e.type == "VULNERABILITY":
+            if e.type == "VULNERABILITY" and "iis-magic-url" not in e.tags:
                 vulnerabilityEmitted = True
             if e.type == "URL_HINT" and e.data == "http://127.0.0.1:8888/BLSHAX~1":
                 url_hintEmitted = True
