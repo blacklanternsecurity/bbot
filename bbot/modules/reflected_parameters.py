@@ -13,10 +13,7 @@ class reflected_parameters(BaseModule):
 
     async def handle_event(self, event):
         url = event.data.get("url")
-        from_paramminer = str(event.module) == "paramminer_getparams"
-        reflection_detected = (
-            "http-reflection" in event.tags if from_paramminer else await self.detect_reflection(event, url)
-        )
+        reflection_detected = await self.detect_reflection(event, url)
 
         if reflection_detected:
             param_type = event.data.get("type", "UNKNOWN")
@@ -63,19 +60,22 @@ class reflected_parameters(BaseModule):
         headers = {}
         data = None
         json_data = None
+        params = {parameter_name: parameter_value, "c4n4ry": canary_value}
 
         if event.data["type"] == "GETPARAM":
             url = f"{url}?{parameter_name}={parameter_value}&c4n4ry={canary_value}"
         elif event.data["type"] == "COOKIE":
-            cookies = {**cookies, parameter_name: f"{parameter_value}; c4n4ry={canary_value}"}
+            cookies.update(params)
         elif event.data["type"] == "HEADER":
-            headers = {parameter_name: f"{parameter_value}; c4n4ry={canary_value}"}
+            headers.update(params)
         elif event.data["type"] == "POSTPARAM":
             method = "POST"
-            data = {parameter_name: parameter_value, "c4n4ry": canary_value}
+            data = params
         elif event.data["type"] == "BODYJSON":
             method = "POST"
-            json_data = {parameter_name: parameter_value, "c4n4ry": canary_value}
+            json_data = params
+
+        self.debug(f"Sending {method} request to {url} with headers: {headers}, cookies: {cookies}, data: {data}, json: {json_data}")
 
         response = await self.helpers.request(
             method=method,
