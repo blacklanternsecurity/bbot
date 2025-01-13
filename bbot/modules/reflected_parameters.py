@@ -35,19 +35,17 @@ class reflected_parameters(BaseModule):
         probe_parameter_name = event.data["name"]
         probe_parameter_value = self.helpers.rand_string()
         canary_parameter_value = self.helpers.rand_string()
-
-        # Add both the probe and canary parameters to the URL
         probe_url = self.helpers.add_get_params(
             url, 
             {
                 probe_parameter_name: probe_parameter_value,
-                "c4n4ry": canary_parameter_value  # Leet speak for "canary"
+                "c4n4ry": canary_parameter_value
             }
         ).geturl()
 
         probe_response = await self.helpers.request(probe_url, method="GET")
 
-        # Check if the probe parameter value is reflected and the canary is not
+        # Check if the probe parameter value is reflected AND the canary is not
         if probe_response:
             response_text = probe_response.text
             reflection_result = (
