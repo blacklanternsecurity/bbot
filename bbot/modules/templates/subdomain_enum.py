@@ -150,7 +150,7 @@ class subdomain_enum(BaseModule):
                     break
                 yield subdomains
         finally:
-            agen.aclose()
+            await agen.aclose()
 
     async def _is_wildcard(self, query):
         rdtypes = ("A", "AAAA", "CNAME")

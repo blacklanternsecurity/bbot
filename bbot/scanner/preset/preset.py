@@ -713,7 +713,7 @@ class Preset:
     @classmethod
     def from_yaml_string(cls, yaml_preset):
         """
-        Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
+        Create a preset from a YAML string.
 
         The file extension is optional.
 

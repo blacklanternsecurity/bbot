@@ -78,7 +78,7 @@ class github_codesearch(github, subdomain_enum):
                 if num_results >= self.limit:
                     break
         finally:
-            agen.aclose()
+            await agen.aclose()
         return repos
 
     def raw_url(self, url):

@@ -1,3 +1,4 @@
+import os
 import asyncio
 import aiosqlite
 import multiprocessing
@@ -70,6 +71,11 @@ class gowitness(BaseModule):
         custom_chrome_path = self.helpers.tools_dir / "chrome-linux" / "chrome"
         if custom_chrome_path.is_file():
             self.chrome_path = custom_chrome_path
+
+        # fix ubuntu-specific sandbox bug
+        chrome_devel_sandbox = self.helpers.tools_dir / "chrome-linux" / "chrome_sandbox"
+        if chrome_devel_sandbox.is_file():
+            os.environ["CHROME_DEVEL_SANDBOX"] = str(chrome_devel_sandbox)
 
         # make sure we have a working chrome install
         chrome_test_pass = False

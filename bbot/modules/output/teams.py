@@ -62,7 +62,7 @@ class Teams(WebhookOutputModule):
     def get_severity_color(self, event):
         color = "Accent"
         if event.type == "VULNERABILITY":
-            severity = event.data.get("severity", "UNKNOWN")
+            severity = event.data.get("severity", "INFO")
             if severity == "CRITICAL":
                 color = "Attention"
             elif severity == "HIGH":
@@ -96,7 +96,7 @@ class Teams(WebhookOutputModule):
         if event.type in ("VULNERABILITY", "FINDING"):
             subheading = {
                 "type": "TextBlock",
-                "text": event.data.get("severity", "UNKNOWN"),
+                "text": event.data.get("severity", "INFO"),
                 "spacing": "None",
                 "size": "Large",
                 "wrap": True,

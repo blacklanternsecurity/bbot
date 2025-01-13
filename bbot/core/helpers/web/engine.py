@@ -152,7 +152,7 @@ class HTTPEngine(EngineServer):
                         log.verbose(
                             f"Size of response from {url} exceeds {bytes_to_human(max_size)}, file will be truncated"
                         )
-                        agen.aclose()
+                        await agen.aclose()
                         break
                     total_size += _chunk_size
                     chunks.append(chunk)

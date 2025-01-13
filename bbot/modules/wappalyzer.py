@@ -19,7 +19,7 @@ class wappalyzer(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
-    deps_pip = ["python-Wappalyzer~=0.3.1", "aiohttp~=3.9.0b0"]
+    deps_pip = ["python-Wappalyzer~=0.3.1", "aiohttp~=3.9.0b0", "setuptools"]
     # accept all events regardless of scope distance
     scope_distance_modifier = None
     _module_threads = 5
