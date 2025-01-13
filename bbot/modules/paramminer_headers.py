@@ -52,6 +52,7 @@ class paramminer_headers(BaseModule):
         "javascript",
         "keep-alive",
         "label",
+        "max-forwards",
         "negotiate",
         "proxy",
         "range",
