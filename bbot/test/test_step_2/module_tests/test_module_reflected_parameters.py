@@ -3,6 +3,7 @@ from werkzeug.wrappers import Response
 import re
 
 from .test_module_paramminer_getparams import TestParamminer_Getparams
+from .test_module_paramminer_headers import helper
 
 
 
@@ -59,10 +60,29 @@ class TestReflected_parameters_headers(TestReflected_parameters_fromexcavate):
             for e in events
         )
 
-
-
 class TestReflected_parameters_fromparamminer(TestParamminer_Getparams):
     modules_overrides = ["httpx", "paramminer_getparams", "reflected_parameters"]
+
+    def request_handler(self, request):
+        normal_block = '<html></html>'
+        qs = str(request.query_string.decode())
+        if "id=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            reflected_block = f'<html><a href="/?id={value}"></a></html>'
+            return Response(reflected_block, status=200)
+        else:
+            return Response(normal_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.monkeypatch.setattr(
+            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
+        )
+
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
         assert any(
