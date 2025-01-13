@@ -12,11 +12,13 @@ class TestReflected_parameters_fromexcavate(ModuleTestBase):
     def request_handler(self, request):
         normal_block = '<html><a href="/?reflected=foo">foo</a></html>'
         qs = str(request.query_string.decode())
-        if "reflected=" in qs:
-            value = qs.split("=")[1]
-            if "&" in value:
-                value = value.split("&")[0]
-            reflected_block = f'<html><a href="/?reflected={value}"></a></html>'
+        if qs:
+            # Split the query string into key-value pairs
+            params = qs.split("&")
+            # Construct the reflected block with all parameters
+            reflected_block = '<html><a href="/?'
+            reflected_block += '&'.join(params)
+            reflected_block += '"></a></html>'
             return Response(reflected_block, status=200)
         else:
             return Response(normal_block, status=200)
@@ -42,5 +44,28 @@ class TestReflected_parameters_fromparamminer(TestParamminer_Getparams):
             e.type == "FINDING"
             and "GET Parameter value reflected in response body. Name: [id] Source Module: [paramminer_getparams]"
             in e.data["description"]
+            for e in events
+        )
+
+class TestReflected_parameters_with_canary(TestReflected_parameters_fromexcavate):
+
+    def request_handler(self, request):
+        normal_block = '<html><a href="/?reflected=foo">foo</a></html>'
+        qs = str(request.query_string.decode())
+        if qs:
+            # Split the query string into key-value pairs
+            params = qs.split("&")
+            # Construct the reflected block with all parameters
+            reflected_block = '<html><a href="/?'
+            reflected_block += '&'.join(params)
+            reflected_block += '"></a></html>'
+            return Response(reflected_block, status=200)
+        else:
+            return Response(normal_block, status=200)
+
+    def check(self, module_test, events):
+        # Ensure no findings are emitted when the canary is reflected
+        assert not any(
+            e.type == "FINDING"
             for e in events
         )
