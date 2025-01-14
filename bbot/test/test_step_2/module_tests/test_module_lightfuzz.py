@@ -1,12 +1,16 @@
 import json
 import re
 import base64
+import logging
 
 from .base import ModuleTestBase, tempwordlist
 from werkzeug.wrappers import Response
 from urllib.parse import unquote, quote
 
 import xml.etree.ElementTree as ET
+
+from .test_module_paramminer_getparams import TestParamminer_Getparams
+from .test_module_paramminer_headers import helper
 
 
 # Path Traversal single dot tolerance
@@ -1499,3 +1503,143 @@ class Test_PaddingOracleDetection(ModuleTestBase):
         assert web_parameter_extracted, "Web parameter was not extracted"
         assert cryptographic_parameter_finding, "Cryptographic parameter not detected"
         assert padding_oracle_detected, "Padding oracle vulnerability was not detected"
+
+
+class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate", "paramminer_getparams"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["xss"]},
+            "paramminer_getparams": {"wordlist": tempwordlist(["junk", "input"]), "recycle_words": True},
+        },
+    }
+
+    def request_handler(self, request):
+        # Decode the query string
+        qs = str(request.query_string.decode())
+        default_output = """
+        <html>
+            <form action="/" method="get">
+                <input type="text" name="input" value="default">
+                <input type="submit" value="Submit">
+            </form>
+        </html>
+        """
+
+        if "input=" in qs:
+            # Split the query string to isolate the 'input' parameter
+            params = qs.split("&")
+            input_value = None
+            for param in params:
+                if param.startswith("input="):
+                    input_value = param.split("=")[1]
+                    break
+            
+            if input_value:
+                # Simulate flawed escaping
+                sanitized_input = input_value.replace('"', '\\"').replace("'", "\\'")
+                sanitized_input = sanitized_input.replace('<', '%3C').replace('>', '%3E')
+
+                # Construct the reflected block with the sanitized input
+                reflected_block = f"""
+                <html>
+                    <script>
+                        let userInput = '{sanitized_input}';
+                        console.log(userInput);
+                    </script>
+                </html>
+                """
+                return Response(reflected_block, status=200)
+
+        return Response(default_output, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.monkeypatch.setattr(
+            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
+        )
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        xss_finding_emitted = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "[Paramminer] Getparam: [input] Reasons: [body] Reflection: [True]" in e.data["description"]:
+                    web_parameter_emitted = True
+
+            if e.type == "FINDING":
+                if "Possible Reflected XSS. Parameter: [input] Context: [In Javascript (escaping the escape character, single quote)] Parameter Type: [GETPARAM]":
+                    xss_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER for was not emitted"
+        assert xss_finding_emitted, "XSS FINDING not emitted"
+
+
+class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquotecontext):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate", "paramminer_getparams"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["xss"]},
+            "paramminer_getparams": {"wordlist": tempwordlist(["junk", "input"]), "recycle_words": True},
+        },
+    }
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        default_output = """
+        <html>
+            <form action="/" method="get">
+                <input type="text" name="input" value="default">
+                <input type="submit" value="Submit">
+            </form>
+        </html>
+        """
+
+        if "input=" in qs:
+            params = qs.split("&")
+            input_value = None
+            for param in params:
+                if param.startswith("input="):
+                    input_value = param.split("=")[1]
+                    break
+            
+            if input_value:
+                # Simulate flawed escaping with opposite quotes
+                sanitized_input = input_value.replace("'", "\\'").replace('"', '\\"')
+                sanitized_input = sanitized_input.replace('<', '%3C').replace('>', '%3E')
+
+                reflected_block = f"""
+                <html>
+                    <script>
+                        let userInput = "{sanitized_input}";
+                        console.log(userInput);
+                    </script>
+                </html>
+                """
+                return Response(reflected_block, status=200)
+
+        return Response(default_output, status=200)
+
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        xss_finding_emitted = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "[Paramminer] Getparam: [input] Reasons: [body] Reflection: [True]" in e.data["description"]:
+                    web_parameter_emitted = True
+
+            if e.type == "FINDING":
+                if "Possible Reflected XSS. Parameter: [input] Context: [In Javascript (escaping the escape character, double quote)] Parameter Type: [GETPARAM]":
+                    xss_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER for was not emitted"
+        assert xss_finding_emitted, "XSS FINDING not emitted"

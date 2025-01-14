@@ -29,6 +29,33 @@ class XSSLightfuzz(BaseLightfuzz):
 
         return between_tags, in_tag_attribute, in_javascript
 
+    def determine_javascript_quote_context(self, target, text):
+        # Define regex patterns for double and single quotes
+        quote_patterns = {
+            "double": f'"[^"]*{target}[^"]*"',
+            "single": f"'[^']*{target}[^']*'"
+        }
+
+        # Split the text by semicolons to isolate JavaScript statements
+        statements = text.split(";")
+
+        def is_balanced(section, target_index, quote_char):
+            left = section[:target_index]
+            right = section[target_index + len(target):]
+            return left.count(quote_char) % 2 == 0 and right.count(quote_char) % 2 == 0
+
+        for statement in statements:
+            for quote_type, pattern in quote_patterns.items():
+                match = re.search(pattern, statement)
+                if match:
+                    context = match.group(0)
+                    target_index = context.find(target)
+                    opposite_quote = "'" if quote_type == "double" else '"'
+                    if is_balanced(context, target_index, opposite_quote):
+                        return quote_type
+
+        return "outside"
+
     async def check_probe(self, cookies, probe, match, context):
         probe_result = await self.standard_probe(self.event.data["type"], cookies, probe)
         if probe_result and match in probe_result.text:
@@ -93,10 +120,23 @@ class XSSLightfuzz(BaseLightfuzz):
             in_javascript_probe = rf"</script><script>{random_string}</script>"
             result = await self.check_probe(cookies, in_javascript_probe, in_javascript_probe, "In Javascript")
             if result is False:
-                in_javasscript_escape_probe = rf"a\';zzzzz({random_string})\\"
-                in_javasscript_escape_match = rf"a\\';zzzzz({random_string})\\"
-                await self.check_probe(cookies, 
-                    in_javasscript_escape_probe,
-                    in_javasscript_escape_match,
-                    "In Javascript (escaping the escape character)",
+                quote_context = self.determine_javascript_quote_context(random_string, reflection_probe_result.text)
+
+                # Skip the test if the context is outside
+                if quote_context == "outside":
+                    return
+
+                # Update probes based on the quote context
+                if quote_context == "single":
+                    in_javascript_escape_probe = rf"a\';zzzzz({random_string})\\"
+                    in_javascript_escape_match = rf"a\\';zzzzz({random_string})\\"
+                elif quote_context == "double":
+                    in_javascript_escape_probe = rf'a\";zzzzz({random_string})\\'
+                    in_javascript_escape_match = rf'a\\";zzzzz({random_string})\\'
+
+                await self.check_probe(
+                    cookies,
+                    in_javascript_escape_probe,
+                    in_javascript_escape_match,
+                    f"In Javascript (escaping the escape character, {quote_context} quote)"
                 )
