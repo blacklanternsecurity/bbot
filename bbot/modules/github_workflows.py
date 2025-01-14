@@ -113,7 +113,7 @@ class github_workflows(github):
                 for item in j:
                     workflows.append(item)
         finally:
-            agen.aclose()
+            await agen.aclose()
         return workflows
 
     async def get_workflow_runs(self, owner, repo, workflow_id):

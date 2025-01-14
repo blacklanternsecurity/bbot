@@ -67,7 +67,7 @@ class zoomeye(subdomain_enum_apikey):
                     break
                 i += 1
         finally:
-            agen.aclose()
+            await agen.aclose()
         return results
 
     async def parse_results(self, r):

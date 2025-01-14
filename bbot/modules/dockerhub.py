@@ -85,5 +85,5 @@ class dockerhub(BaseModule):
                     if image_name and namespace:
                         repos.append("https://hub.docker.com/r/" + namespace + "/" + image_name)
         finally:
-            agen.aclose()
+            await agen.aclose()
         return repos

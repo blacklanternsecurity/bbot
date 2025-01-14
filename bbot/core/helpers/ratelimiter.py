@@ -26,8 +26,14 @@ class RateLimiter:
         self.log_interval = 10
         self.current_timestamp = time.time()
         self.count = 0
-        self.lock = asyncio.Lock()
+        self._lock = None
         self.last_notification = None
+
+    @property
+    def lock(self):
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     async def __aenter__(self):
         async with self.lock:

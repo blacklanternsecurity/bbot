@@ -61,5 +61,5 @@ class hunterio(subdomain_enum_apikey):
                     break
                 emails += new_emails
         finally:
-            agen.aclose()
+            await agen.aclose()
         return emails

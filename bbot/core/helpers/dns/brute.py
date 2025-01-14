@@ -29,10 +29,16 @@ class DNSBrute:
         self.devops_mutations = list(self.parent_helper.word_cloud.devops_mutations)
         self.digit_regex = self.parent_helper.re.compile(r"\d+")
         self._resolver_file = None
-        self._dnsbrute_lock = asyncio.Lock()
+        self._dnsbrute_lock = None
 
     async def __call__(self, *args, **kwargs):
         return await self.dnsbrute(*args, **kwargs)
+
+    @property
+    def dnsbrute_lock(self):
+        if self._dnsbrute_lock is None:
+            self._dnsbrute_lock = asyncio.Lock()
+        return self._dnsbrute_lock
 
     async def dnsbrute(self, module, domain, subdomains, type=None):
         subdomains = list(subdomains)
@@ -119,7 +125,7 @@ class DNSBrute:
         )
         subdomains = self.gen_subdomains(subdomains, domain)
         hosts_yielded = set()
-        async with self._dnsbrute_lock:
+        async with self.dnsbrute_lock:
             async for line in module.run_process_live(*command, stderr=subprocess.DEVNULL, input=subdomains):
                 try:
                     j = json.loads(line)

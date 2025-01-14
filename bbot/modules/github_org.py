@@ -130,7 +130,7 @@ class github_org(github):
                     html_url = item.get("html_url", "")
                     repos.append(html_url)
         finally:
-            agen.aclose()
+            await agen.aclose()
         return repos
 
     async def query_org_members(self, query):
@@ -158,7 +158,7 @@ class github_org(github):
                     login = item.get("login", "")
                     members.append(login)
         finally:
-            agen.aclose()
+            await agen.aclose()
         return members
 
     async def query_user_repos(self, query):
@@ -186,7 +186,7 @@ class github_org(github):
                     html_url = item.get("html_url", "")
                     repos.append(html_url)
         finally:
-            agen.aclose()
+            await agen.aclose()
         return repos
 
     async def validate_org(self, org):
@@ -202,18 +202,10 @@ class github_org(github):
             return is_org, in_scope
         if status_code == 200:
             is_org = True
-        try:
-            json = r.json()
-        except Exception as e:
-            self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
-            return is_org, in_scope
-        for k, v in json.items():
-            if (
-                isinstance(v, str)
-                and (self.helpers.is_dns_name(v) and "." in v or self.helpers.is_url(v) or self.helpers.is_email(v))
-                and self.scan.in_scope(v)
-            ):
-                self.verbose(f'Found in-scope key "{k}": "{v}" for {org}, it appears to be in-scope')
-                in_scope = True
-                break
+        in_scope_hosts = await self.scan.extract_in_scope_hostnames(getattr(r, "text", ""))
+        if in_scope_hosts:
+            self.verbose(
+                f'Found in-scope hostname(s): "{in_scope_hosts}" for github org: {org}, it appears to be in-scope'
+            )
+            in_scope = True
         return is_org, in_scope

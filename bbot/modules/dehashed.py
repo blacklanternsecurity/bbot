@@ -110,6 +110,6 @@ class dehashed(subdomain_enum):
                     self.info(
                         f"{domain} has {total:,} results in Dehashed. The API can only process the first 30,000 results. Please check dehashed.com to get the remaining results."
                     )
-                agen.aclose()
+                await agen.aclose()
                 break
             yield entries

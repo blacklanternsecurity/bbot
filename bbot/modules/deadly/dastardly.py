@@ -12,7 +12,7 @@ class dastardly(BaseModule):
         "author": "@domwhewell-sage",
     }
 
-    deps_pip = ["lxml~=4.9.2"]
+    deps_pip = ["lxml~=5.3.0"]
     deps_common = ["docker"]
     per_hostport_only = True
 
