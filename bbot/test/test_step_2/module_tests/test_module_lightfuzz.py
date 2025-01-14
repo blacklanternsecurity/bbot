@@ -1581,15 +1581,6 @@ class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
 
 
 class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquotecontext):
-    targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate", "paramminer_getparams"]
-    config_overrides = {
-        "interactsh_disable": True,
-        "modules": {
-            "lightfuzz": {"enabled_submodules": ["xss"]},
-            "paramminer_getparams": {"wordlist": tempwordlist(["junk", "input"]), "recycle_words": True},
-        },
-    }
 
     def request_handler(self, request):
         qs = str(request.query_string.decode())
