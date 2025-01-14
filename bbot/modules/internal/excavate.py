@@ -315,7 +315,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     _module_threads = 8
 
-    parameter_blacklist_prefix = ["TS01", "BIGipServerpool_"]  # Big-IP F5 Persistence Cookies
+    parameter_blacklist_prefix = ["TS01", "BIGipServer"]  # Big-IP F5 Persistence Cookies
 
     parameter_blacklist = set(
         p.lower()
@@ -333,6 +333,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             "PHPSESSID",
             "AWSALB",
             "AWSALBCORS",
+            "__cf_bm",
+            "f5_cspm",
         ]
     )
 
