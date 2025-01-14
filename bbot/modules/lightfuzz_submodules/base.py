@@ -143,10 +143,6 @@ class BaseLightfuzz:
         allow_redirects=False,
     ):
 
-
-
-
-
         probe = self.outgoing_probe_value(probe)
 
         if event_type == "SPECULATIVE":
