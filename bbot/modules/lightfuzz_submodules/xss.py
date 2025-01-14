@@ -2,7 +2,6 @@ from .base import BaseLightfuzz
 
 import regex as re
 
-
 class XSSLightfuzz(BaseLightfuzz):
     async def determine_context(self, cookies, html, random_string):
         between_tags = False
@@ -11,9 +10,7 @@ class XSSLightfuzz(BaseLightfuzz):
 
         between_tags_regex = re.compile(rf"<(\/?\w+)[^>]*>.*?{random_string}.*?<\/?\w+>")
         in_tag_attribute_regex = re.compile(rf'<(\w+)\s+[^>]*?(\w+)="([^"]*?{random_string}[^"]*?)"[^>]*>')
-        in_javascript_regex = re.compile(
-            rf"<script\b[^>]*>(?:(?!<\/script>)[\s\S])*?{random_string}(?:(?!<\/script>)[\s\S])*?<\/script>"
-        )
+        in_javascript_regex = re.compile(rf"<script\b[^>]*>[^<]*(?:<(?!\/script>)[^<]*)*{random_string}[^<]*(?:<(?!\/script>)[^<]*)*<\/script>")
 
         between_tags_match = await self.lightfuzz.helpers.re.search(between_tags_regex, html)
         if between_tags_match:
