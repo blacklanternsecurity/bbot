@@ -1,10 +1,10 @@
 from .base import BaseLightfuzz
 
-import re
+import regex as re
 
 
 class XSSLightfuzz(BaseLightfuzz):
-    def determine_context(self, cookies, html, random_string):
+    async def determine_context(self, cookies, html, random_string):
         between_tags = False
         in_tag_attribute = False
         in_javascript = False
@@ -15,25 +15,25 @@ class XSSLightfuzz(BaseLightfuzz):
             rf"<script\b[^>]*>(?:(?!<\/script>)[\s\S])*?{random_string}(?:(?!<\/script>)[\s\S])*?<\/script>"
         )
 
-        between_tags_match = re.search(between_tags_regex, html)
+        between_tags_match = await self.lightfuzz.helpers.re.search(between_tags_regex, html)
         if between_tags_match:
             between_tags = True
 
-        in_tag_attribute_match = re.search(in_tag_attribute_regex, html)
+        in_tag_attribute_match = await self.lightfuzz.helpers.re.search(in_tag_attribute_regex, html)
         if in_tag_attribute_match:
             in_tag_attribute = True
 
-        in_javascript_regex = re.search(in_javascript_regex, html)
-        if in_javascript_regex:
+        in_javascript_match = await self.lightfuzz.helpers.re.search(in_javascript_regex, html)
+        if in_javascript_match:
             in_javascript = True
 
         return between_tags, in_tag_attribute, in_javascript
 
-    def determine_javascript_quote_context(self, target, text):
-        # Define regex patterns for double and single quotes
+    async def determine_javascript_quote_context(self, target, text):
+        # Define and compile regex patterns for double and single quotes
         quote_patterns = {
-            "double": f'"[^"]*{target}[^"]*"',
-            "single": f"'[^']*{target}[^']*'"
+            "double": re.compile(f'"[^"]*{target}[^"]*"'),
+            "single": re.compile(f"'[^']*{target}[^']*'")
         }
 
         # Split the text by semicolons to isolate JavaScript statements
@@ -46,7 +46,7 @@ class XSSLightfuzz(BaseLightfuzz):
 
         for statement in statements:
             for quote_type, pattern in quote_patterns.items():
-                match = re.search(pattern, statement)
+                match = await self.lightfuzz.helpers.re.search(pattern, statement)
                 if match:
                     context = match.group(0)
                     target_index = context.find(target)
@@ -94,7 +94,7 @@ class XSSLightfuzz(BaseLightfuzz):
         if not reflection or reflection is False:
             return
 
-        between_tags, in_tag_attribute, in_javascript = self.determine_context(cookies, reflection_probe_result.text, random_string)
+        between_tags, in_tag_attribute, in_javascript = await self.determine_context(cookies, reflection_probe_result.text, random_string)
         self.lightfuzz.debug(
             f"determine_context returned: between_tags [{between_tags}], in_tag_attribute [{in_tag_attribute}], in_javascript [{in_javascript}]"
         )
@@ -120,7 +120,7 @@ class XSSLightfuzz(BaseLightfuzz):
             in_javascript_probe = rf"</script><script>{random_string}</script>"
             result = await self.check_probe(cookies, in_javascript_probe, in_javascript_probe, "In Javascript")
             if result is False:
-                quote_context = self.determine_javascript_quote_context(random_string, reflection_probe_result.text)
+                quote_context = await self.determine_javascript_quote_context(random_string, reflection_probe_result.text)
 
                 # Skip the test if the context is outside
                 if quote_context == "outside":
