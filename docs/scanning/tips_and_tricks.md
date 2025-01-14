@@ -79,29 +79,29 @@ bbot -t evilcorp.com -f subdomain-enum -c spider.yml
 
 ### Exclude CDNs from Port Scan
 
-If you want to exclude CDNs (e.g. Cloudflare) from port scanning, you can set the `allowed_cdn_ports` config option in the `portscan` module. For example, to allow only port 80 (HTTP) and 443 (HTTPS), you can do the following:
+Use `--exclude-cdns` to filter out unwanted open ports from CDNs and WAFs, e.g. Cloudflare. You can also customize the criteria by setting `modules.portfilter.cdn_tags`. By default, only open ports with `cdn-*` tags are filtered, but you can include all cloud providers by setting `cdn_tags` to `cdn,cloud`:
 
 ```bash
-bbot -t evilcorp.com -m portscan -c modules.portscan.allowed_cdn_ports=80,443
+bbot -t evilcorp.com --exclude-cdns -c modules.portfilter.cdn_tags=cdn,cloud
 ```
 
-By default, if you set `allowed_cdn_ports`, it will skip only providers marked as CDNs. If you want to skip cloud providers as well, you can set `cdn_tags`, which is a comma-separated list of tags to skip (matched against the beginning of each tag).
+Additionally, you can customize the allowed ports by setting `modules.portscan.allowed_cdn_ports`.
 
 ```bash
-bbot -t evilcorp.com -m portscan -c modules.portscan.allowed_cdn_ports=80,443 modules.portscan.cdn_tags=cdn-,cloud-
+bbot -t evilcorp.com --exclude-cdns -c modules.portfilter.allowed_cdn_ports=80,443,8443
 ```
 
-...or via a preset:
+Example preset:
 
 ```yaml title="skip_cdns.yml"
 modules:
-  - portscan
+  - portfilter
 
 config:
   modules:
-    portscan:
-      allowed_cdn_ports: 80,443
+    portfilter:
       cdn_tags: cdn-,cloud-
+      allowed_cdn_ports: 80,443,8443
 ```
 
 ```bash

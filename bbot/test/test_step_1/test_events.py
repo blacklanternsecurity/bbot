@@ -964,15 +964,25 @@ def test_event_closest_host():
     assert vuln.data["path"] == "/tmp/asdf.txt"
     assert vuln.host == "www.evilcorp.com"
 
-    # no host == not allowed
+    # no host and no path == not allowed
     event3 = scan.make_event("wat", "ASDF", parent=scan.root_event)
     assert not event3.host
     with pytest.raises(ValueError):
-        finding = scan.make_event({"path": "/tmp/asdf.txt", "description": "test"}, "FINDING", parent=event3)
+        finding = scan.make_event({"description": "test"}, "FINDING", parent=event3)
+    finding = scan.make_event({"path": "/tmp/asdf.txt", "description": "test"}, "FINDING", parent=event3)
+    assert finding is not None
+    finding = scan.make_event({"host": "evilcorp.com", "description": "test"}, "FINDING", parent=event3)
+    assert finding is not None
     with pytest.raises(ValueError):
-        vuln = scan.make_event(
-            {"path": "/tmp/asdf.txt", "description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event3
-        )
+        vuln = scan.make_event({"description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event3)
+    vuln = scan.make_event(
+        {"path": "/tmp/asdf.txt", "description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event3
+    )
+    assert vuln is not None
+    vuln = scan.make_event(
+        {"host": "evilcorp.com", "description": "test", "severity": "HIGH"}, "VULNERABILITY", parent=event3
+    )
+    assert vuln is not None
 
 
 def test_event_magic():

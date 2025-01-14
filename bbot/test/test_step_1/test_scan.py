@@ -152,7 +152,7 @@ async def test_python_output_matches_json(bbot_scanner):
 
 
 @pytest.mark.asyncio
-async def test_huge_target_list(bbot_scanner):
+async def test_huge_target_list(bbot_scanner, monkeypatch):
     # single target should only have one rule
     scan = bbot_scanner("evilcorp.com", config={"excavate": True})
     await scan._prep()
@@ -167,3 +167,63 @@ async def test_huge_target_list(bbot_scanner):
     assert "hostname_extraction_0" in scan.modules["excavate"].yara_rules_dict
     assert "hostname_extraction_1" in scan.modules["excavate"].yara_rules_dict
     assert "hostname_extraction_2" not in scan.modules["excavate"].yara_rules_dict
+
+
+@pytest.mark.asyncio
+async def test_exclude_cdn(bbot_scanner, monkeypatch):
+    # test that CDN exclusion works
+
+    from bbot import Preset
+
+    dns_mock = {
+        "evilcorp.com": {"A": ["127.0.0.1"]},
+        "www.evilcorp.com": {"A": ["127.0.0.1"]},
+    }
+
+    # first, run a scan with no CDN exclusion
+    scan = bbot_scanner("evilcorp.com")
+    await scan.helpers._mock_dns(dns_mock)
+
+    from bbot.modules.base import BaseModule
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+
+        async def handle_event(self, event):
+            if event.type == "DNS_NAME" and event.data == "evilcorp.com":
+                await self.emit_event("www.evilcorp.com", "DNS_NAME", parent=event, tags=["cdn-cloudflare"])
+            if event.type == "DNS_NAME" and event.data == "www.evilcorp.com":
+                await self.emit_event("www.evilcorp.com:80", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
+                await self.emit_event("www.evilcorp.com:443", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
+                await self.emit_event("www.evilcorp.com:8080", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
+
+    dummy = DummyModule(scan=scan)
+    await scan._prep()
+    scan.modules["dummy"] = dummy
+    events = [e async for e in scan.async_start() if e.type in ("DNS_NAME", "OPEN_TCP_PORT")]
+    assert set(e.data for e in events) == {
+        "evilcorp.com",
+        "www.evilcorp.com",
+        "www.evilcorp.com:80",
+        "www.evilcorp.com:443",
+        "www.evilcorp.com:8080",
+    }
+
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "evilcorp.com", "--exclude-cdn"])
+
+    # then run a scan with --exclude-cdn enabled
+    preset = Preset("evilcorp.com")
+    preset.parse_args()
+    assert preset.bake().to_yaml() == "modules:\n- portfilter\n"
+    scan = bbot_scanner("evilcorp.com", preset=preset)
+    await scan.helpers._mock_dns(dns_mock)
+    dummy = DummyModule(scan=scan)
+    await scan._prep()
+    scan.modules["dummy"] = dummy
+    events = [e async for e in scan.async_start() if e.type in ("DNS_NAME", "OPEN_TCP_PORT")]
+    assert set(e.data for e in events) == {
+        "evilcorp.com",
+        "www.evilcorp.com",
+        "www.evilcorp.com:80",
+        "www.evilcorp.com:443",
+    }

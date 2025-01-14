@@ -238,8 +238,7 @@ class iis_shortnames(BaseModule):
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
                 event,
-                context="{module} detected low {event.type}: IIS shortname enumeration",
-                tags=["iis-magic-url"],
+                context="{module} detected low {event.type}: IIS shortname enumeration"
             )
 
             if self.config.get("speculate_magic_urls") and "iis-magic-url" not in event.tags:
