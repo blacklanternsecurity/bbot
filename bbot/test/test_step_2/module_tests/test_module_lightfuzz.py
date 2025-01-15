@@ -1138,6 +1138,7 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
     def check(self, module_test, events):
         excavate_extracted_form_parameter = False
         excavate_extracted_form_parameter_details = False
+        excavate_detect_serialization_value = False
         lightfuzz_serial_detect_errorresolution = False
 
         for e in events:
@@ -1159,6 +1160,9 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
                         excavate_extracted_form_parameter_details = True
             if e.type == "FINDING":
                 if (
+                    e.data["description"] == "HTTP response (body) contains a possible serialized object (DOTNET)"):
+                    excavate_detect_serialization_value = True
+                if (
                     e.data["description"]
                     == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Original Value: [AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==] Technique: [Error Resolution] Serialization Payload: [dotnet_base64]"
                 ):
@@ -1166,6 +1170,7 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
 
         assert excavate_extracted_form_parameter, "WEB_PARAMETER for POST form was not emitted"
         assert excavate_extracted_form_parameter_details, "WEB_PARAMETER for POST form did not have correct data"
+        assert excavate_detect_serialization_value, "WEB_PARAMETER for POST form did not have correct data"
         assert (
             lightfuzz_serial_detect_errorresolution
         ), "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"

@@ -6,22 +6,6 @@ from urllib.parse import unquote, quote
 
 
 class CryptoLightfuzz(BaseLightfuzz):
-    @staticmethod
-    def is_hex(s):
-        try:
-            bytes.fromhex(s)
-            return True
-        except ValueError:
-            return False
-
-    @staticmethod
-    def is_base64(s):
-        try:
-            if base64.b64encode(base64.b64decode(s)).decode() == s:
-                return True
-        except Exception:
-            return False
-        return False
 
     crypto_error_strings = [
         "invalid mac",
@@ -49,10 +33,10 @@ class CryptoLightfuzz(BaseLightfuzz):
         encoding = "unknown"
         if urldecode:
             input_string = unquote(input_string)
-        if CryptoLightfuzz.is_hex(input_string):
+        if BaseLightfuzz.is_hex(input_string):
             data = bytes.fromhex(input_string)
             encoding = "hex"
-        elif CryptoLightfuzz.is_base64(input_string):
+        elif BaseLightfuzz.is_base64(input_string):
             data = base64.b64decode(input_string)
             encoding = "base64"
         else:

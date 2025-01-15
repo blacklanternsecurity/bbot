@@ -1,11 +1,29 @@
 import copy
-
+import base64
+import binascii
 
 class BaseLightfuzz:
     def __init__(self, lightfuzz, event):
         self.lightfuzz = lightfuzz
         self.event = event
         self.results = []
+
+    @staticmethod
+    def is_hex(s):
+        try:
+            bytes.fromhex(s)
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def is_base64(s):
+        try:
+            if base64.b64encode(base64.b64decode(s)).decode() == s:
+                return True
+        except (binascii.Error, UnicodeDecodeError):
+            return False
+        return False
 
     def additional_params_process(self, additional_params, additional_params_populate_blank_empty):
         if additional_params_populate_blank_empty is False:

@@ -1,8 +1,5 @@
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
-import base64
-import binascii
-
 
 class SerialLightfuzz(BaseLightfuzz):
 
@@ -19,20 +16,14 @@ class SerialLightfuzz(BaseLightfuzz):
             'N;',  # Null
         ]
 
-        try:
-            # Check if the value is valid Base64
-            if base64.b64encode(base64.b64decode(value)).decode() == value:
-                return True
-        except (binascii.Error, UnicodeDecodeError):
-            pass
+        # Use the is_base64 method from BaseLightfuzz via self
+        if self.is_base64(value):
+            return True
 
-        try:
-            # Check if the value is valid hexadecimal
-            if binascii.hexlify(binascii.unhexlify(value)).decode() == value:
-                return True
-        except (binascii.Error, UnicodeDecodeError):
-            pass
-
+        # Use the is_hex method from BaseLightfuzz via self
+        if self.is_hex(value):
+            return True
+        
         # Check if the value starts with any of the PHP serialized prefixes
         if any(value.startswith(prefix) for prefix in php_serialized_prefixes):
             return True
