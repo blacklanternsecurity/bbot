@@ -1032,7 +1032,7 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
 
         else:
             if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
-                return Response(dotnet_serial_error, status=500)
+                return Response(self.dotnet_serial_error, status=500)
             if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
                 return Response(dotnet_serial_error_resolved, status=200)
             else:
