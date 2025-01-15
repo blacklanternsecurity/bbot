@@ -973,26 +973,17 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
         },
     }
 
-    async def setup_after_prep(self, module_test):
-        expect_args = re.compile("/")
-        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+    dotnet_serial_error = """
+        <html>
+        <b> Description: </b>An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information about the error and where it originated in the code.
 
-    def request_handler(self, request):
-        dotnet_serial_error = """
-            <html>
-            <b> Description: </b>An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information about the error and where it originated in the code.
+        <br><br>
 
-            <br><br>
+        <b> Exception Details: </b>System.Runtime.Serialization.SerializationException: End of Stream encountered before parsing was completed.<br><br>
+        </html>
+        """
 
-            <b> Exception Details: </b>System.Runtime.Serialization.SerializationException: End of Stream encountered before parsing was completed.<br><br>
-            </html>
-            """
-
-        dotnet_serial_error_resolved = (
-            "<html><body>Deserialization successful! Object type: System.String</body></html>"
-        )
-
-        dotnet_serial_html = """
+    dotnet_serial_html = """
         <!DOCTYPE html>
         <html>
         <head><title>
@@ -1023,10 +1014,21 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
         </html>
         """
 
+
+    async def setup_after_prep(self, module_test):
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def request_handler(self, request):
+
+
+        dotnet_serial_error_resolved = (
+            "<html><body>Deserialization successful! Object type: System.String</body></html>"
+        )
         post_params = request.form
 
         if "TextBox1" not in post_params.keys():
-            return Response(dotnet_serial_html, status=200)
+            return Response(self.dotnet_serial_html, status=200)
 
         else:
             if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
@@ -1034,7 +1036,7 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
             if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
                 return Response(dotnet_serial_error_resolved, status=200)
             else:
-                return Response(dotnet_serial_error, status=500)
+                return Response(self.dotnet_serial_error, status=500)
 
     def check(self, module_test, events):
         excavate_extracted_form_parameter = False
@@ -1070,6 +1072,100 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
             lightfuzz_serial_detect_errorresolution
         ), "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
 
+
+# Serialization Module (Error Resolution False Positive)
+class Test_Lightfuzz_serial_errorresolution_falsepositive(Test_Lightfuzz_serial_errorresolution):
+    
+    def request_handler(self, request):
+
+        dotnet_serial_error_resolved_with_general_error = (
+            "<html><body>Internal Server Error (invalid characters!)</body></html>"
+        )
+        post_params = request.form
+
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        else:
+            if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
+                return Response(self.dotnet_serial_error, status=500)
+            if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
+                return Response(dotnet_serial_error_resolved_with_general_error, status=200)
+            else:
+                return Response(self.dotnet_serial_error, status=500)
+
+    def check(self, module_test, events):
+        no_finding_emitted = True
+
+        for e in events:
+            if e.type == "FINDING":
+                no_finding_emitted = False
+
+        assert no_finding_emitted, "False positive finding was emitted"
+
+class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_serial_errorresolution):
+    dotnet_serial_html = """
+        <!DOCTYPE html>
+        <html>
+        <head><title>
+            Deserialization RCE Example
+        </title></head>
+        <body>
+            <form method="post" action="./deser.aspx" id="form1">
+        <div class="aspNetHidden">
+        <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP" />
+        </div>
+
+        <div class="aspNetHidden">
+
+            <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="AD6F025C" />
+            <input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAANdCjkiIFhjCB8ta8aO/EhuESCFkFW/RuhzY1oLb/NUVM34O/GfAV4V4n0wgFZHr3czZjft8VgObR/WUivai7w4kfR1wg==" />
+        </div>
+                <div>
+                    <h2>Deserialization Test</h2>
+                    <span id="Label1">Enter serialized data:</span><br />
+                    <textarea name="TextBox1" rows="2" cols="20" id="TextBox1" value="AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==" style="height:100px;width:400px;">
+        </textarea><br /><br />
+                    <input type="submit" name="Button1" value="Submit" id="Button1" /><br /><br />
+                </div>
+            </form>
+
+            
+        </body>
+        </html>
+        """
+
+class Test_Lightfuzz_serial_errorresolution_existingvalue_invalid(Test_Lightfuzz_serial_errorresolution_falsepositive):
+    dotnet_serial_html = """
+        <!DOCTYPE html>
+        <html>
+        <head><title>
+            Deserialization RCE Example
+        </title></head>
+        <body>
+            <form method="post" action="./deser.aspx" id="form1">
+        <div class="aspNetHidden">
+        <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP" />
+        </div>
+
+        <div class="aspNetHidden">
+
+            <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="AD6F025C" />
+            <input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAANdCjkiIFhjCB8ta8aO/EhuESCFkFW/RuhzY1oLb/NUVM34O/GfAV4V4n0wgFZHr3czZjft8VgObR/WUivai7w4kfR1wg==" />
+        </div>
+                <div>
+                    <h2>Deserialization Test</h2>
+                    <span id="Label1">Enter serialized data:</span><br />
+                    <textarea name="TextBox1" rows="2" cols="20" id="TextBox1" value="not_valid_base64!" style="height:100px;width:400px;">
+        </textarea><br /><br />
+                    <input type="submit" name="Button1" value="Submit" id="Button1" /><br /><br />
+                </div>
+            </form>
+
+            
+        </body>
+        </html>
+        """
 
 # Serialization Module (Error Differential)
 class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolution):
@@ -1634,3 +1730,5 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
 
         assert web_parameter_emitted, "WEB_PARAMETER for was not emitted"
         assert xss_finding_emitted, "XSS FINDING not emitted"
+
+
