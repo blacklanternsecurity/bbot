@@ -1134,6 +1134,42 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
         </body>
         </html>
         """
+    
+    def check(self, module_test, events):
+        excavate_extracted_form_parameter = False
+        excavate_extracted_form_parameter_details = False
+        lightfuzz_serial_detect_errorresolution = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if e.data["name"] == "TextBox1":
+                    excavate_extracted_form_parameter = True
+                    if (
+                        e.data["url"] == "http://127.0.0.1:8888/deser.aspx"
+                        and e.data["host"] == "127.0.0.1"
+                        and e.data["original_value"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw=="
+                        and e.data["additional_params"]
+                        == {
+                            "__VIEWSTATE": "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP",
+                            "__VIEWSTATEGENERATOR": "AD6F025C",
+                            "__EVENTVALIDATION": "/wEdAANdCjkiIFhjCB8ta8aO/EhuESCFkFW/RuhzY1oLb/NUVM34O/GfAV4V4n0wgFZHr3czZjft8VgObR/WUivai7w4kfR1wg==",
+                            "Button1": "Submit",
+                        }
+                    ):
+                        excavate_extracted_form_parameter_details = True
+            if e.type == "FINDING":
+                if (
+                    e.data["description"]
+                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Original Value: [AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==] Technique: [Error Resolution] Serialization Payload: [dotnet_base64]"
+                ):
+                    lightfuzz_serial_detect_errorresolution = True
+
+        assert excavate_extracted_form_parameter, "WEB_PARAMETER for POST form was not emitted"
+        assert excavate_extracted_form_parameter_details, "WEB_PARAMETER for POST form did not have correct data"
+        assert (
+            lightfuzz_serial_detect_errorresolution
+        ), "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
+
 
 class Test_Lightfuzz_serial_errorresolution_existingvalue_invalid(Test_Lightfuzz_serial_errorresolution_falsepositive):
     dotnet_serial_html = """

@@ -119,7 +119,6 @@ input_tag_regex = re.compile(
 input_tag_regex2 = re.compile(
     r"<input[^>]*?\svalue=[\"\']?([:\-%\._=+\/\w]*)[\"\']?[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
 )
-input_tag_novalue_regex = re.compile(r"<input(?![^>]*\bvalue=)[^>]*?name=[\"\']?([\-\._=+\/\w]*)[\"\']?[^>]*?>")
 input_tag_novalue_regex = re.compile(r"<input(?![^>]*\b\svalue=)[^>]*?\sname=[\"\']?([\-\._=+\/\w]*)[\"\']?[^>]*?>")
 # jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
 # jquery_get_regex = re.compile(r"\$.get\([\'\"].+[\'\"].+\{(.+)\}")
@@ -155,6 +154,12 @@ select_tag_regex = re.compile(
 )
 
 textarea_tag_regex = re.compile(
+    r"<textarea[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?\svalue=[\"\']?([:%\-\._=+\/\w]*)[\"\']?[^>]*?>"
+)
+textarea_tag_regex2 = re.compile(
+    r"<textarea[^>]*?\svalue=[\"\']?([:\-%\._=+\/\w]*)[\"\']?[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
+)
+textarea_tag_novalue_regex = re.compile(
     r'<textarea[^>]*\bname=["\']?([_\-\.\w]+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
 )
 

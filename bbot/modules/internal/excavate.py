@@ -498,6 +498,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 "input_tag_regex2": bbot_regexes.input_tag_regex2,
                 "select_tag_regex": bbot_regexes.select_tag_regex,
                 "textarea_tag_regex": bbot_regexes.textarea_tag_regex,
+                "textarea_tag_regex2": bbot_regexes.textarea_tag_regex2,
+                "textarea_tag_novalue_regex": bbot_regexes.textarea_tag_novalue_regex,
                 "button_tag_regex": bbot_regexes.button_tag_regex,
                 "button_tag_regex2": bbot_regexes.button_tag_regex2,
                 "_input_tag_novalue_regex": bbot_regexes.input_tag_novalue_regex,
