@@ -1109,37 +1109,40 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     async def handle_event(self, event):
         if event.type == "HTTP_RESPONSE":
-            # Harvest GET parameters from URL, if it came directly from the target, and parameter extraction is enabled
-            if (
-                self.parameter_extraction is True
-                and self.url_querystring_remove is False
-                and str(event.parent.parent.module) == "TARGET"
-            ):
-                self.debug(f"Processing target URL [{urlunparse(event.parsed_url)}] for GET parameters")
-                for (
-                    method,
-                    parsed_url,
-                    parameter_name,
-                    original_value,
-                    regex_name,
-                    additional_params,
-                ) in extract_params_url(event.parsed_url):
-                    if self.in_bl(parameter_name) is False:
-                        await self.emit_web_parameter(
-                            host=parsed_url.hostname,
-                            param_type="GETPARAM",
-                            name=parameter_name,
-                            original_value=original_value,
-                            url=self.url_unparse("GETPARAM", parsed_url),
-                            description=f"HTTP Extracted Parameter [{parameter_name}] (Target URL)",
-                            additional_params=additional_params,
-                            event=event,
-                            context=f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
-                        )
+            
+            if self.parameter_extraction is True:
+                # if parameter extraction is enabled, and we have custom cookies or headers, emit them as WEB_PARAMETER events
+                await self.emit_custom_parameters(event, "http_cookies", "COOKIE", "Custom Cookie")
+                await self.emit_custom_parameters(event, "http_headers", "HEADER", "Custom Header")
 
-            # Emit custom cookies and headers as WEB_PARAMETER events
-            await self.emit_custom_parameters(event, "http_cookies", "COOKIE", "Custom Cookie")
-            await self.emit_custom_parameters(event, "http_headers", "HEADER", "Custom Header")
+                # if parameter extraction is enabled, and querystring removal is disabled, and the event is directly from the TARGET, create a WEB
+                if (
+                    self.url_querystring_remove is False
+                    and str(event.parent.parent.module) == "TARGET"
+                ):
+                    self.debug(f"Processing target URL [{urlunparse(event.parsed_url)}] for GET parameters")
+                    for (
+                        method,
+                        parsed_url,
+                        parameter_name,
+                        original_value,
+                        regex_name,
+                        additional_params,
+                    ) in extract_params_url(event.parsed_url):
+                        if self.in_bl(parameter_name) is False:
+                            await self.emit_web_parameter(
+                                host=parsed_url.hostname,
+                                param_type="GETPARAM",
+                                name=parameter_name,
+                                original_value=original_value,
+                                url=self.url_unparse("GETPARAM", parsed_url),
+                                description=f"HTTP Extracted Parameter [{parameter_name}] (Target URL)",
+                                additional_params=additional_params,
+                                event=event,
+                                context=f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
+                            )
+
+
 
             # process response data
             body = event.data.get("body", "")
