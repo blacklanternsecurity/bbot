@@ -70,7 +70,22 @@ class SerialLightfuzz(BaseLightfuzz):
                 )
                 return
 
-        http_compare = self.compare_baseline(self.event.data["type"], control_payload, cookies)
+        # Obtain a baseline and with limited retries for failure
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            http_compare = self.compare_baseline(self.event.data["type"], control_payload, cookies)
+            baseline_probe = await self.compare_probe(http_compare, self.event.data["type"], control_payload, cookies)
+            
+            if baseline_probe[0] is True:
+                self.lightfuzz.debug(f"lightfuzz[serial]: Consistent baseline confirmed on attempt {str(attempt + 1)}")
+                break
+            else:
+                self.lightfuzz.debug(f"lightfuzz[serial]: Inconsistent baseline on attempt {str(attempt + 1)}")
+                if attempt == max_attempts - 1:
+                    self.lightfuzz.warning("lightfuzz[serial]: Failed to confirm consistent baseline after 3 attempts, aborting")
+                    return
+
+        # Proceed with payload probes
         for type, payload in serialization_payloads.items():
             try:
                 serialization_probe = await self.compare_probe(http_compare, self.event.data["type"], payload, cookies)
