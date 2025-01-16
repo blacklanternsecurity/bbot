@@ -176,6 +176,50 @@ url_extension_blacklist:
 # Distribute URLs with these extensions only to httpx (these are omitted from output)
 url_extension_httpx_only:
   - js
+
+# These url extensions are almost always static, so we exclude them from modules that fuzz things
+url_extension_static:
+  - pdf
+  - doc
+  - docx
+  - xls
+  - xlsx
+  - ppt
+  - pptx
+  - txt
+  - csv
+  - xml
+  - yaml
+  - ini
+  - log
+  - conf
+  - cfg
+  - env
+  - md
+  - rtf
+  - tiff
+  - bmp
+  - jpg
+  - jpeg
+  - png
+  - gif
+  - svg
+  - ico
+  - mp3
+  - wav
+  - flac
+  - mp4
+  - mov
+  - avi
+  - mkv
+  - webm
+  - zip
+  - tar
+  - gz
+  - bz2
+  - 7z
+  - rar
+  
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:
   - HTTP_RESPONSE
