@@ -263,7 +263,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
     finally:
         await agen.aclose()
     assert not results
-    agen = module.api_page_iter(template_url, json=False)
+    agen = module.api_page_iter(template_url, _json=False)
     try:
         async for result in agen:
             if result and result.text.startswith("page"):

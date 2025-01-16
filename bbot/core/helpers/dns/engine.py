@@ -658,7 +658,8 @@ class DNSEngine(EngineServer):
             assert self.in_tests, "Can only mock when BBOT_TESTING=True"
             if func_source is None:
                 return None
-            exec(func_source)
-            return locals()["custom_lookup"]
+            namespace = {}
+            exec(func_source, {}, namespace)
+            return namespace["custom_lookup"]
 
         self.resolver = MockResolver(mock_data, custom_lookup_fn=deserialize_function(custom_lookup_fn))

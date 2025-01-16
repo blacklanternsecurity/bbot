@@ -140,7 +140,7 @@ class paramminer_headers(BaseModule):
                 tags = ["http_reflection"]
             description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}] Reflection: [{str(reflection)}]"
             reflected = "reflected " if reflection else ""
-            self.extracted_words_master.add(result)
+            
             await self.emit_event(
                 {
                     "host": str(event.host),
@@ -159,9 +159,12 @@ class paramminer_headers(BaseModule):
         # If recycle words is enabled, we will collect WEB_PARAMETERS we find to build our list in finish()
         # We also collect any parameters of type "SPECULATIVE"
         if event.type == "WEB_PARAMETER":
+            parameter_name = event.data.get("name")
             if self.recycle_words or (event.data.get("type") == "SPECULATIVE"):
-                parameter_name = event.data.get("name")
-                if self.config.get("skip_boring_words", True) and parameter_name not in self.boring_words:
+                if self.config.get("skip_boring_words", True) and parameter_name in self.boring_words:
+                    return
+                if parameter_name not in self.wl:  # Ensure it's not already in the wordlist
+                    self.debug(f"Adding {parameter_name} to wordlist")
                     self.extracted_words_master.add(parameter_name)
 
         elif event.type == "HTTP_RESPONSE":
@@ -238,27 +241,29 @@ class paramminer_headers(BaseModule):
         return await compare_helper.compare(url, headers=test_headers, check_reflection=(len(header_list) == 1))
 
     async def finish(self):
-        untested_matches = sorted(self.extracted_words_master.copy())
         for url, (event, batch_size) in list(self.event_dict.items()):
             try:
                 compare_helper = self.helpers.http_compare(url)
             except HttpCompareError as e:
                 self.debug(f"Error initializing compare helper: {e}")
                 continue
-            untested_matches_copy = untested_matches.copy()
-            for i in untested_matches:
-                h = hash(i + url)
-                if h in self.already_checked:
-                    untested_matches_copy.remove(i)
+            words_to_process = {i for i in self.extracted_words_master.copy() if hash(i + url) not in self.already_checked}
             try:
-                results = await self.do_mining(untested_matches_copy, url, batch_size, compare_helper)
+                results = await self.do_mining(words_to_process, url, batch_size, compare_helper)
             except HttpCompareError as e:
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
                 continue
             await self.process_results(event, results)
 
     async def filter_event(self, event):
+        # Filter out static endpoints
+        if event.data.get("url").endswith(tuple(f".{ext}" for ext in self.config.get("url_extension_static", []))):
+            return False
+
         # We don't need to look at WEB_PARAMETERS that we produced
         if str(event.module).startswith("paramminer"):
             return False
+
         return True
+
+
