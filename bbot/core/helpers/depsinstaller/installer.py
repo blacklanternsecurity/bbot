@@ -31,7 +31,6 @@ class DepsInstaller:
         "gcc": "gcc",
         "bash": "bash",
         "which": "which",
-        "unrar": "unrar-free",
         "tar": "tar",
         # debian why are you like this
         "7z": [
@@ -46,6 +45,12 @@ class DepsInstaller:
                 "package": {"name": ["p7zip"], "state": "present"},
                 "become": True,
                 "when": "ansible_facts['os_family'] != 'Debian'",
+            },
+            {
+                "name": "Install p7zip-plugins (Fedora)",
+                "package": {"name": ["p7zip-plugins"], "state": "present"},
+                "become": True,
+                "when": "ansible_facts['distribution'] == 'Fedora'",
             },
         ],
     }
