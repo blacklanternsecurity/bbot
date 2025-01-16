@@ -1141,8 +1141,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             await self.emit_custom_parameters(event, "http_cookies", "COOKIE", "Custom Cookie")
             await self.emit_custom_parameters(event, "http_headers", "HEADER", "Custom Header")
 
-            data = event.data
-
             # process response data
             body = event.data.get("body", "")
             headers = event.data.get("header-dict", {})
