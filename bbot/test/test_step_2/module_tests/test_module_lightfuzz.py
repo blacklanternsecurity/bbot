@@ -1427,7 +1427,7 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
         ), "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
 
 
-class Test_PaddingOracleDetection(ModuleTestBase):
+class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
 
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "excavate", "lightfuzz"]
