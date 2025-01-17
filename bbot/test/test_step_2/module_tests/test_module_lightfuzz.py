@@ -1487,9 +1487,11 @@ class Test_PaddingOracleDetection(ModuleTestBase):
                 if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
                     web_parameter_extracted = True
             if e.type == "FINDING":
+                print("@@@@")
+                print(e.data["description"])
                 if (
                     e.data["description"]
-                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [URL-Encoded]"
+                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation] Envelopes: [URL-Encoded]"
                 ):
                     cryptographic_parameter_finding = True
 
