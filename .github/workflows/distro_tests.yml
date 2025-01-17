@@ -64,7 +64,7 @@ jobs:
           poetry run pytest --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
       - name: Upload Debug Logs
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: pytest-debug-logs
-          path: pytest_debug.log
+          name: pytest-debug-logs-${{ matrix.os }}
+          path: pytest_debug_${{ matrix.os }}.log

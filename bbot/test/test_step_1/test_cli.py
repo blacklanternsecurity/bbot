@@ -342,17 +342,17 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 5/5 internal modules (aggregate,cloudcheck,dnsresolve,excavate,speculate)" in caplog.text
+    assert "Loaded 6/6 internal modules (aggregate,cloudcheck,dnsresolve,excavate,speculate,unarchive)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "excavate", "speculate", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 3/3 internal modules (aggregate,cloudcheck,dnsresolve)" in caplog.text
+    assert "Loaded 4/4 internal modules (aggregate,cloudcheck,dnsresolve,unarchive)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "speculate=false", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 4/4 internal modules (aggregate,cloudcheck,dnsresolve,excavate)" in caplog.text
+    assert "Loaded 5/5 internal modules (aggregate,cloudcheck,dnsresolve,excavate,unarchive)" in caplog.text
 
     # custom target type
     out, err = capsys.readouterr()
