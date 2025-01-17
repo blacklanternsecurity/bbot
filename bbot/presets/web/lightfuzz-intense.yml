@@ -10,13 +10,14 @@ modules:
   - badsecrets
   - hunt
   - reflected_parameters
+  - portfilter
 
 config:
   url_querystring_remove: False
   url_querystring_collapse: True
   web:
-    spider_distance: 4
-    spider_depth: 5
+    spider_distance: 3
+    spider_depth: 4
   modules:
     lightfuzz:
       force_common_headers: False

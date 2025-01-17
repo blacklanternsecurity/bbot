@@ -1,4 +1,4 @@
-description: Discovery web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques
+description: Discovery web parameters and lightly fuzz them for vulnerabilities, with the most intense discovery techniques
 
 flags:
   - web-paramminer
@@ -10,6 +10,7 @@ modules:
   - badsecrets
   - hunt
   - reflected_parameters
+  - portfilter
 
 config:
   url_querystring_remove: False
