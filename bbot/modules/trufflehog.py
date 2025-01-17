@@ -76,8 +76,8 @@ class trufflehog(BaseModule):
             else:
                 return False, "Deleted forks is not enabled"
         else:
-            if "parsed-folder" in event.tags:
-                return False, "Not accepting parsed-folder events"
+            if "unarchived-folder" in event.tags:
+                return False, "Not accepting unarchived-folder events"
         return True
 
     async def handle_event(self, event):
