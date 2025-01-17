@@ -88,6 +88,10 @@ These settings aren't typically desired as they add significant time to the scan
 
 This is a special Lightfuzz preset that focuses entirely on XSS, to make XSS hunting as fast as possible. It is an example of how to make a preset that focuses on specific submodules. It also includes the `paramminer-getparams` module to help find undocumented parameters to fuzz. 
 
+# -p lightfuzz-min
+
+This preset excludes all extra modules, dials down all the settings, and tests only submodules for the most common vulnerabilities. 
+
 # Usage
 
 With the presets in mind, usage is incredibly simple. In most cases you will just do the following:
