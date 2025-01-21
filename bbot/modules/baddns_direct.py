@@ -49,7 +49,7 @@ class baddns_direct(BaseModule):
             "direct_mode": True,
         }
 
-        CNAME_direct_instance = CNAME_direct_module(event.host, **kwargs)
+        CNAME_direct_instance = CNAME_direct_module(str(event.host), **kwargs)
         if await CNAME_direct_instance.dispatch():
             results = CNAME_direct_instance.analyze()
             if results and len(results) > 0:
@@ -78,7 +78,7 @@ class baddns_direct(BaseModule):
         if event.type == "URL":
             if event.scope_distance > 0:
                 self.debug(
-                    f"Rejecting {event.host} due to not being in scope (scope distance: {str(event.scope_distance)})"
+                    f"Rejecting {event.host} due to not being in scope (scope distance: {event.scope_distance})"
                 )
                 return False
             if "cdn-cloudflare" not in event.tags:

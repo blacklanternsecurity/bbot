@@ -241,7 +241,7 @@ class generic_ssrf(BaseModule):
 
     async def finish(self):
         if self.scan.config.get("interactsh_disable", False) is False:
-            await self.helpers.sleep(5)
+            await self.helpers.sleep(2)
             try:
                 for r in await self.interactsh_instance.poll():
                     await self.interactsh_callback(r)
