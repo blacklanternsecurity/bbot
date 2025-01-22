@@ -11,6 +11,11 @@ log = logging.getLogger("bbot_server.models")
 class BBOTBaseModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        if getattr(self, "host", ""):
+            self.reverse_host = self.host[::-1]
+
     def to_json(self, **kwargs):
         return json.dumps(self.model_dump(), sort_keys=True, **kwargs)
 
@@ -82,11 +87,6 @@ class Event(BBOTBaseModel):
     discovery_context: str = ""
     discovery_path: List[str] = []
     parent_chain: List[str] = []
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        if self.host:
-            self.reverse_host = self.host[::-1]
 
     def get_data(self):
         if self.data is not None:
