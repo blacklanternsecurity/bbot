@@ -294,9 +294,10 @@ class Test_Lightfuzz_envelope_base64(Test_Lightfuzz_xss):
             value = qs.split("search=")[1]
             if "&" in value:
                 value = value.split("&")[0]
+
             xss_block = f"""
         <section class=blog-header>
-            <h1>0 search results for '{unquote(base64.b64decode(value))}'</h1>
+            <h1>0 search results for '{unquote(base64.b64decode(unquote(value)))}'</h1>
             <hr>
         </section>
         """
@@ -337,6 +338,7 @@ class Test_Lightfuzz_envelope_hex(Test_Lightfuzz_envelope_base64):
         """
 
         if "search=" in qs:
+            
             value = qs.split("search=")[1]
             if "&" in value:
                 value = value.split("&")[0]
@@ -364,7 +366,6 @@ class Test_Lightfuzz_envelope_hex(Test_Lightfuzz_envelope_base64):
         </section>
         """
             return Response(xss_block, status=200)
-
         return Response(parameter_block, status=200)
 
 
@@ -545,13 +546,15 @@ class Test_Lightfuzz_xss_intag(Test_Lightfuzz_xss):
 
 # In Javascript XSS Detection
 class Test_Lightfuzz_xss_injs(Test_Lightfuzz_xss):
-    def request_handler(self, request):
-        qs = str(request.query_string.decode())
-        parameter_block = """
+
+    parameter_block = """
         <html>
             <a href="/otherpage.php?language=en">Link</a>
         </html>
         """
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
         if "language=" in qs:
             value = qs.split("=")[1]
 
@@ -572,7 +575,7 @@ console.log(lang);
 </html>
         """
             return Response(xss_block, status=200)
-        return Response(parameter_block, status=200)
+        return Response(self.parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
@@ -590,6 +593,44 @@ console.log(lang);
                 if "HTTP Extracted Parameter [language]" in e.data["description"]:
                     web_parameter_emitted = True
                     if e.data["original_value"] == "en":
+                        original_value_captured = True
+
+            if e.type == "FINDING":
+                if "Possible Reflected XSS. Parameter: [language] Context: [In Javascript]" in e.data["description"]:
+                    xss_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert original_value_captured, "original_value not captured"
+        assert xss_finding_emitted, "In Javascript XSS FINDING not emitted"
+
+
+# XSS Parameter Needing URL-Encoding
+class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["cmdi","crypto","path","serial","sqli","ssti","xss"],
+            }
+        },
+    }
+
+
+    parameter_block = """
+        <html>
+            <a href="/otherpage.php?language=parameter with spaces">Link</a>
+        </html>
+        """
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        original_value_captured = False
+        xss_finding_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [language]" in e.data["description"]:
+                    web_parameter_emitted = True
+                    if e.data["original_value"] is not None and e.data["original_value"] == "parameter with spaces":
                         original_value_captured = True
 
             if e.type == "FINDING":
@@ -934,10 +975,9 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
             <h1>0 search results found</h1>
             <hr>
         </section>
-        """
-            if "'%20AND%20(SLEEP(5))%20AND%20" in value:
+        """ 
+            if "' AND (SLEEP(5)) AND '" in unquote(value):
                 sleep(5)
-
             return Response(sql_block, status=200)
         return Response(parameter_block, status=200)
 
@@ -1245,7 +1285,7 @@ class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolut
             return response
 
         else:
-            if cookies["session"] == "rO0ABXQABHRlc3Q=":
+            if unquote(cookies["session"]) == "rO0ABXQABHRlc3Q=":
                 return Response(java_serial_error_keyword, status=500)
             else:
                 return Response(java_serial_error, status=500)
@@ -1298,12 +1338,10 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
         """
         if "search=" in qs:
             value = qs.split("=")[1]
-
             if "&" in value:
                 value = value.split("&")[0]
-
-            if "%26%26%20echo%20" in value:
-                cmdi_value = value.split("%26%26%20echo%20")[1].split("%20")[0]
+            if "&& echo " in unquote(value):
+                cmdi_value = unquote(value).split("&& echo ")[1].split(" ")[0]
             else:
                 cmdi_value = value
             cmdi_block = f"""
@@ -1612,9 +1650,6 @@ class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
 
     def check(self, module_test, events):
-        for e in events:
-            print(f"{e.type}: {e.data}")
-
         web_parameter_extracted = False
         cryptographic_parameter_finding = False
         padding_oracle_detected = False

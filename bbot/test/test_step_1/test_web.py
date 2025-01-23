@@ -494,7 +494,6 @@ async def test_http_sendcookies(bbot_scanner, bbot_httpserver):
     bbot_httpserver.expect_request(uri=endpoint).respond_with_handler(echo_cookies_handler)
     scan1 = bbot_scanner("127.0.0.1", config={"web": {"debug": True}})
     r1 = await scan1.helpers.request(url, cookies={"foo": "bar"})
-    print(r1.text)
 
     assert r1 is not None, "Request to self-signed SSL server went through even with ssl_verify=True"
     assert "bar" in r1.text

@@ -1053,8 +1053,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         return True
 
     async def search(self, data, event, content_type, discovery_context="HTTP response"):
-        # TODO: replace this JSON/XML extraction with our lightfuzz envelope stuff
-
         if not data:
             return None
         decoded_data = await self.helpers.re.recursive_decode(data)
@@ -1065,7 +1063,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 "json": self.helpers.extract_params_json,
                 "xml": self.helpers.extract_params_xml,
             }
-
+            
             for source_type, extract_func in extraction_map.items():
                 if source_type in content_type_lower:
                     results = extract_func(data)

@@ -114,10 +114,10 @@ scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
 
 # For use with excavate parameters extractor
 input_tag_regex = re.compile(
-    r"<input[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?\svalue=[\"\']?([:%\-\._=+\/\w]*)[\"\']?[^>]*?>"
+    r"<input[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?\svalue=[\"\']?([:%\-\._=+\/\w\s]*)[\"\']?[^>]*?>"
 )
 input_tag_regex2 = re.compile(
-    r"<input[^>]*?\svalue=[\"\']?([:\-%\._=+\/\w]*)[\"\']?[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
+    r"<input[^>]*?\svalue=[\"\']?([:\-%\._=+\/\w\s]*)[\"\']?[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
 )
 input_tag_novalue_regex = re.compile(r"<input(?![^>]*\b\svalue=)[^>]*?\sname=[\"\']?([\-\._=+\/\w]*)[\"\']?[^>]*?>")
 # jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
@@ -169,7 +169,7 @@ button_tag_regex = re.compile(
 button_tag_regex2 = re.compile(
     r"<button[^>]*?value=[\"\']?([\-%\._=+\/\w]*)[\"\']?[^>]*?name=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
 )
-tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']?(?!mailto:)([^\s\'\"\>]+)[\"\']?[^>]*>")
+tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']?(?!mailto:)([^\'\"\>]+)[\"\']?[^>]*>")
 
 valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
 
