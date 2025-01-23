@@ -20,8 +20,8 @@ blacklist:
   # Prevent spider from invalidating sessions by logging out
   - "RE:/.*(sign|log)[_-]?out"
 
-  conditions:
-  - |
-    {% if config.web.spider_distance == 0 %}
-      {{ warn("The lightfuzz-min preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
-    {% endif %}
+conditions:
+- |
+  {% if config.web.spider_distance == 0 %}
+    {{ warn("The lightfuzz-min preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+  {% endif %}
