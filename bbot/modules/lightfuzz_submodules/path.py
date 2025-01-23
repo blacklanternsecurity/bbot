@@ -65,12 +65,12 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             confirmations = 0
             while iterations > 0:
                 try:
-                    http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
+                    http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies, skip_urlencoding=True)
                     singledot_probe = await self.compare_probe(
-                        http_compare, self.event.data["type"], payloads["singledot_payload"], cookies
+                        http_compare, self.event.data["type"], payloads["singledot_payload"], cookies, skip_urlencoding=True
                     )
                     doubledot_probe = await self.compare_probe(
-                        http_compare, self.event.data["type"], payloads["doubledot_payload"], cookies
+                        http_compare, self.event.data["type"], payloads["doubledot_payload"], cookies, skip_urlencoding=True
                     )
 
                     if (
@@ -110,7 +110,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
         }
 
         for path, trigger in absolute_paths.items():
-            r = await self.standard_probe(self.event.data["type"], cookies, path)
+            r = await self.standard_probe(self.event.data["type"], cookies, path, skip_urlencoding=True)
             if r and trigger in r.text:
                 self.results.append(
                     {

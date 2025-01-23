@@ -1,4 +1,5 @@
 import copy
+from urllib.parse import quote
 
 
 class BaseLightfuzz:
@@ -18,10 +19,24 @@ class BaseLightfuzz:
                 new_additional_params[k] = v
         return new_additional_params
 
+    def conditional_urlencode(self, probe, event_type, skip_urlencoding=False):
+        """Conditionally url-encodes the probe if the event type requires it and encoding is not skipped by the submodule.
+            We also don't encode if any envelopes are present.
+        """
+        if event_type in ["GETPARAM", "COOKIE"] and not skip_urlencoding and getattr(self.event, "envelopes", None):
+            # Exclude '&' from being encoded since we are operating on full query strings
+            return quote(probe, safe='&')
+        return probe
+
     def compare_baseline(
-        self, event_type, probe, cookies, additional_params_populate_empty=False, speculative_mode="GETPARAM"
+        self, event_type, probe, cookies, additional_params_populate_empty=False, speculative_mode="GETPARAM", skip_urlencoding=False
     ):
+
+        # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
+
+        # URL Encode the probe if the event type is GETPARAM or COOKIE, if there are no envelopes, and the submodule did not opt-out with skip_urlencoding
+        probe = self.conditional_urlencode(probe, event_type, skip_urlencoding)
         http_compare = None
 
         if event_type == "SPECULATIVE":
@@ -29,6 +44,7 @@ class BaseLightfuzz:
 
         if event_type == "GETPARAM":
             baseline_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
+
             if "additional_params" in self.event.data.keys() and self.event.data["additional_params"] is not None:
                 baseline_url = self.lightfuzz.helpers.add_get_params(
                     baseline_url, self.event.data["additional_params"], encode=False
@@ -94,8 +110,15 @@ class BaseLightfuzz:
         additional_params_populate_empty=False,
         additional_params_override={},
         speculative_mode="GETPARAM",
+        skip_urlencoding=False,
     ):
+
+        # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
+
+        # URL Encode the probe if the event type is GETPARAM or COOKIE, if there are no envelopes, and the submodule did not opt-out with skip_urlencoding
+        probe = self.conditional_urlencode(probe, event_type, skip_urlencoding)
+
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
         if additional_params_override:
             for k, v in additional_params_override.items():
@@ -141,16 +164,23 @@ class BaseLightfuzz:
         additional_params_populate_empty=False,
         speculative_mode="GETPARAM",
         allow_redirects=False,
+        skip_urlencoding=False,
     ):
 
+        # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
+
+        # URL Encode the probe if the event type is GETPARAM or COOKIE, if there are no envelopes, and the submodule did not opt-out with skip_urlencoding
+        probe = self.conditional_urlencode(probe, event_type, skip_urlencoding)
 
         if event_type == "SPECULATIVE":
             event_type = speculative_mode
 
         method = "GET"
+
         if event_type == "GETPARAM":
             url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
+
             if "additional_params" in self.event.data.keys() and self.event.data["additional_params"] is not None:
                 url = self.lightfuzz.helpers.add_get_params(
                     url, self.event.data["additional_params"], encode=False
@@ -169,9 +199,6 @@ class BaseLightfuzz:
         json_data = None
 
         if event_type == "POSTPARAM":
-
-
-
             method = "POST"
             data = {self.event.data["name"]: probe}
             if self.event.data["additional_params"] is not None:
@@ -224,10 +251,6 @@ class BaseLightfuzz:
                 probe_value = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
             else:
                 probe_value = ""
-        # if not isinstance(probe_value, str):
-        #     raise ValueError(
-        #         f"incoming_probe_value should always be a string (got {type(probe_value)} / {probe_value})"
-        #     )
         probe_value = str(probe_value)
         return probe_value
 
