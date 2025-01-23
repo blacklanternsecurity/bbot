@@ -1427,7 +1427,7 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
         ), "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
 
 
-class Test_PaddingOracleDetection(ModuleTestBase):
+class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
 
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "excavate", "lightfuzz"]
@@ -1489,7 +1489,7 @@ class Test_PaddingOracleDetection(ModuleTestBase):
             if e.type == "FINDING":
                 if (
                     e.data["description"]
-                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation, Data Truncation] Envelopes: [URL-Encoded]"
+                    == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation] Envelopes: [URL-Encoded]"
                 ):
                     cryptographic_parameter_finding = True
 

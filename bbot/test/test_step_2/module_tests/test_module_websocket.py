@@ -2,6 +2,7 @@ import json
 import asyncio
 import logging
 import websockets
+from websockets.asyncio.server import serve
 
 from .base import ModuleTestBase
 
@@ -10,16 +11,16 @@ log = logging.getLogger("bbot.testing")
 results = {"events": []}
 
 
-async def websocket_handler(websocket, path):
-    results["path"] = path
+async def websocket_handler(websocket):
+    results["path"] = websocket.request.path
     async for message in websocket:
         results["events"].append(message)
 
 
 # Define a coroutine for the server
 async def server_coroutine():
-    async with websockets.serve(websocket_handler, "127.0.0.1", 8765):
-        await asyncio.Future()  # run forever
+    async with serve(websocket_handler, "127.0.0.1", 8765) as server:
+        await server.serve_forever()
 
 
 class TestWebsocket(ModuleTestBase):

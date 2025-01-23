@@ -6,6 +6,11 @@ from urllib.parse import unquote, quote
 
 
 class CryptoLightfuzz(BaseLightfuzz):
+
+    """
+    Although we have an envelope system to detect hex and base64 encoded parameter values, those are only assigned when they decode to a valid string.
+    Since crypto values (and serialized objects) will not decode properly, we need a more concise check here to determine how to process them.
+    """
     @staticmethod
     def is_hex(s):
         try:
@@ -23,6 +28,8 @@ class CryptoLightfuzz(BaseLightfuzz):
             return False
         return False
 
+
+    # A list of strings that are commonly found in cryptographic error messages, used to detect when error occurs specifically related to cryptographic operations.
     crypto_error_strings = [
         "invalid mac",
         "padding is invalid and cannot be removed",
@@ -46,6 +53,16 @@ class CryptoLightfuzz(BaseLightfuzz):
 
     @staticmethod
     def format_agnostic_decode(input_string, urldecode=False):
+        """
+        Decodes a string from either hex or base64 (without knowing which first), and optionally URL-decoding it first.
+
+        Parameters:
+        - input_string (str): The string to decode.
+        - urldecode (bool): If True, URL-decodes the input first.
+
+        Returns:
+        - tuple: (decoded data, encoding type: 'hex', 'base64', or 'unknown').
+        """
         encoding = "unknown"
         if urldecode:
             input_string = unquote(input_string)
@@ -61,6 +78,20 @@ class CryptoLightfuzz(BaseLightfuzz):
 
     @staticmethod
     def format_agnostic_encode(data, encoding, urlencode=False):
+        """
+        Encodes data into hex or base64, with optional URL-encoding.
+
+        Parameters:
+        - data (bytes): The data to encode.
+        - encoding (str): The encoding type ('hex' or 'base64').
+        - urlencode (bool): If True, URL-encodes the result.
+
+        Returns:
+        - str: The encoded data as a string.
+
+        Raises:
+        - ValueError: If an unsupported encoding type is specified.
+        """
         if encoding == "hex":
             encoded_data = data.hex()
         elif encoding == "base64":
@@ -73,6 +104,18 @@ class CryptoLightfuzz(BaseLightfuzz):
 
     @staticmethod
     def modify_string(input_string, action="truncate", position=None, extension_length=1):
+        """
+        Modifies a cryptographic string by either truncating it, mutating a byte at a specified position, or extending it with null bytes.
+
+        Parameters:
+        - input_string (str): The string to modify.
+        - action (str): The action to perform ('truncate', 'mutate', 'extend').
+        - position (int): The position to mutate (only used if action is 'mutate').
+        - extension_length (int): The number of null bytes to add if action is 'extend'.
+
+        Returns:
+        - str: The modified string.
+        """
         if not isinstance(input_string, str):
             input_string = str(input_string)
 
@@ -104,10 +147,12 @@ class CryptoLightfuzz(BaseLightfuzz):
             raise ValueError("Unsupported action")
         return CryptoLightfuzz.format_agnostic_encode(modified_data, encoding)
 
+    # Check if the entropy of the data is greater than the threshold, indicating it is likely encrypted
     def is_likely_encrypted(self, data, threshold=4.5):
         entropy = self.lightfuzz.helpers.calculate_entropy(data)
         return entropy >= threshold
 
+    # Perform basic cryptanalysis on the input string, attempting to determine if it is likely encrypted and if it is a block cipher
     def cryptanalysis(self, input_string):
         likely_crypto = False
         possible_block_cipher = False
@@ -118,6 +163,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             possible_block_cipher = True
         return likely_crypto, possible_block_cipher
 
+    # Determine possible block sizes for a given ciphertext length
     @staticmethod
     def possible_block_sizes(ciphertext_length):
         potential_block_sizes = [8, 16]
@@ -129,21 +175,39 @@ class CryptoLightfuzz(BaseLightfuzz):
         return possible_sizes
 
     async def padding_oracle_execute(self, original_data, encoding, block_size, cookies, possible_first_byte=True):
-        ivblock = b"\x00" * block_size
-        paddingblock = b"\x00" * block_size
-        datablock = original_data[-block_size:]
+        """
+        Execute the padding oracle attack for a given block size.
+        The goal here is not actual exploitation (arbitrary encryption or decryption), but rather to definitively confirm whether padding oracle vulnerability exists and is exploitable.
+
+        Parameters:
+        - original_data (bytes): The original ciphertext data.
+        - encoding (str): The encoding type ('hex' or 'base64').
+        - block_size (int): The block size to use for the padding oracle attack.
+        - cookies (dict): Cookies to include, if any
+        - possible_first_byte (bool): If True, use the first byte as the baseline byte.
+
+        Returns:
+        - bool: True if the padding oracle attack is successful.
+        """
+        ivblock = b"\x00" * block_size # initialize the IV block with null bytes
+        paddingblock = b"\x00" * block_size # initialize the padding block with null bytes
+        datablock = original_data[-block_size:] # extract the last block of the original data
+        
+        # This handling the 1/255 chance that the first byte is correct padding which would cause a false negative.
         if possible_first_byte:
-            baseline_byte = b"\xff"
-            starting_pos = 0
+            baseline_byte = b"\xff" # set the baseline byte to 0xff
+            starting_pos = 0 # set the starting position to 0
         else:
-            baseline_byte = b"\x00"
-            starting_pos = 1
+            baseline_byte = b"\x00" # set the baseline byte to 0x00
+            starting_pos = 1 # set the starting position to 1
+        # first obtain 
         baseline = self.compare_baseline(
             self.event.data["type"],
             self.format_agnostic_encode(ivblock + paddingblock[:-1] + baseline_byte + datablock, encoding),
             cookies,
         )
         differ_count = 0
+        # for each possible byte value, send a probe and check if the response is different
         for i in range(starting_pos, starting_pos + 254):
             byte = bytes([i])
             oracle_probe = await self.compare_probe(
@@ -152,6 +216,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                 self.format_agnostic_encode(ivblock + paddingblock[:-1] + byte + datablock, encoding),
                 cookies,
             )
+            # oracle_probe[0] will be false if the response is different - oracle_probe[1] stores what aspect of the response is different (headers, body, code)
             if oracle_probe[0] is False and "body" in oracle_probe[1]:
                 differ_count += 1
 
@@ -163,16 +228,18 @@ class CryptoLightfuzz(BaseLightfuzz):
                     else:
                         # Now that we have tried the run twice, we know it can't be because the first byte was the correct padding, and we know it is not vulnerable
                         return False
+        # A padding oracle vulnerability will produce exactly one different response, and no more, so this is likely a real padding oracle
         if differ_count == 1:
             return True
         return False
 
     async def padding_oracle(self, probe_value, cookies):
         data, encoding = self.format_agnostic_decode(probe_value)
-        possible_block_sizes = self.possible_block_sizes(len(data))
+        possible_block_sizes = self.possible_block_sizes(len(data)) # determine possible block sizes for the ciphertext
 
         for block_size in possible_block_sizes:
             padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
+            # if we get a negative result first, theres a 1/255 change it's a false negative. To rule that out, we must retry again with possible_first_byte set to false
             if padding_oracle_result is None:
                 self.lightfuzz.debug(
                     "still could be in a possible_first_byte situation - retrying with different first byte"
@@ -193,14 +260,19 @@ class CryptoLightfuzz(BaseLightfuzz):
                 )
 
     async def error_string_search(self, text_dict, baseline_text):
+        """
+        Search for cryptographic error strings in the provided text dictionary and baseline text.
+        """
         matching_techniques = set()
         matching_strings = set()
-
+        # we check individually for each manipulation technique
         for label, text in text_dict.items():
             matched_strings = self.lightfuzz.helpers.string_scan(self.crypto_error_strings, text)
             for m in matched_strings:
                 matching_strings.add(m)
             matching_techniques.add(label)
+            
+        # if we find any matching strings, we need to check if they are in the baseline text to rule out false positives (the string was always there and not a result of our manipulation)
         context = f"Lightfuzz Cryptographic Probe Submodule detected a cryptographic error after manipulating parameter: [{self.event.data['name']}]"
         if len(matching_strings) > 0:
             false_positive_check = self.lightfuzz.helpers.string_scan(self.crypto_error_strings, baseline_text)
@@ -217,6 +289,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                 f"Aborting cryptographic error reporting - baseline_text already contained detected string(s) ({','.join(false_positive_check)})"
             )
 
+    # Identify the hash function based on the length of the hash
     @staticmethod
     def identify_hash_function(hash_bytes):
         hash_length = len(hash_bytes)
@@ -242,11 +315,13 @@ class CryptoLightfuzz(BaseLightfuzz):
             )
             return
 
+        # obtain the baseline probe to compare against
         baseline_probe = await self.baseline_probe(cookies)
         if not baseline_probe:
             self.lightfuzz.warning(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
             return
 
+        # perform the manipulation techniques
         try:
             truncate_probe_value = self.modify_string(probe_value, action="truncate")
             mutate_probe_value = self.modify_string(probe_value, action="mutate")
@@ -259,34 +334,40 @@ class CryptoLightfuzz(BaseLightfuzz):
         # Basic crypanalysis
         likely_crypto, possible_block_cipher = self.cryptanalysis(probe_value)
 
+        # if the value is not likely to be cryptographic, we can skip the rest of the tests
         if not likely_crypto:
             self.lightfuzz.debug("Parameter value does not appear to be cryptographic, aborting tests")
             return
 
-        http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
 
         # Cryptographic Response Divergence Test
+
+        http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
         try:
-            arbitrary_probe = await self.compare_probe(http_compare, self.event.data["type"], "AAAAAAA", cookies)
+            arbitrary_probe = await self.compare_probe(http_compare, self.event.data["type"], "AAAAAAA", cookies) # 
             truncate_probe = await self.compare_probe(
                 http_compare, self.event.data["type"], truncate_probe_value, cookies
-            )
-            mutate_probe = await self.compare_probe(http_compare, self.event.data["type"], mutate_probe_value, cookies)
+            ) # manipulate the value by truncating a byte
+            mutate_probe = await self.compare_probe(http_compare, self.event.data["type"], mutate_probe_value, cookies) # manipulate the value by mutating a byte in place
         except HttpCompareError as e:
             self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
             return
 
         confirmed_techniques = []
+        # mutate_probe[0] will be false if the response is different - mutate_probe[1] stores what aspect of the response is different (headers, body, code)
+        # ensure the difference is in the body and not the headers or code
+        # if the body is different and not empty, we have confirmed that single-byte mutation affected the response body
         if mutate_probe[0] is False and "body" in mutate_probe[1]:
             if (http_compare.compare_body(mutate_probe[3].text, arbitrary_probe[3].text) is False) or mutate_probe[
                 3
-            ].text == "":
+            ].text == "": 
                 confirmed_techniques.append("Single-byte Mutation")
 
-        if mutate_probe[0] is False and "body" in mutate_probe[1]:
+        # if the body is different and not empty, we have confirmed that byte truncation affected the response body
+        if truncate_probe[0] is False and "body" in truncate_probe[1]:
             if (http_compare.compare_body(truncate_probe[3].text, arbitrary_probe[3].text) is False) or truncate_probe[
                 3
-            ].text == "":
+            ].text == "": 
                 confirmed_techniques.append("Data Truncation")
 
         if confirmed_techniques:
@@ -300,15 +381,15 @@ class CryptoLightfuzz(BaseLightfuzz):
             )
 
         # Cryptographic Error String Test
+        # Check if cryptographic error strings are present in the response after performing the manipulation techniques
         await self.error_string_search(
             {"truncate value": truncate_probe[3].text, "mutate value": mutate_probe[3].text}, baseline_probe.text
         )
-
+        # if we have any confirmed techniques, or the word "padding" is in the response, we need to check for a padding oracle
         if confirmed_techniques or (
             "padding" in truncate_probe[3].text.lower() or "padding" in mutate_probe[3].text.lower()
         ):
             # Padding Oracle Test
-
             if possible_block_cipher:
                 self.lightfuzz.debug(
                     "Attempting padding oracle exploit since it looks like a block cipher and we have confirmed crypto"
@@ -316,8 +397,8 @@ class CryptoLightfuzz(BaseLightfuzz):
                 await self.padding_oracle(probe_value, cookies)
 
             # Hash identification / Potential Length extension attack
-
             data, encoding = CryptoLightfuzz.format_agnostic_decode(probe_value)
+            # see if its possible that a given value is a hash, and if so, which one
             hash_function = self.identify_hash_function(data)
             if hash_function:
                 hash_instance = hash_function()
@@ -328,6 +409,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                     and "additional_params" in self.event.data.keys()
                     and self.event.data["additional_params"]
                 ):
+                    # for each additional parameter, we send a probe and check if it causes the same change in the response as the original probe
                     for additional_param_name, additional_param_value in self.event.data["additional_params"].items():
                         try:
                             additional_param_probe = await self.compare_probe(
@@ -341,6 +423,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                             self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
                             continue
                         # the additional parameter affects the potential hash parameter (suggesting its calculated in the hash)
+                        # This is a potential length extension attack
                         if additional_param_probe[0] is False and (additional_param_probe[1] == mutate_probe[1]):
                             context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) that is a likely a hash, which is connected to another parameter {additional_param_name})"
                             self.results.append(
