@@ -65,7 +65,7 @@ class extractous(BaseModule):
         "extensions": "File extensions to parse",
     }
 
-    deps_pip = ["extractous"]
+    deps_pip = ["extractous~=0.3.0"]
     scope_distance_modifier = 1
 
     async def setup(self):

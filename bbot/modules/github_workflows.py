@@ -92,7 +92,7 @@ class github_workflows(github):
     async def get_workflows(self, owner, repo):
         workflows = []
         url = f"{self.base_url}/repos/{owner}/{repo}/actions/workflows?per_page=100&page=" + "{page}"
-        agen = self.api_page_iter(url, json=False)
+        agen = self.api_page_iter(url, _json=False)
         try:
             async for r in agen:
                 if r is None:
