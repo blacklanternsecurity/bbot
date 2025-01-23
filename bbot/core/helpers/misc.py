@@ -891,7 +891,7 @@ def extract_params_xml(xml_data, compare_mode="getparam"):
         xml_data (str): XML-formatted string containing elements.
 
     Returns:
-        set: A set of tuples containing the tags and their corresponding text values present in the XML object.
+        set: A set of tuples containing the tags and their corresponding sanitized text values present in the XML object.
 
     Raises:
         Returns an empty set if ParseError occurs.
@@ -913,7 +913,10 @@ def extract_params_xml(xml_data, compare_mode="getparam"):
     while stack:
         current_element = stack.pop()
         if validate_parameter(current_element.tag, compare_mode):
-            tag_value_pairs.add((current_element.tag, current_element.text))
+            # Sanitize the text value
+            text_value = current_element.text.strip() if current_element.text else None
+            sanitized_value = quote(text_value, safe='') if text_value else None
+            tag_value_pairs.add((current_element.tag, sanitized_value))
         for child in current_element:
             stack.append(child)
     return tag_value_pairs

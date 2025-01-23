@@ -457,6 +457,7 @@ class TestExcavateParameterExtraction(TestExcavate):
         <form action="/search" method="get">
             <label for="searchQuery">Search Query:</label>
             <input type="text" id="searchQuery" name="q1" value="flowers"><br><br>
+            <input type="text" id="searchQueryspaces" name="q4" value="trees and forests"><br><br>
             <input type="submit" value="Search">
         </form>
         <h1>Simple POST Form</h1>
@@ -502,8 +503,10 @@ class TestExcavateParameterExtraction(TestExcavate):
         found_htmltags_a = False
         found_htmltags_img = False
         found_select_noquotes = False
-
+        avoid_truncated_values = True
+        found_form_input_with_spaces = False
         for e in events:
+
             if e.type == "WEB_PARAMETER":
                 if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
                     found_jquery_get = True
@@ -548,11 +551,19 @@ class TestExcavateParameterExtraction(TestExcavate):
                         if "csrf" in e.data["additional_params"].keys():
                             found_select_noquotes = True
 
+                if e.data["description"] == "HTTP Extracted Parameter [q4] (GET Form Submodule)":
+                    if e.data["original_value"] == "trees and forests":
+                        found_form_input_with_spaces = True
+                    if e.data["original_value"] == "trees":
+                        avoid_truncated_values = False   
+
         assert found_jquery_get, "Did not extract Jquery GET parameters"
         assert found_jquery_post, "Did not extract Jquery POST parameters"
         assert found_form_get, "Did not extract Form GET parameters"
         assert found_form_post, "Did not extract Form POST parameters"
         assert found_form_generic, "Did not extract Form (Generic) parameters"
+        assert found_form_input_with_spaces, "Did not extract Form input with spaces"
+        assert avoid_truncated_values, "Emitted a parameter with spaces without the entire value"
         assert found_jquery_get_original_value, "Did not extract Jquery GET parameter original_value"
         assert found_jquery_post_original_value, "Did not extract Jquery POST parameter original_value"
         assert found_form_get_original_value, "Did not extract Form GET parameter original_value"
@@ -778,6 +789,30 @@ class TestExcavateParameterExtraction_xml(ModuleTestBase):
                     excavate_xml_extraction = True
         assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
 
+
+class TestExcavateParameterExtraction_xml_invalid(TestExcavateParameterExtraction_xml):
+    getparam_extract_xml = """
+    <data>
+     <obscureParameter>1</obscureParameter>
+         <newlines>invalid\nwith\nnewlines</newlines>
+     </data>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.getparam_extract_xml, "headers": {"Content-Type": "application/xml"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        excavate_xml_extraction = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter (speculative from xml content) [newlines]"
+                    in e.data["description"]
+                    and "\n" not in e.data["original_value"]
+                ):
+                    excavate_xml_extraction = True
+        assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
 
 class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]

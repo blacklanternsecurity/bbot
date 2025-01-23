@@ -1398,6 +1398,7 @@ class WEB_PARAMETER(DictHostEvent):
 
     def _url(self):
         return self.data["url"]
+        
 
     def __str__(self):
         max_event_len = 200
