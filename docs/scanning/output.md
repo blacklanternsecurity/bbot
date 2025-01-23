@@ -340,3 +340,13 @@ MATCH (n) DETACH DELETE n
 This is not an exhaustive list of clauses, filters, or other means to use cypher and should be considered a starting point. To build more advanced queries consider reading Neo4j's Cypher [documentation](https://neo4j.com/docs/cypher-manual/current/introduction/).
 
 Additional note: these sample queries are dependent on the existence of the data in the target neo4j database.
+
+### Web_parameters
+
+The `web_parameters` output module will utilize BBOT web parameter extraction capabilities, and output the resulting parameters to a file (web_parameters.txt, by default). Web parameter extraction is disabled by default, but will automatically be enabled when a module is included that consumes WEB_PARAMETER events (including the `web_parameters` output module itself).
+
+This can be useful for those who want to discover new common web parameters or those which may be associated with a specific target or organization. This could be very useful for further parameter bruteforcing, or even fed back into bbot via the paramminer modules. For example:
+
+```bash
+bbot -t evilcorp.com -m paramminer_getparams -c modules.paramminer_getparams.wordlist=/path/to/your/new/wordlist.txt
+``` 

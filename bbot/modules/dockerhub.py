@@ -64,7 +64,7 @@ class dockerhub(BaseModule):
     async def get_repos(self, username):
         repos = []
         url = f"{self.api_url}/repositories/{username}?page_size=25&page=" + "{page}"
-        agen = self.api_page_iter(url, json=False)
+        agen = self.api_page_iter(url, _json=False)
         try:
             async for r in agen:
                 if r is None:
