@@ -6,6 +6,7 @@ import statistics
 
 class SQLiLightfuzz(BaseLightfuzz):
     expected_delay = 5
+    # These are common error strings that strongly indicate SQL injection
     sqli_error_strings = [
         "Unterminated string literal",
         "Failed to parse string literal",
@@ -20,6 +21,19 @@ class SQLiLightfuzz(BaseLightfuzz):
     ]
 
     def evaluate_delay(self, mean_baseline, measured_delay):
+        """
+        Evaluates if a measured delay falls within an expected range, indicating potential SQL injection.
+
+        Parameters:
+        - mean_baseline (float): The average baseline delay measured from non-injected requests.
+        - measured_delay (float): The delay measured from a potentially injected request.
+
+        Returns:
+        - bool: True if the measured delay is within the expected range or exactly twice the expected delay, otherwise False.
+
+        The function checks if the measured delay is within a margin of the expected delay or twice the expected delay,
+        accounting for cases where the injected statement might be executed twice.
+        """
         margin = 1.5
         if (
             mean_baseline + self.expected_delay - margin
@@ -27,7 +41,7 @@ class SQLiLightfuzz(BaseLightfuzz):
             <= mean_baseline + self.expected_delay + margin
         ):
             return True
-        # check for exactly twice the delay, in case the statement gets placed in the query twice
+        # check for exactly twice the delay, in case the statement gets placed in the query twice (a common occurrence)
         elif (
             mean_baseline + (self.expected_delay * 2) - margin
             <= measured_delay
@@ -45,6 +59,7 @@ class SQLiLightfuzz(BaseLightfuzz):
         )
 
         try:
+            # send the with a single quote, and then another with two single quotes
             single_quote = await self.compare_probe(
                 http_compare,
                 self.event.data["type"],
@@ -59,8 +74,9 @@ class SQLiLightfuzz(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
-
+            # if the single quote probe respone is different from the baseline
             if single_quote[0] is False:
+                # check for common SQL error strings in the response
                 for sqli_error_string in self.sqli_error_strings:
                     if sqli_error_string.lower() in single_quote[3].text.lower():
                         self.results.append(
@@ -70,8 +86,9 @@ class SQLiLightfuzz(BaseLightfuzz):
                             }
                         )
                         break
-
+            # if both probes were successful (and had a response)
             if single_quote[3] and double_single_quote[3]:
+                # if the code changed in the single quote probe, and the code is NOT the same between that and the double single quote probe, SQL injection is indicated
                 if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
                     self.results.append(
                         {
@@ -84,6 +101,7 @@ class SQLiLightfuzz(BaseLightfuzz):
         except HttpCompareError as e:
             self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
+        # These are common SQL injection payloads for inducing an intentional delay across several different SQL database types
         standard_probe_strings = [
             f"'||pg_sleep({str(self.expected_delay)})--",  # postgres
             f"1' AND (SLEEP({str(self.expected_delay)})) AND '",  # mysql
@@ -98,6 +116,7 @@ class SQLiLightfuzz(BaseLightfuzz):
             self.event.data["type"], cookies, probe_value, additional_params_populate_empty=True
         )
 
+        # get a baseline from two different probes. We will average them to establish a mean baseline
         if baseline_1 and baseline_2:
             baseline_1_delay = baseline_1.elapsed.total_seconds()
             baseline_2_delay = baseline_2.elapsed.total_seconds()
@@ -106,6 +125,7 @@ class SQLiLightfuzz(BaseLightfuzz):
             for p in standard_probe_strings:
                 confirmations = 0
                 for i in range(0, 3):
+                    # send the probe 3 times, and check if the delay is within the detection threshold
                     r = await self.standard_probe(
                         self.event.data["type"],
                         cookies,
@@ -119,7 +139,7 @@ class SQLiLightfuzz(BaseLightfuzz):
 
                     d = r.elapsed.total_seconds()
                     self.lightfuzz.debug(f"measured delay: {str(d)}")
-                    if self.evaluate_delay(mean_baseline, d):
+                    if self.evaluate_delay(mean_baseline, d): # decide if the delay is within the detection threshold and constitutes a successful sleep execution
                         confirmations += 1
                         self.lightfuzz.debug(
                             f"{self.event.data['url']}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
