@@ -1,4 +1,4 @@
-description: Discovery web parameters and lightly fuzz them for vulnerabilities, with the most intense discovery techniques
+description: Discover web parameters and lightly fuzz them for vulnerabilities, with the most intense discovery techniques
 
 flags:
   - web-paramminer
@@ -22,10 +22,6 @@ config:
       disable_post: False
     excavate:
       retain_querystring: True
-
-blacklist:
-  # Prevent spider from invalidating sessions by logging out
-  - "RE:/.*(sign|log)[_-]?out"
 
 conditions:
 - |

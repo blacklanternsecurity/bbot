@@ -1,4 +1,4 @@
-description: Discovery web parameters and lightly fuzz them, optimized for looking just for xss vulnerabilities
+description: Discover web parameters and lightly fuzz them, optimized for looking just for xss vulnerabilities
 modules:
   - httpx
   - lightfuzz
@@ -13,10 +13,6 @@ config:
     lightfuzz:
       enabled_submodules: [xss]
       disable_post: True
-
-blacklist:
-  # Prevent spider from invalidating sessions by logging out
-  - "RE:/.*(sign|log)[_-]?out"
 
 conditions:
   - |
