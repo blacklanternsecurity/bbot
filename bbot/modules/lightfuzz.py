@@ -80,6 +80,7 @@ class lightfuzz(BaseModule):
                 details = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
                 if not details["event"]:
                     return
+                # currently, this is only used by the cmdi submodule. Later, when other modules use it, we will need to store description data in the interactsh_subdomain_tags dictionary
                 await self.emit_event(
                     {
                         "severity": "CRITICAL",
@@ -107,6 +108,19 @@ class lightfuzz(BaseModule):
         )
 
     def url_unparse(self, param_type, parsed_url):
+        """
+        Reconstructs a URL from its components, optionally omitting the query string for GET parameters.
+
+        Parameters:
+        - param_type (str): The type of parameter, typically "GETPARAM" or another type indicating the request method.
+        - parsed_url (ParseResult): A named tuple containing the components of the URL (scheme, netloc, path, params, query, fragment).
+
+        Returns:
+        - str: The reconstructed URL as a string.
+
+        The method checks if the parameter type is "GETPARAM". If so, it omits the query string from the reconstructed URL unless
+        the retain_querystring flag is set to True. For other parameter types, it includes the query string.
+        """
         if param_type == "GETPARAM":
             querystring = ""
         else:
@@ -148,6 +162,7 @@ class lightfuzz(BaseModule):
             if self.config.get("force_common_headers", False) is False:
                 return False
 
+            # If force_common_headers is True, we force the emission of a WEB_PARAMETER for each of the common headers to force fuzzing against them
             for h in self.common_headers:
                 description = f"Speculative (Forced) Header [{h}]"
                 data = {
@@ -191,6 +206,7 @@ class lightfuzz(BaseModule):
             except InteractshError as e:
                 self.debug(f"Error in interact.sh: {e}")
 
+    # If we've disabled fuzzing POST parameters, back out of POSTPARAM WEB_PARAMETER events as quickly as possible
     async def filter_event(self, event):
         if event.type == "WEB_PARAMETER" and self.disable_post and event.data["type"] == "POSTPARAM":
             return False, "POST parameter disabled in lightfuzz module"

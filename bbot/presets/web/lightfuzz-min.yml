@@ -1,0 +1,23 @@
+description: Discover web parameters and lightly fuzz them for vulnerabilities, with only the most common vulnerabilities and minimal extra modules
+
+modules:
+  - httpx
+  - lightfuzz
+  - portfilter
+  
+config:
+  url_querystring_remove: False
+  url_querystring_collapse: True
+  modules:
+    lightfuzz:
+      force_common_headers: False
+      enabled_submodules: [path,sqli,xss] # only look for the most common vulnerabilities
+      disable_post: True
+    excavate:
+      retain_querystring: True
+
+conditions:
+- |
+  {% if config.web.spider_distance == 0 %}
+    {{ warn("The lightfuzz-min preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+  {% endif %}

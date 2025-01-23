@@ -8,12 +8,27 @@ class BaseLightfuzz:
         self.event = event
         self.results = []
 
+    # WEB_PARAMETERs may contain additional_params (e.g. other parameters in the same form or query string). These will be sent unchanged along with the probe.
+
     def additional_params_process(self, additional_params, additional_params_populate_blank_empty):
+        """
+        Processes additional parameters by populating blank or empty values with random strings if specified.
+
+        Parameters:
+        - additional_params (dict): A dictionary of additional parameters to process.
+        - additional_params_populate_blank_empty (bool): If True, populates blank or empty parameter values with random numeric strings.
+
+        Returns:
+        - dict: A dictionary with processed additional parameters, where blank or empty values are replaced with random strings if specified.
+
+        The function iterates over the provided additional parameters and replaces any blank or empty values with a random numeric string
+        of length 10, if the flag is set to True. Otherwise, it returns the parameters unchanged.
+        """
         if additional_params_populate_blank_empty is False:
             return additional_params
         new_additional_params = {}
         for k, v in additional_params.items():
-            if v == "" or v is None:
+            if v == "" or v is None: # if the value is blank or empty, and additional_params_populate_blank_empty is True, populate with a random string
                 new_additional_params[k] = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
             else:
                 new_additional_params[k] = v
@@ -31,7 +46,7 @@ class BaseLightfuzz:
     def compare_baseline(
         self, event_type, probe, cookies, additional_params_populate_empty=False, speculative_mode="GETPARAM", skip_urlencoding=False
     ):
-
+      
         # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
 
@@ -87,6 +102,9 @@ class BaseLightfuzz:
         return http_compare
 
     async def baseline_probe(self, cookies):
+        """
+        Executes a baseline probe to establish a baseline for comparison.
+        """
         if self.event.data.get("eventtype") in ["POSTPARAM", "BODYJSON"]:
             method = "POST"
         else:
@@ -119,7 +137,9 @@ class BaseLightfuzz:
         # URL Encode the probe if the event type is GETPARAM or COOKIE, if there are no envelopes, and the submodule did not opt-out with skip_urlencoding
         probe = self.conditional_urlencode(probe, event_type, skip_urlencoding)
 
+        # Create a complete copy to avoid modifying the original additional_params
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
+
         if additional_params_override:
             for k, v in additional_params_override.items():
                 additional_params[k] = v
@@ -166,6 +186,9 @@ class BaseLightfuzz:
         allow_redirects=False,
         skip_urlencoding=False,
     ):
+        """
+        Send a probe to the target URL, abstracting away the details associated with each WEB_PARAMETER type.
+        """
 
         # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
@@ -241,6 +264,9 @@ class BaseLightfuzz:
         return metadata_string
 
     def incoming_probe_value(self, populate_empty=True):
+        """
+        Transparently modifies the incoming probe value (the original value of the WEB_PARAMETER), given any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
+        """
         envelopes = getattr(self.event, "envelopes", None)
         probe_value = ""
         if envelopes is not None:
@@ -255,6 +281,9 @@ class BaseLightfuzz:
         return probe_value
 
     def outgoing_probe_value(self, outgoing_probe_value):
+        """
+        Transparently modifies the outgoing probe value (fuzz probe being sent to the target), given any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
+        """
         self.lightfuzz.debug(f"outgoing_probe_value (before packing): {outgoing_probe_value} / {self.event}")
         envelopes = getattr(self.event, "envelopes", None)
         if envelopes is not None:

@@ -6,6 +6,7 @@ class SerialLightfuzz(BaseLightfuzz):
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         control_payload = "DEADBEEFCAFEBABE1234567890ABCDEF"
+        # These payloads are minimally sized valid serialized objects for their given language/platform
         serialization_payloads = {
             "php_base64": "YTowOnt9",
             "php_raw": "a:0:{}",
@@ -19,6 +20,7 @@ class SerialLightfuzz(BaseLightfuzz):
             "ruby_base64": "BAh7BjoKbE1FAAVJsg==",
         }
 
+    
         serialization_errors = [
             "invalid user",
             "cannot cast java.lang.string",

@@ -55,6 +55,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
         if linux_path_regex is not None:
             original_path_only = "/".join(probe_value.split("/")[:-1])
             original_filename_only = probe_value.split("/")[-1]
+            # Some servers validate the start of the path, so we construct our payload with the original path and filename
             path_techniques["single-dot traversal tolerance (start of path validation)"] = {
                 "singledot_payload": f"{original_path_only}/./{original_filename_only}",
                 "doubledot_payload": f"{original_path_only}/../{original_filename_only}",
@@ -72,7 +73,11 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                     doubledot_probe = await self.compare_probe(
                         http_compare, self.event.data["type"], payloads["doubledot_payload"], cookies, skip_urlencoding=True
                     )
-
+                    # if singledot_probe[0] is true, the response is the same as the baseline. This indicates adding a single dot did not break the functionality
+                    # next, if doubledot_probe[0] is false, the response is different from the baseline. This further indicates that a real path is being manipulated
+                    # if doubledot_probe[3] is not None, the response is not empty.
+                    # if doubledot_probe[1] is not ["header"], the response is not JUST a header change.
+                    # "The requested URL was rejected" is a very common WAF error message which appears on 200 OK response, confusing detections
                     if (
                         singledot_probe[0] is True
                         and doubledot_probe[0] is False
@@ -84,6 +89,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                         self.lightfuzz.verbose(
                             f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations"
                         )
+                        # only report if we have 3 confirmations
                         if confirmations > 3:
                             self.results.append(
                                 {
@@ -102,7 +108,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                 if confirmations == 0:
                     break
 
-        # Absolute path test
+        # Absolute path test, covering Windows and Linux
         absolute_paths = {
             r"c:\\windows\\win.ini": "; for 16-bit app support",
             "/etc/passwd": "daemon:x:",
