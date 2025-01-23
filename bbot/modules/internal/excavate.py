@@ -511,6 +511,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 "input_tag_regex2": bbot_regexes.input_tag_regex2,
                 "select_tag_regex": bbot_regexes.select_tag_regex,
                 "textarea_tag_regex": bbot_regexes.textarea_tag_regex,
+                "textarea_tag_regex2": bbot_regexes.textarea_tag_regex2,
+                "textarea_tag_novalue_regex": bbot_regexes.textarea_tag_novalue_regex,
                 "button_tag_regex": bbot_regexes.button_tag_regex,
                 "button_tag_regex2": bbot_regexes.button_tag_regex2,
                 "_input_tag_novalue_regex": bbot_regexes.input_tag_novalue_regex,
@@ -539,17 +541,16 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                     input_tags = [(b, a) for a, b in input_tags]
 
                                 for parameter_name, original_value in input_tags:
-                                   # form_parameters[parameter_name] = original_value.strip()
+                                    # form_parameters[parameter_name] = original_value.strip()
                                     form_parameters.setdefault(parameter_name, original_value.strip())
-                   
 
                     for parameter_name, original_value in form_parameters.items():
                         yield (
-                        self.output_type,
-                        parameter_name,
-                        original_value,
-                        form_action,
-                        _exclude_key(form_parameters, parameter_name),
+                            self.output_type,
+                            parameter_name,
+                            original_value,
+                            form_action,
+                            _exclude_key(form_parameters, parameter_name),
                         )
 
         class GetForm2(GetForm):
@@ -592,7 +593,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier, results in yara_results.items():
-                for result in results:                 
+                for result in results:
                     if identifier not in self.parameterExtractorCallbackDict.keys():
                         raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
                     parameterExtractorSubModule = self.parameterExtractorCallbackDict[identifier](
@@ -934,7 +935,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         for r in await self.helpers.re.findall(self.yara_rule_regex, rules_content):
             yield r
 
-    async def emit_web_parameter(self, host, param_type, name, original_value, url, description, additional_params, event, context):
+    async def emit_web_parameter(
+        self, host, param_type, name, original_value, url, description, additional_params, event, context
+    ):
         data = {
             "host": host,
             "type": param_type,
@@ -959,7 +962,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 description=f"HTTP Extracted Parameter [{param_name}] ({description_suffix})",
                 additional_params=_exclude_key(custom_params, param_name),
                 event=event,
-                context=f"Excavate saw a custom {param_type.lower()} set [{param_name}], and emitted a WEB_PARAMETER for it"
+                context=f"Excavate saw a custom {param_type.lower()} set [{param_name}], and emitted a WEB_PARAMETER for it",
             )
 
     async def setup(self):
@@ -1061,7 +1064,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 "json": self.helpers.extract_params_json,
                 "xml": self.helpers.extract_params_xml,
             }
-            
+
             for source_type, extract_func in extraction_map.items():
                 if source_type in content_type_lower:
                     results = extract_func(data)
@@ -1076,7 +1079,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 description=f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]",
                                 additional_params={},
                                 event=event,
-                                context=f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}"
+                                context=f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}",
                             )
                     return
 
@@ -1107,17 +1110,13 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     async def handle_event(self, event):
         if event.type == "HTTP_RESPONSE":
-            
             if self.parameter_extraction is True:
                 # if parameter extraction is enabled, and we have custom cookies or headers, emit them as WEB_PARAMETER events
                 await self.emit_custom_parameters(event, "http_cookies", "COOKIE", "Custom Cookie")
                 await self.emit_custom_parameters(event, "http_headers", "HEADER", "Custom Header")
 
                 # if parameter extraction is enabled, and querystring removal is disabled, and the event is directly from the TARGET, create a WEB
-                if (
-                    self.url_querystring_remove is False
-                    and str(event.parent.parent.module) == "TARGET"
-                ):
+                if self.url_querystring_remove is False and str(event.parent.parent.module) == "TARGET":
                     self.debug(f"Processing target URL [{urlunparse(event.parsed_url)}] for GET parameters")
                     for (
                         method,
@@ -1137,10 +1136,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 description=f"HTTP Extracted Parameter [{parameter_name}] (Target URL)",
                                 additional_params=additional_params,
                                 event=event,
-                                context=f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
+                                context=f"Excavate parsed a URL directly from the scan target for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it",
                             )
-
-
 
             # process response data
             body = event.data.get("body", "")
@@ -1174,7 +1171,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                     description=f"Set-Cookie Assigned Cookie [{cookie_name}]",
                                     additional_params={},
                                     event=event,
-                                    context=f"Excavate noticed a set-cookie header for cookie [{cookie_name}] and emitted a WEB_PARAMETER for it"
+                                    context=f"Excavate noticed a set-cookie header for cookie [{cookie_name}] and emitted a WEB_PARAMETER for it",
                                 )
                             else:
                                 self.debug(f"blocked cookie parameter [{cookie_name}] due to BL match")
@@ -1218,7 +1215,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                             description=f"HTTP Extracted Parameter [{parameter_name}] (Location Header)",
                                             additional_params=additional_params,
                                             event=event,
-                                            context=f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it"
+                                            context=f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it",
                                         )
                         else:
                             self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
@@ -1252,4 +1249,3 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 content_type="",
                 discovery_context="Parsed file content",
             )
-

@@ -407,9 +407,9 @@ async def test_http_proxy(bbot_scanner, bbot_httpserver, proxy_server):
 
     r = await scan.helpers.request(url)
 
-    assert (
-        len(proxy_server.RequestHandlerClass.urls) == 1
-    ), f"Request to {url} did not go through proxy {proxy_address}"
+    assert len(proxy_server.RequestHandlerClass.urls) == 1, (
+        f"Request to {url} did not go through proxy {proxy_address}"
+    )
     visited_url = proxy_server.RequestHandlerClass.urls[0]
     assert visited_url.endswith(endpoint), f"There was a problem with request to {url}: {visited_url}"
     assert r.status_code == 200 and r.text == "test_http_proxy_yep"

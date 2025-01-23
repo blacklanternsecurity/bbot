@@ -17,9 +17,9 @@ def test_preset_descriptions():
     # ensure very preset has a description
     preset = Preset()
     for loaded_preset, category, preset_path, original_filename in preset.all_presets.values():
-        assert (
-            loaded_preset.description
-        ), f'Preset "{loaded_preset.name}" at {original_filename} does not have a description.'
+        assert loaded_preset.description, (
+            f'Preset "{loaded_preset.name}" at {original_filename} does not have a description.'
+        )
 
 
 def test_core():

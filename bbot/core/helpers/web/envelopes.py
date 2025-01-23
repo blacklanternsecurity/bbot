@@ -71,7 +71,7 @@ class BaseEnvelope(metaclass=EnvelopeChildTracker):
             return self.unpacked_data(recursive=False).final_envelope
         except AttributeError:
             return self
-        
+
     @property
     def friendly_name(self):
         if self.friendly_name:
@@ -211,10 +211,10 @@ class BaseEnvelope(metaclass=EnvelopeChildTracker):
         if self.selected_subparam:
             self_string += f" [{'.'.join(self.selected_subparam)}]"
         return self_string
-    
+
     def to_dict(self):
         return self.summary
-    
+
     def __str__(self):
         return self.summary
 

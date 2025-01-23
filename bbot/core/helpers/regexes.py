@@ -146,14 +146,22 @@ post_form_regex_noaction = re.compile(
     re.DOTALL,
 )
 generic_form_regex = re.compile(
-    r"<form(?![^>]*\bmethod=)[^>]+(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)[^>]*>([\s\S]*?)<\/form>", re.IGNORECASE | re.DOTALL
+    r"<form(?![^>]*\bmethod=)[^>]+(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)[^>]*>([\s\S]*?)<\/form>",
+    re.IGNORECASE | re.DOTALL,
 )
 
 select_tag_regex = re.compile(
-    r"<select[^>]+?name=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\']?([_\.\-\w]*)[\"\']?[^>]*>)?", re.IGNORECASE | re.DOTALL
+    r"<select[^>]+?name=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\']?([_\.\-\w]*)[\"\']?[^>]*>)?",
+    re.IGNORECASE | re.DOTALL,
 )
 
 textarea_tag_regex = re.compile(
+    r"<textarea[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?\svalue=[\"\']?([:%\-\._=+\/\w]*)[\"\']?[^>]*?>"
+)
+textarea_tag_regex2 = re.compile(
+    r"<textarea[^>]*?\svalue=[\"\']?([:\-%\._=+\/\w]*)[\"\']?[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
+)
+textarea_tag_novalue_regex = re.compile(
     r'<textarea[^>]*\bname=["\']?([_\-\.\w]+)["\']?[^>]*>(.*?)</textarea>', re.IGNORECASE | re.DOTALL
 )
 

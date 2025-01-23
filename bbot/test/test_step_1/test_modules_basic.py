@@ -147,15 +147,15 @@ async def test_modules_basic_checks(events, httpx_mock):
         for flag in flags:
             all_flags.add(flag)
         if preloaded["type"] == "scan":
-            assert ("active" in flags and "passive" not in flags) or (
-                "active" not in flags and "passive" in flags
-            ), f'module "{module_name}" must have either "active" or "passive" flag'
+            assert ("active" in flags and "passive" not in flags) or ("active" not in flags and "passive" in flags), (
+                f'module "{module_name}" must have either "active" or "passive" flag'
+            )
             assert ("safe" in flags and "aggressive" not in flags) or (
                 "safe" not in flags and "aggressive" in flags
             ), f'module "{module_name}" must have either "safe" or "aggressive" flag'
-            assert not (
-                "web-basic" in flags and "web-thorough" in flags
-            ), f'module "{module_name}" should have either "web-basic" or "web-thorough" flags, not both'
+            assert not ("web-basic" in flags and "web-thorough" in flags), (
+                f'module "{module_name}" should have either "web-basic" or "web-thorough" flags, not both'
+            )
         meta = preloaded.get("meta", {})
         # make sure every module has a description
         assert meta.get("description", ""), f"{module_name} must have a description"
@@ -176,29 +176,29 @@ async def test_modules_basic_checks(events, httpx_mock):
             assert watched_events, f"{module_name}.watched_events must not be empty"
         assert type(watched_events) == list, f"{module_name}.watched_events must be of type list"
         assert type(produced_events) == list, f"{module_name}.produced_events must be of type list"
-        assert all(
-            type(t) == str for t in watched_events
-        ), f"{module_name}.watched_events entries must be of type string"
-        assert all(
-            type(t) == str for t in produced_events
-        ), f"{module_name}.produced_events entries must be of type string"
+        assert all(type(t) == str for t in watched_events), (
+            f"{module_name}.watched_events entries must be of type string"
+        )
+        assert all(type(t) == str for t in produced_events), (
+            f"{module_name}.produced_events entries must be of type string"
+        )
 
         assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pip must be of type list"
-        assert (
-            type(preloaded.get("deps_pip_constraints", [])) == list
-        ), f"{module_name}.deps_pip_constraints must be of type list"
+        assert type(preloaded.get("deps_pip_constraints", [])) == list, (
+            f"{module_name}.deps_pip_constraints must be of type list"
+        )
         assert type(preloaded.get("deps_apt", [])) == list, f"{module_name}.deps_apt must be of type list"
         assert type(preloaded.get("deps_shell", [])) == list, f"{module_name}.deps_shell must be of type list"
         assert type(preloaded.get("config", None)) == dict, f"{module_name}.options must be of type list"
         assert type(preloaded.get("options_desc", None)) == dict, f"{module_name}.options_desc must be of type list"
         # options must have descriptions
-        assert set(preloaded.get("config", {})) == set(
-            preloaded.get("options_desc", {})
-        ), f"{module_name}.options do not match options_desc"
+        assert set(preloaded.get("config", {})) == set(preloaded.get("options_desc", {})), (
+            f"{module_name}.options do not match options_desc"
+        )
         # descriptions most not be blank
-        assert all(
-            o for o in preloaded.get("options_desc", {}).values()
-        ), f"{module_name}.options_desc descriptions must not be blank"
+        assert all(o for o in preloaded.get("options_desc", {}).values()), (
+            f"{module_name}.options_desc descriptions must not be blank"
+        )
 
     from bbot.core.flags import flag_descriptions
 

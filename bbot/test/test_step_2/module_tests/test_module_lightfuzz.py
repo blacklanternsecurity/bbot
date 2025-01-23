@@ -229,9 +229,9 @@ class Test_Lightfuzz_xss(ModuleTestBase):
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
 
+
 # Form Action Injection Detection
 class Test_Lightfuzz_xss_formaction(Test_Lightfuzz_xss):
-
     def request_handler(self, request):
         form_data = request.form
         value = form_data.get("func", None)
@@ -257,7 +257,6 @@ class Test_Lightfuzz_xss_formaction(Test_Lightfuzz_xss):
             </section>
             """
 
-
             return Response(xss_block, status=200)
 
         return Response(parameter_block, status=200)
@@ -271,11 +270,15 @@ class Test_Lightfuzz_xss_formaction(Test_Lightfuzz_xss):
                     web_parameter_emitted = True
 
             if e.type == "FINDING":
-                if "Possible Reflected XSS. Parameter: [func] Context: [Form Action Injection] Parameter Type: [POSTPARAM]" in e.data["description"]:
+                if (
+                    "Possible Reflected XSS. Parameter: [func] Context: [Form Action Injection] Parameter Type: [POSTPARAM]"
+                    in e.data["description"]
+                ):
                     xss_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert xss_finding_emitted, "Form Action XSS FINDING not emitted"
+
 
 # Base64 Envelope XSS Detection
 class Test_Lightfuzz_envelope_base64(Test_Lightfuzz_xss):
@@ -338,7 +341,6 @@ class Test_Lightfuzz_envelope_hex(Test_Lightfuzz_envelope_base64):
         """
 
         if "search=" in qs:
-            
             value = qs.split("search=")[1]
             if "&" in value:
                 value = value.split("&")[0]
@@ -414,10 +416,10 @@ class Test_Lightfuzz_envelope_jsonb64(Test_Lightfuzz_envelope_base64):
 
         return Response(parameter_block, status=200)
 
+
 # Base64 (JSON) Multiple Envelope Detection
 class Test_Lightfuzz_envelope_multiple_json(Test_Lightfuzz_envelope_base64):
     def request_handler(self, request):
-
         parameter_block = """
         <section class=search>
             <form action=/ method=GET>
@@ -428,10 +430,9 @@ class Test_Lightfuzz_envelope_multiple_json(Test_Lightfuzz_envelope_base64):
         """
         return Response(parameter_block, status=200)
 
-
     def check(self, module_test, events):
         web_parameter_emitted = False
-        web_parameter_clone_emitted  = False
+        web_parameter_clone_emitted = False
 
         for e in events:
             if e.type == "WEB_PARAMETER":
@@ -546,7 +547,6 @@ class Test_Lightfuzz_xss_intag(Test_Lightfuzz_xss):
 
 # In Javascript XSS Detection
 class Test_Lightfuzz_xss_injs(Test_Lightfuzz_xss):
-
     parameter_block = """
         <html>
             <a href="/otherpage.php?language=en">Link</a>
@@ -610,11 +610,10 @@ class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "enabled_submodules": ["cmdi","crypto","path","serial","sqli","ssti","xss"],
+                "enabled_submodules": ["cmdi", "crypto", "path", "serial", "sqli", "ssti", "xss"],
             }
         },
     }
-
 
     parameter_block = """
         <html>
@@ -975,7 +974,7 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
             <h1>0 search results found</h1>
             <hr>
         </section>
-        """ 
+        """
             if "' AND (SLEEP(5)) AND '" in unquote(value):
                 sleep(5)
             return Response(sql_block, status=200)
@@ -1013,26 +1012,17 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
         },
     }
 
-    async def setup_after_prep(self, module_test):
-        expect_args = re.compile("/")
-        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+    dotnet_serial_error = """
+        <html>
+        <b> Description: </b>An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information about the error and where it originated in the code.
 
-    def request_handler(self, request):
-        dotnet_serial_error = """
-            <html>
-            <b> Description: </b>An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information about the error and where it originated in the code.
+        <br><br>
 
-            <br><br>
+        <b> Exception Details: </b>System.Runtime.Serialization.SerializationException: End of Stream encountered before parsing was completed.<br><br>
+        </html>
+        """
 
-            <b> Exception Details: </b>System.Runtime.Serialization.SerializationException: End of Stream encountered before parsing was completed.<br><br>
-            </html>
-            """
-
-        dotnet_serial_error_resolved = (
-            "<html><body>Deserialization successful! Object type: System.String</body></html>"
-        )
-
-        dotnet_serial_html = """
+    dotnet_serial_html = """
         <!DOCTYPE html>
         <html>
         <head><title>
@@ -1063,18 +1053,26 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
         </html>
         """
 
+    async def setup_after_prep(self, module_test):
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def request_handler(self, request):
+        dotnet_serial_error_resolved = (
+            "<html><body>Deserialization successful! Object type: System.String</body></html>"
+        )
         post_params = request.form
 
         if "TextBox1" not in post_params.keys():
-            return Response(dotnet_serial_html, status=200)
+            return Response(self.dotnet_serial_html, status=200)
 
         else:
             if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
-                return Response(dotnet_serial_error, status=500)
+                return Response(self.dotnet_serial_error, status=500)
             if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
                 return Response(dotnet_serial_error_resolved, status=200)
             else:
-                return Response(dotnet_serial_error, status=500)
+                return Response(self.dotnet_serial_error, status=500)
 
     def check(self, module_test, events):
         excavate_extracted_form_parameter = False
@@ -1106,9 +1104,143 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
 
         assert excavate_extracted_form_parameter, "WEB_PARAMETER for POST form was not emitted"
         assert excavate_extracted_form_parameter_details, "WEB_PARAMETER for POST form did not have correct data"
-        assert (
-            lightfuzz_serial_detect_errorresolution
-        ), "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
+        assert lightfuzz_serial_detect_errorresolution, (
+            "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
+        )
+
+
+# Serialization Module (Error Resolution False Positive)
+class Test_Lightfuzz_serial_errorresolution_falsepositive(Test_Lightfuzz_serial_errorresolution):
+    def request_handler(self, request):
+        dotnet_serial_error_resolved_with_general_error = (
+            "<html><body>Internal Server Error (invalid characters!)</body></html>"
+        )
+        post_params = request.form
+
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        else:
+            if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
+                return Response(self.dotnet_serial_error, status=500)
+            if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
+                return Response(dotnet_serial_error_resolved_with_general_error, status=200)
+            else:
+                return Response(self.dotnet_serial_error, status=500)
+
+    def check(self, module_test, events):
+        no_finding_emitted = True
+
+        for e in events:
+            if e.type == "FINDING":
+                no_finding_emitted = False
+
+        assert no_finding_emitted, "False positive finding was emitted"
+
+
+class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_serial_errorresolution):
+    dotnet_serial_html = """
+        <!DOCTYPE html>
+        <html>
+        <head><title>
+            Deserialization RCE Example
+        </title></head>
+        <body>
+            <form method="post" action="./deser.aspx" id="form1">
+        <div class="aspNetHidden">
+        <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP" />
+        </div>
+
+        <div class="aspNetHidden">
+
+            <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="AD6F025C" />
+            <input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAANdCjkiIFhjCB8ta8aO/EhuESCFkFW/RuhzY1oLb/NUVM34O/GfAV4V4n0wgFZHr3czZjft8VgObR/WUivai7w4kfR1wg==" />
+        </div>
+                <div>
+                    <h2>Deserialization Test</h2>
+                    <span id="Label1">Enter serialized data:</span><br />
+                    <textarea name="TextBox1" rows="2" cols="20" id="TextBox1" value="AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==" style="height:100px;width:400px;">
+        </textarea><br /><br />
+                    <input type="submit" name="Button1" value="Submit" id="Button1" /><br /><br />
+                </div>
+            </form>
+
+            
+        </body>
+        </html>
+        """
+
+    def check(self, module_test, events):
+        excavate_extracted_form_parameter = False
+        excavate_extracted_form_parameter_details = False
+        excavate_detect_serialization_value = False
+        lightfuzz_serial_detect_errorresolution = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if e.data["name"] == "TextBox1":
+                    excavate_extracted_form_parameter = True
+                    if (
+                        e.data["url"] == "http://127.0.0.1:8888/deser.aspx"
+                        and e.data["host"] == "127.0.0.1"
+                        and e.data["original_value"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw=="
+                        and e.data["additional_params"]
+                        == {
+                            "__VIEWSTATE": "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP",
+                            "__VIEWSTATEGENERATOR": "AD6F025C",
+                            "__EVENTVALIDATION": "/wEdAANdCjkiIFhjCB8ta8aO/EhuESCFkFW/RuhzY1oLb/NUVM34O/GfAV4V4n0wgFZHr3czZjft8VgObR/WUivai7w4kfR1wg==",
+                            "Button1": "Submit",
+                        }
+                    ):
+                        excavate_extracted_form_parameter_details = True
+            if e.type == "FINDING":
+                if e.data["description"] == "HTTP response (body) contains a possible serialized object (DOTNET)":
+                    excavate_detect_serialization_value = True
+                if (
+                    e.data["description"]
+                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Original Value: [AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==] Technique: [Error Resolution] Serialization Payload: [dotnet_base64]"
+                ):
+                    lightfuzz_serial_detect_errorresolution = True
+
+        assert excavate_extracted_form_parameter, "WEB_PARAMETER for POST form was not emitted"
+        assert excavate_extracted_form_parameter_details, "WEB_PARAMETER for POST form did not have correct data"
+        assert excavate_detect_serialization_value, "WEB_PARAMETER for POST form did not have correct data"
+        assert lightfuzz_serial_detect_errorresolution, (
+            "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
+        )
+
+
+class Test_Lightfuzz_serial_errorresolution_existingvalue_invalid(Test_Lightfuzz_serial_errorresolution_falsepositive):
+    dotnet_serial_html = """
+        <!DOCTYPE html>
+        <html>
+        <head><title>
+            Deserialization RCE Example
+        </title></head>
+        <body>
+            <form method="post" action="./deser.aspx" id="form1">
+        <div class="aspNetHidden">
+        <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP" />
+        </div>
+
+        <div class="aspNetHidden">
+
+            <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="AD6F025C" />
+            <input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAANdCjkiIFhjCB8ta8aO/EhuESCFkFW/RuhzY1oLb/NUVM34O/GfAV4V4n0wgFZHr3czZjft8VgObR/WUivai7w4kfR1wg==" />
+        </div>
+                <div>
+                    <h2>Deserialization Test</h2>
+                    <span id="Label1">Enter serialized data:</span><br />
+                    <textarea name="TextBox1" rows="2" cols="20" id="TextBox1" value="not_valid_base64!" style="height:100px;width:400px;">
+        </textarea><br /><br />
+                    <input type="submit" name="Button1" value="Submit" id="Button1" /><br /><br />
+                </div>
+            </form>
+
+            
+        </body>
+        </html>
+        """
 
 
 # Serialization Module (Error Differential)
@@ -1170,9 +1302,9 @@ class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolut
                     lightfuzz_serial_detect_errordifferential = True
 
         assert excavate_extracted_cookie_parameter, "WEB_PARAMETER for cookie was not emitted"
-        assert (
-            lightfuzz_serial_detect_errordifferential
-        ), "Lightfuzz Serial module failed to detect Java error differential based deserialization"
+        assert lightfuzz_serial_detect_errordifferential, (
+            "Lightfuzz Serial module failed to detect Java error differential based deserialization"
+        )
 
 
 # CMDi echo canary
@@ -1321,7 +1453,6 @@ class Test_Lightfuzz_speculative(ModuleTestBase):
     }
 
     def request_handler(self, request):
-
         qs = str(request.query_string.decode())
         parameter_block = """
         {
@@ -1460,13 +1591,12 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
                 if "Possible Cryptographic Error" in e.data["description"]:
                     cryptoerror_finding_emitted = True
         assert cryptoerror_parameter_extracted, "Parameter not extracted"
-        assert (
-            not cryptoerror_finding_emitted
-        ), "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
+        assert not cryptoerror_finding_emitted, (
+            "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
+        )
 
 
 class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
-
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "excavate", "lightfuzz"]
     config_overrides = {
@@ -1517,7 +1647,6 @@ class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
         cryptographic_parameter_finding = False
         padding_oracle_detected = False
         for e in events:
-
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
                     web_parameter_extracted = True
@@ -1571,11 +1700,11 @@ class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
                 if param.startswith("input="):
                     input_value = param.split("=")[1]
                     break
-            
+
             if input_value:
                 # Simulate flawed escaping
                 sanitized_input = input_value.replace('"', '\\"').replace("'", "\\'")
-                sanitized_input = sanitized_input.replace('<', '%3C').replace('>', '%3E')
+                sanitized_input = sanitized_input.replace("<", "%3C").replace(">", "%3E")
 
                 # Construct the reflected block with the sanitized input
                 reflected_block = f"""
@@ -1616,7 +1745,6 @@ class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
 
 
 class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquotecontext):
-
     def request_handler(self, request):
         qs = str(request.query_string.decode())
         default_output = """
@@ -1635,11 +1763,11 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
                 if param.startswith("input="):
                     input_value = param.split("=")[1]
                     break
-            
+
             if input_value:
                 # Simulate flawed escaping with opposite quotes
                 sanitized_input = input_value.replace("'", "\\'").replace('"', '\\"')
-                sanitized_input = sanitized_input.replace('<', '%3C').replace('>', '%3E')
+                sanitized_input = sanitized_input.replace("<", "%3C").replace(">", "%3E")
 
                 reflected_block = f"""
                 <html>
@@ -1652,7 +1780,6 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
                 return Response(reflected_block, status=200)
 
         return Response(default_output, status=200)
-
 
     def check(self, module_test, events):
         web_parameter_emitted = False

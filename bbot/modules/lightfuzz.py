@@ -185,7 +185,7 @@ class lightfuzz(BaseModule):
                         self.debug(f"Starting {submodule_dict['description']} fuzz()")
                         await self.run_submodule(submodule_dict["module"], event)
             else:
-                self.debug(f'WEB_PARAMETER URL {event.data["url"]} failed connectivity test, aborting')
+                self.debug(f"WEB_PARAMETER URL {event.data['url']} failed connectivity test, aborting")
 
     async def cleanup(self):
         if self.interactsh_instance:

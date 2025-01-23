@@ -38,7 +38,7 @@ async def test_bloom_filter():
         test_set.add(hash(item))
     end = time.time()
     elapsed = end - start
-    print(f"elapsed: {elapsed:.2f} ({int(n_items_to_test/elapsed)}/s)")
+    print(f"elapsed: {elapsed:.2f} ({int(n_items_to_test / elapsed)}/s)")
     # this shouldn't take longer than 5 seconds
     assert elapsed < 5
 
@@ -48,7 +48,7 @@ async def test_bloom_filter():
         assert item in bloom_filter
     end = time.time()
     elapsed = end - start
-    print(f"elapsed: {elapsed:.2f} ({int(n_items_to_test/elapsed)}/s)")
+    print(f"elapsed: {elapsed:.2f} ({int(n_items_to_test / elapsed)}/s)")
     # this shouldn't take longer than 5 seconds
     assert elapsed < 5
 

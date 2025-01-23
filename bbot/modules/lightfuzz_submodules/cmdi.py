@@ -6,11 +6,15 @@ import urllib.parse
 
 class CmdILightfuzz(BaseLightfuzz):
     async def fuzz(self):
-        cookies = self.event.data.get("assigned_cookies", {})  # Retrieve assigned cookies from WEB_PARAMETER event data, if present
+        cookies = self.event.data.get(
+            "assigned_cookies", {}
+        )  # Retrieve assigned cookies from WEB_PARAMETER event data, if present
         probe_value = self.incoming_probe_value()
 
         canary = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
-        http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)  # Initialize the http_compare object and establish a baseline HTTP response
+        http_compare = self.compare_baseline(
+            self.event.data["type"], probe_value, cookies
+        )  # Initialize the http_compare object and establish a baseline HTTP response
 
         cmdi_probe_strings = [
             "AAAA",  # False positive probe
@@ -29,9 +33,11 @@ class CmdILightfuzz(BaseLightfuzz):
                 # we have to handle our own URL-encoding here, because our payloads include the & character
                 if self.event.data["type"] == "GETPARAM":
                     echo_probe = urllib.parse.quote(echo_probe.encode(), safe="")
-                    
+
                 # send cmdi probe and compare with baseline response
-                cmdi_probe = await self.compare_probe(http_compare, self.event.data["type"], echo_probe, cookies, skip_urlencoding=True)
+                cmdi_probe = await self.compare_probe(
+                    http_compare, self.event.data["type"], echo_probe, cookies, skip_urlencoding=True
+                )
 
                 # ensure we received an HTTP response
                 if cmdi_probe[3]:
@@ -74,5 +80,9 @@ class CmdILightfuzz(BaseLightfuzz):
                     interactsh_probe = urllib.parse.quote(interactsh_probe.encode(), safe="")
                 # we send the probe here, and any positive detections are processed in the interactsh_callback defined in lightfuzz.py
                 await self.standard_probe(
-                    self.event.data["type"], cookies, f"{probe_value}{interactsh_probe}", timeout=15, skip_urlencoding=True
+                    self.event.data["type"],
+                    cookies,
+                    f"{probe_value}{interactsh_probe}",
+                    timeout=15,
+                    skip_urlencoding=True,
                 )

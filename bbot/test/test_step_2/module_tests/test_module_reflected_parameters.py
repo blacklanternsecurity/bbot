@@ -6,7 +6,6 @@ from .test_module_paramminer_getparams import TestParamminer_Getparams
 from .test_module_paramminer_headers import helper
 
 
-
 class TestReflected_parameters_fromexcavate(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "reflected_parameters", "excavate"]
@@ -35,6 +34,7 @@ class TestReflected_parameters_fromexcavate(ModuleTestBase):
             for e in events
         )
 
+
 class TestReflected_parameters_headers(TestReflected_parameters_fromexcavate):
     modules_overrides = ["httpx", "reflected_parameters", "excavate", "paramminer_headers"]
     config_overrides = {
@@ -47,10 +47,10 @@ class TestReflected_parameters_headers(TestReflected_parameters_fromexcavate):
         headers = {k.lower(): v for k, v in request.headers.items()}
         if "tracestate" in headers:
             reflected_value = headers["tracestate"]
-            reflected_block = f'<html><div>{reflected_value}</div></html>'
+            reflected_block = f"<html><div>{reflected_value}</div></html>"
             return Response(reflected_block, status=200)
         else:
-            return Response('<html><div></div></html>', status=200)
+            return Response("<html><div></div></html>", status=200)
 
     def check(self, module_test, events):
         assert any(
@@ -60,11 +60,12 @@ class TestReflected_parameters_headers(TestReflected_parameters_fromexcavate):
             for e in events
         )
 
+
 class TestReflected_parameters_fromparamminer(TestParamminer_Getparams):
     modules_overrides = ["httpx", "paramminer_getparams", "reflected_parameters"]
 
     def request_handler(self, request):
-        normal_block = '<html></html>'
+        normal_block = "<html></html>"
         qs = str(request.query_string.decode())
         if "id=" in qs:
             value = qs.split("=")[1]
@@ -92,8 +93,8 @@ class TestReflected_parameters_fromparamminer(TestParamminer_Getparams):
             for e in events
         )
 
-class TestReflected_parameters_with_canary(TestReflected_parameters_fromexcavate):
 
+class TestReflected_parameters_with_canary(TestReflected_parameters_fromexcavate):
     def request_handler(self, request):
         normal_block = '<html><a href="/?reflected=foo">foo</a></html>'
         qs = str(request.query_string.decode())
@@ -102,7 +103,7 @@ class TestReflected_parameters_with_canary(TestReflected_parameters_fromexcavate
             params = qs.split("&")
             # Construct the reflected block with all parameters
             reflected_block = '<html><a href="/?'
-            reflected_block += '&'.join(params)
+            reflected_block += "&".join(params)
             reflected_block += '"></a></html>'
             return Response(reflected_block, status=200)
         else:
@@ -110,10 +111,8 @@ class TestReflected_parameters_with_canary(TestReflected_parameters_fromexcavate
 
     def check(self, module_test, events):
         # Ensure no findings are emitted when the canary is reflected
-        assert not any(
-            e.type == "FINDING"
-            for e in events
-        )
+        assert not any(e.type == "FINDING" for e in events)
+
 
 class TestReflected_parameters_cookies(TestReflected_parameters_fromexcavate):
     modules_overrides = ["httpx", "reflected_parameters", "excavate", "paramminer_cookies"]
@@ -127,10 +126,10 @@ class TestReflected_parameters_cookies(TestReflected_parameters_fromexcavate):
         cookies = request.cookies
         if "testcookie" in cookies:
             reflected_value = cookies["testcookie"]
-            reflected_block = f'<html><div>{reflected_value}</div></html>'
+            reflected_block = f"<html><div>{reflected_value}</div></html>"
             return Response(reflected_block, status=200)
         else:
-            return Response('<html><div></div></html>', status=200)
+            return Response("<html><div></div></html>", status=200)
 
     def check(self, module_test, events):
         assert any(
@@ -140,6 +139,7 @@ class TestReflected_parameters_cookies(TestReflected_parameters_fromexcavate):
             for e in events
         )
 
+
 class TestReflected_parameters_postparams(TestReflected_parameters_fromexcavate):
     modules_overrides = ["httpx", "reflected_parameters", "excavate"]
 
@@ -147,10 +147,10 @@ class TestReflected_parameters_postparams(TestReflected_parameters_fromexcavate)
         form_data = request.form
         if "testparam" in form_data:
             reflected_value = form_data["testparam"]
-            reflected_block = f'<html><div>{reflected_value}</div></html>'
+            reflected_block = f"<html><div>{reflected_value}</div></html>"
             return Response(reflected_block, status=200)
         else:
-            form_html = '''
+            form_html = """
             <html>
                 <body>
                     <form action="/" method="post">
@@ -159,7 +159,7 @@ class TestReflected_parameters_postparams(TestReflected_parameters_fromexcavate)
                     </form>
                 </body>
             </html>
-            '''
+            """
             return Response(form_html, status=200)
 
     def check(self, module_test, events):
@@ -170,19 +170,20 @@ class TestReflected_parameters_postparams(TestReflected_parameters_fromexcavate)
             for e in events
         )
 
+
 class TestReflected_parameters_bodyjson(TestReflected_parameters_fromexcavate):
     modules_overrides = ["httpx", "reflected_parameters", "excavate"]
 
     def request_handler(self, request):
         # Ensure the request is expecting JSON data
-        if request.content_type == 'application/json':
+        if request.content_type == "application/json":
             json_data = request.json
             if "username" in json_data:
                 reflected_value = json_data["username"]
-                reflected_block = f'<html><div>{reflected_value}</div></html>'
+                reflected_block = f"<html><div>{reflected_value}</div></html>"
                 return Response(reflected_block, status=200)
         # Provide an HTML page with a jQuery AJAX call
-        jsonajax_extract_html = '''
+        jsonajax_extract_html = """
         <html>
         <script>
         function doLogin(e) {
@@ -209,7 +210,7 @@ class TestReflected_parameters_bodyjson(TestReflected_parameters_fromexcavate):
         </script>
         <form action=/ method=GET><input type=text name="novalue"><button type=submit class=button>Submit</button></form>
         </html>
-        '''
+        """
         return Response(jsonajax_extract_html, status=200)
 
     async def setup_after_prep(self, module_test):

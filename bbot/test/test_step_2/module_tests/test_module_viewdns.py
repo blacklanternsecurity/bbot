@@ -9,9 +9,9 @@ class TestViewDNS(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert any(
-            e.data == "hyperloop.com" and "affiliate" in e.tags for e in events
-        ), "Failed to detect affiliate domain"
+        assert any(e.data == "hyperloop.com" and "affiliate" in e.tags for e in events), (
+            "Failed to detect affiliate domain"
+        )
 
 
 web_body = """<html>

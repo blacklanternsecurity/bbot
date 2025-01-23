@@ -1,4 +1,6 @@
 import copy
+import base64
+import binascii
 from urllib.parse import quote
 
 
@@ -8,8 +10,24 @@ class BaseLightfuzz:
         self.event = event
         self.results = []
 
-    # WEB_PARAMETERs may contain additional_params (e.g. other parameters in the same form or query string). These will be sent unchanged along with the probe.
+    @staticmethod
+    def is_hex(s):
+        try:
+            bytes.fromhex(s)
+            return True
+        except ValueError:
+            return False
 
+    @staticmethod
+    def is_base64(s):
+        try:
+            if base64.b64encode(base64.b64decode(s)).decode() == s:
+                return True
+        except (binascii.Error, UnicodeDecodeError):
+            return False
+        return False
+
+    # WEB_PARAMETERs may contain additional_params (e.g. other parameters in the same form or query string). These will be sent unchanged along with the probe.
     def additional_params_process(self, additional_params, additional_params_populate_blank_empty):
         """
         Processes additional parameters by populating blank or empty values with random strings if specified.
@@ -28,7 +46,9 @@ class BaseLightfuzz:
             return additional_params
         new_additional_params = {}
         for k, v in additional_params.items():
-            if v == "" or v is None: # if the value is blank or empty, and additional_params_populate_blank_empty is True, populate with a random string
+            if (
+                v == "" or v is None
+            ):  # if the value is blank or empty, and additional_params_populate_blank_empty is True, populate with a random string
                 new_additional_params[k] = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
             else:
                 new_additional_params[k] = v
@@ -36,17 +56,22 @@ class BaseLightfuzz:
 
     def conditional_urlencode(self, probe, event_type, skip_urlencoding=False):
         """Conditionally url-encodes the probe if the event type requires it and encoding is not skipped by the submodule.
-            We also don't encode if any envelopes are present.
+        We also don't encode if any envelopes are present.
         """
         if event_type in ["GETPARAM", "COOKIE"] and not skip_urlencoding and getattr(self.event, "envelopes", None):
             # Exclude '&' from being encoded since we are operating on full query strings
-            return quote(probe, safe='&')
+            return quote(probe, safe="&")
         return probe
 
     def compare_baseline(
-        self, event_type, probe, cookies, additional_params_populate_empty=False, speculative_mode="GETPARAM", skip_urlencoding=False
+        self,
+        event_type,
+        probe,
+        cookies,
+        additional_params_populate_empty=False,
+        speculative_mode="GETPARAM",
+        skip_urlencoding=False,
     ):
-      
         # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
 
@@ -130,7 +155,6 @@ class BaseLightfuzz:
         speculative_mode="GETPARAM",
         skip_urlencoding=False,
     ):
-
         # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
 
@@ -253,13 +277,12 @@ class BaseLightfuzz:
             retries=0,
             timeout=timeout,
         )
-        
 
     def metadata(self):
         metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]"
         if self.event.data["original_value"] != "" and self.event.data["original_value"] is not None:
             metadata_string += (
-                f" Original Value: [{self.lightfuzz.helpers.truncate_string(self.event.data['original_value'],200)}]"
+                f" Original Value: [{self.lightfuzz.helpers.truncate_string(self.event.data['original_value'], 200)}]"
             )
         return metadata_string
 
@@ -289,5 +312,7 @@ class BaseLightfuzz:
         if envelopes is not None:
             envelopes.set_subparam(value=outgoing_probe_value)
             outgoing_probe_value = envelopes.pack()
-            self.lightfuzz.debug(f"outgoing_probe_value (after packing): {outgoing_probe_value} with envelopes [{envelopes}] / {self.event}")
+            self.lightfuzz.debug(
+                f"outgoing_probe_value (after packing): {outgoing_probe_value} with envelopes [{envelopes}] / {self.event}"
+            )
         return outgoing_probe_value

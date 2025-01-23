@@ -396,9 +396,9 @@ class TestExcavateSerializationPositive(TestExcavate):
 
     def check(self, module_test, events):
         for serialize_type in ["Java", "DOTNET", "PHP_Array", "PHP_String", "PHP_Object", "Possible_Compressed"]:
-            assert any(
-                e.type == "FINDING" and serialize_type in e.data["description"] for e in events
-            ), f"Did not find {serialize_type} Serialized Object"
+            assert any(e.type == "FINDING" and serialize_type in e.data["description"] for e in events), (
+                f"Did not find {serialize_type} Serialized Object"
+            )
 
 
 class TestExcavateNonHttpScheme(TestExcavate):
@@ -506,7 +506,6 @@ class TestExcavateParameterExtraction(TestExcavate):
         avoid_truncated_values = True
         found_form_input_with_spaces = False
         for e in events:
-
             if e.type == "WEB_PARAMETER":
                 if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
                     found_jquery_get = True
@@ -555,7 +554,7 @@ class TestExcavateParameterExtraction(TestExcavate):
                     if e.data["original_value"] == "trees and forests":
                         found_form_input_with_spaces = True
                     if e.data["original_value"] == "trees":
-                        avoid_truncated_values = False   
+                        avoid_truncated_values = False
 
         assert found_jquery_get, "Did not extract Jquery GET parameters"
         assert found_jquery_post, "Did not extract Jquery POST parameters"
@@ -605,7 +604,6 @@ class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
 
 
 class TestExcavateParameterExtraction_additionalparams(ModuleTestBase):
-
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
@@ -625,25 +623,46 @@ class TestExcavateParameterExtraction_additionalparams(ModuleTestBase):
     """
 
     async def setup_after_prep(self, module_test):
-        respond_args = {"response_data": self.postformnoaction_extract_multiparams_html, "headers": {"Content-Type": "text/html"}}
+        respond_args = {
+            "response_data": self.postformnoaction_extract_multiparams_html,
+            "headers": {"Content-Type": "text/html"},
+        }
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-
         excavate_additionalparam_extraction_param1 = False
         excavate_additionalparam_extraction_param2 = False
         excavate_additionalparam_extraction_param3 = False
         for e in events:
             if e.type == "WEB_PARAMETER":
-                if e.data["name"] == "template-action" and "csrf" in e.data["additional_params"].keys() and "template" in e.data["additional_params"].keys():
+                if (
+                    e.data["name"] == "template-action"
+                    and "csrf" in e.data["additional_params"].keys()
+                    and "template" in e.data["additional_params"].keys()
+                ):
                     excavate_additionalparam_extraction_param1 = True
-                if e.data["name"] == "template" and "csrf" in e.data["additional_params"].keys() and "template-action" in e.data["additional_params"].keys():
+                if (
+                    e.data["name"] == "template"
+                    and "csrf" in e.data["additional_params"].keys()
+                    and "template-action" in e.data["additional_params"].keys()
+                ):
                     excavate_additionalparam_extraction_param2 = True
-                if e.data["name"] == "csrf" and "template" in e.data["additional_params"].keys() and "template-action" in e.data["additional_params"].keys():
-                    excavate_additionalparam_extraction_param3 = True           
-        assert excavate_additionalparam_extraction_param1, "Excavate failed to extract web parameter with correct additional data (param 1)"
-        assert excavate_additionalparam_extraction_param2, "Excavate failed to extract web parameter with correct additional data (param 2)"
-        assert excavate_additionalparam_extraction_param3, "Excavate failed to extract web parameter with correct additional data (param 3)"
+                if (
+                    e.data["name"] == "csrf"
+                    and "template" in e.data["additional_params"].keys()
+                    and "template-action" in e.data["additional_params"].keys()
+                ):
+                    excavate_additionalparam_extraction_param3 = True
+        assert excavate_additionalparam_extraction_param1, (
+            "Excavate failed to extract web parameter with correct additional data (param 1)"
+        )
+        assert excavate_additionalparam_extraction_param2, (
+            "Excavate failed to extract web parameter with correct additional data (param 2)"
+        )
+        assert excavate_additionalparam_extraction_param3, (
+            "Excavate failed to extract web parameter with correct additional data (param 3)"
+        )
+
 
 class TestExcavateParameterExtraction_getparam(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
@@ -807,12 +826,12 @@ class TestExcavateParameterExtraction_xml_invalid(TestExcavateParameterExtractio
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if (
-                    "HTTP Extracted Parameter (speculative from xml content) [newlines]"
-                    in e.data["description"]
+                    "HTTP Extracted Parameter (speculative from xml content) [newlines]" in e.data["description"]
                     and "\n" not in e.data["original_value"]
                 ):
                     excavate_xml_extraction = True
         assert excavate_xml_extraction, "Excavate failed to extract xml parameter"
+
 
 class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
@@ -1246,14 +1265,14 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
         raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
         assert 1 == len(raw_text_events), "Failed to emit RAW_TEXT event"
-        assert (
-            raw_text_events[0].data == self.extractous_response
-        ), f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
+        assert raw_text_events[0].data == self.extractous_response, (
+            f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
+        )
         email_events = [e for e in events if e.type == "EMAIL_ADDRESS"]
         assert 1 == len(email_events), "Failed to emit EMAIL_ADDRESS event"
-        assert (
-            email_events[0].data == "example@blacklanternsecurity.notreal"
-        ), f"Email extracted from extractous text is incorrect, got {email_events[0].data}"
+        assert email_events[0].data == "example@blacklanternsecurity.notreal", (
+            f"Email extracted from extractous text is incorrect, got {email_events[0].data}"
+        )
         finding_events = [e for e in events if e.type == "FINDING"]
         assert 2 == len(finding_events), "Failed to emit FINDING events"
         assert any(
@@ -1276,12 +1295,12 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         ), f"Failed to emit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
         url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
-        assert (
-            "https://www.test.notreal/about" in url_events
-        ), f"URL extracted from extractous text is incorrect, got {url_events}"
-        assert (
-            "/donot_detect.js" not in url_events
-        ), f"URL extracted from extractous text is incorrect, got {url_events}"
+        assert "https://www.test.notreal/about" in url_events, (
+            f"URL extracted from extractous text is incorrect, got {url_events}"
+        )
+        assert "/donot_detect.js" not in url_events, (
+            f"URL extracted from extractous text is incorrect, got {url_events}"
+        )
 
 
 class TestExcavate(ModuleTestBase):
@@ -1412,6 +1431,7 @@ class TestExcavateHeaders_blacklist(ModuleTestBase):
         assert found_second_cookie is False
         assert found_third_cookie is False
 
+
 class TestExcavateBadURLs(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["excavate", "httpx", "hunt"]
@@ -1436,4 +1456,3 @@ class TestExcavateBadURLs(ModuleTestBase):
 
         url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
         assert sorted([e.data for e in url_events]) == sorted(["https://ssl/", "http://127.0.0.1:8888/"])
-

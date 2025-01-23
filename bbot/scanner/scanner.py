@@ -340,7 +340,7 @@ class Scanner:
             await self._prep()
 
             self._start_log_handlers()
-            self.trace(f'Ran BBOT {__version__} at {self.start_time}, command: {" ".join(sys.argv)}')
+            self.trace(f"Ran BBOT {__version__} at {self.start_time}, command: {' '.join(sys.argv)}")
             self.trace(f"Target: {self.preset.target.json}")
             self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 
@@ -689,14 +689,14 @@ class Scanner:
             event_type_summary = sorted(self.stats.events_emitted_by_type.items(), key=lambda x: x[-1], reverse=True)
             if event_type_summary:
                 self.info(
-                    f'{self.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
+                    f"{self.name}: Events produced so far: {', '.join([f'{k}: {v}' for k, v in event_type_summary])}"
                 )
             else:
                 self.info(f"{self.name}: No events produced yet")
 
             if modules_errored:
                 self.verbose(
-                    f'{self.name}: Modules errored: {len(modules_errored):,} ({", ".join(list(modules_errored))})'
+                    f"{self.name}: Modules errored: {len(modules_errored):,} ({', '.join(list(modules_errored))})"
                 )
 
             num_queued_events = self.num_queued_events

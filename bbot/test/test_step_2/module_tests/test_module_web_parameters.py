@@ -1,11 +1,10 @@
-
 from .test_module_excavate import TestExcavateParameterExtraction
+
 
 class TestWebParameters(TestExcavateParameterExtraction):
     modules_overrides = ["excavate", "httpx", "web_parameters"]
 
     def check(self, module_test, events):
-
         parameters_file = module_test.scan.home / "web_parameters.txt"
         with open(parameters_file) as f:
             data = f.read()
@@ -16,7 +15,7 @@ class TestWebParameters(TestExcavateParameterExtraction):
             assert "jqueryget" in data
             assert "jquerypost" in data
             assert "size" in data
-            
+
             # after lightfuzz is merged uncomment these additional parameters
             # assert "blog-post-author-display" in data
             # assert "csrf" in data
@@ -25,8 +24,12 @@ class TestWebParameters(TestExcavateParameterExtraction):
             # assert "q3" in data
             # assert "test" in data
 
+
 class TestWebParameters_include_count(TestWebParameters):
-    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}, "modules": {"web_parameters": {"include_count": True}}}
+    config_overrides = {
+        "web": {"spider_distance": 1, "spider_depth": 1},
+        "modules": {"web_parameters": {"include_count": True}},
+    }
 
     def check(self, module_test, events):
         parameters_file = module_test.scan.home / "web_parameters.txt"

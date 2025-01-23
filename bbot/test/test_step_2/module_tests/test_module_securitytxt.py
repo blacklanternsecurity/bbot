@@ -21,9 +21,9 @@ class TestSecurityTxt(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "EMAIL_ADDRESS" and e.data == "joe.smith@blacklanternsecurity.notreal" for e in events
-        ), "Failed to detect email address"
+        assert any(e.type == "EMAIL_ADDRESS" and e.data == "joe.smith@blacklanternsecurity.notreal" for e in events), (
+            "Failed to detect email address"
+        )
         assert not any(
             e.type == "URL_UNVERIFIED" and e.data == "https://blacklanternsecurity.notreal/.well-known/security.txt"
             for e in events
@@ -39,12 +39,12 @@ class TestSecurityTxtEmailsFalse(TestSecurityTxt):
 
     def check(self, module_test, events):
         assert not any(e.type == "EMAIL_ADDRESS" for e in events), "Detected email address when emails=False"
-        assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "https://vdp.example.com/" for e in events
-        ), "Failed to detect URL"
-        assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "https://example.com/cert" for e in events
-        ), "Failed to detect URL"
-        assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "https://www.careers.example.com/" for e in events
-        ), "Failed to detect URL"
+        assert any(e.type == "URL_UNVERIFIED" and e.data == "https://vdp.example.com/" for e in events), (
+            "Failed to detect URL"
+        )
+        assert any(e.type == "URL_UNVERIFIED" and e.data == "https://example.com/cert" for e in events), (
+            "Failed to detect URL"
+        )
+        assert any(e.type == "URL_UNVERIFIED" and e.data == "https://www.careers.example.com/" for e in events), (
+            "Failed to detect URL"
+        )

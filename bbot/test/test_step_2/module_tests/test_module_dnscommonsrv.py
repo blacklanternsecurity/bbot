@@ -75,21 +75,21 @@ class TestDNSCommonSRV(ModuleTestBase):
                 and str(e.module) == "dnscommonsrv"
             ]
         ), "Failed to detect subdomain 2"
-        assert 2 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]
-        ), "Failed to detect subdomain 3"
-        assert 1 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "api.blacklanternsecurity.com"]
-        ), "Failed to detect subdomain 4"
+        assert 2 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]), (
+            "Failed to detect subdomain 3"
+        )
+        assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "api.blacklanternsecurity.com"]), (
+            "Failed to detect subdomain 4"
+        )
         assert 1 == len(
             [e for e in events if e.type == "DNS_NAME" and e.data == "test.api.blacklanternsecurity.com"]
         ), "Failed to detect subdomain 5"
         assert 1 == len(
             [e for e in events if e.type == "DNS_NAME" and e.data == "_msdcs.api.blacklanternsecurity.com"]
         ), "Failed to detect subdomain 5"
-        assert 1 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"]
-        ), "Failed to detect main domain"
+        assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"]), (
+            "Failed to detect main domain"
+        )
         assert 1 == len(
             [
                 e

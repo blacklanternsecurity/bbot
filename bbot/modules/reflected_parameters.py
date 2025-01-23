@@ -39,16 +39,13 @@ class reflected_parameters(BaseModule):
             probe_parameter_value,
             canary_parameter_value,
             cookies=event.data.get("assigned_cookies", {}),
-            timeout=10
+            timeout=10,
         )
 
         # Check if the probe parameter value is reflected AND the canary is not
         if probe_response:
             response_text = probe_response.text
-            reflection_result = (
-                probe_parameter_value in response_text and 
-                canary_parameter_value not in response_text
-            )
+            reflection_result = probe_parameter_value in response_text and canary_parameter_value not in response_text
             return reflection_result
         return False
 
@@ -73,15 +70,11 @@ class reflected_parameters(BaseModule):
             method = "POST"
             json_data = params
 
-        self.debug(f"Sending {method} request to {url} with headers: {headers}, cookies: {cookies}, data: {data}, json: {json_data}")
+        self.debug(
+            f"Sending {method} request to {url} with headers: {headers}, cookies: {cookies}, data: {data}, json: {json_data}"
+        )
 
         response = await self.helpers.request(
-            method=method,
-            url=url,
-            headers=headers,
-            cookies=cookies,
-            data=data,
-            json=json_data,
-            timeout=timeout
+            method=method, url=url, headers=headers, cookies=cookies, data=data, json=json_data, timeout=timeout
         )
         return response

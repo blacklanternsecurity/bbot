@@ -27,6 +27,6 @@ class TestAzure_Realm(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert any(
-            e.data == "https://evilcorp.okta.com/app/office365/deadbeef/sso/wsfed/passive" for e in events
-        ), "Failed to detect URL"
+        assert any(e.data == "https://evilcorp.okta.com/app/office365/deadbeef/sso/wsfed/passive" for e in events), (
+            "Failed to detect URL"
+        )

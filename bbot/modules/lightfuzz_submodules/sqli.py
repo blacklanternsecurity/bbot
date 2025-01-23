@@ -139,7 +139,9 @@ class SQLiLightfuzz(BaseLightfuzz):
 
                     d = r.elapsed.total_seconds()
                     self.lightfuzz.debug(f"measured delay: {str(d)}")
-                    if self.evaluate_delay(mean_baseline, d): # decide if the delay is within the detection threshold and constitutes a successful sleep execution
+                    if self.evaluate_delay(
+                        mean_baseline, d
+                    ):  # decide if the delay is within the detection threshold and constitutes a successful sleep execution
                         confirmations += 1
                         self.lightfuzz.debug(
                             f"{self.event.data['url']}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "

@@ -14,7 +14,7 @@ class BaseOutputModule(BaseModule):
         event_type = f"[{event.type}]"
         event_tags = ""
         if getattr(event, "tags", []):
-            event_tags = f'\t({", ".join(sorted(getattr(event, "tags", [])))})'
+            event_tags = f"\t({', '.join(sorted(getattr(event, 'tags', [])))})"
         event_str = f"{event_type:<20}\t{event.data_human}\t{event.module_sequence}{event_tags}"
         return event_str
 

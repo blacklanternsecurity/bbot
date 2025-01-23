@@ -117,7 +117,9 @@ class baddns(BaseModule):
                                     context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
                                 )
                             else:
-                                self.debug(f"Skipping low-confidence result due to only_high_confidence setting: {confidence}")
+                                self.debug(
+                                    f"Skipping low-confidence result due to only_high_confidence setting: {confidence}"
+                                )
 
                         else:
                             self.warning(f"Got unrecognized confidence level: {confidence}")
