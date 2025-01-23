@@ -79,7 +79,7 @@ class EngineBase:
                 self.log.debug(f"{self.name}: Timeout after {interval:,} seconds {context}, retrying...")
                 retries += 1
                 if max_retries is not None and retries > max_retries:
-                    raise TimeoutError(f"Timed out after {(max_retries+1)*interval:,} seconds {context}")
+                    raise TimeoutError(f"Timed out after {(max_retries + 1) * interval:,} seconds {context}")
 
     def engine_debug(self, *args, **kwargs):
         if self._engine_debug:

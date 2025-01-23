@@ -51,5 +51,5 @@ class skymem(emailformat):
                     email,
                     "EMAIL_ADDRESS",
                     parent=event,
-                    context=f'{{module}} searched skymem.info for "{query}" and found {{event.type}} on page {i+1}: {{event.data}}',
+                    context=f'{{module}} searched skymem.info for "{query}" and found {{event.type}} on page {i + 1}: {{event.data}}',
                 )

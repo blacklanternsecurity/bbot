@@ -237,7 +237,7 @@ class BBOTArgs:
             "--modules",
             nargs="+",
             default=[],
-            help=f'Modules to enable. Choices: {",".join(sorted(self.preset.module_loader.scan_module_choices))}',
+            help=f"Modules to enable. Choices: {','.join(sorted(self.preset.module_loader.scan_module_choices))}",
             metavar="MODULE",
         )
         modules.add_argument("-l", "--list-modules", action="store_true", help="List available modules.")
@@ -252,7 +252,7 @@ class BBOTArgs:
             "--flags",
             nargs="+",
             default=[],
-            help=f'Enable modules by flag. Choices: {",".join(sorted(self.preset.module_loader.flag_choices))}',
+            help=f"Enable modules by flag. Choices: {','.join(sorted(self.preset.module_loader.flag_choices))}",
             metavar="FLAG",
         )
         modules.add_argument("-lf", "--list-flags", action="store_true", help="List available flags.")
@@ -314,7 +314,7 @@ class BBOTArgs:
             "--output-modules",
             nargs="+",
             default=[],
-            help=f'Output module(s). Choices: {",".join(sorted(self.preset.module_loader.output_module_choices))}',
+            help=f"Output module(s). Choices: {','.join(sorted(self.preset.module_loader.output_module_choices))}",
             metavar="MODULE",
         )
         output.add_argument("-lo", "--list-output-modules", action="store_true", help="List available output modules")

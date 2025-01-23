@@ -33,7 +33,10 @@ class unarchive(BaseInternalModule):
                 return False, f"Ignoring file type: {event.data['magic_mime_type']}, {event.data['path']}"
             if "compression" in event.data:
                 if not event.data["compression"] in self.compression_methods:
-                   return False, f"Extract unable to handle file type: {event.data['compression']}, {event.data['path']}"
+                    return (
+                        False,
+                        f"Extract unable to handle file type: {event.data['compression']}, {event.data['path']}",
+                    )
             else:
                 return False, f"Event is not a compressed file: {event.data['path']}"
         else:

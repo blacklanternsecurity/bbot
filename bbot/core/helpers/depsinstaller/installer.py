@@ -276,7 +276,7 @@ class DepsInstaller:
             command["cmd"] += f" && touch {command_status_file}"
             tasks.append(
                 {
-                    "name": f"{module}.deps_shell step {i+1}",
+                    "name": f"{module}.deps_shell step {i + 1}",
                     "ansible.builtin.shell": command,
                     "args": {"executable": "/bin/bash", "creates": str(command_status_file)},
                 }

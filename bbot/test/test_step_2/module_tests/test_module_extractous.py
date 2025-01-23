@@ -42,9 +42,9 @@ class TestExtractous(ModuleTestBase):
         for filesystem_event in filesystem_events:
             file = Path(filesystem_event.data["path"])
             assert file.is_file(), "Destination file doesn't exist"
-            assert (
-                open(file, "rb").read() == self.pdf_data or open(file, "rb").read() == self.docx_data
-            ), f"File at {file} does not contain the correct content"
+            assert open(file, "rb").read() == self.pdf_data or open(file, "rb").read() == self.docx_data, (
+                f"File at {file} does not contain the correct content"
+            )
         raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
         assert 2 == len(raw_text_events), "Failed to emit RAW_TEXT event"
         for raw_text_event in raw_text_events:

@@ -870,7 +870,7 @@ class Preset:
                     if f in self.exclude_flags:
                         return False, f'it has excluded flag, "{f}"', preloaded
             if self.require_flags and not all(f in module_flags for f in self.require_flags):
-                return False, f'it doesn\'t have the required flags ({",".join(self.require_flags)})', preloaded
+                return False, f"it doesn't have the required flags ({','.join(self.require_flags)})", preloaded
 
         return True, "", preloaded
 

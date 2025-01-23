@@ -66,12 +66,22 @@ class PathTraversalLightfuzz(BaseLightfuzz):
             confirmations = 0
             while iterations > 0:
                 try:
-                    http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies, skip_urlencoding=True)
+                    http_compare = self.compare_baseline(
+                        self.event.data["type"], probe_value, cookies, skip_urlencoding=True
+                    )
                     singledot_probe = await self.compare_probe(
-                        http_compare, self.event.data["type"], payloads["singledot_payload"], cookies, skip_urlencoding=True
+                        http_compare,
+                        self.event.data["type"],
+                        payloads["singledot_payload"],
+                        cookies,
+                        skip_urlencoding=True,
                     )
                     doubledot_probe = await self.compare_probe(
-                        http_compare, self.event.data["type"], payloads["doubledot_payload"], cookies, skip_urlencoding=True
+                        http_compare,
+                        self.event.data["type"],
+                        payloads["doubledot_payload"],
+                        cookies,
+                        skip_urlencoding=True,
                     )
                     # if singledot_probe[0] is true, the response is the same as the baseline. This indicates adding a single dot did not break the functionality
                     # next, if doubledot_probe[0] is false, the response is different from the baseline. This further indicates that a real path is being manipulated

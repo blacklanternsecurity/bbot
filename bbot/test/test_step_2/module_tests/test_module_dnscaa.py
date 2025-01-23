@@ -41,16 +41,16 @@ class TestDNSCAA(ModuleTestBase):
     def check(self, module_test, events):
         assert any(e.type == "DNS_NAME" and e.data == "comodoca.com" for e in events), "Failed to detect CA DNS name"
         assert any(e.type == "DNS_NAME" and e.data == "digicert.com" for e in events), "Failed to detect CA DNS name"
-        assert any(
-            e.type == "DNS_NAME" and e.data == "letsencrypt.org" for e in events
-        ), "Failed to detect CA DNS name"
+        assert any(e.type == "DNS_NAME" and e.data == "letsencrypt.org" for e in events), (
+            "Failed to detect CA DNS name"
+        )
         assert any(e.type == "DNS_NAME" and e.data == "pki.goog" for e in events), "Failed to detect CA DNS name"
         assert any(
             e.type == "URL_UNVERIFIED" and e.data == "https://caa.blacklanternsecurity.notreal/" for e in events
         ), "Failed to detect URL"
-        assert any(
-            e.type == "EMAIL_ADDRESS" and e.data == "caa@blacklanternsecurity.notreal" for e in events
-        ), "Failed to detect email address"
+        assert any(e.type == "EMAIL_ADDRESS" and e.data == "caa@blacklanternsecurity.notreal" for e in events), (
+            "Failed to detect email address"
+        )
         # make sure we're not checking CAA records for out-of-scope hosts
         assert not any(str(e.host) == "caa.comodoca.com" for e in events)
 

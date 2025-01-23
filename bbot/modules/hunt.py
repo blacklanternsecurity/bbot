@@ -101,7 +101,7 @@ hunt_param_dict = {
     ],
     "SQL Injection": [
         "id",
-        "" "select",
+        "select",
         "report",
         "role",
         "update",

@@ -30,6 +30,6 @@ class TestBufferOverrunCommercial(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert any(
-            e.data == "sub.blacklanternsecurity.com" for e in events
-        ), "Failed to detect subdomain for commercial API"
+        assert any(e.data == "sub.blacklanternsecurity.com" for e in events), (
+            "Failed to detect subdomain for commercial API"
+        )

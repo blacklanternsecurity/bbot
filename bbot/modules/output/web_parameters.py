@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from bbot.modules.output.base import BaseOutputModule
 
+
 class Web_parameters(BaseOutputModule):
     watched_events = ["WEB_PARAMETER"]
     meta = {
@@ -24,7 +25,6 @@ class Web_parameters(BaseOutputModule):
         return True
 
     async def handle_event(self, event):
-        
         parameter_name = event.data.get("name", "")
         if parameter_name:
             self.parameter_counts[parameter_name] += 1
@@ -34,7 +34,6 @@ class Web_parameters(BaseOutputModule):
             with suppress(Exception):
                 self.file.close()
 
-
     async def report(self):
         include_count = self.config.get("include_count", False)
 
@@ -42,8 +41,7 @@ class Web_parameters(BaseOutputModule):
         # - If include_count is True, sort by count (descending) and then alphabetically by name
         # - If include_count is False, sort alphabetically by name only
         sorted_parameters = sorted(
-            self.parameter_counts.items(),
-            key=lambda x: (-x[1], x[0]) if include_count else x[0]
+            self.parameter_counts.items(), key=lambda x: (-x[1], x[0]) if include_count else x[0]
         )
         for param, count in sorted_parameters:
             if include_count:

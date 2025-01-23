@@ -141,7 +141,7 @@ class paramminer_headers(BaseModule):
                 tags = ["http_reflection"]
             description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}] Reflection: [{str(reflection)}]"
             reflected = "reflected " if reflection else ""
-            
+
             await self.emit_event(
                 {
                     "host": str(event.host),
@@ -249,7 +249,9 @@ class paramminer_headers(BaseModule):
             except HttpCompareError as e:
                 self.debug(f"Error initializing compare helper: {e}")
                 continue
-            words_to_process = {i for i in self.extracted_words_master.copy() if hash(i + url) not in self.already_checked}
+            words_to_process = {
+                i for i in self.extracted_words_master.copy() if hash(i + url) not in self.already_checked
+            }
             try:
                 results = await self.do_mining(words_to_process, url, batch_size, compare_helper)
             except HttpCompareError as e:
@@ -267,5 +269,3 @@ class paramminer_headers(BaseModule):
             return False
 
         return True
-
-

@@ -72,7 +72,7 @@ class censys(subdomain_enum_apikey):
                     error = d.get("error", "")
                     if error:
                         self.warning(error)
-                self.verbose(f'Non-200 Status code: {resp.status_code} for query "{query}", page #{i+1}')
+                self.verbose(f'Non-200 Status code: {resp.status_code} for query "{query}", page #{i + 1}')
                 self.debug(f"Response: {resp.text}")
                 break
             else:

@@ -34,21 +34,21 @@ class TestDNSTLSRPT(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "RAW_DNS_RECORD" and e.data["answer"] == raw_smtp_tls_txt for e in events
-        ), "Failed to emit RAW_DNS_RECORD"
-        assert any(
-            e.type == "DNS_NAME" and e.data == "sub.blacklanternsecurity.notreal" for e in events
-        ), "Failed to detect sub-domain"
+        assert any(e.type == "RAW_DNS_RECORD" and e.data["answer"] == raw_smtp_tls_txt for e in events), (
+            "Failed to emit RAW_DNS_RECORD"
+        )
+        assert any(e.type == "DNS_NAME" and e.data == "sub.blacklanternsecurity.notreal" for e in events), (
+            "Failed to detect sub-domain"
+        )
         assert any(
             e.type == "EMAIL_ADDRESS" and e.data == "tlsrpt@sub.blacklanternsecurity.notreal" for e in events
         ), "Failed to detect email address"
-        assert any(
-            e.type == "EMAIL_ADDRESS" and e.data == "test@on.thirdparty.com" for e in events
-        ), "Failed to detect third party email address"
-        assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "https://tlspost.example.com/" for e in events
-        ), "Failed to detect third party URL"
+        assert any(e.type == "EMAIL_ADDRESS" and e.data == "test@on.thirdparty.com" for e in events), (
+            "Failed to detect third party email address"
+        )
+        assert any(e.type == "URL_UNVERIFIED" and e.data == "https://tlspost.example.com/" for e in events), (
+            "Failed to detect third party URL"
+        )
 
 
 class TestDNSTLSRPTRecursiveRecursion(TestDNSTLSRPT):

@@ -6,11 +6,11 @@ from urllib.parse import unquote, quote
 
 
 class CryptoLightfuzz(BaseLightfuzz):
-
     """
     Although we have an envelope system to detect hex and base64 encoded parameter values, those are only assigned when they decode to a valid string.
     Since crypto values (and serialized objects) will not decode properly, we need a more concise check here to determine how to process them.
     """
+
     @staticmethod
     def is_hex(s):
         try:
@@ -188,18 +188,18 @@ class CryptoLightfuzz(BaseLightfuzz):
         Returns:
         - bool: True if the padding oracle attack is successful.
         """
-        ivblock = b"\x00" * block_size # initialize the IV block with null bytes
-        paddingblock = b"\x00" * block_size # initialize the padding block with null bytes
-        datablock = original_data[-block_size:] # extract the last block of the original data
-        
+        ivblock = b"\x00" * block_size  # initialize the IV block with null bytes
+        paddingblock = b"\x00" * block_size  # initialize the padding block with null bytes
+        datablock = original_data[-block_size:]  # extract the last block of the original data
+
         # This handling the 1/255 chance that the first byte is correct padding which would cause a false negative.
         if possible_first_byte:
-            baseline_byte = b"\xff" # set the baseline byte to 0xff
-            starting_pos = 0 # set the starting position to 0
+            baseline_byte = b"\xff"  # set the baseline byte to 0xff
+            starting_pos = 0  # set the starting position to 0
         else:
-            baseline_byte = b"\x00" # set the baseline byte to 0x00
-            starting_pos = 1 # set the starting position to 1
-        # first obtain 
+            baseline_byte = b"\x00"  # set the baseline byte to 0x00
+            starting_pos = 1  # set the starting position to 1
+        # first obtain
         baseline = self.compare_baseline(
             self.event.data["type"],
             self.format_agnostic_encode(ivblock + paddingblock[:-1] + baseline_byte + datablock, encoding),
@@ -234,7 +234,9 @@ class CryptoLightfuzz(BaseLightfuzz):
 
     async def padding_oracle(self, probe_value, cookies):
         data, encoding = self.format_agnostic_decode(probe_value)
-        possible_block_sizes = self.possible_block_sizes(len(data)) # determine possible block sizes for the ciphertext
+        possible_block_sizes = self.possible_block_sizes(
+            len(data)
+        )  # determine possible block sizes for the ciphertext
 
         for block_size in possible_block_sizes:
             padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
@@ -270,7 +272,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             for m in matched_strings:
                 matching_strings.add(m)
             matching_techniques.add(label)
-            
+
         # if we find any matching strings, we need to check if they are in the baseline text to rule out false positives (the string was always there and not a result of our manipulation)
         context = f"Lightfuzz Cryptographic Probe Submodule detected a cryptographic error after manipulating parameter: [{self.event.data['name']}]"
         if len(matching_strings) > 0:
@@ -304,7 +306,6 @@ class CryptoLightfuzz(BaseLightfuzz):
             return hash_functions[hash_length]
 
     async def fuzz(self):
-        
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=False)
 
@@ -338,16 +339,17 @@ class CryptoLightfuzz(BaseLightfuzz):
             self.lightfuzz.debug("Parameter value does not appear to be cryptographic, aborting tests")
             return
 
-
         # Cryptographic Response Divergence Test
 
         http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
         try:
-            arbitrary_probe = await self.compare_probe(http_compare, self.event.data["type"], "AAAAAAA", cookies) # 
+            arbitrary_probe = await self.compare_probe(http_compare, self.event.data["type"], "AAAAAAA", cookies)  #
             truncate_probe = await self.compare_probe(
                 http_compare, self.event.data["type"], truncate_probe_value, cookies
-            ) # manipulate the value by truncating a byte
-            mutate_probe = await self.compare_probe(http_compare, self.event.data["type"], mutate_probe_value, cookies) # manipulate the value by mutating a byte in place
+            )  # manipulate the value by truncating a byte
+            mutate_probe = await self.compare_probe(
+                http_compare, self.event.data["type"], mutate_probe_value, cookies
+            )  # manipulate the value by mutating a byte in place
         except HttpCompareError as e:
             self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
             return
@@ -359,14 +361,14 @@ class CryptoLightfuzz(BaseLightfuzz):
         if mutate_probe[0] is False and "body" in mutate_probe[1]:
             if (http_compare.compare_body(mutate_probe[3].text, arbitrary_probe[3].text) is False) or mutate_probe[
                 3
-            ].text == "": 
+            ].text == "":
                 confirmed_techniques.append("Single-byte Mutation")
 
         # if the body is different and not empty, we have confirmed that byte truncation affected the response body
         if truncate_probe[0] is False and "body" in truncate_probe[1]:
             if (http_compare.compare_body(truncate_probe[3].text, arbitrary_probe[3].text) is False) or truncate_probe[
                 3
-            ].text == "": 
+            ].text == "":
                 confirmed_techniques.append("Data Truncation")
 
         if confirmed_techniques:

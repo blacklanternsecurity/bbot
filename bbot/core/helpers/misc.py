@@ -915,7 +915,7 @@ def extract_params_xml(xml_data, compare_mode="getparam"):
         if validate_parameter(current_element.tag, compare_mode):
             # Sanitize the text value
             text_value = current_element.text.strip() if current_element.text else None
-            sanitized_value = quote(text_value, safe='') if text_value else None
+            sanitized_value = quote(text_value, safe="") if text_value else None
             tag_value_pairs.add((current_element.tag, sanitized_value))
         for child in current_element:
             stack.append(child)

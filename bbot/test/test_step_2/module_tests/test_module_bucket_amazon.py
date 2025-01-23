@@ -70,14 +70,14 @@ class Bucket_Amazon_Base(ModuleTestBase):
 
     def check(self, module_test, events):
         # make sure buckets were excavated
-        assert any(
-            e.type == "STORAGE_BUCKET" and str(e.module) == f"cloud_{self.provider}" for e in events
-        ), f'bucket not found for module "{self.module_name}"'
+        assert any(e.type == "STORAGE_BUCKET" and str(e.module) == f"cloud_{self.provider}" for e in events), (
+            f'bucket not found for module "{self.module_name}"'
+        )
         # make sure open buckets were found
         if module_test.module.supports_open_check:
-            assert any(
-                e.type == "FINDING" and str(e.module) == self.module_name for e in events
-            ), f'open bucket not found for module "{self.module_name}"'
+            assert any(e.type == "FINDING" and str(e.module) == self.module_name for e in events), (
+                f'open bucket not found for module "{self.module_name}"'
+            )
             for e in events:
                 if e.type == "FINDING" and str(e.module) == self.module_name:
                     url = e.data.get("url", "")

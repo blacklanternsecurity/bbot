@@ -58,9 +58,9 @@ class TestCloudCheck(ModuleTestBase):
         for event in (aws_event3, other_event1):
             await module.handle_event(event)
             assert "cloud-amazon" not in event.tags, f"{event} was improperly cloud-tagged"
-            assert not any(
-                t for t in event.tags if t.startswith("cloud-") or t.startswith("cdn-")
-            ), f"{event} was improperly cloud-tagged"
+            assert not any(t for t in event.tags if t.startswith("cloud-") or t.startswith("cdn-")), (
+                f"{event} was improperly cloud-tagged"
+            )
 
         google_event1 = scan.make_event("asdf.googleapis.com", parent=scan.root_event)
         google_event2 = scan.make_event("asdf.google", parent=scan.root_event)

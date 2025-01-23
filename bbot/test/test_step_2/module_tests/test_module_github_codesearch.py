@@ -99,6 +99,6 @@ Gnl54dJHT+EhlfY=
                 if e.type == "HTTP_RESPONSE" and e.data["url"] == self.github_file_url and e.scope_distance == 2
             ]
         ), "Failed to visit URL"
-        assert [
-            e for e in events if e.type == "FINDING" and str(e.module) == "trufflehog"
-        ], "Failed to find secret in repo file"
+        assert [e for e in events if e.type == "FINDING" and str(e.module) == "trufflehog"], (
+            "Failed to find secret in repo file"
+        )

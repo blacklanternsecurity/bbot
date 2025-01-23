@@ -154,7 +154,7 @@ class asset_inventory(CSV):
                 stats_sorted = sorted(stats[header].items(), key=lambda x: x[-1], reverse=True)
                 total = totals[header]
                 for k, v in stats_sorted:
-                    table.append([str(k), f"{v:,}/{total} ({v/total*100:.1f}%)"])
+                    table.append([str(k), f"{v:,}/{total} ({v / total * 100:.1f}%)"])
                 self.log_table(table, table_header, table_name=f"asset-inventory-{header}")
 
         if self._file is not None:
