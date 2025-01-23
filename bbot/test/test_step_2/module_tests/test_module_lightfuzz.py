@@ -628,10 +628,9 @@ class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
         xss_finding_emitted = False
         for e in events:
             if e.type == "WEB_PARAMETER":
-                if e.data["original_value"] is not None:
                 if "HTTP Extracted Parameter [language]" in e.data["description"]:
                     web_parameter_emitted = True
-                    if e.data["original_value"] == "parameter with spaces":
+                    if e.data["original_value"] is not None and e.data["original_value"] == "parameter with spaces":
                         original_value_captured = True
 
             if e.type == "FINDING":
