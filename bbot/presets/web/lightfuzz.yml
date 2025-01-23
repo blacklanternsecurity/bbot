@@ -1,4 +1,4 @@
-description: Discovery web parameters and lightly fuzz them for vulnerabilities, without some of the more intense discovery techniques
+description: Discover web parameters and lightly fuzz them for vulnerabilities, without some of the more intense discovery techniques
 
 modules:
   - httpx
@@ -6,13 +6,11 @@ modules:
   - badsecrets
   - hunt
   - reflected_parameters
-
+  - portfilter
+  
 config:
   url_querystring_remove: False
   url_querystring_collapse: True
-  web:
-    spider_distance: 3
-    spider_depth: 4
   modules:
     lightfuzz:
       force_common_headers: False
@@ -21,6 +19,8 @@ config:
     excavate:
       retain_querystring: True
 
-blacklist:
-  # Prevent spider from invalidating sessions by logging out
-  - "RE:/.*(sign|log)[_-]?out"
+conditions:
+  - |
+    {% if config.web.spider_distance == 0 %}
+      {{ warn("Lightfuzz works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+    {% endif %}
