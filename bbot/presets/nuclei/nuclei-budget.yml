@@ -1,0 +1,19 @@
+description: Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests
+
+modules:
+  - httpx
+  - nuclei
+  - portfilter
+
+config:
+  modules:
+    nuclei:
+      mode: budget
+      budget: 10
+      directory_only: true # Do not run nuclei on individual non-directory URLs
+
+conditions:
+  - |
+    {% if config.web.spider_distance != 0 %}
+      {{ warn("Running nuclei with spider enabled is generally not recommended. Consider removing 'spider' preset.") }}
+    {% endif %}

@@ -1,0 +1,28 @@
+description: Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.
+
+modules:
+  - httpx
+  - nuclei
+  - robots
+  - urlscan
+  - portfilter
+  - wayback
+
+config:
+  modules:
+    nuclei:
+      directory_only: False # Will run nuclei on ALL discovered URLs - Be careful!
+    wayback:
+      urls: true
+
+conditions:
+  - |
+    {% if config.web.spider_distance == 0 and config.modules.nuclei.directory_only == False %}
+      {{ warn("The 'nuclei-intense' preset turns the 'directory_only' limitation off on the nuclei module. To make the best use of this, you may want to enable spidering with 'spider' or 'spider-intense' preset.") }}
+    {% endif %}
+
+
+# Example for also running a dirbust
+
+#include:
+#  - dirbust-light

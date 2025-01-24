@@ -214,12 +214,12 @@ include:
   - cloud-enum
   - code-enum
   - email-enum
-  - spider
+  - spider-intense
   - web-basic
   - paramminer
   - dirbust-light
   - web-screenshots
-  - baddns-thorough
+  - baddns-intense
 
 config:
   modules:
