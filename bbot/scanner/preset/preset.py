@@ -24,6 +24,9 @@ _preset_cache = {}
 DEFAULT_PRESETS = None
 
 
+# TODO: don't duplicate merge code in .merge() and .__init__()
+
+
 class Preset:
     """
     A preset is the central config for a BBOT scan. It contains everything a scan needs to run --
@@ -101,10 +104,10 @@ class Preset:
         name=None,
         description=None,
         conditions=None,
-        force_start=False,
-        verbose=False,
-        debug=False,
-        silent=False,
+        force_start=None,
+        verbose=None,
+        debug=None,
+        silent=None,
         _exclude=None,
         _log=True,
     ):
@@ -136,6 +139,8 @@ class Preset:
             _exclude (list[Path], optional): Preset filenames to exclude from inclusion. Used internally to prevent infinite recursion in circular or self-referencing presets.
             _log (bool, optional): Whether to enable logging for the preset. This will record which modules/flags are enabled, etc.
         """
+        ### INITIALIZE CLASS VARIABLES ###
+
         # internal variables
         self._cli = False
         self._log = _log
@@ -156,6 +161,49 @@ class Preset:
         self.flags = set()
         self.exclude_flags = set()
         self.require_flags = set()
+
+        self.explicit_scan_modules = set()
+        self.explicit_output_modules = set()
+        self.force_start = False
+        self.output_dir = None
+        self.name = ""
+        self.description = ""
+        self.conditions = []
+        self._preset_files_loaded = set()
+        self._module_dirs = set()
+
+        # bbot core config
+        self.core = CORE.copy()
+
+        self.verbose = False
+        self.debug = False
+        self.silent = False
+
+        self._module_dirs = set()
+        self._seeds = set()
+        self._whitelist = None
+        self._blacklist = set()
+        self._target = None
+
+        ### INCLUDE OTHER PRESETS ###
+
+        # we include other presets before we set any other settings on the preset
+        # this is to ensure the preset's explicit settings take precedence over the included presets
+        # "presets" is alias to "include"
+        if presets and include:
+            raise ValueError(
+                'Cannot use both "presets" and "include" args at the same time (presets is an alias to include). Please pick one or the other :)'
+            )
+        if presets and not include:
+            include = presets
+        # include other presets
+        if include and not isinstance(include, (list, tuple, set)):
+            include = [include]
+        if include:
+            for included_preset in include:
+                self.include_preset(included_preset)
+
+        ### SET MAIN PRESET ATTRIBUTES ###
 
         # modules + flags
         if modules is None:
@@ -185,36 +233,39 @@ class Preset:
 
         # these are used only for preserving the modules as specified in the original preset
         # this is to ensure the preset looks the same when reserialized
-        self.explicit_scan_modules = set() if modules is None else set(modules)
-        self.explicit_output_modules = set() if output_modules is None else set(output_modules)
+        if modules:
+            self.explicit_scan_modules.update(set(modules))
+        if output_modules:
+            self.explicit_output_modules.update(set(output_modules))
 
         # whether to force-start the scan (ignoring conditional aborts and failed module setups)
-        self.force_start = force_start
+        if force_start is not None:
+            self.force_start = force_start
 
         # scan output directory
-        self.output_dir = output_dir
+        if output_dir is not None:
+            self.output_dir = output_dir
         # name of scan
-        self.scan_name = scan_name
+        if scan_name is not None:
+            self.scan_name = scan_name
 
         # name of preset, default blank
-        self.name = name or ""
+        if self.name is not None:
+            self.name = name
         # preset description, default blank
-        self.description = description or ""
+        if self.description is not None:
+            self.description = description
 
         # custom conditions, evaluated during .bake()
-        self.conditions = []
         if conditions is not None:
             for condition in conditions:
                 self.conditions.append((self.name, condition))
 
         # keeps track of loaded preset files to prevent infinite circular inclusions
-        self._preset_files_loaded = set()
         if _exclude is not None:
             for _filename in _exclude:
                 self._preset_files_loaded.add(Path(_filename).resolve())
 
-        # bbot core config
-        self.core = CORE.copy()
         if config is None:
             config = omegaconf.OmegaConf.create({})
         # merge custom configs if specified by the user
@@ -222,35 +273,26 @@ class Preset:
 
         # log verbosity
         # actual log verbosity isn't set until .bake()
-        self.verbose = verbose
-        self.debug = debug
-        self.silent = silent
+        if verbose:
+            self.verbose = verbose
+        if debug:
+            self.debug = debug
+        if silent:
+            self.silent = silent
 
         # custom module directories
-        self._module_dirs = set()
         self.module_dirs = module_dirs
 
-        # target / whitelist / blacklist
-        # these are temporary receptacles until they all get .baked() together
-        self._seeds = set(targets if targets else [])
-        self._whitelist = set(whitelist) if whitelist else whitelist
-        self._blacklist = set(blacklist if blacklist else [])
-
-        self._target = None
-
-        # "presets" is alias to "include"
-        if presets and include:
-            raise ValueError(
-                'Cannot use both "presets" and "include" args at the same time (presets is an alias to include). Please pick one or the other :)'
-            )
-        if presets and not include:
-            include = presets
-        # include other presets
-        if include and not isinstance(include, (list, tuple, set)):
-            include = [include]
-        if include:
-            for included_preset in include:
-                self.include_preset(included_preset)
+        # target / scope
+        if targets:
+            self._seeds.update(targets)
+        # leave whitelist as None until we encounter one
+        if whitelist is not None:
+            if self._whitelist is None:
+                self._whitelist = set()
+                self._whitelist.update(whitelist)
+        if blacklist:
+            self._blacklist.update(blacklist)
 
         # we don't fill self.modules yet (that happens in .bake())
         self.explicit_scan_modules.update(set(modules))
@@ -342,7 +384,9 @@ class Preset:
         self.require_flags.update(other.require_flags)
         self.exclude_flags.update(other.exclude_flags)
         # then it's okay to start enabling modules
+        log.critical(f"MERGING {other.explicit_scan_modules} into {self.explicit_scan_modules}")
         self.explicit_scan_modules.update(other.explicit_scan_modules)
+        log.critical(f"RESULT: {self.explicit_scan_modules}")
         self.explicit_output_modules.update(other.explicit_output_modules)
         self.flags.update(other.flags)
 
@@ -671,11 +715,10 @@ class Preset:
             >>> preset.include_preset("/home/user/my_preset.yml")
         """
         self.log_debug(f'Including preset "{filename}"')
-        preset_filename = PRESET_PATH.find(filename)
-        preset_from_yaml = self.from_yaml_file(preset_filename, _exclude=self._preset_files_loaded)
+        preset_from_yaml = self.from_yaml_file(filename, _exclude=self._preset_files_loaded)
         if preset_from_yaml is not False:
             self.merge(preset_from_yaml)
-            self._preset_files_loaded.add(preset_filename)
+        self._preset_files_loaded.add(preset_from_yaml.filename)
 
     @classmethod
     def from_yaml_file(cls, filename, _exclude=None, _log=False):
@@ -687,7 +730,7 @@ class Preset:
         Examples:
             >>> preset = Preset.from_yaml_file("/home/user/my_preset.yml")
         """
-        filename = Path(filename).resolve()
+        filename = PRESET_PATH.find(filename)
         try:
             return _preset_cache[filename]
         except KeyError:
@@ -707,6 +750,7 @@ class Preset:
                 omegaconf.OmegaConf.create(yaml_str), name=filename.stem, _exclude=_exclude, _log=_log
             )
             preset._yaml_str = yaml_str
+            preset.filename = filename
             _preset_cache[filename] = preset
             return preset
 
