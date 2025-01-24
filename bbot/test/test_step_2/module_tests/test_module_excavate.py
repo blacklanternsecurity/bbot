@@ -465,6 +465,7 @@ class TestExcavateParameterExtraction(TestExcavate):
         <form action="/search" method="post">
             <label for="searchQuery">Search Query:</label>
             <input type="text" id="searchQuery" name="q2" value="boats"><br><br>
+            <input type="text" id="searchQuery2" name="q5" value="submarines"><br><br>
             <input type="submit" value="Search">
         </form>
         <h1>Simple Generic Form</h1>
@@ -505,6 +506,10 @@ class TestExcavateParameterExtraction(TestExcavate):
         found_select_noquotes = False
         avoid_truncated_values = True
         found_form_input_with_spaces = False
+        found_form_get_additional_params = False
+        found_form_post_additional_params = False
+
+
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
@@ -521,11 +526,15 @@ class TestExcavateParameterExtraction(TestExcavate):
                     found_form_get = True
                     if e.data["original_value"] == "flowers":
                         found_form_get_original_value = True
+                        if "q4" in e.data["additional_params"].keys():
+                            found_form_get_additional_params = True
 
                 if e.data["description"] == "HTTP Extracted Parameter [q2] (POST Form Submodule)":
                     found_form_post = True
                     if e.data["original_value"] == "boats":
                         found_form_post_original_value = True
+                        if "q5" in e.data["additional_params"].keys():
+                            found_form_post_additional_params = True
 
                 if e.data["description"] == "HTTP Extracted Parameter [q3] (Generic Form Submodule)":
                     found_form_generic = True
@@ -571,6 +580,8 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_htmltags_a, "Did not extract parameter(s) from a-tag"
         assert found_htmltags_img, "Did not extract parameter(s) from img-tag"
         assert found_select_noquotes, "Did not extract parameter(s) from select-tag"
+        assert found_form_get_additional_params, "Did not extract additional parameters from GET form"
+        assert found_form_post_additional_params, "Did not extract additional parameters from POST form"
 
 
 class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):

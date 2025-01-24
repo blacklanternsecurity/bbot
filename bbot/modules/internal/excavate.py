@@ -537,13 +537,12 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 form_parameters.setdefault(input_tags[0], None)
 
                             else:
-                                if form_content_regex_name in ["input_tag_regex2", "button_tag_regex2"]:
+                                if form_content_regex_name in ["input_tag_regex2", "button_tag_regex2", "textarea_tag_regex2"]:
                                     input_tags = [(b, a) for a, b in input_tags]
 
                                 for parameter_name, original_value in input_tags:
-                                    # form_parameters[parameter_name] = original_value.strip()
+                                    form_parameters[parameter_name] = original_value.strip()
                                     form_parameters.setdefault(parameter_name, original_value.strip())
-
                     for parameter_name, original_value in form_parameters.items():
                         yield (
                             self.output_type,
@@ -872,7 +871,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     if final_url:
                         if self.excavate.scan.in_scope(final_url):
                             urls_found += 1
-
                         await self.report(
                             final_url,
                             event,
