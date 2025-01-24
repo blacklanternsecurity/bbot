@@ -533,16 +533,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = form_content_regex.findall(form_content)
                         if input_tags:
-                            if form_content_regex_name == "_input_tag_novalue_regex":
-                                form_parameters.setdefault(input_tags[0], None)
+                            # Normalize each input_tag to be a tuple of two elements
+                            input_tags = [(tag if isinstance(tag, tuple) else (tag, None)) for tag in input_tags]
 
-                            else:
-                                if form_content_regex_name in ["input_tag_regex2", "button_tag_regex2"]:
-                                    input_tags = [(b, a) for a, b in input_tags]
-
-                                for parameter_name, original_value in input_tags:
-                                    # form_parameters[parameter_name] = original_value.strip()
-                                    form_parameters.setdefault(parameter_name, original_value.strip())
+                            if form_content_regex_name in ["input_tag_regex2", "button_tag_regex2", "textarea_tag_regex2"]:
+                                # Swap elements if needed
+                                input_tags = [(b, a) for a, b in input_tags]
+                            for parameter_name, original_value in input_tags:
+                                form_parameters.setdefault(parameter_name, original_value.strip() if original_value else None)
 
                     for parameter_name, original_value in form_parameters.items():
                         yield (
@@ -872,7 +870,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     if final_url:
                         if self.excavate.scan.in_scope(final_url):
                             urls_found += 1
-
                         await self.report(
                             final_url,
                             event,
