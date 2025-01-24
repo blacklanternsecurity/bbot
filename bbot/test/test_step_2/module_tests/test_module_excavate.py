@@ -748,6 +748,7 @@ class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtr
                    <section class=search>
                         <form action="/catalog" method=GET>
                             <input type=text id="searchBar" placeholder="Search products" name="searchTerm">
+                            <input type=text id="searchBar2" placeholder="Search products2" name="searchTerm2">
                             <script>
                                 var searchText = '';
                                 document.getElementById('searchBar').value = searchText;
@@ -759,11 +760,15 @@ class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtr
 
     def check(self, module_test, events):
         excavate_getparam_extraction = False
+        found_no_value_additional_params = False
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [searchTerm] (GET Form Submodule)" in e.data["description"]:
                     excavate_getparam_extraction = True
+                    if "searchTerm2" in e.data["additional_params"].keys():
+                        found_no_value_additional_params = True
         assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+        assert found_no_value_additional_params, "Excavate failed to extract additional parameters for input tag with no value"
 
 
 class TestExcavateParameterExtraction_json(ModuleTestBase):
