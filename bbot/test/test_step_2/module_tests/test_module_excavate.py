@@ -509,7 +509,6 @@ class TestExcavateParameterExtraction(TestExcavate):
         found_form_get_additional_params = False
         found_form_post_additional_params = False
 
-
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if e.data["description"] == "HTTP Extracted Parameter [jqueryget] (GET jquery Submodule)":
@@ -768,7 +767,9 @@ class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtr
                     if "searchTerm2" in e.data["additional_params"].keys():
                         found_no_value_additional_params = True
         assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
-        assert found_no_value_additional_params, "Excavate failed to extract additional parameters for input tag with no value"
+        assert found_no_value_additional_params, (
+            "Excavate failed to extract additional parameters for input tag with no value"
+        )
 
 
 class TestExcavateParameterExtraction_json(ModuleTestBase):
@@ -1317,6 +1318,7 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert "/donot_detect.js" not in url_events, (
             f"URL extracted from extractous text is incorrect, got {url_events}"
         )
+
 
 class TestExcavateHeaders_blacklist(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
