@@ -24,7 +24,39 @@ _preset_cache = {}
 DEFAULT_PRESETS = None
 
 
-class Preset:
+class BasePreset(type):
+    def __call__(cls, *args, include=None, presets=None, name=None, description=None, _exclude=None, **kwargs):
+        """
+        Handles loading of "included" presets, while preserving the proper load order
+
+        Overriding __call__() allows us to reuse the logic from .merge() without duplicating functionality in __init__().
+        """
+        include_preset = None
+
+        # "presets" is alias to "include"
+        if presets and include:
+            raise ValueError(
+                'Cannot use both "presets" and "include" args at the same time (presets is an alias to include). Please pick one or the other :)'
+            )
+        if presets and not include:
+            include = presets
+        # include other presets
+        if include and not isinstance(include, (list, tuple, set)):
+            include = [include]
+
+        main_preset = type.__call__(cls, *args, name=name, description=description, _exclude=_exclude, **kwargs)
+
+        if include:
+            include_preset = type.__call__(cls, name=name, description=description, _exclude=_exclude)
+            for included_preset in include:
+                include_preset.include_preset(included_preset)
+            include_preset.merge(main_preset)
+            return include_preset
+
+        return main_preset
+
+
+class Preset(metaclass=BasePreset):
     """
     A preset is the central config for a BBOT scan. It contains everything a scan needs to run --
         targets, modules, flags, config options like API keys, etc.
@@ -94,12 +126,10 @@ class Preset:
         exclude_flags=None,
         config=None,
         module_dirs=None,
-        include=None,
-        presets=None,
         output_dir=None,
-        scan_name=None,
         name=None,
         description=None,
+        scan_name=None,
         conditions=None,
         force_start=False,
         verbose=False,
@@ -238,20 +268,6 @@ class Preset:
 
         self._target = None
 
-        # "presets" is alias to "include"
-        if presets and include:
-            raise ValueError(
-                'Cannot use both "presets" and "include" args at the same time (presets is an alias to include). Please pick one or the other :)'
-            )
-        if presets and not include:
-            include = presets
-        # include other presets
-        if include and not isinstance(include, (list, tuple, set)):
-            include = [include]
-        if include:
-            for included_preset in include:
-                self.include_preset(included_preset)
-
         # we don't fill self.modules yet (that happens in .bake())
         self.explicit_scan_modules.update(set(modules))
         self.explicit_output_modules.update(set(output_modules))
@@ -259,6 +275,8 @@ class Preset:
         self.flags.update(set(flags))
         self.exclude_flags.update(set(exclude_flags))
         self.require_flags.update(set(require_flags))
+
+        # log.critical(f"{self.name}: verbose: {self.verbose}, debug: {self.debug}, silent: {self.silent}")
 
     @property
     def bbot_home(self):
@@ -332,6 +350,7 @@ class Preset:
             ['portscan', 'sslcert']
         """
         self.log_debug(f'Merging preset "{other.name}" into "{self.name}"')
+
         # config
         self.core.merge_custom(other.core.custom_config)
         self.module_loader.core = self.core
@@ -671,11 +690,10 @@ class Preset:
             >>> preset.include_preset("/home/user/my_preset.yml")
         """
         self.log_debug(f'Including preset "{filename}"')
-        preset_filename = PRESET_PATH.find(filename)
-        preset_from_yaml = self.from_yaml_file(preset_filename, _exclude=self._preset_files_loaded)
+        preset_from_yaml = self.from_yaml_file(filename, _exclude=self._preset_files_loaded)
         if preset_from_yaml is not False:
             self.merge(preset_from_yaml)
-            self._preset_files_loaded.add(preset_filename)
+            self._preset_files_loaded.add(preset_from_yaml.filename)
 
     @classmethod
     def from_yaml_file(cls, filename, _exclude=None, _log=False):
@@ -687,7 +705,7 @@ class Preset:
         Examples:
             >>> preset = Preset.from_yaml_file("/home/user/my_preset.yml")
         """
-        filename = Path(filename).resolve()
+        filename = PRESET_PATH.find(filename)
         try:
             return _preset_cache[filename]
         except KeyError:
@@ -707,6 +725,7 @@ class Preset:
                 omegaconf.OmegaConf.create(yaml_str), name=filename.stem, _exclude=_exclude, _log=_log
             )
             preset._yaml_str = yaml_str
+            preset.filename = filename
             _preset_cache[filename] = preset
             return preset
 

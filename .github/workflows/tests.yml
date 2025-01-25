@@ -11,16 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          pipx install ruff
-          ruff check
-          ruff format
   test:
-    needs: lint
     runs-on: ubuntu-latest
     strategy:
       # if one python version fails, let the others finish
@@ -37,6 +28,10 @@ jobs:
         run: |
           pip install poetry
           poetry install
+      - name: Lint
+        run: |
+          poetry run ruff check
+          poetry run ruff format --check
       - name: Run tests
         run: |
           poetry run pytest -vv --exitfirst --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .

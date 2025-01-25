@@ -886,6 +886,88 @@ def test_preset_module_disablement(clean_default_config):
     assert set(preset.output_modules) == {"json"}
 
 
+def test_preset_override():
+    # tests to make sure a preset's config settings override others it includes
+    preset_1_yaml = """
+name: override1
+scan_name: override1
+target: ["evilcorp1.com"]
+silent: True
+modules:
+  - robots
+config:
+  modules:
+    asdf:
+      option1: asdf
+"""
+    preset_2_yaml = """
+name: override2
+scan_name: override2
+target: ["evilcorp2.com"]
+debug: true
+modules:
+  - c99
+config:
+  modules:
+    asdf:
+      option1: fdsa
+"""
+    preset_3_yaml = """
+name: override3
+scan_name: override3
+target: ["evilcorp3.com"]
+modules:
+  - securitytrails
+# test ordering priority
+include:
+  - override1
+  - override2
+config:
+  web:
+    spider_distance: 2
+    spider_depth: 3
+"""
+    preset_4_yaml = """
+name: override4
+scan_name: override4
+target: ["evilcorp4.com"]
+modules:
+  - virustotal
+include:
+  - override3
+config:
+  web:
+    spider_distance: 1
+    spider_depth: 2
+"""
+    custom_preset_dir = bbot_test_dir / "custom_preset_dir_override"
+    custom_preset_dir.mkdir(parents=True, exist_ok=True)
+    preset_1_file = custom_preset_dir / "override1.yml"
+    preset_1_file.write_text(preset_1_yaml)
+    preset_2_file = custom_preset_dir / "override2.yml"
+    preset_2_file.write_text(preset_2_yaml)
+    preset_3_file = custom_preset_dir / "override3.yml"
+    preset_3_file.write_text(preset_3_yaml)
+    preset_4_file = custom_preset_dir / "override4.yml"
+    preset_4_file.write_text(preset_4_yaml)
+
+    preset = Preset.from_yaml_file(preset_4_file.resolve())
+    assert preset.debug is True
+    assert preset.silent is True
+    assert preset.name == "override4"
+    preset = preset.bake()
+    assert preset.debug is False
+    assert preset.silent is True
+    assert preset.name == "override4"
+    assert preset.scan_name == "override4"
+    targets = set([str(e.data) for e in preset.target.seeds])
+    assert targets == {"evilcorp1.com", "evilcorp2.com", "evilcorp3.com", "evilcorp4.com"}
+    assert preset.config["web"]["spider_distance"] == 1
+    assert preset.config["web"]["spider_depth"] == 2
+    assert preset.config["modules"]["asdf"]["option1"] == "fdsa"
+    assert set(preset.scan_modules) == {"httpx", "c99", "robots", "virustotal", "securitytrails"}
+
+
 def test_preset_require_exclude():
     def get_module_flags(p):
         for m in p.scan_modules:
