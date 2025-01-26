@@ -68,9 +68,9 @@ class TestBIMI(ModuleTestBase):
             for e in events
         ), "Failed to emit RAW_DNS_RECORD"
 
-        assert any(
-            e.type == "DNS_NAME" and e.data == "bimi.test.localdomain" for e in events
-        ), "Failed to emit DNS_NAME"
+        assert any(e.type == "DNS_NAME" and e.data == "bimi.test.localdomain" for e in events), (
+            "Failed to emit DNS_NAME"
+        )
 
         # This should be filtered by a default BBOT configuration
         assert not any(str(e.data) == "https://nondefault.thirdparty.tld/brand/logo.svg" for e in events)

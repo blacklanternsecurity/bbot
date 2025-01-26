@@ -98,7 +98,9 @@ class HttpCompare:
                 baseline_1_json = baseline_1.text.split("\n")
                 baseline_2_json = baseline_2.text.split("\n")
 
-            ddiff = DeepDiff(baseline_1_json, baseline_2_json, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
+            ddiff = DeepDiff(
+                baseline_1_json, baseline_2_json, ignore_order=True, view="tree", threshold_to_diff_deeper=0
+            )
             self.ddiff_filters = []
 
             for k in ddiff.keys():
@@ -135,7 +137,7 @@ class HttpCompare:
             for header, value in list(headers.items()):
                 if header.lower() in self.baseline_ignore_headers:
                     with suppress(KeyError):
-                        log.debug(f'found ignored header "{header}" in headers_{i+1} and removed')
+                        log.debug(f'found ignored header "{header}" in headers_{i + 1} and removed')
                         del headers[header]
 
         ddiff = DeepDiff(headers_1, headers_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
@@ -153,7 +155,14 @@ class HttpCompare:
         if content_1 == content_2:
             return True
 
-        ddiff = DeepDiff(content_1, content_2, ignore_order=True, view="tree", exclude_paths=self.ddiff_filters, threshold_to_diff_deeper=0)
+        ddiff = DeepDiff(
+            content_1,
+            content_2,
+            ignore_order=True,
+            view="tree",
+            exclude_paths=self.ddiff_filters,
+            threshold_to_diff_deeper=0,
+        )
 
         if len(ddiff.keys()) == 0:
             return True

@@ -607,7 +607,7 @@ def test_cli_presets(monkeypatch, capsys, caplog):
     assert "    http_proxy: currentpresettest" in captured.out
 
     # show current preset (full)
-    monkeypatch.setattr("sys.argv", ["bbot", "-c" "modules.c99.api_key=asdf", "--current-preset-full"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-cmodules.c99.api_key=asdf", "--current-preset-full"])
     cli.main()
     captured = capsys.readouterr()
     assert "      api_key: asdf" in captured.out

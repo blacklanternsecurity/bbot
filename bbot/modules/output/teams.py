@@ -8,36 +8,21 @@ class Teams(WebhookOutputModule):
         "created_date": "2023-08-14",
         "author": "@TheTechromancer",
     }
-    options = {"webhook_url": "", "event_types": ["VULNERABILITY", "FINDING"], "min_severity": "LOW"}
+    options = {"webhook_url": "", "event_types": ["VULNERABILITY", "FINDING"], "min_severity": "LOW", "retries": 10}
     options_desc = {
         "webhook_url": "Teams webhook URL",
         "event_types": "Types of events to send",
         "min_severity": "Only allow VULNERABILITY events of this severity or higher",
+        "retries": "Number of times to retry sending the message before skipping the event",
     }
-    _module_threads = 5
 
     async def handle_event(self, event):
-        while 1:
-            data = self.format_message(event)
-
-            response = await self.helpers.request(
-                url=self.webhook_url,
-                method="POST",
-                json=data,
-            )
-            status_code = getattr(response, "status_code", 0)
-            if self.evaluate_response(response):
-                break
-            else:
-                response_data = getattr(response, "text", "")
-                try:
-                    retry_after = response.json().get("retry_after", 1)
-                except Exception:
-                    retry_after = 1
-                self.verbose(
-                    f"Error sending {event}: status code {status_code}, response: {response_data}, retrying in {retry_after} seconds"
-                )
-                await self.helpers.sleep(retry_after)
+        data = self.format_message(event)
+        await self.api_request(
+            url=self.webhook_url,
+            method="POST",
+            json=data,
+        )
 
     def trim_message(self, message):
         if len(message) > self.message_size_limit:

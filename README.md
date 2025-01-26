@@ -219,7 +219,7 @@ include:
   - paramminer
   - dirbust-light
   - web-screenshots
-  - baddns-thorough
+  - baddns-intense
 
 config:
   modules:

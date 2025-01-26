@@ -191,7 +191,7 @@ class docker_pull(BaseModule):
             layer_filenames = []
             layer_digests = await self.get_layers(manifest)
             for i, layer_digest in enumerate(layer_digests):
-                self.verbose(f"Downloading layer {i+1}/{len(layer_digests)} from {repository}:{tag}")
+                self.verbose(f"Downloading layer {i + 1}/{len(layer_digests)} from {repository}:{tag}")
                 blob, layer_filename = await self.download_and_get_filename(registry, repository, layer_digest)
                 layer_filenames.append(layer_filename)
                 await self.write_file_to_tar(tar, layer_filename, blob)

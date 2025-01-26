@@ -396,9 +396,9 @@ class TestExcavateSerializationPositive(TestExcavate):
 
     def check(self, module_test, events):
         for serialize_type in ["Java", "DOTNET", "PHP_Array", "PHP_String", "PHP_Object", "Possible_Compressed"]:
-            assert any(
-                e.type == "FINDING" and serialize_type in e.data["description"] for e in events
-            ), f"Did not find {serialize_type} Serialized Object"
+            assert any(e.type == "FINDING" and serialize_type in e.data["description"] for e in events), (
+                f"Did not find {serialize_type} Serialized Object"
+            )
 
 
 class TestExcavateNonHttpScheme(TestExcavate):
@@ -975,14 +975,14 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
         raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
         assert 1 == len(raw_text_events), "Failed to emit RAW_TEXT event"
-        assert (
-            raw_text_events[0].data == self.extractous_response
-        ), f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
+        assert raw_text_events[0].data == self.extractous_response, (
+            f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
+        )
         email_events = [e for e in events if e.type == "EMAIL_ADDRESS"]
         assert 1 == len(email_events), "Failed to emit EMAIL_ADDRESS event"
-        assert (
-            email_events[0].data == "example@blacklanternsecurity.notreal"
-        ), f"Email extracted from extractous text is incorrect, got {email_events[0].data}"
+        assert email_events[0].data == "example@blacklanternsecurity.notreal", (
+            f"Email extracted from extractous text is incorrect, got {email_events[0].data}"
+        )
         finding_events = [e for e in events if e.type == "FINDING"]
         assert 2 == len(finding_events), "Failed to emit FINDING events"
         assert any(
@@ -1005,12 +1005,12 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         ), f"Failed to emit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
         url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
-        assert (
-            "https://www.test.notreal/about" in url_events
-        ), f"URL extracted from extractous text is incorrect, got {url_events}"
-        assert (
-            "/donot_detect.js" not in url_events
-        ), f"URL extracted from extractous text is incorrect, got {url_events}"
+        assert "https://www.test.notreal/about" in url_events, (
+            f"URL extracted from extractous text is incorrect, got {url_events}"
+        )
+        assert "/donot_detect.js" not in url_events, (
+            f"URL extracted from extractous text is incorrect, got {url_events}"
+        )
 
 
 class TestExcavateBadURLs(ModuleTestBase):

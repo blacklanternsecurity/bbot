@@ -1,0 +1,34 @@
+description: Run nuclei scans against all discovered targets
+
+modules:
+  - httpx
+  - nuclei
+  - portfilter
+
+config:
+  modules:
+    nuclei:
+      directory_only: True # Do not run nuclei on individual non-directory URLs
+
+
+conditions:
+  - |
+    {% if config.web.spider_distance != 0 %}
+      {{ warn("Running nuclei with spider enabled is generally not recommended. Consider removing 'spider' preset.") }}
+    {% endif %}
+
+
+
+# Additional Examples:
+
+# Slowing Down Scan
+
+#config:
+#  modules:
+#    nuclei:
+#      ratelimit: 10
+#      concurrency: 5
+
+
+
+

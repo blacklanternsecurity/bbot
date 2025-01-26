@@ -46,6 +46,7 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]]
                [--version] [--proxy HTTP_PROXY]
                [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
                [--custom-yara-rules CUSTOM_YARA_RULES]
+               [--user-agent USER_AGENT]
 
 Bighuge BLS OSINT Tool
 
@@ -103,7 +104,7 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,json,mysql,neo4j,nmap_xml,postgres,python,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_report,websocket
+                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,json,mysql,neo4j,nmap_xml,postgres,python,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,websocket
   -lo, --list-output-modules
                         List available output modules
   --json, -j            Output scan data in JSON format
@@ -128,6 +129,8 @@ Misc:
                         List of custom headers as key value pairs (header=value).
   --custom-yara-rules CUSTOM_YARA_RULES, -cy CUSTOM_YARA_RULES
                         Add custom yara rules to excavate
+  --user-agent USER_AGENT, -ua USER_AGENT
+                        Set the user-agent for all HTTP requests
 
 EXAMPLES
 

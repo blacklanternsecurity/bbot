@@ -1401,7 +1401,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         return set()
 
     def _pretty_string(self):
-        return f'{self.data["hash"]["header_mmh3"]}:{self.data["hash"]["body_mmh3"]}'
+        return f"{self.data['hash']['header_mmh3']}:{self.data['hash']['body_mmh3']}"
 
     @property
     def raw_response(self):
@@ -1467,7 +1467,7 @@ class VULNERABILITY(ClosestHostEvent):
         _validate_severity = field_validator("severity")(validators.validate_severity)
 
     def _pretty_string(self):
-        return f'[{self.data["severity"]}] {self.data["description"]}'
+        return f"[{self.data['severity']}] {self.data['description']}"
 
 
 class FINDING(ClosestHostEvent):

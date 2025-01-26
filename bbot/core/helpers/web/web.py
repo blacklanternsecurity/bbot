@@ -385,7 +385,7 @@ class WebHelper(EngineClient):
             cookies_str = ""
             for k, v in cookies.items():
                 cookies_str += f"{k}={v}; "
-            curl_command.append(f'{cookies_str.rstrip(" ")}')
+            curl_command.append(f"{cookies_str.rstrip(' ')}")
 
         path_override = kwargs.get("path_override", None)
         if path_override:

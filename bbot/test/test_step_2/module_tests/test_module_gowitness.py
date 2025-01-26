@@ -46,15 +46,15 @@ class TestGowitness(ModuleTestBase):
     def check(self, module_test, events):
         webscreenshots = [e for e in events if e.type == "WEBSCREENSHOT"]
         assert webscreenshots, "failed to raise WEBSCREENSHOT events"
-        assert not any(
-            "blob" in e.data for e in webscreenshots
-        ), "blob was included in WEBSCREENSHOT data when it shouldn't have been"
+        assert not any("blob" in e.data for e in webscreenshots), (
+            "blob was included in WEBSCREENSHOT data when it shouldn't have been"
+        )
 
         screenshots_path = self.home_dir / "scans" / module_test.scan.name / "gowitness" / "screenshots"
         screenshots = list(screenshots_path.glob("*.png"))
-        assert (
-            len(screenshots) == 1
-        ), f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 1"
+        assert len(screenshots) == 1, (
+            f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 1"
+        )
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
         assert 1 == len(
             [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "https://fonts.googleapis.com/"]
@@ -75,9 +75,9 @@ class TestGowitness_Social(TestGowitness):
     def check(self, module_test, events):
         screenshots_path = self.home_dir / "scans" / module_test.scan.name / "gowitness" / "screenshots"
         screenshots = list(screenshots_path.glob("*.png"))
-        assert (
-            len(screenshots) == 2
-        ), f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 2"
+        assert len(screenshots) == 2, (
+            f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 2"
+        )
         assert 2 == len([e for e in events if e.type == "WEBSCREENSHOT"])
         assert 1 == len(
             [

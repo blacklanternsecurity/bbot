@@ -121,7 +121,9 @@ class dnsbrute_mutations(BaseModule):
                         break
 
                     if mutations:
-                        self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(trimmed_found)})")
+                        self.info(
+                            f"Trying {len(mutations):,} mutations against {domain} ({i + 1}/{len(trimmed_found)})"
+                        )
                         results = await self.helpers.dns.brute(self, query, mutations)
                         try:
                             mutation_run = self._mutation_run_counter[domain]

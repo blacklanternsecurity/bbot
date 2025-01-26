@@ -95,7 +95,7 @@ class dotnetnuke(BaseModule):
 
         if detected is True:
             # DNNPersonalization Deserialization Detection
-            for probe_url in [f'{event.data["url"]}/__', f'{event.data["url"]}/', f'{event.data["url"]}']:
+            for probe_url in [f"{event.data['url']}/__", f"{event.data['url']}/", f"{event.data['url']}"]:
                 result = await self.helpers.request(probe_url, cookies=self.exploit_probe)
                 if result:
                     if "for 16-bit app support" in result.text and "[extensions]" in result.text:
@@ -115,7 +115,7 @@ class dotnetnuke(BaseModule):
             if "endpoint" not in event.tags:
                 # NewsArticlesSlider ImageHandler.ashx File Read
                 result = await self.helpers.request(
-                    f'{event.data["url"]}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx?img=~/web.config'
+                    f"{event.data['url']}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx?img=~/web.config"
                 )
                 if result:
                     if "<configuration>" in result.text:
@@ -125,16 +125,16 @@ class dotnetnuke(BaseModule):
                                 "severity": "CRITICAL",
                                 "description": description,
                                 "host": str(event.host),
-                                "url": f'{event.data["url"]}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx',
+                                "url": f"{event.data['url']}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx",
                             },
                             "VULNERABILITY",
                             event,
-                            context=f'{{module}} scanned {event.data["url"]} and found critical {{event.type}}: {description}',
+                            context=f"{{module}} scanned {event.data['url']} and found critical {{event.type}}: {description}",
                         )
 
                 # DNNArticle GetCSS.ashx File Read
                 result = await self.helpers.request(
-                    f'{event.data["url"]}/DesktopModules/DNNArticle/getcss.ashx?CP=%2fweb.config&smid=512&portalid=3'
+                    f"{event.data['url']}/DesktopModules/DNNArticle/getcss.ashx?CP=%2fweb.config&smid=512&portalid=3"
                 )
                 if result:
                     if "<configuration>" in result.text:
@@ -144,19 +144,19 @@ class dotnetnuke(BaseModule):
                                 "severity": "CRITICAL",
                                 "description": description,
                                 "host": str(event.host),
-                                "url": f'{event.data["url"]}/Desktopmodules/DNNArticle/GetCSS.ashx/?CP=%2fweb.config',
+                                "url": f"{event.data['url']}/Desktopmodules/DNNArticle/GetCSS.ashx/?CP=%2fweb.config",
                             },
                             "VULNERABILITY",
                             event,
-                            context=f'{{module}} scanned {event.data["url"]} and found critical {{event.type}}: {description}',
+                            context=f"{{module}} scanned {event.data['url']} and found critical {{event.type}}: {description}",
                         )
 
                 # InstallWizard SuperUser Privilege Escalation
-                result = await self.helpers.request(f'{event.data["url"]}/Install/InstallWizard.aspx')
+                result = await self.helpers.request(f"{event.data['url']}/Install/InstallWizard.aspx")
                 if result:
                     if result.status_code == 200:
                         result_confirm = await self.helpers.request(
-                            f'{event.data["url"]}/Install/InstallWizard.aspx?__viewstate=1'
+                            f"{event.data['url']}/Install/InstallWizard.aspx?__viewstate=1"
                         )
                         if result_confirm.status_code == 500:
                             description = "DotNetNuke InstallWizard SuperUser Privilege Escalation"
@@ -165,11 +165,11 @@ class dotnetnuke(BaseModule):
                                     "severity": "CRITICAL",
                                     "description": description,
                                     "host": str(event.host),
-                                    "url": f'{event.data["url"]}/Install/InstallWizard.aspx',
+                                    "url": f"{event.data['url']}/Install/InstallWizard.aspx",
                                 },
                                 "VULNERABILITY",
                                 event,
-                                context=f'{{module}} scanned {event.data["url"]} and found critical {{event.type}}: {description}',
+                                context=f"{{module}} scanned {event.data['url']} and found critical {{event.type}}: {description}",
                             )
                             return
 
@@ -180,7 +180,7 @@ class dotnetnuke(BaseModule):
                     self.interactsh_subdomain_tags[subdomain_tag] = event
 
                     await self.helpers.request(
-                        f'{event.data["url"]}/DnnImageHandler.ashx?mode=file&url=http://{subdomain_tag}.{self.interactsh_domain}'
+                        f"{event.data['url']}/DnnImageHandler.ashx?mode=file&url=http://{subdomain_tag}.{self.interactsh_domain}"
                     )
                 else:
                     self.debug(

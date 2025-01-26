@@ -1169,11 +1169,13 @@ class BaseModule:
                     )
                 else:
                     # sleep for a bit if we're being rate limited
-                    if status_code == 429:
+                    retry_after = self._get_retry_after(r)
+                    if retry_after or status_code == 429:
+                        sleep_interval = int(retry_after) if retry_after is not None else self._429_sleep_interval
                         self.verbose(
-                            f"Sleeping for {self._429_sleep_interval:,} seconds due to rate limit (HTTP status: 429)"
+                            f"Sleeping for {sleep_interval:,} seconds due to rate limit (HTTP status: {status_code})"
                         )
-                        await asyncio.sleep(self._429_sleep_interval)
+                        await asyncio.sleep(sleep_interval)
                     elif self._api_keys:
                         # if request failed, cycle API keys and try again
                         self.cycle_api_key()
@@ -1181,6 +1183,19 @@ class BaseModule:
             break
 
         return r
+
+    def _get_retry_after(self, r):
+        # try to get retry_after from headers first
+        headers = getattr(r, "headers", {})
+        retry_after = headers.get("Retry-After", None)
+        if retry_after is None:
+            # then look in body json
+            with suppress(Exception):
+                body_json = r.json()
+                if isinstance(body_json, dict):
+                    retry_after = body_json.get("retry_after", None)
+        if retry_after is not None:
+            return float(retry_after)
 
     def _prepare_api_iter_req(self, url, page, page_size, offset, **requests_kwargs):
         """

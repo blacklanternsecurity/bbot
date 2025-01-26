@@ -36,7 +36,7 @@ class sitedossier(subdomain_enum):
         base_url = f"{self.base_url}/{self.helpers.quote(query)}"
         url = str(base_url)
         for i, page in enumerate(range(1, 100 * self.max_pages + 2, 100)):
-            self.verbose(f"Fetching page #{i+1} for {query}")
+            self.verbose(f"Fetching page #{i + 1} for {query}")
             if page > 1:
                 url = f"{base_url}/{page}"
             response = await self.helpers.request(url)

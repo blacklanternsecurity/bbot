@@ -83,13 +83,13 @@ def test_ip_regexes():
         event_type, _ = get_event_type(ip)
         if not event_type == "IP_ADDRESS":
             if ip.endswith("/24"):
-                assert (
-                    ip == "203.0.113.0/24" and event_type == "IP_RANGE"
-                ), f"Event type for IP_ADDRESS {ip} was not properly detected"
+                assert ip == "203.0.113.0/24" and event_type == "IP_RANGE", (
+                    f"Event type for IP_ADDRESS {ip} was not properly detected"
+                )
             else:
-                assert (
-                    ip == "2001:db8::1/128" and event_type == "IP_RANGE"
-                ), f"Event type for IP_ADDRESS {ip} was not properly detected"
+                assert ip == "2001:db8::1/128" and event_type == "IP_RANGE", (
+                    f"Event type for IP_ADDRESS {ip} was not properly detected"
+                )
         else:
             matches = [r.match(ip) for r in ip_address_regexes]
             assert any(matches), f"Good IP ADDRESS {ip} did not match regexes"
@@ -195,9 +195,9 @@ def test_dns_name_regexes():
         assert any(matches), f"Good DNS_NAME {dns} did not match regexes"
         event_type, _ = get_event_type(dns)
         if not event_type == "DNS_NAME":
-            assert (
-                dns == "1.2.3.4" and event_type == "IP_ADDRESS"
-            ), f"Event type for DNS_NAME {dns} was not properly detected"
+            assert dns == "1.2.3.4" and event_type == "IP_ADDRESS", (
+                f"Event type for DNS_NAME {dns} was not properly detected"
+            )
 
 
 def test_open_port_regexes():
@@ -279,7 +279,7 @@ def test_url_regexes():
         "http://-evilcorp-.com",
         "http://evilcorp-.com/path",
         "http://evilcorp.com-/path",
-        "evilcorp.com/path" "asdfasdfasdfasdfgsdgasdfs.asdfasdfasdfasdfasdf.evilcorp.com/path",
+        "evilcorp.com/pathasdfasdfasdfasdfgsdgasdfs.asdfasdfasdfasdfasdf.evilcorp.com/path",
         "rhttps://evilcorp.com",
         "https://[e]",
         "https://[1]:80",
@@ -320,9 +320,9 @@ def test_url_regexes():
     for good_url in good_urls:
         matches = [r.match(good_url) for r in url_regexes]
         assert any(matches), f"Good URL {good_url} did not match regexes"
-        assert (
-            get_event_type(good_url)[0] == "URL_UNVERIFIED"
-        ), f"Event type for URL {good_url} was not properly detected"
+        assert get_event_type(good_url)[0] == "URL_UNVERIFIED", (
+            f"Event type for URL {good_url} was not properly detected"
+        )
 
 
 @pytest.mark.asyncio
