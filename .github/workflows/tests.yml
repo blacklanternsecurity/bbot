@@ -42,7 +42,7 @@ jobs:
           name: pytest-debug-logs-${{ matrix.python-version }}
           path: pytest_debug_${{ matrix.python-version }}.log
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
@@ -70,7 +70,7 @@ jobs:
         run: python -m build
       - name: Publish Pypi package
         if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
-        uses: pypa/gh-action-pypi-publish@release/v1.5
+        uses: pypa/gh-action-pypi-publish@release/v1.12
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Get BBOT version
@@ -94,7 +94,7 @@ jobs:
           tags: "stable,${{ steps.version.outputs.BBOT_VERSION }}"
       - name: Docker Hub Description
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        uses: peter-evans/dockerhub-description@v3
+        uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -108,11 +108,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: mkdocs-material-${{ env.cache_id }}
           path: .cache

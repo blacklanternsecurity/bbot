@@ -1,5 +1,5 @@
 import re
-from .base import ModuleTestBase
+from .base import ModuleTestBase, tempwordlist
 
 
 class TestTelerik(ModuleTestBase):
@@ -28,7 +28,7 @@ class TestTelerik(ModuleTestBase):
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        # Simulate DialogHandler detection
+        # Simulate SpellCheckHandler detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"}
         respond_args = {"status": 500}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -114,3 +114,58 @@ class TestTelerik(ModuleTestBase):
         assert telerik_dialoghandler_detection, "Telerik dialoghandler detection failed"
         assert telerik_chartimage_detection, "Telerik chartimage detection failed"
         assert telerik_http_response_parameters_detection, "Telerik SerializedParameters detection failed"
+
+
+class TestTelerikDialogHandler_includesubdirs(TestTelerik):
+    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/temp/"]
+    config_overrides = {
+        "modules": {
+            "telerik": {
+                "include_subdirs": True,
+            },
+        }
+    }
+    modules_overrides = ["httpx", "telerik"]
+
+    async def setup_before_prep(self, module_test):
+        # Simulate NO SpellCheckHandler detection (not testing for that with this test)
+        expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"}
+        respond_args = {"status": 404}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # Simulate DialogHandler detection
+        expect_args = {"method": "GET", "uri": "/App_Master/Telerik.Web.UI.DialogHandler.aspx"}
+        respond_args = {
+            "response_data": '<input type="hidden" name="dialogParametersHolder" id="dialogParametersHolder" /><div style=\'color:red\'>Cannot deserialize dialog parameters. Please refresh the editor page.</div><div>Error Message:Invalid length for a Base-64 char array or string.</div></form></body></html>'
+        }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # Simulate DialogHandler detection (in /temp)
+        expect_args = {"method": "GET", "uri": "/temp/App_Master/Telerik.Web.UI.DialogHandler.aspx"}
+        respond_args = {
+            "response_data": '<input type="hidden" name="dialogParametersHolder" id="dialogParametersHolder" /><div style=\'color:red\'>Cannot deserialize dialog parameters. Please refresh the editor page.</div><div>Error Message:Invalid length for a Base-64 char array or string.</div></form></body></html>'
+        }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # Simulate /temp directory detection
+        expect_args = {"method": "GET", "uri": "/temp/"}
+        respond_args = {"response_data": "Temporary directory found"}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # Fallback
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive"}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["telerik"].telerikVersions = ["2014.2.724", "2014.3.1024", "2015.1.204"]
+        module_test.scan.modules["telerik"].DialogHandlerUrls = [
+            "App_Master/Telerik.Web.UI.DialogHandler.aspx",
+        ]
+
+    def check(self, module_test, events):
+        # Check if the expected requests were made
+        finding_count = sum(
+            1 for e in events if e.type == "FINDING" and "Telerik DialogHandler detected" in e.data["description"]
+        )
+        assert finding_count == 2, "Expected 2 FINDING events (root and /temp), got {finding_count}"
