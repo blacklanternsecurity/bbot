@@ -46,6 +46,7 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]]
                [--version] [--proxy HTTP_PROXY]
                [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
                [--custom-yara-rules CUSTOM_YARA_RULES]
+               [--user-agent USER_AGENT]
 
 Bighuge BLS OSINT Tool
 
@@ -128,6 +129,8 @@ Misc:
                         List of custom headers as key value pairs (header=value).
   --custom-yara-rules CUSTOM_YARA_RULES, -cy CUSTOM_YARA_RULES
                         Add custom yara rules to excavate
+  --user-agent USER_AGENT, -ua USER_AGENT
+                        Set the user-agent for all HTTP requests
 
 EXAMPLES
 

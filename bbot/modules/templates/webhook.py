@@ -13,7 +13,13 @@ class WebhookOutputModule(BaseOutputModule):
     content_key = "content"
     vuln_severities = ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
+    # abort module after 10 failed requests (not including retries)
+    _api_failure_abort_threshold = 10
+    # retry each request up to 10 times, respecting the Retry-After header
+    _api_retries = 10
+
     async def setup(self):
+        self._api_retries = self.config.get("retries", 10)
         self.webhook_url = self.config.get("webhook_url", "")
         self.min_severity = self.config.get("min_severity", "LOW").strip().upper()
         assert self.min_severity in self.vuln_severities, (
@@ -23,31 +29,16 @@ class WebhookOutputModule(BaseOutputModule):
         if not self.webhook_url:
             self.warning("Must set Webhook URL")
             return False
-        return True
+        return await super().setup()
 
     async def handle_event(self, event):
-        while 1:
-            message = self.format_message(event)
-            data = {self.content_key: message}
-
-            response = await self.helpers.request(
-                url=self.webhook_url,
-                method="POST",
-                json=data,
-            )
-            status_code = getattr(response, "status_code", 0)
-            if self.evaluate_response(response):
-                break
-            else:
-                response_data = getattr(response, "text", "")
-                try:
-                    retry_after = response.json().get("retry_after", 1)
-                except Exception:
-                    retry_after = 1
-                self.verbose(
-                    f"Error sending {event}: status code {status_code}, response: {response_data}, retrying in {retry_after} seconds"
-                )
-                await self.helpers.sleep(retry_after)
+        message = self.format_message(event)
+        data = {self.content_key: message}
+        await self.api_request(
+            url=self.webhook_url,
+            method="POST",
+            json=data,
+        )
 
     def get_watched_events(self):
         if self._watched_events is None:

@@ -214,7 +214,7 @@ include:
   - cloud-enum
   - code-enum
   - email-enum
-  - spider-intense
+  - spider
   - web-basic
   - paramminer
   - dirbust-light
