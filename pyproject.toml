@@ -73,7 +73,7 @@ pytest-asyncio = "0.25.2"
 uvicorn = ">=0.32,<0.35"
 fastapi = "^0.115.5"
 pytest-httpx = ">=0.33,<0.35"
-ruff = "0.9.3"
+ruff = "0.9.4"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"
