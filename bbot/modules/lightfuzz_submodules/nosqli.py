@@ -47,9 +47,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                 if ("code" in single_quote_diff_reasons or "body" in single_quote_diff_reasons) and (
                     single_quote_diff_reasons != escaped_single_quote_diff_reasons
                 ):
-                    self.lightfuzz.verbose(
-                        "Initial heuristic indicates possible NoSQL Injection, sending confirmation probes"
-                    )
+                    self.verbose("Initial heuristic indicates possible NoSQL Injection, sending confirmation probes")
                     (
                         confirmation_probe_true_comparson,
                         confirmation_probe_true_diff_reasons,

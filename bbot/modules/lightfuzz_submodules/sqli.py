@@ -97,9 +97,9 @@ class SQLiLightfuzz(BaseLightfuzz):
                         }
                     )
             else:
-                self.lightfuzz.debug("Failed to get responses for both single_quote and double_single_quote")
+                self.debug("Failed to get responses for both single_quote and double_single_quote")
         except HttpCompareError as e:
-            self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+            self.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
         # These are common SQL injection payloads for inducing an intentional delay across several different SQL database types
         standard_probe_strings = [
@@ -134,16 +134,16 @@ class SQLiLightfuzz(BaseLightfuzz):
                         timeout=20,
                     )
                     if not r:
-                        self.lightfuzz.debug("delay measure request failed")
+                        self.debug("delay measure request failed")
                         break
 
                     d = r.elapsed.total_seconds()
-                    self.lightfuzz.debug(f"measured delay: {str(d)}")
+                    self.debug(f"measured delay: {str(d)}")
                     if self.evaluate_delay(
                         mean_baseline, d
                     ):  # decide if the delay is within the detection threshold and constitutes a successful sleep execution
                         confirmations += 1
-                        self.lightfuzz.debug(
+                        self.debug(
                             f"{self.event.data['url']}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
                         )
                     else:
@@ -158,4 +158,4 @@ class SQLiLightfuzz(BaseLightfuzz):
                     )
 
         else:
-            self.lightfuzz.debug("Could not get baseline for time-delay tests")
+            self.debug("Could not get baseline for time-delay tests")

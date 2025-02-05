@@ -221,7 +221,7 @@ class BaseLightfuzz:
             skip_urlencoding,
         )
         request_params.update({"allow_redirects": allow_redirects, "retries": 0, "timeout": timeout})
-        self.lightfuzz.debug(f"standard_probe requested URL: [{request_params['url']}]")
+        self.debug(f"standard_probe requested URL: [{request_params['url']}]")
         return await self.lightfuzz.helpers.request(**request_params)
 
     def metadata(self):
@@ -240,7 +240,7 @@ class BaseLightfuzz:
         probe_value = ""
         if envelopes is not None:
             probe_value = envelopes.get_subparam()
-            self.lightfuzz.debug(f"incoming_probe_value (after unpacking): {probe_value} with envelopes [{envelopes}]")
+            self.debug(f"incoming_probe_value (after unpacking): {probe_value} with envelopes [{envelopes}]")
         if not probe_value:
             if populate_empty is True:
                 probe_value = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
@@ -253,12 +253,46 @@ class BaseLightfuzz:
         """
         Transparently modifies the outgoing probe value (fuzz probe being sent to the target), given any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
         """
-        self.lightfuzz.debug(f"outgoing_probe_value (before packing): {outgoing_probe_value} / {self.event}")
+        self.debug(f"outgoing_probe_value (before packing): {outgoing_probe_value} / {self.event}")
         envelopes = getattr(self.event, "envelopes", None)
         if envelopes is not None:
             envelopes.set_subparam(value=outgoing_probe_value)
             outgoing_probe_value = envelopes.pack()
-            self.lightfuzz.debug(
+            self.debug(
                 f"outgoing_probe_value (after packing): {outgoing_probe_value} with envelopes [{envelopes}] / {self.event}"
             )
         return outgoing_probe_value
+
+    def get_submodule_name(self):
+        """Extracts the submodule name from the class name."""
+        return self.__class__.__name__.replace("Lightfuzz", "").lower()
+
+    def log(self, level, message, *args, **kwargs):
+        submodule_name = self.get_submodule_name()
+        prefixed_message = f"[{submodule_name}] {message}"
+        log_method = getattr(self.lightfuzz, level)
+        log_method(prefixed_message, *args, **kwargs)
+
+    def debug(self, message, *args, **kwargs):
+        self.log("debug", message, *args, **kwargs)
+
+    def verbose(self, message, *args, **kwargs):
+        self.log("verbose", message, *args, **kwargs)
+
+    def info(self, message, *args, **kwargs):
+        self.log("info", message, *args, **kwargs)
+
+    def hugeinfo(self, message, *args, **kwargs):
+        self.log("hugeinfo", message, *args, **kwargs)
+
+    def warning(self, message, *args, **kwargs):
+        self.log("warning", message, *args, **kwargs)
+
+    def hugewarning(self, message, *args, **kwargs):
+        self.log("hugewarning", message, *args, **kwargs)
+
+    def error(self, message, *args, **kwargs):
+        self.log("error", message, *args, **kwargs)
+
+    def critical(self, message, *args, **kwargs):
+        self.log("critical", message, *args, **kwargs)
