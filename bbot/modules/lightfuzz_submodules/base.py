@@ -9,6 +9,7 @@ class BaseLightfuzz:
         self.lightfuzz = lightfuzz
         self.event = event
         self.results = []
+        self.parameter_name = self.event.data['name']
 
     @staticmethod
     def is_hex(s):
@@ -63,68 +64,48 @@ class BaseLightfuzz:
             return quote(probe, safe="&")
         return probe
 
-    def compare_baseline(
-        self,
-        event_type,
-        probe,
-        cookies,
-        additional_params_populate_empty=False,
-        speculative_mode="GETPARAM",
-        skip_urlencoding=False,
-    ):
+    def prepare_request(self, event_type, probe, cookies, additional_params=None, speculative_mode="GETPARAM", skip_urlencoding=False):
+        """
+        Prepares the request parameters by processing the probe and constructing the request based on the event type.
+        """
         # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
 
         # URL Encode the probe if the event type is GETPARAM or COOKIE, if there are no envelopes, and the submodule did not opt-out with skip_urlencoding
         probe = self.conditional_urlencode(probe, event_type, skip_urlencoding)
-        http_compare = None
 
         if event_type == "SPECULATIVE":
             event_type = speculative_mode
 
+        # Construct request parameters based on the event type
         if event_type == "GETPARAM":
-            baseline_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
-
-            if "additional_params" in self.event.data.keys() and self.event.data["additional_params"] is not None:
-                baseline_url = self.lightfuzz.helpers.add_get_params(
-                    baseline_url, self.event.data["additional_params"], encode=False
-                ).geturl()
-            http_compare = self.lightfuzz.helpers.http_compare(
-                baseline_url, cookies=cookies, include_cache_buster=False
-            )
+            url = self.construct_url(probe, additional_params)
+            return {"method": "GET", "cookies": cookies, "url": url}
         elif event_type == "COOKIE":
-            cookies_probe = {self.event.data["name"]: f"{probe}"}
-            http_compare = self.lightfuzz.helpers.http_compare(
-                self.event.data["url"], include_cache_buster=False, cookies={**cookies, **cookies_probe}
-            )
+            cookies_probe = {self.parameter_name: probe}
+            return {"method": "GET", "cookies": {**cookies, **cookies_probe}, "url": self.event.data['url']}
         elif event_type == "HEADER":
-            headers = {self.event.data["name"]: f"{probe}"}
-            http_compare = self.lightfuzz.helpers.http_compare(
-                self.event.data["url"], include_cache_buster=False, headers=headers, cookies=cookies
-            )
-        elif event_type == "POSTPARAM":
-            data = {self.event.data["name"]: f"{probe}"}
-            if self.event.data["additional_params"] is not None:
-                data.update(
-                    self.additional_params_process(
-                        self.event.data["additional_params"], additional_params_populate_empty
-                    )
-                )
-            http_compare = self.lightfuzz.helpers.http_compare(
-                self.event.data["url"], method="POST", include_cache_buster=False, data=data, cookies=cookies
-            )
-        elif event_type == "BODYJSON":
-            data = {self.event.data["name"]: f"{probe}"}
-            if self.event.data["additional_params"] is not None:
-                data.update(
-                    self.additional_params_process(
-                        self.event.data["additional_params"], additional_params_populate_empty
-                    )
-                )
-            http_compare = self.lightfuzz.helpers.http_compare(
-                self.event.data["url"], method="POST", include_cache_buster=False, json=data, cookies=cookies
-            )
-        return http_compare
+            headers = {self.parameter_name: probe}
+            return {"method": "GET", "headers": headers, "cookies": cookies, "url": self.event.data['url']}
+        elif event_type in ["POSTPARAM", "BODYJSON"]:
+            # Prepare data for POSTPARAM and BODYJSON event types
+            data = {self.parameter_name: probe}
+            if additional_params:
+                data.update(additional_params)
+            if event_type == "BODYJSON":
+                return {"method": "POST", "json": data, "cookies": cookies, "url": self.event.data['url']}
+            else:
+                return {"method": "POST", "data": data, "cookies": cookies, "url": self.event.data['url']}
+
+    def compare_baseline(self, event_type, probe, cookies, additional_params_populate_empty=False, speculative_mode="GETPARAM", skip_urlencoding=False):
+        """
+        Compares the baseline using prepared request parameters.
+        """
+        request_params = self.prepare_request(event_type, probe, cookies, self.event.data.get("additional_params"), speculative_mode, skip_urlencoding)
+        return self.lightfuzz.helpers.http_compare(
+            **request_params,
+            include_cache_buster=False
+        )
 
     async def baseline_probe(self, cookies):
         """
@@ -144,139 +125,35 @@ class BaseLightfuzz:
             timeout=10,
         )
 
-    async def compare_probe(
-        self,
-        http_compare,
-        event_type,
-        probe,
-        cookies,
-        additional_params_populate_empty=False,
-        additional_params_override={},
-        speculative_mode="GETPARAM",
-        skip_urlencoding=False,
-    ):
-        # Transparently pack the probe value into the envelopes, if present
-        probe = self.outgoing_probe_value(probe)
-
-        # URL Encode the probe if the event type is GETPARAM or COOKIE, if there are no envelopes, and the submodule did not opt-out with skip_urlencoding
-        probe = self.conditional_urlencode(probe, event_type, skip_urlencoding)
-
-        # Create a complete copy to avoid modifying the original additional_params
+    async def compare_probe(self, http_compare, event_type, probe, cookies, additional_params_populate_empty=False, additional_params_override={}, speculative_mode="GETPARAM", skip_urlencoding=False):
+        """
+        Compares the probe using the constructed request parameters.
+        """
+        # Deep copy to avoid modifying original additional_params
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
 
-        if additional_params_override:
-            for k, v in additional_params_override.items():
-                additional_params[k] = v
+        # Override additional parameters if provided
+        additional_params.update(additional_params_override)
 
-        if event_type == "SPECULATIVE":
-            event_type = speculative_mode
+        # Prepare request parameters
+        request_params = self.prepare_request(event_type, probe, cookies, additional_params, speculative_mode, skip_urlencoding)
+        
+        # Perform the comparison using the constructed request parameters
+        url = request_params.pop("url")
+        return await http_compare.compare(url, **request_params)
 
-        if event_type == "GETPARAM":
-            probe_url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
-            if additional_params:
-                probe_url = self.lightfuzz.helpers.add_get_params(probe_url, additional_params, encode=False).geturl()
-            compare_result = await http_compare.compare(probe_url, cookies=cookies)
-        elif event_type == "COOKIE":
-            cookies_probe = {self.event.data["name"]: probe}
-            compare_result = await http_compare.compare(self.event.data["url"], cookies={**cookies, **cookies_probe})
-        elif event_type == "HEADER":
-            headers = {self.event.data["name"]: f"{probe}"}
-            compare_result = await http_compare.compare(self.event.data["url"], headers=headers, cookies=cookies)
-        elif event_type == "POSTPARAM":
-            data = {self.event.data["name"]: f"{probe}"}
-            if additional_params:
-                data.update(self.additional_params_process(additional_params, additional_params_populate_empty))
-            compare_result = await http_compare.compare(
-                self.event.data["url"], method="POST", data=data, cookies=cookies
-            )
-
-        elif event_type == "BODYJSON":
-            data = {self.event.data["name"]: f"{probe}"}
-            if additional_params:
-                data.update(self.additional_params_process(additional_params, additional_params_populate_empty))
-            compare_result = await http_compare.compare(
-                self.event.data["url"], method="POST", json=data, cookies=cookies
-            )
-        return compare_result
-
-    async def standard_probe(
-        self,
-        event_type,
-        cookies,
-        probe,
-        timeout=10,
-        additional_params_populate_empty=False,
-        speculative_mode="GETPARAM",
-        allow_redirects=False,
-        skip_urlencoding=False,
-    ):
+    async def standard_probe(self, event_type, cookies, probe, timeout=10, additional_params_populate_empty=False, speculative_mode="GETPARAM", allow_redirects=False, skip_urlencoding=False):
         """
-        Send a probe to the target URL, abstracting away the details associated with each WEB_PARAMETER type.
+        Executes a standard probe request.
         """
+        # Prepare request parameters
+        request_params = self.prepare_request(event_type, probe, cookies, self.event.data.get("additional_params"), speculative_mode, skip_urlencoding)
 
-        # Transparently pack the probe value into the envelopes, if present
-        probe = self.outgoing_probe_value(probe)
+        # Add additional request settings
+        request_params.update({"allow_redirects": allow_redirects, "retries": 0, "timeout": timeout})
 
-        # URL Encode the probe if the event type is GETPARAM or COOKIE, if there are no envelopes, and the submodule did not opt-out with skip_urlencoding
-        probe = self.conditional_urlencode(probe, event_type, skip_urlencoding)
-
-        if event_type == "SPECULATIVE":
-            event_type = speculative_mode
-
-        method = "GET"
-
-        if event_type == "GETPARAM":
-            url = f"{self.event.data['url']}?{self.event.data['name']}={probe}"
-
-            if "additional_params" in self.event.data.keys() and self.event.data["additional_params"] is not None:
-                url = self.lightfuzz.helpers.add_get_params(
-                    url, self.event.data["additional_params"], encode=False
-                ).geturl()
-        else:
-            url = self.event.data["url"]
-        if event_type == "COOKIE":
-            cookies_probe = {self.event.data["name"]: probe}
-            cookies = {**cookies, **cookies_probe}
-        if event_type == "HEADER":
-            headers = {self.event.data["name"]: probe}
-        else:
-            headers = {}
-
-        data = None
-        json_data = None
-
-        if event_type == "POSTPARAM":
-            method = "POST"
-            data = {self.event.data["name"]: probe}
-            if self.event.data["additional_params"] is not None:
-                data.update(
-                    self.additional_params_process(
-                        self.event.data["additional_params"], additional_params_populate_empty
-                    )
-                )
-
-        elif event_type == "BODYJSON":
-            method = "POST"
-            json_data = {self.event.data["name"]: probe}
-            if self.event.data["additional_params"] is not None:
-                json_data.update(
-                    self.additional_params_process(
-                        self.event.data["additional_params"], additional_params_populate_empty
-                    )
-                )
-
-        self.lightfuzz.debug(f"standard_probe requested URL: [{url}]")
-        return await self.lightfuzz.helpers.request(
-            method=method,
-            cookies=cookies,
-            headers=headers,
-            data=data,
-            json=json_data,
-            url=url,
-            allow_redirects=allow_redirects,
-            retries=0,
-            timeout=timeout,
-        )
+        self.lightfuzz.debug(f"standard_probe requested URL: [{request_params['url']}]")
+        return await self.lightfuzz.helpers.request(**request_params)
 
     def metadata(self):
         metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]"
@@ -316,3 +193,15 @@ class BaseLightfuzz:
                 f"outgoing_probe_value (after packing): {outgoing_probe_value} with envelopes [{envelopes}] / {self.event}"
             )
         return outgoing_probe_value
+
+    def construct_url(self, probe, additional_params=None):
+        """Constructs a URL with the given probe and additional parameters."""
+        url = f"{self.event.data['url']}?{self.parameter_name}={probe}"
+        if additional_params:
+            url = self.lightfuzz.helpers.add_get_params(url, additional_params, encode=False).geturl()
+        return url
+
+    def set_parameter_name(self, new_name):
+        """Set a new parameter name."""
+        self.parameter_name = new_name
+        self.lightfuzz.debug(f"Parameter name set to: {self.parameter_name}")
