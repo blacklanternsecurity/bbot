@@ -641,6 +641,99 @@ class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
         assert xss_finding_emitted, "In Javascript XSS FINDING not emitted"
 
 
+class Test_Lightfuzz_nosqli_quoteescape(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["nosqli"],
+            }
+        },
+    }
+
+    def request_handler(self, request):
+        normal_block = """
+            <section class="search-filters">
+                        <label>Refine your search:</label>
+                        <a class="filter-category" href="/?category=Pets">Pets</a>
+                    </section>
+        """
+
+        qs = str(request.query_string.decode())
+        if "category=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            if value == "Pets%27":
+                return Response("JSON ERROR!", status=500)
+            elif value == "Pets%5C%27":
+                return Response("No results", status=200)
+            elif value == "Pets%27%20%26%26%200%20%26%26%20%27x":
+                return Response("No results", status=200)
+            elif value == "Pets%27%20%26%26%201%20%26%26%20%27x":
+                return Response('{"category":"Pets","entries":["dog","cat","bird"]}', status=200)
+            else:
+                return Response("No results", status=200)
+        return Response(normal_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        nosqli_finding_emitted = False
+        finding_count = 0
+        for e in events:
+            if e.type == "FINDING":
+                finding_count += 1
+                if (
+                    "Possible NoSQL Injection. Parameter: [category] Parameter Type: [GETPARAM] Original Value: [Pets] Detection Method: [Quote/Escaped Quote + Conditional Affect]"
+                    in e.data["description"]
+                ):
+                    nosqli_finding_emitted = True
+        assert nosqli_finding_emitted, "NoSQLi FINDING not emitted"
+        assert finding_count == 1, "Unexpected FINDING events reported"
+
+
+class Test_Lightfuzz_nosqli_negation(Test_Lightfuzz_nosqli_quoteescape):
+    def request_handler(self, request):
+        form_block = """
+            <form method="POST" action="">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            <br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            <br>
+            <button type="submit">Login</button>
+          </form>
+        """
+        if request.method == "GET":
+            return Response(form_block, status=200)
+
+        if "username[$ne]" in request.form.keys() and "password[$ne]" in request.form.keys():
+            return Response("Welcome, testuser1!", status=200)
+        else:
+            return Response("Invalid Username or Password!", status=200)
+
+    def check(self, module_test, events):
+        nosqli_finding_emitted = False
+        finding_count = 0
+        for e in events:
+            if e.type == "FINDING":
+                finding_count += 1
+                if (
+                    "Possible NoSQL Injection. Parameter: [password] Parameter Type: [POSTPARAM] Detection Method: [Parameter Name Operator Injection - Negation ([$ne])]"
+                    in e.data["description"]
+                ):
+                    nosqli_finding_emitted = True
+        assert nosqli_finding_emitted, "NoSQLi FINDING not emitted"
+        assert finding_count == 2, "Unexpected FINDING events reported"
+
+
 # SQLI Single Quote/Two Single Quote (getparam)
 class Test_Lightfuzz_sqli(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]

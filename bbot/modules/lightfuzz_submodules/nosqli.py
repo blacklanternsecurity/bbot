@@ -47,7 +47,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                 if ("code" in single_quote_diff_reasons or "body" in single_quote_diff_reasons) and (
                     single_quote_diff_reasons != escaped_single_quote_diff_reasons
                 ):
-                    self.lightfuzz.critical(
+                    self.lightfuzz.verbose(
                         "Initial heuristic indicates possible NoSQL Injection, sending confirmation probes"
                     )
                     (
@@ -77,12 +77,6 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                         skip_urlencoding=True,
                     )
                     if confirmation_probe_true_response and confirmation_probe_false_response:
-                        self.lightfuzz.hugewarning(confirmation_probe_false_response.text.lower())
-                        self.lightfuzz.hugewarning(confirmation_probe_true_response.text.lower())
-                        self.lightfuzz.hugeinfo(
-                            confirmation_probe_true_response.text.lower()
-                            == confirmation_probe_false_response.text.lower()
-                        )
                         if (
                             confirmation_probe_false_response.status_code
                             != confirmation_probe_true_response.status_code
@@ -96,7 +90,50 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                                     "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Quote/Escaped Quote + Conditional Affect]",
                                 }
                             )
+
             else:
                 self.lightfuzz.debug("Failed to get responses for both single_quote and double_single_quote")
+
+            # Comparison operator injection
+            if self.event.data["type"] in ["POSTPARAM", "GETPARAM"]:
+                (
+                    nosqli_negation_comparison,
+                    nosqli_negation_diff_reasons,
+                    nosqli_negation_reflection,
+                    nosqli_negation_response,
+                ) = await self.compare_probe(
+                    http_compare,
+                    self.event.data["type"],
+                    f"{probe_value}'",
+                    cookies,
+                    additional_params_populate_empty=True,
+                    parameter_name_suffix="[$ne]",
+                    parameter_name_suffix_additional_params="[$ne]",
+                )
+                (
+                    nosqli_equal_comparison,
+                    nosqli_equal_diff_reasons,
+                    nosqli_equal_reflection,
+                    nosqli_equal_response,
+                ) = await self.compare_probe(
+                    http_compare,
+                    self.event.data["type"],
+                    f"{probe_value}'",
+                    cookies,
+                    additional_params_populate_empty=True,
+                    parameter_name_suffix="[$eq]",
+                    parameter_name_suffix_additional_params="[$eq]",
+                )
+                if nosqli_negation_response and nosqli_equal_response:
+                    if (nosqli_equal_response.status_code != nosqli_negation_response.status_code) or (
+                        nosqli_equal_response.text.lower() != nosqli_negation_response.text.lower()
+                    ):
+                        self.results.append(
+                            {
+                                "type": "FINDING",
+                                "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Parameter Name Operator Injection - Negation ([$ne])]",
+                            }
+                        )
+
         except HttpCompareError as e:
             self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")

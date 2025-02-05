@@ -29,7 +29,7 @@ class BaseLightfuzz:
         return False
 
     # WEB_PARAMETER event may contain additional_params (e.g. other parameters in the same form or query string). These will be sent unchanged along with the probe.
-    def additional_params_process(self, additional_params, additional_params_populate_blank_empty):
+    def additional_params_process(self, additional_params, additional_params_populate_empty):
         """
         Processes additional parameters by populating blank or empty values with random strings if specified.
 
@@ -43,7 +43,7 @@ class BaseLightfuzz:
         The function iterates over the provided additional parameters and replaces any blank or empty values with a random numeric string
         of length 10, if the flag is set to True. Otherwise, it returns the parameters unchanged.
         """
-        if not additional_params_populate_blank_empty:
+        if not additional_params or not additional_params_populate_empty:
             return additional_params
 
         return {
@@ -60,24 +60,34 @@ class BaseLightfuzz:
             return quote(probe, safe="&")
         return probe
 
-    def build_query_string(self, probe, additional_params=None):
+    def build_query_string(self, probe, parameter_name, additional_params=None):
         """Constructs a URL with query parameters from the given probe and additional parameters."""
-        url = f"{self.event.data['url']}?{self.parameter_name}={probe}"
+        url = f"{self.event.data['url']}?{parameter_name}={probe}"
         if additional_params:
             url = self.lightfuzz.helpers.add_get_params(url, additional_params, encode=False).geturl()
         return url
 
-    def set_parameter_name(self, new_name):
-        """Set a new parameter name."""
-        self.parameter_name = new_name
-        self.lightfuzz.debug(f"Parameter name set to: {self.parameter_name}")
-
     def prepare_request(
-        self, event_type, probe, cookies, additional_params=None, speculative_mode="GETPARAM", skip_urlencoding=False
+        self,
+        event_type,
+        probe,
+        cookies,
+        additional_params=None,
+        speculative_mode="GETPARAM",
+        parameter_name_suffix="",
+        additional_params_populate_empty=False,
+        skip_urlencoding=False,
     ):
         """
         Prepares the request parameters by processing the probe and constructing the request based on the event type.
         """
+
+        if parameter_name_suffix:
+            parameter_name = f"{self.parameter_name}{parameter_name_suffix}"
+        else:
+            parameter_name = self.parameter_name
+        additional_params = self.additional_params_process(additional_params, additional_params_populate_empty)
+
         # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
 
@@ -89,17 +99,17 @@ class BaseLightfuzz:
 
         # Construct request parameters based on the event type
         if event_type == "GETPARAM":
-            url = self.build_query_string(probe, additional_params)
+            url = self.build_query_string(probe, parameter_name, additional_params)
             return {"method": "GET", "cookies": cookies, "url": url}
         elif event_type == "COOKIE":
-            cookies_probe = {self.parameter_name: probe}
+            cookies_probe = {parameter_name: probe}
             return {"method": "GET", "cookies": {**cookies, **cookies_probe}, "url": self.event.data["url"]}
         elif event_type == "HEADER":
-            headers = {self.parameter_name: probe}
+            headers = {parameter_name: probe}
             return {"method": "GET", "headers": headers, "cookies": cookies, "url": self.event.data["url"]}
         elif event_type in ["POSTPARAM", "BODYJSON"]:
             # Prepare data for POSTPARAM and BODYJSON event types
-            data = {self.parameter_name: probe}
+            data = {parameter_name: probe}
             if additional_params:
                 data.update(additional_params)
             if event_type == "BODYJSON":
@@ -120,7 +130,14 @@ class BaseLightfuzz:
         Compares the baseline using prepared request parameters.
         """
         request_params = self.prepare_request(
-            event_type, probe, cookies, self.event.data.get("additional_params"), speculative_mode, skip_urlencoding
+            event_type,
+            probe,
+            cookies,
+            self.event.data.get("additional_params"),
+            speculative_mode,
+            "",
+            additional_params_populate_empty,
+            skip_urlencoding,
         )
         return self.lightfuzz.helpers.http_compare(**request_params, include_cache_buster=False)
 
@@ -152,6 +169,8 @@ class BaseLightfuzz:
         additional_params_override={},
         speculative_mode="GETPARAM",
         skip_urlencoding=False,
+        parameter_name_suffix="",
+        parameter_name_suffix_additional_params="",
     ):
         # Deep copy to avoid modifying original additional_params
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
@@ -159,11 +178,23 @@ class BaseLightfuzz:
         # Override additional parameters if provided
         additional_params.update(additional_params_override)
 
+        if additional_params and parameter_name_suffix_additional_params:
+            # Add suffix to each key in additional_params
+            additional_params = {
+                f"{k}{parameter_name_suffix_additional_params}": v for k, v in additional_params.items()
+            }
+
         # Prepare request parameters
         request_params = self.prepare_request(
-            event_type, probe, cookies, additional_params, speculative_mode, skip_urlencoding
+            event_type,
+            probe,
+            cookies,
+            additional_params,
+            speculative_mode,
+            parameter_name_suffix,
+            additional_params_populate_empty,
+            skip_urlencoding,
         )
-
         # Perform the comparison using the constructed request parameters
         url = request_params.pop("url")
         return await http_compare.compare(url, **request_params)
@@ -180,7 +211,14 @@ class BaseLightfuzz:
         skip_urlencoding=False,
     ):
         request_params = self.prepare_request(
-            event_type, probe, cookies, self.event.data.get("additional_params"), speculative_mode, skip_urlencoding
+            event_type,
+            probe,
+            cookies,
+            self.event.data.get("additional_params"),
+            speculative_mode,
+            "",
+            additional_params_populate_empty,
+            skip_urlencoding,
         )
         request_params.update({"allow_redirects": allow_redirects, "retries": 0, "timeout": timeout})
         self.lightfuzz.debug(f"standard_probe requested URL: [{request_params['url']}]")

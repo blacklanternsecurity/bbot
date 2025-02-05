@@ -10,6 +10,7 @@ from .lightfuzz_submodules.sqli import SQLiLightfuzz
 from .lightfuzz_submodules.ssti import SSTILightfuzz
 from .lightfuzz_submodules.xss import XSSLightfuzz
 from .lightfuzz_submodules.serial import SerialLightfuzz
+from .lightfuzz_submodules.nosqli import NoSQLiLightfuzz
 
 
 class lightfuzz(BaseModule):
@@ -25,6 +26,7 @@ class lightfuzz(BaseModule):
         "ssti": {"description": "Server-side Template Injection", "module": SSTILightfuzz},
         "crypto": {"description": "Cryptography Probe", "module": CryptoLightfuzz},
         "serial": {"description": "Unsafe Deserialization Probe", "module": SerialLightfuzz},
+        "nosqli": {"description": "NoSQL Injection", "module": NoSQLiLightfuzz},
     }
 
     options = {"force_common_headers": False, "enabled_submodules": [], "disable_post": False}
