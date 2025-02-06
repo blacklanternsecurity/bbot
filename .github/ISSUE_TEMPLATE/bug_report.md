@@ -7,24 +7,18 @@ assignees: ""
 ---
 
 **Describe the bug**
-What happened?
-
-**Expected behavior**
-What was supposed to happen?
+What happened vs what was expected?
 
 **BBOT Command**
 Example: `bbot -m httpx -t evilcorp.com`
 
 **OS, BBOT Installation Method + Version**
 Example: `OS: Arch Linux, Installation method: pip, BBOT version: 1.0.3.545`
-Note: You can get the bbot version with `bbot --version`
-Note: Windows is **not** supported. We have successfully used BBOT on Docker Desktop in the past, however Windows is highly problematic so if you choose this path you are on your own.
+Note: You can get the BBOT version with `bbot --version`
+Note: BBOT is designed from the ground up to run on Linux. Windows and MacOS are not officially supported. If you are using one of these platforms, it's recommended to use Docker.
 
 **BBOT Config**
-Attach your BBOT config (`bbot --current-config`).
+Attach your full BBOT preset (to show it, add `--current-preset` to your BBOT command).
 
-**Logs**
-If possible, produce the bug while `--debug` is enabled, and attach the relevant parts of `~/.bbot/logs/bbot.debug.log`
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Logs/Screenshots**
+If possible, produce the bug while `--debug` is enabled, and attach the relevant parts of the output.
