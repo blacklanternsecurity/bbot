@@ -338,7 +338,7 @@ class Scanner:
             self.trace(f"Target: {self.preset.target.json}")
             self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 
-            if not self.target:
+            if not self.target.seeds:
                 self.warning("No scan targets specified")
 
             # start status ticker
@@ -1029,13 +1029,13 @@ class Scanner:
         A list of DNS hostname strings generated from the scan target
         """
         if self._dns_strings is None:
-            dns_whitelist = {t.host for t in self.whitelist if t.host and isinstance(t.host, str)}
-            dns_whitelist = sorted(dns_whitelist, key=len)
-            dns_whitelist_set = set()
+            dns_target = {t.host for t in self.target.seeds if t.host and isinstance(t.host, str)}
+            dns_target = sorted(dns_target, key=len)
+            dns_target_set = set()
             dns_strings = []
-            for t in dns_whitelist:
-                if not any(x in dns_whitelist_set for x in self.helpers.domain_parents(t, include_self=True)):
-                    dns_whitelist_set.add(t)
+            for t in dns_target:
+                if not any(x in dns_target_set for x in self.helpers.domain_parents(t, include_self=True)):
+                    dns_target_set.add(t)
                     dns_strings.append(t)
             self._dns_strings = dns_strings
         return self._dns_strings
