@@ -804,10 +804,10 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog):
 
     # dns search distance = 1, report distance = 0
     scan = bbot_scanner(
-        "http://127.0.0.1:8888",
+        "http://127.0.0.1:8888", "test.notreal",
         modules=["httpx"],
         config={"excavate": True, "dns": {"minimal": False, "search_distance": 1}, "scope": {"report_distance": 0}},
-        whitelist=["127.0.0.0/29", "test.notreal"],
+        whitelist=["127.0.0.0/29"],
         blacklist=["127.0.0.64/29"],
     )
     await scan.helpers.dns._mock_dns({
