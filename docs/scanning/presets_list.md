@@ -239,6 +239,7 @@ Comprehensive scan for all IIS/.NET specific modules and module settings
           extensions: asp,aspx,ashx,asmx,ascx
         telerik:
           exploit_RAU_crypto: True
+          include_subdirs: True # Run against every directory, not the default first received URL per-host
     ```
 
 Category: web
@@ -272,6 +273,7 @@ Comprehensive scan for all IIS/.NET specific modules and module settings
           extensions: asp,aspx,ashx,asmx,ascx
         telerik:
           exploit_RAU_crypto: True
+          include_subdirs: True # Run against every directory, not the default first received URL per-host
     ```
 
 
