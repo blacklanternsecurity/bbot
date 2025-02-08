@@ -125,17 +125,27 @@ class BaseLightfuzz:
         additional_params_populate_empty=False,
         speculative_mode="GETPARAM",
         skip_urlencoding=False,
+        parameter_name_suffix="",
+        parameter_name_suffix_additional_params="",
     ):
         """
         Compares the baseline using prepared request parameters.
         """
+        additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
+
+        if additional_params and parameter_name_suffix_additional_params:
+            # Add suffix to each key in additional_params
+            additional_params = {
+                f"{k}{parameter_name_suffix_additional_params}": v for k, v in additional_params.items()
+            }
+
         request_params = self.prepare_request(
             event_type,
             probe,
             cookies,
-            self.event.data.get("additional_params"),
+            additional_params,
             speculative_mode,
-            "",
+            parameter_name_suffix,
             additional_params_populate_empty,
             skip_urlencoding,
         )
