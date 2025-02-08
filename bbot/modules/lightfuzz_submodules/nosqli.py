@@ -125,7 +125,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                             parameter_name_suffix_additional_params="[$ne]",
                         )
                         if nosqli_negate_response:
-                            if not nosqli_negate_comparison and nosqli_negate_diff_reasons != ["headers"]:
+                            if not nosqli_negate_comparison and nosqli_negate_diff_reasons != ["header"]:
                                 self.results.append(
                                     {
                                         "type": "FINDING",
