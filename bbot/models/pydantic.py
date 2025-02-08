@@ -87,6 +87,7 @@ class Event(BBOTBaseModel):
     discovery_context: str = ""
     discovery_path: List[str] = []
     parent_chain: List[str] = []
+    archived: bool = False
 
     def get_data(self):
         if self.data is not None:
