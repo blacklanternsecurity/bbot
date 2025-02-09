@@ -70,7 +70,9 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                             skip_urlencoding=True,
                         )
                         if confirmation_probe_false_response:
-                            if not confirmation_probe_false_comparison and confirmation_probe_false_diff_reasons != ["header"]:
+                            if not confirmation_probe_false_comparison and confirmation_probe_false_diff_reasons != [
+                                "header"
+                            ]:
                                 self.results.append(
                                     {
                                         "type": "FINDING",

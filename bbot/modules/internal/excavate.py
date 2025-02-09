@@ -326,7 +326,12 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     _module_threads = 8
 
-    parameter_blacklist_prefix = ["TS01", "BIGipServer","incap_", "visid_incap_"]  # Big-IP F5 Persistence Cookies / Incapsula WAF Cookies
+    parameter_blacklist_prefix = [
+        "TS01",
+        "BIGipServer",
+        "incap_",
+        "visid_incap_",
+    ]  # Big-IP F5 Persistence Cookies / Incapsula WAF Cookies
 
     parameter_blacklist = set(
         p.lower()
@@ -476,6 +481,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 # check to see if the format is defined as JSON
                 if "content_type" in extracted_values.keys():
                     if extracted_values["content_type"] == "application/json":
+                        form_parameters = {}
+
                         # If we cant figure out the parameter names, there is no point in continuing
                         if "data" in extracted_values.keys():
                             if "url" in extracted_values.keys():
@@ -483,7 +490,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             else:
                                 form_url = None
 
-                            form_parameters = {}
                             try:
                                 s = extracted_values["data"]
                                 s = re.sub(r"(\w+)\s*:", r'"\1":', s)  # Quote keys
