@@ -739,7 +739,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             super().__init__(excavate)
             regexes_component_list = []
             for regex_name, regex in self.regexes.items():
-                regexes_component_list.append(rf"${regex_name} = /\b{regex.pattern}/ nocase")
+                regexes_component_list.append(rf"${regex_name} = /\b{regex.pattern}/")
             regexes_component = " ".join(regexes_component_list)
             self.yara_rules["serialization_detection"] = (
                 f'rule serialization_detection {{meta: description = "contains a possible serialized object" strings: {regexes_component} condition: any of them}}'
