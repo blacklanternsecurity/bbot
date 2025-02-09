@@ -49,13 +49,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                         self.verbose(
                             "Initial heuristic indicates possible NoSQL Injection, sending confirmation probes"
                         )
-                        (
-                            confirmation_probe_true_comparson,
-                            confirmation_probe_true_diff_reasons,
-                            confirmation_probe_true_reflection,
-                            confirmation_probe_true_response,
-                        ) = await self.compare_probe(
-                            probe_baseline,
+                        confirm_baseline = self.compare_baseline(
                             self.event.data["type"],
                             urllib.parse.quote(f"{probe_value}' && 0 && 'x", safe=""),
                             cookies,
@@ -63,26 +57,20 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                             skip_urlencoding=True,
                         )
                         (
-                            confirmation_probe_false_comparson,
+                            confirmation_probe_false_comparison,
                             confirmation_probe_false_diff_reasons,
                             confirmation_probe_false_reflection,
                             confirmation_probe_false_response,
                         ) = await self.compare_probe(
-                            probe_baseline,
+                            confirm_baseline,
                             self.event.data["type"],
                             urllib.parse.quote(f"{probe_value}' && 1 && 'x", safe=""),
                             cookies,
                             additional_params_populate_empty=True,
                             skip_urlencoding=True,
                         )
-                        if confirmation_probe_true_response and confirmation_probe_false_response:
-                            if (
-                                confirmation_probe_false_response.status_code
-                                != confirmation_probe_true_response.status_code
-                            ) or (
-                                confirmation_probe_false_response.text.lower()
-                                != confirmation_probe_true_response.text.lower()
-                            ):
+                        if confirmation_probe_false_response:
+                            if not confirmation_probe_false_comparison and confirmation_probe_false_diff_reasons != ["header"]:
                                 self.results.append(
                                     {
                                         "type": "FINDING",
