@@ -4754,7 +4754,6 @@ pPage
 pName
 pMail
 pDesc
-p4ssw0rD
 p3
 p2p
 p2index
@@ -5701,7 +5700,6 @@ dstendport
 dstbeginport
 dscp
 dryrun
-droptables
 drilldown
 dragtable
 dragdroporder
