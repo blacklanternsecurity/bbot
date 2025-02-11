@@ -337,6 +337,7 @@ class WebHelper(EngineClient):
         ignore_bbot_global_settings = kwargs.get("ignore_bbot_global_settings", False)
 
         if ignore_bbot_global_settings:
+            http_timeout = 20  # setting 20 as a worse-case setting
             log.debug("ignore_bbot_global_settings enabled. Global settings will not be applied")
         else:
             http_timeout = self.parent_helper.web_config.get("http_timeout", 20)
@@ -357,12 +358,12 @@ class WebHelper(EngineClient):
                     if ck not in cookies:
                         cookies[ck] = cv
 
-            # add the timeout
-            if "timeout" not in kwargs:
-                timeout = http_timeout
+        # add the timeout
+        if "timeout" not in kwargs:
+            timeout = http_timeout
 
-            curl_command.append("-m")
-            curl_command.append(str(timeout))
+        curl_command.append("-m")
+        curl_command.append(str(timeout))
 
         for k, v in headers.items():
             if isinstance(v, list):
@@ -408,7 +409,7 @@ class WebHelper(EngineClient):
         if raw_body:
             curl_command.append("-d")
             curl_command.append(raw_body)
-
+        log.verbose(f"Running curl command: {curl_command}")
         output = (await self.parent_helper.run(curl_command)).stdout
         return output
 
