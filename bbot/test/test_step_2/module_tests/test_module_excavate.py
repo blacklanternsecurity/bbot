@@ -811,7 +811,12 @@ class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtr
 class TestExcavateParameterExtraction_json(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
-    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True}}}
+    config_overrides = {
+        "modules": {
+            "excavate": {"speculate_params": True},
+            "paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True},
+        }
+    }
     getparam_extract_json = """
     {
   "obscureParameter": 1,
@@ -838,7 +843,12 @@ class TestExcavateParameterExtraction_json(ModuleTestBase):
 class TestExcavateParameterExtraction_xml(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
-    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True}}}
+    config_overrides = {
+        "modules": {
+            "excavate": {"speculate_params": True},
+            "paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True},
+        }
+    }
     getparam_extract_xml = """
     <data>
      <obscureParameter>1</obscureParameter>

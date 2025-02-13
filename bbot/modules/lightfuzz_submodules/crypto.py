@@ -351,7 +351,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                 http_compare, self.event.data["type"], mutate_probe_value, cookies
             )  # manipulate the value by mutating a byte in place
         except HttpCompareError as e:
-            self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+            self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
             return
 
         confirmed_techniques = []
@@ -392,7 +392,7 @@ class CryptoLightfuzz(BaseLightfuzz):
         ):
             # Padding Oracle Test
             if possible_block_cipher:
-                self.lightfuzz.debug(
+                self.debug(
                     "Attempting padding oracle exploit since it looks like a block cipher and we have confirmed crypto"
                 )
                 await self.padding_oracle(probe_value, cookies)
@@ -421,7 +421,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                                 additional_params_override={additional_param_name: additional_param_value + "A"},
                             )
                         except HttpCompareError as e:
-                            self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+                            self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
                             continue
                         # the additional parameter affects the potential hash parameter (suggesting its calculated in the hash)
                         # This is a potential length extension attack

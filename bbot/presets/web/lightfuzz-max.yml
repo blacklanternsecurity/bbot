@@ -22,6 +22,7 @@ config:
       disable_post: False
     excavate:
       retain_querystring: True
+      speculate_params: True
 
 conditions:
 - |

@@ -315,11 +315,13 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         "retain_querystring": True,
         "yara_max_match_data": 2000,
         "custom_yara_rules": "",
+        "speculate_params": False,
     }
     options_desc = {
         "retain_querystring": "Keep the querystring intact on emitted WEB_PARAMETERS",
         "yara_max_match_data": "Sets the maximum amount of text that can extracted from a YARA regex",
         "custom_yara_rules": "Include custom Yara rules",
+        "speculate_params": "Enable speculative parameter extraction from JSON and XML content",
     }
     scope_distance_modifier = None
     accept_dupes = False
@@ -331,6 +333,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         "BIGipServer",
         "incap_",
         "visid_incap_",
+        "AWSALB",
     ]  # Big-IP F5 Persistence Cookies / Incapsula WAF Cookies
 
     parameter_blacklist = set(
@@ -993,6 +996,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         ]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
+        self.speculate_params = bool(self.config.get("speculate_params", False))
 
         self.retain_querystring = False
         if self.config.get("retain_querystring", False) is True:
@@ -1075,7 +1079,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             return None
         decoded_data = await self.helpers.re.recursive_decode(data)
 
-        if self.parameter_extraction:
+        if self.parameter_extraction and self.speculate_params:
             content_type_lower = content_type.lower() if content_type else ""
             extraction_map = {
                 "json": self.helpers.extract_params_json,

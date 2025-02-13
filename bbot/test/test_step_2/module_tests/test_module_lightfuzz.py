@@ -829,7 +829,7 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
                     web_parameter_emitted = True
             if e.type == "FINDING":
                 if (
-                    "Possible SQL Injection. Parameter: [search] Parameter Type: [GETPARAM] Detection Method: [Single Quote/Two Single Quote]"
+                    "Possible SQL Injection. Parameter: [search] Parameter Type: [GETPARAM] Detection Method: [Single Quote/Two Single Quote, Code Change (200->500->200)]"
                     in e.data["description"]
                 ):
                     sqli_finding_emitted = True
@@ -898,7 +898,7 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
 
             if e.type == "FINDING":
                 if (
-                    "Possible SQL Injection. Parameter: [search] Parameter Type: [POSTPARAM] Detection Method: [Single Quote/Two Single Quote]"
+                    "Possible SQL Injection. Parameter: [search] Parameter Type: [POSTPARAM] Detection Method: [Single Quote/Two Single Quote, Code Change (200->500->200)]"
                     in e.data["description"]
                 ):
                     sqli_finding_emitted = True
@@ -929,7 +929,7 @@ class Test_Lightfuzz_disable_post(Test_Lightfuzz_sqli_post):
 
             if e.type == "FINDING":
                 if (
-                    "Possible SQL Injection. Parameter: [search] Parameter Type: [POSTPARAM] Detection Method: [Single Quote/Two Single Quote]"
+                    "Possible SQL Injection. Parameter: [search] Parameter Type: [POSTPARAM] Detection Method: [Single Quote/Two Single Quote, Code Change (200->500->200)]"
                     in e.data["description"]
                 ):
                     sqli_finding_emitted = True
@@ -998,7 +998,7 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         for e in events:
             if e.type == "FINDING":
                 if (
-                    "Possible SQL Injection. Parameter: [test] Parameter Type: [HEADER] Detection Method: [Single Quote/Two Single Quote]"
+                    "Possible SQL Injection. Parameter: [test] Parameter Type: [HEADER] Detection Method: [Single Quote/Two Single Quote, Code Change (200->500->200)]"
                     in e.data["description"]
                 ):
                     sqli_finding_emitted = True
@@ -1066,7 +1066,7 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
         for e in events:
             if e.type == "FINDING":
                 if (
-                    "Possible SQL Injection. Parameter: [test] Parameter Type: [COOKIE] Detection Method: [Single Quote/Two Single Quote]"
+                    "Possible SQL Injection. Parameter: [test] Parameter Type: [COOKIE] Detection Method: [Single Quote/Two Single Quote, Code Change (200->500->200)]"
                     in e.data["description"]
                 ):
                     sqli_finding_emitted = True
@@ -1575,6 +1575,7 @@ class Test_Lightfuzz_speculative(ModuleTestBase):
         "modules": {
             "lightfuzz": {"enabled_submodules": ["xss"]},
             "paramminer_getparams": {"wordlist": tempwordlist([]), "recycle_words": True},
+            "excavate": {"speculate_params": True},
         },
     }
 
