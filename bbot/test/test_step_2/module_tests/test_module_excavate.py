@@ -609,7 +609,7 @@ class TestExcavateParameterExtraction_postform_noaction(ModuleTestBase):
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [state] (POST Form (no action) Submodule)" in e.data["description"]:
-                    excavate_getparam_extraction = True
+                    excavate_formnoaction_extraction = True
         assert excavate_formnoaction_extraction, "Excavate failed to extract web parameter"
 
 
