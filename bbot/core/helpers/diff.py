@@ -3,6 +3,7 @@ import xmltodict
 from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
+from bbot.core.helpers.web.client import BBOTAsyncClient
 from bbot.errors import HttpCompareError
 
 log = logging.getLogger("bbot.core.helpers.diff")
@@ -85,7 +86,6 @@ class HttpCompare:
             )
 
             self.baseline = baseline_1
-
             if baseline_1 is None or baseline_2 is None:
                 log.debug("HTTP error while establishing baseline, aborting")
                 raise HttpCompareError(
@@ -93,6 +93,9 @@ class HttpCompare:
                 )
             if baseline_1.status_code != baseline_2.status_code:
                 log.debug("Status code not stable during baseline, aborting")
+                raise HttpCompareError("Can't get baseline from source URL")
+            elif baseline_1.text != baseline_2.text:
+                log.critical("Body not stable during baseline, aborting")
                 raise HttpCompareError("Can't get baseline from source URL")
             try:
                 baseline_1_json = xmltodict.parse(baseline_1.text)

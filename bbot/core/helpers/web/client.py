@@ -52,7 +52,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
         if http_debug:
             log.trace(f"Creating AsyncClient: {args}, {kwargs}")
 
-        self._persist_cookies = kwargs.pop("persist_cookies", True)
+        self._persist_cookies = kwargs.pop("persist_cookies", False)
 
         # timeout
         http_timeout = self._web_config.get("http_timeout", 20)
