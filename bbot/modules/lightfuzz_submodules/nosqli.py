@@ -17,7 +17,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                 self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
             )
         except HttpCompareError as e:
-            self.warning(f"Encountered HttpCompareError Sending Compare Baseline: {e}")
+            self.verbose(f"Encountered HttpCompareError Sending Compare Baseline: {e}")
 
         if quote_probe_baseline:
             try:
@@ -86,12 +86,12 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                                 )
 
             except HttpCompareError as e:
-                self.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+                self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
             else:
                 # if both probes were successful (and had a response)
 
-                self.debug("Failed to get responses for both single_quote and double_single_quote")
+                self.verbose("Failed to get responses for both single_quote and double_single_quote")
 
         # Comparison operator injection
         if self.event.data["type"] in ["POSTPARAM", "GETPARAM"]:
@@ -107,7 +107,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                     parameter_name_suffix_additional_params="[$eq]",
                 )
             except HttpCompareError as e:
-                self.warning(f"Encountered HttpCompareError Sending Compare Baseline: {e}")
+                self.verbose(f"Encountered HttpCompareError Sending Compare Baseline: {e}")
 
             if nosqli_negation_baseline:
                 try:
@@ -134,4 +134,4 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                                 }
                             )
                 except HttpCompareError as e:
-                    self.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+                    self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
