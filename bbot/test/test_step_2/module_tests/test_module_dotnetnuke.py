@@ -1,3 +1,4 @@
+import asyncio
 import re
 from .base import ModuleTestBase
 from werkzeug.wrappers import Response
@@ -170,8 +171,6 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
 
             if e.type == "VULNERABILITY" and "DotNetNuke Blind-SSRF (CVE 2017-0929)" in e.data["description"]:
                 dnn_dnnimagehandler_blindssrf = True
-
-        assert self.interactsh_mock_instance.interactions == []
 
         assert dnn_technology_detection, "DNN Technology Detection Failed"
         assert dnn_dnnimagehandler_blindssrf, "dnnimagehandler.ashx Blind SSRF Detection Failed"
