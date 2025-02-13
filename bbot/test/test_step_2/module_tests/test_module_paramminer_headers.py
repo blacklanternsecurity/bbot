@@ -154,6 +154,7 @@ class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
             "Excavate extract WEB_PARAMETER despite disabling parameter extraction"
         )
 
+
 class TestParamminer_Headers_NoCookieRetention(Paramminer_Headers):
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["paramminer_headers"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
@@ -174,17 +175,16 @@ class TestParamminer_Headers_NoCookieRetention(Paramminer_Headers):
         </html>
         """
         expect_args = {"headers": {"Cookie": "test_cookie=cookie_value; AAAAAAAAAAAAAA=AAAAAAAAAAAAAA"}}
-        respond_args_with_cookie_body_change = {
-            "response_data": headers_body_with_cookie
-        }
+        respond_args_with_cookie_body_change = {"response_data": headers_body_with_cookie}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args_with_cookie_body_change)
 
-       
-        respond_args_default = {"response_data": self.headers_body, "headers": {"set-cookie": "test_cookie=cookie_value"}}
+        respond_args_default = {
+            "response_data": self.headers_body,
+            "headers": {"set-cookie": "test_cookie=cookie_value"},
+        }
         module_test.set_expect_requests(respond_args=respond_args_default)
 
     def check(self, module_test, events):
-
         found_web_parameter = False
         found_web_parameter_false_positive = False
 

@@ -621,6 +621,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.excavate.debug(
                                 f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
                             )
+
+                            # account for the case where the action is html encoded
+                            if endpoint and (
+                                endpoint.startswith("https&#x3a;&#x2f;&#x2f;")
+                                or endpoint.startswith("http&#x3a;&#x2f;&#x2f;")
+                            ):
+                                endpoint = html.unescape(endpoint)
+
                             # If we have a full URL, leave it as-is
                             if endpoint and endpoint.startswith(("http://", "https://")):
                                 url = endpoint

@@ -583,12 +583,12 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_form_post_additional_params, "Did not extract additional parameters from POST form"
 
 
-class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
+class TestExcavateParameterExtraction_postform_noaction(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
     modules_overrides = ["httpx", "excavate", "hunt"]
-    postformnoaction_extract_html = """
+    postform_extract_html = """
 <body>
     <h1>Post for without action</h1>
     <form method="post">
@@ -601,16 +601,52 @@ class TestExcavateParameterExtraction_postformnoaction(ModuleTestBase):
     """
 
     async def setup_after_prep(self, module_test):
-        respond_args = {"response_data": self.postformnoaction_extract_html, "headers": {"Content-Type": "text/html"}}
+        respond_args = {"response_data": self.postform_extract_html, "headers": {"Content-Type": "text/html"}}
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-        excavate_getparam_extraction = False
+        excavate_formnoaction_extraction = False
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [state] (POST Form (no action) Submodule)" in e.data["description"]:
                     excavate_getparam_extraction = True
-        assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
+        assert excavate_formnoaction_extraction, "Excavate failed to extract web parameter"
+
+
+class TestExcavateParameterExtraction_postform_htmlencodedaction(TestExcavateParameterExtraction_postform_noaction):
+    postform_extract_html = """
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+    <body onload="document.forms[0].submit()">
+        <noscript>
+            <p>
+                <strong>Note:</strong> Since your browser does not support JavaScript,
+                you must press the Continue button once to proceed.
+            </p>
+        </noscript>
+        <form action="https&#x3a;&#x2f;&#x2f;127.0.0.1&#x3a;8080&#x2f;sso-web&#x2f;singleSignOn.action" method="post">
+            <div>
+                <input type="hidden" name="value" value="PD94"/>                              
+            </div>
+            <noscript>
+                <div>
+                    <input type="submit" value="Continue"/>
+                </div>
+            </noscript>
+        </form>
+    </body>
+</html>
+    """
+
+    def check(self, module_test, events):
+        excavate_handle_htmlencoded_action = True
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if (
+                    "HTTP Extracted Parameter [value] (POST Form Submodule)" in e.data["description"]
+                    and e.data["url"] == "https://127.0.0.1:8080/sso-web/singleSignOn.action"
+                ):
+                    excavate_handle_htmlencoded_action = True
+        assert excavate_handle_htmlencoded_action, "Excavate failed to extract web parameter"
 
 
 class TestExcavateParameterExtraction_additionalparams(ModuleTestBase):
