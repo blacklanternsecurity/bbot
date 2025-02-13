@@ -149,7 +149,8 @@ class BaseLightfuzz:
             additional_params_populate_empty,
             skip_urlencoding,
         )
-        return self.lightfuzz.helpers.http_compare(**request_params, include_cache_buster=False)
+        request_params.update({"include_cache_buster": False})
+        return self.lightfuzz.helpers.http_compare(**request_params)
 
     async def baseline_probe(self, cookies):
         """

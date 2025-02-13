@@ -11,10 +11,15 @@ class NoSQLiLightfuzz(BaseLightfuzz):
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=True)
-        probe_baseline = self.compare_baseline(
-            self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
-        )
-        if probe_baseline:
+        quote_probe_baseline = None
+        try:
+            quote_probe_baseline = self.compare_baseline(
+                self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
+            )
+        except HttpCompareError as e:
+            self.warning(f"Encountered HttpCompareError Sending Compare Baseline: {e}")
+
+        if quote_probe_baseline:
             try:
                 # send the with a single quote, and then another with an escaped single quote
                 (
@@ -23,7 +28,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                     single_quote_reflection,
                     single_quote_response,
                 ) = await self.compare_probe(
-                    probe_baseline,
+                    quote_probe_baseline,
                     self.event.data["type"],
                     f"{probe_value}'",
                     cookies,
@@ -35,7 +40,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                     escaped_single_quote_reflection,
                     escaped_single_quote_response,
                 ) = await self.compare_probe(
-                    probe_baseline,
+                    quote_probe_baseline,
                     self.event.data["type"],
                     rf"{probe_value}\'",
                     cookies,
@@ -88,8 +93,11 @@ class NoSQLiLightfuzz(BaseLightfuzz):
 
                 self.debug("Failed to get responses for both single_quote and double_single_quote")
 
-            # Comparison operator injection
-            if self.event.data["type"] in ["POSTPARAM", "GETPARAM"]:
+        # Comparison operator injection
+        if self.event.data["type"] in ["POSTPARAM", "GETPARAM"]:
+            nosqli_negation_baseline = None
+
+            try:
                 nosqli_negation_baseline = self.compare_baseline(
                     self.event.data["type"],
                     f"{probe_value}'",
@@ -98,30 +106,32 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                     parameter_name_suffix="[$eq]",
                     parameter_name_suffix_additional_params="[$eq]",
                 )
-                if nosqli_negation_baseline:
-                    try:
-                        (
-                            nosqli_negate_comparison,
-                            nosqli_negate_diff_reasons,
-                            nosqli_negate_reflection,
-                            nosqli_negate_response,
-                        ) = await self.compare_probe(
-                            nosqli_negation_baseline,
-                            self.event.data["type"],
-                            f"{probe_value}'",
-                            cookies,
-                            additional_params_populate_empty=True,
-                            parameter_name_suffix="[$ne]",
-                            parameter_name_suffix_additional_params="[$ne]",
-                        )
-                        if nosqli_negate_response:
-                            if not nosqli_negate_comparison and nosqli_negate_diff_reasons != ["header"]:
-                                self.results.append(
-                                    {
-                                        "type": "FINDING",
-                                        "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Parameter Name Operator Injection - Negation ([$ne])]",
-                                    }
-                                )
+            except HttpCompareError as e:
+                self.warning(f"Encountered HttpCompareError Sending Compare Baseline: {e}")
 
-                    except HttpCompareError as e:
-                        self.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+            if nosqli_negation_baseline:
+                try:
+                    (
+                        nosqli_negate_comparison,
+                        nosqli_negate_diff_reasons,
+                        nosqli_negate_reflection,
+                        nosqli_negate_response,
+                    ) = await self.compare_probe(
+                        nosqli_negation_baseline,
+                        self.event.data["type"],
+                        f"{probe_value}'",
+                        cookies,
+                        additional_params_populate_empty=True,
+                        parameter_name_suffix="[$ne]",
+                        parameter_name_suffix_additional_params="[$ne]",
+                    )
+                    if nosqli_negate_response:
+                        if not nosqli_negate_comparison and nosqli_negate_diff_reasons != ["header"]:
+                            self.results.append(
+                                {
+                                    "type": "FINDING",
+                                    "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Parameter Name Operator Injection - Negation ([$ne])]",
+                                }
+                            )
+                except HttpCompareError as e:
+                    self.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")

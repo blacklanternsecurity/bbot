@@ -61,7 +61,7 @@ class HttpCompare:
                 retries=2,
                 timeout=self.timeout,
             )
-            await self.parent_helper.sleep(1)
+            await self.parent_helper.sleep(0.5)
             # put random parameters in URL, headers, and cookies
             get_params = {self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)}
 

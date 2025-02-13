@@ -716,6 +716,8 @@ class Test_Lightfuzz_nosqli_negation(Test_Lightfuzz_nosqli_quoteescape):
 
         if "username[$ne]" in request.form.keys() and "password[$ne]" in request.form.keys():
             return Response("Welcome, testuser1!", status=200)
+        if "username[$eq]" in request.form.keys() and "password[$eq]" in request.form.keys():
+            return Response("Invalid Username or Password!", status=200)
         else:
             return Response("Invalid Username or Password!", status=200)
 
@@ -732,6 +734,36 @@ class Test_Lightfuzz_nosqli_negation(Test_Lightfuzz_nosqli_quoteescape):
                     nosqli_finding_emitted = True
         assert nosqli_finding_emitted, "NoSQLi FINDING not emitted"
         assert finding_count == 2, "Unexpected FINDING events reported"
+
+class Test_Lightfuzz_nosqli_negation_falsepositive(Test_Lightfuzz_nosqli_quoteescape):
+    def request_handler(self, request):
+        form_block = """
+            <form method="POST" action="">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            <br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            <br>
+            <button type="submit">Login</button>
+          </form>
+        """
+        if request.method == "GET":
+            return Response(form_block, status=200)
+
+        if "username[$ne]" in request.form.keys() and "password[$ne]" in request.form.keys():
+            return Response("missing username or password", status=500)
+        if "username[$eq]" in request.form.keys() and "password[$eq]" in request.form.keys():
+            return Response("missing username or password", status=500)
+        else:
+            return Response("Invalid Username or Password!", status=200)
+
+    def check(self, module_test, events):
+        finding_count = 0
+        for e in events:
+            if e.type == "FINDING":
+                finding_count += 1
+        assert finding_count == 0, "False positive FINDING emitted"
 
 
 # SQLI Single Quote/Two Single Quote (getparam)
