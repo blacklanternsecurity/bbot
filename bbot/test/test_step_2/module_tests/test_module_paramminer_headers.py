@@ -186,10 +186,14 @@ class TestParamminer_Headers_NoCookieRetention(Paramminer_Headers):
     def check(self, module_test, events):
 
         found_web_parameter = False
+        found_web_parameter_false_positive = False
 
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if "[Paramminer] Header: [tracestate]" in e.data["description"]:
                     found_web_parameter = True
+                if "junkword1" in e.data["description"]:
+                    found_web_parameter_false_positive = True
 
         assert found_web_parameter, "WEB_PARAMETER event was not emitted"
+        assert not found_web_parameter_false_positive, "WEB_PARAMETER event was emitted with false positive"
