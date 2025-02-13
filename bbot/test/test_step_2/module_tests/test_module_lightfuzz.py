@@ -735,6 +735,7 @@ class Test_Lightfuzz_nosqli_negation(Test_Lightfuzz_nosqli_quoteescape):
         assert nosqli_finding_emitted, "NoSQLi FINDING not emitted"
         assert finding_count == 2, "Unexpected FINDING events reported"
 
+
 class Test_Lightfuzz_nosqli_negation_falsepositive(Test_Lightfuzz_nosqli_quoteescape):
     def request_handler(self, request):
         form_block = """
