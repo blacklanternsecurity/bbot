@@ -125,7 +125,11 @@ class BaseEnvelope(metaclass=EnvelopeChildTracker):
             with suppress(*envelope_class.ignore_exceptions):
                 envelope = envelope_class(s)
                 if envelope is not False:
-                    return envelope
+                    # make sure the envelope is not just the original string, to prevent unnecessary envelope detection. For example, "10" is technically valid JSON, but nothing is being encapsulated
+                    if str(envelope.unpacked_data()) == s:
+                        return TextEnvelope(s)
+                    else:
+                        return envelope
                 del envelope
         raise Exception(f"No envelope detected for data: '{s}' ({type(s)})")
 
