@@ -94,6 +94,7 @@ class HttpCompare:
             if baseline_1.status_code != baseline_2.status_code:
                 log.debug("Status code not stable during baseline, aborting")
                 raise HttpCompareError("Can't get baseline from source URL")
+
             try:
                 baseline_1_json = xmltodict.parse(baseline_1.text)
                 baseline_2_json = xmltodict.parse(baseline_2.text)

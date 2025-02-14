@@ -127,11 +127,27 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                     )
                     if nosqli_negate_response:
                         if not nosqli_negate_comparison and nosqli_negate_diff_reasons != ["header"]:
-                            self.results.append(
-                                {
-                                    "type": "FINDING",
-                                    "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Parameter Name Operator Injection - Negation ([$ne])] Differences: [{'.'.join(nosqli_negate_diff_reasons)}]",
-                                }
+                            # If we are about to report a finding, rule out a false positive from unstable URL by sending another probe with the baseline values, and ensure those dont also come back as different
+                            (
+                                nosqli_negate_comfirm_comparison,
+                                nosqli_negate_confirm_diff_reasons,
+                                nosqli_negate_confirm_reflection,
+                                nosqli_negate_confirm_response,
+                            ) = await self.compare_probe(
+                                nosqli_negation_baseline,
+                                self.event.data["type"],
+                                f"{probe_value}'",
+                                cookies,
+                                additional_params_populate_empty=True,
+                                parameter_name_suffix="[$eq]",
+                                parameter_name_suffix_additional_params="[$eq]",
                             )
+                            if nosqli_negate_comfirm_comparison:
+                                self.results.append(
+                                    {
+                                        "type": "FINDING",
+                                        "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Parameter Name Operator Injection - Negation ([$ne])] Differences: [{'.'.join(nosqli_negate_diff_reasons)}]",
+                                    }
+                                )
                 except HttpCompareError as e:
                     self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
