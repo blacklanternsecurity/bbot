@@ -328,13 +328,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     _module_threads = 8
 
-    parameter_blacklist_prefix = [
-        "TS01",
-        "BIGipServer",
-        "incap_",
-        "visid_incap_",
-        "AWSALB",
-    ]  # Big-IP F5 Persistence Cookies / Incapsula WAF Cookies
+    parameter_blacklist_prefix = ["TS01", "BIGipServer", "incap_", "visid_incap_", "AWSALB", "utm_"]
 
     parameter_blacklist = set(
         p.lower()

@@ -728,7 +728,7 @@ class Test_Lightfuzz_nosqli_negation(Test_Lightfuzz_nosqli_quoteescape):
             if e.type == "FINDING":
                 finding_count += 1
                 if (
-                    "Possible NoSQL Injection. Parameter: [password] Parameter Type: [POSTPARAM] Detection Method: [Parameter Name Operator Injection - Negation ([$ne])]"
+                    "Possible NoSQL Injection. Parameter: [password] Parameter Type: [POSTPARAM] Detection Method: [Parameter Name Operator Injection - Negation ([$ne])] Differences: [body]"
                     in e.data["description"]
                 ):
                     nosqli_finding_emitted = True

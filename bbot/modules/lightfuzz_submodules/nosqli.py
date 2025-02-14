@@ -130,7 +130,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                             self.results.append(
                                 {
                                     "type": "FINDING",
-                                    "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Parameter Name Operator Injection - Negation ([$ne])]",
+                                    "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Parameter Name Operator Injection - Negation ([$ne])] Differences: [{'.'.join(nosqli_negate_diff_reasons)}]",
                                 }
                             )
                 except HttpCompareError as e:
