@@ -3,7 +3,6 @@ import xmltodict
 from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
-from bbot.core.helpers.web.client import BBOTAsyncClient
 from bbot.errors import HttpCompareError
 
 log = logging.getLogger("bbot.core.helpers.diff")
