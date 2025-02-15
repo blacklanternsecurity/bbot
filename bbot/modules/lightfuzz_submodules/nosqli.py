@@ -46,7 +46,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                     cookies,
                     additional_params_populate_empty=True,
                 )
-                if single_quote_response and escaped_single_quote_response:
+                if not single_quote_comparison and single_quote_response and escaped_single_quote_response:
                     # if the single quote probe changed the code or body, and the escaped single quote probe did not cause the same change, injection is possible
                     if ("code" in single_quote_diff_reasons or "body" in single_quote_diff_reasons) and (
                         single_quote_diff_reasons != escaped_single_quote_diff_reasons
@@ -81,7 +81,7 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                                 self.results.append(
                                     {
                                         "type": "FINDING",
-                                        "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Quote/Escaped Quote + Conditional Affect]",
+                                        "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Quote/Escaped Quote + Conditional Affect] Differences: [{'.'.join(confirmation_probe_false_diff_reasons)}]",
                                     }
                                 )
 
