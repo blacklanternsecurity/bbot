@@ -78,20 +78,34 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                             if not confirmation_probe_false_comparison and confirmation_probe_false_diff_reasons != [
                                 "header"
                             ]:
-                                self.results.append(
-                                    {
-                                        "type": "FINDING",
-                                        "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Quote/Escaped Quote + Conditional Affect] Differences: [{'.'.join(confirmation_probe_false_diff_reasons)}]",
-                                    }
+                                (
+                                    final_confirm_comparison,
+                                    final_confirm_diff_reasons,
+                                    final_confirm_reflection,
+                                    final_confirm_response,
+                                ) = await self.compare_probe(
+                                    confirm_baseline,
+                                    self.event.data["type"],
+                                    urllib.parse.quote(f"{probe_value}' && 0 && 'x", safe=""),
+                                    cookies,
+                                    additional_params_populate_empty=True,
+                                    skip_urlencoding=True,
                                 )
+
+                                if final_confirm_response and final_confirm_comparison:
+                                    self.results.append(
+                                        {
+                                            "type": "FINDING",
+                                            "description": f"Possible NoSQL Injection. {self.metadata()} Detection Method: [Quote/Escaped Quote + Conditional Affect] Differences: [{'.'.join(confirmation_probe_false_diff_reasons)}]",
+                                        }
+                                    )
+                                else:
+                                    self.verbose(
+                                        "Aborted reporting Possible NoSQL Injection, due to unstable/inconsistent responses"
+                                    )
 
             except HttpCompareError as e:
                 self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
-
-            else:
-                # if both probes were successful (and had a response)
-
-                self.verbose("Failed to get responses for both single_quote and double_single_quote")
 
         # Comparison operator injection
         if self.event.data["type"] in ["POSTPARAM", "GETPARAM"]:
