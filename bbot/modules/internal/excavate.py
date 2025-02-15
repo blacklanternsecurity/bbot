@@ -328,7 +328,17 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     _module_threads = 8
 
-    parameter_blacklist_prefix = ["TS01", "BIGipServer", "incap_", "visid_incap_", "AWSALB", "utm_", "ApplicationGatewayAffinity", "JSESSIONID", "ARRAffinity"]
+    parameter_blacklist_prefix = [
+        "TS01",
+        "BIGipServer",
+        "incap_",
+        "visid_incap_",
+        "AWSALB",
+        "utm_",
+        "ApplicationGatewayAffinity",
+        "JSESSIONID",
+        "ARRAffinity",
+    ]
 
     parameter_blacklist = set(
         p.lower()
@@ -752,6 +762,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             self.yara_rules["serialization_detection"] = (
                 f'rule serialization_detection {{meta: description = "contains a possible serialized object" strings: {regexes_component} condition: any of them}}'
             )
+
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
