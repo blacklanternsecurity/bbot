@@ -328,7 +328,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     _module_threads = 8
 
-    parameter_blacklist_prefix = ["TS01", "BIGipServer", "incap_", "visid_incap_", "AWSALB", "utm_"]
+    parameter_blacklist_prefix = ["TS01", "BIGipServer", "incap_", "visid_incap_", "AWSALB", "utm_", "ApplicationGatewayAffinity", "JSESSIONID", "ARRAffinity"]
 
     parameter_blacklist = set(
         p.lower()
@@ -342,10 +342,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             "__SCROLLPOSITIONY",
             "__SCROLLPOSITIONX",
             "ASP.NET_SessionId",
-            "JSESSIONID",
             "PHPSESSID",
-            "AWSALB",
-            "AWSALBCORS",
             "__cf_bm",
             "f5_cspm",
         ]

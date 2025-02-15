@@ -615,7 +615,6 @@ replace
 read
 project
 Post
-PHPSESSID
 nid
 md5
 map
