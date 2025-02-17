@@ -1241,13 +1241,13 @@ files = [
 
 [[package]]
 name = "mkdocstrings"
-version = "0.28.0"
+version = "0.28.1"
 description = "Automatic documentation from sources, for MkDocs."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "mkdocstrings-0.28.0-py3-none-any.whl", hash = "sha256:84cf3dc910614781fe0fee46ce8006fde7df6cc7cca2e3f799895fb8a9170b39"},
-    {file = "mkdocstrings-0.28.0.tar.gz", hash = "sha256:df20afef1eafe36ba466ae20732509ecb74237653a585f5061937e54b553b4e0"},
+    {file = "mkdocstrings-0.28.1-py3-none-any.whl", hash = "sha256:a5878ae5cd1e26f491ff084c1f9ab995687d52d39a5c558e9b7023d0e4e0b740"},
+    {file = "mkdocstrings-0.28.1.tar.gz", hash = "sha256:fb64576906771b7701e8e962fd90073650ff689e95eb86e86751a66d65ab4489"},
 ]
 
 [package.dependencies]
