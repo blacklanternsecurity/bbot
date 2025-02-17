@@ -1,4 +1,5 @@
 import re
+import asyncio
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
@@ -23,15 +24,16 @@ class TestGeneric_SSRF(ModuleTestBase):
         elif request.method == "POST":
             subdomain_tag = extract_subdomain_tag(request.data.decode())
         if subdomain_tag:
-            self.interactsh_mock_instance.mock_interaction(
-                subdomain_tag, msg=f"{request.method}: {request.data.decode()}"
+            asyncio.run(
+                self.interactsh_mock_instance.mock_interaction(
+                    subdomain_tag, msg=f"{request.method}: {request.data.decode()}"
+                )
             )
 
         return Response("alive", status=200)
 
     async def setup_before_prep(self, module_test):
         self.interactsh_mock_instance = module_test.mock_interactsh("generic_ssrf")
-        self.interactsh_mock_instance.mock_interaction("asdf")
         module_test.monkeypatch.setattr(
             module_test.scan.helpers, "interactsh", lambda *args, **kwargs: self.interactsh_mock_instance
         )
@@ -41,6 +43,18 @@ class TestGeneric_SSRF(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
+        total_vulnerabilities = 0
+        total_findings = 0
+
+        for e in events:
+            if e.type == "VULNERABILITY":
+                total_vulnerabilities += 1
+            elif e.type == "FINDING":
+                total_findings += 1
+
+        assert total_vulnerabilities == 30, "Incorrect number of vulnerabilities detected"
+        assert total_findings == 30, "Incorrect number of findings detected"
+
         assert any(
             e.type == "VULNERABILITY"
             and "Out-of-band interaction: [Generic SSRF (GET)]"
@@ -55,3 +69,20 @@ class TestGeneric_SSRF(ModuleTestBase):
             e.type == "VULNERABILITY" and "Out-of-band interaction: [Generic XXE] [HTTP]" in e.data["description"]
             for e in events
         ), "Failed to detect Generic SSRF (XXE)"
+
+
+class TestGeneric_SSRF_httponly(TestGeneric_SSRF):
+    config_overrides = {"modules": {"generic_ssrf": {"skip_dns_interaction": True}}}
+
+    def check(self, module_test, events):
+        total_vulnerabilities = 0
+        total_findings = 0
+
+        for e in events:
+            if e.type == "VULNERABILITY":
+                total_vulnerabilities += 1
+            elif e.type == "FINDING":
+                total_findings += 1
+
+        assert total_vulnerabilities == 30, "Incorrect number of vulnerabilities detected"
+        assert total_findings == 0, "Incorrect number of findings detected"

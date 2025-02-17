@@ -53,6 +53,8 @@ jobs:
             python3.11 -m pipx ensurepath
             pipx install poetry
           "
+      - name: Set OS Environment Variable
+        run: echo "OS_NAME=${{ matrix.os }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
       - name: Run tests
         run: |
           export PATH="$HOME/.local/bin:$PATH"
@@ -66,5 +68,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-debug-logs-${{ matrix.os }}
-          path: pytest_debug_${{ matrix.os }}.log
+          name: pytest-debug-logs-${{ env.OS_NAME }}
+          path: pytest_debug.log

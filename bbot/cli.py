@@ -180,13 +180,14 @@ async def _main():
 
             if sys.stdin.isatty():
                 # warn if any targets belong directly to a cloud provider
-                for event in scan.target.seeds.events:
-                    if event.type == "DNS_NAME":
-                        cloudcheck_result = scan.helpers.cloudcheck(event.host)
-                        if cloudcheck_result:
-                            scan.hugewarning(
-                                f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
-                            )
+                if not scan.preset.strict_scope:
+                    for event in scan.target.seeds.events:
+                        if event.type == "DNS_NAME":
+                            cloudcheck_result = scan.helpers.cloudcheck(event.host)
+                            if cloudcheck_result:
+                                scan.hugewarning(
+                                    f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
+                                )
 
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")

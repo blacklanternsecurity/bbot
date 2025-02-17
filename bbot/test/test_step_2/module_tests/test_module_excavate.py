@@ -30,6 +30,7 @@ class TestExcavate(ModuleTestBase):
         <a href="/a_relative.txt">
         <link href="/link_relative.txt">
         <a href="mailto:bob@evilcorp.org?subject=help">Help</a>
+        <li class="toctree-l3"><a class="reference internal" href="miscellaneous.html#x50-uart-driver">16x50 UART Driver</a></li>
         """
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": response_data}
@@ -100,6 +101,11 @@ class TestExcavate(ModuleTestBase):
 
         assert any(
             e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/distance2.html" and "spider-max" in e.tags
+            for e in events
+        )
+
+        assert any(
+            e.type == "URL_UNVERIFIED" and "miscellaneous.html" in e.data and "x50-uart-driver" not in e.data
             for e in events
         )
 

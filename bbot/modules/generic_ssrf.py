@@ -154,6 +154,12 @@ class generic_ssrf(BaseModule):
     produced_events = ["VULNERABILITY"]
     flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Check for generic SSRFs", "created_date": "2022-07-30", "author": "@liquidsec"}
+    options = {
+        "skip_dns_interaction": False,
+    }
+    options_desc = {
+        "skip_dns_interaction": "Do not report DNS interactions (only HTTP interaction)",
+    }
     in_scope_only = True
 
     deps_apt = ["curl"]
@@ -163,7 +169,7 @@ class generic_ssrf(BaseModule):
         self.interactsh_subdomain_tags = {}
         self.parameter_subdomain_tags_map = {}
         self.severity = None
-        self.generic_only = self.config.get("generic_only", False)
+        self.skip_dns_interaction = self.config.get("skip_dns_interaction", False)
 
         if self.scan.config.get("interactsh_disable", False) is False:
             try:
@@ -191,6 +197,10 @@ class generic_ssrf(BaseModule):
             await s.test(event)
 
     async def interactsh_callback(self, r):
+        protocol = r.get("protocol").upper()
+        if protocol == "DNS" and self.skip_dns_interaction:
+            return
+
         full_id = r.get("full-id", None)
         subdomain_tag = full_id.split(".")[0]
 
@@ -204,24 +214,27 @@ class generic_ssrf(BaseModule):
                 matched_severity = match[2]
                 matched_echoed_response = str(match[3])
 
-                # Check if any SSRF parameter is in the DNS request
                 triggering_param = self.parameter_subdomain_tags_map.get(subdomain_tag, None)
                 description = f"Out-of-band interaction: [{matched_technique}]"
                 if triggering_param:
                     self.debug(f"Found triggering parameter: {triggering_param}")
                     description += f" [Triggering Parameter: {triggering_param}]"
-                description += f" [{r.get('protocol').upper()}] Echoed Response: {matched_echoed_response}"
+                description += f" [{protocol}] Echoed Response: {matched_echoed_response}"
 
                 self.debug(f"Emitting event with description: {description}")  # Debug the final description
 
+                event_type = "VULNERABILITY" if protocol == "HTTP" else "FINDING"
+                event_data = {
+                    "host": str(matched_event.host),
+                    "url": matched_event.data,
+                    "description": description,
+                }
+                if protocol == "HTTP":
+                    event_data["severity"] = matched_severity
+
                 await self.emit_event(
-                    {
-                        "severity": matched_severity,
-                        "host": str(matched_event.host),
-                        "url": matched_event.data,
-                        "description": description,
-                    },
-                    "VULNERABILITY",
+                    event_data,
+                    event_type,
                     matched_event,
                     context=f"{{module}} scanned {matched_event.data} and detected {{event.type}}: {matched_technique}",
                 )
@@ -241,7 +254,7 @@ class generic_ssrf(BaseModule):
 
     async def finish(self):
         if self.scan.config.get("interactsh_disable", False) is False:
-            await self.helpers.sleep(2)
+            await self.helpers.sleep(5)
             try:
                 for r in await self.interactsh_instance.poll():
                     await self.interactsh_callback(r)

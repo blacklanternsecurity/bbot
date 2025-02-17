@@ -33,6 +33,11 @@ class TestTelerik(ModuleTestBase):
         respond_args = {"status": 500}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        # Simulate SpellCheckHandler false positive detection
+        expect_args = {"method": "GET", "uri": "/AAAAAAAAAAAAAA.axd"}
+        respond_args = {"status": 200}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
         # Simulate DialogHandler detection
         expect_args = {"method": "GET", "uri": "/App_Master/Telerik.Web.UI.DialogHandler.aspx"}
         respond_args = {
@@ -64,6 +69,7 @@ class TestTelerik(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     async def setup_after_prep(self, module_test):
+        module_test.scan.modules["telerik"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         module_test.scan.modules["telerik"].telerikVersions = ["2014.2.724", "2014.3.1024", "2015.1.204"]
         module_test.scan.modules["telerik"].DialogHandlerUrls = [
             "Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
