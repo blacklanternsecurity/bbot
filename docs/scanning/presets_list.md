@@ -237,6 +237,9 @@ Comprehensive scan for all IIS/.NET specific modules and module settings
       modules:
         ffuf:
           extensions: asp,aspx,ashx,asmx,ascx
+          extensions_ignore_case: True
+        ffuf_shortnames:
+          find_subwords: True
         telerik:
           exploit_RAU_crypto: True
           include_subdirs: True # Run against every directory, not the default first received URL per-host
@@ -271,6 +274,9 @@ Comprehensive scan for all IIS/.NET specific modules and module settings
       modules:
         ffuf:
           extensions: asp,aspx,ashx,asmx,ascx
+          extensions_ignore_case: True
+        ffuf_shortnames:
+          find_subwords: True
         telerik:
           exploit_RAU_crypto: True
           include_subdirs: True # Run against every directory, not the default first received URL per-host
@@ -841,6 +847,29 @@ Enumerate subdomains via APIs, brute-force
 
 Modules: [52]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `bevigil`, `binaryedge`, `bufferoverrun`, `builtwith`, `c99`, `censys`, `certspotter`, `chaos`, `crt`, `digitorus`, `dnsbimi`, `dnsbrute_mutations`, `dnsbrute`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `internetdb`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman_download`, `postman`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`, `zoomeye`")
 
+## **tech-detect**
+
+Detect technologies via Wappalyzer, Nuclei, and FingerprintX
+
+??? note "`tech-detect.yml`"
+    ```yaml title="~/.bbot/presets/tech-detect.yml"
+    description: Detect technologies via Wappalyzer, Nuclei, and FingerprintX
+    
+    modules:
+      - nuclei
+      - wappalyzer
+      - fingerprintx
+    
+    config:
+      modules:
+        nuclei:
+          tags: tech
+    ```
+
+
+
+Modules: [4]("`fingerprintx`, `httpx`, `nuclei`, `wappalyzer`")
+
 ## **web-basic**
 
 Quick web scan
@@ -941,6 +970,7 @@ Here is a the same data, but in a table:
 | spider            |            | Recursive web spider                                                                                                                     | 1           | httpx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | spider-intense    |            | Recursive web spider with more aggressive settings                                                                                       | 1           | httpx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | subdomain-enum    |            | Enumerate subdomains via APIs, brute-force                                                                                               | 52          | anubisdb, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, bevigil, binaryedge, bufferoverrun, builtwith, c99, censys, certspotter, chaos, crt, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, internetdb, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback, zoomeye                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| tech-detect       |            | Detect technologies via Wappalyzer, Nuclei, and FingerprintX                                                                             | 4           | fingerprintx, httpx, nuclei, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | web-basic         |            | Quick web scan                                                                                                                           | 18          | azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_firebase, bucket_google, ffuf_shortnames, filedownload, git, httpx, iis_shortnames, ntlm, oauth, robots, securitytxt, sslcert, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | web-screenshots   |            | Take screenshots of webpages                                                                                                             | 3           | gowitness, httpx, social                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | web-thorough      |            | Aggressive web scan                                                                                                                      | 29          | ajaxpro, azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, bypass403, dastardly, dotnetnuke, ffuf_shortnames, filedownload, generic_ssrf, git, host_header, httpx, hunt, iis_shortnames, ntlm, oauth, robots, securitytxt, smuggler, sslcert, telerik, url_manipulation, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
