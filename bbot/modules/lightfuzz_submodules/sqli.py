@@ -173,5 +173,3 @@ class SQLiLightfuzz(BaseLightfuzz):
                         "description": f"Possible Blind SQL Injection. {self.metadata()} Detection Method: [Delay Probe ({p})]",
                     }
                 )
-
-

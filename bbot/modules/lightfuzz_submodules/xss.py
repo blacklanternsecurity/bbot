@@ -21,16 +21,12 @@ class XSSLightfuzz(BaseLightfuzz):
         return between_tags, in_tag_attribute, in_javascript
 
     async def check_between_tags(self, html, random_string):
-        between_tags_regex = re.compile(
-            rf"<(\/?\w+)[^>]*>.*?{random_string}.*?<\/?\w+>"
-        )
+        between_tags_regex = re.compile(rf"<(\/?\w+)[^>]*>.*?{random_string}.*?<\/?\w+>")
         between_tags_match = await self.lightfuzz.helpers.re.search(between_tags_regex, html)
         return bool(between_tags_match)
 
     async def check_in_tag_attribute(self, html, random_string):
-        in_tag_attribute_regex = re.compile(
-            rf'<(\w+)\s+[^>]*?(\w+)="([^"]*?{random_string}[^"]*?)"[^>]*>'
-        )
+        in_tag_attribute_regex = re.compile(rf'<(\w+)\s+[^>]*?(\w+)="([^"]*?{random_string}[^"]*?)"[^>]*>')
         in_tag_attribute_match = await self.lightfuzz.helpers.re.search(in_tag_attribute_regex, html)
         return bool(in_tag_attribute_match)
 
@@ -47,7 +43,7 @@ class XSSLightfuzz(BaseLightfuzz):
 
         def is_balanced(section, target_index, quote_char):
             left = section[:target_index]
-            right = section[target_index + len(target):]
+            right = section[target_index + len(target) :]
             return left.count(quote_char) % 2 == 0 and right.count(quote_char) % 2 == 0
 
         for statement in statements:
@@ -118,25 +114,17 @@ class XSSLightfuzz(BaseLightfuzz):
     async def test_in_tag_attribute(self, cookies, random_string):
         in_tag_attribute_probe = f'{random_string}"'
         in_tag_attribute_match = f'"{random_string}""'
-        await self.check_probe(
-            cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute"
-        )
+        await self.check_probe(cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute")
 
         in_tag_attribute_probe = f"javascript:{random_string}"
         in_tag_attribute_match = f'action="javascript:{random_string}'
-        await self.check_probe(
-            cookies, in_tag_attribute_probe, in_tag_attribute_match, "Form Action Injection"
-        )
+        await self.check_probe(cookies, in_tag_attribute_probe, in_tag_attribute_match, "Form Action Injection")
 
     async def test_in_javascript(self, cookies, random_string, reflection_probe_result):
         in_javascript_probe = rf"</script><script>{random_string}</script>"
-        result = await self.check_probe(
-            cookies, in_javascript_probe, in_javascript_probe, "In Javascript"
-        )
+        result = await self.check_probe(cookies, in_javascript_probe, in_javascript_probe, "In Javascript")
         if not result:
-            quote_context = await self.determine_javascript_quote_context(
-                random_string, reflection_probe_result.text
-            )
+            quote_context = await self.determine_javascript_quote_context(random_string, reflection_probe_result.text)
 
             if quote_context == "outside":
                 return

@@ -55,7 +55,11 @@ class BaseLightfuzz:
         """Conditionally url-encodes the probe if the event type requires it and encoding is not skipped by the submodule.
         We also don't encode if any envelopes are present.
         """
-        if parameter_type in ["GETPARAM", "COOKIE"] and not skip_urlencoding and getattr(self.event, "envelopes", None):
+        if (
+            parameter_type in ["GETPARAM", "COOKIE"]
+            and not skip_urlencoding
+            and getattr(self.event, "envelopes", None)
+        ):
             # Exclude '&' from being encoded since we are operating on full query strings
             return quote(probe, safe="&")
         return probe

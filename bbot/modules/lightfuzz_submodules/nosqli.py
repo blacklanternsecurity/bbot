@@ -48,7 +48,12 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
-            escaped_single_quote_comparison, escaped_single_quote_diff_reasons, _, escaped_single_quote_response = await self.compare_probe(
+            (
+                escaped_single_quote_comparison,
+                escaped_single_quote_diff_reasons,
+                _,
+                escaped_single_quote_response,
+            ) = await self.compare_probe(
                 quote_probe_baseline,
                 self.event.data["type"],
                 rf"{probe_value}\'",
@@ -57,9 +62,11 @@ class NoSQLiLightfuzz(BaseLightfuzz):
             )
 
             if (
-                not single_quote_comparison and single_quote_response and escaped_single_quote_response and
-                ("code" in single_quote_diff_reasons or "body" in single_quote_diff_reasons) and
-                single_quote_diff_reasons != escaped_single_quote_diff_reasons
+                not single_quote_comparison
+                and single_quote_response
+                and escaped_single_quote_response
+                and ("code" in single_quote_diff_reasons or "body" in single_quote_diff_reasons)
+                and single_quote_diff_reasons != escaped_single_quote_diff_reasons
             ):
                 self.verbose("Initial heuristic indicates possible NoSQL Injection, sending confirmation probes")
 
@@ -70,7 +77,12 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                     additional_params_populate_empty=True,
                     skip_urlencoding=True,
                 )
-                confirmation_probe_false_comparison, confirmation_probe_false_diff_reasons, _, confirmation_probe_false_response = await self.compare_probe(
+                (
+                    confirmation_probe_false_comparison,
+                    confirmation_probe_false_diff_reasons,
+                    _,
+                    confirmation_probe_false_response,
+                ) = await self.compare_probe(
                     confirm_baseline,
                     self.event.data["type"],
                     urllib.parse.quote(f"{probe_value}' && 1 && 'x", safe=""),
@@ -79,7 +91,11 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                     skip_urlencoding=True,
                 )
 
-                if confirmation_probe_false_response and not confirmation_probe_false_comparison and confirmation_probe_false_diff_reasons != ["header"]:
+                if (
+                    confirmation_probe_false_response
+                    and not confirmation_probe_false_comparison
+                    and confirmation_probe_false_diff_reasons != ["header"]
+                ):
                     final_confirm_comparison, _, _, final_confirm_response = await self.compare_probe(
                         confirm_baseline,
                         self.event.data["type"],
@@ -97,7 +113,9 @@ class NoSQLiLightfuzz(BaseLightfuzz):
                             }
                         )
                     else:
-                        self.verbose("Aborted reporting Possible NoSQL Injection, due to unstable/inconsistent responses")
+                        self.verbose(
+                            "Aborted reporting Possible NoSQL Injection, due to unstable/inconsistent responses"
+                        )
         except HttpCompareError as e:
             self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
