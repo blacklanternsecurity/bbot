@@ -100,7 +100,6 @@ modify
 rename
 reset
 shell
-utm_content
 toggle
 adm
 cfg
@@ -616,7 +615,6 @@ replace
 read
 project
 Post
-PHPSESSID
 nid
 md5
 map
@@ -1532,10 +1530,6 @@ unstick
 unsecuresubmit
 unbookmark
 ua
-utm_source
-utm_campaign
-utm_medium
-utm_term
 typ
 tv
 tree
@@ -4754,7 +4748,6 @@ pPage
 pName
 pMail
 pDesc
-p4ssw0rD
 p3
 p2p
 p2index
@@ -5701,7 +5694,6 @@ dstendport
 dstbeginport
 dscp
 dryrun
-droptables
 drilldown
 dragtable
 dragdroporder

@@ -10,7 +10,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=False)
         if not probe_value:
-            self.lightfuzz.debug(
+            self.debug(
                 f"Path Traversal detection requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
             return
@@ -96,9 +96,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                         and "The requested URL was rejected" not in doubledot_probe[3].text
                     ):
                         confirmations += 1
-                        self.lightfuzz.verbose(
-                            f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations"
-                        )
+                        self.verbose(f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations")
                         # only report if we have 3 confirmations
                         if confirmations > 3:
                             self.results.append(
@@ -111,7 +109,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                             break
                 except HttpCompareError as e:
                     iterations -= 1
-                    self.lightfuzz.debug(e)
+                    self.debug(e)
                     continue
 
                 iterations -= 1

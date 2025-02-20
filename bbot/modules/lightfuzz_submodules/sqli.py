@@ -74,7 +74,7 @@ class SQLiLightfuzz(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
-            # if the single quote probe respone is different from the baseline
+            # if the single quote probe response is different from the baseline
             if single_quote[0] is False:
                 # check for common SQL error strings in the response
                 for sqli_error_string in self.sqli_error_strings:
@@ -88,18 +88,26 @@ class SQLiLightfuzz(BaseLightfuzz):
                         break
             # if both probes were successful (and had a response)
             if single_quote[3] and double_single_quote[3]:
-                # if the code changed in the single quote probe, and the code is NOT the same between that and the double single quote probe, SQL injection is indicated
-                if "code" in single_quote[1] and (single_quote[3].status_code != double_single_quote[3].status_code):
-                    self.results.append(
-                        {
-                            "type": "FINDING",
-                            "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote]",
-                        }
-                    )
+                # Ensure none of the status codes are "429"
+                if (
+                    single_quote[3].status_code != 429
+                    and double_single_quote[3].status_code != 429
+                    and http_compare.baseline.status_code != 429
+                ):  # prevent false positives from rate limiting
+                    # if the code changed in the single quote probe, and the code is NOT the same between that and the double single quote probe, SQL injection is indicated
+                    if "code" in single_quote[1] and (
+                        single_quote[3].status_code != double_single_quote[3].status_code
+                    ):
+                        self.results.append(
+                            {
+                                "type": "FINDING",
+                                "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({http_compare.baseline.status_code}->{single_quote[3].status_code}->{double_single_quote[3].status_code})]",
+                            }
+                        )
             else:
-                self.lightfuzz.debug("Failed to get responses for both single_quote and double_single_quote")
+                self.debug("Failed to get responses for both single_quote and double_single_quote")
         except HttpCompareError as e:
-            self.lightfuzz.warning(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+            self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
         # These are common SQL injection payloads for inducing an intentional delay across several different SQL database types
         standard_probe_strings = [
@@ -134,16 +142,16 @@ class SQLiLightfuzz(BaseLightfuzz):
                         timeout=20,
                     )
                     if not r:
-                        self.lightfuzz.debug("delay measure request failed")
+                        self.debug("delay measure request failed")
                         break
 
                     d = r.elapsed.total_seconds()
-                    self.lightfuzz.debug(f"measured delay: {str(d)}")
+                    self.debug(f"measured delay: {str(d)}")
                     if self.evaluate_delay(
                         mean_baseline, d
                     ):  # decide if the delay is within the detection threshold and constitutes a successful sleep execution
                         confirmations += 1
-                        self.lightfuzz.debug(
+                        self.debug(
                             f"{self.event.data['url']}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
                         )
                     else:
@@ -158,4 +166,4 @@ class SQLiLightfuzz(BaseLightfuzz):
                     )
 
         else:
-            self.lightfuzz.debug("Could not get baseline for time-delay tests")
+            self.debug("Could not get baseline for time-delay tests")

@@ -27,7 +27,7 @@ class Paramminer_Headers(ModuleTestBase):
     """
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["paramminer_headers"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["paramminer_headers"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         module_test.monkeypatch.setattr(
             helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
         )
@@ -108,7 +108,7 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
     """
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["paramminer_headers"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["paramminer_headers"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         module_test.monkeypatch.setattr(
             helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
         )
@@ -153,3 +153,47 @@ class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
         assert not excavate_extracted_web_parameter, (
             "Excavate extract WEB_PARAMETER despite disabling parameter extraction"
         )
+
+
+class TestParamminer_Headers_NoCookieRetention(Paramminer_Headers):
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["paramminer_headers"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.monkeypatch.setattr(
+            helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
+        )
+
+        expect_args = {"headers": {"tracestate": "AAAAAAAAAAAAAA"}}
+        respond_args = {"response_data": self.headers_body_match}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        headers_body_with_cookie = """
+        <html>
+        <title>the title</title>
+        <body>
+        <p>Hello with cookie!</p>';
+        </body>
+        </html>
+        """
+        expect_args = {"headers": {"Cookie": "test_cookie=cookie_value; AAAAAAAAAAAAAA=AAAAAAAAAAAAAA"}}
+        respond_args_with_cookie_body_change = {"response_data": headers_body_with_cookie}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args_with_cookie_body_change)
+
+        respond_args_default = {
+            "response_data": self.headers_body,
+            "headers": {"set-cookie": "test_cookie=cookie_value"},
+        }
+        module_test.set_expect_requests(respond_args=respond_args_default)
+
+    def check(self, module_test, events):
+        found_web_parameter = False
+        found_web_parameter_false_positive = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "[Paramminer] Header: [tracestate]" in e.data["description"]:
+                    found_web_parameter = True
+                if "junkword1" in e.data["description"]:
+                    found_web_parameter_false_positive = True
+
+        assert found_web_parameter, "WEB_PARAMETER event was not emitted"
+        assert not found_web_parameter_false_positive, "WEB_PARAMETER event was emitted with false positive"

@@ -26,5 +26,5 @@ config:
 conditions:
   - |
     {% if config.web.spider_distance == 0 %}
-      {{ warn("The lightfuzz-max preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+      {{ warn("The lightfuzz-intense preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
     {% endif %}

@@ -61,7 +61,7 @@ class HttpCompare:
                 retries=2,
                 timeout=self.timeout,
             )
-            await self.parent_helper.sleep(1)
+            await self.parent_helper.sleep(0.5)
             # put random parameters in URL, headers, and cookies
             get_params = {self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)}
 
@@ -85,7 +85,6 @@ class HttpCompare:
             )
 
             self.baseline = baseline_1
-
             if baseline_1 is None or baseline_2 is None:
                 log.debug("HTTP error while establishing baseline, aborting")
                 raise HttpCompareError(
@@ -94,6 +93,7 @@ class HttpCompare:
             if baseline_1.status_code != baseline_2.status_code:
                 log.debug("Status code not stable during baseline, aborting")
                 raise HttpCompareError("Can't get baseline from source URL")
+
             try:
                 baseline_1_json = xmltodict.parse(baseline_1.text)
                 baseline_2_json = xmltodict.parse(baseline_2.text)

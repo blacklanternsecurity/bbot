@@ -144,6 +144,10 @@ async def test_web_envelopes():
     assert json_envelope.get_subparam() == "val3"
     assert json_envelope.num_envelopes == 1
 
+    # prevent json over-detection
+    just_a_string = BaseEnvelope.detect("10")
+    assert not isinstance(just_a_string, JSONEnvelope)
+
     # xml
     xml_envelope = BaseEnvelope.detect(
         '<root><param1 attr="attr1">val1</param1><param2><param3>val3</param3></param2></root>'

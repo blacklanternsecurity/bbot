@@ -315,18 +315,30 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         "retain_querystring": True,
         "yara_max_match_data": 2000,
         "custom_yara_rules": "",
+        "speculate_params": False,
     }
     options_desc = {
         "retain_querystring": "Keep the querystring intact on emitted WEB_PARAMETERS",
         "yara_max_match_data": "Sets the maximum amount of text that can extracted from a YARA regex",
         "custom_yara_rules": "Include custom Yara rules",
+        "speculate_params": "Enable speculative parameter extraction from JSON and XML content",
     }
     scope_distance_modifier = None
     accept_dupes = False
 
     _module_threads = 8
 
-    parameter_blacklist_prefix = ["TS01", "BIGipServer"]  # Big-IP F5 Persistence Cookies
+    parameter_blacklist_prefix = [
+        "TS01",
+        "BIGipServer",
+        "incap_",
+        "visid_incap_",
+        "AWSALB",
+        "utm_",
+        "ApplicationGatewayAffinity",
+        "JSESSIONID",
+        "ARRAffinity",
+    ]
 
     parameter_blacklist = set(
         p.lower()
@@ -340,10 +352,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             "__SCROLLPOSITIONY",
             "__SCROLLPOSITIONX",
             "ASP.NET_SessionId",
-            "JSESSIONID",
             "PHPSESSID",
-            "AWSALB",
-            "AWSALBCORS",
             "__cf_bm",
             "f5_cspm",
         ]
@@ -476,6 +485,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 # check to see if the format is defined as JSON
                 if "content_type" in extracted_values.keys():
                     if extracted_values["content_type"] == "application/json":
+                        form_parameters = {}
+
                         # If we cant figure out the parameter names, there is no point in continuing
                         if "data" in extracted_values.keys():
                             if "url" in extracted_values.keys():
@@ -483,7 +494,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             else:
                                 form_url = None
 
-                            form_parameters = {}
                             try:
                                 s = extracted_values["data"]
                                 s = re.sub(r"(\w+)\s*:", r'"\1":', s)  # Quote keys
@@ -615,6 +625,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.excavate.debug(
                                 f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
                             )
+
+                            # account for the case where the action is html encoded
+                            if endpoint and (
+                                endpoint.startswith("https&#x3a;&#x2f;&#x2f;")
+                                or endpoint.startswith("http&#x3a;&#x2f;&#x2f;")
+                            ):
+                                endpoint = html.unescape(endpoint)
+
                             # If we have a full URL, leave it as-is
                             if endpoint and endpoint.startswith(("http://", "https://")):
                                 url = endpoint
@@ -726,7 +744,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     class SerializationExtractor(ExcavateRule):
         regexes = {
             "Java": re.compile(r"[^a-zA-Z0-9\/+][\"']?rO0[a-zA-Z0-9+\/]+={0,2}"),
-            "Ruby": re.compile(r"[^[^a-zA-Z0-9\/+][\"']?BAh[a-zA-Z0-9+\/]+={0,2}"),
+            "Ruby": re.compile(r"[^a-zA-Z0-9\/+][\"']?BAh[a-zA-Z0-9+\/]+={0,2}"),
             "DOTNET": re.compile(r"[^a-zA-Z0-9\/+][\"']?AAEAAAD\/\/[a-zA-Z0-9\/+]+={0,2}"),
             "PHP_Array": re.compile(r"[^a-zA-Z0-9\/+][\"']?YTo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
             "PHP_String": re.compile(r"[^a-zA-Z0-9\/+][\"']?czo[xyz0123456][a-zA-Z0-9+\/]+={0,2}"),
@@ -739,7 +757,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             super().__init__(excavate)
             regexes_component_list = []
             for regex_name, regex in self.regexes.items():
-                regexes_component_list.append(rf"${regex_name} = /\b{regex.pattern}/ nocase")
+                regexes_component_list.append(rf"${regex_name} = /\b{regex.pattern}/")
             regexes_component = " ".join(regexes_component_list)
             self.yara_rules["serialization_detection"] = (
                 f'rule serialization_detection {{meta: description = "contains a possible serialized object" strings: {regexes_component} condition: any of them}}'
@@ -979,6 +997,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         ]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
+        self.speculate_params = bool(self.config.get("speculate_params", False))
 
         self.retain_querystring = False
         if self.config.get("retain_querystring", False) is True:
@@ -1061,7 +1080,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             return None
         decoded_data = await self.helpers.re.recursive_decode(data)
 
-        if self.parameter_extraction:
+        if self.parameter_extraction and self.speculate_params:
             content_type_lower = content_type.lower() if content_type else ""
             extraction_map = {
                 "json": self.helpers.extract_params_json,
