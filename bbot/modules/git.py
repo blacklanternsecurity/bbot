@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 
 class git(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["FINDING"]
+    produced_events = ["FINDING", "CODE_REPOSITORY"]
     flags = ["active", "safe", "web-basic", "code-enum"]
     meta = {
         "description": "Check for exposed .git repositories",
@@ -35,5 +35,12 @@ class git(BaseModule):
                         {"host": str(event.host), "url": url, "description": description},
                         "FINDING",
                         event,
+                        context="{module} detected {event.type}: {description}",
+                    )
+                    await self.emit_event(
+                        {"url": url.rstrip("config")},
+                        "CODE_REPOSITORY",
+                        event,
+                        tags="git_directory",
                         context="{module} detected {event.type}: {description}",
                     )
