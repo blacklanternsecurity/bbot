@@ -331,7 +331,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             )
             return
 
-        # Basic crypanalysis
+        # Basic cryptanalysis
         likely_crypto, possible_block_cipher = self.cryptanalysis(probe_value)
 
         # if the value is not likely to be cryptographic, we can skip the rest of the tests

@@ -62,27 +62,29 @@ class CmdILightfuzz(BaseLightfuzz):
             )
 
         # Blind OS Command Injection
-        if self.lightfuzz.interactsh_instance:
-            self.lightfuzz.event_dict[self.event.data["url"]] = self.event  # Store the event associated with the URL
-            for p in cmdi_probe_strings:
-                # generate a random subdomain tag and associate it with the event, type, name, and probe
-                subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
-                self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
-                    "event": self.event,
-                    "type": self.event.data["type"],
-                    "name": self.event.data["name"],
-                    "probe": p,
-                }
-                # payload is an nslookup command that includes the interactsh domain prepended the previously generated subdomain tag
-                interactsh_probe = f"{p} nslookup {subdomain_tag}.{self.lightfuzz.interactsh_domain} {p}"
-                # we have to handle our own URL-encoding here, because our payloads include the & character
-                if self.event.data["type"] == "GETPARAM":
-                    interactsh_probe = urllib.parse.quote(interactsh_probe.encode(), safe="")
-                # we send the probe here, and any positive detections are processed in the interactsh_callback defined in lightfuzz.py
-                await self.standard_probe(
-                    self.event.data["type"],
-                    cookies,
-                    f"{probe_value}{interactsh_probe}",
-                    timeout=15,
-                    skip_urlencoding=True,
-                )
+        if not self.lightfuzz.interactsh_instance:
+            return
+
+        self.lightfuzz.event_dict[self.event.data["url"]] = self.event  # Store the event associated with the URL
+        for p in cmdi_probe_strings:
+            # generate a random subdomain tag and associate it with the event, type, name, and probe
+            subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
+            self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
+                "event": self.event,
+                "type": self.event.data["type"],
+                "name": self.event.data["name"],
+                "probe": p,
+            }
+            # payload is an nslookup command that includes the interactsh domain prepended the previously generated subdomain tag
+            interactsh_probe = f"{p} nslookup {subdomain_tag}.{self.lightfuzz.interactsh_domain} {p}"
+            # we have to handle our own URL-encoding here, because our payloads include the & character
+            if self.event.data["type"] == "GETPARAM":
+                interactsh_probe = urllib.parse.quote(interactsh_probe.encode(), safe="")
+            # we send the probe here, and any positive detections are processed in the interactsh_callback defined in lightfuzz.py
+            await self.standard_probe(
+                self.event.data["type"],
+                cookies,
+                f"{probe_value}{interactsh_probe}",
+                timeout=15,
+                skip_urlencoding=True,
+            )

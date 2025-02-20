@@ -54,6 +54,11 @@ class SQLiLightfuzz(BaseLightfuzz):
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=True)
+
+        await self.run_quote_based_detection(probe_value, cookies)
+        await self.run_time_based_detection(probe_value, cookies)
+
+    async def run_quote_based_detection(self, probe_value, cookies):
         http_compare = self.compare_baseline(
             self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
         )
@@ -109,6 +114,7 @@ class SQLiLightfuzz(BaseLightfuzz):
         except HttpCompareError as e:
             self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
+    async def run_time_based_detection(self, probe_value, cookies):
         # These are common SQL injection payloads for inducing an intentional delay across several different SQL database types
         standard_probe_strings = [
             f"'||pg_sleep({str(self.expected_delay)})--",  # postgres
@@ -125,45 +131,47 @@ class SQLiLightfuzz(BaseLightfuzz):
         )
 
         # get a baseline from two different probes. We will average them to establish a mean baseline
-        if baseline_1 and baseline_2:
-            baseline_1_delay = baseline_1.elapsed.total_seconds()
-            baseline_2_delay = baseline_2.elapsed.total_seconds()
-            mean_baseline = statistics.mean([baseline_1_delay, baseline_2_delay])
+        if not (baseline_1 and baseline_2):
+            self.debug("Failed to get responses for both baseline_1 and baseline_2")
+            return
 
-            for p in standard_probe_strings:
-                confirmations = 0
-                for i in range(0, 3):
-                    # send the probe 3 times, and check if the delay is within the detection threshold
-                    r = await self.standard_probe(
-                        self.event.data["type"],
-                        cookies,
-                        f"{probe_value}{p}",
-                        additional_params_populate_empty=True,
-                        timeout=20,
+        baseline_1_delay = baseline_1.elapsed.total_seconds()
+        baseline_2_delay = baseline_2.elapsed.total_seconds()
+        mean_baseline = statistics.mean([baseline_1_delay, baseline_2_delay])
+
+        for p in standard_probe_strings:
+            confirmations = 0
+            for i in range(0, 3):
+                # send the probe 3 times, and check if the delay is within the detection threshold
+                r = await self.standard_probe(
+                    self.event.data["type"],
+                    cookies,
+                    f"{probe_value}{p}",
+                    additional_params_populate_empty=True,
+                    timeout=20,
+                )
+                if not r:
+                    self.debug("delay measure request failed")
+                    break
+
+                d = r.elapsed.total_seconds()
+                self.debug(f"measured delay: {str(d)}")
+                if self.evaluate_delay(
+                    mean_baseline, d
+                ):  # decide if the delay is within the detection threshold and constitutes a successful sleep execution
+                    confirmations += 1
+                    self.debug(
+                        f"{self.event.data['url']}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
                     )
-                    if not r:
-                        self.debug("delay measure request failed")
-                        break
+                else:
+                    break
 
-                    d = r.elapsed.total_seconds()
-                    self.debug(f"measured delay: {str(d)}")
-                    if self.evaluate_delay(
-                        mean_baseline, d
-                    ):  # decide if the delay is within the detection threshold and constitutes a successful sleep execution
-                        confirmations += 1
-                        self.debug(
-                            f"{self.event.data['url']}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
-                        )
-                    else:
-                        break
+            if confirmations == 3:
+                self.results.append(
+                    {
+                        "type": "FINDING",
+                        "description": f"Possible Blind SQL Injection. {self.metadata()} Detection Method: [Delay Probe ({p})]",
+                    }
+                )
 
-                if confirmations == 3:
-                    self.results.append(
-                        {
-                            "type": "FINDING",
-                            "description": f"Possible Blind SQL Injection. {self.metadata()} Detection Method: [Delay Probe ({p})]",
-                        }
-                    )
 
-        else:
-            self.debug("Could not get baseline for time-delay tests")

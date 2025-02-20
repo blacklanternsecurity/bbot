@@ -11,48 +11,45 @@ class XSSLightfuzz(BaseLightfuzz):
 
         https://portswigger.net/web-security/cross-site-scripting/contexts
         """
-        between_tags = False
-        in_tag_attribute = False
-        in_javascript = False
-
-        between_tags_regex = re.compile(
-            rf"<(\/?\w+)[^>]*>.*?{random_string}.*?<\/?\w+>"
-        )  # The between tags context is when the injection occurs between HTML tags
-        in_tag_attribute_regex = re.compile(
-            rf'<(\w+)\s+[^>]*?(\w+)="([^"]*?{random_string}[^"]*?)"[^>]*>'
-        )  # The in tag attribute context is when the injection occurs in an attribute of an HTML tag
-        in_javascript_regex = re.compile(
-            rf"<script\b[^>]*>[^<]*(?:<(?!\/script>)[^<]*)*{random_string}[^<]*(?:<(?!\/script>)[^<]*)*<\/script>"
-        )  # The in javascript context is when the injection occurs within a <script> tag
-
-        between_tags_match = await self.lightfuzz.helpers.re.search(between_tags_regex, html)
-        if between_tags_match:
-            between_tags = True
-
-        in_tag_attribute_match = await self.lightfuzz.helpers.re.search(in_tag_attribute_regex, html)
-        if in_tag_attribute_match:
-            in_tag_attribute = True
-
-        in_javascript_match = await self.lightfuzz.helpers.re.search(in_javascript_regex, html)
-        if in_javascript_match:
-            in_javascript = True
-
+        between_tags, in_tag_attribute, in_javascript = await self.check_xss_contexts(html, random_string)
         return between_tags, in_tag_attribute, in_javascript
 
-    async def determine_javascript_quote_context(self, target, text):
-        # Define and compile regex patterns for double and single quotes
-        quote_patterns = {"double": re.compile(f'"[^"]*{target}[^"]*"'), "single": re.compile(f"'[^']*{target}[^']*'")}
+    async def check_xss_contexts(self, html, random_string):
+        between_tags = await self.check_between_tags(html, random_string)
+        in_tag_attribute = await self.check_in_tag_attribute(html, random_string)
+        in_javascript = await self.check_in_javascript(html, random_string)
+        return between_tags, in_tag_attribute, in_javascript
 
-        # Split the text by semicolons to isolate JavaScript statements
+    async def check_between_tags(self, html, random_string):
+        between_tags_regex = re.compile(
+            rf"<(\/?\w+)[^>]*>.*?{random_string}.*?<\/?\w+>"
+        )
+        between_tags_match = await self.lightfuzz.helpers.re.search(between_tags_regex, html)
+        return bool(between_tags_match)
+
+    async def check_in_tag_attribute(self, html, random_string):
+        in_tag_attribute_regex = re.compile(
+            rf'<(\w+)\s+[^>]*?(\w+)="([^"]*?{random_string}[^"]*?)"[^>]*>'
+        )
+        in_tag_attribute_match = await self.lightfuzz.helpers.re.search(in_tag_attribute_regex, html)
+        return bool(in_tag_attribute_match)
+
+    async def check_in_javascript(self, html, random_string):
+        in_javascript_regex = re.compile(
+            rf"<script\b[^>]*>[^<]*(?:<(?!\/script>)[^<]*)*{random_string}[^<]*(?:<(?!\/script>)[^<]*)*<\/script>"
+        )
+        in_javascript_match = await self.lightfuzz.helpers.re.search(in_javascript_regex, html)
+        return bool(in_javascript_match)
+
+    async def determine_javascript_quote_context(self, target, text):
+        quote_patterns = {"double": re.compile(f'"[^"]*{target}[^"]*"'), "single": re.compile(f"'[^']*{target}[^']*'")}
         statements = text.split(";")
 
-        # This function checks if the target string is balanced within a JavaScript statement
         def is_balanced(section, target_index, quote_char):
             left = section[:target_index]
-            right = section[target_index + len(target) :]
+            right = section[target_index + len(target):]
             return left.count(quote_char) % 2 == 0 and right.count(quote_char) % 2 == 0
 
-        # For each javascript statement, attempt to determine the type of quote we are within, and therefore what will enable breaking out of it to result in a successful XSS
         for statement in statements:
             for quote_type, pattern in quote_patterns.items():
                 match = await self.lightfuzz.helpers.re.search(pattern, statement)
@@ -62,11 +59,9 @@ class XSSLightfuzz(BaseLightfuzz):
                     opposite_quote = "'" if quote_type == "double" else '"'
                     if is_balanced(context, target_index, opposite_quote):
                         return quote_type
-        # If we have no matches, the target string is most likely not within quotes
         return "outside"
 
     async def check_probe(self, cookies, probe, match, context):
-        # Send the defined probe and look for the expected match value in the response
         probe_result = await self.standard_probe(self.event.data["type"], cookies, probe)
         if probe_result and match in probe_result.text:
             self.results.append(
@@ -82,26 +77,16 @@ class XSSLightfuzz(BaseLightfuzz):
         lightfuzz_event = self.event.parent
         cookies = self.event.data.get("assigned_cookies", {})
 
-        # If this came from paramminer_getparams and didn't have a http_reflection tag, we don't need to check again
         if (
             lightfuzz_event.type == "WEB_PARAMETER"
             and str(lightfuzz_event.module) == "paramminer_getparams"
             and "http-reflection" not in lightfuzz_event.tags
         ):
-            self.lightfuzz.debug(
-                "Got WEB_PARAMETER from paramminer, with no reflection tag - xss is not possible, aborting"
-            )
             return
 
-        reflection = None
         random_string = self.lightfuzz.helpers.rand_string(8)
-
         reflection_probe_result = await self.standard_probe(self.event.data["type"], cookies, random_string)
-        # before continuing, check if the random string is reflected in the response - a prerequisite for XSS
-        if reflection_probe_result and random_string in reflection_probe_result.text:
-            reflection = True
-
-        if not reflection or reflection is False:
+        if not reflection_probe_result or random_string not in reflection_probe_result.text:
             return
 
         between_tags, in_tag_attribute, in_javascript = await self.determine_context(
@@ -110,59 +95,62 @@ class XSSLightfuzz(BaseLightfuzz):
         self.lightfuzz.debug(
             f"determine_context returned: between_tags [{between_tags}], in_tag_attribute [{in_tag_attribute}], in_javascript [{in_javascript}]"
         )
-        tags = [
-            "z",
-            "svg",
-            "img",
-        ]  # These represent easy to exploit tags, along with an arbitrary tag which is less likely to be blocked
+
         if between_tags:
-            for tag in tags:
-                between_tags_probe = f"<{tag}>{random_string}</{tag}>"
-                result = await self.check_probe(
-                    cookies, between_tags_probe, between_tags_probe, f"Between Tags ({tag} tag)"
-                )  # After reflection in the HTTP response, did the tags survive without url-encoding or other sanitization/escaping?
-                if result is True:
-                    break
+            await self.test_between_tags(cookies, random_string)
 
         if in_tag_attribute:
-            in_tag_attribute_probe = f'{random_string}"'
-            in_tag_attribute_match = f'"{random_string}""'
-            await self.check_probe(
-                cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute"
-            )  # After reflection in the HTTP response, did the quote survive without url-encoding or other sanitization/escaping?
-
-            in_tag_attribute_probe = f"javascript:{random_string}"
-            in_tag_attribute_match = f'action="javascript:{random_string}'
-            await self.check_probe(
-                cookies, in_tag_attribute_probe, in_tag_attribute_match, "Form Action Injection"
-            )  # After reflection in the HTTP response, did the javascript sch
+            await self.test_in_tag_attribute(cookies, random_string)
 
         if in_javascript:
-            in_javascript_probe = rf"</script><script>{random_string}</script>"
+            await self.test_in_javascript(cookies, random_string, reflection_probe_result)
+
+    async def test_between_tags(self, cookies, random_string):
+        tags = ["z", "svg", "img"]
+        for tag in tags:
+            between_tags_probe = f"<{tag}>{random_string}</{tag}>"
             result = await self.check_probe(
-                cookies, in_javascript_probe, in_javascript_probe, "In Javascript"
-            )  # After reflection in the HTTP response, did the script tags survive without url-encoding or other sanitization/escaping?
-            if result is False:
-                # To attempt this technique, we need to determine the type of quote we are within
-                quote_context = await self.determine_javascript_quote_context(
-                    random_string, reflection_probe_result.text
-                )
+                cookies, between_tags_probe, between_tags_probe, f"Between Tags ({tag} tag)"
+            )
+            if result:
+                break
 
-                # Skip the test if the context is outside
-                if quote_context == "outside":
-                    return
+    async def test_in_tag_attribute(self, cookies, random_string):
+        in_tag_attribute_probe = f'{random_string}"'
+        in_tag_attribute_match = f'"{random_string}""'
+        await self.check_probe(
+            cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute"
+        )
 
-                # Update probes based on the quote context
-                if quote_context == "single":
-                    in_javascript_escape_probe = rf"a\';zzzzz({random_string})\\"
-                    in_javascript_escape_match = rf"a\\';zzzzz({random_string})\\"
-                elif quote_context == "double":
-                    in_javascript_escape_probe = rf"a\";zzzzz({random_string})\\"
-                    in_javascript_escape_match = rf'a\\";zzzzz({random_string})\\'
+        in_tag_attribute_probe = f"javascript:{random_string}"
+        in_tag_attribute_match = f'action="javascript:{random_string}'
+        await self.check_probe(
+            cookies, in_tag_attribute_probe, in_tag_attribute_match, "Form Action Injection"
+        )
 
-                await self.check_probe(
-                    cookies,
-                    in_javascript_escape_probe,
-                    in_javascript_escape_match,
-                    f"In Javascript (escaping the escape character, {quote_context} quote)",
-                )
+    async def test_in_javascript(self, cookies, random_string, reflection_probe_result):
+        in_javascript_probe = rf"</script><script>{random_string}</script>"
+        result = await self.check_probe(
+            cookies, in_javascript_probe, in_javascript_probe, "In Javascript"
+        )
+        if not result:
+            quote_context = await self.determine_javascript_quote_context(
+                random_string, reflection_probe_result.text
+            )
+
+            if quote_context == "outside":
+                return
+
+            if quote_context == "single":
+                in_javascript_escape_probe = rf"a\';zzzzz({random_string})\\"
+                in_javascript_escape_match = rf"a\\';zzzzz({random_string})\\"
+            elif quote_context == "double":
+                in_javascript_escape_probe = rf"a\";zzzzz({random_string})\\"
+                in_javascript_escape_match = rf'a\\";zzzzz({random_string})\\'
+
+            await self.check_probe(
+                cookies,
+                in_javascript_escape_probe,
+                in_javascript_escape_match,
+                f"In Javascript (escaping the escape character, {quote_context} quote)",
+            )

@@ -9,12 +9,17 @@ class PathTraversalLightfuzz(BaseLightfuzz):
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=False)
+
         if not probe_value:
             self.debug(
                 f"Path Traversal detection requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
             return
 
+        await self.run_single_dot_traversal_tests(probe_value, cookies)
+        await self.run_absolute_path_tests(cookies)
+
+    async def run_single_dot_traversal_tests(self, probe_value, cookies):
         # Single dot traversal tolerance test
         path_techniques = {
             "single-dot traversal tolerance (no-encoding)": {
@@ -116,6 +121,7 @@ class PathTraversalLightfuzz(BaseLightfuzz):
                 if confirmations == 0:
                     break
 
+    async def run_absolute_path_tests(self, cookies):
         # Absolute path test, covering Windows and Linux
         absolute_paths = {
             r"c:\\windows\\win.ini": "; for 16-bit app support",
