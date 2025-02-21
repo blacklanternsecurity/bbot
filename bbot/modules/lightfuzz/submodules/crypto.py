@@ -5,11 +5,13 @@ from bbot.errors import HttpCompareError
 from urllib.parse import unquote, quote
 
 
-class CryptoLightfuzz(BaseLightfuzz):
+class crypto(BaseLightfuzz):
     """
     Although we have an envelope system to detect hex and base64 encoded parameter values, those are only assigned when they decode to a valid string.
     Since crypto values (and serialized objects) will not decode properly, we need a more concise check here to determine how to process them.
     """
+
+    friendly_name = "Cryptography Probe"
 
     @staticmethod
     def is_hex(s):
@@ -118,7 +120,7 @@ class CryptoLightfuzz(BaseLightfuzz):
         if not isinstance(input_string, str):
             input_string = str(input_string)
 
-        data, encoding = CryptoLightfuzz.format_agnostic_decode(input_string)
+        data, encoding = crypto.format_agnostic_decode(input_string)
         if encoding != "base64" and encoding != "hex":
             raise ValueError("Input must be either hex or base64 encoded")
 
@@ -144,7 +146,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             modified_data = bytes(byte_list)
         else:
             raise ValueError("Unsupported action")
-        return CryptoLightfuzz.format_agnostic_encode(modified_data, encoding)
+        return crypto.format_agnostic_encode(modified_data, encoding)
 
     # Check if the entropy of the data is greater than the threshold, indicating it is likely encrypted
     def is_likely_encrypted(self, data, threshold=4.5):
@@ -331,7 +333,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             )
             return
 
-        # Basic cryptanalysis
+        # Basic crypanalysis
         likely_crypto, possible_block_cipher = self.cryptanalysis(probe_value)
 
         # if the value is not likely to be cryptographic, we can skip the rest of the tests
@@ -398,7 +400,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                 await self.padding_oracle(probe_value, cookies)
 
             # Hash identification / Potential Length extension attack
-            data, encoding = CryptoLightfuzz.format_agnostic_decode(probe_value)
+            data, encoding = crypto.format_agnostic_decode(probe_value)
             # see if its possible that a given value is a hash, and if so, which one
             hash_function = self.identify_hash_function(data)
             if hash_function:

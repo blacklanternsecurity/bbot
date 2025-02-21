@@ -5,6 +5,9 @@ from urllib.parse import quote
 
 
 class BaseLightfuzz:
+    friendly_name = ""
+    uses_interactsh = False
+
     def __init__(self, lightfuzz, event):
         self.lightfuzz = lightfuzz
         self.event = event
@@ -51,15 +54,11 @@ class BaseLightfuzz:
             for k, v in additional_params.items()
         }
 
-    def conditional_urlencode(self, probe, parameter_type, skip_urlencoding=False):
+    def conditional_urlencode(self, probe, event_type, skip_urlencoding=False):
         """Conditionally url-encodes the probe if the event type requires it and encoding is not skipped by the submodule.
         We also don't encode if any envelopes are present.
         """
-        if (
-            parameter_type in ["GETPARAM", "COOKIE"]
-            and not skip_urlencoding
-            and getattr(self.event, "envelopes", None)
-        ):
+        if event_type in ["GETPARAM", "COOKIE"] and not skip_urlencoding and getattr(self.event, "envelopes", None):
             # Exclude '&' from being encoded since we are operating on full query strings
             return quote(probe, safe="&")
         return probe
@@ -73,7 +72,7 @@ class BaseLightfuzz:
 
     def prepare_request(
         self,
-        parameter_type,
+        event_type,
         probe,
         cookies,
         additional_params=None,
@@ -96,34 +95,34 @@ class BaseLightfuzz:
         probe = self.outgoing_probe_value(probe)
 
         # URL Encode the probe if the event type is GETPARAM or COOKIE, if there are no envelopes, and the submodule did not opt-out with skip_urlencoding
-        probe = self.conditional_urlencode(probe, parameter_type, skip_urlencoding)
+        probe = self.conditional_urlencode(probe, event_type, skip_urlencoding)
 
-        if parameter_type == "SPECULATIVE":
-            parameter_type = speculative_mode
+        if event_type == "SPECULATIVE":
+            event_type = speculative_mode
 
         # Construct request parameters based on the event type
-        if parameter_type == "GETPARAM":
+        if event_type == "GETPARAM":
             url = self.build_query_string(probe, parameter_name, additional_params)
             return {"method": "GET", "cookies": cookies, "url": url}
-        elif parameter_type == "COOKIE":
+        elif event_type == "COOKIE":
             cookies_probe = {parameter_name: probe}
             return {"method": "GET", "cookies": {**cookies, **cookies_probe}, "url": self.event.data["url"]}
-        elif parameter_type == "HEADER":
+        elif event_type == "HEADER":
             headers = {parameter_name: probe}
             return {"method": "GET", "headers": headers, "cookies": cookies, "url": self.event.data["url"]}
-        elif parameter_type in ["POSTPARAM", "BODYJSON"]:
+        elif event_type in ["POSTPARAM", "BODYJSON"]:
             # Prepare data for POSTPARAM and BODYJSON event types
             data = {parameter_name: probe}
             if additional_params:
                 data.update(additional_params)
-            if parameter_type == "BODYJSON":
+            if event_type == "BODYJSON":
                 return {"method": "POST", "json": data, "cookies": cookies, "url": self.event.data["url"]}
             else:
                 return {"method": "POST", "data": data, "cookies": cookies, "url": self.event.data["url"]}
 
     def compare_baseline(
         self,
-        parameter_type,
+        event_type,
         probe,
         cookies,
         additional_params_populate_empty=False,
@@ -144,7 +143,7 @@ class BaseLightfuzz:
             }
 
         request_params = self.prepare_request(
-            parameter_type,
+            event_type,
             probe,
             cookies,
             additional_params,
@@ -177,7 +176,7 @@ class BaseLightfuzz:
     async def compare_probe(
         self,
         http_compare,
-        parameter_type,
+        event_type,
         probe,
         cookies,
         additional_params_populate_empty=False,
@@ -201,7 +200,7 @@ class BaseLightfuzz:
 
         # Prepare request parameters
         request_params = self.prepare_request(
-            parameter_type,
+            event_type,
             probe,
             cookies,
             additional_params,
@@ -216,7 +215,7 @@ class BaseLightfuzz:
 
     async def standard_probe(
         self,
-        parameter_type,
+        event_type,
         cookies,
         probe,
         timeout=10,
@@ -226,7 +225,7 @@ class BaseLightfuzz:
         skip_urlencoding=False,
     ):
         request_params = self.prepare_request(
-            parameter_type,
+            event_type,
             probe,
             cookies,
             self.event.data.get("additional_params"),

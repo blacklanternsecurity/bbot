@@ -2,7 +2,7 @@ from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
 
-class SerialLightfuzz(BaseLightfuzz):
+class serial(BaseLightfuzz):
     """
     This module finds places where serialized objects are being deserialized.
 
@@ -13,6 +13,8 @@ class SerialLightfuzz(BaseLightfuzz):
         - If the first case doesn't match, we check for a telltale error string like "java.io.optionaldataexception" in the response.
             - Because of the possibility for false positives, we only consider responses that are 500s 200s where the body changed.
     """
+
+    friendly_name = "Unsafe Deserialization"
 
     def is_possibly_serialized(self, value):
         # Use the is_base64 method from BaseLightfuzz via self

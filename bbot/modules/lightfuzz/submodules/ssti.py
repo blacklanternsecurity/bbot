@@ -1,7 +1,9 @@
 from .base import BaseLightfuzz
 
 
-class SSTILightfuzz(BaseLightfuzz):
+class ssti(BaseLightfuzz):
+    friendly_name = "Server-side Template Injection"
+
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         # These are common SSTI payloads, each attempting to trigger an integer multiplication which would produce an expected value
