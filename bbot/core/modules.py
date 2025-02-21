@@ -142,6 +142,11 @@ class ModuleLoader:
             log.debug(f"Preloading modules from {module_dir}")
             new_modules = True
             for module_file in list_files(module_dir, filter=self.file_filter):
+                # Exclude modules in "submodules" directories
+                if "submodules" in module_file.parts:
+                    log.debug(f"Skipping file {module_file} because its in a submodules directory")
+                    continue
+
                 module_name = module_file.stem
                 module_file = module_file.resolve()
 
