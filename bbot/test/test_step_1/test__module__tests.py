@@ -18,7 +18,9 @@ def test__module__tests():
     preset = Preset()
 
     # make sure each module has a .py file
-    for module_name in preset.module_loader.preloaded():
+    for module_name, preloaded in preset.module_loader.preloaded().items():
+        if module_name == "ssti":
+            log.critical(f"MODULE NAME: {module_name} / {preloaded}")
         module_name = module_name.lower()
         assert module_name in module_test_files, f'No test file found for module "{module_name}"'
 
