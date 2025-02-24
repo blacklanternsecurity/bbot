@@ -7,7 +7,7 @@ from bbot.modules.deadly.ffuf import ffuf
 class vhost(ffuf):
     watched_events = ["URL"]
     produced_events = ["VHOST", "DNS_NAME"]
-    flags = ["active", "aggressive", "slow"]
+    flags = ["active", "aggressive", "slow", "deadly"]
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
 
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]

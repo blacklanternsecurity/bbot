@@ -533,9 +533,10 @@ class BaseModule:
             if v is not None:
                 emit_kwargs[o] = v
         event = self.make_event(*args, **event_kwargs)
-        children = event.children
-        for e in [event] + children:
-            await self.queue_outgoing_event(e, **emit_kwargs)
+        if event is not None:
+            children = event.children
+            for e in [event] + children:
+                await self.queue_outgoing_event(e, **emit_kwargs)
         return event
 
     async def _events_waiting(self, batch_size=None):
