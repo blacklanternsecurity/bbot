@@ -153,7 +153,11 @@ class serial(BaseLightfuzz):
                 elif status_code == 500 or (status_code == 200 and diff_reasons == ["body"]):
                     self.lightfuzz.debug(f"500 status code or body match for {type}")
                     for serialization_error in serialization_errors:
-                        if serialization_error in response.text.lower():
+                        # check for the error string, but also ensure the error string isn't just always present in the response
+                        if (
+                            serialization_error in response.text.lower()
+                            and serialization_error not in payload_baseline.baseline.text.lower()
+                        ):
                             self.lightfuzz.debug(f"Error string '{serialization_error}' found in response for {type}")
                             self.results.append(
                                 {

@@ -1433,6 +1433,27 @@ class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolut
         )
 
 
+# Serialization Modules (Error Differential - False positive check)
+class Test_Lightfuzz_serial_errordifferential_falsepositive(Test_Lightfuzz_serial_errorresolution):
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        else:
+            dotnet_serial_reflection = (
+                f"<html><body><p>invalid user</p><p>reflected input: {post_params['TextBox1']}</body></html>"
+            )
+            return Response(dotnet_serial_reflection, status=500)
+
+    def check(self, module_test, events):
+        finding_count = 0
+        for e in events:
+            if e.type == "FINDING":
+                finding_count += 1
+        assert finding_count == 0, "Unexpected FINDING events reported"
+
+
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
