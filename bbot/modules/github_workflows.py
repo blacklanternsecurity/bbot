@@ -12,6 +12,7 @@ class github_workflows(github):
         "description": "Download a github repositories workflow logs and workflow artifacts",
         "created_date": "2024-04-29",
         "author": "@domwhewell-sage",
+        "auth_required": True,
     }
     options = {"api_key": "", "num_logs": 1}
     options_desc = {
@@ -159,7 +160,7 @@ class github_workflows(github):
             status_code = getattr(response, "status_code", 0)
             if status_code == 403:
                 self.warning(
-                    f"The current access key does not have access to workflow {owner}/{repo}/{run_id} (status: {status_code})"
+                    f"You must have the actions scope to download logs for {owner}/{repo}/{run_id} (status: {status_code})"
                 )
             else:
                 self.info(
@@ -221,6 +222,6 @@ class github_workflows(github):
             status_code = getattr(response, "status_code", 0)
             if status_code == 403:
                 self.warning(
-                    f"The current access key does not have access to workflow artifacts {owner}/{repo}/{artifact_id} (status: {status_code})"
+                    f"You must have the actions scope to download run artifacts for {owner}/{repo}/{artifact_id} (status: {status_code})"
                 )
         return file_destination
