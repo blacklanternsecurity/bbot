@@ -1,3 +1,4 @@
+import yara
 import base64
 import hashlib
 from .base import BaseLightfuzz
@@ -30,27 +31,40 @@ class crypto(BaseLightfuzz):
             return False
         return False
 
-    # A list of strings that are commonly found in cryptographic error messages, used to detect when error occurs specifically related to cryptographic operations.
-    crypto_error_strings = [
-        "invalid mac",
-        "padding is invalid and cannot be removed",
-        "bad data",
-        "length of the data to decrypt is invalid",
-        "specify a valid key size",
-        "invalid algorithm specified",
-        "object already exists",
-        "key does not exist",
-        "the parameter is incorrect",
-        "cryptography exception",
-        "access denied",
-        "unknown error",
-        "invalid provider type",
-        "no valid cert found",
-        "cannot find the original signer",
-        "signature description could not be created",
-        "crypto operation failed",
-        "OpenSSL Error",
-    ]
+    # A list of YARA rules for detecting cryptographic error messages
+    crypto_error_rules = """
+rule CryptoErrors {
+    strings:
+        $err1 = "invalid mac" nocase
+        $err2 = "padding is invalid" nocase
+        $err3 = "bad data" nocase
+        $err4 = "length of the data to decrypt is invalid" nocase
+        $err5 = "specify a valid key size" nocase
+        $err6 = "invalid algorithm specified" nocase
+        $err7 = "object already exists" nocase
+        $err8 = "key does not exist" nocase
+        $err9 = "the parameter is incorrect" nocase
+        $err10 = "cryptography exception" nocase
+        $err11 = "access denied" nocase
+        $err12 = "unknown error" nocase
+        $err13 = "invalid provider type" nocase
+        $err14 = "no valid cert found" nocase
+        $err15 = "cannot find the original signer" nocase
+        $err16 = "signature description could not be created" nocase
+        $err17 = "crypto operation failed" nocase
+        $err18 = "OpenSSL Error" nocase
+    condition:
+        any of them
+}
+"""
+    _compiled_rules = None
+
+    @property
+    def compiled_rules(self):
+        """Cached property for compiled YARA rules"""
+        if self._compiled_rules is None:
+            self._compiled_rules = yara.compile(source=self.crypto_error_rules)
+        return self._compiled_rules
 
     @staticmethod
     def format_agnostic_decode(input_string, urldecode=False):
@@ -264,33 +278,48 @@ class crypto(BaseLightfuzz):
 
     async def error_string_search(self, text_dict, baseline_text):
         """
-        Search for cryptographic error strings in the provided text dictionary and baseline text.
+        Search for cryptographic error strings using YARA rules in the provided text dictionary and baseline text.
         """
         matching_techniques = set()
         matching_strings = set()
-        # we check individually for each manipulation technique
-        for label, text in text_dict.items():
-            matched_strings = self.lightfuzz.helpers.string_scan(self.crypto_error_strings, text)
-            for m in matched_strings:
-                matching_strings.add(m)
-            matching_techniques.add(label)
 
-        # if we find any matching strings, we need to check if they are in the baseline text to rule out false positives (the string was always there and not a result of our manipulation)
+        # Check each manipulation technique
+        for label, text in text_dict.items():
+            matches = await self.lightfuzz.helpers.run_in_executor(self.compiled_rules.match, data=text)
+            if matches:
+                for match in matches:
+                    for string_match in match.strings:
+                        for instance in string_match.instances:
+                            matching_strings.add(instance.matched_data.decode("utf-8"))
+                    matching_techniques.add(label)
+
+        # Check for false positives by scanning baseline text
         context = f"Lightfuzz Cryptographic Probe Submodule detected a cryptographic error after manipulating parameter: [{self.event.data['name']}]"
-        if len(matching_strings) > 0:
-            false_positive_check = self.lightfuzz.helpers.string_scan(self.crypto_error_strings, baseline_text)
-            false_positive_matches = set(matched_strings) & set(false_positive_check)
-            if not false_positive_matches:
+        if matching_strings:
+            baseline_matches = await self.lightfuzz.helpers.run_in_executor(
+                self.compiled_rules.match, data=baseline_text
+            )
+            baseline_strings = set()
+            if baseline_matches:
+                for match in baseline_matches:
+                    for string_match in match.strings:
+                        for instance in string_match.instances:
+                            baseline_strings.add(instance.matched_data.decode("utf-8"))
+
+            # Only report strings that weren't in the baseline
+            unique_matches = matching_strings - baseline_strings
+            if unique_matches:
                 self.results.append(
                     {
                         "type": "FINDING",
-                        "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(matching_strings)}] Detection Technique(s): [{','.join(matching_techniques)}]",
+                        "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(unique_matches)}] Detection Technique(s): [{','.join(matching_techniques)}]",
                         "context": context,
                     }
                 )
-            self.lightfuzz.debug(
-                f"Aborting cryptographic error reporting - baseline_text already contained detected string(s) ({','.join(false_positive_check)})"
-            )
+            else:
+                self.lightfuzz.debug(
+                    f"Aborting cryptographic error reporting - baseline_text already contained detected string(s) ({','.join(baseline_strings)})"
+                )
 
     # Identify the hash function based on the length of the hash
     @staticmethod
