@@ -295,6 +295,7 @@ class Scanner:
 
             # intercept modules get sewn together like human centipede
             self.intercept_modules = [m for m in self.modules.values() if m._intercept]
+            self.intercept_modules.sort(key=lambda x: x.priority)
             for i, intercept_module in enumerate(self.intercept_modules[1:]):
                 prev_intercept_module = self.intercept_modules[i]
                 self.debug(

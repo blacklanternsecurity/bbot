@@ -3,12 +3,22 @@ from .base import ModuleTestBase
 
 class TestCRT(ModuleTestBase):
     async def setup_after_prep(self, module_test):
-        module_test.module.abort_if = lambda e: False
-        for t in self.targets:
-            module_test.httpx_mock.add_response(
-                url="https://crt.sh?q=%25.blacklanternsecurity.com&output=json",
-                json=[{"id": 1, "name_value": "asdf.blacklanternsecurity.com\nzzzz.blacklanternsecurity.com"}],
-            )
+        class AsyncMock:
+            async def fetch(self, *args, **kwargs):
+                print("mock_fetch", args, kwargs)
+                return [
+                    {"name_value": "asdf.blacklanternsecurity.com"},
+                    {"name_value": "zzzz.blacklanternsecurity.com"},
+                ]
+
+            async def close(self):
+                pass
+
+        async def mock_connect(*args, **kwargs):
+            print("mock_connect", args, kwargs)
+            return AsyncMock()
+
+        module_test.monkeypatch.setattr("asyncpg.connect", mock_connect)
 
     def check(self, module_test, events):
         assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"

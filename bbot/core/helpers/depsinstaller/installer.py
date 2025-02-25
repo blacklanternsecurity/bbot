@@ -96,7 +96,7 @@ class DepsInstaller:
         self.ensure_root_lock = Lock()
 
     async def install(self, *modules):
-        self.install_core_deps()
+        await self.install_core_deps()
         succeeded = []
         failed = []
         try:
@@ -386,13 +386,14 @@ class DepsInstaller:
                 else:
                     log.warning("Incorrect password")
 
-    def install_core_deps(self):
+    async def install_core_deps(self):
         to_install = set()
         to_install_friendly = set()
         playbook = []
         self._install_sudo_askpass()
         # ensure tldextract data is cached
         self.parent_helper.tldextract("evilcorp.co.uk")
+        # install any missing commands
         for command, package_name_or_playbook in self.CORE_DEPS.items():
             if not self.parent_helper.which(command):
                 to_install_friendly.add(command)
@@ -400,6 +401,19 @@ class DepsInstaller:
                     to_install.add(package_name_or_playbook)
                 else:
                     playbook.extend(package_name_or_playbook)
+        # install ansible community.general collection
+        if not self.setup_status.get("ansible:community.general", False):
+            log.info("Installing Ansible Community General Collection")
+            try:
+                command = ["ansible-galaxy", "collection", "install", "community.general"]
+                await self.parent_helper.run(command, check=True)
+                self.setup_status["ansible:community.general"] = True
+                log.info("Successfully installed Ansible Community General Collection")
+            except CalledProcessError as err:
+                log.warning(
+                    f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
+                )
+        # construct ansible playbook
         if to_install:
             playbook.append(
                 {
@@ -408,6 +422,7 @@ class DepsInstaller:
                     "become": True,
                 }
             )
+        # run playbook
         if playbook:
             log.info(f"Installing core BBOT dependencies: {','.join(sorted(to_install_friendly))}")
             self.ensure_root()

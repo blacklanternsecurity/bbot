@@ -71,7 +71,7 @@ class BaseModule:
 
         _qsize (int): Outgoing queue size (0 for infinite). Default is 0.
 
-        _priority (int): Priority level of events raised by this module, 1-5. Default is 3.
+        _priority (int): Priority level of the module. Lower values are higher priority. Default is 3.
 
         _name (str): Module name, overridden automatically. Default is 'base'.
 
