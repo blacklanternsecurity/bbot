@@ -8,7 +8,6 @@ import string
 import asyncio
 import logging
 import ipaddress
-import ahocorasick
 import regex as re
 import subprocess as sp
 
@@ -2783,17 +2782,28 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
 
 
 def string_scan(substrings, text, case_insensitive=True):
-    automaton = ahocorasick.Automaton()
+    """
+    See which from a list of substrings are present in a string.
+
+    Args:
+        substrings (list): The list of substrings to scan for.
+        text (str): The text to scan.
+        case_insensitive (bool): Whether to scan case-insensitively.
+
+    Returns:
+    """
     if case_insensitive:
-        substrings = [s.lower() for s in substrings]
+        substrings = {s.lower() for s in substrings}
         text = text.lower()
-    for idx, substring in enumerate(substrings):
-        automaton.add_word(substring, (idx, substring))
-    automaton.make_automaton()
-    found_substrings = []
-    for end_index, (insert_order, original_value) in automaton.iter(text):
-        found_substrings.append(original_value)
-    return found_substrings
+    else:
+        substrings = set(substrings)
+
+    found_substrings = set()
+    for substring in substrings:
+        if substring in text:
+            found_substrings.add(substring)
+
+    return list(found_substrings)
 
 
 def calculate_entropy(data):
