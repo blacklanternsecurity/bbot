@@ -6,6 +6,10 @@ from bbot.errors import HttpCompareError
 from urllib.parse import unquote, quote
 
 
+# Global cache for compiled YARA rules
+_compiled_rules_cache = None
+
+
 class crypto(BaseLightfuzz):
     """
     Although we have an envelope system to detect hex and base64 encoded parameter values, those are only assigned when they decode to a valid string.
@@ -57,14 +61,14 @@ rule CryptoErrors {
         any of them
 }
 """
-    _compiled_rules = None
 
     @property
     def compiled_rules(self):
         """Cached property for compiled YARA rules"""
-        if self._compiled_rules is None:
-            self._compiled_rules = yara.compile(source=self.crypto_error_rules)
-        return self._compiled_rules
+        global _compiled_rules_cache
+        if _compiled_rules_cache is None:
+            _compiled_rules_cache = yara.compile(source=self.crypto_error_rules)
+        return _compiled_rules_cache
 
     @staticmethod
     def format_agnostic_decode(input_string, urldecode=False):
