@@ -83,11 +83,11 @@ class serial(BaseLightfuzz):
         probe_value = self.incoming_probe_value(populate_empty=False)
         if probe_value:
             if self.is_possibly_serialized(probe_value):
-                self.lightfuzz.debug(
+                self.debug(
                     f"Existing value is not ruled out for being a serialized object, proceeding [{self.event.data['type']}] [{self.event.data['name']}]"
                 )
             else:
-                self.lightfuzz.debug(
+                self.debug(
                     f"The Serialization Submodule only operates when there is no original value, or when the original value could potentially be a serialized object, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
                 )
                 return
@@ -97,7 +97,7 @@ class serial(BaseLightfuzz):
             http_compare_base64 = self.compare_baseline(self.event.data["type"], control_payload_base64, cookies)
             http_compare_php_raw = self.compare_baseline(self.event.data["type"], control_payload_php_raw, cookies)
         except HttpCompareError as e:
-            self.lightfuzz.debug(f"HttpCompareError encountered: {e}")
+            self.debug(f"HttpCompareError encountered: {e}")
             return
 
         # Proceed with payload probes
@@ -112,29 +112,29 @@ class serial(BaseLightfuzz):
                         payload_baseline, self.event.data["type"], payload, cookies
                     )
                 except HttpCompareError as e:
-                    self.lightfuzz.debug(f"HttpCompareError encountered: {e}")
+                    self.debug(f"HttpCompareError encountered: {e}")
                     continue
 
                 if matches_baseline:
-                    self.lightfuzz.debug(f"Payload {type} matches baseline, skipping")
+                    self.debug(f"Payload {type} matches baseline, skipping")
                     continue
 
-                self.lightfuzz.debug(f"Probe result for {type}: {response}")
+                self.debug(f"Probe result for {type}: {response}")
 
                 status_code = getattr(response, "status_code", 0)
                 if status_code == 0:
                     continue
 
                 if diff_reasons == ["header"]:
-                    self.lightfuzz.debug(f"Only header diffs found for {type}, skipping")
+                    self.debug(f"Only header diffs found for {type}, skipping")
                     continue
 
                 if status_code not in (200, 500):
-                    self.lightfuzz.debug(f"Status code {status_code} not in (200, 500), skipping")
+                    self.debug(f"Status code {status_code} not in (200, 500), skipping")
                     continue
 
                 # if the status code changed to 200, and the response doesn't match our general error exclusions, we have a finding
-                self.lightfuzz.debug(f"Potential finding detected for {type}, needs confirmation")
+                self.debug(f"Potential finding detected for {type}, needs confirmation")
                 if (
                     status_code == 200
                     and "code" in diff_reasons
@@ -151,14 +151,14 @@ class serial(BaseLightfuzz):
                 # if the first case doesn't match, we check for a telltale error string like "java.io.optionaldataexception" in the response.
                 # but only if the response is a 500, or a 200 with a body diff
                 elif status_code == 500 or (status_code == 200 and diff_reasons == ["body"]):
-                    self.lightfuzz.debug(f"500 status code or body match for {type}")
+                    self.debug(f"500 status code or body match for {type}")
                     for serialization_error in serialization_errors:
                         # check for the error string, but also ensure the error string isn't just always present in the response
                         if (
                             serialization_error in response.text.lower()
                             and serialization_error not in payload_baseline.baseline.text.lower()
                         ):
-                            self.lightfuzz.debug(f"Error string '{serialization_error}' found in response for {type}")
+                            self.debug(f"Error string '{serialization_error}' found in response for {type}")
                             self.results.append(
                                 {
                                     "type": "FINDING",

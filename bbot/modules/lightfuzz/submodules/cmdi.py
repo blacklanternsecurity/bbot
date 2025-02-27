@@ -46,15 +46,15 @@ class cmdi(BaseLightfuzz):
                 if cmdi_probe[3]:
                     # check if the canary is in the response and the word "echo" is NOT in the response text, ruling out mere reflection of the entire probe value without execution
                     if canary in cmdi_probe[3].text and "echo" not in cmdi_probe[3].text:
-                        self.lightfuzz.debug(f"canary [{canary}] found in response when sending probe [{p}]")
+                        self.debug(f"canary [{canary}] found in response when sending probe [{p}]")
                         if p == "AAAA":  # Handle detection false positive probe
-                            self.lightfuzz.warning(
+                            self.warning(
                                 f"False Postive Probe appears to have been triggered for {self.event.data['url']}, aborting remaining detection"
                             )
                             return
                         positive_detections.append(p)  # Add detected probes to positive detections
             except HttpCompareError as e:
-                self.lightfuzz.debug(e)
+                self.debug(e)
                 continue
         if len(positive_detections) > 0:
             self.results.append(

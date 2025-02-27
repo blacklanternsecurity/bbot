@@ -258,7 +258,7 @@ class crypto(BaseLightfuzz):
             padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
             # if we get a negative result first, theres a 1/255 change it's a false negative. To rule that out, we must retry again with possible_first_byte set to false
             if padding_oracle_result is None:
-                self.lightfuzz.debug(
+                self.debug(
                     "still could be in a possible_first_byte situation - retrying with different first byte"
                 )
                 padding_oracle_result = await self.padding_oracle_execute(
@@ -309,8 +309,9 @@ class crypto(BaseLightfuzz):
                         "context": context,
                     }
                 )
+
             else:
-                self.lightfuzz.debug(
+                self.debug(
                     f"Aborting cryptographic error reporting - baseline_text already contained detected string(s) ({','.join(baseline_strings)})"
                 )
 
@@ -334,7 +335,7 @@ class crypto(BaseLightfuzz):
         probe_value = self.incoming_probe_value(populate_empty=False)
 
         if not probe_value:
-            self.lightfuzz.debug(
+            self.debug(
                 f"The Cryptography Probe Submodule requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
             return
@@ -342,7 +343,7 @@ class crypto(BaseLightfuzz):
         # obtain the baseline probe to compare against
         baseline_probe = await self.baseline_probe(cookies)
         if not baseline_probe:
-            self.lightfuzz.warning(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
+            self.warning(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
             return
 
         # perform the manipulation techniques
@@ -350,7 +351,7 @@ class crypto(BaseLightfuzz):
             truncate_probe_value = self.modify_string(probe_value, action="truncate")
             mutate_probe_value = self.modify_string(probe_value, action="mutate")
         except ValueError as e:
-            self.lightfuzz.debug(
+            self.debug(
                 f"Encountered error modifying value for parameter [{self.event.data['name']}]: {e} , aborting"
             )
             return
@@ -360,7 +361,7 @@ class crypto(BaseLightfuzz):
 
         # if the value is not likely to be cryptographic, we can skip the rest of the tests
         if not likely_crypto:
-            self.lightfuzz.debug("Parameter value does not appear to be cryptographic, aborting tests")
+            self.debug("Parameter value does not appear to be cryptographic, aborting tests")
             return
 
         # Cryptographic Response Divergence Test
