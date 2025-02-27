@@ -1876,12 +1876,14 @@ def make_table(rows, header, **kwargs):
     Examples:
         >>> print(make_table([["row1", "row1"], ["row2", "row2"]], ["header1", "header2"]))
         +-----------+-----------+
-        | header1   | head======+===========+
+        | header1   | header2   |
+        +===========+===========+
         | row1      | row1      |
         +-----------+-----------+
         | row2      | row2      |
         +-----------+-----------+
     """
+
     from tabulate import tabulate
 
     # fix IndexError: list index out of range
