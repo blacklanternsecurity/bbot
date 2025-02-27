@@ -24,7 +24,7 @@ class TestSpeculate_Subdirectories(ModuleTestBase):
 
 class TestSpeculate_OpenPorts(ModuleTestBase):
     targets = ["evilcorp.com"]
-    modules_overrides = ["speculate", "certspotter", "internetdb"]
+    modules_overrides = ["speculate", "certspotter", "shodan_idb"]
     config_overrides = {"speculate": True}
 
     async def setup_before_prep(self, module_test):
