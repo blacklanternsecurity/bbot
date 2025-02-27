@@ -1,4 +1,3 @@
-import yara
 import base64
 import hashlib
 from .base import BaseLightfuzz
