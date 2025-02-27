@@ -5,7 +5,9 @@ import re
 from urllib.parse import quote
 
 
-class PathTraversalLightfuzz(BaseLightfuzz):
+class path(BaseLightfuzz):
+    friendly_name = "Path Traversal"
+
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=False)

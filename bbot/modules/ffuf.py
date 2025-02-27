@@ -9,7 +9,7 @@ import base64
 class ffuf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["aggressive", "active"]
+    flags = ["aggressive", "active", "deadly"]
     meta = {"description": "A fast web fuzzer written in Go", "created_date": "2022-04-10", "author": "@liquidsec"}
 
     options = {

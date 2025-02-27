@@ -159,12 +159,11 @@ class ModuleLoader:
                         namespace = f"bbot.modules.{module_dir.name}"
                     try:
                         preloaded = self.preload_module(module_file)
+                        if preloaded is None:
+                            continue
                         module_type = "scan"
                         if module_dir.name in ("output", "internal"):
                             module_type = str(module_dir.name)
-                        elif module_dir.name not in ("modules"):
-                            flags = set(preloaded["flags"] + [module_dir.name])
-                            preloaded["flags"] = sorted(flags)
 
                         # derive module dependencies from watched event types (only for scan modules)
                         if module_type == "scan":
@@ -328,12 +327,28 @@ class ModuleLoader:
         deps_apt = []
         deps_common = []
         ansible_tasks = []
+        config = {}
+        options_desc = {}
         python_code = open(module_file).read()
         # take a hash of the code so we can keep track of when it changes
         module_hash = sha1(python_code).hexdigest()
         parsed_code = ast.parse(python_code)
-        config = {}
-        options_desc = {}
+
+        # discard if the module isn't a valid BBOT module
+        is_bbot_module = False
+        for root_element in parsed_code.body:
+            if type(root_element) == ast.ClassDef:
+                for class_attr in root_element.body:
+                    if type(class_attr) == ast.Assign and any(
+                        target.id in ("watched_events", "produced_events") for target in class_attr.targets
+                    ):
+                        is_bbot_module = True
+                        break
+
+        if not is_bbot_module:
+            log.debug(f"Skipping {module_file} as it is not a valid BBOT module")
+            return
+
         for root_element in parsed_code.body:
             # look for classes
             if type(root_element) == ast.ClassDef:

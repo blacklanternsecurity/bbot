@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 class dastardly(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "aggressive", "slow", "web-thorough"]
+    flags = ["active", "aggressive", "slow", "web-thorough", "deadly"]
     meta = {
         "description": "Lightweight web application security scanner",
         "created_date": "2023-12-11",

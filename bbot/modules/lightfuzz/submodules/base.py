@@ -5,6 +5,9 @@ from urllib.parse import quote
 
 
 class BaseLightfuzz:
+    friendly_name = ""
+    uses_interactsh = False
+
     def __init__(self, lightfuzz, event):
         self.lightfuzz = lightfuzz
         self.event = event

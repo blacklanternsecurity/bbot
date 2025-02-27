@@ -4,7 +4,9 @@ from bbot.errors import HttpCompareError
 import statistics
 
 
-class SQLiLightfuzz(BaseLightfuzz):
+class sqli(BaseLightfuzz):
+    friendly_name = "SQL Injection"
+
     expected_delay = 5
     # These are common error strings that strongly indicate SQL injection
     sqli_error_strings = [

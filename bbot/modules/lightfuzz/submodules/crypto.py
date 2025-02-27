@@ -5,11 +5,17 @@ from bbot.errors import HttpCompareError
 from urllib.parse import unquote, quote
 
 
-class CryptoLightfuzz(BaseLightfuzz):
+# Global cache for compiled YARA rules
+_compiled_rules_cache = None
+
+
+class crypto(BaseLightfuzz):
     """
     Although we have an envelope system to detect hex and base64 encoded parameter values, those are only assigned when they decode to a valid string.
     Since crypto values (and serialized objects) will not decode properly, we need a more concise check here to determine how to process them.
     """
+
+    friendly_name = "Cryptography Probe"
 
     @staticmethod
     def is_hex(s):
@@ -28,10 +34,10 @@ class CryptoLightfuzz(BaseLightfuzz):
             return False
         return False
 
-    # A list of strings that are commonly found in cryptographic error messages, used to detect when error occurs specifically related to cryptographic operations.
+    # A list of YARA rules for detecting cryptographic error messages
     crypto_error_strings = [
         "invalid mac",
-        "padding is invalid and cannot be removed",
+        "padding is invalid",
         "bad data",
         "length of the data to decrypt is invalid",
         "specify a valid key size",
@@ -49,6 +55,16 @@ class CryptoLightfuzz(BaseLightfuzz):
         "crypto operation failed",
         "OpenSSL Error",
     ]
+
+    @property
+    def compiled_rules(self):
+        """
+        We need to cache the compiled YARA rule globally since lightfuzz submodules are recreated for every handle_event
+        """
+        global _compiled_rules_cache
+        if _compiled_rules_cache is None:
+            _compiled_rules_cache = self.lightfuzz.helpers.yara.compile_strings(self.crypto_error_strings, nocase=True)
+        return _compiled_rules_cache
 
     @staticmethod
     def format_agnostic_decode(input_string, urldecode=False):
@@ -118,7 +134,7 @@ class CryptoLightfuzz(BaseLightfuzz):
         if not isinstance(input_string, str):
             input_string = str(input_string)
 
-        data, encoding = CryptoLightfuzz.format_agnostic_decode(input_string)
+        data, encoding = crypto.format_agnostic_decode(input_string)
         if encoding != "base64" and encoding != "hex":
             raise ValueError("Input must be either hex or base64 encoded")
 
@@ -144,7 +160,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             modified_data = bytes(byte_list)
         else:
             raise ValueError("Unsupported action")
-        return CryptoLightfuzz.format_agnostic_encode(modified_data, encoding)
+        return crypto.format_agnostic_encode(modified_data, encoding)
 
     # Check if the entropy of the data is greater than the threshold, indicating it is likely encrypted
     def is_likely_encrypted(self, data, threshold=4.5):
@@ -242,9 +258,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
             # if we get a negative result first, theres a 1/255 change it's a false negative. To rule that out, we must retry again with possible_first_byte set to false
             if padding_oracle_result is None:
-                self.lightfuzz.debug(
-                    "still could be in a possible_first_byte situation - retrying with different first byte"
-                )
+                self.debug("still could be in a possible_first_byte situation - retrying with different first byte")
                 padding_oracle_result = await self.padding_oracle_execute(
                     data, encoding, block_size, cookies, possible_first_byte=False
                 )
@@ -262,33 +276,42 @@ class CryptoLightfuzz(BaseLightfuzz):
 
     async def error_string_search(self, text_dict, baseline_text):
         """
-        Search for cryptographic error strings in the provided text dictionary and baseline text.
+        Search for cryptographic error strings using YARA rules in the provided text dictionary and baseline text.
         """
         matching_techniques = set()
         matching_strings = set()
-        # we check individually for each manipulation technique
-        for label, text in text_dict.items():
-            matched_strings = self.lightfuzz.helpers.string_scan(self.crypto_error_strings, text)
-            for m in matched_strings:
-                matching_strings.add(m)
-            matching_techniques.add(label)
 
-        # if we find any matching strings, we need to check if they are in the baseline text to rule out false positives (the string was always there and not a result of our manipulation)
+        # Check each manipulation technique
+        for label, text in text_dict.items():
+            matches = await self.lightfuzz.helpers.yara.match(self.compiled_rules, text)
+            if matches:
+                matching_techniques.add(label)
+                for matched_string in matches:
+                    matching_strings.add(matched_string)
+
+        # Check for false positives by scanning baseline text
         context = f"Lightfuzz Cryptographic Probe Submodule detected a cryptographic error after manipulating parameter: [{self.event.data['name']}]"
-        if len(matching_strings) > 0:
-            false_positive_check = self.lightfuzz.helpers.string_scan(self.crypto_error_strings, baseline_text)
-            false_positive_matches = set(matched_strings) & set(false_positive_check)
-            if not false_positive_matches:
+        if matching_strings:
+            baseline_matches = await self.lightfuzz.helpers.yara.match(self.compiled_rules, baseline_text)
+            baseline_strings = set()
+            for matched_string in baseline_matches:
+                baseline_strings.add(matched_string)
+
+            # Only report strings that weren't in the baseline
+            unique_matches = matching_strings - baseline_strings
+            if unique_matches:
                 self.results.append(
                     {
                         "type": "FINDING",
-                        "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(matching_strings)}] Detection Technique(s): [{','.join(matching_techniques)}]",
+                        "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(unique_matches)}] Detection Technique(s): [{','.join(matching_techniques)}]",
                         "context": context,
                     }
                 )
-            self.lightfuzz.debug(
-                f"Aborting cryptographic error reporting - baseline_text already contained detected string(s) ({','.join(false_positive_check)})"
-            )
+
+            else:
+                self.debug(
+                    f"Aborting cryptographic error reporting - baseline_text already contained detected string(s) ({','.join(baseline_strings)})"
+                )
 
     # Identify the hash function based on the length of the hash
     @staticmethod
@@ -310,7 +333,7 @@ class CryptoLightfuzz(BaseLightfuzz):
         probe_value = self.incoming_probe_value(populate_empty=False)
 
         if not probe_value:
-            self.lightfuzz.debug(
+            self.debug(
                 f"The Cryptography Probe Submodule requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
             return
@@ -318,7 +341,7 @@ class CryptoLightfuzz(BaseLightfuzz):
         # obtain the baseline probe to compare against
         baseline_probe = await self.baseline_probe(cookies)
         if not baseline_probe:
-            self.lightfuzz.warning(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
+            self.warning(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
             return
 
         # perform the manipulation techniques
@@ -326,9 +349,7 @@ class CryptoLightfuzz(BaseLightfuzz):
             truncate_probe_value = self.modify_string(probe_value, action="truncate")
             mutate_probe_value = self.modify_string(probe_value, action="mutate")
         except ValueError as e:
-            self.lightfuzz.debug(
-                f"Encountered error modifying value for parameter [{self.event.data['name']}]: {e} , aborting"
-            )
+            self.debug(f"Encountered error modifying value for parameter [{self.event.data['name']}]: {e} , aborting")
             return
 
         # Basic crypanalysis
@@ -336,7 +357,7 @@ class CryptoLightfuzz(BaseLightfuzz):
 
         # if the value is not likely to be cryptographic, we can skip the rest of the tests
         if not likely_crypto:
-            self.lightfuzz.debug("Parameter value does not appear to be cryptographic, aborting tests")
+            self.debug("Parameter value does not appear to be cryptographic, aborting tests")
             return
 
         # Cryptographic Response Divergence Test
@@ -398,7 +419,7 @@ class CryptoLightfuzz(BaseLightfuzz):
                 await self.padding_oracle(probe_value, cookies)
 
             # Hash identification / Potential Length extension attack
-            data, encoding = CryptoLightfuzz.format_agnostic_decode(probe_value)
+            data, encoding = crypto.format_agnostic_decode(probe_value)
             # see if its possible that a given value is a hash, and if so, which one
             hash_function = self.identify_hash_function(data)
             if hash_function:

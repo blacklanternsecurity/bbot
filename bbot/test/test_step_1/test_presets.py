@@ -596,7 +596,7 @@ class TestModule1(BaseModule):
 from bbot.modules.output.base import BaseOutputModule
 
 class TestModule2(BaseOutputModule):
-    pass
+    watched_events = []
 """
         )
 
@@ -607,7 +607,7 @@ class TestModule2(BaseOutputModule):
 from bbot.modules.internal.base import BaseInternalModule
 
 class TestModule3(BaseInternalModule):
-    pass
+    watched_events = []
 """
         )
 

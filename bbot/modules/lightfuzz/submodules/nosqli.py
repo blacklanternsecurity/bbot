@@ -3,10 +3,12 @@ from bbot.errors import HttpCompareError
 import urllib.parse
 
 
-class NoSQLiLightfuzz(BaseLightfuzz):
+class nosqli(BaseLightfuzz):
     """
     NoSQLi Lightfuzz module
     """
+
+    friendly_name = "NoSQL Injection"
 
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})

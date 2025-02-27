@@ -8,7 +8,6 @@ import string
 import asyncio
 import logging
 import ipaddress
-import ahocorasick
 import regex as re
 import subprocess as sp
 
@@ -1884,6 +1883,7 @@ def make_table(rows, header, **kwargs):
         | row2      | row2      |
         +-----------+-----------+
     """
+
     from tabulate import tabulate
 
     # fix IndexError: list index out of range
@@ -2780,20 +2780,6 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
                     continue
             d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
-
-
-def string_scan(substrings, text, case_insensitive=True):
-    automaton = ahocorasick.Automaton()
-    if case_insensitive:
-        substrings = [s.lower() for s in substrings]
-        text = text.lower()
-    for idx, substring in enumerate(substrings):
-        automaton.add_word(substring, (idx, substring))
-    automaton.make_automaton()
-    found_substrings = []
-    for end_index, (insert_order, original_value) in automaton.iter(text):
-        found_substrings.append(original_value)
-    return found_substrings
 
 
 def calculate_entropy(data):

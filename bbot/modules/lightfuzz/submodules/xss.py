@@ -3,7 +3,9 @@ from .base import BaseLightfuzz
 import regex as re
 
 
-class XSSLightfuzz(BaseLightfuzz):
+class xss(BaseLightfuzz):
+    friendly_name = "Cross-Site Scripting"
+
     async def determine_context(self, cookies, html, random_string):
         """
         Determines the context of the random string in the HTML response.
@@ -88,9 +90,7 @@ class XSSLightfuzz(BaseLightfuzz):
             and str(lightfuzz_event.module) == "paramminer_getparams"
             and "http-reflection" not in lightfuzz_event.tags
         ):
-            self.lightfuzz.debug(
-                "Got WEB_PARAMETER from paramminer, with no reflection tag - xss is not possible, aborting"
-            )
+            self.debug("Got WEB_PARAMETER from paramminer, with no reflection tag - xss is not possible, aborting")
             return
 
         reflection = None
@@ -107,7 +107,7 @@ class XSSLightfuzz(BaseLightfuzz):
         between_tags, in_tag_attribute, in_javascript = await self.determine_context(
             cookies, reflection_probe_result.text, random_string
         )
-        self.lightfuzz.debug(
+        self.debug(
             f"determine_context returned: between_tags [{between_tags}], in_tag_attribute [{in_tag_attribute}], in_javascript [{in_javascript}]"
         )
         tags = [

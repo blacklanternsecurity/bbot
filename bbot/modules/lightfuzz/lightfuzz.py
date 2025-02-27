@@ -1,35 +1,20 @@
+import importlib
 from bbot.modules.base import BaseModule
 
 from urllib.parse import urlunparse
 from bbot.errors import InteractshError
 
-from .lightfuzz_submodules.cmdi import CmdILightfuzz
-from .lightfuzz_submodules.crypto import CryptoLightfuzz
-from .lightfuzz_submodules.path import PathTraversalLightfuzz
-from .lightfuzz_submodules.sqli import SQLiLightfuzz
-from .lightfuzz_submodules.ssti import SSTILightfuzz
-from .lightfuzz_submodules.xss import XSSLightfuzz
-from .lightfuzz_submodules.serial import SerialLightfuzz
-from .lightfuzz_submodules.nosqli import NoSQLiLightfuzz
-
 
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "aggressive", "web-thorough", "deadly"]
 
-    submodules = {
-        "sqli": {"description": "SQL Injection", "module": SQLiLightfuzz},
-        "cmdi": {"description": "Command Injection", "module": CmdILightfuzz},
-        "xss": {"description": "Cross-site Scripting", "module": XSSLightfuzz},
-        "path": {"description": "Path Traversal", "module": PathTraversalLightfuzz},
-        "ssti": {"description": "Server-side Template Injection", "module": SSTILightfuzz},
-        "crypto": {"description": "Cryptography Probe", "module": CryptoLightfuzz},
-        "serial": {"description": "Unsafe Deserialization Probe", "module": SerialLightfuzz},
-        "nosqli": {"description": "NoSQL Injection", "module": NoSQLiLightfuzz},
+    options = {
+        "force_common_headers": False,
+        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "nosqli"],
+        "disable_post": False,
     }
-
-    options = {"force_common_headers": False, "enabled_submodules": [], "disable_post": False}
     options_desc = {
         "force_common_headers": "Force emit commonly exploitable parameters that may be difficult to detect",
         "enabled_submodules": "A list of submodules to enable. Empty list enabled all modules.",
@@ -52,27 +37,28 @@ class lightfuzz(BaseModule):
         self.interactsh_instance = None
         self.disable_post = self.config.get("disable_post", False)
         self.enabled_submodules = self.config.get("enabled_submodules")
+        self.interactsh_disable = self.scan.config.get("interactsh_disable", False)
+        self.submodules = {}
 
-        for m in self.enabled_submodules:
-            if m not in self.submodules:
-                self.hugewarning(f"Invalid Lightfuzz submodule ({m}) specified in enabled_modules")
-                return False
+        if not self.enabled_submodules:
+            return False, "Lightfuzz enabled without any submodules. Must enable at least one submodule."
 
-        for submodule, submodule_dict in self.submodules.items():
-            if submodule in self.enabled_submodules or self.enabled_submodules == []:
-                setattr(self, submodule, True)
-                self.hugeinfo(f"Lightfuzz {submodule_dict['description']} Submodule Enabled")
+        for submodule_name in self.enabled_submodules:
+            try:
+                submodule_module = importlib.import_module(f"bbot.modules.lightfuzz.submodules.{submodule_name}")
+                submodule_class = getattr(submodule_module, submodule_name)
+            except ImportError:
+                return False, f"Invalid Lightfuzz submodule ({submodule_name}) specified in enabled_modules"
+            self.submodules[submodule_name] = submodule_class
 
-                if submodule == "cmdi" and self.scan.config.get("interactsh_disable", False) is False:
-                    try:
-                        self.interactsh_instance = self.helpers.interactsh()
-                        self.interactsh_domain = await self.interactsh_instance.register(
-                            callback=self.interactsh_callback
-                        )
-                    except InteractshError as e:
-                        self.warning(f"Interactsh failure: {e}")
-            else:
-                setattr(self, submodule, False)
+        interactsh_needed = any(submodule.uses_interactsh for submodule in self.submodules.values())
+
+        if interactsh_needed and not self.interactsh_disable:
+            try:
+                self.interactsh_instance = self.helpers.interactsh()
+                self.interactsh_domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
+            except InteractshError as e:
+                self.warning(f"Interactsh failure: {e}")
         return True
 
     async def interactsh_callback(self, r):
@@ -182,10 +168,9 @@ class lightfuzz(BaseModule):
             connectivity_test = await self.helpers.request(event.data["url"], timeout=10)
 
             if connectivity_test:
-                for submodule, submodule_dict in self.submodules.items():
-                    if getattr(self, submodule):
-                        self.debug(f"Starting {submodule_dict['description']} fuzz()")
-                        await self.run_submodule(submodule_dict["module"], event)
+                for submodule_name, submodule in self.submodules.items():
+                    self.debug(f"Starting {submodule_name} fuzz()")
+                    await self.run_submodule(submodule, event)
             else:
                 self.debug(f"WEB_PARAMETER URL {event.data['url']} failed connectivity test, aborting")
 

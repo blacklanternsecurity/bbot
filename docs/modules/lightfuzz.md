@@ -1,5 +1,7 @@
 # Lightfuzz
 
+*Lightfuzz is currently an experimental feature. There WILL be false positives (and, surely although we'll never know - false negatives), although the submodules are being actively worked on to reduce them. If you find false positives, please help us out by opening a GitHub issue with the details!*
+
 ## Philosophy
 
 ### What is Lightfuzz?
