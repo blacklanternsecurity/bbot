@@ -18,6 +18,7 @@ class ffuf(BaseModule):
         "max_depth": 0,
         "extensions": "",
         "ignore_case": False,
+        "rate": 0,
     }
 
     options_desc = {
@@ -26,6 +27,7 @@ class ffuf(BaseModule):
         "max_depth": "the maximum directory depth to attempt to solve",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
         "ignore_case": "Only put lowercase words into the wordlist",
+        "rate": "Rate of requests per second (default: 0)",
     }
 
     deps_common = ["ffuf"]
@@ -43,6 +45,7 @@ class ffuf(BaseModule):
         self.wordlist = await self.helpers.wordlist(wordlist_url)
         self.wordlist_lines = self.generate_wordlist(self.wordlist)
         self.tempfile, tempfile_len = self.generate_templist()
+        self.rate = self.config.get("rate", 0)
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         try:
             self.extensions = self.helpers.chain_lists(self.config.get("extensions", ""), validate=True)
@@ -244,6 +247,9 @@ class ffuf(BaseModule):
             else:
                 self.debug("invalid mode specified, aborting")
                 return
+
+            if self.rate > 0:
+                command += ["-rate", f"{self.rate}"]
 
             if self.proxy:
                 command += ["-x", self.proxy]

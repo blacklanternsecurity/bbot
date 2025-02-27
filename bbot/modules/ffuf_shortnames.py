@@ -26,6 +26,7 @@ class ffuf_shortnames(ffuf):
         "find_delimiters": True,
         "find_subwords": False,
         "max_predictions": 250,
+        "rate": 0,
     }
 
     options_desc = {
@@ -38,6 +39,7 @@ class ffuf_shortnames(ffuf):
         "find_delimiters": "Attempt to detect common delimiters and make additional ffuf runs against them",
         "find_subwords": "Attempt to detect subwords and make additional ffuf runs against them",
         "max_predictions": "The maximum number of predictions to generate per shortname prefix",
+        "rate": "Rate of requests per second (default: 0)",
     }
 
     deps_pip = ["numpy"]
@@ -96,6 +98,7 @@ class ffuf_shortnames(ffuf):
         self.ignore_redirects = self.config.get("ignore_redirects")
         self.max_predictions = self.config.get("max_predictions")
         self.find_subwords = self.config.get("find_subwords")
+        self.rate = self.config.get("rate", 0)
 
         class MinimalWordPredictor:
             def __init__(self):

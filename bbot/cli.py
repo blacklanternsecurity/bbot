@@ -161,8 +161,11 @@ async def _main():
             all_modules = list(preset.module_loader.preloaded())
             scan.helpers.depsinstaller.force_deps = True
             succeeded, failed = await scan.helpers.depsinstaller.install(*all_modules)
-            log.info("Finished installing module dependencies")
-            return False if failed else True
+            if failed:
+                log.hugewarning(f"Failed to install dependencies for the following modules: {', '.join(failed)}")
+                return False
+            log.hugesuccess(f"Successfully installed dependencies for the following modules: {', '.join(succeeded)}")
+            return True
 
         scan_name = str(scan.name)
 

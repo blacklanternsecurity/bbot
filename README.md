@@ -312,16 +312,16 @@ bbot -t evilcorp.com evilcorp.org 1.2.3.0/24 -p subdomain-enum
 
 Targets can be any of the following:
 
-- `DNS_NAME` (`evilcorp.com`)
-- `IP_ADDRESS` (`1.2.3.4`)
-- `IP_RANGE` (`1.2.3.0/24`)
-- `OPEN_TCP_PORT` (`192.168.0.1:80`)
-- `URL` (`https://www.evilcorp.com`)
-- `EMAIL_ADDRESS` (`bob@evilcorp.com`)
-- `ORG_STUB` (`ORG:evilcorp`)
-- `USER_STUB` (`USER:bobsmith`)
-- `FILESYSTEM` (`FILESYSTEM:/tmp/asdf`)
-- `MOBILE_APP` (`MOBILE_APP:https://play.google.com/store/apps/details?id=com.evilcorp.app`)
+- DNS Name (`evilcorp.com`)
+- IP Address (`1.2.3.4`)
+- IP Range (`1.2.3.0/24`)
+- Open TCP Port (`192.168.0.1:80`)
+- URL (`https://www.evilcorp.com`)
+- Email Address (`bob@evilcorp.com`)
+- Organization (`ORG:evilcorp`)
+- Username (`USER:bobsmith`)
+- Filesystem (`FILESYSTEM:/tmp/asdf`)
+- Mobile App (`MOBILE_APP:https://play.google.com/store/apps/details?id=com.evilcorp.app`)
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/Stable/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/Stable/scanning/#scope).
 
