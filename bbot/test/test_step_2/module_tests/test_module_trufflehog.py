@@ -9,7 +9,7 @@ from .base import ModuleTestBase
 
 
 class TestTrufflehog(ModuleTestBase):
-    config_overrides = {"modules": {"postman_download": {"api_key": "asdf"}}}
+    config_overrides = {"modules": {"postman_download": {"api_key": "asdf"}, "github_org": {"api_key": "asdf"}}}
     modules_overrides = [
         "github_org",
         "speculate",
@@ -1181,7 +1181,7 @@ class TestTrufflehog(ModuleTestBase):
 
 
 class TestTrufflehog_NonVerified(TestTrufflehog):
-    config_overrides = {"modules": {"trufflehog": {"only_verified": False}, "postman_download": {"api_key": "asdf"}}}
+    config_overrides = {"modules": {"trufflehog": {"only_verified": False}, "postman_download": {"api_key": "asdf"}, "github_org": {"api_key": "asdf"}}}
 
     def check(self, module_test, events):
         finding_events = [
