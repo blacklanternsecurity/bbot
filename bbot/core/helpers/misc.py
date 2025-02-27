@@ -2779,6 +2779,7 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
             d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
 
+
 def calculate_entropy(data):
     """Calculate the Shannon entropy of a byte sequence"""
     if not data:

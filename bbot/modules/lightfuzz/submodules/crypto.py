@@ -258,9 +258,7 @@ class crypto(BaseLightfuzz):
             padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
             # if we get a negative result first, theres a 1/255 change it's a false negative. To rule that out, we must retry again with possible_first_byte set to false
             if padding_oracle_result is None:
-                self.debug(
-                    "still could be in a possible_first_byte situation - retrying with different first byte"
-                )
+                self.debug("still could be in a possible_first_byte situation - retrying with different first byte")
                 padding_oracle_result = await self.padding_oracle_execute(
                     data, encoding, block_size, cookies, possible_first_byte=False
                 )
@@ -351,9 +349,7 @@ class crypto(BaseLightfuzz):
             truncate_probe_value = self.modify_string(probe_value, action="truncate")
             mutate_probe_value = self.modify_string(probe_value, action="mutate")
         except ValueError as e:
-            self.debug(
-                f"Encountered error modifying value for parameter [{self.event.data['name']}]: {e} , aborting"
-            )
+            self.debug(f"Encountered error modifying value for parameter [{self.event.data['name']}]: {e} , aborting")
             return
 
         # Basic crypanalysis
