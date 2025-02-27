@@ -1876,14 +1876,12 @@ def make_table(rows, header, **kwargs):
     Examples:
         >>> print(make_table([["row1", "row1"], ["row2", "row2"]], ["header1", "header2"]))
         +-----------+-----------+
-        | header1   | header2   |
-        +===========+===========+
+        | header1   | head======+===========+
         | row1      | row1      |
         +-----------+-----------+
         | row2      | row2      |
         +-----------+-----------+
     """
-
     from tabulate import tabulate
 
     # fix IndexError: list index out of range
@@ -2780,7 +2778,6 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
                     continue
             d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
-
 
 def calculate_entropy(data):
     """Calculate the Shannon entropy of a byte sequence"""
