@@ -90,9 +90,7 @@ class xss(BaseLightfuzz):
             and str(lightfuzz_event.module) == "paramminer_getparams"
             and "http-reflection" not in lightfuzz_event.tags
         ):
-            self.debug(
-                "Got WEB_PARAMETER from paramminer, with no reflection tag - xss is not possible, aborting"
-            )
+            self.debug("Got WEB_PARAMETER from paramminer, with no reflection tag - xss is not possible, aborting")
             return
 
         reflection = None

@@ -1883,6 +1883,7 @@ def make_table(rows, header, **kwargs):
         | row2      | row2      |
         +-----------+-----------+
     """
+
     from tabulate import tabulate
 
     # fix IndexError: list index out of range
@@ -2779,31 +2780,6 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
                     continue
             d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
-
-
-def string_scan(substrings, text, case_insensitive=True):
-    """
-    See which from a list of substrings are present in a string.
-
-    Args:
-        substrings (list): The list of substrings to scan for.
-        text (str): The text to scan.
-        case_insensitive (bool): Whether to scan case-insensitively.
-
-    Returns:
-    """
-    if case_insensitive:
-        substrings = {s.lower() for s in substrings}
-        text = text.lower()
-    else:
-        substrings = set(substrings)
-
-    found_substrings = set()
-    for substring in substrings:
-        if substring in text:
-            found_substrings.add(substring)
-
-    return list(found_substrings)
 
 
 def calculate_entropy(data):
