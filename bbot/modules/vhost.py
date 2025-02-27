@@ -1,7 +1,7 @@
 import base64
 from urllib.parse import urlparse
 
-from bbot.modules.deadly.ffuf import ffuf
+from bbot.modules.ffuf import ffuf
 
 
 class vhost(ffuf):
