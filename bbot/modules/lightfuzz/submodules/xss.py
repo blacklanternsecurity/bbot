@@ -90,7 +90,7 @@ class xss(BaseLightfuzz):
             and str(lightfuzz_event.module) == "paramminer_getparams"
             and "http-reflection" not in lightfuzz_event.tags
         ):
-            self.lightfuzz.debug(
+            self.debug(
                 "Got WEB_PARAMETER from paramminer, with no reflection tag - xss is not possible, aborting"
             )
             return
@@ -109,7 +109,7 @@ class xss(BaseLightfuzz):
         between_tags, in_tag_attribute, in_javascript = await self.determine_context(
             cookies, reflection_probe_result.text, random_string
         )
-        self.lightfuzz.debug(
+        self.debug(
             f"determine_context returned: between_tags [{between_tags}], in_tag_attribute [{in_tag_attribute}], in_javascript [{in_javascript}]"
         )
         tags = [
