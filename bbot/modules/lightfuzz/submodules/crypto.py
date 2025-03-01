@@ -341,7 +341,7 @@ class crypto(BaseLightfuzz):
         # obtain the baseline probe to compare against
         baseline_probe = await self.baseline_probe(cookies)
         if not baseline_probe:
-            self.warning(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
+            self.verbose(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
             return
 
         # perform the manipulation techniques
