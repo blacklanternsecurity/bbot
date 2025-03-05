@@ -1,10 +1,6 @@
 [tool.poetry]
 name = "bbot"
-<<<<<<< HEAD
 version = "3.0.0"
-=======
-version = "2.4.0"
->>>>>>> dev
 description = "OSINT automation for hackers."
 authors = [
     "TheTechromancer",
