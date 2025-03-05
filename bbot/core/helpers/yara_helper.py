@@ -29,7 +29,6 @@ rule strings_match
         any of them
 }}
 """
-        print(yara_rule)
         # Compile and return the rule
         return self.compile(source=yara_rule)
 
