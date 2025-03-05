@@ -95,7 +95,7 @@ class BaseTarget(RadixTarget):
             else:
                 event = self.make_event(target)
                 if event:
-                    self.inputs.add(target)
+                    self.inputs.add(str(target))
                     _events = [event]
             for event in _events:
                 events.add(event)
