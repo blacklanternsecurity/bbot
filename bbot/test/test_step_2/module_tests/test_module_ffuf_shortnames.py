@@ -8,6 +8,7 @@ class TestFFUFShortnames(ModuleTestBase):
         "modules": {
             "ffuf_shortnames": {
                 "find_common_prefixes": True,
+                "find_subwords": True,
                 "wordlist": tempwordlist(test_wordlist),
             }
         }
@@ -142,6 +143,16 @@ class TestFFUFShortnames(ModuleTestBase):
                 tags=["shortname-endpoint"],
             )
         )
+
+        seed_events.append(
+            module_test.scan.make_event(
+                "http://127.0.0.1:8888/newpro~1.asp",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-endpoint"],
+            )
+        )
         module_test.scan.target.seeds.events = set(seed_events)
 
         expect_args = {"method": "GET", "uri": "/administrator.aspx"}
@@ -172,6 +183,10 @@ class TestFFUFShortnames(ModuleTestBase):
         respond_args = {"response_data": "alive"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"method": "GET", "uri": "/newproxy.aspx"}
+        respond_args = {"response_data": "alive"}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
     def check(self, module_test, events):
         basic_detection = False
         directory_detection = False
@@ -180,6 +195,7 @@ class TestFFUFShortnames(ModuleTestBase):
         directory_delimiter_detection = False
         prefix_delimiter_detection = False
         short_extensions_detection = False
+        subword_detection = False
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
@@ -197,6 +213,8 @@ class TestFFUFShortnames(ModuleTestBase):
                     prefix_delimiter_detection = True
                 if e.data == "http://127.0.0.1:8888/short.pl":
                     short_extensions_detection = True
+                if e.data == "http://127.0.0.1:8888/newproxy.aspx":
+                    subword_detection = True
 
         assert basic_detection
         assert directory_detection
@@ -205,3 +223,4 @@ class TestFFUFShortnames(ModuleTestBase):
         assert directory_delimiter_detection
         assert prefix_delimiter_detection
         assert short_extensions_detection
+        assert subword_detection

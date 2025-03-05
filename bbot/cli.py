@@ -161,8 +161,11 @@ async def _main():
             all_modules = list(preset.module_loader.preloaded())
             scan.helpers.depsinstaller.force_deps = True
             succeeded, failed = await scan.helpers.depsinstaller.install(*all_modules)
-            log.info("Finished installing module dependencies")
-            return False if failed else True
+            if failed:
+                log.hugewarning(f"Failed to install dependencies for the following modules: {', '.join(failed)}")
+                return False
+            log.hugesuccess(f"Successfully installed dependencies for the following modules: {', '.join(succeeded)}")
+            return True
 
         scan_name = str(scan.name)
 
@@ -180,13 +183,14 @@ async def _main():
 
             if sys.stdin.isatty():
                 # warn if any targets belong directly to a cloud provider
-                for event in scan.target.seeds.events:
-                    if event.type == "DNS_NAME":
-                        cloudcheck_result = scan.helpers.cloudcheck(event.host)
-                        if cloudcheck_result:
-                            scan.hugewarning(
-                                f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
-                            )
+                if not scan.preset.strict_scope:
+                    for event in scan.target.seeds.events:
+                        if event.type == "DNS_NAME":
+                            cloudcheck_result = scan.helpers.cloudcheck(event.host)
+                            if cloudcheck_result:
+                                scan.hugewarning(
+                                    f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
+                                )
 
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")

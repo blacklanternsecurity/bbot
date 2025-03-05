@@ -1,0 +1,11 @@
+description: Detect technologies via Wappalyzer, Nuclei, and FingerprintX
+
+modules:
+  - nuclei
+  - wappalyzer
+  - fingerprintx
+
+config:
+  modules:
+    nuclei:
+      tags: tech

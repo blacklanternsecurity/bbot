@@ -83,6 +83,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
         # TODO: re-enable this
         if self._target.in_scope(str(request.url)):
             for hk, hv in self._web_config.get("http_headers", {}).items():
+                hv = str(hv)
                 # don't clobber headers
                 if hk not in request.headers:
                     request.headers[hk] = hv

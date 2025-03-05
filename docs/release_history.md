@@ -1,3 +1,9 @@
+### 2.4.0 - Feb 27, 2025
+- [https://github.com/blacklanternsecurity/bbot/pull/2266](https://github.com/blacklanternsecurity/bbot/pull/2266)
+
+### 2.3.0 - Jan 24, 2025
+- [https://github.com/blacklanternsecurity/bbot/pull/1986](https://github.com/blacklanternsecurity/bbot/pull/1986)
+
 ### 2.2.0 - Nov 18, 2024
 - [https://github.com/blacklanternsecurity/bbot/pull/1919](https://github.com/blacklanternsecurity/bbot/pull/1919)
 

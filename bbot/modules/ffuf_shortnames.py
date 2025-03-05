@@ -9,7 +9,6 @@ from bbot.modules.deadly.ffuf import ffuf
 class ffuf_shortnames(ffuf):
     watched_events = ["URL_HINT"]
     produced_events = ["URL_UNVERIFIED"]
-    deps_pip = ["numpy"]
     flags = ["aggressive", "active", "iis-shortnames", "web-thorough"]
     meta = {
         "description": "Use ffuf in combination IIS shortnames",
@@ -18,7 +17,6 @@ class ffuf_shortnames(ffuf):
     }
 
     options = {
-        "wordlist": "",  # default is defined within setup function
         "wordlist_extensions": "",  # default is defined within setup function
         "max_depth": 1,
         "version": "2.0.0",
@@ -26,11 +24,12 @@ class ffuf_shortnames(ffuf):
         "ignore_redirects": True,
         "find_common_prefixes": False,
         "find_delimiters": True,
+        "find_subwords": False,
         "max_predictions": 250,
+        "rate": 0,
     }
 
     options_desc = {
-        "wordlist": "Specify wordlist to use when finding directories",
         "wordlist_extensions": "Specify wordlist to use when making extension lists",
         "max_depth": "the maximum directory depth to attempt to solve",
         "version": "ffuf version",
@@ -38,21 +37,27 @@ class ffuf_shortnames(ffuf):
         "ignore_redirects": "Explicitly ignore redirects (301,302)",
         "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional ffuf runs against them",
         "find_delimiters": "Attempt to detect common delimiters and make additional ffuf runs against them",
+        "find_subwords": "Attempt to detect subwords and make additional ffuf runs against them",
         "max_predictions": "The maximum number of predictions to generate per shortname prefix",
+        "rate": "Rate of requests per second (default: 0)",
     }
 
+    deps_pip = ["numpy"]
     deps_common = ["ffuf"]
-
     in_scope_only = True
 
-    def generate_templist(self, prefix, shortname_type):
-        virtual_file = []
+    supplementary_words = ["html", "ajax", "xml", "json", "api"]
 
-        for prediction, score in self.predict(prefix, self.max_predictions, model=shortname_type):
-            self.debug(f"Got prediction: [{prediction}] from prefix [{prefix}] with score [{score}]")
-            virtual_file.append(prediction)
-        virtual_file.append(self.canary)
-        return self.helpers.tempfile(virtual_file, pipe=False), len(virtual_file)
+    def generate_templist(self, hint, shortname_type):
+        virtual_file = set()  # Use a set to avoid duplicates
+
+        for prediction, score in self.predict(hint, self.max_predictions, model=shortname_type):
+            prediction_lower = prediction.lower()  # Convert to lowercase
+            self.debug(f"Got prediction: [{prediction_lower}] from prefix [{hint}] with score [{score}]")
+            virtual_file.add(prediction_lower)  # Add to set to ensure uniqueness
+
+        virtual_file.add(self.canary.lower())  # Ensure canary is also lowercase
+        return self.helpers.tempfile(list(virtual_file), pipe=False), len(virtual_file)
 
     def predict(self, prefix, n=25, model="endpoint"):
         predictor_name = f"{model}_predictor"
@@ -92,6 +97,8 @@ class ffuf_shortnames(ffuf):
         self.wordlist_extensions = await self.helpers.wordlist(wordlist_extensions)
         self.ignore_redirects = self.config.get("ignore_redirects")
         self.max_predictions = self.config.get("max_predictions")
+        self.find_subwords = self.config.get("find_subwords")
+        self.rate = self.config.get("rate", 0)
 
         class MinimalWordPredictor:
             def __init__(self):
@@ -116,10 +123,11 @@ class ffuf_shortnames(ffuf):
                     return MinimalWordPredictor
                 return super().find_class(module, name)
 
-        endpoint_model = await self.helpers.download(
+        self.info("Loading ffuf_shortnames prediction models, could take a while if not cached")
+        endpoint_model = await self.helpers.wordlist(
             "https://raw.githubusercontent.com/blacklanternsecurity/wordpredictor/refs/heads/main/trained_models/endpoints.bin"
         )
-        directory_model = await self.helpers.download(
+        directory_model = await self.helpers.wordlist(
             "https://raw.githubusercontent.com/blacklanternsecurity/wordpredictor/refs/heads/main/trained_models/directories.bin"
         )
 
@@ -133,8 +141,24 @@ class ffuf_shortnames(ffuf):
             unpickler = CustomUnpickler(f)
             self.directory_predictor = unpickler.load()
 
+        self.subword_list = []
+        if self.find_subwords:
+            self.debug("Acquiring ffuf_shortnames subword list")
+            subwords = await self.helpers.wordlist(
+                "https://raw.githubusercontent.com/nltk/nltk_data/refs/heads/gh-pages/packages/corpora/words.zip",
+                zip=True,
+                zip_filename="words/en",
+            )
+            with open(subwords, "r") as f:
+                subword_list_content = f.readlines()
+            self.subword_list = {word.lower().strip() for word in subword_list_content if 3 <= len(word.strip()) <= 5}
+            self.debug(f"Created subword_list with {len(self.subword_list)} words")
+            self.subword_list = self.subword_list.union(self.supplementary_words)
+            self.debug(f"Extended subword_list with supplementary words, total size: {len(self.subword_list)}")
+
         self.per_host_collection = {}
         self.shortname_to_event = {}
+
         return True
 
     def build_extension_list(self, event):
@@ -159,9 +183,19 @@ class ffuf_shortnames(ffuf):
         return None
 
     async def filter_event(self, event):
+        if "iis-magic-url" in event.tags:
+            return False, "iis-magic-url URL_HINTs are not solvable by ffuf_shortnames"
         if event.parent.type != "URL":
             return False, "its parent event is not of type URL"
         return True
+
+    def find_subword(self, word):
+        for i in range(len(word), 2, -1):  # Start from full length down to 3 characters
+            candidate = word[:i]
+            if candidate in self.subword_list:
+                leftover = word[i:]
+                return candidate, leftover
+        return None, word  # No match found, return None and the original word
 
     async def handle_event(self, event):
         filename_hint = re.sub(r"~\d", "", event.parsed_url.path.rsplit(".", 1)[0].split("/")[-1]).lower()
@@ -254,6 +288,31 @@ class ffuf_shortnames(ffuf):
                                 parent=event,
                                 tags=[f"status-{r['status']}"],
                                 context=f'{{module}} brute-forced {ext.upper()} files with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.data}}',
+                            )
+
+        if self.config.get("find_subwords"):
+            subword, suffix = self.find_subword(filename_hint)
+            if subword:
+                if "shortname-directory" in event.tags:
+                    tempfile, tempfile_len = self.generate_templist(suffix, "directory")
+                    async for r in self.execute_ffuf(tempfile, root_url, prefix=subword, exts=["/"]):
+                        await self.emit_event(
+                            r["url"],
+                            "URL_UNVERIFIED",
+                            parent=event,
+                            tags=[f"status-{r['status']}"],
+                            context=f'{{module}} brute-forced directories with detected subword "{subword}" and found {{event.type}}: {{event.data}}',
+                        )
+                elif "shortname-endpoint" in event.tags:
+                    for ext in used_extensions:
+                        tempfile, tempfile_len = self.generate_templist(suffix, "endpoint")
+                        async for r in self.execute_ffuf(tempfile, root_url, prefix=subword, suffix=f".{ext}"):
+                            await self.emit_event(
+                                r["url"],
+                                "URL_UNVERIFIED",
+                                parent=event,
+                                tags=[f"status-{r['status']}"],
+                                context=f'{{module}} brute-forced {ext.upper()} files with detected subword "{subword}" and found {{event.type}}: {{event.data}}',
                             )
 
     async def finish(self):

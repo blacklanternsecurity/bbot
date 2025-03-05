@@ -10,7 +10,7 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 
     Only **Linux** is supported at this time. **Windows** and **macOS** are *not* supported. If you use one of these platforms, consider using [Docker](#Docker).
 
-BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, see [Installation (Poetry)](./contribution/#installation-poetry).
+BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you're looking to tinker or write your own module, see [Setting up a Dev Environment](./dev/dev_environment.md).
 
 ### [Python (pip / pipx)](https://pypi.org/project/bbot/)
 

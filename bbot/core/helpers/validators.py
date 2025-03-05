@@ -176,6 +176,7 @@ def clean_url(url: str, url_querystring_remove=True):
         scheme = parsed.scheme
     except ValueError:
         scheme = "https"
+    port = None
     with suppress(Exception):
         port = parsed.port
     if port is None:

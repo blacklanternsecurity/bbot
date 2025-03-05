@@ -17,6 +17,8 @@ class ffuf(BaseModule):
         "lines": 5000,
         "max_depth": 0,
         "extensions": "",
+        "ignore_case": False,
+        "rate": 0,
     }
 
     options_desc = {
@@ -24,6 +26,8 @@ class ffuf(BaseModule):
         "lines": "take only the first N lines from the wordlist when finding directories",
         "max_depth": "the maximum directory depth to attempt to solve",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
+        "ignore_case": "Only put lowercase words into the wordlist",
+        "rate": "Rate of requests per second (default: 0)",
     }
 
     deps_common = ["ffuf"]
@@ -41,6 +45,7 @@ class ffuf(BaseModule):
         self.wordlist = await self.helpers.wordlist(wordlist_url)
         self.wordlist_lines = self.generate_wordlist(self.wordlist)
         self.tempfile, tempfile_len = self.generate_templist()
+        self.rate = self.config.get("rate", 0)
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         try:
             self.extensions = self.helpers.chain_lists(self.config.get("extensions", ""), validate=True)
@@ -243,6 +248,9 @@ class ffuf(BaseModule):
                 self.debug("invalid mode specified, aborting")
                 return
 
+            if self.rate > 0:
+                command += ["-rate", f"{self.rate}"]
+
             if self.proxy:
                 command += ["-x", self.proxy]
 
@@ -301,11 +309,12 @@ class ffuf(BaseModule):
                                     ]
                                     if len(pre_emit_temp_canary) == 0:
                                         yield found_json
+
                                     else:
-                                        self.warning(
-                                            "Baseline changed mid-scan. This is probably due to a WAF turning on a block against you."
+                                        self.verbose(
+                                            f"Would have reported URL [{found_json['url']}], but baseline check failed. This could be due to a WAF turning on mid-scan, or an unusual web server configuration."
                                         )
-                                        self.warning(f"Aborting the current run against [{url}]")
+                                        self.verbose(f"Aborting the current run against [{url}]")
                                         return
 
                             yield found_json
@@ -328,7 +337,8 @@ class ffuf(BaseModule):
         return self.helpers.tempfile(virtual_file, pipe=False), len(virtual_file)
 
     def generate_wordlist(self, wordlist_file):
-        wordlist = []
+        wordlist_set = set()  # Use a set to avoid duplicates
+        ignore_case = self.config.get("ignore_case", False)  # Get the ignore_case option
         for line in self.helpers.read_file(wordlist_file):
             line = line.strip()
             if not line:
@@ -339,5 +349,7 @@ class ffuf(BaseModule):
             if any(x in line for x in self.banned_characters):
                 self.debug(f"Skipping adding [{line}] to wordlist because it has a banned character")
                 continue
-            wordlist.append(line)
-        return wordlist
+            if ignore_case:
+                line = line.lower()  # Convert to lowercase if ignore_case is enabled
+            wordlist_set.add(line)  # Add to set to handle duplicates
+        return list(wordlist_set)  # Convert set back to list before returning

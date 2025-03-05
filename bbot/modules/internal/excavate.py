@@ -9,7 +9,7 @@ from bbot.errors import ExcavateError
 import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
-from urllib.parse import urlparse, urljoin, parse_qs, urlunparse
+from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, urldefrag
 
 
 def find_subclasses(obj, base_class):
@@ -736,7 +736,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             continue
                         unescaped_url = html.unescape(m.group(1))
                         source_url = event.parsed_url.geturl()
-                        final_url = urljoin(source_url, unescaped_url)
+                        final_url = urldefrag(urljoin(source_url, unescaped_url)).url
                         if not await self.helpers.re.search(self.full_url_regex_strict, final_url):
                             self.excavate.debug(
                                 f"Rejecting reconstructed URL [{final_url}] as did not match full_url_regex_strict"

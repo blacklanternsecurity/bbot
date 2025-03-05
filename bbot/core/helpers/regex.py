@@ -31,6 +31,10 @@ class RegexHelper:
         self.ensure_compiled_regex(compiled_regex)
         return await self.parent_helper.run_in_executor(compiled_regex.search, *args, **kwargs)
 
+    async def sub(self, compiled_regex, *args, **kwargs):
+        self.ensure_compiled_regex(compiled_regex)
+        return await self.parent_helper.run_in_executor(compiled_regex.sub, *args, **kwargs)
+
     async def findall(self, compiled_regex, *args, **kwargs):
         self.ensure_compiled_regex(compiled_regex)
         return await self.parent_helper.run_in_executor(compiled_regex.findall, *args, **kwargs)
