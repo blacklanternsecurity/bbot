@@ -126,10 +126,16 @@ class xss(BaseLightfuzz):
 
         if in_tag_attribute:
             in_tag_attribute_probe = f'{random_string}"'
-            in_tag_attribute_match = f'"{random_string}""'
+            in_tag_attribute_match = f'{random_string}"'
             await self.check_probe(
                 cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute"
             )  # After reflection in the HTTP response, did the quote survive without url-encoding or other sanitization/escaping?
+
+            in_tag_attribute_probe = f'{random_string}"'
+            in_tag_attribute_match = f'"{random_string}""'
+            await self.check_probe(
+                cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute (autoquote)"
+            )  # After reflection in the HTTP response, did the quote survive without url-encoding or other sanitization/escaping (and account for auto-quoting)
 
             in_tag_attribute_probe = f"javascript:{random_string}"
             in_tag_attribute_match = f'action="javascript:{random_string}'
