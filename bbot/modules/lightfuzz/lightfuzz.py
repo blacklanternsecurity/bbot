@@ -226,7 +226,7 @@ class lightfuzz(BaseModule):
                 indented_description = "      " + description.replace("\n", "\n      ")
                 submodules_info += f"  - {submodule_name} ({friendly_name}):\n"
                 submodules_info += f"{indented_description}\n\n"
-            except AttributeError as e:
+            except AttributeError:
                 continue
 
         # Combine the base help text with the submodules information
