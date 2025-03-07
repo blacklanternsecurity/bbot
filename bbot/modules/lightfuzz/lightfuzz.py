@@ -198,3 +198,39 @@ class lightfuzz(BaseModule):
         if event.type == "WEB_PARAMETER" and self.disable_post and event.data["type"] == "POSTPARAM":
             return False, "POST parameter disabled in lightfuzz module"
         return True
+
+    @classmethod
+    def help_text(self):
+        # Call the base class help_text method
+        base_help_text = super().help_text()
+
+        import importlib
+
+        submodules = {}
+        for submodule_name in self.options.get("enabled_submodules", []):
+            try:
+                submodule_module = importlib.import_module(f"bbot.modules.lightfuzz.submodules.{submodule_name}")
+                submodule_class = getattr(submodule_module, submodule_name)
+                submodules[submodule_name] = submodule_class
+            except ImportError:
+                continue
+
+        # Find all submodules
+        submodules_info = "\nLightfuzz Submodules:\n"
+        for submodule_name, submodule_class in submodules.items():
+            try:
+                friendly_name = getattr(submodule_class, "friendly_name", submodule_name)
+                description = (
+                    submodule_class.__doc__.strip() if submodule_class.__doc__ else "No description available"
+                )
+
+                # Just handle indentation, let console handle wrapping
+                indented_description = "      " + description.replace("\n", "\n      ")
+
+                submodules_info += f"  - {submodule_name} ({friendly_name}):\n"
+                submodules_info += f"{indented_description}\n\n"
+            except AttributeError as e:
+                continue
+
+        # Combine the base help text with the submodules information
+        return base_help_text + submodules_info

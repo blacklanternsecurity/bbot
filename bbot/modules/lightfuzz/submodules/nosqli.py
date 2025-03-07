@@ -5,7 +5,21 @@ import urllib.parse
 
 class nosqli(BaseLightfuzz):
     """
-    NoSQLi Lightfuzz module
+    Detects NoSQL injection vulnerabilities.
+
+    Techniques:
+
+    * Quote Injection Analysis:
+       - Injects single quotes and escaped single quotes into parameters
+       - Compares response differences between the two to detect NoSQL parsing
+       - Uses baseline comparison to validate findings and reduce false positives
+
+    * Operator Injection:
+       - Tests MongoDB-style operator injection using [$eq] and [$ne]
+       - Modifies parameter names to include operators
+       - Detects behavioral changes in application responses
+
+    Validation of findings is achieved using confirmation probes to rule out unstable endpoints
     """
 
     friendly_name = "NoSQL Injection"

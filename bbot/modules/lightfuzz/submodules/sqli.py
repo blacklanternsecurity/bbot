@@ -5,6 +5,22 @@ import statistics
 
 
 class sqli(BaseLightfuzz):
+    """
+    Detects SQL injection vulnerabilities.
+
+    Techniques:
+
+    * Error-based Detection:
+       - Injects single quotes and observes error responses
+       - Tests quote escape sequence variations
+       - Matches against known SQL error patterns
+
+    * Time-based Blind Detection:
+       - Uses vendor-specific time delay payloads
+       - Confirms delays with statistical analysis
+       - Requires multiple confirmations to eliminate false positives
+    """
+
     friendly_name = "SQL Injection"
 
     expected_delay = 5

@@ -4,6 +4,23 @@ import regex as re
 
 
 class xss(BaseLightfuzz):
+    """
+    Detects Reflected Cross-Site Scripting vulnerabilities across multiple contexts and techniques
+
+    * Context Detection:
+       - Between HTML Tags: <tag>injection</tag>
+       - Within Tag Attributes: <tag attribute="injection">
+       - Inside JavaScript: <script>var x = 'injection'</script>
+
+    * Context-Specific Testing:
+       - Between Tags: Tests basic HTML injection and tag creation
+       - Tag Attributes: Tests quote escaping and JavaScript event handlers
+       - JavaScript Context: Tests string delimiter breaking and script tag termination
+       - Handles both single and double quote contexts in JavaScript
+
+    Can often detect through WAFs, since it does not attempt to construct an exploitation payload
+    """
+
     friendly_name = "Cross-Site Scripting"
 
     async def determine_context(self, cookies, html, random_string):

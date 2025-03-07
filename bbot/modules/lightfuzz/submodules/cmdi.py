@@ -5,6 +5,21 @@ import urllib.parse
 
 
 class cmdi(BaseLightfuzz):
+    """
+    Detects command injection vulnerabilities.
+
+    Techniques:
+
+    * Echo Canary Detection:
+       - Injects command delimiters (;, &&, ||, &, |) along with an echo command
+       - Checks if the echoed canary appears in the response without the "echo" itself
+       - Uses a false positive probe to validate findings
+
+    * Blind Command Injection:
+       - Injects nslookup commands with unique subdomain tags
+       - Detects command execution through DNS resolution via Interactsh
+    """
+
     friendly_name = "Command Injection"
     uses_interactsh = True
 

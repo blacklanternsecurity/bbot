@@ -3,15 +3,15 @@ from bbot.errors import HttpCompareError
 
 
 class serial(BaseLightfuzz):
-    """
-    This module finds places where serialized objects are being deserialized.
-
-    It tests two possible deserialization cases. It starts by performing a baseline with a specially-crafted non-serialized payload, which successfully decodes via both base64 and hex. This is designed to coax out an error that's not decoding-specific.
+    """Finds parameters where serialized objects might be being deserialized.
+    It starts by performing a baseline with a specially-crafted non-serialized payload, separated by type (base64, hex, php raw).
+    This is designed to coax out an error that's not related to the decoding process.
 
     After performing the baseline (Which by design may contain an error), we check for two possible deserialization cases:
-        - Replacing the payload with a serialized object changes the status code to 200 (minus some string signatures to help prevent false positives)
-        - If the first case doesn't match, we check for a telltale error string like "java.io.optionaldataexception" in the response.
-            - Because of the possibility for false positives, we only consider responses that are 500s 200s where the body changed.
+
+        1) Replacing the payload with a serialized object changes the status code to 200 (minus some string signatures to help prevent false positives)
+
+        2) If the first case doesn't match, we check for a telltale error string like "java.io.optionaldataexception" in the response.
     """
 
     friendly_name = "Unsafe Deserialization"

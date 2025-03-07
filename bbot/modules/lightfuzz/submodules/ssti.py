@@ -2,6 +2,15 @@ from .base import BaseLightfuzz
 
 
 class ssti(BaseLightfuzz):
+    """
+    Detects server-side template injection vulnerabilities.
+
+    Techniques:
+
+    * Arithmetic Evaluation:
+       - Injects encoded and unencoded multiplication expressions to detect evaluation
+    """
+
     friendly_name = "Server-side Template Injection"
 
     async def fuzz(self):

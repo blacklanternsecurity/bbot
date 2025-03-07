@@ -6,6 +6,24 @@ from urllib.parse import quote
 
 
 class path(BaseLightfuzz):
+    """
+    Detects path traversal and local file inclusion vulnerabilities
+
+    Techniques:
+
+    * Relative Path Traversal:
+       - Tests various relative path traversal patterns (../, ./, .../, etc.)
+       - Uses multiple encoding variations (URL encoding, double encoding)
+       - Attempts various path validation bypass techniques
+
+    * Absolute Path Traversal:
+       - Tests absolute paths for Windows (c:\\windows\\win.ini)
+       - Tests absolute paths for Unix (/etc/passwd)
+       - Tests null byte injection for extension bypass (%00)
+
+    Results are validated using multiple confirmations and WAF response filtering to eliminate false positives.
+    """
+
     friendly_name = "Path Traversal"
 
     async def fuzz(self):

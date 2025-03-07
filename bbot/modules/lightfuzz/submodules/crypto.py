@@ -11,11 +11,28 @@ _compiled_rules_cache = None
 
 class crypto(BaseLightfuzz):
     """
-    Although we have an envelope system to detect hex and base64 encoded parameter values, those are only assigned when they decode to a valid string.
-    Since crypto values (and serialized objects) will not decode properly, we need a more concise check here to determine how to process them.
+    Detects the use of cryptography in web parameters, and probes for some cryptographic vulnerabilities
+
+    * Cryptographic Error Detection:
+       - Detects known cryptographic error messages in server responses.
+
+    * Cryptographic Parameter Value Detection:
+       - Detects use of cryptography in web parameter values.
+       - Validates by attempting to manipulate the value regardless of its encoding.
+
+    * Length Extension Attack Detection:
+       - Identifies parameters which may be expecting hash digests for values, and any linked parameters which invalidate them.
+
+    * Padding Oracle Vulnerabilities:
+       - Identifies the presence of cryptographic oracles that could be exploited to arbitrary decrypt or encrypt data for the parameter value.
+
+
     """
 
     friendly_name = "Cryptography Probe"
+
+    # Although we have an envelope system to detect hex and base64 encoded parameter values, those are only assigned when they decode to a valid string.
+    # Since crypto values (and serialized objects) will not decode properly, we need a more concise check here to determine how to process them.
 
     @staticmethod
     def is_hex(s):
