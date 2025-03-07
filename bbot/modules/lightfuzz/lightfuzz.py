@@ -223,10 +223,7 @@ class lightfuzz(BaseModule):
                 description = (
                     submodule_class.__doc__.strip() if submodule_class.__doc__ else "No description available"
                 )
-
-                # Just handle indentation, let console handle wrapping
                 indented_description = "      " + description.replace("\n", "\n      ")
-
                 submodules_info += f"  - {submodule_name} ({friendly_name}):\n"
                 submodules_info += f"{indented_description}\n\n"
             except AttributeError as e:
