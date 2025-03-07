@@ -1075,3 +1075,19 @@ scan_name: bbot_test
     assert output_file.is_file()
 
     shutil.rmtree(output_dir, ignore_errors=True)
+
+
+# regression test for https://github.com/blacklanternsecurity/bbot/issues/2337
+def test_preset_serialization():
+    from ipaddress import ip_address, ip_network
+
+    preset = Preset("192.168.1.1")
+    preset = preset.bake()
+
+    import orjson as json
+
+    preset_dict = preset.to_dict(include_target=True)
+    print(preset_dict)
+    preset_str = json.dumps(preset_dict)
+    preset_dict = json.loads(preset_str)
+    assert preset_dict == {"target": ["192.168.1.1"], "whitelist": ["192.168.1.1/32"]}

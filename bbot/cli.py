@@ -78,7 +78,7 @@ async def _main():
             return
 
         # if we're listing modules or their options
-        if options.list_modules or options.list_output_modules or options.list_module_options:
+        if options.list_modules or options.list_output_modules or options.list_module_options or options.module_help:
             # if no modules or flags are specified, enable everything
             if not (options.modules or options.output_modules or options.flags):
                 for module, preloaded in preset.module_loader.preloaded().items():
@@ -117,6 +117,20 @@ async def _main():
                 print("")
                 for row in preset.module_loader.modules_options_table(preset.modules).splitlines():
                     print(row)
+                return
+
+            # --module-help
+            if options.module_help:
+                module_name = options.module_help
+                all_modules = list(preset.module_loader.preloaded())
+                if module_name not in all_modules:
+                    log.hugewarning(f'Module "{module_name}" not found')
+                    return
+
+                # Load the module class
+                loaded_modules = preset.module_loader.load_modules([module_name])
+                module_name, module_class = next(iter(loaded_modules.items()))
+                print(module_class.help_text())
                 return
 
         # --list-flags

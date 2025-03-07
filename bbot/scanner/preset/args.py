@@ -67,6 +67,11 @@ class BBOTArgs:
             "",
             "bbot -lf",
         ),
+        (
+            "Show help for a specific module",
+            "",
+            "bbot -mh <module_name>",
+        ),
     ]
 
     epilog = "EXAMPLES\n"
@@ -315,6 +320,14 @@ class BBOTArgs:
             "--current-preset-full",
             action="store_true",
             help="Show the current preset in its full form, including defaults",
+        )
+
+        scan.add_argument(
+            "-mh",
+            "--module-help",
+            default=None,
+            help="Show help for a specific module",
+            metavar="MODULE",
         )
 
         output = p.add_argument_group(title="Output")
