@@ -262,6 +262,8 @@ class ExcavateRule:
 
 
 class CustomExtractor(ExcavateRule):
+    description = "Enables custom, user-defined YARA rules."
+
     def __init__(self, excavate):
         super().__init__(excavate)
 
@@ -356,6 +358,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         )
 
     class ParameterExtractor(ExcavateRule):
+        description = "Extracts web parameters. Enabled if any modules are enabled that emit WEB_PARAMETER events."
         yara_rules = {}
 
         class ParameterExtractorRule:
@@ -531,6 +534,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 self.excavate.debug(f"blocked parameter [{parameter_name}] due to validation failure")
 
     class CSPExtractor(ExcavateRule):
+        description = "Extracts domains from CSP headers."
+
         yara_rules = {
             "csp": r'rule csp { meta: tags = "affiliate" description = "contains CSP Header" strings: $csp = /Content-Security-Policy:[^\r\n]+/ nocase condition: $csp }',
         }
@@ -543,6 +548,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         await self.report(domain, event, yara_rule_settings, discovery_context, event_type="DNS_NAME")
 
     class EmailExtractor(ExcavateRule):
+        description = "Extract email addresses."
+
         yara_rules = {
             "email": 'rule email { meta: description = "contains email address" strings: $email = /[^\\W_][\\w\\-\\.\\+\']{0,100}@[a-zA-Z0-9\\-]{1,100}(\\.[a-zA-Z0-9\\-]{1,100})*\\.[a-zA-Z]{2,63}/ nocase fullword condition: $email }',
         }
@@ -556,11 +563,13 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     # Future Work: Emit a JWT Object, and make a new Module to ingest it.
     class JWTExtractor(ExcavateRule):
+        description = "Extracts JSON Web Tokens."
         yara_rules = {
             "jwt": r'rule jwt { meta: emit_match = "True" description = "contains JSON Web Token (JWT)" strings: $jwt = /\beyJ[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*/ nocase condition: $jwt }',
         }
 
     class ErrorExtractor(ExcavateRule):
+        description = "Identifies error messages from various platforms."
         signatures = {
             "PHP_1": r"/\.php on line [0-9]+/",
             "PHP_2": r"/\.php<\/b> on line <b>[0-9]+/",
@@ -598,6 +607,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
 
     class SerializationExtractor(ExcavateRule):
+        description = "Identifies serialized objects from various platforms."
         regexes = {
             "Java": re.compile(r"[^a-zA-Z0-9\/+]rO0[a-zA-Z0-9+\/]+={0,2}"),
             "DOTNET": re.compile(r"[^a-zA-Z0-9\/+]AAEAAAD\/\/[a-zA-Z0-9\/+]+={0,2}"),
@@ -627,12 +637,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
 
     class FunctionalityExtractor(ExcavateRule):
+        description = "Detects potentially exploitable functionality and attack surface in web applications."
         yara_rules = {
             "File_Upload_Functionality": r'rule File_Upload_Functionality { meta: description = "contains file upload functionality" strings: $fileuploadfunc = /<input[^>]+type=["\']?file["\']?[^>]+>/ nocase condition: $fileuploadfunc }',
             "Web_Service_WSDL": r'rule Web_Service_WSDL { meta: emit_match = "True" description = "contains a web service WSDL URL" strings: $wsdl = /https?:\/\/[^\s]*\.(wsdl)/ nocase condition: $wsdl }',
         }
 
     class NonHttpSchemeExtractor(ExcavateRule):
+        description = "Detects URIs with non-HTTP schemes."
         yara_rules = {
             "Non_HTTP_Scheme": r'rule Non_HTTP_Scheme { meta: description = "contains non-http scheme URL" strings: $nonhttpscheme = /\b\w{2,35}:\/\/[\w.-]+(:\d+)?\b/ nocase fullword condition: $nonhttpscheme }'
         }
@@ -681,6 +693,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     )
 
     class URLExtractor(ExcavateRule):
+        description = "Extracts URLs."
         yara_rules = {
             "url_full": (
                 r"""
@@ -773,6 +786,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             return event_draft
 
     class HostnameExtractor(ExcavateRule):
+        description = "DNS name discovery, based on the scan target."
+
         yara_rules = {}
 
         def __init__(self, excavate):
@@ -785,6 +800,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     await self.report(domain_str, event, yara_rule_settings, discovery_context, event_type="DNS_NAME")
 
     class LoginPageExtractor(ExcavateRule):
+        description = "Detects login pages with username and password fields."
         yara_rules = {
             "login_page": r"""
             rule login_page {
@@ -942,7 +958,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             else:
                 self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
-    async def handle_event(self, event):
+    async def handle_event(self, event, **kwargs):
         if event.type == "HTTP_RESPONSE":
             # Harvest GET parameters from URL, if it came directly from the target, and parameter extraction is enabled
             if (
@@ -1084,3 +1100,39 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 content_type="",
                 discovery_context="Parsed file content",
             )
+
+    @classmethod
+    def help_text(self):
+        # Call the base class help_text method
+        base_help_text = super().help_text()
+
+        # Import the current module to inspect its classes
+        import sys
+
+        current_module = sys.modules[self.__module__]
+
+        # Function to recursively find subclasses of ExcavateRule
+        def find_subclasses(cls):
+            subclasses = []
+            for name, obj in vars(cls).items():
+                if isinstance(obj, type) and issubclass(obj, ExcavateRule) and obj is not ExcavateRule:
+                    description = getattr(obj, "description", "No description available.")
+                    subclasses.append((name, description))
+                # Recursively check for nested classes
+                if isinstance(obj, type):
+                    subclasses.extend(find_subclasses(obj))
+            return subclasses
+
+        # Find all classes in the module that inherit from ExcavateRule
+        submodules = find_subclasses(current_module)
+
+        # Format submodules information
+        submodules_info = "\nSubmodules:\n"
+        if submodules:
+            for submodule, description in submodules:
+                submodules_info += f"  - {submodule}: {description}\n"
+        else:
+            submodules_info += "  No submodules available.\n"
+
+        # Combine the base help text with the submodules information
+        return base_help_text + submodules_info

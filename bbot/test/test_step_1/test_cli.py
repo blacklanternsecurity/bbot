@@ -449,6 +449,20 @@ async def test_cli_customheaders(monkeypatch, caplog, capsys):
     assert "Custom headers not formatted correctly (missing header name or value)" in caplog.text
 
 
+@pytest.mark.asyncio
+async def test_cli_module_help(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+
+    monkeypatch.setattr("sys.argv", ["bbot", "--module-help", "excavate"])
+    success = await cli._main()
+    assert success is None, "module help failed to execute"
+    captured = capsys.readouterr()
+
+    assert "Extracts domains from CSP headers" in captured.out
+    assert "Module Help:" in captured.out
+
+
 def test_cli_config_validation(monkeypatch, caplog):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)

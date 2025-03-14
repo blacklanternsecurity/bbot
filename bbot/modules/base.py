@@ -203,7 +203,7 @@ class BaseModule:
 
         return True
 
-    async def handle_event(self, event):
+    async def handle_event(self, event, **kwargs):
         """Asynchronously handles incoming events that the module is configured to watch.
 
         This method is automatically invoked when an event that matches any in `watched_events` is encountered during a scan. Override this method to implement custom event-handling logic for your module.
@@ -1594,6 +1594,48 @@ class BaseModule:
         self.log.critical(*args, extra={"scan_id": self.scan.id}, **kwargs)
         if trace:
             self.trace()
+
+    @classmethod
+    def help_text(self):
+        """
+        Returns a string containing help text for the module.
+        This includes the module's description, metadata, events, flags, and available options.
+        """
+        # Retrieve the module's metadata, options, events, and flags
+        meta = getattr(self, "meta", {})
+        options = getattr(self, "options", {})
+        options_desc = getattr(self, "options_desc", {})
+        watched_events = getattr(self, "watched_events", [])
+        produced_events = getattr(self, "produced_events", [])
+        flags = getattr(self, "flags", [])
+
+        help_text = "\n" + "=" * 40 + "\n"
+        help_text += f"Module Help: {self.__name__}\n"
+        help_text += "=" * 40 + "\n\n"
+
+        for key, value in meta.items():
+            help_text += f"{key.replace('_', ' ').title()}: {value}\n"
+
+        help_text += "\nWatched Events:\n"
+        help_text += "  " + ", ".join(watched_events) + "\n" if watched_events else "  None\n"
+
+        help_text += "\nProduced Events:\n"
+        help_text += "  " + ", ".join(produced_events) + "\n" if produced_events else "  None\n"
+
+        help_text += "\nFlags:\n"
+        help_text += "  " + ", ".join(flags) + "\n" if flags else "  None\n"
+
+        help_text += "\nOptions:\n"
+        if options:
+            for option, default_value in options.items():
+                option_description = options_desc.get(option, "No description available.")
+                help_text += f"  - {option}:\n"
+                help_text += f"      Description: {option_description}\n"
+                help_text += f"      Default: {default_value}\n"
+        else:
+            help_text += "  No options available."
+
+        return help_text
 
 
 class BaseInterceptModule(BaseModule):
