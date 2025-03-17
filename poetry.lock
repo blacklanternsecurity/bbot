@@ -519,14 +519,14 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "deepdiff"
-version = "8.3.0"
+version = "8.4.0"
 description = "Deep Difference and Search of any Python object/data. Recreate objects by adding adding deltas to each other."
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "deepdiff-8.3.0-py3-none-any.whl", hash = "sha256:838acf1b17d228f4155bcb69bb265c41cbb5b2aba2575f07efa67ad9b9b7a0b5"},
-    {file = "deepdiff-8.3.0.tar.gz", hash = "sha256:92a8d7c75a4b26b385ec0372269de258e20082307ccf74a4314341add3d88391"},
+    {file = "deepdiff-8.4.0-py3-none-any.whl", hash = "sha256:b21afed96e26b84f9be3731b63ddff403118f7d6abaca0cf8dbc7eabbbba44d2"},
+    {file = "deepdiff-8.4.0.tar.gz", hash = "sha256:13bdc83c51a2a698d001e367b5766fcf2f74cec4984124bd5d7c15bac9ecee53"},
 ]
 
 [package.dependencies]
