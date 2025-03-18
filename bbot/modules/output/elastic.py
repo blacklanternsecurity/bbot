@@ -7,7 +7,7 @@ class Elastic(HTTP):
     """
 
     watched_events = ["*"]
-    metadata = {
+    meta = {
         "description": "Send scan results to Elasticsearch",
         "created_date": "2022-11-21",
         "author": "@TheTechromancer",
