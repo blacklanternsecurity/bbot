@@ -94,6 +94,9 @@ class Event(BBOTBaseModel):
             return self.data
         return self.data_json
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 ### SCAN ###
 
