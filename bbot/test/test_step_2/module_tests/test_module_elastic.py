@@ -52,7 +52,7 @@ class TestElastic(ModuleTestBase):
                     time.sleep(0.5)
 
             # Ensure the index is empty
-            await client.delete(f"https://localhost:9200/bbot_test_events", auth=("elastic", "bbotislife"))
+            await client.delete("https://localhost:9200/bbot_test_events", auth=("elastic", "bbotislife"))
 
     async def check(self, module_test, events):
         try:
@@ -63,10 +63,9 @@ class TestElastic(ModuleTestBase):
 
             # Connect to Elasticsearch
             async with httpx.AsyncClient(verify=False) as client:
-
                 # Fetch all events from the index
                 response = await client.get(
-                    f"https://localhost:9200/bbot_test_events/_search?size=100", auth=("elastic", "bbotislife")
+                    "https://localhost:9200/bbot_test_events/_search?size=100", auth=("elastic", "bbotislife")
                 )
                 response_json = response.json()
                 db_events = [hit["_source"] for hit in response_json["hits"]["hits"]]
@@ -91,15 +90,15 @@ class TestElastic(ModuleTestBase):
                     ),
                     None,
                 )
-                assert (
-                    main_event is not None
-                ), "Main event with type DNS_NAME and data blacklanternsecurity.com not found"
+                assert main_event is not None, (
+                    "Main event with type DNS_NAME and data blacklanternsecurity.com not found"
+                )
 
                 # Ensure it has the reverse_host attribute
                 expected_reverse_host = "blacklanternsecurity.com"[::-1]
-                assert (
-                    main_event.get("reverse_host") == expected_reverse_host
-                ), f"reverse_host attribute is not correct, expected {expected_reverse_host}"
+                assert main_event.get("reverse_host") == expected_reverse_host, (
+                    f"reverse_host attribute is not correct, expected {expected_reverse_host}"
+                )
 
                 # Events don't match exactly because the elastic ones have reverse_host and inserted_at
                 assert events_json != db_events_pydantic
@@ -113,11 +112,11 @@ class TestElastic(ModuleTestBase):
             # Clean up: Delete all documents in the index
             async with httpx.AsyncClient(verify=False) as client:
                 response = await client.delete(
-                    f"https://localhost:9200/bbot_test_events",
+                    "https://localhost:9200/bbot_test_events",
                     auth=("elastic", "bbotislife"),
                     params={"ignore": "400,404"},
                 )
-                self.log.verbose(f"Deleted documents from index")
+                self.log.verbose("Deleted documents from index")
             await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-elastic", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )

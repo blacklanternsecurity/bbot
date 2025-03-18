@@ -20,7 +20,6 @@ class TestMongo(ModuleTestBase):
     skip_distro_tests = True
 
     async def setup_before_prep(self, module_test):
-
         await asyncio.create_subprocess_exec(
             "docker",
             "run",
@@ -110,9 +109,9 @@ class TestMongo(ModuleTestBase):
 
             # Ensure it has the reverse_host attribute
             expected_reverse_host = "blacklanternsecurity.com"[::-1]
-            assert (
-                main_event.get("reverse_host") == expected_reverse_host
-            ), f"reverse_host attribute is not correct, expected {expected_reverse_host}"
+            assert main_event.get("reverse_host") == expected_reverse_host, (
+                f"reverse_host attribute is not correct, expected {expected_reverse_host}"
+            )
 
             # Events don't match exactly because the mongo ones have reverse_host and inserted_at
             assert events_json != db_events_pydantic

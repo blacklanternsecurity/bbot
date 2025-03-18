@@ -8,7 +8,6 @@ from ..bbot_fixtures import *  # noqa
 
 
 def test_pydantic_models(events, bbot_scanner):
-
     # test datetime helpers
     now = datetime.now(ZoneInfo("America/New_York"))
     utc_now = utc_datetime_validator(now)
@@ -48,7 +47,9 @@ def test_pydantic_models(events, bbot_scanner):
         assert isinstance(event_pydantic_dict["timestamp"], float)
         assert isinstance(event_pydantic_dict["inserted_at"], float)
 
-        event_pydantic_dict = event_pydantic.model_dump(exclude_none=True, exclude=["reverse_host", "inserted_at", "archived"])
+        event_pydantic_dict = event_pydantic.model_dump(
+            exclude_none=True, exclude=["reverse_host", "inserted_at", "archived"]
+        )
         assert event_pydantic_dict == event_json
         event_pydantic_dict.pop("scan")
         event_pydantic_dict.pop("module")
@@ -87,5 +88,6 @@ def test_pydantic_models(events, bbot_scanner):
     }
     assert len(event_set_pydantic) == 2
     assert set([e.type for e in event_set_pydantic]) == {"IP_ADDRESS", "DNS_NAME"}
+
 
 # TODO: SQL

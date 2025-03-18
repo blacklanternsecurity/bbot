@@ -147,7 +147,6 @@ httpx_response = {
 
 @pytest.fixture
 def events(scan):
-
     dummy_module = scan._make_dummy_module("dummy_module")
 
     class bbot_events:

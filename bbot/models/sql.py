@@ -61,6 +61,7 @@ class BBOTBaseModel(SQLModel):
 
 ### EVENT ###
 
+
 class Event(BBOTBaseModel, table=True):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -105,6 +106,7 @@ class Event(BBOTBaseModel, table=True):
 
 ### SCAN ###
 
+
 class Scan(BBOTBaseModel, table=True):
     id: str = Field(primary_key=True)
     name: str
@@ -118,6 +120,7 @@ class Scan(BBOTBaseModel, table=True):
 
 
 ### TARGET ###
+
 
 class Target(BBOTBaseModel, table=True):
     name: str = "Default Target"
