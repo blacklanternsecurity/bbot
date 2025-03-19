@@ -165,9 +165,9 @@ docker run -d -p 9200:9200 --name=bbot-elastic --v "$(pwd)/elastic_data:/usr/sha
 
 ```bash
 # send scan results directly to elasticsearch
-# note: you can replace "bbot_events" with your own index name
+# note: you can replace "bbot" with your own index name
 bbot -t evilcorp.com -om elastic -c \
-  modules.elastic.url=https://localhost:9200/bbot_events/_doc \
+  modules.elastic.url=https://localhost:9200/bbot/_doc \
   modules.elastic.password=bbotislife
 ```
 
@@ -177,7 +177,7 @@ Alternatively, via a preset:
 config:
   modules:
     elastic:
-      url: http://localhost:9200/bbot_events/_doc
+      url: http://localhost:9200/bbot/_doc
       password: bbotislife
 ```
 
