@@ -30,7 +30,7 @@ class portfilter(BaseInterceptModule):
                 return False, f"Error parsing allowed CDN ports '{self.allowed_cdn_ports}': {e}"
         return True
 
-    async def handle_event(self, event):
+    async def handle_event(self, event, **kwargs):
         # if the port isn't in our list of allowed CDN ports
         if event.port not in self.allowed_cdn_ports:
             for cdn_tag in self.cdn_tags:

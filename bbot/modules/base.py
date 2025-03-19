@@ -203,7 +203,7 @@ class BaseModule:
 
         return True
 
-    async def handle_event(self, event):
+    async def handle_event(self, event, **kwargs):
         """Asynchronously handles incoming events that the module is configured to watch.
 
         This method is automatically invoked when an event that matches any in `watched_events` is encountered during a scan. Override this method to implement custom event-handling logic for your module.

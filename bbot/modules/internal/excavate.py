@@ -958,7 +958,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             else:
                 self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 
-    async def handle_event(self, event):
+    async def handle_event(self, event, **kwargs):
         if event.type == "HTTP_RESPONSE":
             # Harvest GET parameters from URL, if it came directly from the target, and parameter extraction is enabled
             if (

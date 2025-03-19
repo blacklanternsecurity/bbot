@@ -2004,6 +2004,8 @@ version = "1.1.2"
 description = "pytest-httpserver is a httpserver for pytest"
 optional = false
 python-versions = ">=3.9"
+groups = ["dev"]
+
 files = [
     {file = "pytest_httpserver-1.1.2-py3-none-any.whl", hash = "sha256:93009d79574fc982301e8494fdea0884f21bb0caf3bcc719151dfbd1e3a943ea"},
     {file = "pytest_httpserver-1.1.2.tar.gz", hash = "sha256:38d0b726580d05c47cbd0ced1ecb36a51668ef1596cdc6d70a9cfa2b3cc00ebd"},
