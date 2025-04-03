@@ -61,7 +61,6 @@ class BBOTLogger:
         self._loggers = None
         self._log_handlers = None
         self._log_level = None
-        self.root_logger = logging.getLogger()
         self.core_logger = logging.getLogger("bbot")
         self.core = core
 
@@ -84,14 +83,6 @@ class BBOTLogger:
         with suppress(Exception):
             self.queue_handler.close()
 
-        # Clean root logger
-        root_logger = logging.getLogger()
-        for handler in list(root_logger.handlers):
-            with suppress(Exception):
-                root_logger.removeHandler(handler)
-            with suppress(Exception):
-                handler.close()
-
         # Clean all other loggers
         for logger in logging.Logger.manager.loggerDict.values():
             if hasattr(logger, "handlers"):  # Logger, not PlaceHolder
@@ -111,8 +102,6 @@ class BBOTLogger:
         else:
             self.queue = logging_queue
         self.queue_handler = logging.handlers.QueueHandler(logging_queue)
-
-        self.root_logger.addHandler(self.queue_handler)
 
         self.core_logger.setLevel(log_level)
         # disable asyncio logging for child processes
