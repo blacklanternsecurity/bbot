@@ -1,5 +1,6 @@
 import json
 import asyncio
+import ssl
 import websockets
 
 from bbot.modules.output.base import BaseOutputModule
@@ -8,11 +9,12 @@ from bbot.modules.output.base import BaseOutputModule
 class Websocket(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Output to websockets", "created_date": "2022-04-15", "author": "@TheTechromancer"}
-    options = {"url": "", "token": "", "preserve_graph": True}
+    options = {"url": "", "token": "", "preserve_graph": True, "ignore_ssl": False}
     options_desc = {
         "url": "Web URL",
         "token": "Authorization Bearer token",
         "preserve_graph": "Preserve full chains of events in the graph (prevents orphans)",
+        "ignore_ssl": "Ignores all Websocket SSL related errors (like Self-Signed Certificates, etc.)",
     }
 
     async def setup(self):
@@ -31,12 +33,16 @@ class Websocket(BaseOutputModule):
         if self._ws is None or rebuild:
             kwargs = {"close_timeout": 0.5}
             if self.token:
-                kwargs.update({"extra_headers": {"Authorization": f"Bearer {self.token}"}})
-            verbs = ("Building", "Built")
-            if rebuild:
-                verbs = ("Rebuilding", "Rebuilt")
+                kwargs.update({"additional_headers": {"Authorization": f"Bearer {self.token}"}})
+            verbs = ("Building", "Built") if not rebuild else ("Rebuilding", "Rebuilt")
             self.debug(f"{verbs[0]} websocket connection to {self.url}")
-            self._ws = await websockets.connect(self.url, **kwargs)
+            if self.config.get("ignore_ssl", False):
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                self._ws = await websockets.connect(self.url, ssl=ssl_context, **kwargs)
+            else:
+                self._ws = await websockets.connect(self.url, **kwargs)
             self.debug(f"{verbs[1]} websocket connection to {self.url}")
         return self._ws
 
