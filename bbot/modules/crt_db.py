@@ -29,11 +29,11 @@ class crt_db(subdomain_enum):
     async def request_url(self, query):
         if not self.db_conn:
             self.db_conn = await asyncpg.connect(
-                host=self.db_host, 
-                port=self.db_port, 
-                user=self.db_user, 
+                host=self.db_host,
+                port=self.db_port,
+                user=self.db_user,
                 database=self.db_name,
-                statement_cache_size=0  # Disable automatic statement preparation
+                statement_cache_size=0,  # Disable automatic statement preparation
             )
 
         sql = """
