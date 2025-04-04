@@ -233,6 +233,7 @@ adjectives = [
     "surreal",
     "suspicious",
     "sweet",
+    "swole",
     "sycophantic",
     "tense",
     "terrible",
