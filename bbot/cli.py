@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import io
 import sys
 import logging
 import multiprocessing
@@ -240,7 +241,12 @@ async def _main():
 
                 # set stdout and stderr to blocking mode
                 # this is needed to prevent BlockingIOErrors in logging etc.
-                fds = [sys.stdout.fileno(), sys.stderr.fileno()]
+                fds = []
+                for stream in [sys.stdout, sys.stderr]:
+                    try:
+                        fds.append(stream.fileno())
+                    except io.UnsupportedOperation:
+                        log.debug(f"Can't get fileno for {stream}")
                 for fd in fds:
                     flags = fcntl.fcntl(fd, fcntl.F_GETFL)
                     fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)

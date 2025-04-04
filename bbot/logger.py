@@ -1,4 +1,5 @@
 import sys
+import logging.handlers
 
 loglevel_mapping = {
     "DEBUG": "DBUG",
@@ -50,3 +51,11 @@ def log_to_stderr(msg, level="INFO", logname=True):
         if logname:
             msg = f"{levelshort} {msg}"
         print(msg, file=sys.stderr)
+
+
+# Create a compressed file handler for logs
+class GzipRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
+    def _open(self):
+        import gzip
+
+        return gzip.open(f"{self.baseFilename}.gz", mode="at", encoding=self.encoding)

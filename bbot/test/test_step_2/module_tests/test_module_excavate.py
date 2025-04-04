@@ -1,3 +1,4 @@
+from ...bbot_fixtures import *
 from bbot.modules.base import BaseModule
 from .base import ModuleTestBase, tempwordlist
 
@@ -1033,13 +1034,12 @@ class TestExcavateBadURLs(ModuleTestBase):
         module_test.set_expect_requests({"uri": "/"}, {"response_data": self.bad_url_data})
 
     def check(self, module_test, events):
-        log_file = module_test.scan.home / "debug.log"
-        log_text = log_file.read_text()
+        debug_log_content = read_gzipped_file(module_test.scan.home / "debug.log.gz")
         # make sure our logging is working
-        assert "Setting scan status to STARTING" in log_text
+        assert "Setting scan status to STARTING" in debug_log_content
         # make sure we don't have any URL validation errors
-        assert "Error Parsing reconstructed URL" not in log_text
-        assert "Error sanitizing event data" not in log_text
+        assert "Error Parsing reconstructed URL" not in debug_log_content
+        assert "Error sanitizing event data" not in debug_log_content
 
         url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
         assert sorted([e.data for e in url_events]) == sorted(["https://ssl/", "http://127.0.0.1:8888/"])

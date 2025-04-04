@@ -15,6 +15,7 @@ from bbot.core.event import make_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
+from bbot.core.config.logger import GzipRotatingFileHandler
 from bbot.core.multiprocess import SHARED_INTERPRETER_STATE
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.errors import BBOTError, ScanError, ValidationError
@@ -1230,13 +1231,9 @@ class Scanner:
     def _log_handlers(self):
         if self.__log_handlers is None:
             self.helpers.mkdir(self.home)
-            main_handler = logging.handlers.TimedRotatingFileHandler(
-                str(self.home / "scan.log"), when="d", interval=1, backupCount=14
-            )
+            main_handler = GzipRotatingFileHandler(str(self.home / "scan.log"), when="d", interval=1, backupCount=14)
             main_handler.addFilter(lambda x: x.levelno != logging.TRACE and x.levelno >= logging.VERBOSE)
-            debug_handler = logging.handlers.TimedRotatingFileHandler(
-                str(self.home / "debug.log"), when="d", interval=1, backupCount=14
-            )
+            debug_handler = GzipRotatingFileHandler(str(self.home / "debug.log"), when="d", interval=1, backupCount=14)
             debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
             self.__log_handlers = [main_handler, debug_handler]
         return self.__log_handlers

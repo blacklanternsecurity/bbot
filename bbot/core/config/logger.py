@@ -9,9 +9,8 @@ from pathlib import Path
 from contextlib import suppress
 
 from ..helpers.misc import mkdir, error_and_exit
-from ...logger import colorize, loglevel_mapping
 from ..multiprocess import SHARED_INTERPRETER_STATE
-
+from ...logger import colorize, loglevel_mapping, GzipRotatingFileHandler
 
 debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
 
@@ -205,15 +204,11 @@ class BBOTLogger:
             if not mkdir(log_dir, raise_error=False):
                 error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
 
-            # Main log file
-            main_handler = logging.handlers.TimedRotatingFileHandler(
-                f"{log_dir}/bbot.log", when="d", interval=1, backupCount=14
-            )
+            # Main log file (compressed)
+            main_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.log", when="d", interval=1, backupCount=14)
 
-            # Separate log file for debugging
-            debug_handler = logging.handlers.TimedRotatingFileHandler(
-                f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
-            )
+            # Separate log file for debugging (compressed)
+            debug_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14)
 
             # Log to stderr
             stderr_handler = logging.StreamHandler(sys.stderr)
