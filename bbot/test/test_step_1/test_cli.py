@@ -134,6 +134,7 @@ async def test_cli_scan(monkeypatch):
     assert scan_log.is_file(), "scan.log not found"
     assert "[INFO]" in open(scan_log).read()
 
+
 @pytest.mark.asyncio
 async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     caplog.set_level(logging.INFO)

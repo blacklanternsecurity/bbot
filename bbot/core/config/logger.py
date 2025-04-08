@@ -209,7 +209,9 @@ class BBOTLogger:
             main_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.log", maxBytes=1024 * 1024 * 100, backupCount=100)
 
             # Separate log file for debugging (compressed)
-            debug_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.debug.log", maxBytes=1024 * 1024 * 100, backupCount=100)
+            debug_handler = GzipRotatingFileHandler(
+                f"{log_dir}/bbot.debug.log", maxBytes=1024 * 1024 * 100, backupCount=100
+            )
 
             # Log to stderr
             stderr_handler = logging.StreamHandler(sys.stderr)
