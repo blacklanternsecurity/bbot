@@ -130,10 +130,9 @@ async def test_cli_scan(monkeypatch):
     assert ip_success and dns_success, "IP_ADDRESS and/or DNS_NAME are not present in output.txt"
 
     # Check for gzipped scan log file
-    scan_log_gz = scan_home / "scan.log.gz"
-    assert scan_log_gz.is_file(), "scan.log.gz not found"
-    assert "[INFO]" in read_gzipped_file(scan_log_gz)
-
+    scan_log = scan_home / "scan.log"
+    assert scan_log.is_file(), "scan.log not found"
+    assert "[INFO]" in open(scan_log).read()
 
 @pytest.mark.asyncio
 async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
@@ -202,9 +201,9 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert "[SCAN]" in open(scan_dir / "output.txt").read()
 
     # Check for gzipped scan log file
-    scan_log_gz = scan_dir / "scan.log.gz"
-    assert scan_log_gz.is_file(), "scan.log.gz not found"
-    assert "[INFO]" in read_gzipped_file(scan_log_gz)
+    scan_log = scan_dir / "scan.log"
+    assert scan_log.is_file(), "scan.log not found"
+    assert "[INFO]" in open(scan_log).read()
     shutil.rmtree(output_dir)
 
     # list module options

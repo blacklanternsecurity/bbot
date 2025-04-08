@@ -269,9 +269,9 @@ class BBOTTarget:
     @property
     def json(self):
         return {
-            "seeds": sorted([e.data for e in self.seeds]),
-            "whitelist": sorted([e.data for e in self.whitelist]),
-            "blacklist": sorted([e.data for e in self.blacklist]),
+            "seeds": sorted([e for e in self.seeds.inputs]),
+            "whitelist": sorted([str(e.data) for e in self.whitelist]),
+            "blacklist": sorted([str(e.data) for e in self.blacklist]),
             "strict_scope": self.strict_scope,
             "hash": self.hash.hex(),
             "seed_hash": self.seeds.hash.hex(),

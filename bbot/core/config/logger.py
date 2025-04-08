@@ -102,6 +102,7 @@ class BBOTLogger:
             self.queue = logging_queue
         self.queue_handler = logging.handlers.QueueHandler(logging_queue)
 
+        self.core_logger.addHandler(self.queue_handler)
         self.core_logger.setLevel(log_level)
         # disable asyncio logging for child processes
         if not SHARED_INTERPRETER_STATE.is_main_process:
@@ -205,10 +206,10 @@ class BBOTLogger:
                 error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
 
             # Main log file (compressed)
-            main_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.log", when="d", interval=1, backupCount=14)
+            main_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.log", maxBytes=1024 * 1024 * 100, backupCount=100)
 
             # Separate log file for debugging (compressed)
-            debug_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14)
+            debug_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.debug.log", maxBytes=1024 * 1024 * 100, backupCount=100)
 
             # Log to stderr
             stderr_handler = logging.StreamHandler(sys.stderr)

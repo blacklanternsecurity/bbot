@@ -1034,7 +1034,7 @@ class TestExcavateBadURLs(ModuleTestBase):
         module_test.set_expect_requests({"uri": "/"}, {"response_data": self.bad_url_data})
 
     def check(self, module_test, events):
-        debug_log_content = read_gzipped_file(module_test.scan.home / "debug.log.gz")
+        debug_log_content = open(module_test.scan.home / "debug.log").read()
         # make sure our logging is working
         assert "Setting scan status to STARTING" in debug_log_content
         # make sure we don't have any URL validation errors

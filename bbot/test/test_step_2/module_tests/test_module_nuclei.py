@@ -101,7 +101,7 @@ class TestNucleiTechnology(TestNucleiManual):
 
     def check(self, module_test, events):
         assert any(e.type == "TECHNOLOGY" and "apache" in e.data["technology"].lower() for e in events)
-        assert "Using Interactsh Server" not in read_gzipped_file(module_test.scan.home / "debug.log.gz")
+        assert "Using Interactsh Server" not in open(module_test.scan.home / "debug.log").read()
 
 
 class TestNucleiBudget(TestNucleiManual):
@@ -140,7 +140,7 @@ class TestNucleiRetries(TestNucleiManual):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert "-retries 0" in read_gzipped_file(module_test.scan.home / "debug.log.gz")
+        assert "-retries 0" in open(module_test.scan.home / "debug.log").read()
 
 
 class TestNucleiRetriesCustom(TestNucleiRetries):
@@ -150,7 +150,7 @@ class TestNucleiRetriesCustom(TestNucleiRetries):
     }
 
     def check(self, module_test, events):
-        assert "-retries 1" in read_gzipped_file(module_test.scan.home / "debug.log.gz")
+        assert "-retries 1" in open(module_test.scan.home / "debug.log").read()
 
 
 class TestNucleiCustomHeaders(TestNucleiManual):

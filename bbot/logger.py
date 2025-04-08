@@ -1,3 +1,4 @@
+import os
 import sys
 import logging.handlers
 
@@ -53,9 +54,44 @@ def log_to_stderr(msg, level="INFO", logname=True):
         print(msg, file=sys.stderr)
 
 
-# Create a compressed file handler for logs
-class GzipRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
-    def _open(self):
+class GzipRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """
+    A rotating file handler that compresses rotated files with gzip.
+    Checks file size only periodically to improve performance.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._msg_count = 0
+        self._check_interval = 1000  # Check size every 1000 messages
+
+    def rotation_filename(self, default_name):
+        """
+        Modify the rotated filename to include .gz extension
+        """
+        return default_name + ".gz"
+
+    def rotate(self, source, dest):
+        """
+        Compress the source file and move it to the destination.
+        """
         import gzip
 
-        return gzip.open(f"{self.baseFilename}.gz", mode="at", encoding=self.encoding)
+        with open(source, "rb") as f_in:
+            with gzip.open(dest, "wb") as f_out:
+                f_out.writelines(f_in)
+        os.remove(source)
+
+    def emit(self, record):
+        """
+        Emit a record, checking for rollover only periodically using modulo.
+        """
+        self._msg_count += 1
+
+        # Only check for rollover periodically to save compute
+        if self._msg_count % self._check_interval == 0:
+            if self.shouldRollover(record):
+                self.doRollover()
+
+        # Continue with normal emit process
+        super().emit(record)

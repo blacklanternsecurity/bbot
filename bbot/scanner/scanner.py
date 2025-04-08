@@ -1231,9 +1231,9 @@ class Scanner:
     def _log_handlers(self):
         if self.__log_handlers is None:
             self.helpers.mkdir(self.home)
-            main_handler = GzipRotatingFileHandler(str(self.home / "scan.log"), when="d", interval=1, backupCount=14)
+            main_handler = GzipRotatingFileHandler(str(self.home / "scan.log"), maxBytes=1024 * 1024 * 100, backupCount=100)
             main_handler.addFilter(lambda x: x.levelno != logging.TRACE and x.levelno >= logging.VERBOSE)
-            debug_handler = GzipRotatingFileHandler(str(self.home / "debug.log"), when="d", interval=1, backupCount=14)
+            debug_handler = GzipRotatingFileHandler(str(self.home / "debug.log"), maxBytes=1024 * 1024 * 100, backupCount=100)
             debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
             self.__log_handlers = [main_handler, debug_handler]
         return self.__log_handlers
