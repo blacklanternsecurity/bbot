@@ -1,5 +1,3 @@
-import time
-
 from bbot.modules.base import BaseModule
 
 
@@ -52,15 +50,10 @@ class shodan_idb(BaseModule):
     # we get lots of 404s, that's normal
     _api_failure_abort_threshold = 9999999999
 
-    # since there are rate limits, we set a lower qsize
-    # this way when our queue is full, we don't overwhelm the API
-    _qsize = 100
+    # there aren't any rate limits to speak of, so our outgoing queue can be pretty big
+    _qsize = 500
 
     base_url = "https://internetdb.shodan.io"
-
-    async def setup(self):
-        await super().setup()
-        self.last_request_time = 0
 
     def _incoming_dedup_hash(self, event):
         return hash(self.get_ip(event))
@@ -70,16 +63,6 @@ class shodan_idb(BaseModule):
         if ip is None:
             return
         url = f"{self.base_url}/{ip}"
-
-        # Rate limiting: ensure at least 1 second between requests
-        current_time = time.time()
-        time_since_last = current_time - self.last_request_time
-        if time_since_last < 1:
-            await self.helpers.sleep(1 - time_since_last)
-
-        # Update the last request time
-        self.last_request_time = time.time()
-
         r = await self.api_request(url)
         if r is None:
             self.debug(f"No response for {event.data}")

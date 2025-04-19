@@ -58,26 +58,3 @@ class TestShodan_IDB(ModuleTestBase):
                 if e.type == "TECHNOLOGY" and e.data["technology"] == "cpe:/a:microsoft:outlook_web_access:15.0.1367"
             ]
         )
-
-
-class TestShodan_IDB_RateLimit(ModuleTestBase):
-    config_overrides = {"dns": {"minimal": False}}
-    module_name = "shodan_idb"
-
-    async def setup_before_prep(self, module_test):
-        await module_test.mock_dns(
-            {
-                "blacklanternsecurity.com": {"A": ["1.2.3.4"]},
-                "autodiscover.blacklanternsecurity.com": {"A": ["2.3.4.5"]},
-                "mail.blacklanternsecurity.com": {"A": ["3.4.5.6"]},
-            }
-        )
-
-        module_test.httpx_mock.add_response(
-            url="https://internetdb.shodan.io/1.2.3.4",
-            status_code=429,
-            json={"error": "Rate limit exceeded"},
-        )
-
-    def check(self, module_test, events):
-        pass
