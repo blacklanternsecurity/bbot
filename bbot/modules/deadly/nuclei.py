@@ -15,7 +15,7 @@ class nuclei(BaseModule):
     }
 
     options = {
-        "version": "3.3.10",
+        "version": "3.4.2",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -139,7 +139,9 @@ class nuclei(BaseModule):
         return True
 
     async def handle_batch(self, *events):
-        temp_target = self.helpers.make_target(*events)
+        temp_target = self.helpers.make_target()
+        for e in events:
+            temp_target.add(e.data, e)
         nuclei_input = [str(e.data) for e in events]
         async for severity, template, tags, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field

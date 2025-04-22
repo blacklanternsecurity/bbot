@@ -776,7 +776,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             event_draft = self.excavate.make_event(event_data, event_type, parent=event)
             if not event_draft:
                 return None
-            url_in_scope = self.excavate.scan.in_scope(event_draft)
+            url_in_scope = self.excavate.scan.in_scope(event_draft.host_filterable)
             urls_found = kwargs.get("urls_found", None)
             if urls_found:
                 exceeds_max_links = urls_found > self.excavate.scan.web_spider_links_per_page and url_in_scope

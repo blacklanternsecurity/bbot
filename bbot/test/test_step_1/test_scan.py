@@ -36,7 +36,7 @@ async def test_scan(
     j = scan0.json
     assert set(j["target"]["seeds"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
     # we preserve the original whitelist inputs
-    assert set(j["target"]["whitelist"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
+    assert set(j["target"]["whitelist"]) == {"1.1.1.0/32", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
     # but in the background they are collapsed
     assert scan0.target.whitelist.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
     assert set(j["target"]["blacklist"]) == {"1.1.1.0/28", "www.evilcorp.com"}

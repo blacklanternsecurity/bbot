@@ -14,6 +14,7 @@ from bbot.core.event import make_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
+from bbot.core.config.logger import GzipRotatingFileHandler
 from bbot.core.multiprocess import SHARED_INTERPRETER_STATE
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.errors import BBOTError, ScanError, ValidationError
@@ -364,7 +365,7 @@ class Scanner:
 
             # distribute seed events
             self.init_events_task = asyncio.create_task(
-                self.ingress_module.init_events(self.target.seeds.events),
+                self.ingress_module.init_events(self.target.seeds.event_seeds),
                 name=f"{self.name}.ingress_module.init_events()",
             )
 
@@ -1021,6 +1022,7 @@ class Scanner:
         root_event._id = self.id
         root_event.scope_distance = 0
         root_event.parent = root_event
+        root_event._dummy = False
         root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
         return root_event
 
@@ -1228,15 +1230,19 @@ class Scanner:
     def _log_handlers(self):
         if self.__log_handlers is None:
             self.helpers.mkdir(self.home)
-            main_handler = logging.handlers.TimedRotatingFileHandler(
-                str(self.home / "scan.log"), when="d", interval=1, backupCount=14
+            main_handler = GzipRotatingFileHandler(
+                str(self.home / "scan.log"), maxBytes=1024 * 1024 * 100, backupCount=100
             )
             main_handler.addFilter(lambda x: x.levelno != logging.TRACE and x.levelno >= logging.VERBOSE)
-            debug_handler = logging.handlers.TimedRotatingFileHandler(
-                str(self.home / "debug.log"), when="d", interval=1, backupCount=14
+            debug_handler = GzipRotatingFileHandler(
+                str(self.home / "debug.log"), maxBytes=1024 * 1024 * 100, backupCount=100
             )
             debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
-            self.__log_handlers = [main_handler, debug_handler]
+            error_handler = GzipRotatingFileHandler(
+                str(self.home / "error.log"), maxBytes=1024 * 1024 * 100, backupCount=100
+            )
+            error_handler.addFilter(lambda x: x.levelno == logging.TRACE or x.levelno >= logging.ERROR)
+            self.__log_handlers = [main_handler, debug_handler, error_handler]
         return self.__log_handlers
 
     def _start_log_handlers(self):
@@ -1300,7 +1306,11 @@ class Scanner:
         try:
             yield
         except BaseException as e:
-            self._handle_exception(e, context=context, unhandled_is_critical=unhandled_is_critical)
+            try:
+                self._handle_exception(e, context=context, unhandled_is_critical=unhandled_is_critical)
+            except Exception as e2:
+                self.log.critical(f"Error in exception handler: {e2} {traceback.format_exc()}")
+                raise
 
     def _handle_exception(self, e, context="scan", finally_callback=None, unhandled_is_critical=False):
         if callable(context):

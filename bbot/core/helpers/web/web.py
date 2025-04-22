@@ -57,7 +57,7 @@ class WebHelper(EngineClient):
         self.ssl_verify = self.config.get("ssl_verify", False)
         engine_debug = self.config.get("engine", {}).get("debug", False)
         super().__init__(
-            server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.minimal},
+            server_kwargs={"config": self.config, "target": self.parent_helper.preset.target},
             debug=engine_debug,
         )
 

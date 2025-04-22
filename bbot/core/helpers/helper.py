@@ -159,7 +159,7 @@ class ConfigAwareHelper:
         self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
 
     def make_target(self, *targets, **kwargs):
-        return BaseTarget(*targets, scan=self.scan, **kwargs)
+        return BaseTarget(*targets, **kwargs)
 
     @property
     def config(self):

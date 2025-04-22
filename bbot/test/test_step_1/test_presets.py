@@ -174,7 +174,7 @@ def test_preset_scope():
     scan = Scanner("1.2.3.4", preset=Preset.from_dict({"target": ["evilcorp.com"]}))
     assert {str(h) for h in scan.preset.target.seeds.hosts} == {"1.2.3.4/32", "evilcorp.com"}
     assert {e.data for e in scan.target.seeds} == {"1.2.3.4", "evilcorp.com"}
-    assert {e.data for e in scan.target.whitelist} == {"1.2.3.4", "evilcorp.com"}
+    assert {e.data for e in scan.target.whitelist} == {"1.2.3.4/32", "evilcorp.com"}
 
     blank_preset = Preset()
     blank_preset = blank_preset.bake()
@@ -272,13 +272,13 @@ def test_preset_scope():
     }
     assert preset_whitelist_baked.to_dict(include_target=True) == {
         "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.4/24", "http://evilcorp.net"],
+        "whitelist": ["1.2.3.0/24", "http://evilcorp.net/"],
         "blacklist": ["bob@evilcorp.co.uk", "evilcorp.co.uk:443"],
         "config": {"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
     }
     assert preset_whitelist_baked.to_dict(include_target=True, redact_secrets=True) == {
         "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.4/24", "http://evilcorp.net"],
+        "whitelist": ["1.2.3.0/24", "http://evilcorp.net/"],
         "blacklist": ["bob@evilcorp.co.uk", "evilcorp.co.uk:443"],
         "config": {"modules": {"secretsdb": {"otherthing": "asdf"}}},
     }

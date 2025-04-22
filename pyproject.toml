@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bbot"
-version = "2.4.0"
+version = "2.4.1"
 description = "OSINT automation for hackers."
 authors = [
     "TheTechromancer",
@@ -35,7 +35,7 @@ xmltojson = "^2.0.2"
 pycryptodome = "^3.17"
 idna = "^3.4"
 tabulate = "0.8.10"
-websockets = ">=11.0.2,<16.0.0"
+websockets = ">=14.0.0,<16.0.0"
 pyjwt = "^2.7.0"
 beautifulsoup4 = "^4.12.2"
 lxml = ">=4.9.2,<6.0.0"
@@ -109,7 +109,7 @@ lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F401", "F403", "F405", "
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v2.4.0{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v2.4.1{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]

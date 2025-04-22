@@ -39,8 +39,8 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]]
                [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
                [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d]
                [-s] [--force] [-y] [--fast-mode] [--dry-run]
-               [--current-preset] [--current-preset-full] [-o DIR]
-               [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
+               [--current-preset] [--current-preset-full] [-mh MODULE]
+               [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
                [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
                [--no-deps | --force-deps | --retry-deps |
                --ignore-failed-deps | --install-all-deps] [--version]
@@ -71,7 +71,7 @@ Presets:
 
 Modules:
   -m, --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,azure_realm,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,binaryedge,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bufferoverrun,builtwith,bypass403,c99,censys,certspotter,chaos,code_repository,credshed,crt,dastardly,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,extractous,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_workflows,gitlab,google_playstore,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,leakix,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,robots,securitytrails,securitytxt,shodan_dns,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,wpscan,zoomeye
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,azure_realm,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,binaryedge,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bufferoverrun,builtwith,bypass403,c99,censys,certspotter,chaos,code_repository,credshed,crt,crt_db,dastardly,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,extractous,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_workflows,gitlab,google_playstore,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,leakix,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,robots,securitytrails,securitytxt,shodan_dns,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,wpscan,zoomeye
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
@@ -98,6 +98,8 @@ Scan:
   --current-preset      Show the current preset in YAML format
   --current-preset-full
                         Show the current preset in its full form, including defaults
+  -mh, --module-help MODULE
+                        Show help for a specific module
 
 Output:
   -o, --output-dir DIR  Directory to output scan results
@@ -161,6 +163,9 @@ EXAMPLES
 
     List flags:
         bbot -lf
+
+    Show help for a specific module:
+        bbot -mh <module_name>
 
 ```
 <!-- END BBOT HELP OUTPUT -->

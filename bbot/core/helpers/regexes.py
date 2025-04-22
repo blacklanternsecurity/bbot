@@ -46,7 +46,7 @@ _dns_name_regex_with_period = r"(?:\w(?:[\w-]{0,100}\w)?\.)+(?:[xX][nN]--)?[^\W_
 dns_name_extraction_regex = re.compile(_dns_name_regex_with_period, re.I)
 dns_name_validation_regex = re.compile(r"^" + _dns_name_regex + r"$", re.I)
 
-_email_regex = r"(?:[^\W_][\w\-\.\+']{,100})@" + _dns_name_regex
+_email_regex = r"(?:[^\W_][\w\-\.\+']{,100})@" + _dns_name_regex + r"(?::[0-9]{1,5})?"
 email_regex = re.compile(_email_regex, re.I)
 
 _ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"

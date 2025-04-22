@@ -1,4 +1,5 @@
 from .base import ModuleTestBase
+import json
 
 
 class TestCensys(ModuleTestBase):
@@ -19,7 +20,8 @@ class TestCensys(ModuleTestBase):
         module_test.httpx_mock.add_response(
             url="https://search.censys.io/api/v2/certificates/search",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
-            match_content=b'{"q": "names: blacklanternsecurity.com", "per_page": 100}',
+            method="POST",
+            match_json={"q": "names: blacklanternsecurity.com", "per_page": 100},
             json={
                 "code": 200,
                 "status": "OK",
@@ -48,7 +50,8 @@ class TestCensys(ModuleTestBase):
         module_test.httpx_mock.add_response(
             url="https://search.censys.io/api/v2/certificates/search",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
-            match_content=b'{"q": "names: blacklanternsecurity.com", "per_page": 100, "cursor": "NextToken"}',
+            method="POST",
+            match_json={"q": "names: blacklanternsecurity.com", "per_page": 100, "cursor": "NextToken"},
             json={
                 "code": 200,
                 "status": "OK",

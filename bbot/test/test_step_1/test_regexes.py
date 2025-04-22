@@ -4,8 +4,7 @@ import traceback
 from ..bbot_fixtures import *  # noqa F401
 from bbot.core.helpers import regexes
 from bbot.errors import ValidationError
-from bbot.core.event.helpers import get_event_type
-
+from bbot.core.event.helpers import EventSeed
 
 # NOTE: :2001:db8:: will currently cause an exception...
 # e.g. raised unknown error: split_port() failed to parse netloc ":2001:db8::"
@@ -56,7 +55,8 @@ def test_ip_regexes():
             assert not r.match(ip), f"BAD IP ADDRESS: {ip} matched regex: {r}"
 
         try:
-            event_type, _ = get_event_type(ip)
+            event_seed = EventSeed(ip)
+            event_type = event_seed.type
             if event_type == "OPEN_TCP_PORT":
                 if ip.startswith("["):
                     assert ip == "[2001:db8::]:80"
@@ -80,7 +80,8 @@ def test_ip_regexes():
             pytest.fail(f"BAD IP ADDRESS: {ip} raised unknown error: {e}")
 
     for ip in good_ip:
-        event_type, _ = get_event_type(ip)
+        event_seed = EventSeed(ip)
+        event_type = event_seed.type
         if not event_type == "IP_ADDRESS":
             if ip.endswith("/24"):
                 assert ip == "203.0.113.0/24" and event_type == "IP_RANGE", (
@@ -121,7 +122,8 @@ def test_ip_range_regexes():
 
         event_type = ""
         try:
-            event_type, _ = get_event_type(bad_ip_range)
+            event_seed = EventSeed(bad_ip_range)
+            event_type = event_seed.type
             if event_type == "DNS_NAME":
                 assert bad_ip_range == "evilcorp.com"
                 continue
@@ -177,7 +179,8 @@ def test_dns_name_regexes():
             assert not r.match(dns), f"BAD DNS NAME: {dns} matched regex: {r}"
 
         try:
-            event_type, _ = get_event_type(dns)
+            event_seed = EventSeed(dns)
+            event_type = event_seed.type
             if event_type == "OPEN_TCP_PORT":
                 assert dns == "evilcorp.com:80"
                 continue
@@ -193,7 +196,8 @@ def test_dns_name_regexes():
     for dns in good_dns:
         matches = [r.match(dns) for r in dns_name_regexes]
         assert any(matches), f"Good DNS_NAME {dns} did not match regexes"
-        event_type, _ = get_event_type(dns)
+        event_seed = EventSeed(dns)
+        event_type = event_seed.type
         if not event_type == "DNS_NAME":
             assert dns == "1.2.3.4" and event_type == "IP_ADDRESS", (
                 f"Event type for DNS_NAME {dns} was not properly detected"
@@ -239,7 +243,8 @@ def test_open_port_regexes():
             assert not r.match(open_port), f"BAD OPEN_TCP_PORT: {open_port} matched regex: {r}"
 
         try:
-            event_type, _ = get_event_type(open_port)
+            event_seed = EventSeed(open_port)
+            event_type = event_seed.type
             if event_type == "IP_ADDRESS":
                 assert open_port in ("1.2.3.4", "[dead::beef]")
                 continue
@@ -255,7 +260,8 @@ def test_open_port_regexes():
     for open_port in good_ports:
         matches = [r.match(open_port) for r in open_port_regexes]
         assert any(matches), f"Good OPEN_TCP_PORT {open_port} did not match regexes"
-        event_type, _ = get_event_type(open_port)
+        event_seed = EventSeed(open_port)
+        event_type = event_seed.type
         assert event_type == "OPEN_TCP_PORT"
 
 
@@ -307,7 +313,8 @@ def test_url_regexes():
 
         event_type = ""
         try:
-            event_type, _ = get_event_type(bad_url)
+            event_seed = EventSeed(bad_url)
+            event_type = event_seed.type
             if event_type == "DNS_NAME":
                 assert bad_url == "evilcorp.com"
                 continue
@@ -320,9 +327,9 @@ def test_url_regexes():
     for good_url in good_urls:
         matches = [r.match(good_url) for r in url_regexes]
         assert any(matches), f"Good URL {good_url} did not match regexes"
-        assert get_event_type(good_url)[0] == "URL_UNVERIFIED", (
-            f"Event type for URL {good_url} was not properly detected"
-        )
+        event_seed = EventSeed(good_url)
+        event_type = event_seed.type
+        assert event_type == "URL_UNVERIFIED", f"Event type for URL {good_url} was not properly detected"
 
 
 @pytest.mark.asyncio

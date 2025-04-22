@@ -5,26 +5,19 @@ from radixtarget import RadixTarget
 from radixtarget.helpers import host_size_key
 
 from bbot.errors import *
-from bbot.core.event import make_event, is_event
-from bbot.core.helpers.misc import is_dns_name, is_ip
-
+from bbot.core.event import is_event
+from bbot.core.event.helpers import EventSeed, BaseEventSeed
+from bbot.core.helpers.misc import is_dns_name, is_ip, is_ip_type
 
 log = logging.getLogger("bbot.core.target")
-
-
-def special_target_type(regex_pattern):
-    def decorator(func):
-        func._regex = re.compile(regex_pattern, re.IGNORECASE)
-        return func
-
-    return decorator
 
 
 class BaseTarget(RadixTarget):
     """
     A collection of BBOT events that represent a scan target.
 
-    Based on radixtarget, which allows extremely fast IP and DNS lookups.
+    The purpose of this class is to hold a potentially huge target list in a space-efficient way,
+    while allowing lightning fast scope lookups.
 
     This class is inherited by all three components of the BBOT target:
         - Whitelist
@@ -32,89 +25,75 @@ class BaseTarget(RadixTarget):
         - Seeds
     """
 
-    special_target_types = {
-        # regex-callback pairs for handling special target types
-        # these aren't defined explicitly; instead they are decorated with @special_target_type
-        # the function must return a list of events
-    }
-    tags = []
+    accept_target_types = ["TARGET"]
 
-    def __init__(self, *targets, scan=None, **kwargs):
-        self.scan = scan
-        self.events = set()
-        self.inputs = set()
-        # Register decorated methods
-        for method in dir(self):
-            if callable(getattr(self, method, None)):
-                func = getattr(self, method)
-                if hasattr(func, "_regex"):
-                    self.special_target_types[func._regex] = func
-
+    def __init__(self, *targets, **kwargs):
+        self.event_seeds = set()
         super().__init__(*targets, **kwargs)
+
+    @property
+    def inputs(self):
+        return set(e.input for e in self.event_seeds)
 
     def get(self, event, **kwargs):
         """
-        Override default .get() to accept events
+        Here we override RadixTarget's get() method, which normally only accepts hosts, to also accept events for convenience.
         """
-        if is_event(event):
+        host = None
+        raise_error = kwargs.get("raise_error", False)
+        # if it's already an event or event seed, use its host
+        if is_event(event) or isinstance(event, BaseEventSeed):
             host = event.host
         # save resources by checking if the event is an IP or DNS name
         elif is_ip(event, include_network=True) or is_dns_name(event):
             host = event
+        # if it's a string, autodetect its type and parse out its host
         elif isinstance(event, str):
-            event = self.make_event(event)
-            host = event.host
+            event_seed = self._make_event_seed(event, raise_error=raise_error)
+            host = event_seed.host
+            if not host:
+                return
         else:
-            raise ValueError(f"Invalid host/event: {event} ({type(event)})")
+            raise ValueError(f"Invalid target type for {self.__class__.__name__}: {type(event)}")
         if not host:
-            if kwargs.get("raise_error", False):
-                raise KeyError(f"Host not found: '{event}'")
-            return None
+            msg = f"Host not found: '{event}'"
+            if raise_error:
+                raise KeyError(msg)
+            else:
+                log.warning(msg)
+                return
         results = super().get(host, **kwargs)
         return results
 
-    def make_event(self, *args, **kwargs):
-        # if it's already an event, return it
-        if args and is_event(args[0]):
-            return args[0]
-        # otherwise make a new one
-        if "tags" not in kwargs:
-            kwargs["tags"] = set()
-        kwargs["tags"].update(self.tags)
-        return make_event(*args, dummy=True, scan=self.scan, **kwargs)
+    def _make_event_seed(self, target, raise_error=False):
+        try:
+            return EventSeed(target)
+        except ValidationError:
+            msg = f"Invalid target: '{target}'"
+            if raise_error:
+                raise KeyError(msg)
+            else:
+                log.warning(msg)
 
-    def add(self, targets):
+    def add(self, targets, data=None):
         if not isinstance(targets, (list, set, tuple)):
             targets = [targets]
-        events = set()
+        event_seeds = set()
         for target in targets:
-            _events = []
-            special_target_type, _events = self.check_special_target_types(str(target))
-            if special_target_type:
-                self.inputs.add(str(target))
-            else:
-                event = self.make_event(target)
-                if event:
-                    self.inputs.add(str(target))
-                    _events = [event]
-            for event in _events:
-                events.add(event)
+            event_seed = EventSeed(target)
+            if not event_seed._target_type in self.accept_target_types:
+                log.warning(f"Invalid target type for {self.__class__.__name__}: {event_seed.type}")
+                continue
+            event_seeds.add(event_seed)
 
         # sort by host size to ensure consistency
-        events = sorted(events, key=lambda e: ((0, 0) if not e.host else host_size_key(e.host)))
-        for event in events:
-            self.events.add(event)
-            self._add(event.host, data=event)
-
-    def check_special_target_types(self, target):
-        for regex, callback in self.special_target_types.items():
-            match = regex.match(target)
-            if match:
-                return True, callback(match)
-        return False, []
+        event_seeds = sorted(event_seeds, key=lambda e: ((0, 0) if not e.host else host_size_key(e.host)))
+        for event_seed in event_seeds:
+            self.event_seeds.add(event_seed)
+            self._add(event_seed.host, data=(event_seed if data is None else data))
 
     def __iter__(self):
-        yield from self.events
+        yield from self.event_seeds
 
 
 class ScanSeeds(BaseTarget):
@@ -123,36 +102,6 @@ class ScanSeeds(BaseTarget):
 
     These are the targets specified by the user, e.g. via `-t` on the CLI.
     """
-
-    tags = ["target"]
-
-    @special_target_type(r"^(?:ORG|ORG_STUB):(.*)")
-    def handle_org_stub(self, match):
-        org_stub_event = self.make_event(match.group(1), event_type="ORG_STUB")
-        if org_stub_event:
-            return [org_stub_event]
-        return []
-
-    @special_target_type(r"^(?:USER|USERNAME):(.*)")
-    def handle_username(self, match):
-        username_event = self.make_event(match.group(1), event_type="USERNAME")
-        if username_event:
-            return [username_event]
-        return []
-
-    @special_target_type(r"^(?:FILESYSTEM|FILE|FOLDER|DIR|PATH):(.*)")
-    def handle_filesystem(self, match):
-        filesystem_event = self.make_event({"path": match.group(1)}, event_type="FILESYSTEM")
-        if filesystem_event:
-            return [filesystem_event]
-        return []
-
-    @special_target_type(r"^(?:MOBILE_APP|APK|IPA|APP):(.*)")
-    def handle_mobile_app(self, match):
-        mobile_app_event = self.make_event({"url": match.group(1)}, event_type="MOBILE_APP")
-        if mobile_app_event:
-            return [mobile_app_event]
-        return []
 
     def get(self, event, single=True, **kwargs):
         results = super().get(event, **kwargs)
@@ -165,6 +114,9 @@ class ScanSeeds(BaseTarget):
         Overrides the base method to enable having multiple events for the same host.
 
         The "data" attribute of the node is now a set of events.
+
+        This is useful for seeds, because it lets us have both evilcorp.com:80 and https://evilcorp.com
+            as separate events even though they have the same host.
         """
         if host:
             try:
@@ -176,7 +128,7 @@ class ScanSeeds(BaseTarget):
 
     def _hash_value(self):
         # seeds get hashed by event data
-        return sorted(str(e.data).encode() for e in self.events)
+        return sorted(str(e.data).encode() for e in self.event_seeds)
 
 
 class ACLTarget(BaseTarget):
@@ -199,38 +151,45 @@ class ScanBlacklist(ACLTarget):
     A collection of BBOT events that represent a scan's blacklist.
     """
 
+    accept_target_types = ["TARGET", "BLACKLIST"]
+
     def __init__(self, *args, **kwargs):
         self.blacklist_regexes = set()
         super().__init__(*args, **kwargs)
 
-    @special_target_type(r"^(?:RE|REGEX):(.*)")
-    def handle_regex(self, match):
-        pattern = match.group(1)
-        blacklist_regex = re.compile(pattern, re.IGNORECASE)
-        self.blacklist_regexes.add(blacklist_regex)
-        return []
-
-    def get(self, event, **kwargs):
+    def get(self, host, **kwargs):
         """
-        Here, for the blacklist, we modify this method to also consider any special regex patterns specified by the user
+        Blacklists only accept IPs or strings. This is cleaner since we need to search for regex patterns.
         """
-        event = self.make_event(event)
+        if not (is_ip_type(host) or isinstance(host, str)):
+            raise ValueError(f"Invalid target type for {self.__class__.__name__}: {type(host)}")
+        raise_error = kwargs.get("raise_error", False)
         # first, check event's host against blacklist
         try:
-            event_result = super().get(event, raise_error=True)
+            event_seed = self._make_event_seed(host, raise_error=raise_error)
+            host = event_seed.host
+            to_match = event_seed.data
+        except ValidationError:
+            to_match = str(host)
+        try:
+            event_result = super().get(host, raise_error=True)
         except KeyError:
             event_result = None
         if event_result is not None:
             return event_result
         # next, check event's host against regexes
-        host_or_url = event.host_filterable
-        if host_or_url:
-            for regex in self.blacklist_regexes:
-                if regex.search(str(host_or_url)):
-                    return event
-        if kwargs.get("raise_error", False):
-            raise KeyError(f"Host not found: '{event.data}'")
+        for regex in self.blacklist_regexes:
+            if regex.search(to_match):
+                return host
+        if raise_error:
+            raise KeyError(f"Host not found: '{host}'")
         return None
+
+    def _add(self, host, data):
+        if getattr(data, "type", "") == "BLACKLIST_REGEX":
+            self.blacklist_regexes.add(re.compile(data.data))
+        if host is not None:
+            super()._add(host, data)
 
     def _hash_value(self):
         # regexes are included in blacklist hash
@@ -255,23 +214,22 @@ class BBOTTarget:
     Provides high-level functions like in_scope(), which includes both whitelist and blacklist checks.
     """
 
-    def __init__(self, *seeds, whitelist=None, blacklist=None, strict_scope=False, scan=None):
-        self.scan = scan
+    def __init__(self, *seeds, whitelist=None, blacklist=None, strict_scope=False):
         self.strict_scope = strict_scope
-        self.seeds = ScanSeeds(*seeds, strict_dns_scope=strict_scope, scan=scan)
+        self.seeds = ScanSeeds(*seeds, strict_dns_scope=strict_scope)
         if whitelist is None:
             whitelist = self.seeds.hosts
-        self.whitelist = ScanWhitelist(*whitelist, strict_dns_scope=strict_scope, scan=scan)
+        self.whitelist = ScanWhitelist(*whitelist, strict_dns_scope=strict_scope)
         if blacklist is None:
             blacklist = []
-        self.blacklist = ScanBlacklist(*blacklist, scan=scan)
+        self.blacklist = ScanBlacklist(*blacklist)
 
     @property
     def json(self):
         return {
-            "seeds": sorted([e.data for e in self.seeds]),
-            "whitelist": sorted([e.data for e in self.whitelist]),
-            "blacklist": sorted([e.data for e in self.blacklist]),
+            "seeds": sorted(self.seeds.inputs),
+            "whitelist": sorted(self.whitelist.inputs),
+            "blacklist": sorted(self.blacklist.inputs),
             "strict_scope": self.strict_scope,
             "hash": self.hash.hex(),
             "seed_hash": self.seeds.hash.hex(),
@@ -308,12 +266,9 @@ class BBOTTarget:
             >>> preset.in_scope("http://www.evilcorp.com")
             True
         """
-        try:
-            e = make_event(host, dummy=True)
-        except ValidationError:
-            return False
-        in_scope = e.scope_distance == 0 or self.whitelisted(e)
-        return in_scope and not self.blacklisted(e)
+        blacklisted = self.blacklisted(host)
+        whitelisted = self.whitelisted(host)
+        return whitelisted and not blacklisted
 
     def blacklisted(self, host):
         """
@@ -346,19 +301,6 @@ class BBOTTarget:
             True
         """
         return host in self.whitelist
-
-    @property
-    def minimal(self):
-        """
-        A slimmer, serializable version of the target designed for simple scope checks
-
-        This version doesn't have the events, only their hosts. This allows it to be passed across process boundaries.
-        """
-        return self.__class__(
-            whitelist=self.whitelist.inputs,
-            blacklist=self.blacklist.inputs,
-            strict_scope=self.strict_scope,
-        )
 
     def __eq__(self, other):
         return self.hash == other.hash

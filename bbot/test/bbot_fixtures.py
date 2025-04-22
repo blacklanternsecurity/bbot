@@ -1,5 +1,6 @@
 import os  # noqa
 import sys
+import zlib
 import pytest
 import shutil  # noqa
 import asyncio  # noqa
