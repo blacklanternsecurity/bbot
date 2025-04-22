@@ -158,3 +158,7 @@ def test_event_seeds():
     assert blacklist_regex_seed.host == None
     assert blacklist_regex_seed.input == "REGEX:evil[0-9]{3}"
     assert blacklist_regex_seed._target_type == "BLACKLIST"
+
+    # invalid target
+    with pytest.raises(ValidationError, match="Unable to autodetect data type from"):
+        EventSeed("asdf:::asdf")
