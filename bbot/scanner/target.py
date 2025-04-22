@@ -80,7 +80,11 @@ class BaseTarget(RadixTarget):
             targets = [targets]
         event_seeds = set()
         for target in targets:
-            event_seed = EventSeed(target)
+            try:
+                event_seed = EventSeed(target)
+            except ValidationError as e:
+                log.warning(str(e))
+                continue
             if not event_seed._target_type in self.accept_target_types:
                 log.warning(f"Invalid target type for {self.__class__.__name__}: {event_seed.type}")
                 continue
