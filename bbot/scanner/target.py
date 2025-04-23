@@ -29,7 +29,7 @@ class BaseTarget(RadixTarget):
 
     def __init__(self, *targets, **kwargs):
         # ignore blank targets (sometimes happens as a symptom of .splitlines())
-        targets = [stripped for t in targets if (stripped := t.strip())]
+        targets = [stripped for t in targets if (stripped := (t.strip() if isinstance(t, str) else t))]
         self.event_seeds = set()
         super().__init__(*targets, **kwargs)
 
