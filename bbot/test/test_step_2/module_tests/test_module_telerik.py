@@ -1,5 +1,5 @@
 import re
-from .base import ModuleTestBase, tempwordlist
+from .base import ModuleTestBase
 
 
 class TestTelerik(ModuleTestBase):

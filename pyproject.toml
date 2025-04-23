@@ -104,7 +104,7 @@ skip = "./docs/javascripts/vega*.js,./bbot/wordlists/*"
 line-length = 119
 format.exclude = ["bbot/test/test_step_1/test_manager_*"]
 lint.select = ["E", "F"]
-lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F401", "F403", "F405", "E501"]
+lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
 
 [tool.poetry-dynamic-versioning]
 enable = true
