@@ -1,4 +1,5 @@
 import os  # noqa
+import sys  # noqa
 import pytest
 import shutil  # noqa
 import asyncio  # noqa
