@@ -28,6 +28,8 @@ class BaseTarget(RadixTarget):
     accept_target_types = ["TARGET"]
 
     def __init__(self, *targets, **kwargs):
+        # ignore blank targets (sometimes happens as a symptom of .splitlines())
+        targets = [stripped for t in targets if (stripped := t.strip())]
         self.event_seeds = set()
         super().__init__(*targets, **kwargs)
 
