@@ -1,5 +1,4 @@
 from sys import executable
-from urllib.parse import urlparse
 
 from bbot.modules.base import BaseModule
 

@@ -1,11 +1,8 @@
 import os  # noqa
-import sys
-import zlib
 import pytest
 import shutil  # noqa
 import asyncio  # noqa
 import logging
-import subprocess
 import tldextract
 import pytest_httpserver
 from pathlib import Path
@@ -16,8 +13,8 @@ from werkzeug.wrappers import Request
 from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
 from bbot.scanner import Preset
+from bbot.core.helpers.misc import mkdir, rand_string
 from bbot.core.helpers.async_helpers import get_event_loop
-from bbot.core.helpers.misc import mkdir, rand_string, get_python_constraints
 
 
 log = logging.getLogger("bbot.test.fixtures")

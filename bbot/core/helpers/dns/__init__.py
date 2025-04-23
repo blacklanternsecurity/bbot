@@ -1,1 +1,1 @@
-from .dns import DNSHelper
+from .dns import DNSHelper  # noqa
