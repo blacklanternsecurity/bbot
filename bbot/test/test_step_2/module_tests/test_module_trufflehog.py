@@ -22,7 +22,7 @@ class TestTrufflehog(ModuleTestBase):
         "trufflehog",
     ]
 
-    file_content = "Verifyable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifyable Secret:\nhttps://admin:admin@internal.host.com"
+    file_content = "Verifiable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifiable Secret:\nhttps://admin:admin@internal.host.com"
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
@@ -848,7 +848,7 @@ class TestTrufflehog(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
-            match_content=b'{"service": "search", "method": "POST", "path": "/search-all", "body": {"queryIndices": ["collaboration.workspace"], "queryText": "blacklanternsecurity", "size": 25, "from": 0, "clientTraceId": "", "requestOrigin": "srp", "mergeEntities": "true", "nonNestedRequests": "true", "domain": "public"}}',
+            match_json={"service": "search", "method": "POST", "path": "/search-all", "body": {"queryIndices": ["collaboration.workspace"], "queryText": "blacklanternsecurity", "size": 25, "from": 0, "clientTraceId": "", "requestOrigin": "srp", "mergeEntities": "true", "nonNestedRequests": "true", "domain": "public"}},
             json={
                 "data": [
                     {
@@ -929,7 +929,7 @@ class TestTrufflehog(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
-            match_content=b'{"service": "workspaces", "method": "GET", "path": "/workspaces?handle=blacklanternsecurity&slug=bbot-public"}',
+            match_json={"service": "workspaces", "method": "GET", "path": "/workspaces?handle=blacklanternsecurity&slug=bbot-public"},
             json={
                 "meta": {"model": "workspace", "action": "find", "nextCursor": ""},
                 "data": [
@@ -1134,6 +1134,7 @@ class TestTrufflehog(ModuleTestBase):
             and "Raw result: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
             and "RawV2 result: [https://admin:admin@the-internet.herokuapp.com/basic_auth]" in e.data["description"]
         ]
+
         # Trufflehog should find 4 verifiable secrets, 1 from the github, 1 from the workflow log, 1 from the docker image and 1 from the postman.
         assert 4 == len(vuln_events), "Failed to find secret in events"
         github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].parent
