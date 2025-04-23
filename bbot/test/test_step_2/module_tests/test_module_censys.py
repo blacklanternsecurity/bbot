@@ -1,5 +1,4 @@
 from .base import ModuleTestBase
-import json
 
 
 class TestCensys(ModuleTestBase):
