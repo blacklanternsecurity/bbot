@@ -95,7 +95,7 @@ class WebHelper(EngineClient):
             files (dict, optional): Dictionary of 'name': file-like-objects for multipart encoding upload.
             auth (tuple, optional): Auth tuple to enable Basic/Digest/Custom HTTP auth.
             timeout (float, optional): The maximum time to wait for the request to complete.
-            proxies (dict, optional): Dictionary mapping protocol schemes to proxy URLs.
+            proxy (str, optional): HTTP proxy URL.
             allow_redirects (bool, optional): Enables or disables redirection. Defaults to None.
             stream (bool, optional): Enables or disables response streaming.
             raise_error (bool, optional): Whether to raise exceptions for HTTP connect, timeout errors. Defaults to False.
