@@ -52,7 +52,8 @@ jobs:
   publish_code:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
+    # Don't run in forks and only for dev or stable pushs
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable') && github.event.pull_request.head.repo.full_name == github.repository
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -105,7 +106,8 @@ jobs:
       BBOT_VERSION: ${{ steps.version.outputs.BBOT_VERSION }}
   publish_docs:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
+    # Don't run in forks and only for dev or stable pushs
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev') && github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v4
         with:
