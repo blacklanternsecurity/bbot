@@ -148,19 +148,24 @@ class Scanner:
 
         # scan name
         if self.preset.scan_name is None:
-            tries = 0
-            while 1:
-                if tries > 5:
-                    scan_name = f"{rand_string(4)}_{rand_string(4)}"
-                    break
-                scan_name = random_name()
-                if self.preset.output_dir is not None:
-                    home_path = Path(self.preset.output_dir).resolve() / scan_name
-                else:
-                    home_path = self.preset.bbot_home / "scans" / scan_name
-                if not home_path.exists():
-                    break
-                tries += 1
+            # if no scan name is specified, generate with input from target
+            domain_name=list(self.preset.seeds.inputs)[0].split("/")[0]
+            if domain_name:
+                scan_name = domain_name.replace("/", "_")
+            else:
+                tries = 0
+                while 1:
+                    if tries > 5:
+                        scan_name = f"{rand_string(4)}_{rand_string(4)}"
+                        break
+                    scan_name = random_name()
+                    if self.preset.output_dir is not None:
+                        home_path = Path(self.preset.output_dir).resolve() / scan_name
+                    else:
+                        home_path = self.preset.bbot_home / "scans" / scan_name
+                    if not home_path.exists():
+                        break
+                    tries += 1
         else:
             scan_name = str(self.preset.scan_name)
         self.name = scan_name.replace("/", "_")
