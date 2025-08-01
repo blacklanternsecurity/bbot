@@ -2,6 +2,7 @@ import logging
 import warnings
 from pathlib import Path
 from bs4 import BeautifulSoup
+import ipaddress
 
 from bbot.core.engine import EngineClient
 from bbot.core.helpers.misc import truncate_filename
@@ -426,6 +427,46 @@ class WebHelper(EngineClient):
         if raw_body:
             curl_command.append("-d")
             curl_command.append(raw_body)
+
+
+        # --resolve <host>:<port>:<ip>
+        resolve_dict = kwargs.get("resolve", None)
+
+        if resolve_dict is not None:
+            # Validate "resolve" is a dict
+            if not isinstance(resolve_dict, dict):
+                raise CurlError("'resolve' must be a dictionary containing 'host', 'port', and 'ip' keys")
+
+            # Extract and validate IP (required)
+            ip = resolve_dict.get("ip")
+            if not ip:
+                raise CurlError("'resolve' dictionary requires an 'ip' value")
+            try:
+                ipaddress.ip_address(ip)
+            except ValueError:
+                raise CurlError(f"Invalid IP address supplied to 'resolve': {ip}")
+
+            # Host, port, and ip must ALL be supplied explicitly
+            host = resolve_dict.get("host")
+            if not host:
+                raise CurlError("'resolve' dictionary requires a 'host' value")
+
+            if "port" not in resolve_dict:
+                raise CurlError("'resolve' dictionary requires a 'port' value")
+            port = resolve_dict["port"]
+
+            try:
+                port = int(port)
+            except (TypeError, ValueError):
+                raise CurlError("'port' supplied to resolve must be an integer")
+            if port < 1 or port > 65535:
+                raise CurlError("'port' supplied to resolve must be between 1 and 65535")
+
+            # Append the --resolve directive
+            curl_command.append("--resolve")
+            curl_command.append(f"{host}:{port}:{ip}")
+
+
         log.verbose(f"Running curl command: {curl_command}")
         output = (await self.parent_helper.run(curl_command)).stdout
         return output
