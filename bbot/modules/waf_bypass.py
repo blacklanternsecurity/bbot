@@ -11,8 +11,17 @@ class waf_bypass(BaseModule):
     """
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
-    options = {"similarity_threshold": 0.95, "search_ip_neighbors": True}
-    options_desc = {"similarity_threshold": "Similarity threshold for content matching", "search_ip_neighbors": "Also check IP neighbors of qualified IPs"}
+    options = {
+        "similarity_threshold": 0.90,
+        "search_ip_neighbors": True,
+        "neighbor_cidr": 28,  # subnet size to explore when gathering neighbor IPs
+    }
+
+    options_desc = {
+        "similarity_threshold": "Similarity threshold for content matching",
+        "search_ip_neighbors": "Also check IP neighbors of qualified IPs",
+        "neighbor_cidr": "CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true",
+    }
     flags = ["active", "safe", "web-thorough"]
     meta = {
         "description": "Detects potential WAF bypasses",
@@ -32,8 +41,13 @@ class waf_bypass(BaseModule):
         self.bypass_candidates = {}  # {base_domain: set(cidrs)}
         self.domain_ips = {}  # {full_domain: set(ips)}
         self.content_fingerprints = {}  # {full_url: fingerprint} store content samples for comparison
-        self.similarity_threshold = self.config.get("similarity_threshold", 0.95)
+        self.similarity_threshold = self.config.get("similarity_threshold", 0.90)
         self.search_ip_neighbors = self.config.get("search_ip_neighbors", True)
+        self.neighbor_cidr = int(self.config.get("neighbor_cidr", 28))
+
+        if self.search_ip_neighbors and not (24 <= self.neighbor_cidr <= 31):
+            self.warning(f"Invalid neighbor_cidr {self.neighbor_cidr}. Must be between 24 and 31.")
+            return False
         # Keep track of (protected_domain, ip) pairs we have already attempted to bypass
         self.attempted_bypass_pairs = set()
         # Keep track of any IPs that came from hosts that are "cloud-ips"
@@ -221,7 +235,7 @@ class waf_bypass(BaseModule):
         return True
 
 
-    async def check_ip(self, idx, ip, source_domain, protected_domain, total_ips):
+    async def check_ip(self, idx, ip, source_domain, protected_domain, total_ips, source_event):
 
         matching_url = next((url for url in self.content_fingerprints.keys() if protected_domain in url), None)
         if not matching_url:
@@ -246,7 +260,7 @@ class waf_bypass(BaseModule):
 
         similarity_raw = self.get_content_similarity(original_fingerprint, bypass_fp)
         similarity = round(similarity_raw, 2)  # store with limited precision
-        return (matching_url, ip, similarity) if similarity_raw >= self.similarity_threshold else None
+        return (matching_url, ip, similarity, source_event) if similarity_raw >= self.similarity_threshold else None
 
     async def finish(self):
 
@@ -296,23 +310,34 @@ class waf_bypass(BaseModule):
                         all_ips[ip] = domain
                         self.debug(f"Added potential bypass IP {ip} from domain {domain}")
 
-                        # If enabled, explore /28 neighbors within same ASN - skip if IP is a cloud-ip
+                      
                         if self.search_ip_neighbors and ip not in self.cloud_ips:
                             import ipaddress
                             orig_asns, _ = await self.asn_helper.get_asn(str(ip))
                             if orig_asns:
-                                cidr28 = ipaddress.ip_network(f"{ip}/28", strict=False)
-                                for neighbor_ip in cidr28.hosts():
+                                self.critical(f"neighbor_cidr: {self.neighbor_cidr}")
+                                neighbor_net = ipaddress.ip_network(f"{ip}/{self.neighbor_cidr}", strict=False)
+                                asn_cache_local = {}
+                                match_count = 0
+                                for neighbor_ip in neighbor_net.hosts():
                                     n_ip_str = str(neighbor_ip)
                                     if n_ip_str == ip or n_ip_str in cloudflare_ips or n_ip_str in all_ips:
                                         continue
-                                    asns_neighbor, _ = await self.asn_helper.get_asn(n_ip_str)
+                                    if n_ip_str in asn_cache_local:
+                                        asns_neighbor = asn_cache_local[n_ip_str]
+                                    else:
+                                        asns_neighbor, _ = await self.asn_helper.get_asn(n_ip_str)
+                                        asn_cache_local[n_ip_str] = asns_neighbor
                                     if not asns_neighbor:
                                         continue
-                                    # Check if any ASN matches
+                                    if not orig_asns:
+                                        continue
                                     if any(a['asn'] == b['asn'] for a in orig_asns for b in asns_neighbor):
                                         all_ips[n_ip_str] = domain
-                                        self.debug(f"Added Neighbor IP ({ip} -> {n_ip_str}) as potential bypass IP from {domain}")
+                                        self.critical(f"Added Neighbor IP ({ip} -> {n_ip_str}) as potential bypass IP from {domain}")
+                                        match_count += 1
+                                        if match_count >= 3:       # configurable
+                                            break
 
         
         self.debug(f"\nFound {len(all_ips)} non-CloudFlare IPs to check: {all_ips}")
@@ -338,7 +363,7 @@ class waf_bypass(BaseModule):
                 self.attempted_bypass_pairs.add(combo)
                 tasks.append(
                     asyncio.create_task(
-                        self.check_ip(ip_idx, ip, src, protected_domain, total_ips)
+                        self.check_ip(ip_idx, ip, src, protected_domain, total_ips, source_event)
                     )
                 )
 
@@ -351,11 +376,12 @@ class waf_bypass(BaseModule):
         if confirmed_bypasses:
             # Aggregate by URL and similarity
             agg = {}
-            for matching_url, ip, similarity in confirmed_bypasses:
-                rec = agg.setdefault((matching_url, similarity), [])
-                rec.append(ip)
+            for matching_url, ip, similarity, src_evt in confirmed_bypasses:
+                rec = agg.setdefault((matching_url, similarity), {"ips": [], "event": src_evt})
+                rec["ips"].append(ip)
 
-            for (matching_url, sim_key), ip_list in agg.items():
+            for (matching_url, sim_key), data in agg.items():
+                ip_list = data["ips"]
                 ip_list_str = ", ".join(sorted(set(ip_list)))
                 self.debug(
                     f"CONFIRMED BYPASS: {matching_url} via IPs [{ip_list_str}] (similarity {sim_key:.2%})"
@@ -367,5 +393,5 @@ class waf_bypass(BaseModule):
                         "description": f"WAF Bypass Confirmed - Direct IPs: {ip_list_str} for {matching_url}. Similarity {sim_key:.2%}",
                     },
                     "VULNERABILITY",
-                    source_event,
+                    data["event"],
                 )
