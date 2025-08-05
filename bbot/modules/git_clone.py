@@ -1,6 +1,7 @@
 from pathlib import Path
 from subprocess import CalledProcessError
 from bbot.modules.templates.github import github
+import re
 
 
 class git_clone(github):
@@ -42,7 +43,9 @@ class git_clone(github):
         repo_path = await self.clone_git_repository(repo_url)
         if repo_path:
             self.verbose(f"Cloned {repo_url} to {repo_path}")
-            codebase_event = self.make_event({"path": str(repo_path)}, "FILESYSTEM", tags=["git"], parent=event)
+            codebase_event = self.make_event(
+                {"path": str(repo_path)}, "FILESYSTEM", tags=["git"], parent=event
+            )
             await self.emit_event(
                 codebase_event,
                 context=f"{{module}} downloaded git repo at {repo_url} to {{event.type}}: {repo_path}",
@@ -52,16 +55,30 @@ class git_clone(github):
         owner = repository_url.split("/")[-2]
         folder = self.output_dir / owner
         self.helpers.mkdir(folder)
+
         if self.api_key:
-            url = repository_url.replace("https://github.com", f"https://user:{self.api_key}@github.com")
+            url = repository_url.replace(
+                "https://github.com", f"https://user:{self.api_key}@github.com"
+            )
         else:
             url = repository_url
-        command = ["git", "-C", folder, "clone", url]
+
+        command = ["git", "-C", str(folder), "clone", url]
         try:
-            output = await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, check=True)
+            output = await self.run_process(
+                command, env={"GIT_TERMINAL_PROMPT": "0"}, check=True
+            )
         except CalledProcessError as e:
             self.debug(f"Error cloning {url}. STDERR: {repr(e.stderr)}")
             return
 
         folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
-        return folder / folder_name
+        repo_path = folder / folder_name
+
+        # Scrub your token from all .git/config files inside cloned repo
+        for config_path in repo_path.glob("**/.git/config"):
+            text = config_path.read_text()
+            cleaned_text = re.sub(r"https://[^@]+@", "https://", text)
+            config_path.write_text(cleaned_text)
+
+        return repo_path
