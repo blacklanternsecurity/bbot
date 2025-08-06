@@ -963,11 +963,13 @@ async def test_rm_temp_dir_at_exit(helpers):
     scan = Scanner("127.0.0.1", modules=["httpx"])
     await scan._prep()
 
+    temp_dir = scan.home / "temp"
+
     # temp dir should exist
-    assert scan.helpers.temp_dir.exists()
+    assert temp_dir.exists()
 
     events = [e async for e in scan.async_start()]
     assert events
 
     # temp dir should be removed
-    assert not scan.helpers.temp_dir.exists()
+    assert not temp_dir.exists()

@@ -175,6 +175,10 @@ class Scanner:
         else:
             self.home = self.preset.bbot_home / "scans" / self.name
 
+        # scan temp dir
+        self.temp_dir = self.home / "temp"
+        self.helpers.mkdir(self.temp_dir)
+
         self._status = "NOT_STARTED"
         self._status_code = 0
 
@@ -884,7 +888,7 @@ class Scanner:
                 await mod._cleanup()
             with contextlib.suppress(Exception):
                 self.home.rmdir()
-            self.helpers.rm_rf(self.helpers.temp_dir, ignore_errors=True)
+            self.helpers.rm_rf(self.temp_dir, ignore_errors=True)
             self.helpers.clean_old_scans()
 
     def in_scope(self, *args, **kwargs):
