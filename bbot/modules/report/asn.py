@@ -97,11 +97,13 @@ class asn(BaseReportModule):
         table = []
         for asn, data in sorted_asns:
             number = "AS" + asn if asn != "UNKNOWN" else asn
-            table.append([
-                number,
-                f"{len(data['prefixes']):,}",
-                data["name"],
-                data["description"],
-            ])
+            table.append(
+                [
+                    number,
+                    f"{len(data['prefixes']):,}",
+                    data["name"],
+                    data["description"],
+                ]
+            )
 
         self.log_table(table, header, table_name="asns")

@@ -6,14 +6,7 @@ log = logging.getLogger("bbot.core.helpers.asn")
 
 
 class ASNHelper:
-    """
-    Thin helper for cached ASN queries.
-    Response format assumed normalised, e.g.:
-        [
-          {"asn": "54113", "subnet": "203.0.113.0/24",
-           "name": "FASTLY", "description": "Fastly", "country": "US"}
-        ]
-    """
+    asndb_url = "http://157.230.95.177:9000/v1/ip/"
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
@@ -48,9 +41,8 @@ class ASNHelper:
         return [self.UNKNOWN_ASN]
 
     async def _query_api(self, ip: str):
-        url = "http://157.230.95.177:9000/v1/ip/{ip}".format(
-            ip=ip
-        )  # temporary until theres a proper domain for the API
+        # Build request URL using overridable base
+        url = f"{self.asndb_url}{ip}"
         try:
             response = await self.parent_helper.request(url, timeout=15)
             if response is None:
