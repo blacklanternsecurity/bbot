@@ -38,6 +38,10 @@ class Stdout(BaseOutputModule):
         return True
 
     async def handle_event(self, event):
+        # Strip "prefixes" list from ASN events for stdout
+        if event.type == "ASN" and isinstance(event.data, dict):
+            event.data.pop("prefixes", None)
+
         json_mode = "human" if self.text_format == "text" else "json"
         event_json = event.json(mode=json_mode)
         if self.show_event_fields:

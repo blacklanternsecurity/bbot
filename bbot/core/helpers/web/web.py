@@ -428,7 +428,6 @@ class WebHelper(EngineClient):
             curl_command.append("-d")
             curl_command.append(raw_body)
 
-
         # --resolve <host>:<port>:<ip>
         resolve_dict = kwargs.get("resolve", None)
 
@@ -465,7 +464,6 @@ class WebHelper(EngineClient):
             # Append the --resolve directive
             curl_command.append("--resolve")
             curl_command.append(f"{host}:{port}:{ip}")
-
 
         log.verbose(f"Running curl command: {curl_command}")
         output = (await self.parent_helper.run(curl_command)).stdout

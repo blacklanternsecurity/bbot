@@ -6,6 +6,7 @@ from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 
 from . import misc
+from .asn import ASNHelper
 from .dns import DNSHelper
 from .web import WebHelper
 from .diff import HttpCompare
@@ -89,6 +90,7 @@ class ConfigAwareHelper:
         self.yara = YaraHelper(self)
         self._dns = None
         self._web = None
+        self._asn = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
@@ -105,6 +107,12 @@ class ConfigAwareHelper:
         if self._web is None:
             self._web = WebHelper(self)
         return self._web
+
+    @property
+    def asn(self):
+        if self._asn is None:
+            self._asn = ASNHelper(self)
+        return self._asn
 
     @property
     def cloud(self):
