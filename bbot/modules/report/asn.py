@@ -21,7 +21,7 @@ class asn(BaseReportModule):
             "subnet": "0.0.0.0/32",
             "name": "unknown",
             "description": "unknown",
-            #        "country": "",
+            "country": "",
         }
         return True
 
@@ -37,12 +37,12 @@ class asn(BaseReportModule):
         asns = await self.helpers.asn.get(str(host))
 
         for asn in asns:
-            # Calculate prefix count
-            prefixes = asn.get("prefixes", [])
-            prefix_count = len(prefixes)
+            # Calculate subnet count
+            subnets = asn.get("subnets", [])
+            subnet_count = len(subnets)
 
             # Add new summary field
-            asn["prefix_count"] = prefix_count
+            asn["subnet_count"] = subnet_count
 
             emails = asn.pop("emails", [])
             asn_event = self.make_event(asn, "ASN", parent=event)
@@ -52,11 +52,11 @@ class asn(BaseReportModule):
             asn_number = asn.get("asn", "")
             asn_desc = asn.get("description", "")
             asn_name = asn.get("name", "")
-            #    asn_subnet = asn.get("subnet", "")
+            asn_country = asn.get("country", "")
 
             await self.emit_event(
                 asn_event,
-                context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_desc}",  # , {asn_subnet})",
+                context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_desc}, {asn_country})",
             )
 
             for email in emails:
@@ -68,15 +68,15 @@ class asn(BaseReportModule):
                 )
 
     async def report(self):
-        """Generate an ASN summary table based on the helper's cached prefixes."""
+        """Generate an ASN summary table based on the helper's cached subnets."""
 
-        prefix_cache = getattr(self.helpers.asn, "_prefix_map", {})
-        if not prefix_cache:
+        subnet_cache = getattr(self.helpers.asn, "_subnet_map", {})
+        if not subnet_cache:
             return
 
         # Aggregate data per ASN
         asn_agg = {}
-        for prefix, recs in prefix_cache.items():
+        for subnet, recs in subnet_cache.items():
             for rec in recs:
                 asn = str(rec.get("asn", "UNKNOWN"))
                 entry = asn_agg.setdefault(
@@ -85,24 +85,25 @@ class asn(BaseReportModule):
                         "name": rec.get("name", ""),
                         "description": rec.get("description", ""),
                         "country": rec.get("country", ""),
-                        "prefixes": set(),
+                        "subnets": set(),
                     },
                 )
-                entry["prefixes"].add(prefix)
+                entry["subnets"].add(subnet)
 
-        # Build table rows sorted by prefix count desc
-        sorted_asns = sorted(asn_agg.items(), key=lambda x: len(x[1]["prefixes"]), reverse=True)
+        # Build table rows sorted by subnet count desc
+        sorted_asns = sorted(asn_agg.items(), key=lambda x: len(x[1]["subnets"]), reverse=True)
 
-        header = ["ASN", "Prefix Count", "Name", "Description"]
+        header = ["ASN", "Subnet Count", "Name", "Description", "Country"]
         table = []
         for asn, data in sorted_asns:
             number = "AS" + asn if asn != "UNKNOWN" else asn
             table.append(
                 [
                     number,
-                    f"{len(data['prefixes']):,}",
+                    f"{len(data['subnets']):,}",
                     data["name"],
                     data["description"],
+                    data["country"],
                 ]
             )
 

@@ -36,7 +36,7 @@ class ASNHelper:
         log.debug(f"cache MISS for ip: {ip_str}")
         asn_data = await self._query_api(ip_str)
         if asn_data:
-            self._cache_prefixes(asn_data)
+            self._cache_subnets(asn_data)
             return asn_data
         return [self.UNKNOWN_ASN]
 
@@ -61,15 +61,15 @@ class ASNHelper:
                 return None
 
             if isinstance(raw, dict):
-                prefixes = raw.get("prefixes")
-                if isinstance(prefixes, str):
-                    prefixes = [prefixes]
-                if not prefixes:
-                    prefixes = [f"{ip}/32"]
+                subnets = raw.get("subnets")
+                if isinstance(subnets, str):
+                    subnets = [subnets]
+                if not subnets:
+                    subnets = [f"{ip}/32"]
 
                 rec = {
                     "asn": str(raw.get("asn", "")),
-                    "prefixes": prefixes,
+                    "subnets": subnets,
                     "name": raw.get("asn_name", ""),
                     "description": raw.get("org", ""),
                     "country": raw.get("country", ""),
@@ -82,14 +82,14 @@ class ASNHelper:
             log.warning(f"ASN API request error to url {url} for {ip}: {e}")
             return None
 
-    def _cache_prefixes(self, asn_list):
+    def _cache_subnets(self, asn_list):
         if not (self._tree4 or self._tree6):
             return
         for rec in asn_list:
-            prefixes = rec.get("prefixes") or []
-            if isinstance(prefixes, str):
-                prefixes = [prefixes]
-            for p in prefixes:
+            subnets = rec.get("subnets") or []
+            if isinstance(subnets, str):
+                subnets = [subnets]
+            for p in subnets:
                 try:
                     net = ipaddress.ip_network(p, strict=False)
                 except ValueError:

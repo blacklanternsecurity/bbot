@@ -177,10 +177,10 @@ class waf_bypass(BaseModule):
                         asns = await self.helpers.asn.get(str(ip))
                         if asns:
                             for asn_info in asns:
-                                prefixes = asn_info.get("prefixes")
-                                if isinstance(prefixes, str):
-                                    prefixes = [prefixes]
-                                for cidr in prefixes:
+                                subnets = asn_info.get("subnets")
+                                if isinstance(subnets, str):
+                                    subnets = [subnets]
+                                for cidr in subnets:
                                     self.bypass_candidates[base_domain].add(cidr)
                                     self.debug(
                                         f"Added CIDR {cidr} from {provider_name} base domain {base_domain} "
@@ -207,10 +207,10 @@ class waf_bypass(BaseModule):
                     asns = await self.helpers.asn.get(str(ip))
                     if asns:
                         for asn_info in asns:
-                            prefixes = asn_info.get("prefixes")
-                            if isinstance(prefixes, str):
-                                prefixes = [prefixes]
-                            for cidr in prefixes:
+                            subnets = asn_info.get("subnets")
+                            if isinstance(subnets, str):
+                                subnets = [subnets]
+                            for cidr in subnets:
                                 self.bypass_candidates[base_domain].add(cidr)
                                 self.debug(
                                     f"Added CIDR {cidr} from non-CloudFlare domain {domain} "
