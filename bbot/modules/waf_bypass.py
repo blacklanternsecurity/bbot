@@ -25,6 +25,7 @@ class waf_bypass(BaseModule):
     meta = {
         "description": "Detects potential WAF bypasses",
         "author": "@liquidsec",
+        "created_date": "2025-08-11",
     }
 
     async def setup(self):
