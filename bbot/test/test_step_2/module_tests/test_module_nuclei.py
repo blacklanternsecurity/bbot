@@ -67,21 +67,24 @@ class TestNucleiSevere(TestNucleiManual):
             "nuclei": {
                 "mode": "severe",
                 "concurrency": 1,
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/vulnerabilities/generic/generic-linux-lfi.yaml",
+                "templates": "/tmp/.bbot_test/tools/nuclei-templates/vulnerabilities/generic/generic-env.yaml",
             }
         },
         "interactsh_disable": True,
     }
 
     async def setup_after_prep(self, module_test):
-        expect_args = {"method": "GET", "uri": "/etc/passwd"}
-        respond_args = {"response_data": "<html>root:.*:0:0:</html>"}
+        expect_args = {"method": "GET", "uri": "/.env"}
+        respond_args = {"response_data": "AAAKEYBBB="}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "<html>alive</html>"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
         assert any(
-            e.type == "VULNERABILITY" and "Generic Linux - Local File Inclusion" in e.data["description"]
-            for e in events
+            e.type == "VULNERABILITY" and "Generic Env File Disclosure" in e.data["description"] for e in events
         )
 
 
