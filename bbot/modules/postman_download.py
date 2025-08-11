@@ -25,7 +25,7 @@ class postman_download(postman):
         if output_folder:
             self.output_dir = Path(output_folder) / "postman_workspaces"
         else:
-            self.output_dir = self.helpers.temp_dir / "postman_workspaces"
+            self.output_dir = self.scan.temp_dir / "postman_workspaces"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 

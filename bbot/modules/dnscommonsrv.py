@@ -8,6 +8,7 @@ class dnscommonsrv(subdomain_enum):
     flags = ["subdomain-enum", "active", "safe"]
     meta = {"description": "Check for common SRV records", "created_date": "2022-05-15", "author": "@TheTechromancer"}
     dedup_strategy = "lowest_parent"
+    deps_common = ["massdns"]
 
     options = {"max_depth": 2}
     options_desc = {"max_depth": "The maximum subdomain depth to brute-force SRV records"}

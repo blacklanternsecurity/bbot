@@ -282,7 +282,7 @@ class nuclei(BaseModule):
                     else:
                         self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
         finally:
-            stats_file.unlink()
+            stats_file.unlink(missing_ok=True)
 
     def log_nuclei_status(self, line):
         if self.silent:

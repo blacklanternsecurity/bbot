@@ -3,10 +3,19 @@ import asyncio
 from pathlib import Path
 from .base import ModuleTestBase
 
+from ...bbot_fixtures import *
+
 
 class TestUnarchive(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["filedownload", "httpx", "excavate", "speculate", "unarchive"]
+    config_overrides = {
+        "modules": {
+            "filedownload": {
+                "output_folder": bbot_test_dir / "filedownload",
+            },
+        }
+    }
 
     async def setup_after_prep(self, module_test):
         temp_path = Path("/tmp/.bbot_test")

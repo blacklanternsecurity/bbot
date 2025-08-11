@@ -27,7 +27,7 @@ class git_clone(github):
         if output_folder:
             self.output_dir = Path(output_folder) / "git_repos"
         else:
-            self.output_dir = self.helpers.temp_dir / "git_repos"
+            self.output_dir = self.scan.temp_dir / "git_repos"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 
