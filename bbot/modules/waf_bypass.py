@@ -129,11 +129,16 @@ class waf_bypass(BaseModule):
             if domain not in self.domain_ips:
                 self.domain_ips[domain] = set()
             for ip in dns_response:
-                self.domain_ips[domain].add(str(ip))
-                self.debug(f"Mapped domain {domain} to IP {ip}")
-                if "cloud-ip" in event.tags:
-                    self.cloud_ips.add(str(ip))
-                    self.debug(f"Added cloud-ip {ip} to cloud_ips")
+                ip_str = str(ip)
+                # Validate that this is actually an IP address before storing
+                if self.helpers.is_ip(ip_str):
+                    self.domain_ips[domain].add(ip_str)
+                    self.debug(f"Mapped domain {domain} to IP {ip_str}")
+                    if "cloud-ip" in event.tags:
+                        self.cloud_ips.add(ip_str)
+                        self.debug(f"Added cloud-ip {ip_str} to cloud_ips")
+                else:
+                    self.warning(f"DNS resolution for {domain} returned non-IP result: {ip_str}")
         else:
             self.warning(f" DNS resolution for {domain}")
 
@@ -228,12 +233,12 @@ class waf_bypass(BaseModule):
     async def check_ip(self, ip, source_domain, protected_domain, source_event):
         matching_url = next((url for url in self.content_fingerprints.keys() if protected_domain in url), None)
         if not matching_url:
-            self.critical(f"No matching URL found for {protected_domain} in stored fingerprints")
+            self.debug(f"No matching URL found for {protected_domain} in stored fingerprints")
             return None
 
         original_fingerprint = self.content_fingerprints.get(matching_url)
         if not original_fingerprint:
-            self.critical(f"No original fingerprint for {matching_url}")
+            self.debug(f"No original fingerprint for {matching_url}")
             return None
 
         self.verbose(
@@ -266,6 +271,11 @@ class waf_bypass(BaseModule):
         for domain, ips in self.domain_ips.items():
             if domain not in self.protected_domains:  # If it's not a protected domain
                 for ip in ips:
+                    # Validate that this is actually an IP address before processing
+                    if not self.helpers.is_ip(ip):
+                        self.warning(f"Skipping non-IP address '{ip}' found in domain_ips for {domain}")
+                        continue
+
                     if ip not in cloudflare_ips:  # And IP isn't a known CloudFlare IP
                         all_ips[ip] = domain
                         self.debug(f"Added potential bypass IP {ip} from domain {domain}")
@@ -293,8 +303,7 @@ class waf_bypass(BaseModule):
         self.debug(f"\nFound {len(all_ips)} non-CloudFlare IPs to check: {all_ips}")
 
         tasks = []
-
-        self.verbose(f"Checking {len(self.attempted_bypass_pairs)} bypass pairs...")
+        new_pairs_count = 0
 
         for protected_domain, source_event in self.protected_domains.items():
             for ip, src in all_ips.items():
@@ -302,8 +311,13 @@ class waf_bypass(BaseModule):
                 if combo in self.attempted_bypass_pairs:
                     continue
                 self.attempted_bypass_pairs.add(combo)
+                new_pairs_count += 1
                 self.debug(f"Checking {ip} for {protected_domain} from {src}")
                 tasks.append(asyncio.create_task(self.check_ip(ip, src, protected_domain, source_event)))
+
+        self.verbose(
+            f"Checking {new_pairs_count} new bypass pairs (total attempted: {len(self.attempted_bypass_pairs)})..."
+        )
 
         self.debug(f"about to start {len(tasks)} tasks")
         async for completed in self.helpers.as_completed(tasks):
