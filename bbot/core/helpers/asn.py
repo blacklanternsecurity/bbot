@@ -46,18 +46,18 @@ class ASNHelper:
         try:
             response = await self.parent_helper.request(url, timeout=15)
             if response is None:
-                log.warning(f"ASN API no response for {ip}")
+                log.warning(f"ASN DB API: no response for {ip}")
                 return None
 
             status = getattr(response, "status_code", 0)
             if status != 200:
-                log.warning(f"ASN API returned {status} for {ip}")
+                log.warning(f"ASN DB API: returned {status} for {ip}")
                 return None
 
             try:
                 raw = response.json()
             except Exception as e:
-                log.warning(f"ASN API JSON decode error for {ip}: {e}")
+                log.warning(f"ASN DB API: JSON decode error for {ip}: {e}")
                 return None
 
             if isinstance(raw, dict):
@@ -76,10 +76,10 @@ class ASNHelper:
                 }
                 return [rec]
 
-            log.warning(f"ASN API returned unexpected format for {ip}: {raw}")
+            log.warning(f"ASN DB API: returned unexpected format for {ip}: {raw}")
             return None
         except Exception as e:
-            log.warning(f"ASN API request error to url {url} for {ip}: {e}")
+            log.warning(f"ASN DB API: request error to url {url} for {ip}: {e}")
             return None
 
     def _cache_subnets(self, asn_list):
