@@ -19,7 +19,7 @@ class c99(subdomain_enum_apikey):
 
     async def ping(self):
         url = f"{self.base_url}/randomnumber?key={{api_key}}&between=1,100&json"
-        response = await self.api_request(url)
+        response = await self.api_request(url, retry_on_http_429=False)
         assert response.json()["success"] is True, getattr(response, "text", "no response from server")
 
     async def request_url(self, query):

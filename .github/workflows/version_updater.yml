@@ -36,12 +36,12 @@ jobs:
       - name: Get current version
         id: get-current-version
         run: |
-          version=$(grep -m 1 -oP '(?<=version": ")[^"]*' bbot/modules/deadly/nuclei.py)
+          version=$(grep -m 1 -oP '(?<=version": ")[^"]*' bbot/modules/nuclei.py)
           echo "current_version=$version" >> $GITHUB_ENV
       - name: Update version
         id: update-version
         if: env.latest_version != env.current_version
-        run: "sed -i '0,/\"version\": \".*\",/ s/\"version\": \".*\",/\"version\": \"${{ env.latest_version }}\",/g' bbot/modules/deadly/nuclei.py"
+        run: "sed -i '0,/\"version\": \".*\",/ s/\"version\": \".*\",/\"version\": \"${{ env.latest_version }}\",/g' bbot/modules/nuclei.py"
       - name: Create pull request to update the version
         if: steps.update-version.outcome == 'success'
         uses: peter-evans/create-pull-request@v7
@@ -50,7 +50,7 @@ jobs:
           commit-message: "Update nuclei"
           title: "Update nuclei to ${{ env.latest_version }}"
           body: |
-            This PR uses https://api.github.com/repos/projectdiscovery/nuclei/releases/latest to obtain the latest version of nuclei and update the version in bbot/modules/deadly/nuclei.py."
+            This PR uses https://api.github.com/repos/projectdiscovery/nuclei/releases/latest to obtain the latest version of nuclei and update the version in bbot/modules/nuclei.py."
 
             # Release notes:
             ${{ env.release_notes }}

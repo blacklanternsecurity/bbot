@@ -22,7 +22,7 @@ class apkpure(BaseModule):
         if output_folder:
             self.output_dir = Path(output_folder) / "apk_files"
         else:
-            self.output_dir = self.helpers.temp_dir / "apk_files"
+            self.output_dir = self.scan.temp_dir / "apk_files"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 

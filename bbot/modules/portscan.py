@@ -144,7 +144,7 @@ class portscan(BaseModule):
                                 emitted_hosts.add(host)
         finally:
             for file in (stats_file, target_file):
-                file.unlink()
+                file.unlink(missing_ok=True)
 
     async def make_targets(self, events, scanned_tracker):
         """

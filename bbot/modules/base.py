@@ -103,6 +103,8 @@ class BaseModule:
 
     # disable the module after this many failed attempts in a row
     _api_failure_abort_threshold = 3
+    # whether to retry on 429s when first pinging the API at scan start
+    _ping_retry_on_http_429 = False
 
     default_discovery_context = "{module} discovered {event.type}: {event.data}"
 
@@ -381,8 +383,9 @@ class BaseModule:
         """
         if url is None:
             url = getattr(self, "ping_url", "")
+        retry_on_http_429 = getattr(self, "_ping_retry_on_http_429", False)
         if url:
-            r = await self.api_request(url)
+            r = await self.api_request(url, retry_on_http_429=retry_on_http_429)
             if getattr(r, "status_code", 0) != 200:
                 response_text = getattr(r, "text", "no response from server")
                 raise ValueError(response_text)
@@ -1200,6 +1203,7 @@ class BaseModule:
             - cancelling after too many failed attempts
         """
         url = args[0] if args else kwargs.pop("url", "")
+        retry_on_http_429 = kwargs.pop("retry_on_http_429", True)
 
         # loop until we have a successful request
         for _ in range(self.api_retries):
@@ -1225,7 +1229,7 @@ class BaseModule:
                 else:
                     # sleep for a bit if we're being rate limited
                     retry_after = self._get_retry_after(r)
-                    if retry_after or status_code == 429:
+                    if (retry_after or status_code == 429) and retry_on_http_429:
                         sleep_interval = int(retry_after) if retry_after is not None else self._429_sleep_interval
                         if retry_after and retry_after > self._429_max_sleep_interval:
                             self.verbose(

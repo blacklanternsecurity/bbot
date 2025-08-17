@@ -33,7 +33,7 @@ class gitdumper(BaseModule):
         if output_folder:
             self.output_dir = Path(output_folder) / "git_repos"
         else:
-            self.output_dir = self.helpers.temp_dir / "git_repos"
+            self.output_dir = self.scan.temp_dir / "git_repos"
         self.helpers.mkdir(self.output_dir)
         self.unsafe_regex = self.helpers.re.compile(r"^\s*fsmonitor|sshcommand|askpass|editor|pager", re.IGNORECASE)
         self.ref_regex = self.helpers.re.compile(r"ref: refs/heads/([a-zA-Z\d_-]+)")

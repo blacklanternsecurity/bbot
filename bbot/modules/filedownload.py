@@ -103,7 +103,7 @@ class filedownload(BaseModule):
         if output_dir:
             self.download_dir = Path(output_dir) / "filedownload"
         else:
-            self.download_dir = self.helpers.temp_dir / "filedownload"
+            self.download_dir = self.scan.temp_dir / "filedownload"
         self.helpers.mkdir(self.download_dir)
         self.mime_db_file = await self.helpers.wordlist(
             "https://raw.githubusercontent.com/jshttp/mime-db/master/db.json"

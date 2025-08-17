@@ -831,7 +831,9 @@ def rand_string(length=10, digits=True, numeric_only=False):
     return "".join(random.choice(pool) for _ in range(length))
 
 
-def truncate_string(s, n):
+def truncate_string(s: str, n: int) -> str:
+    if not isinstance(s, str):
+        raise ValueError(f"Expected string, got {type(s)}")
     if len(s) > n:
         return s[: n - 3] + "..."
     else:
@@ -1309,7 +1311,7 @@ def make_netloc(host, port=None):
     return f"{host}:{port}"
 
 
-def which(*executables):
+def which(*executables, path=None):
     """Finds the full path of the first available executable from a list of executables.
 
     Args:
@@ -1325,7 +1327,7 @@ def which(*executables):
     import shutil
 
     for e in executables:
-        location = shutil.which(e)
+        location = shutil.which(e, path=path)
         if location:
             return location
 
@@ -1642,7 +1644,7 @@ def filesize(f):
     return 0
 
 
-def rm_rf(f):
+def rm_rf(f, ignore_errors=False):
     """Recursively delete a directory
 
     Args:
@@ -1653,7 +1655,7 @@ def rm_rf(f):
     """
     import shutil
 
-    shutil.rmtree(f)
+    shutil.rmtree(f, ignore_errors=ignore_errors)
 
 
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):

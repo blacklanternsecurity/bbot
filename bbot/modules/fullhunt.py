@@ -22,7 +22,7 @@ class fullhunt(subdomain_enum_apikey):
 
     async def ping(self):
         url = f"{self.base_url}/auth/status"
-        j = (await self.api_request(url)).json()
+        j = (await self.api_request(url, retry_on_http_429=False)).json()
         remaining = j["user_credits"]["remaining_credits"]
         assert remaining > 0, "No credits remaining"
 
