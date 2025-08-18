@@ -186,12 +186,13 @@ class waf_bypass(BaseModule):
                                 subnets = asn_info.get("subnets")
                                 if isinstance(subnets, str):
                                     subnets = [subnets]
-                                for cidr in subnets:
-                                    self.bypass_candidates[base_domain].add(cidr)
-                                    self.debug(
-                                        f"Added CIDR {cidr} from {provider_name} base domain {base_domain} "
-                                        f"(ASN{asn_info.get('asn', 'Unknown')} - {asn_info.get('name', 'Unknown')})"
-                                    )
+                                if subnets:
+                                    for cidr in subnets:
+                                        self.bypass_candidates[base_domain].add(cidr)
+                                        self.debug(
+                                            f"Added CIDR {cidr} from {provider_name} base domain {base_domain} "
+                                            f"(ASN{asn_info.get('asn', 'Unknown')} - {asn_info.get('name', 'Unknown')})"
+                                        )
                         else:
                             self.warning(f"No ASN info found for IP {ip}")
             else:
