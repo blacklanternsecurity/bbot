@@ -13,10 +13,15 @@ class TXT(BaseOutputModule):
 
     async def setup(self):
         self._prep_output_dir(self.output_filename)
+        self._seen = set()   # track already-written lines
         return True
 
     async def handle_event(self, event):
         event_str = self.human_event_str(event)
+
+        if event_str in self._seen:
+            return  # skip duplicates
+        self._seen.add(event_str)
 
         if self.file is not None:
             self.file.write(event_str + "\n")
