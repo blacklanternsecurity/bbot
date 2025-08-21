@@ -99,6 +99,7 @@ class Scanner:
     def __init__(
         self,
         *targets,
+        name=None,
         scan_id=None,
         dispatcher=None,
         **kwargs,
@@ -136,6 +137,9 @@ class Scanner:
         kwargs["_log"] = True
 
         from .preset import Preset
+
+        if name is not None:
+            kwargs["scan_name"] = name
 
         base_preset = Preset(*targets, **kwargs)
 

@@ -32,13 +32,22 @@ if __name__ == "__main__":
 
 <!-- BBOT HELP OUTPUT -->
 ```text
-usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-p [PRESET ...]]
-               [-c [CONFIG ...]] [-lp] [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf]
-               [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d] [-s] [--force] [-y] [--fast-mode]
-               [--dry-run] [--current-preset] [--current-preset-full] [-mh MODULE] [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
-               [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps |
-               --install-all-deps] [--version] [--proxy HTTP_PROXY] [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
-               [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]] [--custom-yara-rules CUSTOM_YARA_RULES] [--user-agent USER_AGENT]
+usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]]
+               [-b BLACKLIST [BLACKLIST ...]] [--strict-scope]
+               [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
+               [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]]
+               [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
+               [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d]
+               [-s] [--force] [-y] [--fast-mode] [--dry-run]
+               [--current-preset] [--current-preset-full] [-mh MODULE]
+               [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
+               [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
+               [--no-deps | --force-deps | --retry-deps |
+               --ignore-failed-deps | --install-all-deps] [--version]
+               [--proxy HTTP_PROXY] [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
+               [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
+               [--custom-yara-rules CUSTOM_YARA_RULES]
+               [--user-agent USER_AGENT]
 
 Bighuge BLS OSINT Tool
 
@@ -63,14 +72,14 @@ Presets:
 
 Modules:
   -m, --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,azure_realm,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bufferoverrun,builtwith,bypass403,c99,censys,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,extractous,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab,google_playstore,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,leakix,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,robots,securitytrails,securitytxt,shodan_dns,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,wpscan,zoomeye
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_realm,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bufferoverrun,builtwith,bypass403,c99,censys,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,extractous,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,leakix,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,robots,securitytrails,securitytxt,shodan_dns,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,wpscan,zoomeye
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
   -em, --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f, --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,affiliates,aggressive,baddns,cloud-enum,code-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
+                        Enable modules by flag. Choices: active,affiliates,aggressive,baddns,cloud-enum,code-enum,deadly,email-enum,iis-shortnames,passive,portscan,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
   -lf, --list-flags     List available flags.
   -rf, --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)

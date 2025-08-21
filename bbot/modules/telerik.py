@@ -161,7 +161,7 @@ class telerik(BaseModule):
 
     in_scope_only = True
 
-    deps_pip = ["pycryptodome~=3.17"]
+    deps_pip = ["pycryptodome~=3.23.0"]
 
     deps_ansible = [
         {"name": "Create telerik dir", "file": {"state": "directory", "path": "#{BBOT_TOOLS}/telerik/"}},

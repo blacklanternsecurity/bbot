@@ -284,3 +284,9 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch):
         "www.evilcorp.com:80",
         "www.evilcorp.com:443",
     }
+
+
+async def test_scan_name(bbot_scanner):
+    scan = bbot_scanner("evilcorp.com", name="test_scan_name")
+    assert scan.name == "test_scan_name"
+    assert scan.preset.scan_name == "test_scan_name"

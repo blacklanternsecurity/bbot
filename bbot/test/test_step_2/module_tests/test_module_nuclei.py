@@ -12,7 +12,6 @@ class TestNucleiManual(ModuleTestBase):
         },
         "modules": {
             "nuclei": {
-                "version": "2.9.4",
                 "mode": "manual",
                 "concurrency": 2,
                 "ratelimit": 10,

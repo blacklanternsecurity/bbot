@@ -216,26 +216,29 @@ def split_host_port(d):
     host = None
     port = None
     scheme = None
+
+    # first, try to parse as an IP address
     if is_ip(d):
         return make_ip_type(d), port
 
+    # if not an IP address, try to parse as a host:port
     match = bbot_regexes.split_host_port_regex.match(d)
     if match is None:
-        raise ValueError(f'split_port() failed to parse "{d}"')
+        raise ValueError(f'split_host_port() failed to parse "{d}"')
     scheme = match.group("scheme")
     netloc = match.group("netloc")
     if netloc is None:
-        raise ValueError(f'split_port() failed to parse "{d}"')
+        raise ValueError(f'split_host_port() failed to parse "{d}"')
 
     match = bbot_regexes.extract_open_port_regex.match(netloc)
     if match is None:
-        raise ValueError(f'split_port() failed to parse netloc "{netloc}" (original value: {d})')
+        raise ValueError(f'split_host_port() failed to parse netloc "{netloc}" (original value: {d})')
 
     host = match.group(2)
     if host is None:
         host = match.group(1)
     if host is None:
-        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}" (original value: {d})')
+        raise ValueError(f'split_host_port() failed to locate host in netloc "{netloc}" (original value: {d})')
 
     port = match.group(3)
     if port is None and scheme is not None:
