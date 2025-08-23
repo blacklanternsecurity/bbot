@@ -1,0 +1,36 @@
+name: Metrics
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # update daily
+  workflow_dispatch:
+
+jobs:
+  github-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lowlighter/metrics@latest
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Target repo
+          user: blacklanternsecurity
+          repo: bbot
+          # General
+          template: classic
+          base: ""
+          config_timezone: UTC
+          config_display: large
+          # Plugins
+          plugin_contributors: yes
+          plugin_contributors_base: ""
+          plugin_contributors_head: 8
+          plugin_contributors_sections: commits
+          plugin_achievements: yes
+          plugin_achievements_display: compact
+          plugin_issues: yes
+          plugin_prs: yes
+          plugin_activity: yes
+          plugin_activity_days: 30
+          plugin_activity_filter: all
+          plugin_followup: yes
+          plugin_lines: yes
