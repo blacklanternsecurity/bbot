@@ -436,3 +436,10 @@ Special thanks to:
 - @domwhewell-sage for his family of badass code-looting modules
 - @aconite33 and @amiremami for their ruthless testing
 - Aleksei Kornev (@alekseiko) for granting us ownership of the bbot Pypi repository <3
+
+## 📊 Project Metrics
+
+<p align="center">
+  <img src="./github-metrics.svg" alt="Project Metrics" width="90%"/>
+</p>
+
