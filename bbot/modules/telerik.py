@@ -204,7 +204,7 @@ class telerik(BaseModule):
             webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
             result, _ = await self.test_detector(base_url, webresource)
             if result:
-                if "RadAsyncUpload handler is registered successfully" in result.text:
+                if "RadAsyncUpload handler is registered succesfully" in result.text:
                     self.verbose("Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
 
                     probe_data = {
@@ -263,6 +263,11 @@ class telerik(BaseModule):
                                     str(root_tool_path / "testfile.txt"),
                                     result.url,
                                 ]
+
+                                # Add proxy if set in the scan config
+                                if self.scan.http_proxy:
+                                    command.append(self.scan.http_proxy)
+
                                 output = await self.run_process(command)
                                 description = f"[CVE-2017-11317] [{str(version)}] {webresource}"
                                 if "fileInfo" in output.stdout:
