@@ -348,30 +348,63 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
     url = bbot_httpserver.url_for("/curl")
     bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
     bbot_httpserver.expect_request(uri="/index.html").respond_with_data("curl_yep_index")
-    assert await helpers.curl(url=url) == "curl_yep"
-    assert await helpers.curl(url=url, ignore_bbot_global_settings=True) == "curl_yep"
-    assert (await helpers.curl(url=url, head_mode=True)).startswith("HTTP/")
-    assert await helpers.curl(url=url, raw_body="body") == "curl_yep"
-    assert (
-        await helpers.curl(
-            url=url,
-            raw_path=True,
-            headers={"test": "test", "test2": ["test2"]},
-            ignore_bbot_global_settings=False,
-            post_data={"test": "test"},
-            method="POST",
-            cookies={"test": "test"},
-            path_override="/index.html",
-        )
-        == "curl_yep_index"
+
+    # Original tests - keep these working exactly as before
+    result1 = await helpers.curl(url=url)
+    assert result1["response_data"] == "curl_yep"
+
+    result2 = await helpers.curl(url=url, ignore_bbot_global_settings=True)
+    assert result2["response_data"] == "curl_yep"
+
+    result3 = await helpers.curl(url=url, head_mode=True)
+    assert result3["response_data"].startswith("HTTP/")
+
+    result4 = await helpers.curl(url=url, raw_body="body")
+    assert result4["response_data"] == "curl_yep"
+
+    result5 = await helpers.curl(
+        url=url,
+        raw_path=True,
+        headers={"test": "test", "test2": ["test2"]},
+        ignore_bbot_global_settings=False,
+        post_data={"test": "test"},
+        method="POST",
+        cookies={"test": "test"},
+        path_override="/index.html",
     )
+    assert result5["response_data"] == "curl_yep_index"
+
     # test custom headers
     bbot_httpserver.expect_request("/test-custom-http-headers-curl", headers={"test": "header"}).respond_with_data(
         "curl_yep_headers"
     )
     headers_url = bbot_httpserver.url_for("/test-custom-http-headers-curl")
     curl_result = await helpers.curl(url=headers_url)
-    assert curl_result == "curl_yep_headers"
+    assert curl_result["response_data"] == "curl_yep_headers"
+
+    # NEW: Test metadata fields are present and valid
+    assert "http_code" in curl_result
+    assert curl_result["http_code"] == 200
+    assert "url_effective" in curl_result
+    assert "content_type" in curl_result
+    assert "size_download" in curl_result
+    assert "time_total" in curl_result
+    assert "speed_download" in curl_result
+
+    # NEW: Test metadata types and ranges
+    assert isinstance(curl_result["http_code"], int)
+    assert isinstance(curl_result["size_download"], (int, float))
+    assert isinstance(curl_result["time_total"], (int, float))
+    assert isinstance(curl_result["speed_download"], (int, float))
+    assert curl_result["size_download"] >= 0
+    assert curl_result["time_total"] >= 0
+
+    # NEW: Test that all results have consistent metadata structure
+    for result in [result1, result2, result3, result4, result5, curl_result]:
+        assert "response_data" in result
+        assert "http_code" in result
+        assert "url_effective" in result
+        assert isinstance(result, dict)
 
     await scan._cleanup()
 

@@ -588,7 +588,7 @@
     },
     {
         "id": 148,
-        "name": "VHOST",
+        "name": "VIRTUAL_HOST",
         "parent": 88888888,
         "consumes": [
             155
@@ -2038,7 +2038,7 @@
     },
     {
         "id": 147,
-        "name": "vhost",
+        "name": "virtual_host",
         "parent": 99999999,
         "consumes": [
             3

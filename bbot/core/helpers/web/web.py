@@ -2,6 +2,7 @@ import logging
 import warnings
 from pathlib import Path
 from bs4 import BeautifulSoup
+import ipaddress
 
 from bbot.core.engine import EngineClient
 from bbot.core.helpers.misc import truncate_filename
@@ -321,10 +322,11 @@ class WebHelper(EngineClient):
             path_override (str, optional): Overrides the request-target to use in the HTTP request line.
             head_mode (bool, optional): If True, includes '-I' to fetch headers only. Defaults to None.
             raw_body (str, optional): Raw string to be sent in the body of the request.
+            resolve (dict, optional): Host resolution override as dict with 'host', 'port', 'ip' keys for curl --resolve.
             **kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Returns:
-            str: The output of the cURL command.
+            dict: JSON object with response data and metadata.
 
         Raises:
             CurlError: If 'url' is not supplied.
@@ -426,9 +428,71 @@ class WebHelper(EngineClient):
         if raw_body:
             curl_command.append("-d")
             curl_command.append(raw_body)
+
+        # --resolve <host>:<port>:<ip>
+        resolve_dict = kwargs.get("resolve", None)
+
+        if resolve_dict is not None:
+            # Validate "resolve" is a dict
+            if not isinstance(resolve_dict, dict):
+                raise CurlError("'resolve' must be a dictionary containing 'host', 'port', and 'ip' keys")
+
+            # Extract and validate IP (required)
+            ip = resolve_dict.get("ip")
+            if not ip:
+                raise CurlError("'resolve' dictionary requires an 'ip' value")
+            try:
+                ipaddress.ip_address(ip)
+            except ValueError:
+                raise CurlError(f"Invalid IP address supplied to 'resolve': {ip}")
+
+            # Host, port, and ip must ALL be supplied explicitly
+            host = resolve_dict.get("host")
+            if not host:
+                raise CurlError("'resolve' dictionary requires a 'host' value")
+
+            if "port" not in resolve_dict:
+                raise CurlError("'resolve' dictionary requires a 'port' value")
+            port = resolve_dict["port"]
+
+            try:
+                port = int(port)
+            except (TypeError, ValueError):
+                raise CurlError("'port' supplied to resolve must be an integer")
+            if port < 1 or port > 65535:
+                raise CurlError("'port' supplied to resolve must be between 1 and 65535")
+
+            # Append the --resolve directive
+            curl_command.append("--resolve")
+            curl_command.append(f"{host}:{port}:{ip}")
+
+        # Always add JSON --write-out format with separator
+        curl_command.extend(["-w", "\\n---CURL_METADATA---\\n%{json}"])
+
         log.verbose(f"Running curl command: {curl_command}")
         output = (await self.parent_helper.run(curl_command)).stdout
-        return output
+
+        # Parse the output to separate content and metadata
+        import json
+
+        parts = output.split("\n---CURL_METADATA---\n")
+
+        # Raise CurlError if separator not found - this indicates a problem with our curl implementation
+        if len(parts) < 2:
+            raise CurlError(f"Curl output missing expected separator. Got: {output[:200]}...")
+
+        response_data = parts[0]
+        # Take the last part as JSON metadata (in case separator appears in content)
+        json_data = parts[-1].strip()
+
+        # Raise CurlError if JSON parsing fails - this indicates a problem with curl's %{json} output
+        try:
+            metadata = json.loads(json_data)
+        except json.JSONDecodeError as e:
+            raise CurlError(f"Failed to parse curl JSON metadata: {e}. JSON data: {json_data[:200]}...")
+
+        # Combine into final JSON structure
+        return {"response_data": response_data, **metadata}
 
     def beautifulsoup(
         self,

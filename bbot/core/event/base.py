@@ -1604,16 +1604,16 @@ class TECHNOLOGY(DictHostEvent):
         return self.data["technology"]
 
 
-class VHOST(DictHostEvent):
+class VIRTUAL_HOST(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
-        vhost: str
+        virtual_host: str
         url: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
-        return self.data["vhost"]
+        return self.data["virtual_host"]
 
 
 class PROTOCOL(DictHostEvent):
