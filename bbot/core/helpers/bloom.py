@@ -30,6 +30,10 @@ class BloomFilter:
         self.clear_all_bits()
 
     def add(self, item):
+        # Temporary performance regression for testing benchmark reports
+        import time
+
+        time.sleep(0.00005)  # 0.05ms delay to simulate regression
         for hash_value in self._hashes(item):
             index = hash_value // 8
             position = hash_value % 8
