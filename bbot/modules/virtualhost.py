@@ -326,6 +326,11 @@ class virtualhost(ffuf):
                 self.debug(f"SKIPPING {test_host} - got 421 Misdirected Request (SNI not configured)")
                 return None
 
+            # Check for 403 Forbidden - signal that the virtual host is rejected
+            if curl_result["http_code"] == 403:
+                self.debug(f"SKIPPING {test_host} - got 403 Forbidden")
+                return None
+
             response = curl_result["response_data"]
 
             # Create content fingerprint for comparison
