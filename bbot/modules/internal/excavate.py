@@ -5,7 +5,7 @@ import time
 import inspect
 import regex as re
 from pathlib import Path
-from bbot.errors import ExcavateError
+from bbot.errors import ExcavateError, ValidationError
 import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
@@ -314,13 +314,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     }
 
     options = {
-        "retain_querystring": True,
         "yara_max_match_data": 2000,
         "custom_yara_rules": "",
         "speculate_params": False,
     }
     options_desc = {
-        "retain_querystring": "Keep the querystring intact on emitted WEB_PARAMETERS",
         "yara_max_match_data": "Sets the maximum amount of text that can extracted from a YARA regex",
         "custom_yara_rules": "Include custom Yara rules",
         "speculate_params": "Enable speculative parameter extraction from JSON and XML content",
@@ -329,36 +327,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     accept_dupes = False
 
     _module_threads = 8
-
-    parameter_blacklist_prefix = [
-        "TS01",
-        "BIGipServer",
-        "incap_",
-        "visid_incap_",
-        "AWSALB",
-        "utm_",
-        "ApplicationGatewayAffinity",
-        "JSESSIONID",
-        "ARRAffinity",
-    ]
-
-    parameter_blacklist = set(
-        p.lower()
-        for p in [
-            "__VIEWSTATE",
-            "__EVENTARGUMENT",
-            "__EVENTVALIDATION",
-            "__EVENTTARGET",
-            "__EVENTARGUMENT",
-            "__VIEWSTATEGENERATOR",
-            "__SCROLLPOSITIONY",
-            "__SCROLLPOSITIONX",
-            "ASP.NET_SessionId",
-            "PHPSESSID",
-            "__cf_bm",
-            "f5_cspm",
-        ]
-    )
 
     yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
@@ -370,14 +338,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         if lower_value in self.parameter_blacklist:
             return True
 
-        for bl_param_prefix in self.parameter_blacklist_prefix:
+        for bl_param_prefix in self.parameter_blacklist_prefixes:
             if lower_value.startswith(bl_param_prefix.lower()):
                 return True
 
         return False
 
     def url_unparse(self, param_type, parsed_url):
-        # Reconstructs a URL, optionally omitting the query string based on retain_querystring configuration value.
+        # Reconstructs a URL, optionally omitting the query string based on remove_querystring configuration value.
         if param_type == "GETPARAM":
             querystring = ""
         else:
@@ -389,7 +357,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 parsed_url.netloc,
                 parsed_url.path,
                 "",
-                querystring if self.retain_querystring else "",
+                "" if self.remove_querystring else querystring,
                 "",
             )
         )
@@ -401,7 +369,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         class ParameterExtractorRule:
             name = ""
 
-            def extract(self):
+            async def extract(self):
                 pass
 
             def __init__(self, excavate, result):
@@ -414,20 +382,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             extraction_regex = re.compile(r"\$.get\([\'\"](.+)[\'\"].+(\{.+\})\)")
             output_type = "GETPARAM"
 
-            def convert_to_dict(self, extracted_str):
-                extracted_str = extracted_str.replace("'", '"')
-                extracted_str = re.sub(r"(\w+):", r'"\1":', extracted_str)
-                try:
-                    return json.loads(extracted_str)
-                except json.JSONDecodeError as e:
-                    self.excavate.debug(f"Failed to decode JSON: {e}")
-                    return None
-
-            def extract(self):
-                extracted_results = self.extraction_regex.findall(str(self.result))
+            async def extract(self):
+                extracted_results = await self.excavate.helpers.re.findall(self.extraction_regex, str(self.result))
                 if extracted_results:
                     for action, extracted_parameters in extracted_results:
-                        extracted_parameters_dict = self.convert_to_dict(extracted_parameters)
+                        extracted_parameters_dict = await self.convert_to_dict(extracted_parameters)
                         for parameter_name, original_value in extracted_parameters_dict.items():
                             yield (
                                 self.output_type,
@@ -436,6 +395,18 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 action,
                                 _exclude_key(extracted_parameters_dict, parameter_name),
                             )
+
+            async def convert_to_dict(self, extracted_str):
+                extracted_str = extracted_str.replace("'", '"')
+                extracted_str = await self.excavate.helpers.re.sub(
+                    re.compile(r"(\w+):"), r'"\1":', extracted_str
+                )  # Quote keys
+
+                try:
+                    return json.loads(extracted_str)
+                except json.JSONDecodeError as e:
+                    self.excavate.debug(f"Failed to decode JSON: {e}")
+                    return None
 
         class PostJquery(GetJquery):
             name = "POST jquery"
@@ -449,8 +420,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             extraction_regex = bbot_regexes.tag_attribute_regex
             output_type = "GETPARAM"
 
-            def extract(self):
-                urls = self.extraction_regex.findall(str(self.result))
+            async def extract(self):
+                urls = await self.excavate.helpers.re.findall(self.extraction_regex, str(self.result))
                 for url in urls:
                     parsed_url = urlparse(url)
                     query_strings = parse_qs(html.unescape(parsed_url.query))
@@ -470,51 +441,54 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             extraction_regex = None
             output_type = "BODYJSON"
             ajax_content_regexes = {
-                "url": r"url\s*:\s*['\"](.*?)['\"]",
-                "type": r"type\s*:\s*['\"](.*?)['\"]",
-                "content_type": r"contentType\s*:\s*['\"](.*?)['\"]",
-                "data": r"data:.*(\{[^}]*\})",
+                "url": re.compile(r"url\s*:\s*['\"](.*?)['\"]"),
+                "type": re.compile(r"type\s*:\s*['\"](.*?)['\"]"),
+                "content_type": re.compile(r"contentType\s*:\s*['\"](.*?)['\"]"),
+                "data": re.compile(r"data:.*(\{[^}]*\})"),
             }
 
-            def extract(self):
+            async def extract(self):
                 # Iterate through each regex in ajax_content_regexes
                 extracted_values = {}
                 for key, pattern in self.ajax_content_regexes.items():
-                    match = re.search(pattern, self.result)
+                    match = await self.excavate.helpers.re.search(pattern, self.result)
                     if match:
                         # Store the matched value in the dictionary
                         extracted_values[key] = match.group(1)
 
-                # check to see if the format is defined as JSON
-                if "content_type" in extracted_values.keys():
-                    if extracted_values["content_type"] == "application/json":
-                        form_parameters = {}
+                # Check to see if the format is defined as JSON
+                if (
+                    "content_type" in extracted_values.keys()
+                    and extracted_values["content_type"] == "application/json"
+                ):
+                    form_parameters = {}
 
-                        # If we cant figure out the parameter names, there is no point in continuing
-                        if "data" in extracted_values.keys():
-                            if "url" in extracted_values.keys():
-                                form_url = extracted_values["url"]
-                            else:
-                                form_url = None
+                    # If we can't figure out the parameter names, there is no point in continuing
+                    if "data" in extracted_values.keys():
+                        form_url = extracted_values.get("url", None)
 
-                            try:
-                                s = extracted_values["data"]
-                                s = re.sub(r"(\w+)\s*:", r'"\1":', s)  # Quote keys
-                                s = re.sub(r":\s*(\w+)", r': "\1"', s)  # Quote values if they are unquoted
-                                data = json.loads(s)
-                            except (ValueError, SyntaxError):
-                                return None
+                        try:
+                            s = extracted_values["data"]
+                            s = await self.excavate.helpers.re.sub(re.compile(r"(\w+)\s*:"), r'"\1":', s)  # Quote keys
+                            s = await self.excavate.helpers.re.sub(
+                                re.compile(r":\s*(\w+)"), r': "\1"', s
+                            )  # Quote values if they are unquoted
+                            data = json.loads(s)
+                        except (ValueError, SyntaxError):
+                            data = None
+
+                        if data:
                             for p in data.keys():
                                 form_parameters[p] = None
 
-                        for parameter_name in form_parameters:
-                            yield (
-                                "BODYJSON",
-                                parameter_name,
-                                None,
-                                form_url,
-                                _exclude_key(form_parameters, parameter_name),
-                            )
+                    for parameter_name in form_parameters:
+                        yield (
+                            "BODYJSON",
+                            parameter_name,
+                            None,
+                            form_url,
+                            _exclude_key(form_parameters, parameter_name),
+                        )
 
         class GetForm(ParameterExtractorRule):
             name = "GET Form"
@@ -533,8 +507,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             extraction_regex = bbot_regexes.get_form_regex
             output_type = "GETPARAM"
 
-            def extract(self):
-                forms = self.extraction_regex.findall(str(self.result))
+            async def extract(self):
+                forms = await self.excavate.helpers.re.findall(self.extraction_regex, str(self.result))
                 for form_action, form_content in forms:
                     if not form_action or form_action == "#":
                         form_action = None
@@ -544,7 +518,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
                     form_parameters = {}
                     for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
-                        input_tags = form_content_regex.findall(form_content)
+                        input_tags = await self.excavate.helpers.re.findall(form_content_regex, form_content)
                         if input_tags:
                             # Normalize each input_tag to be a tuple of two elements
                             input_tags = [(tag if isinstance(tag, tuple) else (tag, None)) for tag in input_tags]
@@ -616,66 +590,65 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     parameterExtractorSubModule = self.parameterExtractorCallbackDict[identifier](
                         self.excavate, result
                     )
-                    extracted_params = parameterExtractorSubModule.extract()
-                    if extracted_params:
-                        for (
-                            parameter_type,
-                            parameter_name,
-                            original_value,
-                            endpoint,
-                            additional_params,
-                        ) in extracted_params:
-                            self.excavate.debug(
-                                f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
-                            )
 
-                            # account for the case where the action is html encoded
-                            if endpoint and (
-                                endpoint.startswith("https&#x3a;&#x2f;&#x2f;")
-                                or endpoint.startswith("http&#x3a;&#x2f;&#x2f;")
-                            ):
-                                endpoint = html.unescape(endpoint)
+                    # Use async for to iterate over the async generator
+                    async for (
+                        parameter_type,
+                        parameter_name,
+                        original_value,
+                        endpoint,
+                        additional_params,
+                    ) in parameterExtractorSubModule.extract():
+                        self.excavate.debug(
+                            f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
+                        )
 
-                            # If we have a full URL, leave it as-is
-                            if endpoint and endpoint.startswith(("http://", "https://")):
-                                url = endpoint
+                        # account for the case where the action is html encoded
+                        if endpoint and (
+                            endpoint.startswith("https&#x3a;&#x2f;&#x2f;")
+                            or endpoint.startswith("http&#x3a;&#x2f;&#x2f;")
+                        ):
+                            endpoint = html.unescape(endpoint)
 
-                            # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
-                            else:
-                                # Use the original URL as the base and resolve the endpoint correctly in case of relative paths
-                                base_url = (
-                                    f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{event.parsed_url.path}"
+                        # If we have a full URL, leave it as-is
+                        if endpoint and endpoint.startswith(("http://", "https://")):
+                            url = endpoint
+
+                        # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
+                        else:
+                            # Use the original URL as the base and resolve the endpoint correctly in case of relative paths
+                            base_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{event.parsed_url.path}"
+                            if not self.excavate.remove_querystring and len(event.parsed_url.query) > 0:
+                                base_url += f"?{event.parsed_url.query}"
+                            url = urljoin(base_url, endpoint)
+
+                        try:
+                            # Validate the URL before using it
+                            parsed_url = self.excavate.helpers.validators.validate_url_parsed(url)
+                        except (ValidationError, ValueError) as e:
+                            self.excavate.debug(f"Invalid URL [{url}]: {e}")
+                            continue
+
+                        if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
+                            if self.excavate.in_bl(parameter_name) is False:
+                                description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
+                                data = {
+                                    "host": parsed_url.hostname,
+                                    "type": parameter_type,
+                                    "name": parameter_name,
+                                    "original_value": original_value,
+                                    "url": self.excavate.url_unparse(parameter_type, parsed_url),
+                                    "additional_params": additional_params,
+                                    "assigned_cookies": self.excavate.assigned_cookies,
+                                    "description": description,
+                                }
+                                await self.report(
+                                    data, event, yara_rule_settings, discovery_context, event_type="WEB_PARAMETER"
                                 )
-                                if self.excavate.retain_querystring and len(event.parsed_url.query) > 0:
-                                    base_url += f"?{event.parsed_url.query}"
-                                url = urljoin(base_url, endpoint)
-
-                            if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
-                                if self.excavate.in_bl(parameter_name) is False:
-                                    parsed_url = urlparse(url)
-                                    if not parsed_url.hostname:
-                                        self.excavate.warning(
-                                            f"Error Parsing reconstructed URL [{url}] during parameter extraction, missing hostname"
-                                        )
-                                        continue
-                                    description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
-                                    data = {
-                                        "host": parsed_url.hostname,
-                                        "type": parameter_type,
-                                        "name": parameter_name,
-                                        "original_value": original_value,
-                                        "url": self.excavate.url_unparse(parameter_type, parsed_url),
-                                        "additional_params": additional_params,
-                                        "assigned_cookies": self.excavate.assigned_cookies,
-                                        "description": description,
-                                    }
-                                    await self.report(
-                                        data, event, yara_rule_settings, discovery_context, event_type="WEB_PARAMETER"
-                                    )
-                                else:
-                                    self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
                             else:
-                                self.excavate.debug(f"blocked parameter [{parameter_name}] due to validation failure")
+                                self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
+                        else:
+                            self.excavate.debug(f"blocked parameter [{parameter_name}] due to validation failure")
 
     class CSPExtractor(ExcavateRule):
         description = "Extracts domains from CSP headers."
@@ -876,51 +849,57 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 urls_found = 0
                 final_url = ""
                 for url_str in results:
-                    if identifier == "url_full":
-                        if not await self.helpers.re.search(self.full_url_regex, url_str):
-                            self.excavate.debug(
-                                f"Rejecting potential full URL [{url_str}] as did not match full_url_regex"
-                            )
-                            continue
-                        final_url = url_str
+                    try:
+                        if identifier == "url_full":
+                            if not await self.helpers.re.search(self.full_url_regex, url_str):
+                                self.excavate.debug(
+                                    f"Rejecting potential full URL [{url_str}] as did not match full_url_regex"
+                                )
+                                continue
+                            final_url = url_str
+                            self.excavate.debug(f"Discovered Full URL [{final_url}]")
 
-                        self.excavate.debug(f"Discovered Full URL [{final_url}]")
-                    elif identifier == "url_attr" and hasattr(event, "parsed_url"):
-                        m = await self.helpers.re.search(self.tag_attribute_regex, url_str)
-                        if not m:
+                        elif identifier == "url_attr" and hasattr(event, "parsed_url"):
+                            m = await self.helpers.re.search(self.tag_attribute_regex, url_str)
+                            if not m:
+                                self.excavate.debug(
+                                    f"Rejecting potential attribute URL [{url_str}] as did not match tag_attribute_regex"
+                                )
+                                continue
+                            unescaped_url = html.unescape(m.group(1))
+                            source_url = event.parsed_url.geturl()
+                            final_url = urldefrag(urljoin(source_url, unescaped_url)).url
+                            if not await self.helpers.re.search(self.full_url_regex_strict, final_url):
+                                self.excavate.debug(
+                                    f"Rejecting reconstructed URL [{final_url}] as did not match full_url_regex_strict"
+                                )
+                                continue
                             self.excavate.debug(
-                                f"Rejecting potential attribute URL [{url_str}] as did not match tag_attribute_regex"
+                                f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
                             )
-                            continue
-                        unescaped_url = html.unescape(m.group(1))
-                        source_url = event.parsed_url.geturl()
-                        final_url = urldefrag(urljoin(source_url, unescaped_url)).url
-                        if not await self.helpers.re.search(self.full_url_regex_strict, final_url):
-                            self.excavate.debug(
-                                f"Rejecting reconstructed URL [{final_url}] as did not match full_url_regex_strict"
-                            )
-                            continue
-                        self.excavate.debug(
-                            f"Reconstructed Full URL [{final_url}] from extracted relative URL [{unescaped_url}] "
-                        )
 
-                    if final_url:
-                        if self.excavate.scan.in_scope(final_url):
-                            urls_found += 1
-                        await self.report(
-                            final_url,
-                            event,
-                            yara_rule_settings,
-                            discovery_context,
-                            event_type="URL_UNVERIFIED",
-                            urls_found=urls_found,
-                        )
+                        if final_url:
+                            # Validate the URL before using it
+                            self.excavate.helpers.validators.validate_url_parsed(final_url)
+                            if self.excavate.scan.in_scope(final_url):
+                                urls_found += 1
+                            await self.report(
+                                final_url,
+                                event,
+                                yara_rule_settings,
+                                discovery_context,
+                                event_type="URL_UNVERIFIED",
+                                urls_found=urls_found,
+                            )
+                    except (ValidationError, ValueError) as e:
+                        self.excavate.debug(f"Invalid URL [{url_str if not final_url else final_url}]: {e}")
+                        continue
 
         async def report_prep(self, event_data, event_type, event, tags, **kwargs):
             event_draft = self.excavate.make_event(event_data, event_type, parent=event)
             if not event_draft:
                 return None
-            url_in_scope = self.excavate.scan.in_scope(event_draft)
+            url_in_scope = self.excavate.scan.in_scope(event_draft.host_filterable)
             urls_found = kwargs.get("urls_found", None)
             if urls_found:
                 exceeds_max_links = urls_found > self.excavate.scan.web_spider_links_per_page and url_in_scope
@@ -1014,10 +993,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
         self.speculate_params = bool(self.config.get("speculate_params", False))
-
-        self.retain_querystring = False
-        if self.config.get("retain_querystring", False) is True:
-            self.retain_querystring = True
+        self.remove_querystring = self.scan.config.get("url_querystring_remove", True)
 
         for module in self.scan.modules.values():
             if not str(module).startswith("_"):
@@ -1037,6 +1013,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     excavateRule = e(self)
                     for rule_name, rule_content in excavateRule.yara_rules.items():
                         self.add_yara_rule(rule_name, rule_content, excavateRule)
+
+        self.parameter_blacklist = set(p.lower() for p in self.scan.config.get("parameter_blacklist", []))
+        self.parameter_blacklist_prefixes = set(self.scan.config.get("parameter_blacklist_prefixes", []))
 
         self.custom_yara_rules = str(self.config.get("custom_yara_rules", ""))
         if self.custom_yara_rules:
@@ -1142,7 +1121,10 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
                 # Check if rule processing function exists
                 if rule_name in self.yara_preprocess_dict:
-                    await self.yara_preprocess_dict[rule_name](result, event, discovery_context)
+                    try:
+                        await self.yara_preprocess_dict[rule_name](result, event, discovery_context)
+                    except ValidationError as e:
+                        self.debug(f"ValidationError in rule {rule_name} for result {result}: {e}")
                 else:
                     self.hugewarning(f"YARA Rule {rule_name} not found in pre-compiled rules")
 

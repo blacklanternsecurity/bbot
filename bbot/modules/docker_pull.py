@@ -17,7 +17,7 @@ class docker_pull(BaseModule):
     options = {"all_tags": False, "output_folder": ""}
     options_desc = {
         "all_tags": "Download all tags from each registry (Default False)",
-        "output_folder": "Folder to download docker repositories to",
+        "output_folder": "Folder to download docker repositories to. If not specified, downloaded docker images will be deleted when the scan completes, to minimize disk usage.",
     }
 
     scope_distance_modifier = 2
@@ -34,11 +34,11 @@ class docker_pull(BaseModule):
             )
         }
         self.all_tags = self.config.get("all_tags", True)
-        output_folder = self.config.get("output_folder")
+        output_folder = self.config.get("output_folder", "")
         if output_folder:
             self.output_dir = Path(output_folder) / "docker_images"
         else:
-            self.output_dir = self.scan.home / "docker_images"
+            self.output_dir = self.scan.temp_dir / "docker_images"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 

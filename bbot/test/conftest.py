@@ -1,15 +1,14 @@
 import os
 import ssl
-import shutil
+import time
 import pytest
+import shutil
 import asyncio
 import logging
 from pathlib import Path
 from contextlib import suppress
 from omegaconf import OmegaConf
 from pytest_httpserver import HTTPServer
-import time
-import queue
 
 from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async

@@ -1,0 +1,14 @@
+description: Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz modules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point.
+
+include:
+  - lightfuzz-light
+
+modules:
+  - badsecrets
+  - hunt
+  - reflected_parameters
+  
+config:
+  modules:
+    lightfuzz:
+      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss]

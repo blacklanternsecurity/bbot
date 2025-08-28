@@ -1,3 +1,4 @@
+from ...bbot_fixtures import *
 from .base import ModuleTestBase
 
 
@@ -11,7 +12,6 @@ class TestNucleiManual(ModuleTestBase):
         },
         "modules": {
             "nuclei": {
-                "version": "2.9.4",
                 "mode": "manual",
                 "concurrency": 2,
                 "ratelimit": 10,
@@ -66,21 +66,24 @@ class TestNucleiSevere(TestNucleiManual):
             "nuclei": {
                 "mode": "severe",
                 "concurrency": 1,
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/vulnerabilities/generic/generic-linux-lfi.yaml",
+                "templates": "/tmp/.bbot_test/tools/nuclei-templates/vulnerabilities/generic/generic-env.yaml",
             }
         },
         "interactsh_disable": True,
     }
 
     async def setup_after_prep(self, module_test):
-        expect_args = {"method": "GET", "uri": "/etc/passwd"}
-        respond_args = {"response_data": "<html>root:.*:0:0:</html>"}
+        expect_args = {"method": "GET", "uri": "/.env"}
+        respond_args = {"response_data": "AAAKEYBBB="}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "<html>alive</html>"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
         assert any(
-            e.type == "VULNERABILITY" and "Generic Linux - Local File Inclusion" in e.data["description"]
-            for e in events
+            e.type == "VULNERABILITY" and "Generic Env File Disclosure" in e.data["description"] for e in events
         )
 
 
@@ -100,9 +103,7 @@ class TestNucleiTechnology(TestNucleiManual):
 
     def check(self, module_test, events):
         assert any(e.type == "TECHNOLOGY" and "apache" in e.data["technology"].lower() for e in events)
-
-        with open(module_test.scan.home / "debug.log") as f:
-            assert "Using Interactsh Server" not in f.read()
+        assert "Using Interactsh Server" not in open(module_test.scan.home / "debug.log").read()
 
 
 class TestNucleiBudget(TestNucleiManual):
@@ -141,8 +142,7 @@ class TestNucleiRetries(TestNucleiManual):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        with open(module_test.scan.home / "debug.log") as f:
-            assert "-retries 0" in f.read()
+        assert "-retries 0" in open(module_test.scan.home / "debug.log").read()
 
 
 class TestNucleiRetriesCustom(TestNucleiRetries):
@@ -152,8 +152,7 @@ class TestNucleiRetriesCustom(TestNucleiRetries):
     }
 
     def check(self, module_test, events):
-        with open(module_test.scan.home / "debug.log") as f:
-            assert "-retries 1" in f.read()
+        assert "-retries 1" in open(module_test.scan.home / "debug.log").read()
 
 
 class TestNucleiCustomHeaders(TestNucleiManual):

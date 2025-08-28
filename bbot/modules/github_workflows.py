@@ -1,5 +1,6 @@
 import zipfile
 import fnmatch
+from pathlib import Path
 
 from bbot.modules.templates.github import github
 
@@ -13,10 +14,11 @@ class github_workflows(github):
         "created_date": "2024-04-29",
         "author": "@domwhewell-sage",
     }
-    options = {"api_key": "", "num_logs": 1}
+    options = {"api_key": "", "num_logs": 1, "output_folder": ""}
     options_desc = {
         "api_key": "Github token",
         "num_logs": "For each workflow fetch the last N successful runs logs (max 100)",
+        "output_folder": "Folder to download workflow logs and artifacts to",
     }
 
     scope_distance_modifier = 2
@@ -26,7 +28,11 @@ class github_workflows(github):
         if self.num_logs > 100:
             self.log.error("num_logs option is capped at 100")
             return False
-        self.output_dir = self.scan.home / "workflow_logs"
+        output_folder = self.config.get("output_folder", "")
+        if output_folder:
+            self.output_dir = Path(output_folder) / "workflow_logs"
+        else:
+            self.output_dir = self.scan.home / "workflow_logs"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 
@@ -35,9 +41,10 @@ class github_workflows(github):
         return r.is_success or getattr(r, "status_code", 0) == 404
 
     async def filter_event(self, event):
-        if event.type == "CODE_REPOSITORY":
-            if "git" not in event.tags and "github" not in event.data.get("url", ""):
-                return False, "event is not a git repository"
+        if "git" not in event.tags:
+            return False, "event is not a git repository"
+        elif "github.com" not in event.data.get("url", ""):
+            return False, "event is not a github repository"
         return True
 
     async def handle_event(self, event):

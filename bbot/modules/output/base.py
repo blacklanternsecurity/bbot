@@ -38,11 +38,6 @@ class BaseOutputModule(BaseModule):
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
 
-        # exclude certain URLs (e.g. javascript):
-        # TODO: revisit this after httpx rework
-        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
-            return False, (f"Omitting {event} from output because it's marked as httpx-only")
-
         # omit certain event types
         if event._omit:
             if "target" in event.tags:

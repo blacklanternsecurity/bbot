@@ -208,7 +208,7 @@ class HTTPEngine(EngineServer):
                 raise
             else:
                 log.warning(
-                    f"Invalid URL (possibly due to dangerous redirect) on request to : {url}: {truncate_string(e, 200)}"
+                    f"Invalid URL (possibly due to dangerous redirect) on request to : {url}: {truncate_string(str(e), 200)}"
                 )
                 log.trace(traceback.format_exc())
         except ssl.SSLError as e:

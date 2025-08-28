@@ -14,15 +14,18 @@ class postman_download(postman):
         "author": "@domwhewell-sage",
     }
     options = {"output_folder": "", "api_key": ""}
-    options_desc = {"output_folder": "Folder to download postman workspaces to", "api_key": "Postman API Key"}
+    options_desc = {
+        "output_folder": "Folder to download postman workspaces to. If not specified, downloaded workspaces will be deleted when the scan completes, to minimize disk usage.",
+        "api_key": "Postman API Key",
+    }
     scope_distance_modifier = 2
 
     async def setup(self):
-        output_folder = self.config.get("output_folder")
+        output_folder = self.config.get("output_folder", "")
         if output_folder:
             self.output_dir = Path(output_folder) / "postman_workspaces"
         else:
-            self.output_dir = self.scan.home / "postman_workspaces"
+            self.output_dir = self.scan.temp_dir / "postman_workspaces"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 

@@ -6,6 +6,7 @@ from bbot.errors import *
 log = logging.getLogger("bbot.presets.path")
 
 DEFAULT_PRESET_PATH = Path(__file__).parent.parent.parent / "presets"
+DEFAULT_PRESET_PATH = DEFAULT_PRESET_PATH.expanduser().resolve()
 
 
 class PresetPath:
@@ -17,7 +18,7 @@ class PresetPath:
         self.paths = [DEFAULT_PRESET_PATH]
 
     def find(self, filename):
-        filename_path = Path(filename).resolve()
+        filename_path = Path(filename).expanduser()
         extension = filename_path.suffix.lower()
         file_candidates = set()
         extension_candidates = {".yaml", ".yml"}
@@ -29,20 +30,16 @@ class PresetPath:
             file_candidates.add(f"{filename_path.stem}{ext}")
         file_candidates = sorted(file_candidates)
         file_candidates_str = ",".join([str(s) for s in file_candidates])
-        paths_to_search = self.paths
         if "/" in str(filename):
-            if filename_path.parent not in paths_to_search:
-                paths_to_search.append(filename_path.parent)
-        log.debug(
-            f"Searching for preset in {[str(p) for p in paths_to_search]}, file candidates: {file_candidates_str}"
-        )
-        for path in paths_to_search:
+            self.add_path(filename_path.parent)
+        log.debug(f"Searching for {file_candidates_str} in {[str(p) for p in self.paths]}")
+        for path in self.paths:
             for candidate in file_candidates:
-                for file in path.rglob(candidate):
+                for file in path.rglob(f"**/{candidate}"):
                     if file.is_file():
                         log.verbose(f'Found preset matching "{filename}" at {file}')
                         self.add_path(file.parent)
-                        return file.resolve()
+                        return file
         raise ValidationError(
             f'Could not find preset at "{filename}" - file does not exist. Use -lp to list available presets'
         )
@@ -51,15 +48,20 @@ class PresetPath:
         return ":".join([str(s) for s in self.paths])
 
     def add_path(self, path):
-        path = Path(path).resolve()
+        path = Path(path).expanduser().resolve()
+        # skip if already in paths
         if path in self.paths:
             return
+        # skip if path is a subdirectory of any path in paths
         if any(path.is_relative_to(p) for p in self.paths):
             return
+        # skip if path is not a directory
         if not path.is_dir():
             log.debug(f'Path "{path.resolve()}" is not a directory')
             return
-        self.paths.append(path)
+        # preemptively remove any paths that are subdirectories of the new path
+        self.paths = [p for p in self.paths if not p.is_relative_to(path)]
+        self.paths.insert(0, path)
 
     def __iter__(self):
         yield from self.paths

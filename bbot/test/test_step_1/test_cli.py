@@ -129,6 +129,11 @@ async def test_cli_scan(monkeypatch):
                 dns_success = True
     assert ip_success and dns_success, "IP_ADDRESS and/or DNS_NAME are not present in output.txt"
 
+    # Check for gzipped scan log file
+    scan_log = scan_home / "scan.log"
+    assert scan_log.is_file(), "scan.log not found"
+    assert "[INFO]" in open(scan_log).read()
+
 
 @pytest.mark.asyncio
 async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
@@ -187,14 +192,19 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     output_dir = bbot_test_dir / "bbot_cli_args_output"
     scan_name = "bbot_cli_args_scan_name"
     scan_dir = output_dir / scan_name
-    assert not output_dir.exists()
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
     monkeypatch.setattr("sys.argv", ["bbot", "-o", str(output_dir), "-n", scan_name, "-y"])
     result = await cli._main()
     assert result is True
     assert output_dir.is_dir()
     assert scan_dir.is_dir()
     assert "[SCAN]" in open(scan_dir / "output.txt").read()
-    assert "[INFO]" in open(scan_dir / "scan.log").read()
+
+    # Check for gzipped scan log file
+    scan_log = scan_dir / "scan.log"
+    assert scan_log.is_file(), "scan.log not found"
+    assert "[INFO]" in open(scan_log).read()
     shutil.rmtree(output_dir)
 
     # list module options
@@ -581,7 +591,7 @@ def test_cli_module_validation(monkeypatch, caplog):
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-t", "asdf:::sdf"])
     cli.main()
-    assert 'Unable to autodetect event type from "asdf:::sdf"' in caplog.text
+    assert 'Unable to autodetect data type from "asdf:::sdf"' in caplog.text
 
     # incorrect flag
     caplog.clear()

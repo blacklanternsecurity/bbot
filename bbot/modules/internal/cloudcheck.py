@@ -14,6 +14,9 @@ class CloudCheck(BaseInterceptModule):
     _priority = 3
 
     async def setup(self):
+        from cloudcheck import update
+
+        await update()
         self.dummy_modules = None
         return True
 

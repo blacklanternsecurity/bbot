@@ -1,11 +1,15 @@
 from pathlib import Path
 from .base import ModuleTestBase
+from bbot.test.bbot_fixtures import bbot_test_dir
 
 
 class TestFileDownload(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["filedownload", "httpx", "excavate", "speculate"]
-    config_overrides = {"web": {"spider_distance": 2, "spider_depth": 2}}
+    config_overrides = {
+        "web": {"spider_distance": 2, "spider_depth": 2},
+        "modules": {"filedownload": {"output_folder": str(bbot_test_dir / "test_filedownload_files")}},
+    }
 
     pdf_data = """%PDF-1.
 1 0 obj<</Pages 2 0 R>>endobj

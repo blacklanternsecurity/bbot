@@ -1,7 +1,6 @@
 import json
 import asyncio
 import logging
-import websockets
 from websockets.asyncio.server import serve
 
 from .base import ModuleTestBase

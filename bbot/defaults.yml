@@ -92,10 +92,18 @@ web:
   # These are attached to all in-scope HTTP requests
   # Note that some modules (e.g. github) may end up sending these to out-of-scope resources
   http_headers: {}
-  # HTTP retries (for Python requests; API calls, etc.)
+  # How many times to retry API requests
+  # Note that this is a separate mechanism on top of HTTP retries
+  # which will retry API requests that don't return a successful status code
+  api_retries: 2
+  # HTTP retries - try again if the raw connection fails
   http_retries: 1
   # HTTP retries (for httpx)
   httpx_retries: 1
+  # Default sleep interval when rate limited by 429 (and retry-after isn't provided)
+  429_sleep_interval: 30
+  # Maximum sleep interval when rate limited by 429 (and an excessive retry-after is provided)
+  429_max_sleep_interval: 60
   # Enable/disable debug messages for web requests/responses
   debug: false
   # Maximum number of HTTP redirects to follow
@@ -124,6 +132,12 @@ deps:
 
 # Load BBOT modules from these custom paths
 module_dirs: []
+
+# maximum runtime in seconds for each module's handle_event() is 60 minutes
+# when the timeout is reached, the offending handle_event() will be cancelled and the module will move on to the next event
+module_handle_event_timeout: 3600
+# handle_batch() default timeout is 2 hours
+module_handle_batch_timeout: 7200
 
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
@@ -173,8 +187,10 @@ url_extension_blacklist:
   - mov
   - flv
   - webm
-# Distribute URLs with these extensions only to httpx (these are omitted from output)
-url_extension_httpx_only:
+
+# URLs with these extensions are not distributed to modules unless the module opts in via `accept_url_special = True`
+# They are also excluded from output. If you want to see them in output, remove them from this list.
+url_extension_special:
   - js
 
 # These url extensions are almost always static, so we exclude them from modules that fuzz things
@@ -219,7 +235,32 @@ url_extension_static:
   - bz2
   - 7z
   - rar
-  
+
+parameter_blacklist:
+  - __VIEWSTATE
+  - __EVENTARGUMENT
+  - __EVENTVALIDATION
+  - __EVENTTARGET
+  - __EVENTARGUMENT
+  - __VIEWSTATEGENERATOR
+  - __SCROLLPOSITIONY
+  - __SCROLLPOSITIONX
+  - ASP.NET_SessionId
+  - PHPSESSID
+  - __cf_bm
+  - f5_cspm
+
+parameter_blacklist_prefixes:
+  - TS01
+  - BIGipServer
+  - incap_
+  - visid_incap_
+  - AWSALB
+  - utm_
+  - ApplicationGatewayAffinity
+  - JSESSIONID
+  - ARRAffinity
+
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:
   - HTTP_RESPONSE

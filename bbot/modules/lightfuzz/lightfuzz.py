@@ -1,7 +1,6 @@
 import importlib
 from bbot.modules.base import BaseModule
 
-from urllib.parse import urlunparse
 from bbot.errors import InteractshError
 
 
@@ -12,7 +11,7 @@ class lightfuzz(BaseModule):
 
     options = {
         "force_common_headers": False,
-        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "nosqli"],
+        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial"],
         "disable_post": False,
     }
     options_desc = {
@@ -35,6 +34,7 @@ class lightfuzz(BaseModule):
         self.event_dict = {}
         self.interactsh_subdomain_tags = {}
         self.interactsh_instance = None
+        self.interactsh_domain = None
         self.disable_post = self.config.get("disable_post", False)
         self.enabled_submodules = self.config.get("enabled_submodules")
         self.interactsh_disable = self.scan.config.get("interactsh_disable", False)
@@ -52,13 +52,16 @@ class lightfuzz(BaseModule):
             self.submodules[submodule_name] = submodule_class
 
         interactsh_needed = any(submodule.uses_interactsh for submodule in self.submodules.values())
-
         if interactsh_needed and not self.interactsh_disable:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
                 self.interactsh_domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
+                if not self.interactsh_domain:
+                    self.warning("Interactsh failure: No domain returned from self.interactsh_instance.register()")
+                    self.interactsh_instance = None
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
+                self.interactsh_instance = None
         return True
 
     async def interactsh_callback(self, r):
@@ -92,35 +95,6 @@ class lightfuzz(BaseModule):
                 event.data["description"],
                 event.data.get("type", ""),
                 event.data.get("name", ""),
-            )
-        )
-
-    def url_unparse(self, param_type, parsed_url):
-        """
-        Reconstructs a URL from its components, optionally omitting the query string for GET parameters.
-
-        Parameters:
-        - param_type (str): The type of parameter, typically "GETPARAM" or another type indicating the request method.
-        - parsed_url (ParseResult): A named tuple containing the components of the URL (scheme, netloc, path, params, query, fragment).
-
-        Returns:
-        - str: The reconstructed URL as a string.
-
-        The method checks if the parameter type is "GETPARAM". If so, it omits the query string from the reconstructed URL unless
-        the retain_querystring flag is set to True. For other parameter types, it includes the query string.
-        """
-        if param_type == "GETPARAM":
-            querystring = ""
-        else:
-            querystring = parsed_url.query
-        return urlunparse(
-            (
-                parsed_url.scheme,
-                parsed_url.netloc,
-                parsed_url.path,
-                "",
-                querystring if self.retain_querystring else "",
-                "",
             )
         )
 

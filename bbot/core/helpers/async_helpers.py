@@ -1,10 +1,10 @@
+import time
 import uuid
 import random
 import asyncio
 import logging
 import functools
-from datetime import datetime
-from .misc import human_timedelta
+from contextlib import suppress
 from cachetools import keys, LRUCache
 from contextlib import asynccontextmanager
 
@@ -63,26 +63,27 @@ class TaskCounter:
             self._lock = asyncio.Lock()
         return self._lock
 
-    def count(self, task_name, n=1, _log=True):
+    def count(self, task_name, n=1, asyncio_task=None, _log=True):
         if callable(task_name):
             task_name = f"{task_name.__qualname__}()"
-        return self.Task(self, task_name, n=n, _log=_log)
+        return self.Task(self, task_name, n=n, _log=_log, asyncio_task=asyncio_task)
 
     class Task:
-        def __init__(self, manager, task_name, n=1, _log=True):
+        def __init__(self, manager, task_name, n=1, _log=True, asyncio_task=None):
             self.manager = manager
             self.task_name = task_name
             self.task_id = None
             self.start_time = None
             self.log = _log
             self.n = n
+            self._asyncio_task = asyncio_task
 
         async def __aenter__(self):
             self.task_id = uuid.uuid4()
             # if self.log:
             #     log.trace(f"Starting task {self.task_name} ({self.task_id})")
             async with self.manager.lock:
-                self.start_time = datetime.now()
+                self.start_time = time.time()
                 self.manager.tasks[self.task_id] = self
             return self
 
@@ -92,9 +93,29 @@ class TaskCounter:
             # if self.log:
             #     log.trace(f"Finished task {self.task_name} ({self.task_id})")
 
+        @property
+        def asyncio_task(self):
+            if self._asyncio_task is None:
+                raise AttributeError("No asyncio task associated with this task")
+            return self._asyncio_task
+
+        @property
+        def function_name(self):
+            with suppress(AttributeError):
+                return self.asyncio_task.get_coro().__name__
+            return ""
+
+        async def cancel(self):
+            self.asyncio_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self.asyncio_task
+
+        @property
+        def running_for(self):
+            return time.time() - self.start_time
+
         def __str__(self):
-            running_for = human_timedelta(datetime.now() - self.start_time)
-            return f"{self.task_name} running for {running_for}"
+            return f"{self.task_name} running for {self.running_for:.1f}s"
 
 
 def get_event_loop():

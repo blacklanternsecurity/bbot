@@ -1,7 +1,7 @@
 import json
 import ipaddress
 from contextlib import suppress
-from radixtarget import RadixTarget
+from radixtarget import RadixTarget, host_size_key
 
 from bbot.modules.base import BaseModule
 
@@ -30,6 +30,7 @@ class portscan(BaseModule):
         "adapter_ip": "",
         "adapter_mac": "",
         "router_mac": "",
+        "module_timeout": 259200,  # 3 days
     }
     options_desc = {
         "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
@@ -42,6 +43,7 @@ class portscan(BaseModule):
         "adapter_ip": "Send packets using this IP address. Not needed unless masscan's autodetection fails",
         "adapter_mac": "Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
         "router_mac": "Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
+        "module_timeout": "Max time in seconds to spend handling each batch of events",
     }
     deps_common = ["masscan"]
     batch_size = 1000000
@@ -65,8 +67,6 @@ class portscan(BaseModule):
             except ValueError as e:
                 return False, f"Error parsing ports '{self.ports}': {e}"
 
-        # whether we've finished scanning our original scan targets
-        self.scanned_initial_targets = False
         # keeps track of individual scanned IPs and their open ports
         # this is necessary because we may encounter more hosts with the same IP
         # and we want to avoid scanning them again
@@ -93,14 +93,6 @@ class portscan(BaseModule):
         return True
 
     async def handle_batch(self, *events):
-        # on our first run, we automatically include all our initial scan targets
-        if not self.scanned_initial_targets:
-            self.scanned_initial_targets = True
-            events = set(events)
-            events.update(
-                {e for e in self.scan.target.seeds.events if e.type in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")}
-            )
-
         # ping scan
         if self.ping_scan:
             ping_targets, ping_correlator = await self.make_targets(events, self.ping_scanned)
@@ -152,7 +144,7 @@ class portscan(BaseModule):
                                 emitted_hosts.add(host)
         finally:
             for file in (stats_file, target_file):
-                file.unlink()
+                file.unlink(missing_ok=True)
 
     async def make_targets(self, events, scanned_tracker):
         """
@@ -160,14 +152,13 @@ class portscan(BaseModule):
         """
         correlator = RadixTarget()
         targets = set()
-        for event in sorted(events, key=lambda e: e._host_size):
+        for event in sorted(events, key=lambda e: host_size_key(e.host)):
             # skip events without host
             if not event.host:
                 continue
             ips = set()
             try:
                 # first assume it's an ip address / ip range
-                # False == it's not a hostname
                 ips.add(ipaddress.ip_network(event.host, strict=False))
             except Exception:
                 # if it's a hostname, get its IPs from resolved_hosts

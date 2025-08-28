@@ -153,7 +153,8 @@ class TestFFUFShortnames(ModuleTestBase):
                 tags=["shortname-endpoint"],
             )
         )
-        module_test.scan.target.seeds.events = set(seed_events)
+        for event in seed_events:
+            await module_test.scan.ingress_module.incoming_event_queue.put(event)
 
         expect_args = {"method": "GET", "uri": "/administrator.aspx"}
         respond_args = {"response_data": "alive"}

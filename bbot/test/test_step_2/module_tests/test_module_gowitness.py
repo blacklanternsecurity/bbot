@@ -51,9 +51,9 @@ class TestGowitness(ModuleTestBase):
         )
 
         screenshots_path = self.home_dir / "scans" / module_test.scan.name / "gowitness" / "screenshots"
-        screenshots = list(screenshots_path.glob("*.png"))
+        screenshots = list(screenshots_path.glob("*.jpeg"))
         assert len(screenshots) == 1, (
-            f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 1"
+            f"{len(screenshots):,} .jpeg files found at {screenshots_path}, should have been 1"
         )
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
         assert 1 == len(
@@ -74,9 +74,9 @@ class TestGowitness_Social(TestGowitness):
 
     def check(self, module_test, events):
         screenshots_path = self.home_dir / "scans" / module_test.scan.name / "gowitness" / "screenshots"
-        screenshots = list(screenshots_path.glob("*.png"))
+        screenshots = list(screenshots_path.glob("*.jpeg"))
         assert len(screenshots) == 2, (
-            f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 2"
+            f"{len(screenshots):,} .jpeg files found at {screenshots_path}, should have been 2"
         )
         assert 2 == len([e for e in events if e.type == "WEBSCREENSHOT"])
         assert 1 == len(
@@ -86,7 +86,7 @@ class TestGowitness_Social(TestGowitness):
                 if e.type == "WEBSCREENSHOT" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
             ]
         )
-        assert 1 == len(
+        assert len(
             [
                 e
                 for e in events

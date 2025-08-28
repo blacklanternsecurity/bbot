@@ -182,3 +182,13 @@ By default, `URL_UNVERIFIED`s are hidden from output. If you want to see all of 
 # visit www.evilcorp.com and extract all the links
 bbot -t www.evilcorp.com -m httpx -c omit_event_types=[] scope.report_distance=2
 ```
+
+### Can I crank up the threads for a module to make it go faster?
+
+Yes, you can customize the threads for any module by setting `module_threads` like so:
+
+```bash
+bbot -t evilcorp.com -m sslcert -c modules.sslcert.module_threads=50
+```
+
+`module_threads` is one of several [universal module options](./configuration.md) that can be applied to any module.

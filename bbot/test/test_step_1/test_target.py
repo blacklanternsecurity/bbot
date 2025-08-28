@@ -164,8 +164,8 @@ async def test_target_basic(bbot_scanner):
     bbottarget = BBOTTarget("http://1.2.3.4:8443", "bob@evilcorp.com")
     assert bbottarget.seeds.hosts == {ip_network("1.2.3.4"), "evilcorp.com"}
     assert bbottarget.whitelist.hosts == {ip_network("1.2.3.4"), "evilcorp.com"}
-    assert {e.data for e in bbottarget.seeds.events} == {"http://1.2.3.4:8443/", "bob@evilcorp.com"}
-    assert {e.data for e in bbottarget.whitelist.events} == {"1.2.3.4", "evilcorp.com"}
+    assert {e.data for e in bbottarget.seeds.event_seeds} == {"http://1.2.3.4:8443/", "bob@evilcorp.com"}
+    assert {e.data for e in bbottarget.whitelist.event_seeds} == {"1.2.3.4/32", "evilcorp.com"}
 
     bbottarget1 = BBOTTarget("evilcorp.com", "evilcorp.net", whitelist=["1.2.3.4/24"], blacklist=["1.2.3.4"])
     bbottarget2 = BBOTTarget("evilcorp.com", "evilcorp.net", whitelist=["1.2.3.0/24"], blacklist=["1.2.3.4"])
@@ -226,8 +226,8 @@ async def test_target_basic(bbot_scanner):
     )
     # base class is not iterable
     with pytest.raises(TypeError):
-        assert list(bbottarget) == ["http://evilcorp.com:8080"]
-    assert list(bbottarget.seeds) == ["http://evilcorp.com:8080"]
+        assert list(bbottarget) == ["http://evilcorp.com:8080/"]
+    assert {e.data for e in bbottarget.seeds} == {"http://evilcorp.com:8080/"}
     assert {e.data for e in bbottarget.whitelist} == {"evilcorp.net:443", "http://evilcorp.net:8080/"}
     assert {e.data for e in bbottarget.blacklist} == {"http://evilcorp.org:8080/", "evilcorp.org:443"}
 
@@ -264,17 +264,17 @@ async def test_target_basic(bbot_scanner):
         whitelist=["evilcorp.com", "bob@www.evilcorp.com", "evilcorp.net"],
         blacklist=["1.2.3.4", "4.3.2.1/24", "http://1.2.3.4", "bob@asdf.evilcorp.net"],
     )
-    assert {e.data for e in bbottarget.seeds.events} == {
+    assert {e.data for e in bbottarget.seeds.event_seeds} == {
         "1.2.3.0/24",
         "http://www.evilcorp.net/",
         "bob@fdsa.evilcorp.net",
     }
-    assert {e.data for e in bbottarget.whitelist.events} == {
+    assert {e.data for e in bbottarget.whitelist.event_seeds} == {
         "evilcorp.com",
         "evilcorp.net",
         "bob@www.evilcorp.com",
     }
-    assert {e.data for e in bbottarget.blacklist.events} == {
+    assert {e.data for e in bbottarget.blacklist.event_seeds} == {
         "1.2.3.4",
         "4.3.2.0/24",
         "http://1.2.3.4/",
@@ -355,16 +355,14 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     assert "www.evilcorp.com" in blacklist
     assert "http://www.evilcorp.com" in blacklist
     blacklist.add("RE:test")
-    assert "RE:test" in blacklist.inputs
-    assert set(blacklist.inputs) == {"evilcorp.com", "RE:test"}
+    assert "REGEX:test" in blacklist.inputs
+    assert set(blacklist.inputs) == {"evilcorp.com", "REGEX:test"}
     assert blacklist.blacklist_regexes
     assert next(iter(blacklist.blacklist_regexes)).pattern == "test"
     result1 = blacklist.get("test.com")
-    assert result1.type == "DNS_NAME"
-    assert result1.data == "test.com"
+    assert result1 == "test.com"
     result2 = blacklist.get("www.evilcorp.com")
-    assert result2.type == "DNS_NAME"
-    assert result2.data == "evilcorp.com"
+    assert result2 == "evilcorp.com"
     result2 = blacklist.get("www.evil.com")
     assert result2 is None
     with pytest.raises(KeyError):
@@ -378,7 +376,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     assert "http://test.com/123456" not in blacklist
     assert "http://test.com/12345.aspx?a=asdf" not in blacklist
     assert "http://test.com/asdf/123456.aspx/asdf" not in blacklist
-    assert "http://test.com/asdf/123456.aspx?a=asdf" in blacklist
+    assert "http://test.com/asdf/123456.aspx#asdf" in blacklist
     assert "http://test.com/asdf/123456.aspx" in blacklist
 
     bbot_httpserver.expect_request(uri="/").respond_with_data(

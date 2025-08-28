@@ -9,9 +9,8 @@ from pathlib import Path
 from contextlib import suppress
 
 from ..helpers.misc import mkdir, error_and_exit
-from ...logger import colorize, loglevel_mapping
 from ..multiprocess import SHARED_INTERPRETER_STATE
-
+from ...logger import colorize, loglevel_mapping, GzipRotatingFileHandler
 
 debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
 
@@ -61,7 +60,6 @@ class BBOTLogger:
         self._loggers = None
         self._log_handlers = None
         self._log_level = None
-        self.root_logger = logging.getLogger()
         self.core_logger = logging.getLogger("bbot")
         self.core = core
 
@@ -84,14 +82,6 @@ class BBOTLogger:
         with suppress(Exception):
             self.queue_handler.close()
 
-        # Clean root logger
-        root_logger = logging.getLogger()
-        for handler in list(root_logger.handlers):
-            with suppress(Exception):
-                root_logger.removeHandler(handler)
-            with suppress(Exception):
-                handler.close()
-
         # Clean all other loggers
         for logger in logging.Logger.manager.loggerDict.values():
             if hasattr(logger, "handlers"):  # Logger, not PlaceHolder
@@ -112,8 +102,7 @@ class BBOTLogger:
             self.queue = logging_queue
         self.queue_handler = logging.handlers.QueueHandler(logging_queue)
 
-        self.root_logger.addHandler(self.queue_handler)
-
+        self.core_logger.addHandler(self.queue_handler)
         self.core_logger.setLevel(log_level)
         # disable asyncio logging for child processes
         if not SHARED_INTERPRETER_STATE.is_main_process:
@@ -217,13 +206,11 @@ class BBOTLogger:
                 error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
 
             # Main log file
-            main_handler = logging.handlers.TimedRotatingFileHandler(
-                f"{log_dir}/bbot.log", when="d", interval=1, backupCount=14
-            )
+            main_handler = GzipRotatingFileHandler(f"{log_dir}/bbot.log", maxBytes=1024 * 1024 * 100, backupCount=100)
 
             # Separate log file for debugging
-            debug_handler = logging.handlers.TimedRotatingFileHandler(
-                f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
+            debug_handler = GzipRotatingFileHandler(
+                f"{log_dir}/bbot.debug.log", maxBytes=1024 * 1024 * 100, backupCount=100
             )
 
             # Log to stderr

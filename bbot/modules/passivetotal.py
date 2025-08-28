@@ -21,7 +21,7 @@ class passivetotal(subdomain_enum_apikey):
 
     async def ping(self):
         url = f"{self.base_url}/account/quota"
-        j = (await self.api_request(url)).json()
+        j = (await self.api_request(url, retry_on_http_429=False)).json()
         limit = j["user"]["limits"]["search_api"]
         used = j["user"]["counts"]["search_api"]
         assert used < limit, "No quota remaining"

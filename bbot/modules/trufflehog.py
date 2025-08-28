@@ -14,7 +14,7 @@ class trufflehog(BaseModule):
     }
 
     options = {
-        "version": "3.88.15",
+        "version": "3.90.5",
         "config": "",
         "only_verified": True,
         "concurrency": 8,
@@ -88,8 +88,7 @@ class trufflehog(BaseModule):
 
         if event.type == "CODE_REPOSITORY":
             path = event.data["url"]
-            if "git" in event.tags:
-                module = "github-experimental"
+            module = "github-experimental"
         elif event.type == "FILESYSTEM":
             path = event.data["path"]
             if "git" in event.tags:
@@ -199,7 +198,7 @@ class trufflehog(BaseModule):
 
                     yield (decoder_name, detector_name, raw_result, rawv2_result, verified, source_metadata)
         finally:
-            stats_file.unlink()
+            stats_file.unlink(missing_ok=True)
 
     def log_trufflehog_status(self, path, line):
         try:

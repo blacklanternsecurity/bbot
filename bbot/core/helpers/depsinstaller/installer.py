@@ -32,6 +32,20 @@ class DepsInstaller:
         "bash": "bash",
         "which": "which",
         "tar": "tar",
+        "xz": [
+            {
+                "name": "Install xz-utils (Debian)",
+                "package": {"name": ["xz-utils"], "state": "present"},
+                "become": True,
+                "when": "ansible_facts['os_family'] == 'Debian'",
+            },
+            {
+                "name": "Install xz (Non-Debian)",
+                "package": {"name": ["xz"], "state": "present"},
+                "become": True,
+                "when": "ansible_facts['os_family'] != 'Debian'",
+            },
+        ],
         # debian why are you like this
         "7z": [
             {
@@ -51,6 +65,44 @@ class DepsInstaller:
                 "package": {"name": ["p7zip-plugins"], "state": "present"},
                 "become": True,
                 "when": "ansible_facts['distribution'] == 'Fedora'",
+            },
+        ],
+        # to compile just about any tool, we need the openssl dev headers
+        "openssl": [
+            {
+                "name": "Install OpenSSL library and development headers (Debian/Ubuntu)",
+                "package": {"name": ["libssl-dev", "openssl"], "state": "present"},
+                "become": True,
+                "when": "ansible_facts['os_family'] == 'Debian'",
+                "ignore_errors": True,
+            },
+            {
+                "name": "Install OpenSSL library and development headers (RedHat/CentOS/Fedora)",
+                "package": {"name": ["openssl", "openssl-devel"], "state": "present"},
+                "become": True,
+                "when": "ansible_facts['os_family'] == 'RedHat' or ansible_facts['os_family'] == 'Suse' ",
+                "ignore_errors": True,
+            },
+            {
+                "name": "Install OpenSSL library and development headers (Arch)",
+                "package": {"name": ["openssl"], "state": "present"},
+                "become": True,
+                "when": "ansible_facts['os_family'] == 'Archlinux'",
+                "ignore_errors": True,
+            },
+            {
+                "name": "Install OpenSSL library and development headers (Alpine)",
+                "package": {"name": ["openssl", "openssl-dev"], "state": "present"},
+                "become": True,
+                "when": "ansible_facts['os_family'] == 'Alpine'",
+                "ignore_errors": True,
+            },
+            {
+                "name": "Install OpenSSL library and development headers (FreeBSD)",
+                "package": {"name": ["openssl"], "state": "present"},
+                "become": True,
+                "when": "ansible_facts['os_family'] == 'FreeBSD'",
+                "ignore_errors": True,
             },
         ],
     }
@@ -171,11 +223,6 @@ class DepsInstaller:
         success = True
         preloaded = self.all_modules_preloaded[module]
 
-        # ansible tasks
-        ansible_tasks = preloaded["deps"]["ansible"]
-        if ansible_tasks:
-            success &= self.tasks(module, ansible_tasks)
-
         # apt
         deps_apt = preloaded["deps"]["apt"]
         if deps_apt:
@@ -196,7 +243,7 @@ class DepsInstaller:
         deps_common = preloaded["deps"]["common"]
         if deps_common:
             for dep_common in deps_common:
-                if self.setup_status.get(dep_common, False) is True:
+                if self.setup_status.get(dep_common, False) is True and self.deps_behavior != "force_install":
                     log.debug(
                         f'Skipping installation of dependency "{dep_common}" for module "{module}" since it is already installed'
                     )
@@ -205,6 +252,11 @@ class DepsInstaller:
                 result = self.tasks(module, ansible_tasks)
                 self.setup_status[dep_common] = result
                 success &= result
+
+        # ansible tasks
+        ansible_tasks = preloaded["deps"]["ansible"]
+        if ansible_tasks:
+            success &= self.tasks(module, ansible_tasks)
 
         return success
 

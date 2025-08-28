@@ -1,4 +1,3 @@
-import asyncio
 import re
 from werkzeug.wrappers import Response
 

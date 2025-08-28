@@ -176,8 +176,8 @@ class speculate(BaseInternalModule):
         org_stubs = set()
         if event.type == "DNS_NAME" and event.scope_distance == 0:
             tldextracted = self.helpers.tldextract(event.data)
-            registered_domain = getattr(tldextracted, "registered_domain", "")
-            if registered_domain:
+            top_domain_under_public_suffix = getattr(tldextracted, "top_domain_under_public_suffix", "")
+            if top_domain_under_public_suffix:
                 tld_stub = getattr(tldextracted, "domain", "")
                 if tld_stub:
                     decoded_tld_stub = self.helpers.smart_decode_punycode(tld_stub)

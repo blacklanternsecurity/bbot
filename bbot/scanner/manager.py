@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import suppress
+from radixtarget.helpers import host_size_key
 
 from bbot.modules.base import BaseInterceptModule
 
@@ -29,7 +30,7 @@ class ScanIngress(BaseInterceptModule):
         # track incoming duplicates module-by-module (for `suppress_dupes` attribute of modules)
         self.incoming_dup_tracker = set()
 
-    async def init_events(self, events=None):
+    async def init_events(self, event_seeds=None):
         """
         Initializes events by seeding the scanner with target events and distributing them for further processing.
 
@@ -37,21 +38,31 @@ class ScanIngress(BaseInterceptModule):
             - This method populates the event queue with initial target events.
             - It also marks the Scan object as finished with initialization by setting `_finished_init` to True.
         """
-        if events is None:
-            events = self.scan.target.seeds.events
-        async with self.scan._acatch(self.init_events), self._task_counter.count(self.init_events):
-            sorted_events = sorted(events, key=lambda e: len(e.data))
-            for event in [self.scan.root_event] + sorted_events:
-                event._dummy = False
-                event.web_spider_distance = 0
-                event.scan = self.scan
-                if event.parent is None:
-                    event.parent = self.scan.root_event
-                if event.module is None:
-                    event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
-                if event != self.scan.root_event:
-                    event.discovery_context = f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}"
+        async with (
+            self.scan._acatch(self.init_events, unhandled_is_critical=True),
+            self._task_counter.count(self.init_events),
+        ):
+            if event_seeds is None:
+                event_seeds = self.scan.target.seeds.event_seeds
+            root_event = self.scan.root_event
+            event_seeds = sorted(event_seeds, key=lambda e: (host_size_key(str(e.host)), e.data))
+            # queue root scan event
+            await self.queue_event(root_event, {})
+            target_module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
+            # queue each target in turn
+            for event_seed in event_seeds:
+                event = self.scan.make_event(
+                    event_seed.data,
+                    event_seed.type,
+                    parent=root_event,
+                    module=target_module,
+                    context=f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}",
+                    tags=["target"],
+                )
                 self.verbose(f"Target: {event}")
+                # don't fill up the queue with too many events
+                while self.incoming_event_queue.qsize() > 100:
+                    await asyncio.sleep(0.2)
                 await self.queue_event(event, {})
             await asyncio.sleep(0.1)
             self.scan._finished_init = True
@@ -83,10 +94,6 @@ class ScanIngress(BaseInterceptModule):
         # special handling of URL extensions
         url_extension = getattr(event, "url_extension", None)
         if url_extension is not None:
-            if url_extension in self.scan.url_extension_httpx_only:
-                event.add_tag("httpx-only")
-                event._omit = True
-
             # blacklist by extension
             if url_extension in self.scan.url_extension_blacklist:
                 self.debug(
@@ -95,7 +102,10 @@ class ScanIngress(BaseInterceptModule):
                 event.add_tag("blacklisted")
 
         # main scan blacklist
-        event_blacklisted = self.scan.blacklisted(event)
+        host_filterable = getattr(event, "host_filterable", None)
+        event_blacklisted = False
+        if host_filterable:
+            event_blacklisted = self.scan.blacklisted(host_filterable)
 
         # reject all blacklisted events
         if event_blacklisted or "blacklisted" in event.tags:
@@ -194,6 +204,13 @@ class ScanEgress(BaseInterceptModule):
                 f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
             )
             event.internal = True
+
+        # mark special URLs (e.g. Javascript) as internal so they don't get output except when they're critical to the graph
+        if event.type.startswith("URL"):
+            extension = getattr(event, "url_extension", "")
+            if extension in self.scan.url_extension_special:
+                event.internal = True
+                self.debug(f"Making {event} internal because it is a special URL (extension {extension})")
 
         if event.type in self.scan.omitted_event_types:
             self.debug(f"Omitting {event} because its type is omitted in the config")

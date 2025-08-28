@@ -45,7 +45,22 @@ class TestPostman(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
-            match_content=b'{"service": "search", "method": "POST", "path": "/search-all", "body": {"queryIndices": ["collaboration.workspace"], "queryText": "blacklanternsecurity", "size": 25, "from": 0, "clientTraceId": "", "requestOrigin": "srp", "mergeEntities": "true", "nonNestedRequests": "true", "domain": "public"}}',
+            match_json={
+                "service": "search",
+                "method": "POST",
+                "path": "/search-all",
+                "body": {
+                    "queryIndices": ["collaboration.workspace"],
+                    "queryText": "blacklanternsecurity",
+                    "size": 25,
+                    "from": 0,
+                    "clientTraceId": "",
+                    "requestOrigin": "srp",
+                    "mergeEntities": "true",
+                    "nonNestedRequests": "true",
+                    "domain": "public",
+                },
+            },
             json={
                 "data": [
                     {
@@ -177,7 +192,11 @@ class TestPostman(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
-            match_content=b'{"service": "workspaces", "method": "GET", "path": "/workspaces?handle=blacklanternsecurity&slug=bbot-public"}',
+            match_json={
+                "service": "workspaces",
+                "method": "GET",
+                "path": "/workspaces?handle=blacklanternsecurity&slug=bbot-public",
+            },
             json={
                 "meta": {"model": "workspace", "action": "find", "nextCursor": ""},
                 "data": [
@@ -207,7 +226,11 @@ class TestPostman(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
-            match_content=b'{"service": "workspaces", "method": "GET", "path": "/workspaces?handle=testteam&slug=testing-bbot-api"}',
+            match_json={
+                "service": "workspaces",
+                "method": "GET",
+                "path": "/workspaces?handle=testteam&slug=testing-bbot-api",
+            },
             json={
                 "meta": {"model": "workspace", "action": "find", "nextCursor": ""},
                 "data": [

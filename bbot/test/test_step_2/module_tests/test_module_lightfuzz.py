@@ -1,7 +1,6 @@
 import json
 import re
 import base64
-import logging
 
 from .base import ModuleTestBase, tempwordlist
 from werkzeug.wrappers import Response
@@ -9,7 +8,6 @@ from urllib.parse import unquote, quote
 
 import xml.etree.ElementTree as ET
 
-from .test_module_paramminer_getparams import TestParamminer_Getparams
 from .test_module_paramminer_headers import helper
 
 
@@ -641,132 +639,6 @@ class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
         assert xss_finding_emitted, "In Javascript XSS FINDING not emitted"
 
 
-class Test_Lightfuzz_nosqli_quoteescape(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
-    config_overrides = {
-        "interactsh_disable": True,
-        "modules": {
-            "lightfuzz": {
-                "enabled_submodules": ["nosqli"],
-            }
-        },
-    }
-
-    def request_handler(self, request):
-        normal_block = """
-            <section class="search-filters">
-                        <label>Refine your search:</label>
-                        <a class="filter-category" href="/?category=Pets">Pets</a>
-                    </section>
-        """
-
-        qs = str(request.query_string.decode())
-        if "category=" in qs:
-            value = qs.split("=")[1]
-            if "&" in value:
-                value = value.split("&")[0]
-            if value == "Pets%27":
-                return Response("JSON ERROR!", status=500)
-            elif value == "Pets%5C%27":
-                return Response("No results", status=200)
-            elif value == "Pets%27%20%26%26%200%20%26%26%20%27x":
-                return Response("No results", status=200)
-            elif value == "Pets%27%20%26%26%201%20%26%26%20%27x":
-                return Response('{"category":"Pets","entries":["dog","cat","bird"]}', status=200)
-            else:
-                return Response("No results", status=200)
-        return Response(normal_block, status=200)
-
-    async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-        expect_args = re.compile("/")
-        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
-
-    def check(self, module_test, events):
-        nosqli_finding_emitted = False
-        finding_count = 0
-        for e in events:
-            if e.type == "FINDING":
-                finding_count += 1
-                if (
-                    "Possible NoSQL Injection. Parameter: [category] Parameter Type: [GETPARAM] Original Value: [Pets] Detection Method: [Quote/Escaped Quote + Conditional Affect]"
-                    in e.data["description"]
-                ):
-                    nosqli_finding_emitted = True
-        assert nosqli_finding_emitted, "NoSQLi FINDING not emitted"
-        assert finding_count == 1, "Unexpected FINDING events reported"
-
-
-class Test_Lightfuzz_nosqli_negation(Test_Lightfuzz_nosqli_quoteescape):
-    def request_handler(self, request):
-        form_block = """
-            <form method="POST" action="">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-            <br>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-            <br>
-            <button type="submit">Login</button>
-          </form>
-        """
-        if request.method == "GET":
-            return Response(form_block, status=200)
-
-        if "username[$ne]" in request.form.keys() and "password[$ne]" in request.form.keys():
-            return Response("Welcome, testuser1!", status=200)
-        if "username[$eq]" in request.form.keys() and "password[$eq]" in request.form.keys():
-            return Response("Invalid Username or Password!", status=200)
-        else:
-            return Response("Invalid Username or Password!", status=200)
-
-    def check(self, module_test, events):
-        nosqli_finding_emitted = False
-        finding_count = 0
-        for e in events:
-            if e.type == "FINDING":
-                finding_count += 1
-                if (
-                    "Possible NoSQL Injection. Parameter: [password] Parameter Type: [POSTPARAM] Detection Method: [Parameter Name Operator Injection - Negation ([$ne])] Differences: [body]"
-                    in e.data["description"]
-                ):
-                    nosqli_finding_emitted = True
-        assert nosqli_finding_emitted, "NoSQLi FINDING not emitted"
-        assert finding_count == 2, "Unexpected FINDING events reported"
-
-
-class Test_Lightfuzz_nosqli_negation_falsepositive(Test_Lightfuzz_nosqli_quoteescape):
-    def request_handler(self, request):
-        form_block = """
-            <form method="POST" action="">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-            <br>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-            <br>
-            <button type="submit">Login</button>
-          </form>
-        """
-        if request.method == "GET":
-            return Response(form_block, status=200)
-
-        if "username[$ne]" in request.form.keys() and "password[$ne]" in request.form.keys():
-            return Response("missing username or password", status=500)
-        if "username[$eq]" in request.form.keys() and "password[$eq]" in request.form.keys():
-            return Response("missing username or password", status=500)
-        else:
-            return Response("Invalid Username or Password!", status=200)
-
-    def check(self, module_test, events):
-        finding_count = 0
-        for e in events:
-            if e.type == "FINDING":
-                finding_count += 1
-        assert finding_count == 0, "False positive FINDING emitted"
-
-
 # SQLI Single Quote/Two Single Quote (getparam)
 class Test_Lightfuzz_sqli(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
@@ -957,14 +829,15 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         data = {
             "host": "127.0.0.1",
             "type": "HEADER",
-            "name": "test",
+            "name": "testheader",
             "original_value": None,
             "url": "http://127.0.0.1:8888",
             "description": "Test Dummy Header",
         }
         seed_event = module_test.scan.make_event(data, "WEB_PARAMETER", parent_event, tags=["distance-0"])
         seed_events.append(seed_event)
-        module_test.scan.target.seeds.events = set(seed_events)
+        for event in seed_events:
+            await module_test.scan.ingress_module.incoming_event_queue.put(event)
 
     def request_handler(self, request):
         placeholder_block = """
@@ -973,8 +846,8 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         </html>
         """
 
-        if request.headers.get("Test") is not None:
-            header_value = request.headers.get("Test")
+        if request.headers.get("testheader") is not None:
+            header_value = request.headers.get("testheader")
 
             header_block_normal = f"""
             <html>
@@ -998,7 +871,7 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         for e in events:
             if e.type == "FINDING":
                 if (
-                    "Possible SQL Injection. Parameter: [test] Parameter Type: [HEADER] Detection Method: [Single Quote/Two Single Quote, Code Change (200->500->200)]"
+                    "Possible SQL Injection. Parameter: [testheader] Parameter Type: [HEADER] Detection Method: [Single Quote/Two Single Quote, Code Change (200->500->200)]"
                     in e.data["description"]
                 ):
                     sqli_finding_emitted = True
@@ -1027,11 +900,12 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
             "name": "test",
             "original_value": None,
             "url": "http://127.0.0.1:8888",
-            "description": "Test Dummy Header",
+            "description": "Test Dummy Cookie",
         }
         seed_event = module_test.scan.make_event(data, "WEB_PARAMETER", parent_event, tags=["distance-0"])
         seed_events.append(seed_event)
-        module_test.scan.target.seeds.events = set(seed_events)
+        for event in seed_events:
+            await module_test.scan.ingress_module.incoming_event_queue.put(event)
 
     def request_handler(self, request):
         placeholder_block = """
@@ -1224,7 +1098,7 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
             if e.type == "FINDING":
                 if (
                     e.data["description"]
-                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Technique: [Error Resolution] Serialization Payload: [dotnet_base64]"
+                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Technique: [Error Resolution (Baseline: [500]  -> Probe: [200] )] Serialization Payload: [dotnet_base64]"
                 ):
                     lightfuzz_serial_detect_errorresolution = True
 
@@ -1324,7 +1198,7 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
                     excavate_detect_serialization_value = True
                 if (
                     e.data["description"]
-                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Original Value: [AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==] Technique: [Error Resolution] Serialization Payload: [dotnet_base64]"
+                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Original Value: [AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==] Technique: [Error Resolution (Baseline: [500]  -> Probe: [200] )] Serialization Payload: [dotnet_base64]"
                 ):
                     lightfuzz_serial_detect_errorresolution = True
 
@@ -1914,7 +1788,7 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
 
             if input_value:
                 # Simulate flawed escaping with opposite quotes
-                sanitized_input = input_value.replace("'", "\\'").replace('"', '\\"')
+                sanitized_input = input_value.replace("'", "\\").replace("%22", '\\"')
                 sanitized_input = sanitized_input.replace("<", "%3C").replace(">", "%3E")
 
                 reflected_block = f"""
@@ -1932,7 +1806,6 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
     def check(self, module_test, events):
         web_parameter_emitted = False
         xss_finding_emitted = False
-
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if "[Paramminer] Getparam: [input] Reasons: [body] Reflection: [True]" in e.data["description"]:

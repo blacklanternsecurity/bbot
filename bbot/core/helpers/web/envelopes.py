@@ -273,7 +273,7 @@ class URLEnvelope(BaseEnvelope):
     def unpack(self, s):
         unpacked = super().unpack(s)
         if unpacked == s:
-            raise Exception("Data is not URL-encoded")
+            raise ValueError("Data is not URL-encoded")
         return unpacked
 
     def _pack(self, s):

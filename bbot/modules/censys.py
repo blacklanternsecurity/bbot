@@ -29,7 +29,7 @@ class censys(subdomain_enum_apikey):
 
     async def ping(self):
         url = f"{self.base_url}/v1/account"
-        resp = await self.api_request(url)
+        resp = await self.api_request(url, retry_on_http_429=False)
         d = resp.json()
         assert isinstance(d, dict), f"Invalid response from {url}: {resp}"
         quota = d.get("quota", {})

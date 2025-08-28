@@ -15,7 +15,7 @@ class certspotter(subdomain_enum):
 
     def request_url(self, query):
         url = f"{self.base_url}/issuances?domain={self.helpers.quote(query)}&include_subdomains=true&expand=dns_names"
-        return self.api_request(url, timeout=self.http_timeout + 30)
+        return self.api_request(url)
 
     async def parse_results(self, r, query):
         results = set()

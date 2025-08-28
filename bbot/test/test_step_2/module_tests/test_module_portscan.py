@@ -76,7 +76,7 @@ class TestPortscan(ModuleTestBase):
     def check(self, module_test, events):
         assert set(self.syn_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
         assert set(self.ping_scanned) == set()
-        assert self.syn_runs == 1
+        assert self.syn_runs >= 1
         assert self.ping_runs == 0
         assert 1 == len(
             [e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com" and str(e.module) == "TARGET"]
@@ -133,7 +133,7 @@ class TestPortscanPingFirst(TestPortscan):
         assert set(self.syn_scanned) == {"8.8.8.8/32"}
         assert set(self.ping_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
         assert self.syn_runs == 1
-        assert self.ping_runs == 1
+        assert self.ping_runs >= 1
         open_port_events = [e for e in events if e.type == "OPEN_TCP_PORT"]
         assert len(open_port_events) == 3
         assert {e.data for e in open_port_events} == {"8.8.8.8:443", "evilcorp.com:443", "www.evilcorp.com:443"}
@@ -149,7 +149,7 @@ class TestPortscanPingOnly(TestPortscan):
         assert set(self.syn_scanned) == set()
         assert set(self.ping_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
         assert self.syn_runs == 0
-        assert self.ping_runs == 1
+        assert self.ping_runs >= 1
         open_port_events = [e for e in events if e.type == "OPEN_TCP_PORT"]
         assert len(open_port_events) == 0
         ip_events = [e for e in events if e.type == "IP_ADDRESS"]

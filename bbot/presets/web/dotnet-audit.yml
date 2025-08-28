@@ -12,6 +12,7 @@ modules:
   - telerik
   - ajaxpro
   - dotnetnuke
+  - aspnet_bin_exposure
 
 config:
   modules:

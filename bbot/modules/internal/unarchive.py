@@ -29,8 +29,9 @@ class unarchive(BaseInternalModule):
 
     async def filter_event(self, event):
         if "file" in event.tags:
-            if event.data["magic_mime_type"] in self.ignore_compressions:
-                return False, f"Ignoring file type: {event.data['magic_mime_type']}, {event.data['path']}"
+            magic_mime_type = event.data.get("magic_mime_type", "")
+            if magic_mime_type in self.ignore_compressions:
+                return False, f"Ignoring file type: {magic_mime_type}, {event.data['path']}"
             if "compression" in event.data:
                 if not event.data["compression"] in self.compression_methods:
                     return (

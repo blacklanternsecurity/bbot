@@ -77,7 +77,7 @@ class asset_inventory(CSV):
             return False, "event is internal"
         if event.type not in self.watched_events:
             return False, "event type is not in watched_events"
-        if not self.scan.in_scope(event):
+        if not self.scan.in_scope(event.host):
             return False, "event is not in scope"
         if "unresolved" in event.tags:
             return False, "event is unresolved"

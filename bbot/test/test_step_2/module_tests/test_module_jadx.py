@@ -2,9 +2,18 @@ from pathlib import Path
 from bbot.core.helpers.libmagic import get_magic_info
 from bbot.test.test_step_2.module_tests.base import ModuleTestBase, tempapkfile
 
+from ...bbot_fixtures import *
+
 
 class TestJadx(ModuleTestBase):
     modules_overrides = ["apkpure", "google_playstore", "speculate", "jadx"]
+    config_overrides = {
+        "modules": {
+            "apkpure": {
+                "output_folder": bbot_test_dir / "apkpure",
+            },
+        }
+    }
     apk_file = tempapkfile()
 
     async def setup_after_prep(self, module_test):

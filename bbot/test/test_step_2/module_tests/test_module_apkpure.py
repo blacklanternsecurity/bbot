@@ -1,9 +1,11 @@
 from pathlib import Path
 from .base import ModuleTestBase, tempapkfile
+from bbot.test.bbot_fixtures import bbot_test_dir
 
 
 class TestAPKPure(ModuleTestBase):
     modules_overrides = ["apkpure", "google_playstore", "speculate"]
+    config_overrides = {"modules": {"apkpure": {"output_folder": str(bbot_test_dir / "test_apkpure_files")}}}
     apk_file = tempapkfile()
 
     async def setup_after_prep(self, module_test):

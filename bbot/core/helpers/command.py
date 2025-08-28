@@ -123,7 +123,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                     proc.send_signal(SIGINT)
                     raise
                 except ValueError as e:
-                    command_str = " ".join([str(c) for c in command])
+                    command_str = " ".join(command)
                     log.warning(f"Error executing command {command_str}: {e}")
                     log.trace(traceback.format_exc())
                     continue
@@ -185,7 +185,9 @@ async def _spawn_proc(self, *command, **kwargs):
     try:
         command, kwargs = self._prepare_command_kwargs(command, kwargs)
     except SubprocessError as e:
-        log.warning(e)
+        command_str = " ".join([str(s) for s in command])
+        log.warning(f"Error running command: '{command_str}': {e}")
+        log.trace(traceback.format_exc())
         return None, None, None
     _input = kwargs.pop("input", None)
     if _input is not None:
@@ -279,6 +281,7 @@ def _prepare_command_kwargs(self, command, kwargs):
 
     if len(command) == 1 and isinstance(command[0], (list, tuple)):
         command = command[0]
+
     command = [str(s) for s in command]
 
     if not command:

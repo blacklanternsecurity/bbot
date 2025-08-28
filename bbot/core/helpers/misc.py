@@ -52,7 +52,7 @@ def is_domain(d):
     if is_ip(d):
         return False
     extracted = tldextract(d)
-    if extracted.registered_domain:
+    if extracted.top_domain_under_public_suffix:
         if not extracted.subdomain:
             return True
     else:
@@ -87,7 +87,7 @@ def is_subdomain(d):
     if is_ip(d):
         return False
     extracted = tldextract(d)
-    if extracted.registered_domain:
+    if extracted.top_domain_under_public_suffix:
         if extracted.subdomain:
             return True
     else:
@@ -216,26 +216,29 @@ def split_host_port(d):
     host = None
     port = None
     scheme = None
+
+    # first, try to parse as an IP address
     if is_ip(d):
         return make_ip_type(d), port
 
+    # if not an IP address, try to parse as a host:port
     match = bbot_regexes.split_host_port_regex.match(d)
     if match is None:
-        raise ValueError(f'split_port() failed to parse "{d}"')
+        raise ValueError(f'split_host_port() failed to parse "{d}"')
     scheme = match.group("scheme")
     netloc = match.group("netloc")
     if netloc is None:
-        raise ValueError(f'split_port() failed to parse "{d}"')
+        raise ValueError(f'split_host_port() failed to parse "{d}"')
 
     match = bbot_regexes.extract_open_port_regex.match(netloc)
     if match is None:
-        raise ValueError(f'split_port() failed to parse netloc "{netloc}" (original value: {d})')
+        raise ValueError(f'split_host_port() failed to parse netloc "{netloc}" (original value: {d})')
 
     host = match.group(2)
     if host is None:
         host = match.group(1)
     if host is None:
-        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}" (original value: {d})')
+        raise ValueError(f'split_host_port() failed to locate host in netloc "{netloc}" (original value: {d})')
 
     port = match.group(3)
     if port is None and scheme is not None:
@@ -488,7 +491,7 @@ def split_domain(hostname):
         return ("", hostname)
     parsed = tldextract(hostname)
     subdomain = parsed.subdomain
-    domain = parsed.registered_domain
+    domain = parsed.top_domain_under_public_suffix
     if not domain:
         split = hostname.split(".")
         subdomain = ".".join(split[:-2])
@@ -831,7 +834,9 @@ def rand_string(length=10, digits=True, numeric_only=False):
     return "".join(random.choice(pool) for _ in range(length))
 
 
-def truncate_string(s, n):
+def truncate_string(s: str, n: int) -> str:
+    if not isinstance(s, str):
+        raise ValueError(f"Expected string, got {type(s)}")
     if len(s) > n:
         return s[: n - 3] + "..."
     else:
@@ -1309,7 +1314,7 @@ def make_netloc(host, port=None):
     return f"{host}:{port}"
 
 
-def which(*executables):
+def which(*executables, path=None):
     """Finds the full path of the first available executable from a list of executables.
 
     Args:
@@ -1325,7 +1330,7 @@ def which(*executables):
     import shutil
 
     for e in executables:
-        location = shutil.which(e)
+        location = shutil.which(e, path=path)
         if location:
             return location
 
@@ -1642,7 +1647,7 @@ def filesize(f):
     return 0
 
 
-def rm_rf(f):
+def rm_rf(f, ignore_errors=False):
     """Recursively delete a directory
 
     Args:
@@ -1653,7 +1658,7 @@ def rm_rf(f):
     """
     import shutil
 
-    shutil.rmtree(f)
+    shutil.rmtree(f, ignore_errors=ignore_errors)
 
 
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):

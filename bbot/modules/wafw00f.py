@@ -22,7 +22,7 @@ class wafw00f(BaseModule):
         "author": "@liquidsec",
     }
 
-    deps_pip = ["wafw00f~=2.2.0"]
+    deps_pip = ["wafw00f~=2.3.1"]
 
     options = {"generic_detect": True}
     options_desc = {"generic_detect": "When no specific WAF detections are made, try to perform a generic detect"}
@@ -42,7 +42,7 @@ class wafw00f(BaseModule):
     async def handle_event(self, event):
         url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
         WW = await self.helpers.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
-        waf_detections = await self.helpers.run_in_executor(WW.identwaf)
+        waf_detections, url = await self.helpers.run_in_executor(WW.identwaf)
         if waf_detections:
             for waf in waf_detections:
                 await self.emit_event(

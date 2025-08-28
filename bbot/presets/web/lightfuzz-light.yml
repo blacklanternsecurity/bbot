@@ -1,0 +1,20 @@
+description: Discover web parameters and lightly fuzz them for vulnerabilities, with only the most common vulnerabilities and minimal extra modules. Safest to run alongside larger scans.
+
+modules:
+  - httpx
+  - lightfuzz
+  - portfilter
+  
+config:
+  url_querystring_remove: False # don't strip off the querystring (BBOT normally does this; but lightfuzz needs it)
+  url_querystring_collapse: True # in cases where the same parameter has multiple values, collapse them into a single parameter to save on fuzzing attempts
+  modules:
+    lightfuzz:
+      enabled_submodules: [path,sqli,xss] # only look for the most common vulnerabilities
+      disable_post: True # don't send POST requests (less aggressive)
+
+conditions:
+- |
+  {% if config.web.spider_distance == 0 %}
+    {{ warn("Lightfuzz works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+  {% endif %}

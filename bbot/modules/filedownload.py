@@ -84,12 +84,12 @@ class filedownload(BaseModule):
             "bz2",  #  Bzip2 Compressed File
         ],
         "max_filesize": "10MB",
-        "base_64_encoded_file": "false",
+        "output_folder": "",
     }
     options_desc = {
         "extensions": "File extensions to download",
         "max_filesize": "Cancel download if filesize is greater than this size",
-        "base_64_encoded_file": "Stream the bytes of a file and encode them in base 64 for event data.",
+        "output_folder": "Folder to download files to. If not specified, downloaded files will be deleted when the scan completes, to minimize disk usage.",
     }
 
     scope_distance_modifier = 3
@@ -97,10 +97,14 @@ class filedownload(BaseModule):
     async def setup(self):
         self.extensions = list({e.lower().strip(".") for e in self.config.get("extensions", [])})
         self.max_filesize = self.config.get("max_filesize", "10MB")
-        self.download_dir = self.scan.home / "filedownload"
-        self.helpers.mkdir(self.download_dir)
         self.urls_downloaded = set()
         self.files_downloaded = 0
+        output_dir = self.config.get("output_folder", "")
+        if output_dir:
+            self.download_dir = Path(output_dir) / "filedownload"
+        else:
+            self.download_dir = self.scan.temp_dir / "filedownload"
+        self.helpers.mkdir(self.download_dir)
         self.mime_db_file = await self.helpers.wordlist(
             "https://raw.githubusercontent.com/jshttp/mime-db/master/db.json"
         )

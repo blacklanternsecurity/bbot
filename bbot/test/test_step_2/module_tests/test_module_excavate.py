@@ -1,3 +1,4 @@
+from ...bbot_fixtures import *
 from bbot.modules.base import BaseModule
 from .base import ModuleTestBase, tempwordlist
 
@@ -23,14 +24,13 @@ class TestExcavate(ModuleTestBase):
         \\x3dwww6.test.notreal
         %0awww7.test.notreal
         \\u000awww8.test.notreal
-        # these ones shouldn't get emitted because they're .js (url_extension_httpx_only)
-        <a href="/a_relative.js">
-        <link href="/link_relative.js">
-        # these ones should
         <a href="/a_relative.txt">
         <link href="/link_relative.txt">
         <a href="mailto:bob@evilcorp.org?subject=help">Help</a>
         <li class="toctree-l3"><a class="reference internal" href="miscellaneous.html#x50-uart-driver">16x50 UART Driver</a></li>
+        # these ones should get emitted as URL_UNVERIFIED events (processed by httpx which has accept_js_url=True)
+        <a href="/a_relative.js">
+        <link href="/link_relative.js">
         """
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": response_data}
@@ -62,8 +62,9 @@ class TestExcavate(ModuleTestBase):
         assert "www6.test.notreal" in event_data
         assert "www7.test.notreal" in event_data
         assert "www8.test.notreal" in event_data
-        assert "http://127.0.0.1:8888/a_relative.js" not in event_data
-        assert "http://127.0.0.1:8888/link_relative.js" not in event_data
+        # .js files should be emitted as URL_UNVERIFIED events (they are processed by httpx which has accept_js_url=True)
+        assert "http://127.0.0.1:8888/a_relative.js" in event_data
+        assert "http://127.0.0.1:8888/link_relative.js" in event_data
         assert "http://127.0.0.1:8888/a_relative.txt" in event_data
         assert "http://127.0.0.1:8888/link_relative.txt" in event_data
 
@@ -164,6 +165,35 @@ class TestExcavate2(TestExcavate):
         assert page_relative_detection_2, "Failed to properly excavate page-relative URL"
         assert not root_page_confusion_1, "Incorrectly detected page-relative URL"
         assert not root_page_confusion_2, "Incorrectly detected root-relative URL"
+
+
+class TestExcavateInScopeJavascript(TestExcavate):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["excavate", "httpx", "badsecrets"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<script>window.location.href = 'http://127.0.0.1:8888/script.js';</script>"
+        )
+        module_test.httpserver.expect_request("/script.js").respond_with_data(
+            "var = 'eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo';"
+        )
+
+    def check(self, module_test, events):
+        found_js_url_event = False
+        found_badsecrets_vulnerability = False
+        found_excavate_jwt_finding = False
+        for e in events:
+            if e.type == "URL" and e.data == "http://127.0.0.1:8888/script.js":
+                found_js_url_event = True
+            if e.type == "FINDING" and "JWT" in e.data["description"] and str(e.module) == "excavate":
+                found_excavate_jwt_finding = True
+            if e.type == "VULNERABILITY":
+                found_badsecrets_vulnerability = True
+
+        assert found_js_url_event, "Failed to find URL event for script.js"
+        assert found_badsecrets_vulnerability, "Failed to find BADSECRETs event from script.js"
+        assert found_excavate_jwt_finding, "Failed to find JWT finding from script.js"
 
 
 class TestExcavateRedirect(TestExcavate):
@@ -1091,11 +1121,6 @@ class TestExcavateParameterExtraction_targeturl(ModuleTestBase):
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
         "interactsh_disable": True,
-        "modules": {
-            "excavate": {
-                "retain_querystring": True,
-            }
-        },
     }
 
     async def setup_after_prep(self, module_test):
@@ -1123,11 +1148,6 @@ class TestExcavate_retain_querystring(ModuleTestBase):
         "url_querystring_collapse": False,
         "interactsh_disable": True,
         "web": {"spider_distance": 4, "spider_depth": 4},
-        "modules": {
-            "excavate": {
-                "retain_querystring": True,
-            }
-        },
     }
 
     async def setup_after_prep(self, module_test):
@@ -1150,15 +1170,10 @@ class TestExcavate_retain_querystring(ModuleTestBase):
 
 class TestExcavate_retain_querystring_not(TestExcavate_retain_querystring):
     config_overrides = {
-        "url_querystring_remove": False,
+        "url_querystring_remove": True,
         "url_querystring_collapse": False,
         "interactsh_disable": True,
         "web": {"spider_distance": 4, "spider_depth": 4},
-        "modules": {
-            "excavate": {
-                "retain_querystring": True,
-            }
-        },
     }
 
     def check(self, module_test, events):
@@ -1235,7 +1250,13 @@ class TestExcavateHeaders(ModuleTestBase):
 class TestExcavateRAWTEXT(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/", "test.notreal"]
     modules_overrides = ["excavate", "httpx", "filedownload", "extractous"]
-    config_overrides = {"scope": {"report_distance": 1}, "web": {"spider_distance": 2, "spider_depth": 2}}
+    config_overrides = {
+        "scope": {"report_distance": 1},
+        "web": {"spider_distance": 2, "spider_depth": 2},
+        "modules": {
+            "filedownload": {"output_folder": str(bbot_test_dir / "filedownload")},
+        },
+    }
 
     pdf_data = r"""%PDF-1.3
 %���� ReportLab Generated PDF document http://www.reportlab.com
@@ -1423,13 +1444,26 @@ class TestExcavateBadURLs(ModuleTestBase):
         module_test.set_expect_requests({"uri": "/"}, {"response_data": self.bad_url_data})
 
     def check(self, module_test, events):
-        log_file = module_test.scan.home / "debug.log"
-        log_text = log_file.read_text()
+        debug_log_content = open(module_test.scan.home / "debug.log").read()
         # make sure our logging is working
-        assert "Setting scan status to STARTING" in log_text
+        assert "Setting scan status to STARTING" in debug_log_content
         # make sure we don't have any URL validation errors
-        assert "Error Parsing reconstructed URL" not in log_text
-        assert "Error sanitizing event data" not in log_text
+        assert "Error Parsing reconstructed URL" not in debug_log_content
+        assert "Error sanitizing event data" not in debug_log_content
 
         url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
         assert sorted([e.data for e in url_events]) == sorted(["https://ssl/", "http://127.0.0.1:8888/"])
+
+
+class TestExcavateURL_InvalidPort(TestExcavate):
+    modules_overrides = ["excavate", "httpx", "hunt"]
+
+    async def setup_before_prep(self, module_test):
+        # Test URL with invalid port (greater than 65535)
+        module_test.httpserver.expect_request("/").respond_with_data(
+            '<div><img loading="lazy" src="https://asdffoo.test.notreal:9212952841/whatever.jpg" width="576" height="382" alt="...." /></div>'
+        )
+
+    def check(self, module_test, events):
+        # Verify we got the hostname
+        assert any(e.data == "asdffoo.test.notreal" for e in events)

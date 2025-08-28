@@ -15,7 +15,7 @@ class nuclei(BaseModule):
     }
 
     options = {
-        "version": "3.3.10",
+        "version": "3.4.10",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -28,6 +28,7 @@ class nuclei(BaseModule):
         "directory_only": True,
         "retries": 0,
         "batch_size": 200,
+        "module_timeout": 21600,  # 6 hours
     }
     options_desc = {
         "version": "nuclei version",
@@ -38,11 +39,12 @@ class nuclei(BaseModule):
         "concurrency": "maximum number of templates to be executed in parallel (default 25)",
         "mode": "manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests",
         "etags": "tags to exclude from the scan",
-        "budget": "Used in budget mode to set the number of requests which will be allotted to the nuclei scan",
+        "budget": "Used in budget mode to set the number of allowed requests per host",
         "silent": "Don't display nuclei's banner or status messages",
         "directory_only": "Filter out 'file' URL event (default True)",
         "retries": "number of times to retry a failed request (default 0)",
         "batch_size": "Number of targets to send to Nuclei per batch (default 200)",
+        "module_timeout": "Max time in seconds to spend handling each batch of events",
     }
     deps_ansible = [
         {
@@ -57,7 +59,7 @@ class nuclei(BaseModule):
     ]
     deps_pip = ["pyyaml~=6.0"]
     in_scope_only = True
-    _batch_size = 25
+    _batch_size = 200
 
     async def setup(self):
         # attempt to update nuclei templates
@@ -139,7 +141,9 @@ class nuclei(BaseModule):
         return True
 
     async def handle_batch(self, *events):
-        temp_target = self.helpers.make_target(*events)
+        temp_target = self.helpers.make_target()
+        for e in events:
+            temp_target.add(e.data, e)
         nuclei_input = [str(e.data) for e in events]
         async for severity, template, tags, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
@@ -278,7 +282,7 @@ class nuclei(BaseModule):
                     else:
                         self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
         finally:
-            stats_file.unlink()
+            stats_file.unlink(missing_ok=True)
 
     def log_nuclei_status(self, line):
         if self.silent:

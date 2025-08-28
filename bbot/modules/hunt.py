@@ -50,7 +50,16 @@ hunt_param_dict = {
         "cfg",
         "config",
     ],
-    "Directory Traversal": ["entry", "download", "attachment", "basepath", "path", "file", "source", "dest"],
+    "Directory Traversal": [
+        "entry",
+        "download",
+        "attachment",
+        "basepath",
+        "path",
+        "file",
+        "source",
+        "dest",
+    ],
     "Local File Include": [
         "file",
         "document",
@@ -279,8 +288,6 @@ class hunt(BaseModule):
         "author": "@liquidsec",
         "created_date": "2022-07-20",
     }
-    # accept all events regardless of scope distance
-    scope_distance_modifier = None
 
     async def handle_event(self, event):
         p = event.data["name"]

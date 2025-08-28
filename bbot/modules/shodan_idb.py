@@ -1,4 +1,5 @@
 from bbot.modules.base import BaseModule
+import time
 
 
 class shodan_idb(BaseModule):
@@ -46,23 +47,48 @@ class shodan_idb(BaseModule):
         "created_date": "2023-12-22",
         "author": "@TheTechromancer",
     }
+    options = {"retries": None}
+    options_desc = {
+        "retries": "How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting."
+    }
 
-    # we get lots of 404s, that's normal
+    # we typically don't want to abort this module
     _api_failure_abort_threshold = 9999999999
 
-    # there aren't any rate limits to speak of, so our outgoing queue can be pretty big
-    _qsize = 500
+    # since there are rate limits, we set a lower qsize
+    # this way when our queue is full, we can give the API a break
+    _qsize = 100
 
     base_url = "https://internetdb.shodan.io"
 
+    async def setup(self):
+        await super().setup()
+        self.last_request_time = 0
+        return True
+
     def _incoming_dedup_hash(self, event):
         return hash(self.get_ip(event))
+
+    @property
+    def api_retries(self):
+        # allow the module to override global retry setting
+        return self.config.get("retries", None) or super().api_retries
 
     async def handle_event(self, event):
         ip = self.get_ip(event)
         if ip is None:
             return
         url = f"{self.base_url}/{ip}"
+
+        # Rate limiting: ensure at least 1 second between requests
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        if time_since_last < 1:
+            await self.helpers.sleep(1 - time_since_last)
+
+        # Update the last request time
+        self.last_request_time = time.time()
+
         r = await self.api_request(url)
         if r is None:
             self.debug(f"No response for {event.data}")

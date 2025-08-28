@@ -31,7 +31,7 @@ class zoomeye(subdomain_enum_apikey):
 
     async def ping(self):
         url = f"{self.base_url}/resources-info"
-        r = await self.api_request(url)
+        r = await self.api_request(url, retry_on_http_429=False)
         assert int(r.json()["quota_info"]["remain_total_quota"]) > 0, "No quota remaining"
 
     async def handle_event(self, event):

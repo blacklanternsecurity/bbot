@@ -1,8 +1,13 @@
 from .base import ModuleTestBase
+from bbot.test.bbot_fixtures import bbot_test_dir
 
 
 class TestPostman_Download(ModuleTestBase):
-    config_overrides = {"modules": {"postman_download": {"api_key": "asdf"}}}
+    config_overrides = {
+        "modules": {
+            "postman_download": {"api_key": "asdf", "output_folder": str(bbot_test_dir / "test_postman_files")}
+        }
+    }
     modules_overrides = ["postman", "postman_download", "speculate"]
 
     async def setup_before_prep(self, module_test):
@@ -45,7 +50,22 @@ class TestPostman_Download(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
-            match_content=b'{"service": "search", "method": "POST", "path": "/search-all", "body": {"queryIndices": ["collaboration.workspace"], "queryText": "blacklanternsecurity", "size": 25, "from": 0, "clientTraceId": "", "requestOrigin": "srp", "mergeEntities": "true", "nonNestedRequests": "true", "domain": "public"}}',
+            match_json={
+                "service": "search",
+                "method": "POST",
+                "path": "/search-all",
+                "body": {
+                    "queryIndices": ["collaboration.workspace"],
+                    "queryText": "blacklanternsecurity",
+                    "size": 25,
+                    "from": 0,
+                    "clientTraceId": "",
+                    "requestOrigin": "srp",
+                    "mergeEntities": "true",
+                    "nonNestedRequests": "true",
+                    "domain": "public",
+                },
+            },
             json={
                 "data": [
                     {
@@ -126,7 +146,11 @@ class TestPostman_Download(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
-            match_content=b'{"service": "workspaces", "method": "GET", "path": "/workspaces?handle=blacklanternsecurity&slug=bbot-public"}',
+            match_json={
+                "service": "workspaces",
+                "method": "GET",
+                "path": "/workspaces?handle=blacklanternsecurity&slug=bbot-public",
+            },
             json={
                 "meta": {"model": "workspace", "action": "find", "nextCursor": ""},
                 "data": [

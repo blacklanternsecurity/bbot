@@ -61,6 +61,7 @@ class ModuleTestBase:
                 config=self.config,
                 whitelist=module_test_base.whitelist,
                 blacklist=module_test_base.blacklist,
+                force_start=getattr(module_test_base, "force_start", False),
             )
             self.events = []
             self.log = logging.getLogger(f"bbot.test.{module_test_base.name}")
@@ -91,9 +92,9 @@ class ModuleTestBase:
     async def module_test(
         self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
     ):
-        # Skip dastardly test if we're in the distro tests (because dastardly uses docker)
+        # If a test uses docker, we can't run it in the distro tests
         if os.getenv("BBOT_DISTRO_TESTS") and self.skip_distro_tests:
-            pytest.skip("Skipping module_test for dastardly module due to BBOT_DISTRO_TESTS environment variable")
+            pytest.skip("Skipping test since it uses docker")
 
         self.log.info(f"Starting {self.name} module test")
         module_test = self.ModuleTest(

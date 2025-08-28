@@ -3,10 +3,12 @@ import tarfile
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.bbot_fixtures import bbot_test_dir
 
 
 class TestDockerPull(ModuleTestBase):
     modules_overrides = ["speculate", "dockerhub", "docker_pull"]
+    config_overrides = {"modules": {"docker_pull": {"output_folder": str(bbot_test_dir / "test_docker_files")}}}
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(

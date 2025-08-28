@@ -39,7 +39,7 @@ import re
 # Handle "v=BIMI1; l=https://bimi.entrust.net/example.com/logo.svg;"
 # Handle "v=BIMI1;l=https://bimi.entrust.net/example.com/logo.svg;a=https://bimi.entrust.net/example.com/certchain.pem"
 # Handle "v=BIMI1; l=https://bimi.entrust.net/example.com/logo.svg;a=https://bimi.entrust.net/example.com/certchain.pem;"
-_bimi_regex = r"^v=(?P<v>BIMI1);* *(l=(?P<l>https*://[^;]*|)|);*( *a=((?P<a>https://[^;]*|)|);*)*$"
+_bimi_regex = r"^v=(?P<v>BIMI1);\s?(?:l=(?P<l>https?://[^;\s]{1,255})?)?;?(?:\s?a=(?P<a>https://[^;\s]{1,255})?;?)?$"
 bimi_regex = re.compile(_bimi_regex, re.I)
 
 
@@ -140,6 +140,3 @@ class dnsbimi(BaseModule):
 
     async def handle_event(self, event):
         await self.inspectBIMI(event, event.host)
-
-
-# EOF

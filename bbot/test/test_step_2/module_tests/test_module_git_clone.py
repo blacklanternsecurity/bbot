@@ -6,10 +6,13 @@ import subprocess
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.bbot_fixtures import bbot_test_dir
 
 
 class TestGit_Clone(ModuleTestBase):
-    config_overrides = {"modules": {"git_clone": {"api_key": "asdf"}}}
+    config_overrides = {
+        "modules": {"git_clone": {"api_key": "asdf", "output_folder": str(bbot_test_dir / "test_git_files")}}
+    }
     modules_overrides = ["github_org", "speculate", "git_clone"]
 
     file_content = "https://admin:admin@the-internet.herokuapp.com/basic_auth"

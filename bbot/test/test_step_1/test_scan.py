@@ -36,7 +36,7 @@ async def test_scan(
     j = scan0.json
     assert set(j["target"]["seeds"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
     # we preserve the original whitelist inputs
-    assert set(j["target"]["whitelist"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
+    assert set(j["target"]["whitelist"]) == {"1.1.1.0/32", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
     # but in the background they are collapsed
     assert scan0.target.whitelist.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
     assert set(j["target"]["blacklist"]) == {"1.1.1.0/28", "www.evilcorp.com"}
@@ -89,25 +89,76 @@ async def test_scan(
 
 
 @pytest.mark.asyncio
+async def test_task_scan_handle_event_timeout(bbot_scanner):
+    from bbot.modules.base import BaseModule
+
+    # make a module that takes a long time to handle an event
+    class LongModule(BaseModule):
+        watched_events = ["IP_ADDRESS"]
+        handled_event = False
+        cancelled = False
+        _name = "long"
+
+        async def handle_event(self, event):
+            self.handled_event = True
+            try:
+                await self.helpers.sleep(99999999)
+            except asyncio.CancelledError:
+                self.cancelled = True
+                raise
+
+    # same thing but handle_batch
+    class LongBatchModule(BaseModule):
+        watched_events = ["IP_ADDRESS"]
+        handled_event = False
+        canceled = False
+        _name = "long_batch"
+        _batch_size = 2
+
+        async def handle_batch(self, *events):
+            self.handled_event = True
+            try:
+                await self.helpers.sleep(99999999)
+            except asyncio.CancelledError:
+                self.cancelled = True
+                raise
+
+    # scan with both modules
+    scan = bbot_scanner(
+        "127.0.0.1",
+        config={
+            "module_handle_event_timeout": 5,
+            "module_handle_batch_timeout": 5,
+        },
+    )
+    await scan._prep()
+    scan.modules["long"] = LongModule(scan=scan)
+    scan.modules["long_batch"] = LongBatchModule(scan=scan)
+    events = [e async for e in scan.async_start()]
+    assert events
+    assert any(e.data == "127.0.0.1" for e in events)
+    # make sure both modules were called
+    assert scan.modules["long"].handled_event
+    assert scan.modules["long_batch"].handled_event
+    # they should also be cancelled
+    assert scan.modules["long"].cancelled
+    assert scan.modules["long_batch"].cancelled
+
+
+@pytest.mark.asyncio
 async def test_url_extension_handling(bbot_scanner):
-    scan = bbot_scanner(config={"url_extension_blacklist": ["css"], "url_extension_httpx_only": ["js"]})
+    scan = bbot_scanner(config={"url_extension_blacklist": ["css"]})
     await scan._prep()
     assert scan.url_extension_blacklist == {"css"}
-    assert scan.url_extension_httpx_only == {"js"}
     good_event = scan.make_event("https://evilcorp.com/a.txt", "URL", tags=["status-200"], parent=scan.root_event)
     bad_event = scan.make_event("https://evilcorp.com/a.css", "URL", tags=["status-200"], parent=scan.root_event)
-    httpx_event = scan.make_event("https://evilcorp.com/a.js", "URL", tags=["status-200"], parent=scan.root_event)
     assert "blacklisted" not in bad_event.tags
-    assert "httpx-only" not in httpx_event.tags
     result = await scan.ingress_module.handle_event(good_event)
     assert result is None
     result, reason = await scan.ingress_module.handle_event(bad_event)
     assert result is False
     assert reason == "event is blacklisted"
     assert "blacklisted" in bad_event.tags
-    result = await scan.ingress_module.handle_event(httpx_event)
-    assert result is None
-    assert "httpx-only" in httpx_event.tags
 
     await scan._cleanup()
 
@@ -227,3 +278,9 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch):
         "www.evilcorp.com:80",
         "www.evilcorp.com:443",
     }
+
+
+async def test_scan_name(bbot_scanner):
+    scan = bbot_scanner("evilcorp.com", name="test_scan_name")
+    assert scan.name == "test_scan_name"
+    assert scan.preset.scan_name == "test_scan_name"

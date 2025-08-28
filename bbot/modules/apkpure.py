@@ -13,14 +13,16 @@ class apkpure(BaseModule):
         "author": "@domwhewell-sage",
     }
     options = {"output_folder": ""}
-    options_desc = {"output_folder": "Folder to download apk's to"}
+    options_desc = {
+        "output_folder": "Folder to download APKs to. If not specified, downloaded APKs will be deleted when the scan completes, to minimize disk usage."
+    }
 
     async def setup(self):
-        output_folder = self.config.get("output_folder")
+        output_folder = self.config.get("output_folder", "")
         if output_folder:
             self.output_dir = Path(output_folder) / "apk_files"
         else:
-            self.output_dir = self.scan.home / "apk_files"
+            self.output_dir = self.scan.temp_dir / "apk_files"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 

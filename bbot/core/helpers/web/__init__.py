@@ -1,1 +1,1 @@
-from .web import WebHelper
+from .web import WebHelper  # noqa

@@ -111,6 +111,7 @@ class sqli(BaseLightfuzz):
                     single_quote[3].status_code != 429
                     and double_single_quote[3].status_code != 429
                     and http_compare.baseline.status_code != 429
+                    and http_compare.baseline.status_code != 403  # Ensure the baseline status code is not 403
                 ):  # prevent false positives from rate limiting
                     # if the code changed in the single quote probe, and the code is NOT the same between that and the double single quote probe, SQL injection is indicated
                     if "code" in single_quote[1] and (

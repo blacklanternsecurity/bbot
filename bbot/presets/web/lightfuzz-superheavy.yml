@@ -1,0 +1,13 @@
+description: Discover web parameters and lightly fuzz them for vulnerabilities, with the most intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually.
+
+include:
+  - lightfuzz-heavy
+
+config:
+  url_querystring_collapse: False # in cases where the same parameter is observed multiple times, fuzz them individually instead of collapsing them into a single parameter
+  modules:
+    lightfuzz:
+      force_common_headers: True # Fuzz common headers like X-Forwarded-For even if they're not observed on the target
+      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss]
+    excavate:
+      speculate_params: True # speculate potential parameters extracted from JSON/XML web responses
