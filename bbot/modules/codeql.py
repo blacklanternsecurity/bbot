@@ -1,4 +1,3 @@
-from pathlib import Path
 from bbot.modules.base import BaseModule
 from webcap.browser import Browser
 from webcap import defaults
@@ -9,6 +8,7 @@ import csv
 import shutil
 import time
 import re
+
 
 class codeql(BaseModule):
     watched_events = ["URL"]
@@ -25,17 +25,11 @@ class codeql(BaseModule):
     options_desc = {
         "in_scope_only": "Only process scripts residing on in-scope hosts",
         "min_severity": "Minimum severity level to report (error, warning, recommendation, note)",
-        "suppress_duplicates": "Skip findings when identical files are analyzed on the same host (default: False)"
+        "suppress_duplicates": "Skip findings when identical files are analyzed on the same host (default: False)",
     }
 
     deps_ansible = [
-        {
-            "name": "Remove existing CodeQL directory",
-            "file": {
-                "path": "#{BBOT_TOOLS}/codeql",
-                "state": "absent"
-            }
-        },
+        {"name": "Remove existing CodeQL directory", "file": {"path": "#{BBOT_TOOLS}/codeql", "state": "absent"}},
         {
             "name": "Create CodeQL directory",
             "file": {"path": "#{BBOT_TOOLS}/codeql", "state": "directory", "mode": "0755"},
@@ -306,7 +300,6 @@ class codeql(BaseModule):
 
         return results
 
-
     async def store_and_emit_finding(self, finding_data, event, files_hash):
         """Store finding in cache and emit event."""
         # Store everything except URL and host
@@ -316,13 +309,8 @@ class codeql(BaseModule):
         cache_data["data"].pop("host", None)  # Remove host from cached data
         self.processed_hashes[files_hash].append(cache_data)
         self.verbose(f"Storing finding in cache for hash: {files_hash}, url: {finding_data['data'].get('url', 'N/A')}")
-        
-        await self.emit_event(
-            finding_data["data"],
-            "FINDING",
-            event,
-            context=finding_data["context"]
-        )
+
+        await self.emit_event(finding_data["data"], "FINDING", event, context=finding_data["context"])
 
     async def emit_cached_findings(self, files_hash, event):
         """Emit all findings from cache for a given hash."""
@@ -332,13 +320,8 @@ class codeql(BaseModule):
             finding_data["data"] = cached_finding["data"].copy()
             finding_data["data"]["url"] = str(event.data)  # Add current URL
             finding_data["data"]["host"] = str(event.host)  # Add current host
-            
-            await self.emit_event(
-                finding_data["data"],
-                "FINDING",
-                event,
-                context=finding_data["context"]
-            )
+
+            await self.emit_event(finding_data["data"], "FINDING", event, context=finding_data["context"])
 
     def extract_code_snippet(self, file_path, start_line, start_col, end_line, end_col):
         """Extract a code snippet from a file given line and column numbers."""
@@ -354,7 +337,7 @@ class codeql(BaseModule):
                     if len(full_line) <= 150:
                         code_snippet = full_line
                     elif all(isinstance(x, int) for x in [start_col, end_col]):
-                        code_snippet = full_line[start_col-1:end_col]
+                        code_snippet = full_line[start_col - 1 : end_col]
                     else:
                         code_snippet = full_line[:147] + "..."
 
@@ -394,7 +377,7 @@ class codeql(BaseModule):
 
                     # Calculate hash
                     file_hash = await self.get_file_hash(file_path)
-                    
+
                     if file_hash in self.processed_hashes:
                         if self.config.get("suppress_duplicates", False):
                             self.debug(f"Suppressing duplicate findings for hash: {file_hash} on host {event.host}")
@@ -441,7 +424,7 @@ class codeql(BaseModule):
             details = match.group(1)
             parts = details.split("|")
             description = parts[0].strip().strip('"')
-            location = parts[1].replace("relative:///","").strip().strip('"').split(":")
+            location = parts[1].replace("relative:///", "").strip().strip('"').split(":")
             start_line, start_col, end_line, end_col = map(int, location[1:])
             code_snippet = self.extract_code_snippet(file_path, start_line, start_col, end_line, end_col)
             if len(code_snippet) > 150:
@@ -449,7 +432,7 @@ class codeql(BaseModule):
             return f"{description}: [{code_snippet}]"
 
         # Use regex to find and replace double-bracketed sections
-        pattern = r'\[\[(.*?)\]\]'
+        pattern = r"\[\[(.*?)\]\]"
         processed_message = re.sub(pattern, replace_brackets, message)
         return processed_message.replace("\n", " ")
 
@@ -481,9 +464,9 @@ class codeql(BaseModule):
                         finding_data = {
                             "data": {
                                 "description": f"POSSIBLE Client-side Vulnerability (YARA Match). {description})",
-                                "script_url": script_url
+                                "script_url": script_url,
                             },
-                            "context": f"{{module}} module found a YARA match for rule '{rule_name}' in {script_url}"
+                            "context": f"{{module}} module found a YARA match for rule '{rule_name}' in {script_url}",
                         }
                         findings_map[file_hash].append(finding_data)
             except Exception as e:
@@ -492,11 +475,11 @@ class codeql(BaseModule):
         # Create and analyze CodeQL database
         await self.execute_codeql_create_db(temp_dir, database_path)
         results = await self.execute_codeql_analyze_db(database_path)
-        
+
         # Process CodeQL results
         for result in results:
             file_path = os.path.join(temp_dir, result["file"].lstrip("/"))
-            
+
             # Map result back to original file
             file_hash = None
             script_url = None
@@ -505,7 +488,7 @@ class codeql(BaseModule):
                     file_hash = h
                     script_url = url
                     break
-            
+
             if not file_hash:
                 self.debug(f"Could not map result back to original file: {file_path}")
                 continue
@@ -513,7 +496,9 @@ class codeql(BaseModule):
             # Extract code snippet and process finding
             try:
                 start_line = result.get("start_line")
-                code_snippet = self.extract_code_snippet(file_path, start_line, result.get("start_column"), result.get("end_line"), result.get("end_column")  )
+                code_snippet = self.extract_code_snippet(
+                    file_path, start_line, result.get("start_column"), result.get("end_line"), result.get("end_column")
+                )
 
                 if not self.severity_threshold(result["severity"]):
                     continue
@@ -528,15 +513,15 @@ class codeql(BaseModule):
                     f"Code Snippet: [{code_snippet}]"
                 )
                 if result.get("message"):
-                    processed_message = await self.process_message(result['message'], file_path)
+                    processed_message = await self.process_message(result["message"], file_path)
                     details_string += f" Details: {processed_message}"
 
                 finding_data = {
                     "data": {
                         "description": f"POSSIBLE Client-side Vulnerability: {details_string}",
-                        "script_url": script_url
+                        "script_url": script_url,
                     },
-                    "context": f"{{module}} module found POSSIBLE Client-side Vulnerability: {details_string}"
+                    "context": f"{{module}} module found POSSIBLE Client-side Vulnerability: {details_string}",
                 }
                 findings_map[file_hash].append(finding_data)
 
@@ -555,10 +540,10 @@ class codeql(BaseModule):
         """Calculate a fast hash of a single file using built-in hash function."""
         hash_value = 0
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 while chunk := f.read(8192):
                     hash_value = ((hash_value * 31) + hash(chunk)) & 0xFFFFFFFF
         except Exception as e:
             self.debug(f"Error hashing file {file_path}: {e}")
-        
+
         return str(hash_value)
