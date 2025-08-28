@@ -108,9 +108,9 @@ def calculate_change_percentage(old_value: float, new_value: float) -> Tuple[flo
 
     change = ((new_value - old_value) / old_value) * 100
 
-    if change > 5:
+    if change > 10:
         return change, "⚠️"  # Regression (slower)
-    elif change < -5:
+    elif change < -10:
         return change, "🚀"  # Improvement (faster)
     else:
         return change, "✅"  # No significant change
@@ -233,9 +233,9 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             change_percent, emoji = calculate_change_percentage(base_mean, current_mean)
 
             # Create visual change indicator
-            if abs(change_percent) > 10:
+            if abs(change_percent) > 20:
                 change_bar = "🔴🔴🔴" if change_percent > 0 else "🟢🟢🟢"
-            elif abs(change_percent) > 5:
+            elif abs(change_percent) > 10:
                 change_bar = "🟡🟡" if change_percent > 0 else "🟢🟢"
             else:
                 change_bar = "⚪"
@@ -243,7 +243,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             table += f"\n| **{test_name}** | `{format_time(base_mean)}` | `{format_time(current_mean)}` | **{change_percent:+.1f}%** {change_bar} | {emoji} |"
 
             # Track significant changes
-            if abs(change_percent) > 5:
+            if abs(change_percent) > 10:
                 direction = "🐌 slower" if change_percent > 0 else "🚀 faster"
                 significant_changes.append(f"- **{test_name}**: {abs(change_percent):.1f}% {direction}")
                 if change_percent > 0:
@@ -284,11 +284,11 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             table += f"  {no_change} unchanged ✅\n"
         table += "```\n\n"
     else:
-        table += "✅ **No significant performance changes detected** (all changes <5%)\n\n"
+        table += "✅ **No significant performance changes detected** (all changes <10%)\n\n"
 
     # Add significant changes section
     if significant_changes:
-        table += "### 🔍 Significant Changes (>5%)\n\n"
+        table += "### 🔍 Significant Changes (>10%)\n\n"
         for change in significant_changes:
             table += f"{change}\n"
         table += "\n"

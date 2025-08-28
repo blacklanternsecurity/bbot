@@ -77,7 +77,7 @@ class TestClosestMatchBenchmarks:
         def find_large_match():
             return closest_match("subdomain5678.example50.com", self.large_choices)
 
-        result = benchmark(find_large_match)
+        result = benchmark.pedantic(find_large_match, iterations=50, rounds=10)
         assert result is not None
 
     @pytest.mark.benchmark(group="closest_match")
@@ -87,5 +87,5 @@ class TestClosestMatchBenchmarks:
         def find_realistic_match():
             return closest_match("subdomain123.example5.com", self.dns_choices)
 
-        result = benchmark(find_realistic_match)
+        result = benchmark.pedantic(find_realistic_match, iterations=50, rounds=10)
         assert result is not None
