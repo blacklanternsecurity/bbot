@@ -28,12 +28,10 @@ class retirejs(BaseModule):
         "author": "@liquidsec",
     }
     options = {
-        "version": "5.3.0",
         "node_version": "18.19.1",
         "severity": "medium",
     }
     options_desc = {
-        "version": "retire.js version",
         "node_version": "Node.js version to install locally",
         "severity": "Minimum severity level to report (none, low, medium, high, critical)",
     }
@@ -89,26 +87,8 @@ class retirejs(BaseModule):
         },
         # Create retire.js local directory
         {
-            "name": "Create retire.js directory in BBOT_TOOLS",
+            "name": "Create retire.js directory",
             "file": {"path": "#{BBOT_TOOLS}/retirejs", "state": "directory", "mode": "0755"},
-        },
-        # Install retire.js locally using local Node.js
-        {
-            "name": "Install retire.js locally",
-            "shell": "cd #{BBOT_TOOLS}/retirejs && PATH=#{BBOT_TOOLS}/node/bin:$PATH #{BBOT_TOOLS}/node/bin/npm install retire@#{BBOT_MODULES_RETIREJS_VERSION} --no-fund --no-audit --silent --no-optional",
-            "args": {"creates": "#{BBOT_TOOLS}/retirejs/node_modules/.bin/retire"},
-            "timeout": 600,
-            "ignore_errors": False,
-        },
-        # Fix retire script shebang to use our local node binary
-        {
-            "name": "Fix retire script shebang",
-            "shell": "sed -i '1s|#!/usr/bin/env node|#!#{BBOT_TOOLS}/node/bin/node|' #{BBOT_TOOLS}/retirejs/node_modules/.bin/retire",
-        },
-        # Make retire script executable
-        {
-            "name": "Make retire script executable",
-            "file": {"path": "#{BBOT_TOOLS}/retirejs/node_modules/.bin/retire", "mode": "0755"},
         },
         # Create retire cache directory
         {
@@ -135,12 +115,50 @@ class retirejs(BaseModule):
                 f"Invalid severity level '{configured_severity}'. Valid options are: {', '.join(valid_severities)}",
             )
 
+        # Download Retire.js repository JSON
         self.repofile = await self.helpers.download(
             "https://raw.githubusercontent.com/RetireJS/retire.js/master/repository/jsrepository-v4.json", cache_hrs=24
         )
         if not self.repofile:
             return False, "failed to download retire.js repository file"
+
+        # Ensure Retire.js is installed/updated
+        await self.ensure_latest_retire()
+
         return True
+
+    async def ensure_latest_retire(self):
+        retire_dir = self.scan.helpers.tools_dir / "retirejs"
+        retire_dir.mkdir(parents=True, exist_ok=True)
+
+        local_node_dir = self.scan.helpers.tools_dir / "node"
+        retire_cli_script = retire_dir / "node_modules" / ".bin" / "retire"
+
+        install_cmd = [
+            str(local_node_dir / "bin" / "npm"),
+            "install",
+            "retire",
+            "--prefix",
+            str(retire_dir),
+            "--no-fund",
+            "--no-audit",
+            "--no-optional",
+        ]
+
+        self.verbose(f"Installing/updating Retire.js with command: {install_cmd}")
+        await self.run_process(install_cmd, shell=False)
+
+        # Fix shebang in retire executable
+        retire_executable = retire_dir / "node_modules" / ".bin" / "retire"
+        if retire_executable.exists():
+            fix_shebang_cmd = [
+                "sed",
+                "-i",
+                f"1s|#!/usr/bin/env node|#!{local_node_dir}/bin/node|",
+                str(retire_executable),
+            ]
+            await self.run_process(fix_shebang_cmd, shell=False)
+            retire_executable.chmod(0o755)
 
     async def handle_event(self, event):
         js_file = await self.helpers.request(event.data)
@@ -215,12 +233,10 @@ class retirejs(BaseModule):
         cache_dir = self.helpers.cache_dir / "retire_cache"
         retire_dir = self.scan.helpers.tools_dir / "retirejs"
 
-        # Use the retire CLI script directly with our local node binary
-        local_node_dir = self.scan.helpers.tools_dir / "node"
-        retire_cli_script = retire_dir / "node_modules" / "retire" / "lib" / "cli.js"
+        retire_cli_script = retire_dir / "node_modules" / ".bin" / "retire"
 
         command = [
-            str(local_node_dir / "bin" / "node"),
+            str(self.scan.helpers.tools_dir / "node" / "bin" / "node"),
             str(retire_cli_script),
             "--outputformat",
             "json",
@@ -239,5 +255,5 @@ class retirejs(BaseModule):
         self.verbose(f"Running retire.js on {js_file}")
         self.verbose(f"retire.js command: {command}")
 
-        result = await self.run_process(command)
+        result = await self.run_process(command, shell=False)
         return result.stdout
