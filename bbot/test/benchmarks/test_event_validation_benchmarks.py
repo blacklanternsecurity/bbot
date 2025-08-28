@@ -356,7 +356,7 @@ class TestEventValidationBenchmarks:
                 "autodetection_success_rate": len(events_created) / len(event_data) if event_data else 0,
             }
 
-        result = benchmark(create_events_with_autodetection)
+        result = benchmark.pedantic(create_events_with_autodetection, iterations=50, rounds=10)
         assert result["events_created"] == len(event_data)  # Should create events for all data
         assert result["validation_errors"] == 0  # Should have no validation errors
         assert len(result["type_distribution"]) >= 3  # Should detect multiple event types
@@ -397,7 +397,7 @@ class TestEventValidationBenchmarks:
 
             return performance_metrics
 
-        result = benchmark(create_large_event_batch)
+        result = benchmark.pedantic(create_large_event_batch, iterations=50, rounds=10)
         assert result["events_created"] == result["total_processed"]  # Should process all successfully
         assert result["autodetection_failures"] == 0  # Should have no failures
         assert result["processing_efficiency"] == 1.0  # 100% efficiency
@@ -432,7 +432,7 @@ class TestEventValidationBenchmarks:
                 "bypass_autodetection": True,
             }
 
-        result = benchmark(create_events_explicit_types)
+        result = benchmark.pedantic(create_events_explicit_types, iterations=50, rounds=10)
         assert result["events_created"] == len(test_cases)  # Should create all events
         assert result["bypass_autodetection"]  # Confirms we bypassed auto-detection
         assert len(result["type_distribution"]) == 5  # Should have exactly 5 types
