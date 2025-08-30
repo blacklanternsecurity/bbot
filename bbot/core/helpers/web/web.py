@@ -384,6 +384,12 @@ class WebHelper(EngineClient):
         curl_command.append("-m")
         curl_command.append(str(timeout))
 
+        # mirror the web helper behavior
+        retries = self.parent_helper.web_config.get("http_retries", 1)
+        if retries > 0:
+            curl_command.extend(["--retry", str(retries)])
+            curl_command.append("--retry-all-errors")
+
         for k, v in headers.items():
             if isinstance(v, list):
                 for x in v:

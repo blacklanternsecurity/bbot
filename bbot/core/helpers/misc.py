@@ -2615,6 +2615,46 @@ async def as_completed(coros):
             yield task
 
 
+async def as_completed_with_limit(coros, max_concurrent):
+    """
+    Async generator that yields completed Tasks as they are completed, with concurrency control.
+
+    Args:
+        coros (iterable): An iterable of coroutine objects (NOT Tasks).
+        max_concurrent (int): Maximum number of concurrent tasks.
+
+    Yields:
+        asyncio.Task: A Task object that has completed its execution.
+
+    Examples:
+        >>> async def main():
+        ...     # Limit to 5 concurrent tasks
+        ...     async for task in as_completed_with_limit([coro1(), coro2(), coro3()], max_concurrent=5):
+        ...         result = task.result()
+        ...         print(f'Task completed with result: {result}')
+
+        >>> asyncio.run(main())
+    """
+    semaphore = asyncio.Semaphore(max_concurrent)
+
+    async def _semaphore_wrapper(coro):
+        """Wrap a coroutine with semaphore control"""
+        async with semaphore:
+            # Execute the coroutine while holding the semaphore
+            return await coro
+
+    # Wrap all coroutines with semaphore control and create tasks
+    wrapped_tasks = [asyncio.create_task(_semaphore_wrapper(coro)) for coro in coros]
+
+    # Use the standard as_completed logic on wrapped tasks
+    tasks = {task: task for task in wrapped_tasks}
+    while tasks:
+        done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            tasks.pop(task)
+            yield task
+
+
 def clean_dns_record(record):
     """
     Cleans and formats a given DNS record for further processing.
