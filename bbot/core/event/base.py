@@ -1608,7 +1608,7 @@ class VIRTUAL_HOST(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         virtual_host: str
-        discovery_technique: str
+        description: str
         url: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
