@@ -432,7 +432,7 @@ class virtualhost(BaseModule):
         skip_dns_host=False,
     ):
         if wordlist is None:
-            wordlist = self.wordlist
+            wordlist = self.brute_wordlist
 
         # Get baseline host for comparison and determine scheme from event
         baseline_host = event.parsed_url.netloc
