@@ -19,9 +19,9 @@ class virtualhost(BaseModule):
 
     special_virtualhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
     options = {
-        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
+        "brute_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "force_basehost": "",
-        "lines": 2000,
+        "brutelines": 2000,
         "subdomain_brute": False,
         "mutation_check": True,
         "special_hosts": True,
@@ -32,9 +32,9 @@ class virtualhost(BaseModule):
         "wordcloud_check": True,
     }
     options_desc = {
-        "wordlist": "Wordlist containing subdomains",
+        "brute_wordlist": "Wordlist containing subdomains",
         "force_basehost": "Use a custom base host (e.g. evilcorp.com) instead of the default behavior of using the current URL",
-        "lines": "take only the first N lines from the wordlist when finding directories",
+        "brute_lines": "take only the first N lines from the wordlist when finding directories",
         "subdomain_brute": "Enable subdomain brute-force on target host",
         "mutation_check": "Enable mutations check on target host",
         "special_hosts": "Enable testing of special virtual host list (localhost, etc.)",
@@ -51,7 +51,7 @@ class virtualhost(BaseModule):
         self.max_concurrent = self.config.get("max_concurrent_requests", 80)
         self.scanned_hosts = {}
         self.wordcloud_tried_hosts = set()
-        self.wordlist = await self.helpers.wordlist(self.config.get("wordlist"), lines=self.config.get("lines", 5000))
+        self.brute_wordlist = await self.helpers.wordlist(self.config.get("brute_wordlist"), lines=self.config.get("brute_lines", 2000))
         self.similarity_cache = {}  # Cache for similarity results
         return await super().setup()
 
@@ -91,6 +91,8 @@ class virtualhost(BaseModule):
                     "Target host Subdomain Brute-force",
                     normalized_url,
                     f".{basehost}",
+                    host_ip,
+                    is_https,
                     event,
                     "subdomain",
                     with_mutations=True,
