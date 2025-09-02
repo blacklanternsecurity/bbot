@@ -11,9 +11,11 @@ import ipaddress
 import regex as re
 import subprocess as sp
 
+
 from pathlib import Path
 from contextlib import suppress
 from unidecode import unidecode  # noqa F401
+from typing import Iterable, Awaitable, Optional
 from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 
@@ -2589,69 +2591,38 @@ def parse_port_string(port_string):
     return ports
 
 
-async def as_completed(coros):
+async def as_completed(
+    awaitables: Iterable[Awaitable],
+    max_concurrent: Optional[int] = None,
+):
     """
-    Async generator that yields completed Tasks as they are completed.
-
-    Args:
-        coros (iterable): An iterable of coroutine objects or asyncio Tasks.
-
-    Yields:
-        asyncio.Task: A Task object that has completed its execution.
-
-    Examples:
-        >>> async def main():
-        ...     async for task in as_completed([coro1(), coro2(), coro3()]):
-        ...         result = task.result()
-        ...         print(f'Task completed with result: {result}')
-
-        >>> asyncio.run(main())
+    Yield Task objects as they finish. If given coroutines, they are scheduled.
+    If given preexisting Tasks, they are used as-is. Concurrency limiting applies
+    only to coroutines that are scheduled here (existing Tasks may already be running).
     """
-    tasks = {coro if isinstance(coro, asyncio.Task) else asyncio.create_task(coro): coro for coro in coros}
-    while tasks:
-        done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
+    it = iter(awaitables)
+
+    def to_task(a):
+        return a if isinstance(a, asyncio.Task) else asyncio.create_task(a)
+
+    # Prime the running set up to the concurrency limit (or all, if unlimited)
+    running = set()
+    limit = max_concurrent or float("inf")
+    try:
+        while len(running) < limit:
+            running.add(to_task(next(it)))
+    except StopIteration:
+        pass
+
+    # Drain: yield completed tasks, backfill from the iterator as slots free up
+    while running:
+        done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
         for task in done:
-            tasks.pop(task)
-            yield task
-
-
-async def as_completed_with_limit(coros, max_concurrent):
-    """
-    Async generator that yields completed Tasks as they are completed, with concurrency control.
-
-    Args:
-        coros (iterable): An iterable of coroutine objects (NOT Tasks).
-        max_concurrent (int): Maximum number of concurrent tasks.
-
-    Yields:
-        asyncio.Task: A Task object that has completed its execution.
-
-    Examples:
-        >>> async def main():
-        ...     # Limit to 5 concurrent tasks
-        ...     async for task in as_completed_with_limit([coro1(), coro2(), coro3()], max_concurrent=5):
-        ...         result = task.result()
-        ...         print(f'Task completed with result: {result}')
-
-        >>> asyncio.run(main())
-    """
-    semaphore = asyncio.Semaphore(max_concurrent)
-
-    async def _semaphore_wrapper(coro):
-        """Wrap a coroutine with semaphore control"""
-        async with semaphore:
-            # Execute the coroutine while holding the semaphore
-            return await coro
-
-    # Wrap all coroutines with semaphore control and create tasks
-    wrapped_tasks = [asyncio.create_task(_semaphore_wrapper(coro)) for coro in coros]
-
-    # Use the standard as_completed logic on wrapped tasks
-    tasks = {task: task for task in wrapped_tasks}
-    while tasks:
-        done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            tasks.pop(task)
+            # Immediately backfill one slot per completed task, if more work remains
+            try:
+                running.add(to_task(next(it)))
+            except StopIteration:
+                pass
             yield task
 
 

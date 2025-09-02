@@ -482,7 +482,7 @@ class virtualhost(BaseModule):
 
         # Process results as they complete with concurrency control
         try:
-            async for completed in self.helpers.as_completed_with_limit(coros, self.max_concurrent):
+            async for completed in self.helpers.as_completed(coros, self.max_concurrent):
                 try:
                     result = completed.result()
                     if result == "CURLERROR_STOP":
@@ -494,7 +494,7 @@ class virtualhost(BaseModule):
                     self.critical(f"Unexpected exception during virtual host testing: {type(e).__name__}: {e}")
                     return []
         except CurlError as e:
-            self.critical(f"CurlError in as_completed_with_limit, stopping all tests: {e}")
+            self.critical(f"CurlError in as_completed, stopping all tests: {e}")
             return []
 
         # Final safeguard: check result count
