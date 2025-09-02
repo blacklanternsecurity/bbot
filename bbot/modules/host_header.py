@@ -15,7 +15,7 @@ class host_header(BaseModule):
     in_scope_only = True
     per_hostport_only = True
 
-    deps_apt = ["curl"]
+    deps_common = ["curl"]
 
     async def setup(self):
         self.subdomain_tags = {}

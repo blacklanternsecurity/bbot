@@ -12,6 +12,7 @@ class virtualhost(BaseModule):
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
 
     deps_pip = ["rapidfuzz", "xxhash"]
+    deps_common = ["curl"]
 
     SIMILARITY_THRESHOLD = 0.75
     CANARY_LENGTH = 12

@@ -39,6 +39,8 @@ class BaseSubmodule:
     severity = "INFO"
     paths = []
 
+    deps_common = ["curl"]
+
     def __init__(self, generic_ssrf):
         self.generic_ssrf = generic_ssrf
         self.test_paths = self.create_paths()

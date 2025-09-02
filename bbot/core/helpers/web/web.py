@@ -340,7 +340,11 @@ class WebHelper(EngineClient):
         if not url:
             raise CurlError("No URL supplied to CURL helper")
 
-        curl_command = ["curl", url, "-s"]
+        # Use BBOT-specific curl binary
+        bbot_curl = self.parent_helper.tools_dir / "curl"
+        if not bbot_curl.exists():
+            raise CurlError(f"BBOT curl binary not found at {bbot_curl}. Run dependency installation.")
+        curl_command = [str(bbot_curl), url, "-s"]
 
         raw_path = kwargs.get("raw_path", False)
         if raw_path:
