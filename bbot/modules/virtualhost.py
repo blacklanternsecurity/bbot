@@ -51,7 +51,9 @@ class virtualhost(BaseModule):
         self.max_concurrent = self.config.get("max_concurrent_requests", 80)
         self.scanned_hosts = {}
         self.wordcloud_tried_hosts = set()
-        self.brute_wordlist = await self.helpers.wordlist(self.config.get("brute_wordlist"), lines=self.config.get("brute_lines", 2000))
+        self.brute_wordlist = await self.helpers.wordlist(
+            self.config.get("brute_wordlist"), lines=self.config.get("brute_lines", 2000)
+        )
         self.similarity_cache = {}  # Cache for similarity results
         return await super().setup()
 
@@ -82,7 +84,6 @@ class virtualhost(BaseModule):
                 return None
 
             self.hugesuccess(f"VIRTUAL HOST WILDCARD CHECK PASSED FOR {normalized_url}")
-            self.hugesuccess(f"GOT SUBDOMAIN CANARY RESPONSE FOR {normalized_url}")
 
             # Phase 1: Main virtual host bruteforce
             if self.config.get("subdomain_brute", True):
@@ -279,21 +280,6 @@ class virtualhost(BaseModule):
             self.critical(f"Error checking accessibility of {url}: {e}")
             return False
 
-    async def _should_skip_accessible_host(self, probe_host, event):
-        """
-        Check if we should skip this virtual host because it's externally accessible.
-        Returns True if we should skip it, False if we should report it.
-        """
-        if self.config.get("require_inaccessible", True):
-            # We DO the check - if it's accessible, skip it
-            probe_url = f"{event.parsed_url.scheme}://{probe_host}/"
-            if await self._is_host_accessible(probe_url):
-                self.hugewarning(f"Skipping virtual host {probe_host} - externally accessible")
-                return True
-
-        # Either we don't do the check (require_inaccessible=False) or it's not accessible
-        return False
-
     async def _wildcard_canary_check(self, probe_scheme, probe_host, event, host_ip, probe_response):
         """Change one char in probe_host and test - if responses are similar, it's probably a wildcard"""
 
@@ -359,7 +345,7 @@ class virtualhost(BaseModule):
 
         if not canary_response:
             self.debug(f"Failed to get canary response for {normalized_url}, skipping virtual host detection")
-            return None
+            return []
 
         # Main discovery phase
         results = await self.curl_virtualhost(
@@ -398,7 +384,7 @@ class virtualhost(BaseModule):
             self.critical(
                 f"Found {len(results)} virtual hosts (limit: {max_results}), likely false positives - rejecting all results"
             )
-            return
+            return []
 
         # Emit all valid results
         for virtual_host_data in results:
@@ -506,7 +492,7 @@ class virtualhost(BaseModule):
             self.critical(
                 f"Found {len(virtual_host_results)} virtual hosts (limit: {max_results}), likely false positives - rejecting all results"
             )
-            return
+            return []
 
         # Return results for emission at _run_virtualhost_phase level
         return virtual_host_results
@@ -573,18 +559,23 @@ class virtualhost(BaseModule):
                 f"Canary consistency verified for {probe_host}. Still has code of {canary_response['http_code']} and response data of length {len(canary_response['response_data'])}"
             )
 
-        virtualhost_dict = {
-            "host": str(event.host),
-            "url": host,
-            "virtual_host": probe_host,
-            "description": self._build_description(discovery_method, probe_response),
-            "ip": host_ip,
-        }
-
         # Don't emit if this would be the same as the original netloc
         if probe_host != event.parsed_url.netloc:
-            # Optional: Check if this virtual host is externally accessible before reporting it
-            if await self._should_skip_accessible_host(probe_host, event):
+            # Check if this virtual host is externally accessible
+            probe_url = f"{event.parsed_url.scheme}://{probe_host}/"
+            is_externally_accessible = await self._is_host_accessible(probe_url)
+
+            virtualhost_dict = {
+                "host": str(event.host),
+                "url": host,
+                "virtual_host": probe_host,
+                "description": self._build_description(discovery_method, probe_response, is_externally_accessible),
+                "ip": host_ip,
+            }
+
+            # Skip if we require inaccessible hosts and this one is accessible
+            if self.config.get("require_inaccessible", True) and is_externally_accessible:
+                self.hugewarning(f"Skipping virtual host {probe_host} - externally accessible")
                 return None
 
             # Return data for emission at _run_virtualhost_phase level
@@ -721,7 +712,7 @@ class virtualhost(BaseModule):
             return soup.title.string.strip()
         return None
 
-    def _build_description(self, discovery_string, probe_response):
+    def _build_description(self, discovery_string, probe_response, is_externally_accessible=None):
         """Build detailed description with discovery technique and content info"""
         http_code = probe_response.get("http_code", "N/A")
         response_size = len(probe_response.get("response_data", ""))
@@ -733,6 +724,11 @@ class virtualhost(BaseModule):
         if title:
             description += f" [Title: {title}]"
         description += f" [Size: {response_size} bytes]"
+
+        # Add accessibility information if available
+        if is_externally_accessible is not None:
+            accessibility_status = "externally accessible" if is_externally_accessible else "not externally accessible"
+            description += f" [Access: {accessibility_status}]"
 
         return description
 
