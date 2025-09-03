@@ -28,7 +28,6 @@ class virtualhost(BaseModule):
         "certificate_sans": True,
         "max_concurrent_requests": 80,
         "require_inaccessible": True,
-        "canary_mode": "subdomain",
         "wordcloud_check": True,
     }
     options_desc = {
@@ -42,7 +41,6 @@ class virtualhost(BaseModule):
         "wordcloud_check": "Enable check using scan-wide wordcloud data on target host",
         "max_concurrent_requests": "Maximum number of concurrent virtual host requests",
         "require_inaccessible": "Only test virtual hosts that are not directly accessible (for discovering hidden content)",
-        "canary_mode": "Canary generation mode: 'subdomain' (default, adds random subdomain) or 'mutation' (mutates existing host)",
     }
 
     in_scope_only = True
@@ -474,14 +472,11 @@ class virtualhost(BaseModule):
             async for completed in self.helpers.as_completed(coros, self.max_concurrent):
                 try:
                     result = await completed
-                    if result == "CURLERROR_STOP":
-                        self.critical("Received CurlError signal, stopping all tests")
-                        return []
-                    elif result:
+                    if result:  # Only append non-None results
                         virtual_host_results.append(result)
                 except Exception as e:
                     self.critical(f"Unexpected exception during virtual host testing: {type(e).__name__}: {e}")
-                    return []
+                    # Continue processing other tasks instead of stopping everything
         except CurlError as e:
             self.critical(f"CurlError in as_completed, stopping all tests: {e}")
             return []
@@ -498,12 +493,12 @@ class virtualhost(BaseModule):
         return virtual_host_results
 
     async def _safe_test_virtualhost(self, *args, **kwargs):
-        """Wrapper that catches CurlError and returns signal instead of raising"""
+        """Wrapper that catches CurlError and returns None instead of raising"""
         try:
             return await self._test_virtualhost(*args, **kwargs)
         except CurlError as e:
-            self.critical(f"CurlError in virtualhost test: {e}")
-            return "CURLERROR_STOP"
+            self.warning(f"CurlError in virtualhost test (skipping this test): {e}")
+            return None
 
     async def _test_virtualhost(
         self,
@@ -614,12 +609,12 @@ class virtualhost(BaseModule):
         if probe_status in [301, 302]:
             redirect_url = probe_response.get("redirect_url", "")
             if str(event.parsed_url.netloc) in redirect_url:
-                self.critical(f"SKIPPING {probe_host} - redirects back to original domain {event.parsed_url.netloc}")
+                self.debug(f"SKIPPING {probe_host} - redirects back to original domain {event.parsed_url.netloc}")
                 return None
 
         waf_strings = self.helpers.get_waf_strings()
         if any(waf_string in probe_response["response_data"] for waf_string in waf_strings):
-            self.critical(f"SKIPPING {probe_host} - got WAF response")
+            self.debug(f"SKIPPING {probe_host} - got WAF response")
             return None
 
         # Calculate content similarity to canary (junk response)
