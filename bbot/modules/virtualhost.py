@@ -459,7 +459,6 @@ class virtualhost(BaseModule):
                 )
                 coros.append(coro)
 
-        self.critical(f"CREATED {len(coros)} COROUTINES FOR TESTING")
         self.debug(
             f"Testing {len(coros)} virtual hosts with max {self.max_concurrent} concurrent requests using {discovery_method} against {len(host_ips)} IPs..."
         )

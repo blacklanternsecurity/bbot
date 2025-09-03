@@ -2,7 +2,6 @@ from baddns.base import get_all_modules
 from baddns.lib.loader import load_signatures
 from .base import BaseModule
 
-import asyncio
 import logging
 
 
@@ -54,8 +53,17 @@ class baddns(BaseModule):
         self.debug(f"Enabled BadDNS Submodules: [{','.join(self.enabled_submodules)}]")
         return True
 
+    async def _run_module(self, module_instance):
+        """Wrapper coroutine that runs a module and returns both the module and result"""
+        try:
+            result = await module_instance.dispatch()
+            return module_instance, result
+        except Exception as e:
+            self.warning(f"Task for {module_instance} raised an error: {e}")
+            return module_instance, None
+
     async def handle_event(self, event):
-        tasks = []
+        coroutines = []
         for ModuleClass in self.select_modules():
             kwargs = {
                 "http_client_class": self.scan.helpers.web.AsyncClient,
@@ -70,16 +78,16 @@ class baddns(BaseModule):
                 kwargs["raw_query_retry_wait"] = 0
 
             module_instance = ModuleClass(event.data, **kwargs)
-            task = asyncio.create_task(module_instance.dispatch())
-            tasks.append((module_instance, task))
+            # Create wrapper coroutine that includes the module instance
+            coroutine = self._run_module(module_instance)
+            coroutines.append(coroutine)
 
-        async for completed_task in self.helpers.as_completed([task for _, task in tasks]):
-            module_instance = next((m for m, t in tasks if t == completed_task), None)
+        async for completed_coro in self.helpers.as_completed(coroutines):
             try:
-                task_result = await completed_task
+                module_instance, task_result = await completed_coro
             except Exception as e:
-                self.warning(f"Task for {module_instance} raised an error: {e}")
-                task_result = None
+                self.warning(f"Wrapper coroutine raised an error: {e}")
+                continue
 
             if task_result:
                 results = module_instance.analyze()
@@ -134,4 +142,4 @@ class baddns(BaseModule):
                                     tags=[f"baddns-{module_instance.name.lower()}"],
                                     context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.data}}',
                                 )
-                await module_instance.cleanup()
+            await module_instance.cleanup()

@@ -2592,25 +2592,22 @@ def parse_port_string(port_string):
 
 
 async def as_completed(
-    awaitables: Iterable[Awaitable],
+    coroutines: Iterable[Awaitable],
     max_concurrent: Optional[int] = None,
 ):
     """
-    Yield Task objects as they finish. If given coroutines, they are scheduled.
-    If given preexisting Tasks, they are used as-is. Concurrency limiting applies
-    only to coroutines that are scheduled here (existing Tasks may already be running).
+    Yield completed coroutines as they finish with optional concurrency limiting.
+    All coroutines are scheduled as tasks internally for execution.
     """
-    it = iter(awaitables)
-
-    def to_task(a):
-        return a if isinstance(a, asyncio.Task) else asyncio.create_task(a)
+    it = iter(coroutines)
 
     # Prime the running set up to the concurrency limit (or all, if unlimited)
     running = set()
     limit = max_concurrent or float("inf")
     try:
         while len(running) < limit:
-            running.add(to_task(next(it)))
+            coro = next(it)
+            running.add(asyncio.create_task(coro))
     except StopIteration:
         pass
 
@@ -2620,7 +2617,8 @@ async def as_completed(
         for task in done:
             # Immediately backfill one slot per completed task, if more work remains
             try:
-                running.add(to_task(next(it)))
+                coro = next(it)
+                running.add(asyncio.create_task(coro))
             except StopIteration:
                 pass
             yield task
