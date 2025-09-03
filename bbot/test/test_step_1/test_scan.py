@@ -111,7 +111,6 @@ async def test_task_scan_handle_event_timeout(bbot_scanner):
     class LongBatchModule(BaseModule):
         watched_events = ["IP_ADDRESS"]
         handled_event = False
-        canceled = False
         _name = "long_batch"
         _batch_size = 2
 

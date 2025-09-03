@@ -167,6 +167,35 @@ class TestExcavate2(TestExcavate):
         assert not root_page_confusion_2, "Incorrectly detected root-relative URL"
 
 
+class TestExcavateInScopeJavascript(TestExcavate):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["excavate", "httpx", "badsecrets"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<script>window.location.href = 'http://127.0.0.1:8888/script.js';</script>"
+        )
+        module_test.httpserver.expect_request("/script.js").respond_with_data(
+            "var = 'eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo';"
+        )
+
+    def check(self, module_test, events):
+        found_js_url_event = False
+        found_badsecrets_vulnerability = False
+        found_excavate_jwt_finding = False
+        for e in events:
+            if e.type == "URL" and e.data == "http://127.0.0.1:8888/script.js":
+                found_js_url_event = True
+            if e.type == "FINDING" and "JWT" in e.data["description"] and str(e.module) == "excavate":
+                found_excavate_jwt_finding = True
+            if e.type == "VULNERABILITY":
+                found_badsecrets_vulnerability = True
+
+        assert found_js_url_event, "Failed to find URL event for script.js"
+        assert found_badsecrets_vulnerability, "Failed to find BADSECRETs event from script.js"
+        assert found_excavate_jwt_finding, "Failed to find JWT finding from script.js"
+
+
 class TestExcavateRedirect(TestExcavate):
     targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/relative/", "http://127.0.0.1:8888/nonhttpredirect/"]
     config_overrides = {"scope": {"report_distance": 1}}

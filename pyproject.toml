@@ -74,7 +74,7 @@ uvicorn = ">=0.32,<0.36"
 fastapi = ">=0.115.5,<0.117.0"
 pytest-httpx = ">=0.35"
 pytest-benchmark = "^4.0.0"
-ruff = "0.12.10"
+ruff = "0.12.11"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"

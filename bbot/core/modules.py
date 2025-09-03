@@ -512,60 +512,6 @@ class ModuleLoader:
                         # then we have a module
                         return value
 
-    def recommend_dependencies(self, modules):
-        """
-        Returns a dictionary containing missing dependencies and their suggested resolutions
-
-        Needs work. For this we should probably be building a dependency graph
-        """
-        resolve_choices = {}
-        # step 1: build a dictionary containing event types and their associated modules
-        # {"IP_ADDRESS": set("masscan", "ipneighbor", ...)}
-        watched = {}
-        produced = {}
-        for modname in modules:
-            preloaded = self._preloaded.get(modname)
-            if preloaded:
-                for event_type in preloaded.get("watched_events", []):
-                    self.add_or_create(watched, event_type, modname)
-                for event_type in preloaded.get("produced_events", []):
-                    self.add_or_create(produced, event_type, modname)
-        watched_all = {}
-        produced_all = {}
-        for modname, preloaded in self.preloaded().items():
-            if preloaded:
-                for event_type in preloaded.get("watched_events", []):
-                    self.add_or_create(watched_all, event_type, modname)
-                for event_type in preloaded.get("produced_events", []):
-                    self.add_or_create(produced_all, event_type, modname)
-
-        # step 2: check to see if there are missing dependencies
-        for modname in modules:
-            preloaded = self._preloaded.get(modname)
-            module_type = preloaded.get("type", "unknown")
-            if module_type != "scan":
-                continue
-            watched_events = preloaded.get("watched_events", [])
-            missing_deps = {e: not self.check_dependency(e, modname, produced) for e in watched_events}
-            if all(missing_deps.values()):
-                for event_type in watched_events:
-                    if event_type == "SCAN":
-                        continue
-                    choices = produced_all.get(event_type, [])
-                    choices = set(choices)
-                    with suppress(KeyError):
-                        choices.remove(modname)
-                    if event_type not in resolve_choices:
-                        resolve_choices[event_type] = {}
-                    deps = resolve_choices[event_type]
-                    self.add_or_create(deps, "required_by", modname)
-                    for c in choices:
-                        choice_type = self._preloaded.get(c, {}).get("type", "unknown")
-                        if choice_type == "scan":
-                            self.add_or_create(deps, "recommended", c)
-
-        return resolve_choices
-
     def check_dependency(self, event_type, modname, produced):
         if event_type not in produced:
             return False

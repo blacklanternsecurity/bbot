@@ -636,7 +636,7 @@ class EngineServer(EngineBase):
         """
         if tasks:
             try:
-                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+                done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
                 return done
             except BaseException as e:
                 if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):
