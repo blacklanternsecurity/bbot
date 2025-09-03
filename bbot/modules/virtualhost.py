@@ -473,7 +473,7 @@ class virtualhost(BaseModule):
         try:
             async for completed in self.helpers.as_completed(coros, self.max_concurrent):
                 try:
-                    result = completed.result()
+                    result = await completed
                     if result == "CURLERROR_STOP":
                         self.critical("Received CurlError signal, stopping all tests")
                         return []
