@@ -181,7 +181,7 @@ def events(scan):
         )
         finding = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "FINDING", parent=scan.root_event)
         virtualhost = scan.make_event(
-            {"host": "evilcorp.com", "virtual_host": "www.evilcorp.com"}, "VIRTUAL_HOST", parent=scan.root_event
+            {"host": "evilcorp.com", "virtual_host": "www.evilcorp.com", "description": "Test virtual host"}, "VIRTUAL_HOST", parent=scan.root_event
         )
         http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
         storage_bucket = scan.make_event(
