@@ -17,7 +17,7 @@ class virtualhost(BaseModule):
     deps_pip = ["rapidfuzz", "xxhash"]
     deps_common = ["curl"]
 
-    SIMILARITY_THRESHOLD = 0.75
+    SIMILARITY_THRESHOLD = 0.6
     CANARY_LENGTH = 12
 
     special_virtualhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
@@ -50,6 +50,7 @@ class virtualhost(BaseModule):
 
     virtualhost_ignore_strings = [
         "We weren't able to find your Azure Front Door Service",
+        "The http request header is incorrect.",
     ]
 
     async def setup(self):
@@ -87,7 +88,7 @@ class virtualhost(BaseModule):
             baseline_response = await self.helpers.web.curl(url=f"{event.parsed_url.scheme}://{basehost}")
 
             if not await self._wildcard_canary_check(scheme, host, event, host_ip, baseline_response):
-                self.critical(f"SKIPPING {normalized_url} - failed virtual host wildcard check")
+                self.verbose(f"Skipping {normalized_url} - failed virtual host wildcard check")
                 return None
 
             # Phase 1: Main virtual host bruteforce
@@ -106,7 +107,7 @@ class virtualhost(BaseModule):
 
             # Phase 2: Check existing host for mutations
             if self.config.get("mutation_check", True):
-                self.critical(f"=== Starting mutations check on {normalized_url} ===")
+                self.verbose(f"=== Starting mutations check on {normalized_url} ===")
                 await self._run_virtualhost_phase(
                     "Mutations on target host",
                     normalized_url,
@@ -267,8 +268,7 @@ class virtualhost(BaseModule):
             else:
                 return False
         except CurlError as e:
-            # Error making request - treat as not accessible
-            self.critical(f"Error checking accessibility of {url}: {e}")
+            self.debug(f"Error checking accessibility of {url}: {e}")
             return False
 
     async def _wildcard_canary_check(self, probe_scheme, probe_host, event, host_ip, probe_response):
@@ -305,9 +305,11 @@ class virtualhost(BaseModule):
         similarity = self.get_content_similarity(probe_response, final_canary_response)
         result = similarity <= self.SIMILARITY_THRESHOLD
 
-        self.critical(
-            f"Wildcard check: {probe_host} vs {modified_host} similarity: {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD}) -> {'PASS' if result else 'FAIL (wildcard)'}"
-        )
+        # Only log when wildcard is detected (failure case)
+        if not result:
+            self.verbose(
+                f"Wildcard check: {probe_host} vs {modified_host} similarity: {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD}) -> FAIL (wildcard detected)"
+            )
         return result  # True if they're different (good), False if similar (wildcard)
 
     async def _run_virtualhost_phase(
@@ -483,29 +485,24 @@ class virtualhost(BaseModule):
             max_results = 50  # Get limit for early exit check
 
             async for completed in self.helpers.as_completed(coroutine_generator, self.max_concurrent):
-                try:
-                    result = await completed
-                    if result:  # Only append non-None results
-                        virtual_host_results.append(result)
+                result = await completed
+                if result:  # Only append non-None results
+                    virtual_host_results.append(result)
 
-                        # Early exit if we're clearly hitting false positives
-                        if len(virtual_host_results) >= max_results:
-                            self.warning(
-                                f"Early exit: found {len(virtual_host_results)} virtual hosts (limit: {max_results}), likely false positives - stopping further tests"
-                            )
-                            break
-
-                except Exception as e:
-                    self.critical(f"Unexpected exception during virtual host testing: {type(e).__name__}: {e}")
-                    # Continue processing other tasks instead of stopping everything
+                    # Early exit if we're clearly hitting false positives
+                    if len(virtual_host_results) >= max_results:
+                        self.warning(
+                            f"Early exit: found {len(virtual_host_results)} virtual hosts (limit: {max_results}), likely false positives - stopping further tests"
+                        )
+                        break
         except CurlError as e:
-            self.critical(f"CurlError in as_completed, stopping all tests: {e}")
+            self.warning(f"CurlError in as_completed, stopping all tests: {e}")
             return []
 
         # Final safeguard: check result count (now mostly redundant due to early exit)
         max_results = 50  # Configurable threshold
         if len(virtual_host_results) > max_results:
-            self.critical(
+            self.verbose(
                 f"Found {len(virtual_host_results)} virtual hosts (limit: {max_results}), likely false positives - rejecting all results"
             )
             return []
@@ -570,12 +567,10 @@ class virtualhost(BaseModule):
         if not await self._verify_canary(
             event, canary_response, canary_mode, normalized_url, probe_host, is_https, basehost, host_ip
         ):
-            self.critical(f"Canary changed since initial test, rejecting {probe_host}")
-            raise CurlError(f"Canary changed since initial test, rejecting {probe_host}")
-        else:
-            self.critical(
-                f"Canary consistency verified for {probe_host}. Still has code of {canary_response['http_code']} and response data of length {len(canary_response['response_data'])}"
+            self.verbose(
+                f"Canary changed since initial test, rejecting {probe_host}. Original canary had code {canary_response['http_code']} and response data of length {len(canary_response['response_data'])}"
             )
+            raise CurlError(f"Canary changed since initial test, rejecting {probe_host}")
 
         # Don't emit if this would be the same as the original netloc
         if probe_host != event.parsed_url.netloc:
@@ -656,11 +651,9 @@ class virtualhost(BaseModule):
 
         # Debug logging only when we think we found a match
         if similarity <= self.SIMILARITY_THRESHOLD:
-            self.critical(
-                f"POTENTIAL MATCH DEBUG: {probe_host} vs canary = {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD})"
+            self.verbose(
+                f"POTENTIAL MATCH: {probe_host} vs canary - similarity: {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD}), probe status: {probe_status}, canary status: {canary_status}"
             )
-            self.critical(f"PROBE STATUS: {probe_status}")
-            self.critical(f"CANARY STATUS: {canary_status}")
 
         return similarity
 
@@ -719,41 +712,21 @@ class virtualhost(BaseModule):
 
         # Check if HTTP codes are different first (hard failure)
         if original_canary_response["http_code"] != current_canary_response["http_code"]:
-            self.hugewarning(f"CANARY HTTP CODE CHANGED for {normalized_url}")
-
-            # Original canary details
-            self.hugewarning(
-                f"ORIGINAL CANARY - URL: {original_canary_response.get('url', 'N/A')} | Method: {original_canary_response.get('method', 'N/A')} | Status: {original_canary_response.get('http_code', 'N/A')} | Size: {len(original_canary_response.get('response_data', ''))} bytes"
+            self.verbose(
+                f"CANARY HTTP CODE CHANGED for {normalized_url} - Original: {original_canary_response.get('http_code', 'N/A')} ({len(original_canary_response.get('response_data', ''))} bytes), Current: {current_canary_response.get('http_code', 'N/A')} ({len(current_canary_response.get('response_data', ''))} bytes)"
             )
-
-            # Current canary details
-            self.hugewarning(
-                f"CURRENT CANARY  - URL: {current_canary_response.get('url', 'N/A')} | Method: {current_canary_response.get('method', 'N/A')} | Status: {current_canary_response.get('http_code', 'N/A')} | Size: {len(current_canary_response.get('response_data', ''))} bytes"
-            )
-
             return False
 
-        # Fast path: if response data is exactly the same, we're good
+        # if response data is exactly the same, we're good
         if original_canary_response["response_data"] == current_canary_response["response_data"]:
             return True
 
-        # Fallback: use similarity comparison for response data (allows slight differences)
+        # Fallback - use similarity comparison for response data (allows slight differences)
         similarity = self.get_content_similarity(original_canary_response, current_canary_response)
         if similarity < self.SIMILARITY_THRESHOLD:
-            self.hugewarning(
-                f"CANARY SIMILARITY CHANGED for {normalized_url} - similarity: {similarity:.3f} below threshold {self.SIMILARITY_THRESHOLD}"
+            self.verbose(
+                f"CANARY SIMILARITY CHANGED for {normalized_url} - similarity: {similarity:.3f} below threshold {self.SIMILARITY_THRESHOLD} - Original: {original_canary_response.get('http_code', 'N/A')} ({len(original_canary_response.get('response_data', ''))} bytes), Current: {current_canary_response.get('http_code', 'N/A')} ({len(current_canary_response.get('response_data', ''))} bytes)"
             )
-
-            # Original canary details
-            self.hugewarning(
-                f"ORIGINAL CANARY - URL: {original_canary_response.get('url', 'N/A')} | Method: {original_canary_response.get('method', 'N/A')} | Status: {original_canary_response.get('http_code', 'N/A')} | Size: {len(original_canary_response.get('response_data', ''))} bytes"
-            )
-
-            # Current canary details
-            self.hugewarning(
-                f"CURRENT CANARY  - URL: {current_canary_response.get('url', 'N/A')} | Method: {current_canary_response.get('method', 'N/A')} | Status: {current_canary_response.get('http_code', 'N/A')} | Size: {len(current_canary_response.get('response_data', ''))} bytes"
-            )
-
             return False
         return True
 
@@ -806,8 +779,9 @@ class virtualhost(BaseModule):
             return
 
         tempfile = self.helpers.tempfile(list(self.helpers.word_cloud.keys()), pipe=False)
-        self.hugeinfo(f"=== Starting wordcloud mutations on {len(self.scanned_hosts)} hosts ===")
-        self.hugeinfo(f"Using {len(list(self.helpers.word_cloud.keys()))} words from wordcloud")
+        self.verbose(
+            f"Starting wordcloud mutations on {len(self.scanned_hosts)} hosts using {len(list(self.helpers.word_cloud.keys()))} words from wordcloud"
+        )
 
         for host, event in self.scanned_hosts.items():
             if host not in self.wordcloud_tried_hosts:
