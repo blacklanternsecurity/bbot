@@ -24,7 +24,7 @@ class virtualhost(BaseModule):
     options = {
         "brute_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "force_basehost": "",
-        "brutelines": 2000,
+        "brute_lines": 2000,
         "subdomain_brute": False,
         "mutation_check": True,
         "special_hosts": True,
