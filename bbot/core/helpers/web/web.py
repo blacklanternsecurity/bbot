@@ -479,7 +479,7 @@ class WebHelper(EngineClient):
         # Always add JSON --write-out format with separator
         curl_command.extend(["-w", "\\n---CURL_METADATA---\\n%{json}"])
 
-        log.verbose(f"Running curl command: {curl_command}")
+        log.debug(f"Running curl command: {curl_command}")
         output = (await self.parent_helper.run(curl_command)).stdout
 
         # Parse the output to separate content and metadata
