@@ -123,6 +123,3 @@ class securitytxt(BaseModule):
 
                         if found_url != url and self._urls is True:
                             await self.emit_event(found_url, "URL_UNVERIFIED", parent=event, tags=tags)
-
-
-# EOF

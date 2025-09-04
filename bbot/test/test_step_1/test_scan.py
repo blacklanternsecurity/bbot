@@ -111,7 +111,6 @@ async def test_task_scan_handle_event_timeout(bbot_scanner):
     class LongBatchModule(BaseModule):
         watched_events = ["IP_ADDRESS"]
         handled_event = False
-        canceled = False
         _name = "long_batch"
         _batch_size = 2
 
@@ -147,24 +146,18 @@ async def test_task_scan_handle_event_timeout(bbot_scanner):
 
 @pytest.mark.asyncio
 async def test_url_extension_handling(bbot_scanner):
-    scan = bbot_scanner(config={"url_extension_blacklist": ["css"], "url_extension_httpx_only": ["js"]})
+    scan = bbot_scanner(config={"url_extension_blacklist": ["css"]})
     await scan._prep()
     assert scan.url_extension_blacklist == {"css"}
-    assert scan.url_extension_httpx_only == {"js"}
     good_event = scan.make_event("https://evilcorp.com/a.txt", "URL", tags=["status-200"], parent=scan.root_event)
     bad_event = scan.make_event("https://evilcorp.com/a.css", "URL", tags=["status-200"], parent=scan.root_event)
-    httpx_event = scan.make_event("https://evilcorp.com/a.js", "URL", tags=["status-200"], parent=scan.root_event)
     assert "blacklisted" not in bad_event.tags
-    assert "httpx-only" not in httpx_event.tags
     result = await scan.ingress_module.handle_event(good_event)
     assert result is None
     result, reason = await scan.ingress_module.handle_event(bad_event)
     assert result is False
     assert reason == "event is blacklisted"
     assert "blacklisted" in bad_event.tags
-    result = await scan.ingress_module.handle_event(httpx_event)
-    assert result is None
-    assert "httpx-only" in httpx_event.tags
 
     await scan._cleanup()
 

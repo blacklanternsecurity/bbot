@@ -65,7 +65,7 @@ class RegexHelper:
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
             for task in done:
                 result = task.result()

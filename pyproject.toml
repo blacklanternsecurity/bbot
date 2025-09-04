@@ -73,7 +73,8 @@ pytest-asyncio = "1.1.0"
 uvicorn = ">=0.32,<0.36"
 fastapi = ">=0.115.5,<0.117.0"
 pytest-httpx = ">=0.35"
-ruff = "0.12.10"
+pytest-benchmark = "^4.0.0"
+ruff = "0.12.11"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"
@@ -91,6 +92,16 @@ env = [
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
+addopts = "--benchmark-skip"
+
+# Benchmark configuration for pytest-benchmark
+[tool.pytest-benchmark]
+group_by = "group"
+sort = "mean"
+warmup = true
+warmup_iterations = 3
+disable_gc = true
+min_rounds = 5
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]

@@ -22,8 +22,8 @@ def test_bbot_multiprocess(bbot_httpserver):
     queue = multiprocessing.Queue()
     events_process = multiprocessing.Process(target=run_bbot_multiprocess, args=(queue,))
     events_process.start()
-    events_process.join()
-    events = queue.get()
+    events_process.join(timeout=300)
+    events = queue.get(timeout=10)
     assert len(events) >= 3
     scan_events = [e for e in events if e["type"] == "SCAN"]
     assert len(scan_events) == 2
