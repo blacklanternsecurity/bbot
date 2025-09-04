@@ -14,7 +14,7 @@ class virtualhost(BaseModule):
     flags = ["active", "aggressive", "slow", "deadly"]
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
 
-    deps_pip = ["rapidfuzz", "xxhash"]
+    deps_pip = ["rapidfuzz"]
     deps_common = ["curl"]
 
     SIMILARITY_THRESHOLD = 0.6
@@ -785,15 +785,15 @@ class virtualhost(BaseModule):
 
         for host, event in self.scanned_hosts.items():
             if host not in self.wordcloud_tried_hosts:
-                event.parsed_url = urlparse(host)
+                host_parsed_url = urlparse(host)
 
                 if self.config.get("force_basehost"):
                     basehost = self.config.get("force_basehost")
                 else:
-                    basehost = self.helpers.parent_domain(event.parsed_url.netloc)
+                    basehost = self.helpers.parent_domain(host_parsed_url.netloc)
 
                 # Get fresh canary and original response for this host
-                is_https = event.parsed_url.scheme == "https"
+                is_https = host_parsed_url.scheme == "https"
                 host_ip = next(iter(event.resolved_hosts))
 
                 await self._run_virtualhost_phase(
