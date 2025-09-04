@@ -48,6 +48,10 @@ class virtualhost(BaseModule):
 
     in_scope_only = True
 
+    virtualhost_ignore_strings = [
+        "We weren't able to find your Azure Front Door Service",
+    ]
+
     async def setup(self):
         self.max_concurrent = self.config.get("max_concurrent_requests", 80)
         self.scanned_hosts = {}
@@ -56,8 +60,10 @@ class virtualhost(BaseModule):
             self.config.get("brute_wordlist"), lines=self.config.get("brute_lines", 2000)
         )
         self.similarity_cache = {}  # Cache for similarity results
-        self.waf_strings = self.helpers.get_waf_strings()  # Cache once
-        return await super().setup()
+
+        self.waf_strings = self.helpers.get_waf_strings() + self.virtualhost_ignore_strings
+
+        return True
 
     async def handle_event(self, event):
         if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):
