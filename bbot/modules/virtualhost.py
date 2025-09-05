@@ -17,33 +17,36 @@ class virtualhost(BaseModule):
     deps_pip = ["rapidfuzz"]
     deps_common = ["curl"]
 
-    SIMILARITY_THRESHOLD = 0.6
+    SIMILARITY_THRESHOLD = 0.5
     CANARY_LENGTH = 12
+    MAX_RESULTS_FLOOD_PROTECTION = 50
 
     special_virtualhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
     options = {
         "brute_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "force_basehost": "",
         "brute_lines": 2000,
-        "subdomain_brute": False,
+        "subdomain_brute": True,
         "mutation_check": True,
-        "special_hosts": True,
-        "certificate_sans": True,
+        "special_hosts": False,
+        "certificate_sans": False,
         "max_concurrent_requests": 80,
         "require_inaccessible": True,
-        "wordcloud_check": True,
+        "wordcloud_check": False,
+        "report_interesting_default_content": True,
     }
     options_desc = {
         "brute_wordlist": "Wordlist containing subdomains",
         "force_basehost": "Use a custom base host (e.g. evilcorp.com) instead of the default behavior of using the current URL",
         "brute_lines": "take only the first N lines from the wordlist when finding directories",
         "subdomain_brute": "Enable subdomain brute-force on target host",
-        "mutation_check": "Enable mutations check on target host",
+        "mutation_check": "Enable trying mutations of the target host",
         "special_hosts": "Enable testing of special virtual host list (localhost, etc.)",
         "certificate_sans": "Enable extraction and testing of Subject Alternative Names from certificates",
         "wordcloud_check": "Enable check using scan-wide wordcloud data on target host",
         "max_concurrent_requests": "Maximum number of concurrent virtual host requests",
         "require_inaccessible": "Only test virtual hosts that are not directly accessible (for discovering hidden content)",
+        "report_interesting_default_content": "Report interesting default content",
     }
 
     in_scope_only = True
@@ -81,15 +84,30 @@ class virtualhost(BaseModule):
             if self.config.get("force_basehost"):
                 basehost = self.config.get("force_basehost")
             else:
-                basehost = self.helpers.parent_domain(event.parsed_url.netloc)
+                basehost = self.helpers.parent_domain(event.parsed_url.hostname)
             is_https = event.parsed_url.scheme == "https"
 
             host_ip = next(iter(event.resolved_hosts))
-            baseline_response = await self.helpers.web.curl(url=f"{event.parsed_url.scheme}://{basehost}")
+            if is_https:
+                port = event.parsed_url.port or 443
+                baseline_response = await self.helpers.web.curl(
+                    url=f"https://{host}:{port}/",
+                    resolve={"host": host, "port": port, "ip": host_ip},
+                )
+            else:
+                baseline_response = await self.helpers.web.curl(
+                    url=normalized_url,
+                    headers={"Host": host},
+                    resolve={"host": event.parsed_url.hostname, "port": event.parsed_url.port or 80, "ip": host_ip},
+                )
 
             if not await self._wildcard_canary_check(scheme, host, event, host_ip, baseline_response):
-                self.verbose(f"Skipping {normalized_url} - failed virtual host wildcard check")
+                self.verbose(
+                    f"WILDCARD CHECK FAILED in handle_event: Skipping {normalized_url} - failed virtual host wildcard check"
+                )
                 return None
+            else:
+                self.verbose(f"WILDCARD CHECK PASSED in handle_event: Proceeding with {normalized_url}")
 
             # Phase 1: Main virtual host bruteforce
             if self.config.get("subdomain_brute", True):
@@ -102,7 +120,6 @@ class virtualhost(BaseModule):
                     is_https,
                     event,
                     "subdomain",
-                    with_mutations=True,
                 )
 
             # Phase 2: Check existing host for mutations
@@ -211,6 +228,31 @@ class virtualhost(BaseModule):
         )
         return subject_alt_names
 
+    async def _report_interesting_default_content(self, event, canary_hostname, host_ip, canary_response):
+        discovery_method = "Interesting Default Content (from intentionally-incorrect canary host)"
+        # Build URL with explicit authority to avoid double-port issues
+        authority = (
+            f"{event.parsed_url.hostname}:{event.parsed_url.port}"
+            if event.parsed_url.port is not None
+            else event.parsed_url.hostname
+        )
+        # Use the explicit canary hostname used in the wildcard request (works for HTTP Host and HTTPS SNI)
+        canary_host = (canary_hostname or "").split(":")[0]
+        virtualhost_dict = {
+            "host": str(event.host),
+            "url": f"{event.parsed_url.scheme}://{authority}/",
+            "virtual_host": canary_host,
+            "description": self._build_description(discovery_method, canary_response, True, host_ip),
+            "ip": host_ip,
+        }
+
+        await self.emit_event(
+            virtualhost_dict,
+            "VIRTUAL_HOST",
+            parent=event,
+            context=f"{{module}} discovered virtual host via {discovery_method} for {event.data} and found {{event.type}}: {canary_host}",
+        )
+
     def _get_canary_random_host(self, host, basehost, mode="subdomain"):
         """Generate a random host for the canary"""
         # Seed RNG with domain to get consistent canary hosts for same domain
@@ -223,9 +265,7 @@ class virtualhost(BaseModule):
             canary_host = f"{random_prefix}-{host}"
         elif mode == "subdomain":
             # Default subdomain mode - add random subdomain
-            canary_host = (
-                "".join(random.choice(string.ascii_lowercase) for i in range(self.CANARY_LENGTH)) + f".{basehost}"
-            )
+            canary_host = "".join(random.choice(string.ascii_lowercase) for i in range(self.CANARY_LENGTH)) + basehost
         elif mode == "random":
             # Fully random hostname with .com TLD
             random_host = "".join(random.choice(string.ascii_lowercase) for i in range(self.CANARY_LENGTH))
@@ -239,7 +279,8 @@ class virtualhost(BaseModule):
         """Setup canary response for comparison using the appropriate technique. Returns canary response or None on failure."""
 
         parsed = urlparse(normalized_url)
-        host = parsed.netloc
+        # Use hostname without port to avoid duplicating port in canary host
+        host = parsed.hostname or (parsed.netloc.split(":")[0] if ":" in parsed.netloc else parsed.netloc)
 
         # Seed RNG with domain to get consistent canary hosts for same domain
         canary_host = self._get_canary_random_host(host, basehost, mode)
@@ -252,7 +293,11 @@ class virtualhost(BaseModule):
                 resolve={"host": canary_host, "port": port, "ip": host_ip},
             )
         else:
-            canary_response = await self.helpers.web.curl(url=normalized_url, headers={"Host": canary_host})
+            canary_response = await self.helpers.web.curl(
+                url=normalized_url,
+                headers={"Host": canary_host},
+                resolve={"host": parsed.hostname, "port": parsed.port or 80, "ip": host_ip},
+            )
 
         return canary_response
 
@@ -274,42 +319,91 @@ class virtualhost(BaseModule):
     async def _wildcard_canary_check(self, probe_scheme, probe_host, event, host_ip, probe_response):
         """Change one char in probe_host and test - if responses are similar, it's probably a wildcard"""
 
-        # Find first alphabetic character and change it, fallback to first character
-        modified_host = None
-        for i, char in enumerate(probe_host):
+        # Extract hostname and port separately to avoid corrupting the port portion
+        original_hostname = event.parsed_url.hostname or ""
+        original_port = event.parsed_url.port
+        original_url = f"{probe_scheme}://{event.parsed_url.netloc}/"
+
+        # Try to mutate the first alphabetic character in the hostname
+        modified_hostname = None
+        for i, char in enumerate(original_hostname):
             if char.isalpha():
                 new_char = "z" if char != "z" else "a"
-                modified_host = probe_host[:i] + new_char + probe_host[i + 1 :]
+                modified_hostname = original_hostname[:i] + new_char + original_hostname[i + 1 :]
                 break
 
-        if modified_host is None:
-            # Fallback: generate random hostname of similar length
-            modified_host = "".join(random.choice(string.ascii_lowercase) for _ in range(len(probe_host)))
+        if modified_hostname is None:
+            # Fallback: generate random hostname of similar length (hostname-only)
+            modified_hostname = "".join(
+                random.choice(string.ascii_lowercase) for _ in range(len(original_hostname) or 12)
+            )
+
+        # Build modified host strings for each protocol
+        https_modified_host_for_sni = modified_hostname
+        http_modified_host_for_header = f"{modified_hostname}:{original_port}" if original_port else modified_hostname
 
         # Test modified host
         if probe_scheme == "https":
             port = event.parsed_url.port or 443
-            final_canary_response = await self.helpers.web.curl(
-                url=f"https://{modified_host}:{port}/", resolve={"host": modified_host, "port": port, "ip": host_ip}
+            wildcard_canary_response = await self.helpers.web.curl(
+                url=f"https://{https_modified_host_for_sni}:{port}/",
+                resolve={"host": https_modified_host_for_sni, "port": port, "ip": host_ip},
             )
         else:
-            final_canary_response = await self.helpers.web.curl(
-                url=f"{probe_scheme}://{probe_host}", headers={"Host": modified_host}
+            wildcard_canary_response = await self.helpers.web.curl(
+                url=f"{probe_scheme}://{event.parsed_url.netloc}/",
+                headers={"Host": http_modified_host_for_header},
+                resolve={"host": event.parsed_url.hostname, "port": event.parsed_url.port or 80, "ip": host_ip},
             )
 
-        if not final_canary_response or final_canary_response["http_code"] == 0:
-            self.debug(f"Wildcard check: {modified_host} failed to respond, assuming {probe_host} is valid")
+        if not wildcard_canary_response or wildcard_canary_response["http_code"] == 0:
+            self.debug(
+                f"Wildcard check: {http_modified_host_for_header} failed to respond, assuming {probe_host} is valid"
+            )
             return True  # Modified failed, original probably valid
 
+        # If HTTP status codes differ, consider this a pass (not wildcard)
+        if probe_response.get("http_code") != wildcard_canary_response.get("http_code"):
+            self.debug(
+                f"WILDCARD CHECK OK (status mismatch): {probe_host} ({probe_response.get('http_code')}) vs {http_modified_host_for_header} ({wildcard_canary_response.get('http_code')})"
+            )
+            if (
+                self.config.get("report_interesting_default_content", True)
+                and wildcard_canary_response.get("http_code") == 200
+                and len(wildcard_canary_response.get("response_data", "")) > 40
+            ):
+                canary_hostname = (
+                    https_modified_host_for_sni if probe_scheme == "https" else http_modified_host_for_header
+                )
+                await self._report_interesting_default_content(
+                    event, canary_hostname, host_ip, wildcard_canary_response
+                )
+            return True
+
         # Compare original probe response with modified response
-        similarity = self.get_content_similarity(probe_response, final_canary_response)
+        similarity = self.get_content_similarity(probe_response, wildcard_canary_response)
         result = similarity <= self.SIMILARITY_THRESHOLD
 
-        # Only log when wildcard is detected (failure case)
         if not result:
-            self.verbose(
-                f"Wildcard check: {probe_host} vs {modified_host} similarity: {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD}) -> FAIL (wildcard detected)"
+            self.debug(
+                f"WILDCARD DETECTED: {probe_host} vs {http_modified_host_for_header} similarity: {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD}) -> FAIL (wildcard detected)"
             )
+        else:
+            self.debug(
+                f"WILDCARD CHECK OK: {probe_host} vs {http_modified_host_for_header} similarity: {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD}) -> PASS (not wildcard)"
+            )
+            if (
+                self.config.get("report_interesting_default_content", True)
+                and wildcard_canary_response.get("http_code") == 200
+                and len(wildcard_canary_response.get("response_data", "")) > 40
+            ):
+                canary_hostname = (
+                    https_modified_host_for_sni if probe_scheme == "https" else http_modified_host_for_header
+                )
+                await self._report_interesting_default_content(
+                    event, canary_hostname, host_ip, wildcard_canary_response
+                )
+
         return result  # True if they're different (good), False if similar (wildcard)
 
     async def _run_virtualhost_phase(
@@ -323,7 +417,6 @@ class virtualhost(BaseModule):
         canary_mode,
         wordlist=None,
         skip_dns_host=False,
-        with_mutations=False,
     ):
         """Helper method to run a virtual host discovery phase and optionally mutations"""
 
@@ -335,7 +428,6 @@ class virtualhost(BaseModule):
             self.debug(f"Failed to get canary response for {normalized_url}, skipping virtual host detection")
             return []
 
-        # Main discovery phase
         results = await self.curl_virtualhost(
             discovery_method,
             normalized_url,
@@ -346,32 +438,6 @@ class virtualhost(BaseModule):
             wordlist,
             skip_dns_host,
         )
-        if results:
-            if with_mutations:
-                for virtual_host_data in results:
-                    mutation_wordlist = self.mutations_check(virtual_host_data["probe_host"])
-                    if mutation_wordlist:
-                        self.verbose(f"=== Starting mutations for {virtual_host_data['probe_host']} ===")
-                        mutation_results = await self.curl_virtualhost(
-                            f"Mutations on {virtual_host_data['probe_host']}",
-                            normalized_url,
-                            basehost,
-                            event,
-                            canary_response,
-                            canary_mode,
-                            wordlist=mutation_wordlist,
-                            skip_dns_host=skip_dns_host,
-                        )
-                        if mutation_results:
-                            results.extend(mutation_results)
-
-        # Final safeguard: check total result count
-        max_results = 50  # Configurable threshold
-        if len(results) > max_results:
-            self.warning(
-                f"Found {len(results)} virtual hosts for host {event.host} (limit: {max_results}), likely false positives - rejecting all results"
-            )
-            return []
 
         # Emit all valid results
         for virtual_host_data in results:
@@ -391,33 +457,6 @@ class virtualhost(BaseModule):
                     parent=event,
                     tags=["virtual-host"],
                     context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.data} and found {{event.type}}: {{event.data}}",
-                )
-
-    def _generate_virtualhost_coroutines(
-        self,
-        candidates_to_check,
-        host_ips,
-        normalized_url,
-        basehost,
-        event,
-        canary_response,
-        canary_mode,
-        skip_dns_host,
-        discovery_method,
-    ):
-        """Generator that yields virtual host test coroutines on-demand"""
-        for host_ip in host_ips:
-            for probe_host in candidates_to_check:
-                yield self._safe_test_virtualhost(
-                    normalized_url,
-                    probe_host,
-                    basehost,
-                    event,
-                    canary_response,
-                    canary_mode,
-                    skip_dns_host,
-                    host_ip,
-                    discovery_method,
                 )
 
     async def curl_virtualhost(
@@ -443,10 +482,14 @@ class virtualhost(BaseModule):
             word = word.strip()
             if not word:
                 continue
+
             # Construct virtual host header
             if basehost:
+                # Wordlist entries are subdomain prefixes - append basehost
                 probe_host = f"{word}{basehost}"
+
             else:
+                # No basehost - use as-is
                 probe_host = word
 
             # Skip if this would be the same as the original host
@@ -460,8 +503,8 @@ class virtualhost(BaseModule):
         host_ips = event.resolved_hosts
         total_tests = len(candidates_to_check) * len(host_ips)
 
-        self.debug(
-            f"Testing {total_tests} virtual hosts with max {self.max_concurrent} concurrent requests using {discovery_method} against {len(host_ips)} IPs..."
+        self.verbose(
+            f"Initiating {total_tests} virtual host tests ({len(candidates_to_check)} candidates × {len(host_ips)} IPs) with max {self.max_concurrent} concurrent requests"
         )
 
         # Collect all virtual host results before emitting
@@ -469,54 +512,54 @@ class virtualhost(BaseModule):
 
         # Process results as they complete with concurrency control
         try:
-            # Use generator to create coroutines on-demand
-            coroutine_generator = self._generate_virtualhost_coroutines(
-                candidates_to_check,
-                host_ips,
-                normalized_url,
-                basehost,
-                event,
-                canary_response,
-                canary_mode,
-                skip_dns_host,
-                discovery_method,
+            # Build coroutines on-demand without wrapper
+            coroutines = (
+                self._test_virtualhost(
+                    normalized_url,
+                    probe_host,
+                    basehost,
+                    event,
+                    canary_response,
+                    canary_mode,
+                    skip_dns_host,
+                    host_ip,
+                    discovery_method,
+                )
+                for host_ip in host_ips
+                for probe_host in candidates_to_check
             )
 
-            max_results = 50  # Get limit for early exit check
-
-            async for completed in self.helpers.as_completed(coroutine_generator, self.max_concurrent):
-                result = await completed
+            async for completed in self.helpers.as_completed(coroutines, self.max_concurrent):
+                try:
+                    result = await completed
+                except CurlError as e:
+                    if getattr(self.scan, "stopping", False) or getattr(self.scan, "aborting", False):
+                        self.debug(f"CurlError during shutdown (suppressed): {e}")
+                        break
+                    self.warning(f"CurlError in virtualhost test (skipping this test): {e}")
+                    continue
                 if result:  # Only append non-None results
                     virtual_host_results.append(result)
+                    self.debug(
+                        f"ADDED RESULT {len(virtual_host_results)}: {result['probe_host']} (similarity: {result['similarity']:.3f}) [Status: {result['status_code']} | Size: {result['content_length']} bytes]"
+                    )
 
                     # Early exit if we're clearly hitting false positives
-                    if len(virtual_host_results) >= max_results:
+                    if len(virtual_host_results) >= self.MAX_RESULTS_FLOOD_PROTECTION:
                         self.warning(
-                            f"Early exit: found {len(virtual_host_results)} virtual hosts (limit: {max_results}), likely false positives - stopping further tests"
+                            f"RESULT FLOOD DETECTED: found {len(virtual_host_results)} virtual hosts (limit: {self.MAX_RESULTS_FLOOD_PROTECTION}), likely false positives - stopping further tests and skipping reporting"
                         )
                         break
-        except CurlError as e:
-            self.warning(f"CurlError in as_completed, stopping all tests: {e}")
-            return []
 
-        # Final safeguard: check result count (now mostly redundant due to early exit)
-        max_results = 50  # Configurable threshold
-        if len(virtual_host_results) > max_results:
-            self.verbose(
-                f"Found {len(virtual_host_results)} virtual hosts (limit: {max_results}), likely false positives - rejecting all results"
-            )
+        except CurlError as e:
+            if getattr(self.scan, "stopping", False) or getattr(self.scan, "aborting", False):
+                self.debug(f"CurlError in as_completed during shutdown (suppressed): {e}")
+                return []
+            self.warning(f"CurlError in as_completed, stopping all tests: {e}")
             return []
 
         # Return results for emission at _run_virtualhost_phase level
         return virtual_host_results
-
-    async def _safe_test_virtualhost(self, *args, **kwargs):
-        """Wrapper that catches CurlError and returns None instead of raising"""
-        try:
-            return await self._test_virtualhost(*args, **kwargs)
-        except CurlError as e:
-            self.warning(f"CurlError in virtualhost test (skipping this test): {e}")
-            return None
 
     async def _test_virtualhost(
         self,
@@ -547,7 +590,7 @@ class virtualhost(BaseModule):
             probe_response = await self.helpers.web.curl(
                 url=normalized_url,
                 headers={"Host": probe_host},
-                resolve={"host": probe_host, "port": event.port or 80, "ip": host_ip},
+                resolve={"host": event.parsed_url.hostname, "port": event.parsed_url.port or 80, "ip": host_ip},
             )
 
         if not probe_response or probe_response["response_data"] == "":
@@ -561,21 +604,32 @@ class virtualhost(BaseModule):
 
         # Different from canary = possibly real virtual host, similar to canary = probably junk
         if similarity > self.SIMILARITY_THRESHOLD:
+            self.debug(
+                f"REJECTING {probe_host}: similarity {similarity:.3f} > threshold {self.SIMILARITY_THRESHOLD} (too similar to canary)"
+            )
             return None
+        else:
+            self.verbose(
+                f"POTENTIAL VIRTUALHOST {probe_host} sim={similarity:.3f} "
+                f"probe: {probe_response.get('http_code', 'N/A')} | {len(probe_response.get('response_data', ''))}B | {probe_response.get('url', 'N/A')} ; "
+                f"canary: {canary_response.get('http_code', 'N/A')} | {len(canary_response.get('response_data', ''))}B | {canary_response.get('url', 'N/A')}"
+            )
 
         # Re-verify canary consistency before emission
         if not await self._verify_canary(
             event, canary_response, canary_mode, normalized_url, probe_host, is_https, basehost, host_ip
         ):
             self.verbose(
-                f"Canary changed since initial test, rejecting {probe_host}. Original canary had code {canary_response['http_code']} and response data of length {len(canary_response['response_data'])}"
+                f"CANARY CHANGED: Rejecting {probe_host}. Original canary had code {canary_response['http_code']} and response data of length {len(canary_response['response_data'])}"
             )
             raise CurlError(f"Canary changed since initial test, rejecting {probe_host}")
+        # Canary is consistent, proceed
 
         # Don't emit if this would be the same as the original netloc
         if probe_host != event.parsed_url.netloc:
             # Check if this virtual host is externally accessible
-            probe_url = f"{event.parsed_url.scheme}://{probe_host}/"
+            port = event.parsed_url.port or (443 if is_https else 80)
+            probe_url = f"{event.parsed_url.scheme}://{probe_host}:{port}/"
             is_externally_accessible = await self._is_host_accessible(probe_url)
 
             virtualhost_dict = {
@@ -603,10 +657,9 @@ class virtualhost(BaseModule):
                 "probe_host": probe_host,
                 "skip_dns_host": skip_dns_host,
                 "discovery_method": f"{discovery_method} ({technique})",
+                "status_code": probe_response.get("http_code", "N/A"),
+                "content_length": len(probe_response.get("response_data", "")),
             }
-        else:
-            self.debug(f"SKIPPING {probe_host} - same as original netloc")
-            return None
 
     def analyze_response(self, probe_host, probe_response, canary_response, event):
         probe_status = probe_response["http_code"]
@@ -647,7 +700,8 @@ class virtualhost(BaseModule):
             return None
 
         # Calculate content similarity to canary (junk response)
-        similarity = self.get_content_similarity(canary_response, probe_response)
+        # Use probe hostname for normalization to remove hostname reflection differences
+        similarity = self.get_content_similarity(canary_response, probe_response, reflection_filter=probe_host)
 
         # Debug logging only when we think we found a match
         if similarity <= self.SIMILARITY_THRESHOLD:
@@ -657,23 +711,19 @@ class virtualhost(BaseModule):
 
         return similarity
 
-    def get_content_similarity(self, canary_response, probe_response):
+    def get_content_similarity(self, canary_response, probe_response, reflection_filter=None):
         # Create fast hashes for cache key using xxHash
         canary_data = canary_response["response_data"]
         probe_data = probe_response["response_data"]
 
+        # Normalize by removing hostname to eliminate hostname reflection differences
+        if reflection_filter:
+            probe_data = probe_data.replace(reflection_filter, "")
+            canary_data = canary_data.replace(reflection_filter, "")
+
         # Fastest check: exact equality (very common for identical error pages)
         if canary_data == probe_data:
             return 1.0  # Exactly the same
-
-        # Fast pre-filter: if response lengths are drastically different, skip expensive calculation
-        canary_len = len(canary_data)
-        probe_len = len(probe_data)
-
-        if canary_len > 0 and probe_len > 0:
-            length_ratio = min(canary_len, probe_len) / max(canary_len, probe_len)
-            if length_ratio < 0.3:  # Very conservative - only skip if >70% length difference
-                return 0.0  # Definitely not similar
 
         canary_hash = xxhash.xxh64(canary_data.encode() if isinstance(canary_data, str) else canary_data).hexdigest()
         probe_hash = xxhash.xxh64(probe_data.encode() if isinstance(probe_data, str) else probe_data).hexdigest()
@@ -770,17 +820,33 @@ class virtualhost(BaseModule):
 
     async def finish(self):
         # phase 5: check existing hosts with wordcloud
+        self.verbose(" === Starting Finish() Wordcloud check === ")
         if not self.config.get("wordcloud_check", True):
-            self.debug("Wordcloud check is disabled, skipping finish phase")
+            self.debug("FINISH METHOD: Wordcloud check is disabled, skipping finish phase")
             return
 
         if not self.helpers.word_cloud.keys():
-            self.debug("No wordcloud data available for finish phase")
+            self.verbose("FINISH METHOD: No wordcloud data available for finish phase")
             return
 
-        tempfile = self.helpers.tempfile(list(self.helpers.word_cloud.keys()), pipe=False)
-        self.verbose(
-            f"Starting wordcloud mutations on {len(self.scanned_hosts)} hosts using {len(list(self.helpers.word_cloud.keys()))} words from wordcloud"
+        # Filter wordcloud words: no dots, reasonable length limit
+        all_wordcloud_words = list(self.helpers.word_cloud.keys())
+        filtered_words = []
+        for word in all_wordcloud_words:
+            # Filter out words with dots (likely full domains)
+            if "." in word:
+                continue
+            # Filter out very long words (likely noise)
+            if len(word) > 15:
+                continue
+            # Filter out very short words (likely noise)
+            if len(word) < 2:
+                continue
+            filtered_words.append(word)
+
+        tempfile = self.helpers.tempfile(filtered_words, pipe=False)
+        self.debug(
+            f"FINISH METHOD: Starting wordcloud check on {len(self.scanned_hosts)} hosts using {len(filtered_words)} filtered words from wordcloud"
         )
 
         for host, event in self.scanned_hosts.items():
@@ -790,11 +856,24 @@ class virtualhost(BaseModule):
                 if self.config.get("force_basehost"):
                     basehost = self.config.get("force_basehost")
                 else:
-                    basehost = self.helpers.parent_domain(host_parsed_url.netloc)
+                    basehost = self.helpers.parent_domain(host_parsed_url.hostname)
 
                 # Get fresh canary and original response for this host
                 is_https = host_parsed_url.scheme == "https"
                 host_ip = next(iter(event.resolved_hosts))
+
+                self.verbose(f"FINISH METHOD: Starting wildcard check for {host}")
+                baseline_response = await self.helpers.web.curl(url=f"{host_parsed_url.scheme}://{basehost}")
+                if not await self._wildcard_canary_check(
+                    host_parsed_url.scheme, host_parsed_url.netloc, event, host_ip, baseline_response
+                ):
+                    self.debug(
+                        f"WILDCARD CHECK FAILED in finish: Skipping {host} in wordcloud phase - failed virtual host wildcard check"
+                    )
+                    self.wordcloud_tried_hosts.add(host)  # Mark as tried to avoid retrying
+                    continue
+                else:
+                    self.debug(f"WILDCARD CHECK PASSED in finish: Proceeding with wordcloud mutations for {host}")
 
                 await self._run_virtualhost_phase(
                     "Target host wordcloud mutations",
