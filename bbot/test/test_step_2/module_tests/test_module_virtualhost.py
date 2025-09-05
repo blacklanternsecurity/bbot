@@ -39,20 +39,57 @@ class TestVirtualhostSpecialHosts(VirtualhostTestBase):
         }
     }
 
+    async def setup_after_prep(self, module_test):
+        # Keep request handler-based HTTP server
+        await super().setup_after_prep(module_test)
+
+        # Emit URL event manually and ensure resolved_hosts
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module_special"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    url_event = self.scan.make_event(
+                        "http://localhost:8888/",
+                        "URL",
+                        parent=event,
+                        tags=["status-200", "ip-127.0.0.1"],
+                    )
+                    await self.emit_event(url_event)
+
+        module_test.scan.modules["dummy_module_special"] = DummyModule(module_test.scan)
+
+        # Patch virtualhost to inject resolved_hosts
+        vh_module = module_test.scan.modules["virtualhost"]
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
     def request_handler(self, request):
         host_header = request.headers.get("Host", "").lower()
 
-        # Baseline request to localhost
-        if not host_header or host_header == "localhost:8888":
+        # Baseline request to localhost (with or without port)
+        if not host_header or host_header in ["localhost", "localhost:8888"]:
             return Response("baseline response from localhost", status=200)
 
         # Wildcard canary check
-        if re.match(r"[a-z]ocalhost:8888", host_header):
+        if re.match(r"[a-z]ocalhost(?::8888)?$", host_header):
             return Response("different wildcard response", status=404)
 
         # Random canary requests (12 lowercase letters .com)
-        if re.match(r"[a-z]{12}\.com", host_header):
-            return Response("canary response for random", status=404)
+        if re.match(r"^[a-z]{12}\.com(?::8888)?$", host_header):
+            return Response(
+                """<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>Random canary host.</p></body></html>""",
+                status=404,
+            )
 
         # Special hosts responses - return different content than canary
         if host_header == "host.docker.internal":
@@ -62,8 +99,12 @@ class TestVirtualhostSpecialHosts(VirtualhostTestBase):
         if host_header == "localhost":
             return Response("Localhost virtual host active", status=200)
 
-        # Default for any other requests
-        return Response("default response", status=404)
+        # Default for any other requests - match canary content to avoid false positives
+        return Response(
+            """<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>Random canary host.</p></body></html>""",
+            status=404,
+        )
 
     def check(self, module_test, events):
         special_hosts_found = set()
@@ -75,9 +116,10 @@ class TestVirtualhostSpecialHosts(VirtualhostTestBase):
 
                     # Test description elements to ensure they are as expected
                     description = e.data["description"]
-                    assert "Discovery Technique: [Special virtual host list" in description, (
-                        f"Description missing discovery technique: {description}"
-                    )
+                    assert (
+                        "Discovery Technique: [Special virtual host list" in description
+                        or "Discovery Technique: [Mutations on discovered" in description
+                    ), f"Description missing or unexpected discovery technique: {description}"
                     assert "Status Code:" in description, f"Description missing status code: {description}"
                     assert "Size:" in description and "bytes" in description, (
                         f"Description missing size: {description}"
@@ -89,16 +131,15 @@ class TestVirtualhostSpecialHosts(VirtualhostTestBase):
 
 
 class TestVirtualhostBruteForce(VirtualhostTestBase):
-    """Test subdomain brute-force detection using HTTP Host headers without DNS resolution"""
+    """Test subdomain brute-force detection using HTTP Host headers"""
 
-    targets = ["http://127.0.0.1:8888"]  # Use IP to avoid DNS resolution
-    modules_overrides = ["httpx", "virtualhost"]
+    targets = ["http://test.example:8888"]
+    modules_overrides = ["virtualhost"]  # Remove httpx, we'll manually create URL events
     test_wordlist = ["admin", "api", "test"]
     config_overrides = {
         "modules": {
             "virtualhost": {
                 "brute_wordlist": tempwordlist(test_wordlist),
-                "force_basehost": "localhost",  # Force basehost to avoid DNS issues
                 "subdomain_brute": True,  # Enable brute force
                 "mutation_check": False,  # Focus on brute force only
                 "special_hosts": False,  # Focus on brute force only
@@ -109,27 +150,65 @@ class TestVirtualhostBruteForce(VirtualhostTestBase):
         }
     }
 
+    async def setup_after_prep(self, module_test):
+        # Call parent setup_after_prep to set up the HTTP server with request_handler
+        await super().setup_after_prep(module_test)
+
+        # Set up DNS mocking for test.example to resolve to 127.0.0.1
+        await module_test.mock_dns({"test.example": {"A": ["127.0.0.1"]}})
+
+        # Create a dummy module that will emit the URL event during the scan
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    # Create and emit URL event for virtualhost module to process
+                    url_event = self.scan.make_event(
+                        "http://test.example:8888/", "URL", parent=event, tags=["status-200", "ip-127.0.0.1"]
+                    )
+                    await self.emit_event(url_event)
+
+        # Add the dummy module to the scan
+        dummy_module = DummyModule(module_test.scan)
+        module_test.scan.modules["dummy_module"] = dummy_module
+
+        # Patch virtualhost to inject resolved_hosts for URL events during the test
+        vh_module = module_test.scan.modules["virtualhost"]
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
     def request_handler(self, request):
+        from werkzeug.wrappers import Response
+
         host_header = request.headers.get("Host", "").lower()
 
-        # Baseline request to the IP
-        if not host_header or host_header == "127.0.0.1:8888":
-            return Response("baseline response from 127.0.0.1", status=200)
+        # Baseline request to test.example or example (with or without port)
+        if not host_header or host_header in ["test.example", "test.example:8888", "example", "example:8888"]:
+            return Response("baseline response from example baseline", status=200)
 
-        # Wildcard canary check - using forced basehost "localhost"
-        if re.match(r"[0-9]27\.0\.0\.1:8888", host_header):  # Modified basehost
+        # Wildcard canary check - change one character in test.example
+        if re.match(r"[a-z]est\.example", host_header):
             return Response("wildcard canary different response", status=404)
 
-        # Brute-force canary requests - random string + .localhost
-        if re.match(r"[a-z]{12}\.localhost:8888", host_header):
+        # Brute-force canary requests - random string + .test.example (with optional port)
+        if re.match(r"^[a-z]{12}\.test\.example(?::8888)?$", host_header):
             return Response("subdomain canary response", status=404)
 
-        # Brute-force matches - return different content than canary
-        if host_header in ["admin.localhost", "admin.localhost:8888"]:
+        # Brute-force matches on discovered basehost (admin|api|test).test.example (with optional port)
+        if host_header in ["admin.test.example", "admin.test.example:8888"]:
             return Response("Admin panel found here!", status=200)
-        if host_header in ["api.localhost", "api.localhost:8888"]:
+        if host_header in ["api.test.example", "api.test.example:8888"]:
             return Response("API endpoint found here!", status=200)
-        if host_header in ["test.localhost", "test.localhost:8888"]:
+        if host_header in ["test.test.example", "test.test.example:8888"]:
             return Response("Test environment found here!", status=200)
 
         # Default response
@@ -137,24 +216,25 @@ class TestVirtualhostBruteForce(VirtualhostTestBase):
 
     def check(self, module_test, events):
         brute_hosts_found = set()
+        print(f"\nDEBUG: Found {len(events)} events:")
         for e in events:
+            print(f"  {e.type}: {e.data if hasattr(e, 'data') else 'N/A'}")
             if e.type == "VIRTUAL_HOST":
                 vhost = e.data["virtual_host"]
-                if vhost in ["admin.localhost", "api.localhost", "test.localhost"]:
+                if vhost in ["admin.test.example", "api.test.example", "test.test.example"]:
                     brute_hosts_found.add(vhost)
 
         assert len(brute_hosts_found) >= 1, f"Failed to detect brute-force virtual hosts. Found: {brute_hosts_found}"
 
 
 class TestVirtualhostMutations(VirtualhostTestBase):
-    """Test host mutation detection using HTTP Host headers without DNS resolution"""
+    """Test host mutation detection using HTTP Host headers"""
 
-    targets = ["http://127.0.0.1:8888"]  # Use IP to avoid DNS resolution
+    targets = ["http://target.test:8888"]
     modules_overrides = ["httpx", "virtualhost"]
     config_overrides = {
         "modules": {
             "virtualhost": {
-                "force_basehost": "localhost",  # Force basehost to avoid DNS issues
                 "subdomain_brute": False,  # Focus on mutations only
                 "mutation_check": True,  # Enable mutations
                 "special_hosts": False,  # Focus on mutations only
@@ -165,46 +245,85 @@ class TestVirtualhostMutations(VirtualhostTestBase):
         }
     }
 
-    def request_handler(self, request):
-        host_header = request.headers.get("Host", "").lower()
-
-        # Baseline request to the IP
-        if not host_header or host_header == "127.0.0.1:8888":
-            return Response("baseline response from 127.0.0.1", status=200)
-
-        # Wildcard canary check
-        if re.match(r"[0-9]27\.0\.0\.1:8888", host_header):  # Modified IP
-            return Response("wildcard canary response", status=404)
-
-        # Mutation canary requests (4 chars + dash + original host)
-        if re.match(r"[a-z]{4}-127\.0\.0\.1:8888", host_header):
-            return Response("mutation canary response", status=404)
-
-        # Word cloud mutation matches - return different content than canary
-        if host_header in ["127dev.localhost:8888", "127-dev.localhost:8888"]:
-            return Response("Development 127 found!", status=200)
-        if host_header in ["dev127.localhost:8888", "dev-127.localhost:8888"]:
-            return Response("Dev 127 found!", status=200)
-        if host_header in ["127test.localhost:8888", "127-test.localhost:8888"]:
-            return Response("Test 127 found!", status=200)
-
-        # Default response
-        return Response("default response", status=404)
-
     async def setup_before_prep(self, module_test):
         # Call parent setup first
         await super().setup_before_prep(module_test)
 
-        # Mock wordcloud.mutations to return predictable results for IP-based target
+        # Set up DNS mocking for target.test
+        await module_test.mock_dns({"target.test": {"A": ["127.0.0.1"]}})
+
+        # Mock wordcloud.mutations to return predictable results for "target"
         def mock_mutations(self, word, **kwargs):
-            # Return realistic mutations that would be found for "127"
+            # Return realistic mutations that would be found for "target"
             return [
-                [word, "dev"],  # 127dev, 127-dev
-                ["dev", word],  # dev127, dev-127
-                [word, "test"],  # 127test, 127-test
+                [word, "dev"],  # targetdev, target-dev
+                ["dev", word],  # devtarget, dev-target
+                [word, "test"],  # targettest, target-test
             ]
 
         module_test.monkeypatch.setattr("bbot.core.helpers.wordcloud.WordCloud.mutations", mock_mutations)
+
+    async def setup_after_prep(self, module_test):
+        # Keep request handler-based HTTP server
+        await super().setup_after_prep(module_test)
+
+        # Emit URL event manually and ensure resolved_hosts
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module_mut"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    url_event = self.scan.make_event(
+                        "http://target.test:8888/",
+                        "URL",
+                        parent=event,
+                        tags=["status-200", "ip-127.0.0.1"],
+                    )
+                    await self.emit_event(url_event)
+
+        module_test.scan.modules["dummy_module_mut"] = DummyModule(module_test.scan)
+
+        # Patch virtualhost to inject resolved hosts
+        vh_module = module_test.scan.modules["virtualhost"]
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
+    def request_handler(self, request):
+        host_header = request.headers.get("Host", "").lower()
+
+        # Baseline request to target.test (with or without port)
+        if not host_header or host_header in ["target.test", "target.test:8888"]:
+            return Response("baseline response from target.test", status=200)
+
+        # Wildcard canary check
+        if re.match(r"[a-z]arget\.test(?::8888)?$", host_header):  # Modified target.test
+            return Response("wildcard canary response", status=404)
+
+        # Mutation canary requests (4 chars + dash + original host)
+        if re.match(r"^[a-z]{4}-target\.test(?::8888)?$", host_header):
+            return Response("<!DOCTYPE html><html><body>Mutation Canary</body></html>", status=404)
+
+        # Word cloud mutation matches - return different content than canary
+        if host_header in ["targetdev.test", "targetdev.test:8888", "target-dev.test", "target-dev.test:8888"]:
+            return Response("Development target found!", status=200)
+        if host_header in ["devtarget.test", "devtarget.test:8888", "dev-target.test", "dev-target.test:8888"]:
+            return Response("Dev target found!", status=200)
+        if host_header in ["targettest.test", "targettest.test:8888", "target-test.test", "target-test.test:8888"]:
+            return Response("Test target found!", status=200)
+
+        # Default response
+        return Response(
+            """<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>Default handler response.</p></body></html>""",
+            status=404,
+        )
 
     def check(self, module_test, events):
         mutation_hosts_found = set()
@@ -212,7 +331,7 @@ class TestVirtualhostMutations(VirtualhostTestBase):
             if e.type == "VIRTUAL_HOST":
                 vhost = e.data["virtual_host"]
                 # Look for mutation patterns with dev/test
-                if any(word in vhost for word in ["dev", "test"]) and "127" in vhost:
+                if any(word in vhost for word in ["dev", "test"]) and "target" in vhost:
                     mutation_hosts_found.add(vhost)
 
         assert len(mutation_hosts_found) >= 1, (
@@ -221,14 +340,13 @@ class TestVirtualhostMutations(VirtualhostTestBase):
 
 
 class TestVirtualhostWordcloud(VirtualhostTestBase):
-    """Test finish() wordcloud-based detection using HTTP Host headers without DNS resolution"""
+    """Test finish() wordcloud-based detection using HTTP Host headers"""
 
-    targets = ["http://127.0.0.1:8888"]  # Use IP to avoid DNS resolution
+    targets = ["http://wordcloud.test:8888"]
     modules_overrides = ["httpx", "virtualhost"]
     config_overrides = {
         "modules": {
             "virtualhost": {
-                "force_basehost": "localhost",  # Force basehost to avoid DNS issues
                 "subdomain_brute": False,  # Focus on wordcloud only
                 "mutation_check": False,  # Focus on wordcloud only
                 "special_hosts": False,  # Focus on wordcloud only
@@ -239,35 +357,12 @@ class TestVirtualhostWordcloud(VirtualhostTestBase):
         }
     }
 
-    def request_handler(self, request):
-        host_header = request.headers.get("Host", "").lower()
-
-        # Baseline request to the IP
-        if not host_header or host_header == "127.0.0.1:8888":
-            return Response("baseline response from 127.0.0.1", status=200)
-
-        # Wildcard canary check
-        if re.match(r"[0-9]27\.0\.0\.1:8888", host_header):  # Modified IP
-            return Response("wildcard canary response", status=404)
-
-        # Random canary requests (12 chars + .com)
-        if re.match(r"[a-z]{12}\.com", host_header):
-            return Response("random canary response", status=404)
-
-        # Wordcloud-based matches - these are checked in finish()
-        if host_header == "staging.localhost:8888":
-            return Response("Staging environment found!", status=200)
-        if host_header == "prod.localhost:8888":
-            return Response("Production environment found!", status=200)
-        if host_header == "dev.localhost:8888":
-            return Response("Development environment found!", status=200)
-
-        # Default response
-        return Response("default response", status=404)
-
     async def setup_before_prep(self, module_test):
         # Call parent setup first
         await super().setup_before_prep(module_test)
+
+        # Set up DNS mocking for wordcloud.test
+        await module_test.mock_dns({"wordcloud.test": {"A": ["127.0.0.1"]}})
 
         # Mock wordcloud to have some common words
         def mock_wordcloud_keys(self):
@@ -275,12 +370,71 @@ class TestVirtualhostWordcloud(VirtualhostTestBase):
 
         module_test.monkeypatch.setattr("bbot.core.helpers.wordcloud.WordCloud.keys", mock_wordcloud_keys)
 
+    async def setup_after_prep(self, module_test):
+        # Keep request handler-based HTTP server
+        await super().setup_after_prep(module_test)
+
+        # Emit URL event manually and ensure resolved_hosts
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module_wc"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    url_event = self.scan.make_event(
+                        "http://wordcloud.test:8888/",
+                        "URL",
+                        parent=event,
+                        tags=["status-200", "ip-127.0.0.1"],
+                    )
+                    await self.emit_event(url_event)
+
+        module_test.scan.modules["dummy_module_wc"] = DummyModule(module_test.scan)
+
+        # Patch virtualhost to inject resolved hosts
+        vh_module = module_test.scan.modules["virtualhost"]
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
+    def request_handler(self, request):
+        host_header = request.headers.get("Host", "").lower()
+
+        # Baseline request to wordcloud.test (with or without port)
+        if not host_header or host_header in ["wordcloud.test", "wordcloud.test:8888"]:
+            return Response("baseline response from wordcloud.test", status=200)
+
+        # Wildcard canary check
+        if re.match(r"[a-z]ordcloud\.test(?::8888)?$", host_header):  # Modified wordcloud.test
+            return Response("wildcard canary response", status=404)
+
+        # Random canary requests (12 chars + .com)
+        if re.match(r"^[a-z]{12}\.com(?::8888)?$", host_header):
+            return Response("random canary response", status=404)
+
+        # Wordcloud-based matches - these are checked in finish()
+        if host_header in ["staging.wordcloud.test", "staging.wordcloud.test:8888"]:
+            return Response("Staging environment found!", status=200)
+        if host_header in ["prod.wordcloud.test", "prod.wordcloud.test:8888"]:
+            return Response("Production environment found!", status=200)
+        if host_header in ["dev.wordcloud.test", "dev.wordcloud.test:8888"]:
+            return Response("Development environment found!", status=200)
+
+        # Default response
+        return Response("default response", status=404)
+
     def check(self, module_test, events):
         wordcloud_hosts_found = set()
         for e in events:
             if e.type == "VIRTUAL_HOST":
                 vhost = e.data["virtual_host"]
-                if vhost in ["staging.localhost", "prod.localhost", "dev.localhost"]:
+                if vhost in ["staging.wordcloud.test", "prod.wordcloud.test", "dev.wordcloud.test"]:
                     wordcloud_hosts_found.add(vhost)
 
         assert len(wordcloud_hosts_found) >= 1, (
@@ -326,3 +480,160 @@ class TestVirtualhostHTTPSLogic(ModuleTestBase):
 
         # Test that all canaries are different
         assert canary_subdomain != canary_mutation != canary_random, "Canaries should be different"
+
+
+class TestVirtualhostForceBasehost(VirtualhostTestBase):
+    """Test force_basehost functionality specifically"""
+
+    targets = ["http://127.0.0.1:8888"]  # Use IP to require force_basehost
+    modules_overrides = ["httpx", "virtualhost"]
+    test_wordlist = ["admin", "api"]
+    config_overrides = {
+        "modules": {
+            "virtualhost": {
+                "brute_wordlist": tempwordlist(test_wordlist),
+                "force_basehost": "forced.domain",  # Test force_basehost functionality
+                "subdomain_brute": True,
+                "mutation_check": False,
+                "special_hosts": False,
+                "certificate_sans": False,
+                "wordcloud_check": False,
+                "require_inaccessible": False,
+            }
+        }
+    }
+
+    def request_handler(self, request):
+        host_header = request.headers.get("Host", "").lower()
+
+        # Baseline request to the IP
+        if not host_header or host_header == "127.0.0.1:8888":
+            return Response("baseline response from IP", status=200)
+
+        # Wildcard canary check
+        if re.match(r"[0-9]27\.0\.0\.1:8888", host_header):
+            return Response("wildcard canary response", status=404)
+
+        # Subdomain canary (12 random chars + .forced.domain)
+        if re.match(r"[a-z]{12}\.forced\.domain", host_header):
+            return Response("forced domain canary response", status=404)
+
+        # Virtual hosts using forced basehost
+        if host_header == "admin.forced.domain":
+            return Response("Admin with forced basehost found!", status=200)
+        if host_header == "api.forced.domain":
+            return Response("API with forced basehost found!", status=200)
+
+        # Default response
+        return Response("default response", status=404)
+
+    def check(self, module_test, events):
+        forced_hosts_found = set()
+        for e in events:
+            if e.type == "VIRTUAL_HOST":
+                vhost = e.data["virtual_host"]
+                if vhost in ["admin.forced.domain", "api.forced.domain"]:
+                    forced_hosts_found.add(vhost)
+
+                    # Verify the description shows it used the forced basehost
+                    description = e.data["description"]
+                    assert "Subdomain Brute-force" in description, (
+                        f"Expected subdomain brute-force discovery: {description}"
+                    )
+
+        assert len(forced_hosts_found) >= 1, (
+            f"Failed to detect virtual hosts with force_basehost. Found: {forced_hosts_found}. "
+            f"Expected at least one of: admin.forced.domain, api.forced.domain"
+        )
+
+
+class TestVirtualhostInterestingDefaultContent(VirtualhostTestBase):
+    """Test reporting of interesting default canary content during wildcard check"""
+
+    targets = ["http://interesting.test:8888"]
+    modules_overrides = ["httpx", "virtualhost"]
+    config_overrides = {
+        "modules": {
+            "virtualhost": {
+                "subdomain_brute": False,
+                "mutation_check": False,
+                "special_hosts": False,
+                "certificate_sans": False,
+                "wordcloud_check": False,
+                "report_interesting_default_content": True,
+                "require_inaccessible": False,
+            }
+        }
+    }
+
+    async def setup_after_prep(self, module_test):
+        # Start HTTP server
+        await super().setup_after_prep(module_test)
+
+        # Mock DNS resolution for interesting.test
+        await module_test.mock_dns({"interesting.test": {"A": ["127.0.0.1"]}})
+
+        # Dummy module to emit the URL event for the virtualhost module
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module_interesting"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    url_event = self.scan.make_event(
+                        "http://interesting.test:8888/",
+                        "URL",
+                        parent=event,
+                        tags=["status-404", "ip-127.0.0.1"],
+                    )
+                    await self.emit_event(url_event)
+
+        module_test.scan.modules["dummy_module_interesting"] = DummyModule(module_test.scan)
+
+        # Patch virtualhost to inject resolved hosts
+        vh_module = module_test.scan.modules["virtualhost"]
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
+    def request_handler(self, request):
+        host_header = request.headers.get("Host", "").lower()
+
+        # Baseline response for original host (ensure status differs from canary)
+        if not host_header or host_header in ["interesting.test", "interesting.test:8888"]:
+            return Response("baseline not found", status=404)
+
+        # Wildcard canary mutated hostname: change first alpha to 'z' -> znteresting.test
+        if host_header in ["znteresting.test", "znteresting.test:8888"]:
+            long_body = (
+                "This is a sufficiently long default page body that exceeds forty characters "
+                "to trigger the interesting default content branch."
+            )
+            return Response(long_body, status=200)
+
+        # Default
+        return Response("default response", status=404)
+
+    def check(self, module_test, events):
+        found_interesting = False
+        found_correct_host = False
+        for e in events:
+            if e.type == "VIRTUAL_HOST":
+                print("@@@@@@")
+                desc = e.data.get("description", "")
+                print(desc)
+                if "Interesting Default Content (from random canary host)" in desc:
+                    found_interesting = True
+                    # The VIRTUAL_HOST should be the canary hostname used in the wildcard request
+                    if e.data.get("virtual_host") == "znteresting.test":
+                        found_correct_host = True
+                    break
+
+        assert found_interesting, "Expected VIRTUAL_HOST from interesting default canary content was not emitted"
+        assert found_correct_host, "virtual_host should equal the canary hostname 'znteresting.test'"

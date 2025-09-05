@@ -2598,12 +2598,28 @@ async def as_completed(
     """
     Yield completed coroutines as they finish with optional concurrency limiting.
     All coroutines are scheduled as tasks internally for execution.
+
+    Guarantees cleanup:
+    - If the consumer breaks early or an internal cancellation is detected, all remaining
+      tasks are cancelled and awaited (with return_exceptions=True) to avoid
+      "Task exception was never retrieved" warnings.
     """
     it = iter(coroutines)
 
-    # Prime the running set up to the concurrency limit (or all, if unlimited)
-    running = set()
+    running: set[asyncio.Task] = set()
     limit = max_concurrent or float("inf")
+
+    async def _cancel_and_drain_remaining():
+        if not running:
+            return
+        for t in running:
+            t.cancel()
+        try:
+            await asyncio.gather(*running, return_exceptions=True)
+        finally:
+            running.clear()
+
+    # Prime the running set up to the concurrency limit (or all, if unlimited)
     try:
         while len(running) < limit:
             coro = next(it)
@@ -2611,17 +2627,47 @@ async def as_completed(
     except StopIteration:
         pass
 
-    # Drain: yield completed tasks, backfill from the iterator as slots free up
-    while running:
-        done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            # Immediately backfill one slot per completed task, if more work remains
-            try:
-                coro = next(it)
-                running.add(asyncio.create_task(coro))
-            except StopIteration:
-                pass
-            yield task
+    # Dedup state for repeated error messages
+    _last_err = {"msg": None, "count": 0}
+
+    try:
+        # Drain: yield completed tasks, backfill from the iterator as slots free up
+        while running:
+            done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                # Immediately backfill one slot per completed task, if more work remains
+                try:
+                    coro = next(it)
+                    running.add(asyncio.create_task(coro))
+                except StopIteration:
+                    pass
+
+                # If task raised, handle cancellation gracefully and dedupe noisy repeats
+                if task.exception() is not None:
+                    e = task.exception()
+                    if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        # Quietly stop if we're being cancelled
+                        log.info("as_completed: cancellation detected; exiting early")
+                        await _cancel_and_drain_remaining()
+                        return
+                    # Build a concise message
+                    msg = f"as_completed yielded exception: {e}"
+                    if msg == _last_err["msg"]:
+                        _last_err["count"] += 1
+                        if _last_err["count"] <= 3:
+                            log.warning(msg)
+                        elif _last_err["count"] % 10 == 0:
+                            log.warning(f"{msg} (repeated {_last_err['count']}x)")
+                        else:
+                            log.debug(msg)
+                    else:
+                        _last_err["msg"] = msg
+                        _last_err["count"] = 1
+                        log.warning(msg)
+                yield task
+    finally:
+        # If the consumer breaks early or an error bubbles, ensure we don't leak tasks
+        await _cancel_and_drain_remaining()
 
 
 def get_waf_strings():
