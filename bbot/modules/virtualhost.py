@@ -322,7 +322,6 @@ class virtualhost(BaseModule):
         # Extract hostname and port separately to avoid corrupting the port portion
         original_hostname = event.parsed_url.hostname or ""
         original_port = event.parsed_url.port
-        original_url = f"{probe_scheme}://{event.parsed_url.netloc}/"
 
         # Try to mutate the first alphabetic character in the hostname
         modified_hostname = None
