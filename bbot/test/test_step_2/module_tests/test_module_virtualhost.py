@@ -628,7 +628,7 @@ class TestVirtualhostInterestingDefaultContent(VirtualhostTestBase):
                 print("@@@@@@")
                 desc = e.data.get("description", "")
                 print(desc)
-                if "Interesting Default Content (from random canary host)" in desc:
+                if "Interesting Default Content (from intentionally-incorrect canary host)" in desc:
                     found_interesting = True
                     # The VIRTUAL_HOST should be the canary hostname used in the wildcard request
                     if e.data.get("virtual_host") == "znteresting.test":
