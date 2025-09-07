@@ -535,7 +535,7 @@ class virtualhost(BaseModule):
                     if getattr(self.scan, "stopping", False) or getattr(self.scan, "aborting", False):
                         self.debug(f"CurlError during shutdown (suppressed): {e}")
                         break
-                    self.warning(f"CurlError in virtualhost test (skipping this test): {e}")
+                    self.debug(f"CurlError in virtualhost test (skipping this test): {e}")
                     continue
                 if result:  # Only append non-None results
                     virtual_host_results.append(result)
@@ -667,6 +667,10 @@ class virtualhost(BaseModule):
         # Check for invalid/no response - skip processing
         if probe_status == 0 or not probe_response.get("response_data"):
             self.debug(f"SKIPPING {probe_host} - no valid HTTP response (status: {probe_status})")
+            return None
+
+        if probe_status == 400:
+            self.debug(f"SKIPPING {probe_host} - got 400 Bad Request")
             return None
 
         # Check for 421 Misdirected Request - clear signal that virtual host doesn't exist
