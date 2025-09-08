@@ -230,7 +230,7 @@ class TestVirtualhostBruteForce(VirtualhostTestBase):
 class TestVirtualhostMutations(VirtualhostTestBase):
     """Test host mutation detection using HTTP Host headers"""
 
-    targets = ["http://target.test:8888"]
+    targets = ["http://subdomain.target.test:8888"]
     modules_overrides = ["httpx", "virtualhost"]
     config_overrides = {
         "modules": {
@@ -277,7 +277,7 @@ class TestVirtualhostMutations(VirtualhostTestBase):
             async def handle_event(self, event):
                 if event.type == "SCAN":
                     url_event = self.scan.make_event(
-                        "http://target.test:8888/",
+                        "http://subdomain.target.test:8888/",
                         "URL",
                         parent=event,
                         tags=["status-200", "ip-127.0.0.1"],
@@ -300,23 +300,23 @@ class TestVirtualhostMutations(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline request to target.test (with or without port)
-        if not host_header or host_header in ["target.test", "target.test:8888"]:
+        if not host_header or host_header in ["subdomain.target.test", "subdomain.target.test:8888"]:
             return Response("baseline response from target.test", status=200)
 
         # Wildcard canary check
-        if re.match(r"[a-z]arget\.test(?::8888)?$", host_header):  # Modified target.test
+        if re.match(r"[a-z]subdomain\.target\.test(?::8888)?$", host_header):  # Modified target.test
             return Response("wildcard canary response", status=404)
 
         # Mutation canary requests (4 chars + dash + original host)
-        if re.match(r"^[a-z]{4}-target\.test(?::8888)?$", host_header):
+        if re.match(r"^[a-z]{4}-subdomain\.target\.test(?::8888)?$", host_header):
             return Response("<!DOCTYPE html><html><body>Mutation Canary</body></html>", status=404)
 
         # Word cloud mutation matches - return different content than canary
-        if host_header in ["targetdev.test", "targetdev.test:8888", "target-dev.test", "target-dev.test:8888"]:
-            return Response("Development target found!", status=200)
-        if host_header in ["devtarget.test", "devtarget.test:8888", "dev-target.test", "dev-target.test:8888"]:
-            return Response("Dev target found!", status=200)
-        if host_header in ["targettest.test", "targettest.test:8888", "target-test.test", "target-test.test:8888"]:
+        if host_header == "subdomain-dev.target.test":
+            return Response("Dev target 1 found!", status=200)
+        if host_header == "devsubdomain.target.test":
+            return Response("Dev target 2 found!", status=200)
+        if host_header == "subdomaintest.target.test":
             return Response("Test target found!", status=200)
 
         # Default response
@@ -625,9 +625,7 @@ class TestVirtualhostInterestingDefaultContent(VirtualhostTestBase):
         found_correct_host = False
         for e in events:
             if e.type == "VIRTUAL_HOST":
-                print("@@@@@@")
                 desc = e.data.get("description", "")
-                print(desc)
                 if "Interesting Default Content (from intentionally-incorrect canary host)" in desc:
                     found_interesting = True
                     # The VIRTUAL_HOST should be the canary hostname used in the wildcard request
@@ -637,3 +635,109 @@ class TestVirtualhostInterestingDefaultContent(VirtualhostTestBase):
 
         assert found_interesting, "Expected VIRTUAL_HOST from interesting default canary content was not emitted"
         assert found_correct_host, "virtual_host should equal the canary hostname 'znteresting.test'"
+
+
+class TestVirtualhostKeywordWildcard(VirtualhostTestBase):
+    """Test keyword-based wildcard detection using 'www' in hostname"""
+
+    targets = ["http://acme.test:8888"]
+    modules_overrides = ["httpx", "virtualhost"]
+    config_overrides = {
+        "modules": {
+            "virtualhost": {
+                "subdomain_brute": True,
+                "mutation_check": False,
+                "special_hosts": False,
+                "certificate_sans": False,
+                "wordcloud_check": False,
+                "require_inaccessible": False,
+                # Keep brute_lines small and supply a tiny wordlist containing a 'www' entry and an exact match
+            }
+        }
+    }
+
+    async def setup_after_prep(self, module_test):
+        # Start HTTP server with wildcard behavior for any hostname containing 'www'
+        await super().setup_after_prep(module_test)
+
+        # Mock DNS resolution for acme.test
+        await module_test.mock_dns({"acme.test": {"A": ["127.0.0.1"]}})
+
+        # Provide a tiny custom wordlist containing 'wwwfoo' and 'admin' so that:
+        # - 'wwwfoo' would be a false positive without the keyword-based wildcard detection
+        # - 'admin' will be an exact match we deliberately allow via the response handler
+        from .base import tempwordlist
+
+        words = ["wwwfoo", "admin"]
+        wl = tempwordlist(words)
+
+        # Patch virtualhost to use our custom wordlist and inject resolved hosts
+        vh_module = module_test.scan.modules["virtualhost"]
+        original_setup = vh_module.setup
+
+        async def patched_setup():
+            await original_setup()
+            vh_module.brute_wordlist = wl
+            return True
+
+        module_test.monkeypatch.setattr(vh_module, "setup", patched_setup)
+
+        # Emit URL event manually and ensure resolved_hosts
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module_keyword"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    url_event = self.scan.make_event(
+                        "http://acme.test:8888/",
+                        "URL",
+                        parent=event,
+                        tags=["status-404", "ip-127.0.0.1"],
+                    )
+                    await self.emit_event(url_event)
+
+        module_test.scan.modules["dummy_module_keyword"] = DummyModule(module_test.scan)
+
+        # Inject resolved hosts for the URL
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
+    def request_handler(self, request):
+        host_header = request.headers.get("Host", "").lower()
+
+        # Baseline response for original host
+        if not host_header or host_header in ["acme.test", "acme.test:8888"]:
+            return Response("baseline not found", status=404)
+
+        # If hostname contains 'www' anywhere, return the same body as baseline (simulating keyword wildcard)
+        if "www" in host_header:
+            return Response("baseline not found", status=404)
+
+        # Exact-match virtual host that should still be detected
+        if host_header in ["admin.acme.test", "admin.acme.test:8888"]:
+            return Response("Admin portal", status=200)
+
+        # Default
+        return Response("default response", status=404)
+
+    def check(self, module_test, events):
+        found_admin = False
+        found_www = False
+        for e in events:
+            if e.type == "VIRTUAL_HOST":
+                vhost = e.data.get("virtual_host")
+                if vhost == "admin.acme.test":
+                    found_admin = True
+                if vhost and "www" in vhost:
+                    found_www = True
+
+        assert found_admin, "Expected VIRTUAL_HOST for admin.acme.test was not emitted"
+        assert not found_www, "No VIRTUAL_HOST should be emitted for 'www' keyword wildcard entries"
