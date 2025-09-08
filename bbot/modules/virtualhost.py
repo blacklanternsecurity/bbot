@@ -664,9 +664,6 @@ class virtualhost(BaseModule):
 
         # Check for keyword-based virtual host wildcards
         if not await self._verify_canary_keyword(probe_response, probe_url, is_https, basehost, host_ip):
-            self.verbose(
-                f"CANARY KEYWORD: Rejecting {probe_host}. Intentionally wrong hostname has a canary too similar to the original."
-            )
             return None
 
         # Don't emit if this would be the same as the original netloc
@@ -786,13 +783,45 @@ class virtualhost(BaseModule):
         if cache_key in self.similarity_cache:
             return self.similarity_cache[cache_key]
 
-        # Calculate similarity
-        similarity = fuzz.ratio(canary_data, probe_data) / 100.0
+        # Calculate similarity with optional truncation for performance
+        # Truncate if EITHER response is larger than 4096 bytes
+        if len(canary_data) > 4096 or len(probe_data) > 4096:
+            # Take first 2048 bytes + last 1024 bytes for comparison
+            canary_truncated = self._truncate_content_for_similarity(canary_data)
+            probe_truncated = self._truncate_content_for_similarity(probe_data)
+            similarity = fuzz.ratio(canary_truncated, probe_truncated) / 100.0
+        else:
+            # Use full content for smaller responses
+            similarity = fuzz.ratio(canary_data, probe_data) / 100.0
 
         # Cache the result
         self.similarity_cache[cache_key] = similarity
 
         return similarity
+
+    def _truncate_content_for_similarity(self, content):
+        """
+        Truncate content for similarity comparison to improve performance.
+
+        Truncation rules:
+        - If content <= 3072 bytes (2048 + 1024): return as-is
+        - If content > 3072 bytes: return first 2048 bytes + last 1024 bytes
+
+        This captures:
+        - First 2048 bytes: HTTP headers, HTML head, title, main content start
+        - Last 1024 bytes: Footers, closing scripts, HTML closing tags
+        """
+        content_length = len(content)
+
+        # No truncation needed for smaller content
+        if content_length <= 3072:
+            return content
+
+        # Truncate: first 2048 + last 1024 bytes
+        first_part = content[:2048]
+        last_part = content[-1024:]
+
+        return first_part + last_part
 
     async def _verify_canary_keyword(self, original_response, probe_url, is_https, basehost, host_ip):
         """Perform last-minute check on the canary for keyword-based virtual host wildcards"""
