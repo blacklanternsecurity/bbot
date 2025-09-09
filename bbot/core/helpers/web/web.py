@@ -1,4 +1,6 @@
+import json
 import logging
+import re
 import warnings
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -483,7 +485,6 @@ class WebHelper(EngineClient):
         output = (await self.parent_helper.run(curl_command)).stdout
 
         # Parse the output to separate content and metadata
-        import json
 
         parts = output.split("\n---CURL_METADATA---\n")
 
@@ -499,7 +500,16 @@ class WebHelper(EngineClient):
         try:
             metadata = json.loads(json_data)
         except json.JSONDecodeError as e:
-            raise CurlError(f"Failed to parse curl JSON metadata: {e}. JSON data: {json_data[:200]}...")
+            # Try to fix common malformed JSON issues from curl output
+            try:
+                # Fix empty values like "certs":, -> "certs":null,
+                fixed_json = re.sub(r':"?\s*,', ":null,", json_data)
+                # Fix trailing commas before closing braces
+                fixed_json = re.sub(r",\s*}", "}", fixed_json)
+                metadata = json.loads(fixed_json)
+                log.debug(f"Fixed malformed JSON from curl: {json_data[:100]}... -> {fixed_json[:100]}...")
+            except json.JSONDecodeError:
+                raise CurlError(f"Failed to parse curl JSON metadata: {e}. JSON data: {json_data[:200]}...")
 
         # Combine into final JSON structure
         return {"response_data": response_data, **metadata}

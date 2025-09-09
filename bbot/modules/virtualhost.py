@@ -118,7 +118,11 @@ class virtualhost(BaseModule):
             is_https = event.parsed_url.scheme == "https"
 
             host_ip = next(iter(event.resolved_hosts))
-            baseline_response = await self._get_baseline_response(event, normalized_url, host_ip)
+            try:
+                baseline_response = await self._get_baseline_response(event, normalized_url, host_ip)
+            except CurlError as e:
+                self.warning(f"Failed to get baseline response for {normalized_url}: {e}")
+                return None
 
             if not await self._wildcard_canary_check(scheme, host, event, host_ip, baseline_response):
                 self.verbose(
