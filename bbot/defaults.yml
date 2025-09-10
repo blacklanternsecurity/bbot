@@ -187,8 +187,10 @@ url_extension_blacklist:
   - mov
   - flv
   - webm
-# Distribute URLs with these extensions only to httpx (these are omitted from output)
-url_extension_httpx_only:
+
+# URLs with these extensions are not distributed to modules unless the module opts in via `accept_url_special = True`
+# They are also excluded from output. If you want to see them in output, remove them from this list.
+url_extension_special:
   - js
 
 # These url extensions are almost always static, so we exclude them from modules that fuzz things

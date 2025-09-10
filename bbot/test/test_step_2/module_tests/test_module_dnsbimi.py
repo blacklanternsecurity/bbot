@@ -6,11 +6,12 @@ raw_bimi_txt_default = (
 raw_bimi_txt_nondefault = '"v=BIMI1; l=https://nondefault.thirdparty.tld/brand/logo.svg;a=https://nondefault.thirdparty.tld/brand/certificate.pem;"'
 
 
-class TestBIMI(ModuleTestBase):
+class TestDnsbimi(ModuleTestBase):
     targets = ["test.localdomain"]
     modules_overrides = ["dnsbimi", "speculate"]
     config_overrides = {
         "modules": {"dnsbimi": {"emit_raw_dns_records": True, "selectors": "default,nondefault"}},
+        "omit_event_types": ["HTTP_RESPONSE", "RAW_TEXT", "DNS_NAME_UNRESOLVED", "FILESYSTEM", "WEB_PARAMETER"],
     }
 
     async def setup_after_prep(self, module_test):

@@ -6,9 +6,6 @@ from bbot.core.helpers import regexes
 from bbot.errors import ValidationError
 from bbot.core.event.helpers import EventSeed
 
-# NOTE: :2001:db8:: will currently cause an exception...
-# e.g. raised unknown error: split_port() failed to parse netloc ":2001:db8::"
-
 
 def test_ip_regexes():
     bad_ip = [
@@ -23,6 +20,15 @@ def test_ip_regexes():
         "2001:db8:g::",  # includes non-hex character,
         "2001.db8.80",  # weird dot separated thing that might actually resolve as a DNS_NAME
         "9e:3e:53:29:43:64",  # MAC address, poor regex patterning will often detect these.
+        "2001:db8:1:2:3:4:5",  # only 7 groups, no zero-compression
+        "2001:db8:1:2:3:4:5:6:7",  # too many groups
+        "2001:db8::1::1",  # multiple ::
+        "2001:db8::zzzz",  # non-hex character
+        "2001:db8::12345",  # hex value too long
+        ":2001:db8::1",  # starts with :
+        ":2001:db8::",  # starts with :
+        "cafe:80",  # looks like open port
+        "12:34:56:78:9A:BC",  # mac address
     ]
 
     good_ip = [
@@ -46,6 +52,17 @@ def test_ip_regexes():
         "1::1",
         "ffff::ffff",
         "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+        "2001:db8::ff00:42:8329",
+        "2001:0db8:0000:0000:0000:0000:0000:0001",
+        "2001:db8:0:0:0:0:0:1",
+        "2001:db8::1",
+        "2001:db8::dead:beef",
+        "2001:db8:1:2:3:4:5:6",
+        "2001:db8:1:2:3:4:5:ffff",
+        "::",
+        "::ffff",
+        "::dead:beef",
+        "::DEAD:BEEF",
     ]
 
     ip_address_regexes = regexes.event_type_regexes["IP_ADDRESS"]
@@ -61,7 +78,7 @@ def test_ip_regexes():
                 if ip.startswith("["):
                     assert ip == "[2001:db8::]:80"
                 else:
-                    assert ip == "203.0.113.0:80"
+                    assert ip in ("cafe:80", "203.0.113.0:80")
                 continue
             if event_type == "DNS_NAME":
                 if ip.startswith("2001"):

@@ -1,4 +1,6 @@
+import json
 import logging
+import re
 import warnings
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -322,10 +324,11 @@ class WebHelper(EngineClient):
             path_override (str, optional): Overrides the request-target to use in the HTTP request line.
             head_mode (bool, optional): If True, includes '-I' to fetch headers only. Defaults to None.
             raw_body (str, optional): Raw string to be sent in the body of the request.
+            resolve (dict, optional): Host resolution override as dict with 'host', 'port', 'ip' keys for curl --resolve.
             **kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Returns:
-            str: The output of the cURL command.
+            dict: JSON object with response data and metadata.
 
         Raises:
             CurlError: If 'url' is not supplied.
@@ -339,7 +342,11 @@ class WebHelper(EngineClient):
         if not url:
             raise CurlError("No URL supplied to CURL helper")
 
-        curl_command = ["curl", url, "-s"]
+        # Use BBOT-specific curl binary
+        bbot_curl = self.parent_helper.tools_dir / "curl"
+        if not bbot_curl.exists():
+            raise CurlError(f"BBOT curl binary not found at {bbot_curl}. Run dependency installation.")
+        curl_command = [str(bbot_curl), url, "-s"]
 
         raw_path = kwargs.get("raw_path", False)
         if raw_path:
@@ -382,6 +389,12 @@ class WebHelper(EngineClient):
 
         curl_command.append("-m")
         curl_command.append(str(timeout))
+
+        # mirror the web helper behavior
+        retries = self.parent_helper.web_config.get("http_retries", 1)
+        if retries > 0:
+            curl_command.extend(["--retry", str(retries)])
+            curl_command.append("--retry-all-errors")
 
         for k, v in headers.items():
             if isinstance(v, list):
@@ -465,9 +478,42 @@ class WebHelper(EngineClient):
             curl_command.append("--resolve")
             curl_command.append(f"{host}:{port}:{ip}")
 
-        log.verbose(f"Running curl command: {curl_command}")
+        # Always add JSON --write-out format with separator
+        curl_command.extend(["-w", "\\n---CURL_METADATA---\\n%{json}"])
+
+        log.debug(f"Running curl command: {curl_command}")
+
         output = (await self.parent_helper.run(curl_command)).stdout
-        return output
+
+        # Parse the output to separate content and metadata
+
+        parts = output.split("\n---CURL_METADATA---\n")
+
+        # Raise CurlError if separator not found - this indicates a problem with our curl implementation
+        if len(parts) < 2:
+            raise CurlError(f"Curl output missing expected separator. Got: {output[:200]}...")
+
+        response_data = parts[0]
+        # Take the last part as JSON metadata (in case separator appears in content)
+        json_data = parts[-1].strip()
+
+        # Raise CurlError if JSON parsing fails - this indicates a problem with curl's %{json} output
+        try:
+            metadata = json.loads(json_data)
+        except json.JSONDecodeError as e:
+            # Try to fix common malformed JSON issues from curl output
+            try:
+                # Fix empty values like "certs":, -> "certs":null,
+                fixed_json = re.sub(r':"?\s*,', ":null,", json_data)
+                # Fix trailing commas before closing braces
+                fixed_json = re.sub(r",\s*}", "}", fixed_json)
+                metadata = json.loads(fixed_json)
+                log.debug(f"Fixed malformed JSON from curl: {json_data[:100]}... -> {fixed_json[:100]}...")
+            except json.JSONDecodeError:
+                raise CurlError(f"Failed to parse curl JSON metadata: {e}. JSON data: {json_data[:200]}...")
+
+        # Combine into final JSON structure
+        return {"response_data": response_data, **metadata}
 
     def beautifulsoup(
         self,
@@ -581,3 +627,124 @@ class WebHelper(EngineClient):
         }
 
         return j
+
+    def response_similarity(self, response1, response2, normalization_filter=None, similarity_cache=None):
+        """
+        Calculate similarity between two HTTP response objects using rapidfuzz with performance optimizations.
+
+        This method compares the response_data content of two HTTP response objects and returns a similarity
+        score between 0.0 (completely different) and 1.0 (identical). It includes several optimizations:
+        - Fast exact equality check for identical responses
+        - Content truncation for large responses (>4KB) to improve performance
+        - Optional caching using xxHash for fast cache key generation (bring your own similarity_cache dict)
+        - Hostname reflection filtering to normalize responses
+
+        Args:
+            response1 (dict): First HTTP response object with 'response_data' key containing the response body
+            response2 (dict): Second HTTP response object with 'response_data' key containing the response body
+            normalization_filter (str, optional): String to remove from both response bodies before comparison.
+                Useful for removing hostname reflections or other dynamic content that would skew similarity calculations.
+            similarity_cache (dict, optional): Cache dictionary for storing/retrieving similarity results.
+                Uses xxHash-based keys for fast lookups. If provided, results will be cached to improve
+                performance on repeated comparisons.
+
+        Returns:
+            float: Similarity score between 0.0 (completely different) and 1.0 (identical).
+                Values closer to 1.0 indicate more similar content.
+
+        Examples:
+            Basic similarity comparison:
+            >>> similarity = self.helpers.web.response_similarity(response1, response2)
+            >>> if similarity > 0.8:
+            >>>     print("Responses are very similar")
+
+            With hostname reflection filtering:
+            >>> similarity = self.helpers.web.response_similarity(
+            >>>     baseline_response,
+            >>>     probe_response,
+            >>>     normalization_filter="example.com"
+            >>> )
+
+            With caching for performance:
+            >>> cache = {}
+            >>> similarity = self.helpers.web.response_similarity(
+            >>>     response1,
+            >>>     response2,
+            >>>     similarity_cache=cache
+            >>> )
+
+        Performance Notes:
+            - Responses larger than 4KB are automatically truncated to first 2KB + last 1KB for comparison
+            - Exact equality is checked first for optimal performance on identical responses
+            - Cache keys are order-independent (comparing A,B gives same cache key as B,A)
+        """
+        from rapidfuzz import fuzz
+        import xxhash
+
+        # Create fast hashes for cache key using xxHash
+        response1_data = response1["response_data"]
+        response2_data = response2["response_data"]
+
+        # Normalize by removing specified content to eliminate differences
+        if normalization_filter:
+            response2_data = response2_data.replace(normalization_filter, "")
+            response1_data = response1_data.replace(normalization_filter, "")
+
+        # Fastest check: exact equality (very common for identical error pages)
+        if response1_data == response2_data:
+            return 1.0  # Exactly the same
+
+        response1_hash = xxhash.xxh64(
+            response1_data.encode() if isinstance(response1_data, str) else response1_data
+        ).hexdigest()
+        response2_hash = xxhash.xxh64(
+            response2_data.encode() if isinstance(response2_data, str) else response2_data
+        ).hexdigest()
+
+        # Create cache key (order-independent)
+        cache_key = tuple(sorted([response1_hash, response2_hash]))
+
+        # Check cache first if provided
+        if similarity_cache is not None and cache_key in similarity_cache:
+            return similarity_cache[cache_key]
+
+        # Calculate similarity with optional truncation for performance
+        # Truncate if EITHER response is larger than 4096 bytes
+        if len(response1_data) > 4096 or len(response2_data) > 4096:
+            # Take first 2048 bytes + last 1024 bytes for comparison
+            response1_truncated = self._truncate_content_for_similarity(response1_data)
+            response2_truncated = self._truncate_content_for_similarity(response2_data)
+            similarity = fuzz.ratio(response1_truncated, response2_truncated) / 100.0
+        else:
+            # Use full content for smaller responses
+            similarity = fuzz.ratio(response1_data, response2_data) / 100.0
+
+        # Cache the result if cache provided
+        if similarity_cache is not None:
+            similarity_cache[cache_key] = similarity
+
+        return similarity
+
+    def _truncate_content_for_similarity(self, content):
+        """
+        Truncate content for similarity comparison to improve performance.
+
+        Truncation rules:
+        - If content <= 3072 bytes (2048 + 1024): return as-is
+        - If content > 3072 bytes: return first 2048 bytes + last 1024 bytes
+
+        This captures:
+        - First 2048 bytes: HTTP headers, HTML head, title, main content start
+        - Last 1024 bytes: Footers, closing scripts, HTML closing tags
+        """
+        content_length = len(content)
+
+        # No truncation needed for smaller content
+        if content_length <= 3072:
+            return content
+
+        # Truncate: first 2048 + last 1024 bytes
+        first_part = content[:2048]
+        last_part = content[-1024:]
+
+        return first_part + last_part

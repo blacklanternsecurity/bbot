@@ -1,3 +1,12 @@
+### 2.7.0 - TBD
+- [https://github.com/blacklanternsecurity/bbot/pull/2588](https://github.com/blacklanternsecurity/bbot/pull/2588)
+
+### 2.6.0 - Aug 12, 2025
+- [https://github.com/blacklanternsecurity/bbot/pull/2492](https://github.com/blacklanternsecurity/bbot/pull/2492)
+
+### 2.5.0 - June 3, 2025
+- [https://github.com/blacklanternsecurity/bbot/pull/2435](https://github.com/blacklanternsecurity/bbot/pull/2435)
+
 ### 2.4.0 - Feb 27, 2025
 - [https://github.com/blacklanternsecurity/bbot/pull/2266](https://github.com/blacklanternsecurity/bbot/pull/2266)
 

@@ -63,8 +63,6 @@ header_payloads = {
     "X-Host": "127.0.0.1",
 }
 
-# This is planned to be replaced in the future: https://github.com/blacklanternsecurity/bbot/issues/1068
-waf_strings = ["The requested URL was rejected"]
 
 for qp in query_payloads:
     signatures.append(("GET", "{scheme}://{netloc}/{path}%s" % qp, None, True))
@@ -107,8 +105,8 @@ class bypass403(BaseModule):
 
             # In some cases WAFs will respond with a 200 code which causes a false positive
             if subject_response is not None:
-                for ws in waf_strings:
-                    if ws in subject_response.text:
+                for waf_string in self.helpers.get_waf_strings():
+                    if waf_string in subject_response.text:
                         self.debug("Rejecting result based on presence of WAF string")
                         return
 

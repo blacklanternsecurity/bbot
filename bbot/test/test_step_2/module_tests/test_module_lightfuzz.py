@@ -1723,7 +1723,7 @@ class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
                     input_value = param.split("=")[1]
                     break
 
-            if input_value:
+            if input_value is not None:
                 # Simulate flawed escaping
                 sanitized_input = input_value.replace('"', '\\"').replace("'", "\\'")
                 sanitized_input = sanitized_input.replace("<", "%3C").replace(">", "%3E")
@@ -1786,7 +1786,7 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
                     input_value = param.split("=")[1]
                     break
 
-            if input_value:
+            if input_value is not None:
                 # Simulate flawed escaping with opposite quotes
                 sanitized_input = input_value.replace("'", "\\").replace("%22", '\\"')
                 sanitized_input = sanitized_input.replace("<", "%3C").replace(">", "%3E")

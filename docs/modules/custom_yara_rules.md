@@ -123,15 +123,15 @@ When set to True, the contents returned from a successful extraction via a YARA 
 Consider the following example YARA rule:
 
 ```
-rule SubstackLink
+rule ContainsTitle
 {
     meta:
-        description = "contains a Substack link"
+        description = "Contains an HTML title tag"
         emit_match = true
     strings:
-        $substack_link = /https?:\/\/[a-zA-Z0-9.-]+\.substack\.com/
+        $title_value = /<title>(.*)?<\/title>/i
     condition:
-        $substack_link
+        $title_value
 }
 ```
 
@@ -142,8 +142,8 @@ bbot -m httpx --custom-yara-rules=substack.yara -t http://www.blacklanternsecuri
 
 ```
 
-We get the following result. Note that the finding now contains the actual link that was identified with the regex.
+We get the following result. Note that the finding now contains the actual title tag that was identified with the regex.
 
 ```
-[FINDING] {"description": "Custom Yara Rule [SubstackLink] with description: [contains a Substack link] Matched via identifier [substack_link] and extracted [https://blacklanternsecurity.substack.com]", "host": "www.blacklanternsecurity.com", "url": "https://www.blacklanternsecurity.com/"}    excavate
+[FINDING] {"description": "Custom Yara Rule [ContainsTitle] with description: [Contains an HTML title] Matched via identifier [title_value] and extracted [<title>Black Lantern Security</title>]", "host": "www.blacklanternsecurity.com", "url": "https://www.blacklanternsecurity.com/"}	excavate	(cdn-github, cdn-ip)
 ```

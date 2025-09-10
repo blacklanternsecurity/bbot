@@ -24,43 +24,61 @@ class git_clone(github):
 
     async def setup(self):
         output_folder = self.config.get("output_folder")
-        if output_folder:
-            self.output_dir = Path(output_folder) / "git_repos"
-        else:
-            self.output_dir = self.scan.temp_dir / "git_repos"
+        self.output_dir = Path(output_folder) / "git_repos" if output_folder else self.scan.temp_dir / "git_repos"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 
     async def filter_event(self, event):
-        if event.type == "CODE_REPOSITORY":
-            if "git" not in event.tags:
-                return False, "event is not a git repository"
+        if event.type == "CODE_REPOSITORY" and "git" not in event.tags:
+            return False, "event is not a git repository"
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
-        repo_path = await self.clone_git_repository(repo_url)
-        if repo_path:
-            self.verbose(f"Cloned {repo_url} to {repo_path}")
-            codebase_event = self.make_event({"path": str(repo_path)}, "FILESYSTEM", tags=["git"], parent=event)
+        repository_url = event.data.get("url")
+        repository_path = await self.clone_git_repository(repository_url)
+        if repository_path:
+            self.verbose(f"Cloned {repository_url} to {repository_path}")
+            codebase_event = self.make_event({"path": str(repository_path)}, "FILESYSTEM", tags=["git"], parent=event)
             await self.emit_event(
                 codebase_event,
-                context=f"{{module}} downloaded git repo at {repo_url} to {{event.type}}: {repo_path}",
+                context=f"{{module}} cloned git repository at {repository_url} to {{event.type}}: {repository_path}",
             )
 
     async def clone_git_repository(self, repository_url):
         owner = repository_url.split("/")[-2]
         folder = self.output_dir / owner
         self.helpers.mkdir(folder)
-        if self.api_key:
-            url = repository_url.replace("https://github.com", f"https://user:{self.api_key}@github.com")
-        else:
-            url = repository_url
-        command = ["git", "-C", folder, "clone", url]
+
+        command = ["git", "-C", folder, "clone", repository_url]
+        env = {"GIT_TERMINAL_PROMPT": "0"}
+
         try:
-            output = await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, check=True)
+            hostname = self.helpers.urlparse(repository_url).hostname
+            if hostname and self.api_key:
+                _, domain = self.helpers.split_domain(hostname)
+                # only use the api key if the domain is github.com
+                if domain == "github.com":
+                    env["GIT_HELPER"] = (
+                        f'!f() {{ case "$1" in get) '
+                        f"echo username=x-access-token; "
+                        f"echo password={self.api_key};; "
+                        f'esac; }}; f "$@"'
+                    )
+                    command = (
+                        command[:1]
+                        + [
+                            "-c",
+                            "credential.helper=",
+                            "-c",
+                            "credential.useHttpPath=true",
+                            "--config-env=credential.helper=GIT_HELPER",
+                        ]
+                        + command[1:]
+                    )
+
+            output = await self.run_process(command, env=env, check=True)
         except CalledProcessError as e:
-            self.debug(f"Error cloning {url}. STDERR: {repr(e.stderr)}")
+            self.debug(f"Error cloning {repository_url}. STDERR: {repr(e.stderr)}")
             return
 
         folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
