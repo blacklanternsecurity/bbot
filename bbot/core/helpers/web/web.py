@@ -627,25 +627,34 @@ class WebHelper(EngineClient):
 
         return j
 
-    def response_similarity(self, response1, response2, normalization_filter=None, similarity_cache=None):
+    def text_similarity(self, text1, text2, normalization_filter=None, similarity_cache=None, truncate=True):
         """
-        Calculate similarity between two HTTP response objects using rapidfuzz with performance optimizations.
+        Calculate similarity between two text strings using rapidfuzz with performance optimizations.
 
-        This method compares the response_data content of two HTTP response objects and returns a similarity
-        score between 0.0 (completely different) and 1.0 (identical). It includes several optimizations:
-        - Fast exact equality check for identical responses
-        - Content truncation for large responses (>4KB) to improve performance
+        This method compares two text strings and returns a similarity score between 0.0 (completely
+        different) and 1.0 (identical). It includes several optimizations:
+        - Fast exact equality check for identical text
+        - Optional content truncation for large text (>4KB) to improve performance
         - Optional caching using xxHash for fast cache key generation (bring your own similarity_cache dict)
-        - Hostname reflection filtering to normalize responses
+        - Text normalization filtering to remove dynamic content
+
+        The method is particularly useful for:
+        - Comparing HTTP response bodies
+        - Content change detection
+        - Wildcard detection in web applications
+        - Deduplication of similar text content
 
         Args:
-            response1 (dict): First HTTP response object with 'response_data' key containing the response body
-            response2 (dict): Second HTTP response object with 'response_data' key containing the response body
-            normalization_filter (str, optional): String to remove from both response bodies before comparison.
-                Useful for removing hostname reflections or other dynamic content that would skew similarity calculations.
+            text1 (str): First text string to compare
+            text2 (str): Second text string to compare
+            normalization_filter (str, optional): String to remove from both texts before comparison.
+                Useful for removing hostnames, timestamps, or other dynamic content that would skew
+                similarity calculations.
             similarity_cache (dict, optional): Cache dictionary for storing/retrieving similarity results.
                 Uses xxHash-based keys for fast lookups. If provided, results will be cached to improve
                 performance on repeated comparisons.
+            truncate (bool, optional): Whether to truncate large text for performance. Defaults to True.
+                When enabled, text larger than 4KB is truncated to first 2KB + last 1KB for comparison.
 
         Returns:
             float: Similarity score between 0.0 (completely different) and 1.0 (identical).
@@ -653,70 +662,71 @@ class WebHelper(EngineClient):
 
         Examples:
             Basic similarity comparison:
-            >>> similarity = self.helpers.web.response_similarity(response1, response2)
+            >>> similarity = self.helpers.web.text_similarity(text1, text2)
             >>> if similarity > 0.8:
-            >>>     print("Responses are very similar")
+            >>>     print("Texts are very similar")
 
-            With hostname reflection filtering:
-            >>> similarity = self.helpers.web.response_similarity(
-            >>>     baseline_response,
-            >>>     probe_response,
+            With content normalization filtering:
+            >>> similarity = self.helpers.web.text_similarity(
+            >>>     baseline_text,
+            >>>     probe_text,
             >>>     normalization_filter="example.com"
             >>> )
 
             With caching for performance:
             >>> cache = {}
-            >>> similarity = self.helpers.web.response_similarity(
-            >>>     response1,
-            >>>     response2,
+            >>> similarity = self.helpers.web.text_similarity(
+            >>>     text1,
+            >>>     text2,
             >>>     similarity_cache=cache
             >>> )
 
+            Disable truncation for exact comparison:
+            >>> similarity = self.helpers.web.text_similarity(
+            >>>     text1,
+            >>>     text2,
+            >>>     truncate=False
+            >>> )
+
         Performance Notes:
-            - Responses larger than 4KB are automatically truncated to first 2KB + last 1KB for comparison
-            - Exact equality is checked first for optimal performance on identical responses
+            - Text larger than 4KB is automatically truncated to first 2KB + last 1KB for comparison (when truncate=True)
+            - Exact equality is checked first for optimal performance on identical text
             - Cache keys are order-independent (comparing A,B gives same cache key as B,A)
+            - Disabling truncation may impact performance on very large text but provides more accurate results
         """
+
+        # Fastest check: exact equality (very common for identical content)
+        if text1 == text2:
+            return 1.0  # Exactly the same
+
         from rapidfuzz import fuzz
         import xxhash
 
-        # Create fast hashes for cache key using xxHash
-        response1_data = response1["response_data"]
-        response2_data = response2["response_data"]
-
         # Normalize by removing specified content to eliminate differences
         if normalization_filter:
-            response2_data = response2_data.replace(normalization_filter, "")
-            response1_data = response1_data.replace(normalization_filter, "")
+            text1 = text1.replace(normalization_filter, "")
+            text2 = text2.replace(normalization_filter, "")
 
-        # Fastest check: exact equality (very common for identical error pages)
-        if response1_data == response2_data:
-            return 1.0  # Exactly the same
+        # Create fast hashes for cache key using xxHash
+        text1_hash = xxhash.xxh64(text1.encode() if isinstance(text1, str) else text1).hexdigest()
+        text2_hash = xxhash.xxh64(text2.encode() if isinstance(text2, str) else text2).hexdigest()
 
-        response1_hash = xxhash.xxh64(
-            response1_data.encode() if isinstance(response1_data, str) else response1_data
-        ).hexdigest()
-        response2_hash = xxhash.xxh64(
-            response2_data.encode() if isinstance(response2_data, str) else response2_data
-        ).hexdigest()
-
-        # Create cache key (order-independent)
-        cache_key = tuple(sorted([response1_hash, response2_hash]))
+        # Create cache key (order-independent) - include truncate setting in cache key
+        cache_key = tuple(sorted([text1_hash, text2_hash]) + [str(truncate)])
 
         # Check cache first if provided
         if similarity_cache is not None and cache_key in similarity_cache:
             return similarity_cache[cache_key]
 
         # Calculate similarity with optional truncation for performance
-        # Truncate if EITHER response is larger than 4096 bytes
-        if len(response1_data) > 4096 or len(response2_data) > 4096:
+        if truncate and (len(text1) > 4096 or len(text2) > 4096):
             # Take first 2048 bytes + last 1024 bytes for comparison
-            response1_truncated = self._truncate_content_for_similarity(response1_data)
-            response2_truncated = self._truncate_content_for_similarity(response2_data)
-            similarity = fuzz.ratio(response1_truncated, response2_truncated) / 100.0
+            text1_truncated = self._truncate_content_for_similarity(text1)
+            text2_truncated = self._truncate_content_for_similarity(text2)
+            similarity = fuzz.ratio(text1_truncated, text2_truncated) / 100.0
         else:
-            # Use full content for smaller responses
-            similarity = fuzz.ratio(response1_data, response2_data) / 100.0
+            # Use full content for comparison
+            similarity = fuzz.ratio(text1, text2) / 100.0
 
         # Cache the result if cache provided
         if similarity_cache is not None:

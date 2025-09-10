@@ -417,7 +417,11 @@ class virtualhost(BaseModule):
             return True
 
         # Compare original probe response with modified response
-        similarity = self.helpers.web.response_similarity(probe_response, wildcard_canary_response)
+        similarity = self.helpers.web.text_similarity(
+            probe_response["response_data"],
+            wildcard_canary_response["response_data"],
+            similarity_cache=self.similarity_cache,
+        )
         result = similarity <= self.SIMILARITY_THRESHOLD
 
         if not result:
@@ -751,8 +755,11 @@ class virtualhost(BaseModule):
 
         # Calculate content similarity to canary (junk response)
         # Use probe hostname for normalization to remove hostname reflection differences
-        similarity = self.helpers.web.response_similarity(
-            canary_response, probe_response, normalization_filter=probe_host, similarity_cache=self.similarity_cache
+        similarity = self.helpers.web.text_similarity(
+            canary_response["response_data"],
+            probe_response["response_data"],
+            normalization_filter=probe_host,
+            similarity_cache=self.similarity_cache,
         )
 
         # Debug logging only when we think we found a match
@@ -784,7 +791,11 @@ class virtualhost(BaseModule):
             )
             return False
 
-        similarity = self.helpers.web.response_similarity(original_response, keyword_canary_response)
+        similarity = self.helpers.web.text_similarity(
+            original_response["response_data"],
+            keyword_canary_response["response_data"],
+            similarity_cache=self.similarity_cache,
+        )
         if similarity >= self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"Intentionally wrong hostname has a canary too similar to the original. Using probe url: {probe_url} - similarity: {similarity:.3f} above threshold {self.SIMILARITY_THRESHOLD} - Original: {original_response.get('http_code', 'N/A')} ({len(original_response.get('response_data', ''))} bytes), Current: {keyword_canary_response.get('http_code', 'N/A')} ({len(keyword_canary_response.get('response_data', ''))} bytes)"
@@ -821,7 +832,11 @@ class virtualhost(BaseModule):
             return True
 
         # Fallback - use similarity comparison for response data (allows slight differences)
-        similarity = self.helpers.web.response_similarity(original_canary_response, consistency_canary_response)
+        similarity = self.helpers.web.text_similarity(
+            original_canary_response["response_data"],
+            consistency_canary_response["response_data"],
+            similarity_cache=self.similarity_cache,
+        )
         if similarity < self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"CANARY SIMILARITY CHANGED for {normalized_url} - similarity: {similarity:.3f} below threshold {self.SIMILARITY_THRESHOLD} - Original: {original_canary_response.get('http_code', 'N/A')} ({len(original_canary_response.get('response_data', ''))} bytes), Current: {consistency_canary_response.get('http_code', 'N/A')} ({len(consistency_canary_response.get('response_data', ''))} bytes)"
