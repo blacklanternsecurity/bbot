@@ -1,8 +1,6 @@
-from rapidfuzz import fuzz
 from urllib.parse import urlparse
 import random
 import string
-import xxhash
 
 from bbot.modules.base import BaseModule
 from bbot.errors import CurlError
@@ -419,7 +417,7 @@ class virtualhost(BaseModule):
             return True
 
         # Compare original probe response with modified response
-        similarity = self.get_content_similarity(probe_response, wildcard_canary_response)
+        similarity = self.helpers.web.response_similarity(probe_response, wildcard_canary_response)
         result = similarity <= self.SIMILARITY_THRESHOLD
 
         if not result:
@@ -753,7 +751,9 @@ class virtualhost(BaseModule):
 
         # Calculate content similarity to canary (junk response)
         # Use probe hostname for normalization to remove hostname reflection differences
-        similarity = self.get_content_similarity(canary_response, probe_response, reflection_filter=probe_host)
+        similarity = self.helpers.web.response_similarity(
+            canary_response, probe_response, normalization_filter=probe_host, similarity_cache=self.similarity_cache
+        )
 
         # Debug logging only when we think we found a match
         if similarity <= self.SIMILARITY_THRESHOLD:
@@ -762,70 +762,6 @@ class virtualhost(BaseModule):
             )
 
         return similarity
-
-    def get_content_similarity(self, canary_response, probe_response, reflection_filter=None):
-        # Create fast hashes for cache key using xxHash
-        canary_data = canary_response["response_data"]
-        probe_data = probe_response["response_data"]
-
-        # Normalize by removing hostname to eliminate hostname reflection differences
-        if reflection_filter:
-            probe_data = probe_data.replace(reflection_filter, "")
-            canary_data = canary_data.replace(reflection_filter, "")
-
-        # Fastest check: exact equality (very common for identical error pages)
-        if canary_data == probe_data:
-            return 1.0  # Exactly the same
-
-        canary_hash = xxhash.xxh64(canary_data.encode() if isinstance(canary_data, str) else canary_data).hexdigest()
-        probe_hash = xxhash.xxh64(probe_data.encode() if isinstance(probe_data, str) else probe_data).hexdigest()
-
-        # Create cache key (order-independent)
-        cache_key = tuple(sorted([canary_hash, probe_hash]))
-
-        # Check cache first
-        if cache_key in self.similarity_cache:
-            return self.similarity_cache[cache_key]
-
-        # Calculate similarity with optional truncation for performance
-        # Truncate if EITHER response is larger than 4096 bytes
-        if len(canary_data) > 4096 or len(probe_data) > 4096:
-            # Take first 2048 bytes + last 1024 bytes for comparison
-            canary_truncated = self._truncate_content_for_similarity(canary_data)
-            probe_truncated = self._truncate_content_for_similarity(probe_data)
-            similarity = fuzz.ratio(canary_truncated, probe_truncated) / 100.0
-        else:
-            # Use full content for smaller responses
-            similarity = fuzz.ratio(canary_data, probe_data) / 100.0
-
-        # Cache the result
-        self.similarity_cache[cache_key] = similarity
-
-        return similarity
-
-    def _truncate_content_for_similarity(self, content):
-        """
-        Truncate content for similarity comparison to improve performance.
-
-        Truncation rules:
-        - If content <= 3072 bytes (2048 + 1024): return as-is
-        - If content > 3072 bytes: return first 2048 bytes + last 1024 bytes
-
-        This captures:
-        - First 2048 bytes: HTTP headers, HTML head, title, main content start
-        - Last 1024 bytes: Footers, closing scripts, HTML closing tags
-        """
-        content_length = len(content)
-
-        # No truncation needed for smaller content
-        if content_length <= 3072:
-            return content
-
-        # Truncate: first 2048 + last 1024 bytes
-        first_part = content[:2048]
-        last_part = content[-1024:]
-
-        return first_part + last_part
 
     async def _verify_canary_keyword(self, original_response, probe_url, is_https, basehost, host_ip):
         """Perform last-minute check on the canary for keyword-based virtual host wildcards"""
@@ -848,7 +784,7 @@ class virtualhost(BaseModule):
             )
             return False
 
-        similarity = self.get_content_similarity(original_response, keyword_canary_response)
+        similarity = self.helpers.web.response_similarity(original_response, keyword_canary_response)
         if similarity >= self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"Intentionally wrong hostname has a canary too similar to the original. Using probe url: {probe_url} - similarity: {similarity:.3f} above threshold {self.SIMILARITY_THRESHOLD} - Original: {original_response.get('http_code', 'N/A')} ({len(original_response.get('response_data', ''))} bytes), Current: {keyword_canary_response.get('http_code', 'N/A')} ({len(keyword_canary_response.get('response_data', ''))} bytes)"
@@ -885,7 +821,7 @@ class virtualhost(BaseModule):
             return True
 
         # Fallback - use similarity comparison for response data (allows slight differences)
-        similarity = self.get_content_similarity(original_canary_response, consistency_canary_response)
+        similarity = self.helpers.web.response_similarity(original_canary_response, consistency_canary_response)
         if similarity < self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"CANARY SIMILARITY CHANGED for {normalized_url} - similarity: {similarity:.3f} below threshold {self.SIMILARITY_THRESHOLD} - Original: {original_canary_response.get('http_code', 'N/A')} ({len(original_canary_response.get('response_data', ''))} bytes), Current: {consistency_canary_response.get('http_code', 'N/A')} ({len(consistency_canary_response.get('response_data', ''))} bytes)"
