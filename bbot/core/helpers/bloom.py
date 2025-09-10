@@ -1,6 +1,7 @@
 import os
 import mmh3
 import mmap
+import xxhash
 
 
 class BloomFilter:
@@ -55,14 +56,12 @@ class BloomFilter:
             if not isinstance(item, str):
                 item = str(item)
             item = item.encode("utf-8")
-        return [abs(hash(item)) % self.size, abs(mmh3.hash(item)) % self.size, abs(self._fnv1a_hash(item)) % self.size]
 
-    def _fnv1a_hash(self, data):
-        hash = 0x811C9DC5  # 2166136261
-        for byte in data:
-            hash ^= byte
-            hash = (hash * 0x01000193) % 2**32  # 16777619
-        return hash
+        return [
+            abs(hash(item)) % self.size,
+            abs(mmh3.hash(item)) % self.size,
+            abs(xxhash.xxh32(item).intdigest()) % self.size,
+        ]
 
     def close(self):
         """Explicitly close the memory-mapped file."""

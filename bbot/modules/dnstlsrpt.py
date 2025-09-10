@@ -44,20 +44,17 @@ class dnstlsrpt(BaseModule):
         "emit_emails": True,
         "emit_raw_dns_records": False,
         "emit_urls": True,
-        "emit_vulnerabilities": True,
     }
     options_desc = {
         "emit_emails": "Emit EMAIL_ADDRESS events",
         "emit_raw_dns_records": "Emit RAW_DNS_RECORD events",
         "emit_urls": "Emit URL_UNVERIFIED events",
-        "emit_vulnerabilities": "Emit VULNERABILITY events",
     }
 
     async def setup(self):
         self.emit_emails = self.config.get("emit_emails", True)
         self.emit_raw_dns_records = self.config.get("emit_raw_dns_records", False)
         self.emit_urls = self.config.get("emit_urls", True)
-        self.emit_vulnerabilities = self.config.get("emit_vulnerabilities", True)
         return await super().setup()
 
     def _incoming_dedup_hash(self, event):
@@ -139,6 +136,3 @@ class dnstlsrpt(BaseModule):
                                                     tags=tags.append(f"tlsrpt-record-{key}"),
                                                     parent=event,
                                                 )
-
-
-# EOF

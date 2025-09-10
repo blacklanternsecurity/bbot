@@ -195,7 +195,7 @@ async def _spawn_proc(self, *command, **kwargs):
             raise ValueError("stdin and input arguments may not both be used.")
         kwargs["stdin"] = asyncio.subprocess.PIPE
 
-    log.hugeverbose(f"run: {' '.join(command)}")
+    log.debug(f"run: {' '.join(command)}")
     try:
         proc = await asyncio.create_subprocess_exec(*command, **kwargs)
         return proc, _input, command

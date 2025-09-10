@@ -38,7 +38,6 @@ class DNSHelper(EngineClient):
         _wildcard_cache (dict): Cache for wildcard detection results.
         _dns_cache (LRUCache): Cache for DNS resolution results, limited in size.
         resolver_file (Path): File containing system's current resolver nameservers.
-        filter_bad_ptrs (bool): Whether to filter out DNS names that appear to be auto-generated PTR records. Defaults to True.
 
     Args:
         parent_helper: The parent helper object with configuration details and utilities.

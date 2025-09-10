@@ -1,0 +1,16 @@
+description: Scan heavily for virtual hosts, with a focus on discovering as many valid virtual hosts as possible
+
+modules:
+  - httpx
+  - virtualhost
+
+config:
+  modules:
+    virtualhost:
+      require_inaccessible: False
+      wordcloud_check: True
+      subdomain_brute: True
+      mutation_check: True
+      special_hosts: True
+      certificate_sans: True
+

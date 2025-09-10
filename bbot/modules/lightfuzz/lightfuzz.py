@@ -34,6 +34,7 @@ class lightfuzz(BaseModule):
         self.event_dict = {}
         self.interactsh_subdomain_tags = {}
         self.interactsh_instance = None
+        self.interactsh_domain = None
         self.disable_post = self.config.get("disable_post", False)
         self.enabled_submodules = self.config.get("enabled_submodules")
         self.interactsh_disable = self.scan.config.get("interactsh_disable", False)
@@ -51,13 +52,16 @@ class lightfuzz(BaseModule):
             self.submodules[submodule_name] = submodule_class
 
         interactsh_needed = any(submodule.uses_interactsh for submodule in self.submodules.values())
-
         if interactsh_needed and not self.interactsh_disable:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
                 self.interactsh_domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
+                if not self.interactsh_domain:
+                    self.warning("Interactsh failure: No domain returned from self.interactsh_instance.register()")
+                    self.interactsh_instance = None
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
+                self.interactsh_instance = None
         return True
 
     async def interactsh_callback(self, r):

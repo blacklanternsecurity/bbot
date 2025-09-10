@@ -99,6 +99,7 @@ class Scanner:
     def __init__(
         self,
         *targets,
+        name=None,
         scan_id=None,
         dispatcher=None,
         **kwargs,
@@ -136,6 +137,9 @@ class Scanner:
         kwargs["_log"] = True
 
         from .preset import Preset
+
+        if name is not None:
+            kwargs["scan_name"] = name
 
         base_preset = Preset(*targets, **kwargs)
 
@@ -226,8 +230,8 @@ class Scanner:
             )
 
         # url file extensions
+        self.url_extension_special = {e.lower() for e in self.config.get("url_extension_special", [])}
         self.url_extension_blacklist = {e.lower() for e in self.config.get("url_extension_blacklist", [])}
-        self.url_extension_httpx_only = {e.lower() for e in self.config.get("url_extension_httpx_only", [])}
 
         # url querystring behavior
         self.url_querystring_remove = self.config.get("url_querystring_remove", True)

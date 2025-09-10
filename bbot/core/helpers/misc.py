@@ -11,9 +11,11 @@ import ipaddress
 import regex as re
 import subprocess as sp
 
+
 from pathlib import Path
 from contextlib import suppress
 from unidecode import unidecode  # noqa F401
+from typing import Iterable, Awaitable, Optional
 from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 
@@ -216,26 +218,29 @@ def split_host_port(d):
     host = None
     port = None
     scheme = None
+
+    # first, try to parse as an IP address
     if is_ip(d):
         return make_ip_type(d), port
 
+    # if not an IP address, try to parse as a host:port
     match = bbot_regexes.split_host_port_regex.match(d)
     if match is None:
-        raise ValueError(f'split_port() failed to parse "{d}"')
+        raise ValueError(f'split_host_port() failed to parse "{d}"')
     scheme = match.group("scheme")
     netloc = match.group("netloc")
     if netloc is None:
-        raise ValueError(f'split_port() failed to parse "{d}"')
+        raise ValueError(f'split_host_port() failed to parse "{d}"')
 
     match = bbot_regexes.extract_open_port_regex.match(netloc)
     if match is None:
-        raise ValueError(f'split_port() failed to parse netloc "{netloc}" (original value: {d})')
+        raise ValueError(f'split_host_port() failed to parse netloc "{netloc}" (original value: {d})')
 
     host = match.group(2)
     if host is None:
         host = match.group(1)
     if host is None:
-        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}" (original value: {d})')
+        raise ValueError(f'split_host_port() failed to locate host in netloc "{netloc}" (original value: {d})')
 
     port = match.group(3)
     if port is None and scheme is not None:
@@ -2586,30 +2591,101 @@ def parse_port_string(port_string):
     return ports
 
 
-async def as_completed(coros):
+async def as_completed(
+    coroutines: Iterable[Awaitable],
+    max_concurrent: Optional[int] = None,
+):
     """
-    Async generator that yields completed Tasks as they are completed.
+    Yield completed coroutines as they finish with optional concurrency limiting.
+    All coroutines are scheduled as tasks internally for execution.
 
-    Args:
-        coros (iterable): An iterable of coroutine objects or asyncio Tasks.
+    Guarantees cleanup:
+    - If the consumer breaks early or an internal cancellation is detected, all remaining
+      tasks are cancelled and awaited (with return_exceptions=True) to avoid
+      "Task exception was never retrieved" warnings.
+    """
+    it = iter(coroutines)
 
-    Yields:
-        asyncio.Task: A Task object that has completed its execution.
+    running: set[asyncio.Task] = set()
+    limit = max_concurrent or float("inf")
+
+    async def _cancel_and_drain_remaining():
+        if not running:
+            return
+        for t in running:
+            t.cancel()
+        try:
+            await asyncio.gather(*running, return_exceptions=True)
+        finally:
+            running.clear()
+
+    # Prime the running set up to the concurrency limit (or all, if unlimited)
+    try:
+        while len(running) < limit:
+            coro = next(it)
+            running.add(asyncio.create_task(coro))
+    except StopIteration:
+        pass
+
+    # Dedup state for repeated error messages
+    _last_err = {"msg": None, "count": 0}
+
+    try:
+        # Drain: yield completed tasks, backfill from the iterator as slots free up
+        while running:
+            done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                # Immediately backfill one slot per completed task, if more work remains
+                try:
+                    coro = next(it)
+                    running.add(asyncio.create_task(coro))
+                except StopIteration:
+                    pass
+
+                # If task raised, handle cancellation gracefully and dedupe noisy repeats
+                if task.exception() is not None:
+                    e = task.exception()
+                    if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        # Quietly stop if we're being cancelled
+                        log.info("as_completed: cancellation detected; exiting early")
+                        await _cancel_and_drain_remaining()
+                        return
+                    # Build a concise message
+                    msg = f"as_completed yielded exception: {e}"
+                    if msg == _last_err["msg"]:
+                        _last_err["count"] += 1
+                        if _last_err["count"] <= 3:
+                            log.warning(msg)
+                        elif _last_err["count"] % 10 == 0:
+                            log.warning(f"{msg} (repeated {_last_err['count']}x)")
+                        else:
+                            log.debug(msg)
+                    else:
+                        _last_err["msg"] = msg
+                        _last_err["count"] = 1
+                        log.warning(msg)
+                yield task
+    finally:
+        # If the consumer breaks early or an error bubbles, ensure we don't leak tasks
+        await _cancel_and_drain_remaining()
+
+
+def get_waf_strings():
+    """
+    Returns a list of common WAF (Web Application Firewall) detection strings.
+
+    Returns:
+        list: List of WAF detection strings
 
     Examples:
-        >>> async def main():
-        ...     async for task in as_completed([coro1(), coro2(), coro3()]):
-        ...         result = task.result()
-        ...         print(f'Task completed with result: {result}')
-
-        >>> asyncio.run(main())
+        >>> waf_strings = get_waf_strings()
+        >>> "The requested URL was rejected" in waf_strings
+        True
     """
-    tasks = {coro if isinstance(coro, asyncio.Task) else asyncio.create_task(coro): coro for coro in coros}
-    while tasks:
-        done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            tasks.pop(task)
-            yield task
+    return [
+        "The requested URL was rejected",
+        "This content has been blocked",
+    ]
 
 
 def clean_dns_record(record):

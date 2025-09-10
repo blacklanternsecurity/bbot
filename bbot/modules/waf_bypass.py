@@ -65,12 +65,6 @@ class waf_bypass(BaseModule):
 
         return start + middle + end
 
-    def get_content_similarity(self, fingerprint1, fingerprint2):
-        """Get similarity ratio between two content fingerprints"""
-        if not fingerprint1 or not fingerprint2:
-            return 0.0
-        return SequenceMatcher(None, fingerprint1, fingerprint2).ratio()
-
     async def get_url_content(self, url, ip=None):
         """Helper function to fetch content from a URL, optionally through specific IP"""
         try:
@@ -93,27 +87,22 @@ class waf_bypass(BaseModule):
 
                 self.debug(f"Fetching via curl with --resolve {host}:{port}:{ip} for {url}")
 
-                content = await self.helpers.web.curl(
+                curl_response = await self.helpers.web.curl(
                     url=url,
                     resolve={"host": host, "port": port, "ip": ip},
                 )
 
-                if content:
-                    fingerprint = self.get_content_fingerprint(content)
-                    self.debug(f"Successfully fetched and fingerprinted content from {url} via IP {ip}")
-                    return fingerprint
+                if curl_response:
+                    return curl_response
                 else:
                     self.debug(f"curl returned no content for {url} via IP {ip}")
             else:
-                response = await self.helpers.request(url, timeout=10)
-                if response and response.status_code in [200, 301, 302, 500]:
-                    content = response.text
-                    fingerprint = self.get_content_fingerprint(content)
-                    self.debug(f"Successfully fetched and fingerprinted content from {url}")
-                    return fingerprint
+                curl_response = await self.helpers.web.request(url, timeout=10)
+                if curl_response and curl_response["status_code"] in [200, 301, 302, 500]:
+                    return curl_response
                 else:
-                    status = getattr(response, "status_code", "unknown")
-                    self.debug(f"Failed to fetch content from {url} - Status: {status}")
+                    status = getattr(curl_response, "status_code", "unknown")
+                    self.debug(f"Failed to fetch content from {url}")
         except Exception as e:
             self.debug(f"Error fetching content from {url}: {str(e)}")
         return None
@@ -157,15 +146,12 @@ class waf_bypass(BaseModule):
             self.protected_domains[domain] = event
             self.debug(f"Found {provider_name}-protected domain: {domain}")
 
-            # Fetch and store content
-            content = await self.get_url_content(url)
+            curl_response = await self.get_url_content(url)
+            curl_response_content = curl_response["response_data"]
 
-            if not content:
+            if not curl_response_content:
                 self.debug(f"Failed to get content from protected URL {url}")
                 return
-
-            self.content_fingerprints[url] = content
-            self.debug(f"Stored content fingerprint from {url} (length: {len(content)})")
 
             # Get CIDRs from the base domain of the protected domain
             base_dns = await self.helpers.dns.resolve(base_domain)
@@ -237,23 +223,22 @@ class waf_bypass(BaseModule):
             self.debug(f"No matching URL found for {protected_domain} in stored fingerprints")
             return None
 
-        original_fingerprint = self.content_fingerprints.get(matching_url)
-        if not original_fingerprint:
-            self.debug(f"No original fingerprint for {matching_url}")
+        original_response = self.content_fingerprints.get(matching_url)
+        if not original_response:
+            self.debug(f"did not get original response for {matching_url}")
             return None
 
         self.verbose(
-            f"Bypass attempt: {protected_domain} via {ip} (orig len {len(original_fingerprint)}) from {source_domain}"
+            f"Bypass attempt: {protected_domain} via {ip} (orig len {len(original_response["response_data"])}) from {source_domain}"
         )
 
-        bypass_fp = await self.get_url_content(matching_url, ip)
-        if not bypass_fp:
+        bypass_response = await self.get_url_content(matching_url, ip)
+        if not bypass_response:
             self.debug(f"Failed to get content through IP {ip} for URL {matching_url}")
             return None
 
-        similarity_raw = self.get_content_similarity(original_fingerprint, bypass_fp)
-        similarity = round(similarity_raw, 2)  # store with limited precision
-        return (matching_url, ip, similarity, source_event) if similarity_raw >= self.similarity_threshold else None
+        similarity = self.helpers.web.response_similarity(original_response, bypass_response)
+        return (matching_url, ip, similarity, source_event) if similarity >= self.similarity_threshold else None
 
     async def finish(self):
         self.debug(f"Found {len(self.protected_domains)} Protected Domains")

@@ -17,11 +17,9 @@ class StrStruct(object):
         self.alloc = alloc
         self.offset = offset
         self.raw = raw[offset : offset + length]
-        self.utf16 = False
 
         if len(self.raw) >= 2 and self.raw[1] == "\0":
             self.string = self.raw.decode("utf-16")
-            self.utf16 = True
         else:
             self.string = self.raw
 

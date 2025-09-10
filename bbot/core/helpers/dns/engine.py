@@ -86,8 +86,6 @@ class DNSEngine(EngineServer):
         self._debug = self.dns_config.get("debug", False)
         self._dns_cache = LRUCache(maxsize=10000)
 
-        self.filter_bad_ptrs = self.dns_config.get("filter_ptrs", True)
-
     async def resolve(self, query, **kwargs):
         """Resolve DNS names and IP addresses to their corresponding results.
 
