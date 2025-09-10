@@ -216,9 +216,7 @@ class TestVirtualhostBruteForce(VirtualhostTestBase):
 
     def check(self, module_test, events):
         brute_hosts_found = set()
-        print(f"\nDEBUG: Found {len(events)} events:")
         for e in events:
-            print(f"  {e.type}: {e.data if hasattr(e, 'data') else 'N/A'}")
             if e.type == "VIRTUAL_HOST":
                 vhost = e.data["virtual_host"]
                 if vhost in ["admin.test.example", "api.test.example", "test.test.example"]:
