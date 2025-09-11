@@ -6,7 +6,7 @@ log = logging.getLogger("bbot.core.helpers.asn")
 
 
 class ASNHelper:
-    asndb_url = "http://157.230.95.177:9000/v1/ip/"
+    asndb_url = "https://asndb.api.bbot.io/v1/ip/"
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
