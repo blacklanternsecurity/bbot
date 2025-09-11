@@ -94,9 +94,9 @@ class TestWAFBypass(ModuleTestBase):
 
         async def fake_get_url_content(self_waf, url, ip=None):
             if "protected.test" in url and (ip == None or ip == "127.0.0.1"):
-                return "PROTECTED CONTENT!"
+                return {"response_data": "PROTECTED CONTENT!", "http_code": 200}
             else:
-                return "Error!!"
+                return {"response_data": "ERROR!", "http_code": 404}
 
         import types
 

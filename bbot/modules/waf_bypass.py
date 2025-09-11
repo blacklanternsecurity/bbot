@@ -1,6 +1,4 @@
 from bbot.modules.base import BaseModule
-from difflib import SequenceMatcher
-import asyncio
 
 
 class waf_bypass(BaseModule):
@@ -33,7 +31,8 @@ class waf_bypass(BaseModule):
         self.protected_domains = {}  # {domain: event} - store events for protected domains
         self.bypass_candidates = {}  # {base_domain: set(cidrs)}
         self.domain_ips = {}  # {full_domain: set(ips)}
-        self.content_fingerprints = {}  # {full_url: fingerprint} store content samples for comparison
+        self.similarity_cache = {}
+        self.content_fingerprints = {}
         self.similarity_threshold = self.config.get("similarity_threshold", 0.90)
         self.search_ip_neighbors = self.config.get("search_ip_neighbors", True)
         self.neighbor_cidr = int(self.config.get("neighbor_cidr", 24))
@@ -46,24 +45,6 @@ class waf_bypass(BaseModule):
         # Keep track of any IPs that came from hosts that are "cloud-ips"
         self.cloud_ips = set()
         return True
-
-    def get_content_fingerprint(self, content):
-        """Extract a representative fingerprint from content"""
-        if not content:
-            return None
-
-        # Take 3 samples of 500 chars each from start, middle and end
-        # This gives us enough context for comparison while reducing storage
-        content_len = len(content)
-        if content_len <= 1500:
-            return content  # If content is small enough, just return it all
-
-        start = content[:500]
-        mid_start = max(0, (content_len // 2) - 250)
-        middle = content[mid_start : mid_start + 500]
-        end = content[-500:]
-
-        return start + middle + end
 
     async def get_url_content(self, url, ip=None):
         """Helper function to fetch content from a URL, optionally through specific IP"""
@@ -97,12 +78,17 @@ class waf_bypass(BaseModule):
                 else:
                     self.debug(f"curl returned no content for {url} via IP {ip}")
             else:
-                curl_response = await self.helpers.web.request(url, timeout=10)
-                if curl_response and curl_response["status_code"] in [200, 301, 302, 500]:
-                    return curl_response
+                response = await self.helpers.web.curl(url=url)
+                if not response:
+                    self.debug(f"No response received from {url}")
+                    return None
+                elif response.get("http_code", 0) in [200, 301, 302, 500]:
+                    return response
                 else:
-                    status = getattr(curl_response, "status_code", "unknown")
-                    self.debug(f"Failed to fetch content from {url}")
+                    self.debug(
+                        f"Failed to fetch content from {url} - Status: {response.get('http_code', 'unknown')} (not in allowed list)"
+                    )
+                    return None
         except Exception as e:
             self.debug(f"Error fetching content from {url}: {str(e)}")
         return None
@@ -147,11 +133,17 @@ class waf_bypass(BaseModule):
             self.debug(f"Found {provider_name}-protected domain: {domain}")
 
             curl_response = await self.get_url_content(url)
-            curl_response_content = curl_response["response_data"]
+            if not curl_response:
+                self.debug(f"Failed to get response from protected URL {url}")
+                return
 
-            if not curl_response_content:
+            if not curl_response["response_data"]:
                 self.debug(f"Failed to get content from protected URL {url}")
                 return
+
+            # Store the response object for later comparison
+            self.content_fingerprints[url] = curl_response
+            self.debug(f"Stored response from {url} (content length: {len(curl_response['response_data'])})")
 
             # Get CIDRs from the base domain of the protected domain
             base_dns = await self.helpers.dns.resolve(base_domain)
@@ -201,6 +193,8 @@ class waf_bypass(BaseModule):
                     if asns:
                         for asn_info in asns:
                             subnets = asn_info.get("subnets")
+                            if not subnets:
+                                continue
                             if isinstance(subnets, str):
                                 subnets = [subnets]
                             for cidr in subnets:
@@ -219,6 +213,7 @@ class waf_bypass(BaseModule):
 
     async def check_ip(self, ip, source_domain, protected_domain, source_event):
         matching_url = next((url for url in self.content_fingerprints.keys() if protected_domain in url), None)
+
         if not matching_url:
             self.debug(f"No matching URL found for {protected_domain} in stored fingerprints")
             return None
@@ -229,7 +224,7 @@ class waf_bypass(BaseModule):
             return None
 
         self.verbose(
-            f"Bypass attempt: {protected_domain} via {ip} (orig len {len(original_response["response_data"])}) from {source_domain}"
+            f"Bypass attempt: {protected_domain} via {ip} (orig len {len(original_response['response_data'])}) from {source_domain}"
         )
 
         bypass_response = await self.get_url_content(matching_url, ip)
@@ -237,7 +232,11 @@ class waf_bypass(BaseModule):
             self.debug(f"Failed to get content through IP {ip} for URL {matching_url}")
             return None
 
-        similarity = self.helpers.web.response_similarity(original_response, bypass_response)
+        similarity = self.helpers.web.text_similarity(
+            original_response["response_data"],
+            bypass_response["response_data"],
+            similarity_cache=self.similarity_cache,
+        )
         return (matching_url, ip, similarity, source_event) if similarity >= self.similarity_threshold else None
 
     async def finish(self):
@@ -288,7 +287,7 @@ class waf_bypass(BaseModule):
 
         self.debug(f"\nFound {len(all_ips)} non-CloudFlare IPs to check: {all_ips}")
 
-        tasks = []
+        coros = []
         new_pairs_count = 0
 
         for protected_domain, source_event in self.protected_domains.items():
@@ -299,14 +298,14 @@ class waf_bypass(BaseModule):
                 self.attempted_bypass_pairs.add(combo)
                 new_pairs_count += 1
                 self.debug(f"Checking {ip} for {protected_domain} from {src}")
-                tasks.append(asyncio.create_task(self.check_ip(ip, src, protected_domain, source_event)))
+                coros.append(self.check_ip(ip, src, protected_domain, source_event))
 
         self.verbose(
             f"Checking {new_pairs_count} new bypass pairs (total attempted: {len(self.attempted_bypass_pairs)})..."
         )
 
-        self.debug(f"about to start {len(tasks)} tasks")
-        async for completed in self.helpers.as_completed(tasks):
+        self.debug(f"about to start {len(coros)} coroutines")
+        async for completed in self.helpers.as_completed(coros):
             result = await completed
             if result:
                 confirmed_bypasses.append(result)
