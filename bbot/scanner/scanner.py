@@ -344,9 +344,9 @@ class Scanner:
     async def async_start(self):
         """ """
         self.start_time = datetime.now()
-        self.root_event.data["started_at"] = self.start_time.isoformat()
         try:
             await self._prep()
+            self.root_event.data["started_at"] = self.start_time.isoformat()
 
             self._start_log_handlers()
             self.trace(f"Ran BBOT {__version__} at {self.start_time}, command: {' '.join(sys.argv)}")
