@@ -398,7 +398,7 @@ class Preset(metaclass=BasePreset):
         if other._args is not None:
             self._args = other._args
 
-    def bake(self, scan=None):
+    async def bake(self, scan=None):
         """
         Return a "baked" copy of this preset, ready for use by a BBOT scan.
 
@@ -488,6 +488,9 @@ class Preset(metaclass=BasePreset):
             blacklist=self._blacklist,
             strict_scope=self.strict_scope,
         )
+
+        # generate children, if necessary for the target type, before processing
+        await baked_preset.target.generate_children(baked_preset.helpers)
 
         if scan is not None:
             # evaluate conditions

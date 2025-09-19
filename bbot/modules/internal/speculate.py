@@ -65,7 +65,8 @@ class speculate(BaseInternalModule):
         if not self.portscanner_enabled:
             self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")
 
-        target_len = len(self.scan.target.seeds)
+        # Count the number of seed entries, not total IP addresses to avoid overflow
+        target_len = len(self.scan.target.seeds.event_seeds)
         if target_len > self.config.get("max_hosts", 65536):
             if not self.portscanner_enabled:
                 self.hugewarning(
@@ -88,6 +89,15 @@ class speculate(BaseInternalModule):
         # generate individual IP addresses from IP range
         if event.type == "IP_RANGE" and self.range_to_ip:
             net = ipaddress.ip_network(event.data)
+            num_ips = net.num_addresses
+            max_hosts = self.config.get("max_hosts", 65536)
+
+            if num_ips > max_hosts:
+                self.warning(
+                    f"IP range {event.data} contains {num_ips:,} addresses, which exceeds max_hosts limit of {max_hosts:,}. Skipping IP_ADDRESS speculation."
+                )
+                return
+
             ips = list(net)
             random.shuffle(ips)
             for ip in ips:

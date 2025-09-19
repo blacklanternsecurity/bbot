@@ -1135,6 +1135,11 @@ class ASN(DictEvent):
     _always_emit = True
     _quick_emit = True
 
+    def sanitize_data(self, data):
+        if not isinstance(data, int):
+            raise ValidationError(f"ASN number must be an integer: {data}")
+        return data
+
 
 class CODE_REPOSITORY(DictHostEvent):
     _always_emit = True

@@ -90,7 +90,7 @@ async def _main():
                 preset._default_output_modules = options.output_modules
                 preset._default_internal_modules = []
 
-            preset.bake()
+            await preset.bake()
 
             # --list-modules
             if options.list_modules:
@@ -150,6 +150,8 @@ async def _main():
             log.warning(str(e))
             return
 
+        await scan._prep()
+
         deadly_modules = [
             m for m in scan.preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])
         ]
@@ -191,7 +193,6 @@ async def _main():
             log.verbose(row)
 
         scan.helpers.word_cloud.load()
-        await scan._prep()
 
         if not options.dry_run:
             log.trace(f"Command: {' '.join(sys.argv)}")

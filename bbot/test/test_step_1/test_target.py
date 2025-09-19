@@ -347,6 +347,229 @@ async def test_target_basic(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_asn_targets(bbot_scanner):
+    """Test ASN target parsing, validation, and functionality."""
+    from bbot.core.event.helpers import EventSeed
+    from bbot.scanner.target import BBOTTarget
+    from ipaddress import ip_network
+
+    # Test ASN target parsing with different formats
+    for asn_format in ("ASN:15169", "AS:15169", "AS15169", "asn:15169", "as:15169", "as15169"):
+        event_seed = EventSeed(asn_format)
+        assert event_seed.type == "ASN"
+        assert event_seed.data == "15169"
+        assert event_seed.input == "ASN:15169"
+
+    # Test ASN targets in BBOTTarget
+    target = BBOTTarget("ASN:15169")
+    assert "ASN:15169" in target.seeds.inputs
+
+    # Test ASN with other targets
+    target = BBOTTarget("ASN:15169", "evilcorp.com", "1.2.3.4/24")
+    assert "ASN:15169" in target.seeds.inputs
+    assert "evilcorp.com" in target.seeds.inputs
+    assert "1.2.3.0/24" in target.seeds.inputs  # IP ranges are normalized to network address
+
+    # Test ASN targets must be expanded before being useful in whitelist/blacklist
+    # Direct ASN targets in whitelist/blacklist don't work since they have no host
+    # Instead, test that the ASN input is captured correctly
+    target = BBOTTarget("evilcorp.com")
+    # ASN targets should be added to seeds, not whitelist/blacklist directly
+    target.seeds.add("ASN:15169")
+    assert "ASN:15169" in target.seeds.inputs
+
+    # Test ASN target expansion with mocked ASN helper
+    class MockASNHelper:
+        async def asn_to_subnets(self, asn_number):
+            if asn_number == 15169:
+                return [
+                    {
+                        "asn": 15169,
+                        "name": "GOOGLE",
+                        "description": "Google LLC",
+                        "country": "US",
+                        "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
+                    }
+                ]
+            return []
+
+    class MockHelpers:
+        def __init__(self):
+            self.asn = MockASNHelper()
+
+    # Test target expansion
+    target = BBOTTarget("ASN:15169")
+    mock_helpers = MockHelpers()
+
+    # Verify initial state
+    initial_hosts = len(target.seeds.hosts)
+    initial_seeds = len(target.seeds.event_seeds)
+
+    # Generate children (expand ASN to IP ranges)
+    await target.generate_children(mock_helpers)
+
+    # After expansion, should have additional IP range seeds
+    assert len(target.seeds.event_seeds) > initial_seeds
+    assert len(target.seeds.hosts) > initial_hosts
+
+    # Should contain the expanded IP ranges
+    assert ip_network("8.8.8.0/24") in target.seeds.hosts
+    assert ip_network("8.8.4.0/24") in target.seeds.hosts
+
+    # Whitelist should also include the expanded ranges
+    assert ip_network("8.8.8.0/24") in target.whitelist.hosts
+    assert ip_network("8.8.4.0/24") in target.whitelist.hosts
+
+
+@pytest.mark.asyncio
+async def test_asn_targets_integration(bbot_scanner):
+    """Test ASN targets with full scanner integration."""
+    from bbot.core.helpers.asn import ASNHelper
+
+    # Mock ASN data for testing
+    mock_asn_data = [
+        {
+            "asn": 15169,
+            "name": "GOOGLE",
+            "description": "Google LLC",
+            "country": "US",
+            "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
+        }
+    ]
+
+    # Create scanner with ASN target
+    scan = bbot_scanner("ASN:15169")
+
+    # Mock the ASN helper to return test data
+    async def mock_asn_to_subnets(self, asn_number):
+        if asn_number == 15169:
+            return mock_asn_data
+        return []
+
+    # Apply the mock
+    original_method = ASNHelper.asn_to_subnets
+    ASNHelper.asn_to_subnets = mock_asn_to_subnets
+
+    try:
+        # Initialize scan to access preset and target
+        await scan._prep()
+
+        # Verify target was parsed correctly
+        assert "ASN:15169" in scan.preset.target.seeds.inputs
+
+        # Run target expansion
+        await scan.preset.target.generate_children(scan.helpers)
+
+        # Verify expansion worked
+        from ipaddress import ip_network
+
+        assert ip_network("8.8.8.0/24") in scan.preset.target.seeds.hosts
+        assert ip_network("8.8.4.0/24") in scan.preset.target.seeds.hosts
+
+        # Test scope checking with expanded ranges
+        assert scan.in_scope("8.8.8.1")
+        assert scan.in_scope("8.8.4.1")
+        assert not scan.in_scope("1.1.1.1")
+
+    finally:
+        # Restore original method
+        ASNHelper.asn_to_subnets = original_method
+
+
+@pytest.mark.asyncio
+async def test_asn_targets_edge_cases(bbot_scanner):
+    """Test edge cases and error handling for ASN targets."""
+    from bbot.core.event.helpers import EventSeed
+    from bbot.errors import ValidationError
+    from bbot.scanner.target import BBOTTarget
+
+    # Test invalid ASN formats that should raise ValidationError
+    invalid_formats_validation_error = ["ASN:", "AS:", "ASN:abc", "AS:xyz", "ASN:-1"]
+    for invalid_format in invalid_formats_validation_error:
+        with pytest.raises(ValidationError):
+            EventSeed(invalid_format)
+
+    # Test invalid ASN format that gets parsed as something else
+    event_seed = EventSeed("ASNXYZ")
+    assert event_seed.type == "DNS_NAME"  # Falls back to DNS parsing
+    assert event_seed.data == "asnxyz"
+
+    # Test valid edge cases
+    valid_formats = ["ASN:0", "AS:0", "ASN:4294967295", "AS:4294967295"]
+    for valid_format in valid_formats[:2]:  # Test just a couple to avoid huge ASN numbers
+        event_seed = EventSeed(valid_format)
+        assert event_seed.type == "ASN"
+
+    # Test ASN with no subnets
+    class MockEmptyASNHelper:
+        async def asn_to_subnets(self, asn_number):
+            return []  # No subnets found
+
+    class MockEmptyHelpers:
+        def __init__(self):
+            self.asn = MockEmptyASNHelper()
+
+    target = BBOTTarget("ASN:99999")  # Non-existent ASN
+    mock_helpers = MockEmptyHelpers()
+
+    initial_seeds = len(target.seeds.event_seeds)
+    await target.generate_children(mock_helpers)
+
+    # Should not add any new seeds for empty ASN
+    assert len(target.seeds.event_seeds) == initial_seeds
+
+    # Test that ASN blacklisting would happen after expansion
+    # Since ASN targets can't be directly added to blacklist (no host),
+    # the proper way would be to expand the ASN and then blacklist the IP ranges
+    target = BBOTTarget("evilcorp.com")
+    # This demonstrates the intended usage pattern - add expanded IP ranges to blacklist
+    target.blacklist.add("8.8.8.0/24")  # Would come from ASN expansion
+    assert "8.8.8.0/24" in target.blacklist.inputs
+
+
+@pytest.mark.asyncio
+async def test_asn_blacklist_functionality(bbot_scanner):
+    """Test ASN blacklisting: IP range target with ASN in blacklist should expand and block subnets."""
+    from bbot.core.helpers.asn import ASNHelper
+    from ipaddress import ip_network
+
+    # Mock ASN 15169 to return 8.8.8.0/24 (within our target range)
+    async def mock_asn_to_subnets(self, asn_number):
+        if asn_number == 15169:
+            return [{"asn": 15169, "subnets": ["8.8.8.0/24"]}]
+        return []
+
+    original_method = ASNHelper.asn_to_subnets
+    ASNHelper.asn_to_subnets = mock_asn_to_subnets
+
+    try:
+        # Target: 8.8.8.0/23 (includes 8.8.8.0/24 and 8.8.9.0/24)
+        # Blacklist: ASN:15169 (should expand to 8.8.8.0/24 and block it)
+        scan = bbot_scanner("8.8.8.0/23", blacklist=["ASN:15169"])
+        await scan._prep()
+
+        # The ASN should have been expanded and the subnet should be in blacklist
+        assert ip_network("8.8.8.0/24") in scan.preset.target.blacklist.hosts
+
+        # 8.8.8.x should be blocked (ASN subnet in blacklist)
+        assert not scan.in_scope("8.8.8.1")
+        assert not scan.in_scope("8.8.8.8")
+        assert not scan.in_scope("8.8.8.255")
+
+        # 8.8.9.x should be allowed (in target but ASN doesn't cover this)
+        assert scan.in_scope("8.8.9.1")
+        assert scan.in_scope("8.8.9.8")
+        assert scan.in_scope("8.8.9.255")
+
+        # IPs outside the target should not be in scope
+        assert not scan.in_scope("8.8.7.1")
+        assert not scan.in_scope("8.8.10.1")
+
+    finally:
+        ASNHelper.asn_to_subnets = original_method
+
+
+@pytest.mark.asyncio
 async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     from bbot.scanner.target import ScanBlacklist
 

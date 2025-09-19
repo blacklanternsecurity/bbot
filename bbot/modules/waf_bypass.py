@@ -158,7 +158,7 @@ class waf_bypass(BaseModule):
 
                     for ip in base_dns:
                         self.debug(f"Getting ASN info for IP {ip} from {provider_name} base domain {base_domain}")
-                        asns = await self.helpers.asn.get(str(ip))
+                        asns = await self.helpers.asn.ip_to_subnets(str(ip))
                         if asns:
                             for asn_info in asns:
                                 subnets = asn_info.get("subnets")

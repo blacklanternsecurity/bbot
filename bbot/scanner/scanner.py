@@ -124,6 +124,7 @@ class Scanner:
         self.duration = None
         self.duration_human = None
         self.duration_seconds = None
+        self._dispatcher_arg = dispatcher
 
         self._success = False
         self._scan_finish_status_message = None
@@ -141,14 +142,19 @@ class Scanner:
         if name is not None:
             kwargs["scan_name"] = name
 
-        base_preset = Preset(*targets, **kwargs)
+        self._unbaked_preset = Preset(*targets, **kwargs)
 
         if custom_preset is not None:
             if not isinstance(custom_preset, Preset):
                 raise ValidationError(f'Preset must be of type Preset, not "{type(custom_preset).__name__}"')
-            base_preset.merge(custom_preset)
+            self._unbaked_preset.merge(custom_preset)
 
-        self.preset = base_preset.bake(self)
+    async def _prep(self):
+        """
+        Creates the scan's output folder, loads its modules, and calls their .setup() methods.
+        """
+
+        self.preset = await self._unbaked_preset.bake(self)
 
         # scan name
         if self.preset.scan_name is None:
@@ -190,12 +196,12 @@ class Scanner:
         self._modules_loaded = False
         self.dummy_modules = {}
 
-        if dispatcher is None:
+        if self._dispatcher_arg is None:
             from .dispatcher import Dispatcher
 
             self.dispatcher = Dispatcher()
         else:
-            self.dispatcher = dispatcher
+            self.dispatcher = self._dispatcher_arg
         self.dispatcher.set_scan(self)
 
         # scope distance
@@ -268,11 +274,6 @@ class Scanner:
         self.__log_handlers = None
         self._log_handler_backup = []
 
-    async def _prep(self):
-        """
-        Creates the scan's output folder, loads its modules, and calls their .setup() methods.
-        """
-
         # update the master PID
         SHARED_INTERPRETER_STATE.update_scan_pid()
 
@@ -283,12 +284,12 @@ class Scanner:
                 f.write(self.preset.to_yaml())
 
             # log scan overview
-            start_msg = f"Scan seeded with {len(self.seeds):,} targets"
+            start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} targets"
             details = []
             if self.whitelist != self.target:
-                details.append(f"{len(self.whitelist):,} in whitelist")
+                details.append(f"{len(self.whitelist.event_seeds):,} in whitelist")
             if self.blacklist:
-                details.append(f"{len(self.blacklist):,} in blacklist")
+                details.append(f"{len(self.blacklist.event_seeds):,} in blacklist")
             if details:
                 start_msg += f" ({', '.join(details)})"
             self.hugeinfo(start_msg)
