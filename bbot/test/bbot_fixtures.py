@@ -15,7 +15,6 @@ from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir, rand_string
-from bbot.core.helpers.async_helpers import get_event_loop
 
 
 log = logging.getLogger("bbot.test.fixtures")
