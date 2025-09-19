@@ -82,14 +82,14 @@ def bbot_scanner():
 
 
 @pytest.fixture
-def scan():
+async def scan():
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"])
+    await bbot_scan._prep()
     yield bbot_scan
 
-    loop = get_event_loop()
-    loop.run_until_complete(bbot_scan._cleanup())
+    await bbot_scan._cleanup()
 
 
 @pytest.fixture
