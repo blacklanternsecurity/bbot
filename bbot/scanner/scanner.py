@@ -128,6 +128,7 @@ class Scanner:
 
         self._success = False
         self._scan_finish_status_message = None
+        self._modules_loaded = False
 
         if scan_id is not None:
             self.id = str(scan_id)
@@ -193,7 +194,6 @@ class Scanner:
         self._status_code = 0
 
         self.modules = OrderedDict({})
-        self._modules_loaded = False
         self.dummy_modules = {}
 
         if self._dispatcher_arg is None:

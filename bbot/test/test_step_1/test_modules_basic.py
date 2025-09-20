@@ -15,7 +15,7 @@ async def test_modules_basic_checks(events, httpx_mock):
     scan = Scanner(config={"omit_event_types": ["URL_UNVERIFIED"]})
     assert "URL_UNVERIFIED" in scan.omitted_event_types
 
-    await scan.load_modules()
+    await scan._prep()
 
     # output module specific event filtering tests
     base_output_module_1 = BaseOutputModule(scan)
@@ -308,7 +308,7 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
         force_start=True,
     )
 
-    await per_domain_scan.load_modules()
+    await per_domain_scan._prep()
     await per_domain_scan.setup_modules()
     per_domain_scan.status = "RUNNING"
 
@@ -448,7 +448,7 @@ async def test_module_loading(bbot_scanner):
         config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
-    await scan2.load_modules()
+    await scan2._prep()
     scan2.status = "RUNNING"
 
     # attributes, descriptions, etc.

@@ -589,7 +589,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     await scan._cleanup()
 
     scan1 = bbot_scanner(modules="ipneighbor")
-    await scan1.load_modules()
+    await scan1._prep()
     assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
 
     await scan1._cleanup()

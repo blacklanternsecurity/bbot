@@ -18,7 +18,7 @@ async def test_scan(
         blacklist=["1.1.1.1/28", "www.evilcorp.com"],
         modules=["ipneighbor"],
     )
-    await scan0.load_modules()
+    await scan0._prep()
     assert scan0.whitelisted("1.1.1.1")
     assert scan0.whitelisted("1.1.1.0")
     assert scan0.blacklisted("1.1.1.15")
