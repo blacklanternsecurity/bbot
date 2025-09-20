@@ -315,6 +315,10 @@ class BBOTTarget:
         Generate children for the target, for seed types that expand into other seed types.
         Helpers are passed into the _generate_children method to enable the use of network lookups and other utilities during the expansion process.
         """
+        # Check if this target had a custom whitelist (whitelist different from the default seed hosts)
+        original_seed_hosts = self.seeds.hosts
+        had_custom_whitelist = set(self.whitelist.inputs) != set(original_seed_hosts)
+
         # Expand seeds first
         for event_seed in list(self.seeds.event_seeds):
             children = await event_seed._generate_children(helpers)
@@ -329,7 +333,9 @@ class BBOTTarget:
 
         # After expanding seeds, update the whitelist to include any new hosts from seed expansion
         # This ensures that expanded targets (like IP ranges from ASN) are considered in-scope
-        expanded_seed_hosts = self.seeds.hosts
-        for host in expanded_seed_hosts:
-            if host not in self.whitelist:
-                self.whitelist.add(host)
+        # BUT only if no custom whitelist was provided - don't override user's custom whitelist
+        if not had_custom_whitelist:
+            expanded_seed_hosts = self.seeds.hosts
+            for host in expanded_seed_hosts:
+                if host not in self.whitelist:
+                    self.whitelist.add(host)
