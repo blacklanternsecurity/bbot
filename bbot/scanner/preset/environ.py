@@ -90,6 +90,8 @@ class BBOTEnviron:
         # ensure bbot_tools
         environ["BBOT_TOOLS"] = str(self.preset.core.tools_dir)
         add_to_path(str(self.preset.core.tools_dir), environ=environ)
+        # ensure bbot_wordlists
+        environ["BBOT_WORDLISTS"] = str(self.preset.core.wordlist_dir)
         # ensure bbot_cache
         environ["BBOT_CACHE"] = str(self.preset.core.cache_dir)
         # ensure bbot_temp

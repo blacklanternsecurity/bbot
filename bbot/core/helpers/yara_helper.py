@@ -35,16 +35,32 @@ rule strings_match
     def compile(self, *args, **kwargs):
         return yara.compile(*args, **kwargs)
 
-    async def match(self, compiled_rules, text):
+    async def match(self, compiled_rules, text, full_result=False):
         """
-        Given a compiled YARA rule and a body of text, return a list of strings that match the rule
+        Given a compiled YARA rule and a body of text, return matches.
+
+        Args:
+            compiled_rules: Compiled YARA rules
+            text: Text to match against
+            full_result (bool): If True, returns full match information including
+                              rule names and metadata. If False, returns only matched strings.
+
+        Returns:
+            If full_result=False: List[str] of matched strings
+            If full_result=True: List[dict] with full match information including:
+                - matched_string: The full matched string
+                - rule: The name of the matched rule
+                - meta: The metadata of the matched rule
         """
-        matched_strings = []
+        results = []
         matches = await self.parent_helper.run_in_executor(compiled_rules.match, data=text)
         if matches:
             for match in matches:
                 for string_match in match.strings:
                     for instance in string_match.instances:
                         matched_string = instance.matched_data.decode("utf-8")
-                        matched_strings.append(matched_string)
-        return matched_strings
+                        if full_result:
+                            results.append({"matched_string": matched_string, "rule": match.rule, "meta": match.meta})
+                        else:
+                            results.append(matched_string)
+        return results

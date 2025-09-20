@@ -1,0 +1,15 @@
+description: Discover client-side web vulnerabilities using CodeQL. Limit to "error" and "warning" level findings, and include out of scope JS files.
+
+modules:
+  - httpx
+  - portfilter
+  - codeql
+
+config:
+  url_querystring_remove: False
+  modules:
+    excavate:
+      retain_querystring: True
+    codeql:
+      mode: all
+      min_severity: warning

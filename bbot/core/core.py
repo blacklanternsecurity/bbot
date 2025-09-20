@@ -85,6 +85,10 @@ class BBOTCore:
         return self.home / "scans"
 
     @property
+    def wordlist_dir(self):
+        return Path(__file__).parent.parent / "wordlists"
+
+    @property
     def config(self):
         """
         .config is just .default_config + .custom_config merged together
