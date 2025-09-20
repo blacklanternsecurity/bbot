@@ -13,6 +13,12 @@ async def test_target_basic(bbot_scanner):
     scan4 = bbot_scanner("8.8.8.8/29")
     scan5 = bbot_scanner()
 
+    await scan1._prep()
+    await scan2._prep()
+    await scan3._prep()
+    await scan4._prep()
+    await scan5._prep()
+
     # test different types of inputs
     target = BBOTTarget("evilcorp.com", "1.2.3.4/8")
     assert "www.evilcorp.com" in target.seeds
@@ -247,6 +253,7 @@ async def test_target_basic(bbot_scanner):
 
     # users + orgs + domains
     scan = bbot_scanner("USER:evilcorp", "ORG:evilcorp", "evilcorp.com")
+    await scan._prep()
     await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"A": ["1.2.3.4"]},

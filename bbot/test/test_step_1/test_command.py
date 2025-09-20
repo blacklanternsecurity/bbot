@@ -6,6 +6,7 @@ from subprocess import CalledProcessError
 @pytest.mark.asyncio
 async def test_command(bbot_scanner):
     scan1 = bbot_scanner()
+    await scan1._prep()
 
     # test timeouts
     command = ["sleep", "3"]

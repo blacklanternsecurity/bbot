@@ -18,6 +18,7 @@ mock_records = {
 @pytest.mark.asyncio
 async def test_dns_engine(bbot_scanner):
     scan = bbot_scanner()
+    await scan._prep()
     await scan.helpers._mock_dns(
         {"one.one.one.one": {"A": ["1.1.1.1"]}, "1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one"]}}
     )
