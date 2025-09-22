@@ -188,6 +188,7 @@ async def test_dns_resolution(bbot_scanner):
 @pytest.mark.asyncio
 async def test_wildcards(bbot_scanner):
     scan = bbot_scanner("1.1.1.1")
+    await scan._prep()
     helpers = scan.helpers
 
     from bbot.core.helpers.dns.engine import DNSEngine, all_rdtypes
@@ -262,6 +263,7 @@ def custom_lookup(query, rdtype):
             "speculate": True,
         },
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
 
     events = [e async for e in scan.async_start()]
@@ -319,6 +321,7 @@ def custom_lookup(query, rdtype):
             "speculate": True,
         },
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
 
     events = [e async for e in scan.async_start()]
@@ -416,6 +419,7 @@ def custom_lookup(query, rdtype):
             },
         },
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
 
     events = [e async for e in scan.async_start()]
@@ -493,6 +497,7 @@ def custom_lookup(query, rdtype):
     }
 
     scan = bbot_scanner("1.1.1.1")
+    await scan._prep()
     helpers = scan.helpers
 
     # event resolution
