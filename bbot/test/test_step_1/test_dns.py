@@ -169,6 +169,7 @@ async def test_dns_resolution(bbot_scanner):
     assert "a-record" not in resolved_hosts_event2.tags
 
     scan2 = bbot_scanner("evilcorp.com", config={"dns": {"minimal": False}})
+    await scan2._prep()
     await scan2.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"TXT": ['"v=spf1 include:cloudprovider.com ~all"']},
