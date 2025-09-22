@@ -29,15 +29,23 @@ class ASNHelper:
     }
 
     async def _request_with_retry(self, url, max_retries=10):
-        """Make request with retry for 429 responses."""
+        """Make request with retry for 429 responses using Retry-After header."""
         for attempt in range(max_retries + 1):
             response = await self.parent_helper.request(url, timeout=15)
             if response is None or getattr(response, "status_code", 0) != 429:
                 return response
 
             if attempt < max_retries:
-                delay = min(2**attempt, 300)
-                log.debug(f"ASN API rate limited, waiting {delay}s (attempt {attempt + 1})")
+                # Get retry-after header value, default to 1 second if not present
+                retry_after = getattr(response, "headers", {}).get("retry-after", "1")
+                try:
+                    delay = int(retry_after) + 1
+                except (ValueError, TypeError):
+                    delay = 2  # fallback if header is invalid
+
+                log.debug(
+                    f"ASN API rate limited, waiting {delay}s (retry-after: {retry_after}) (attempt {attempt + 1})"
+                )
                 await asyncio.sleep(delay)
             else:
                 log.warning(f"ASN API gave up after {max_retries + 1} attempts due to rate limiting")
