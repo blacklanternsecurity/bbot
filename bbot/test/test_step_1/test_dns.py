@@ -664,6 +664,7 @@ def custom_lookup(query, rdtype):
     scan = bbot_scanner(
         "evilcorp.com", config={"dns": {"minimal": False, "wildcard_ignore": []}, "omit_event_types": []}
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
     dummy_module = DummyModule(scan)
     scan.modules["dummy_module"] = dummy_module
@@ -689,8 +690,10 @@ async def test_dns_raw_records(bbot_scanner):
 
     # scan without omitted event type
     scan = bbot_scanner("one.one.one.one", "1.1.1.1", config={"dns": {"minimal": False}, "omit_event_types": []})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_records)
     dummy_module = DummyModule(scan)
+    await dummy_module.setup()
     scan.modules["dummy_module"] = dummy_module
     events = [e async for e in scan.async_start()]
     assert 1 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
@@ -722,8 +725,10 @@ async def test_dns_raw_records(bbot_scanner):
     )
     # scan with omitted event type
     scan = bbot_scanner("one.one.one.one", config={"dns": {"minimal": False}, "omit_event_types": ["RAW_DNS_RECORD"]})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_records)
     dummy_module = DummyModule(scan)
+    await dummy_module.setup()
     scan.modules["dummy_module"] = dummy_module
     events = [e async for e in scan.async_start()]
     # no raw records should be emitted
@@ -733,8 +738,10 @@ async def test_dns_raw_records(bbot_scanner):
     # scan with watching module
     DummyModule.watched_events = ["RAW_DNS_RECORD"]
     scan = bbot_scanner("one.one.one.one", config={"dns": {"minimal": False}, "omit_event_types": ["RAW_DNS_RECORD"]})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_records)
     dummy_module = DummyModule(scan)
+    await dummy_module.setup()
     scan.modules["dummy_module"] = dummy_module
     events = [e async for e in scan.async_start()]
     # no raw records should be output

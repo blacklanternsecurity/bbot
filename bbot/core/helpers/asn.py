@@ -33,9 +33,11 @@ class ASNHelper:
         for attempt in range(max_retries + 1):
             response = await self.parent_helper.request(url, timeout=15)
             if response is None or getattr(response, "status_code", 0) != 429:
+                log.debug(f"ASN API request successful, status code: {getattr(response, 'status_code', 0)}")
                 return response
 
             if attempt < max_retries:
+                log.debug(f"ASN API rate limited, attempt {attempt + 1}")
                 # Get retry-after header value, default to 1 second if not present
                 retry_after = getattr(response, "headers", {}).get("retry-after", "1")
                 try:
