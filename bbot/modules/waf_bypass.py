@@ -147,34 +147,32 @@ class waf_bypass(BaseModule):
 
             # Get CIDRs from the base domain of the protected domain
             base_dns = await self.helpers.dns.resolve(base_domain)
-            if base_dns:
-                # Skip if base domain has same IPs as protected domain
-                if set(str(ip) for ip in base_dns) == self.domain_ips.get(domain, set()):
-                    self.debug(f"Base domain {base_domain} has same IPs as protected domain, skipping CIDR collection")
-                else:
-                    if base_domain not in self.bypass_candidates:
-                        self.bypass_candidates[base_domain] = set()
-                        self.debug(f"Created new CIDR set for {provider_name} base domain: {base_domain}")
-
-                    for ip in base_dns:
-                        self.debug(f"Getting ASN info for IP {ip} from {provider_name} base domain {base_domain}")
-                        asns = await self.helpers.asn.ip_to_subnets(str(ip))
-                        if asns:
-                            for asn_info in asns:
-                                subnets = asn_info.get("subnets")
-                                if isinstance(subnets, str):
-                                    subnets = [subnets]
-                                if subnets:
-                                    for cidr in subnets:
-                                        self.bypass_candidates[base_domain].add(cidr)
-                                        self.debug(
-                                            f"Added CIDR {cidr} from {provider_name} base domain {base_domain} "
-                                            f"(ASN{asn_info.get('asn', 'Unknown')} - {asn_info.get('name', 'Unknown')})"
-                                        )
-                        else:
-                            self.warning(f"No ASN info found for IP {ip}")
-            else:
+            if not base_dns:
                 self.debug(f"WARNING: No DNS resolution for {provider_name} base domain {base_domain}")
+            if base_dns and (set(str(ip) for ip in base_dns) == self.domain_ips.get(domain, set())):
+                self.debug(f"Base domain {base_domain} has same IPs as protected domain, skipping CIDR collection")
+            else:
+                if base_domain not in self.bypass_candidates:
+                    self.bypass_candidates[base_domain] = set()
+                    self.debug(f"Created new CIDR set for {provider_name} base domain: {base_domain}")
+
+                for ip in base_dns:
+                    self.debug(f"Getting ASN info for IP {ip} from {provider_name} base domain {base_domain}")
+                    asns = await self.helpers.asn.ip_to_subnets(str(ip))
+                    if asns:
+                        for asn_info in asns:
+                            subnets = asn_info.get("subnets")
+                            if isinstance(subnets, str):
+                                subnets = [subnets]
+                            if subnets:
+                                for cidr in subnets:
+                                    self.bypass_candidates[base_domain].add(cidr)
+                                    self.debug(
+                                        f"Added CIDR {cidr} from {provider_name} base domain {base_domain} "
+                                        f"(ASN{asn_info.get('asn', 'Unknown')} - {asn_info.get('name', 'Unknown')})"
+                                    )
+                    else:
+                        self.warning(f"No ASN info found for IP {ip}")
 
         else:
             if "cdn-ip" in event.tags:
@@ -254,6 +252,7 @@ class waf_bypass(BaseModule):
 
         # Then collect non-CloudFlare IPs
         for domain, ips in self.domain_ips.items():
+            self.debug(f"Checking IP {ips} from domain {domain}")
             if domain not in self.protected_domains:  # If it's not a protected domain
                 for ip in ips:
                     # Validate that this is actually an IP address before processing
@@ -275,7 +274,7 @@ class waf_bypass(BaseModule):
                                     n_ip_str = str(neighbor_ip)
                                     if n_ip_str == ip or n_ip_str in cloudflare_ips or n_ip_str in all_ips:
                                         continue
-                                    asns_neighbor = await self.helpers.asn.get(n_ip_str)
+                                    asns_neighbor = await self.helpers.asn.ip_to_subnets(n_ip_str)
                                     if not asns_neighbor:
                                         continue
                                     # Check if any ASN matches
