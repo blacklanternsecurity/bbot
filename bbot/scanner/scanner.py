@@ -150,6 +150,15 @@ class Scanner:
                 raise ValidationError(f'Preset must be of type Preset, not "{type(custom_preset).__name__}"')
             self._unbaked_preset.merge(custom_preset)
 
+        self._prepped = False
+        self._finished_init = False
+        self._new_activity = False
+        self._cleanedup = False
+        self._omitted_event_types = None
+        self.modules = OrderedDict({})
+        self.dummy_modules = {}
+        self.preset = None
+
     async def _prep(self):
         """
         Creates the scan's output folder, loads its modules, and calls their .setup() methods.
@@ -250,12 +259,6 @@ class Scanner:
 
         self.stats = ScanStats(self)
 
-        self._prepped = False
-        self._finished_init = False
-        self._new_activity = False
-        self._cleanedup = False
-        self._omitted_event_types = None
-
         self.init_events_task = None
         self.ticker_task = None
         self.dispatcher_tasks = []
@@ -277,8 +280,8 @@ class Scanner:
         self.helpers.mkdir(self.home)
         if not self._prepped:
             # clear modules for fresh start
-            self.modules = OrderedDict({})
-            self.dummy_modules = {}
+            self.modules.clear()
+            self.dummy_modules.clear()
 
             # save scan preset
             with open(self.home / "preset.yml", "w") as f:
