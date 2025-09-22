@@ -65,6 +65,7 @@ async def test_scan(
 
     # make sure DNS resolution works
     scan4 = bbot_scanner("1.1.1.1", config={"dns": {"minimal": False}})
+    await scan4._prep()
     await scan4.helpers.dns._mock_dns(dns_table)
     events = []
     async for event in scan4.async_start():
@@ -74,6 +75,7 @@ async def test_scan(
 
     # make sure it doesn't work when you turn it off
     scan5 = bbot_scanner("1.1.1.1", config={"dns": {"minimal": True}})
+    await scan5._prep()
     await scan5.helpers.dns._mock_dns(dns_table)
     events = []
     async for event in scan5.async_start():
@@ -184,6 +186,7 @@ async def test_python_output_matches_json(bbot_scanner):
         "blacklanternsecurity.com",
         config={"speculate": True, "dns": {"minimal": False}, "scope": {"report_distance": 10}},
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.1"]}})
     events = [e.json() async for e in scan.async_start()]
     output_json = scan.home / "output.json"
@@ -232,6 +235,7 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch):
 
     # first, run a scan with no CDN exclusion
     scan = bbot_scanner("evilcorp.com")
+    await scan._prep()
     await scan.helpers._mock_dns(dns_mock)
 
     from bbot.modules.base import BaseModule
@@ -266,6 +270,7 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch):
     preset.parse_args()
     assert preset.bake().to_yaml() == "modules:\n- portfilter\n"
     scan = bbot_scanner("evilcorp.com", preset=preset)
+    await scan._prep()
     await scan.helpers._mock_dns(dns_mock)
     dummy = DummyModule(scan=scan)
     await scan._prep()

@@ -633,6 +633,7 @@ async def test_event_discovery_context():
     from bbot.modules.base import BaseModule
 
     scan = Scanner("evilcorp.com")
+    await scan._prep()
     await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"A": ["1.2.3.4"]},
@@ -642,7 +643,6 @@ async def test_event_discovery_context():
             "four.evilcorp.com": {"A": ["1.2.3.4"]},
         }
     )
-    await scan._prep()
 
     dummy_module_1 = scan._make_dummy_module("module_1")
     dummy_module_2 = scan._make_dummy_module("module_2")
@@ -792,6 +792,7 @@ async def test_event_discovery_context():
     # test to make sure this doesn't come back
     #  https://github.com/blacklanternsecurity/bbot/issues/1498
     scan = Scanner("http://blacklanternsecurity.com", config={"dns": {"minimal": False}})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(
         {"blacklanternsecurity.com": {"TXT": ["blsops.com"], "A": ["127.0.0.1"]}, "blsops.com": {"A": ["127.0.0.1"]}}
     )
