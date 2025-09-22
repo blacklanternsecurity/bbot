@@ -193,9 +193,6 @@ class Scanner:
         self._status = "NOT_STARTED"
         self._status_code = 0
 
-        self.modules = OrderedDict({})
-        self.dummy_modules = {}
-
         if self._dispatcher_arg is None:
             from .dispatcher import Dispatcher
 
@@ -279,6 +276,10 @@ class Scanner:
 
         self.helpers.mkdir(self.home)
         if not self._prepped:
+            # clear modules for fresh start
+            self.modules = OrderedDict({})
+            self.dummy_modules = {}
+
             # save scan preset
             with open(self.home / "preset.yml", "w") as f:
                 f.write(self.preset.to_yaml())
@@ -345,7 +346,8 @@ class Scanner:
         """ """
         self.start_time = datetime.now()
         try:
-            await self._prep()
+            if not self._prepped:
+                await self._prep()
             self.root_event.data["started_at"] = self.start_time.isoformat()
 
             self._start_log_handlers()

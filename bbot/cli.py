@@ -35,7 +35,9 @@ async def _main():
     from contextlib import suppress
 
     # fix tee buffering
-    sys.stdout.reconfigure(line_buffering=True)
+    # only reconfigure if stdout has the method (not the case when redirected in tests)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(line_buffering=True)
 
     log = logging.getLogger("bbot.cli")
 
