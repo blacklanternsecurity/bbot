@@ -75,7 +75,7 @@ class TestWAFBypass(ModuleTestBase):
         self.dummy_module = self.DummyModule(module_test.scan)
         module_test.scan.modules["dummy_module"] = self.dummy_module
 
-        module_test.monkeypatch.setattr(ASNHelper, "asndb_url", "http://127.0.0.1:8888/v1/ip/")
+        module_test.monkeypatch.setattr(ASNHelper, "asndb_ip_url", "http://127.0.0.1:8888/v1/ip/")
 
         expect_args = {"method": "GET", "uri": "/v1/ip/127.0.0.2"}
         respond_args = {

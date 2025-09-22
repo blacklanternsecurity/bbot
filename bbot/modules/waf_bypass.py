@@ -268,7 +268,7 @@ class waf_bypass(BaseModule):
                         if self.search_ip_neighbors and ip not in self.cloud_ips:
                             import ipaddress
 
-                            orig_asns = await self.helpers.asn.get(str(ip))
+                            orig_asns = await self.helpers.asn.ip_to_subnets(str(ip))
                             if orig_asns:
                                 neighbor_net = ipaddress.ip_network(f"{ip}/{self.neighbor_cidr}", strict=False)
                                 for neighbor_ip in neighbor_net.hosts():
