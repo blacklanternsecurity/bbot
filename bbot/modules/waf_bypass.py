@@ -230,12 +230,23 @@ class waf_bypass(BaseModule):
             self.debug(f"Failed to get content through IP {ip} for URL {matching_url}")
             return None
 
+        if original_response["http_code"] != bypass_response["http_code"]:
+            self.debug(f"Ignoring code difference {original_response['http_code']} != {bypass_response['http_code']}")
+            return None
+
+        is_redirect = False
+        if bypass_response["http_code"] == 301 or bypass_response["http_code"] == 302:
+            is_redirect = True
+
         similarity = self.helpers.web.text_similarity(
             original_response["response_data"],
             bypass_response["response_data"],
             similarity_cache=self.similarity_cache,
         )
-        return (matching_url, ip, similarity, source_event) if similarity >= self.similarity_threshold else None
+
+        # For redirects, require exact match (1.0), otherwise use configured threshold
+        required_threshold = 1.0 if is_redirect else self.similarity_threshold
+        return (matching_url, ip, similarity, source_event) if similarity >= required_threshold else None
 
     async def finish(self):
         self.debug(f"Found {len(self.protected_domains)} Protected Domains")
