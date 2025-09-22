@@ -119,7 +119,10 @@ fragment TypeRef on __Type {
             }
             response = await self.helpers.request(**request_args)
             if not response or response.status_code != 200:
-                self.debug(f"Failed to get GraphQL schema for {url} (status code {response.status_code})")
+                self.debug(
+                    f"Failed to get GraphQL schema for {url} "
+                    f"{f'(status code {response.status_code})' if response else ''}"
+                )
                 continue
             try:
                 response_json = response.json()

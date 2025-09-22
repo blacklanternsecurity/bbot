@@ -42,7 +42,7 @@ evilcorp.co.uk
 https://www.evilcorp.co.uk
 
 # load targets from a file and from the command-line
-$ bbot -t targets.txt fsociety.com 5.6.7.0/24 -m nmap
+$ bbot -t targets.txt fsociety.com 5.6.7.0/24 -m portscan
 ```
 
 On start, BBOT automatically converts Targets into [Events](events.md).
@@ -54,8 +54,8 @@ To see a full list of modules and their descriptions, use `bbot -l` or see [List
 Modules are the part of BBOT that does the work -- port scanning, subdomain brute-forcing, API querying, etc. Modules consume [Events](events.md) (`IP_ADDRESS`, `DNS_NAME`, etc.) from each other, process the data in a useful way, then emit the results as new events. You can enable individual modules with `-m`.
 
 ```bash
-# Enable modules: nmap, sslcert, and httpx
-bbot -t www.evilcorp.com -m nmap sslcert httpx
+# Enable modules: portscan, sslcert, and httpx
+bbot -t www.evilcorp.com -m portscan sslcert httpx
 ```
 
 ### Types of Modules
@@ -63,7 +63,7 @@ bbot -t www.evilcorp.com -m nmap sslcert httpx
 Modules fall into three categories:
 
 - **Scan Modules**:
-    - These make up the majority of modules. Examples are `nmap`, `sslcert`, `httpx`, etc. Enable with `-m`.
+    - These make up the majority of modules. Examples are `portscan`, `sslcert`, `httpx`, etc. Enable with `-m`.
 - **Output Modules**:
     - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](output.md))
 - **Internal Modules**:
@@ -139,7 +139,7 @@ A single module can have multiple flags. For example, the `securitytrails` modul
 
 ## Dependencies
 
-BBOT modules have external dependencies ranging from OS packages (`openssl`) to binaries (`nmap`) to Python libraries (`wappalyzer`). When a module is enabled, installation of its dependencies happens at runtime with [Ansible](https://github.com/ansible/ansible). BBOT provides several command-line flags to control how dependencies are installed.
+BBOT modules have external dependencies ranging from OS packages (`openssl`) to binaries (`portscan`) to Python libraries (`wappalyzer`). When a module is enabled, installation of its dependencies happens at runtime with [Ansible](https://github.com/ansible/ansible). BBOT provides several command-line flags to control how dependencies are installed.
 
 - `--no-deps` - Don't install module dependencies
 - `--force-deps` - Force install all module dependencies
@@ -161,7 +161,7 @@ Since BBOT is recursive, it would quickly resort to scanning the entire internet
 
 For example, if your target is `evilcorp.com`, `www.evilcorp.com` would have a scope distance of `0` (i.e. in-scope). If BBOT discovers that `www.evilcorp.com` resolves to `1.2.3.4`, `1.2.3.4` is one hop away, which means it would have a scope distance of `1`. If `1.2.3.4` has a PTR record that points to `ecorp.blob.core.windows.net`, `ecorp.blob.core.windows.net` is two hops away, so its scope distance is `2`.
 
-Scope distance continues to increase the further out you get. Most modules (e.g. `nuclei` and `nmap`) only consume in-scope events. Certain other passive modules such as `asn` accept out to distance `1`. By default, DNS resolution happens out to a distance of `2`. Upon its discovery, any [event](events.md) that's determined to be in-scope (e.g. `www.evilcorp.com`) immediately becomes distance `0`, and the cycle starts over.
+Scope distance continues to increase the further out you get. Most modules (e.g. `nuclei` and `portscan`) only consume in-scope events. Certain other passive modules such as `asn` accept out to distance `1`. By default, DNS resolution happens out to a distance of `2`. Upon its discovery, any [event](events.md) that's determined to be in-scope (e.g. `www.evilcorp.com`) immediately becomes distance `0`, and the cycle starts over.
 
 #### Displaying Out-of-scope Events
 
@@ -188,7 +188,7 @@ BBOT allows precise control over scope with whitelists and blacklists. These bot
 
 ```bash
 # Seed scan with evilcorp.com, but restrict scope to 1.2.3.0/24
-bbot -t evilcorp.com --whitelist 1.2.3.0/24 -f subdomain-enum -m nmap nuclei --allow-deadly
+bbot -t evilcorp.com --whitelist 1.2.3.0/24 -f subdomain-enum -m portscan nuclei --allow-deadly
 ```
 
 #### Blacklists
@@ -197,7 +197,7 @@ bbot -t evilcorp.com --whitelist 1.2.3.0/24 -f subdomain-enum -m nmap nuclei --a
 
 ```bash
 # Scan evilcorp.com, but exclude internal.evilcorp.com and its children
-bbot -t evilcorp.com --blacklist internal.evilcorp.com -f subdomain-enum -m nmap nuclei --allow-deadly
+bbot -t evilcorp.com --blacklist internal.evilcorp.com -f subdomain-enum -m portscan nuclei --allow-deadly
 ```
 
 #### Blacklist by Regex

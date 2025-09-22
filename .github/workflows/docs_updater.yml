@@ -14,7 +14,7 @@ jobs:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           ref: dev  # Checkout the dev branch
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
       - name: Install dependencies

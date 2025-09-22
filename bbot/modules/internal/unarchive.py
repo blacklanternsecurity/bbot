@@ -1,4 +1,5 @@
 from pathlib import Path
+from contextlib import suppress
 from bbot.modules.internal.base import BaseInternalModule
 from bbot.core.helpers.libmagic import get_magic_info, get_compression
 
@@ -62,15 +63,20 @@ class unarchive(BaseInternalModule):
                 context=f'extracted "{path}" to: {output_dir}',
             )
         else:
-            output_dir.rmdir()
+            with suppress(OSError):
+                output_dir.rmdir()
 
     async def extract_file(self, path, output_dir):
         extension, mime_type, description, confidence = get_magic_info(path)
         compression_format = get_compression(mime_type)
         cmd_list = self.compression_methods.get(compression_format, [])
         if cmd_list:
-            if not output_dir.exists():
-                self.helpers.mkdir(output_dir)
+            # output dir must not already exist
+            try:
+                output_dir.mkdir(exist_ok=False)
+            except FileExistsError:
+                self.warning(f"Destination directory {output_dir} already exists, aborting unarchive for {path}")
+                return False
             command = [s.format(filename=path, extract_dir=output_dir) for s in cmd_list]
             try:
                 await self.run_process(command, check=True)
