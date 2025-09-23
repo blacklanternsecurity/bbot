@@ -11,6 +11,7 @@ class TestNeo4j(ModuleTestBase):
 
         self.neo4j_used = False
 
+    async def setup_before_prep(self, module_test):
         class MockResult:
             async def data(s):
                 self.neo4j_used = True
