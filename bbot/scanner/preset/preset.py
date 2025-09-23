@@ -989,11 +989,13 @@ class Preset(metaclass=BasePreset):
         if include_modules:
             header.append("Modules")
         for loaded_preset, category, preset_path, original_file in self.all_presets.values():
-            loaded_preset = loaded_preset.bake()
-            num_modules = f"{len(loaded_preset.scan_modules):,}"
+            # Use explicit_scan_modules which contains the raw modules from YAML
+            # This avoids needing to call the async bake() method
+            explicit_modules = loaded_preset.explicit_scan_modules
+            num_modules = f"{len(explicit_modules):,}"
             row = [loaded_preset.name, category, loaded_preset.description, num_modules]
             if include_modules:
-                row.append(", ".join(sorted(loaded_preset.scan_modules)))
+                row.append(", ".join(sorted(explicit_modules)))
             table.append(row)
         return make_table(table, header)
 

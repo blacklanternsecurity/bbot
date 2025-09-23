@@ -34,8 +34,13 @@ async def _main():
     import traceback
     from contextlib import suppress
 
-    # fix tee buffering
-    sys.stdout.reconfigure(line_buffering=True)
+    # fix tee buffering (only if on real TTY)
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            if sys.stdout.isatty():
+                sys.stdout.reconfigure(line_buffering=True)
+        except Exception:
+            pass
 
     log = logging.getLogger("bbot.cli")
 
@@ -197,7 +202,14 @@ async def _main():
         if not options.dry_run:
             log.trace(f"Command: {' '.join(sys.argv)}")
 
-            if sys.stdin.isatty():
+            try:
+                is_tty = (
+                    hasattr(sys.stdin, "isatty") and not getattr(sys.stdin, "closed", False) and sys.stdin.isatty()
+                )
+            except Exception:
+                is_tty = False
+
+            if is_tty:
                 # warn if any targets belong directly to a cloud provider
                 if not scan.preset.strict_scope:
                     for event in scan.target.seeds.event_seeds:

@@ -660,6 +660,7 @@ async def test_word_cloud(helpers, bbot_scanner):
 
     # saving and loading
     scan1 = bbot_scanner("127.0.0.1")
+    await scan1._prep()
     word_cloud = scan1.helpers.word_cloud
     word_cloud.add_word("lantern")
     word_cloud.add_word("black")

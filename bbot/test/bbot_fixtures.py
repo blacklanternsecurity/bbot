@@ -54,6 +54,10 @@ def clean_default_config(monkeypatch):
     )
     with monkeypatch.context() as m:
         m.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
+        # Also mock custom config to be empty so user config doesn't contaminate tests
+        m.setattr("bbot.core.config.files.BBOTConfigFiles.get_custom_config", lambda self: OmegaConf.create({}))
+        # Reset the cached custom config on the global CORE instance to force reload
+        CORE._custom_config = OmegaConf.create({})
         yield
 
 

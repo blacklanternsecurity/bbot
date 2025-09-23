@@ -67,7 +67,7 @@ def test_core():
     assert "test456" in core_copy.config["test123"]
 
 
-def test_preset_yaml(clean_default_config):
+async def test_preset_yaml(clean_default_config):
     import yaml
 
     preset1 = Preset(
@@ -86,7 +86,7 @@ def test_preset_yaml(clean_default_config):
         silent=True,
         config={"preset_test_asdf": 1},
     )
-    preset1 = preset1.bake()
+    preset1 = await preset1.bake()
     assert "evilcorp.com" in preset1.target.seeds
     assert "evilcorp.ce" not in preset1.target.seeds
     assert "asdf.www.evilcorp.ce" in preset1.target.seeds
@@ -169,15 +169,17 @@ exclude_flags:
     preset_file.unlink()
 
 
-def test_preset_scope():
+@pytest.mark.asyncio
+async def test_preset_scope(clean_default_config):
     # test target merging
     scan = Scanner("1.2.3.4", preset=Preset.from_dict({"target": ["evilcorp.com"]}))
+    await scan._prep()
     assert {str(h) for h in scan.preset.target.seeds.hosts} == {"1.2.3.4/32", "evilcorp.com"}
     assert {e.data for e in scan.target.seeds} == {"1.2.3.4", "evilcorp.com"}
     assert {e.data for e in scan.target.whitelist} == {"1.2.3.4/32", "evilcorp.com"}
 
     blank_preset = Preset()
-    blank_preset = blank_preset.bake()
+    blank_preset = await blank_preset.bake()
     assert not blank_preset.target.seeds
     assert not blank_preset.target.whitelist
     assert blank_preset.strict_scope is False
@@ -188,7 +190,7 @@ def test_preset_scope():
         whitelist=["evilcorp.ce"],
         blacklist=["test.www.evilcorp.ce"],
     )
-    preset1_baked = preset1.bake()
+    preset1_baked = await preset1.bake()
 
     # make sure target logic works as expected
     assert "evilcorp.com" in preset1_baked.target.seeds
@@ -219,7 +221,7 @@ def test_preset_scope():
 
     preset1.merge(preset3)
 
-    preset1_baked = preset1.bake()
+    preset1_baked = await preset1.bake()
 
     # targets should be merged
     assert "evilcorp.com" in preset1_baked.target.seeds
@@ -264,8 +266,8 @@ def test_preset_scope():
         config={"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
     )
 
-    preset_nowhitelist_baked = preset_nowhitelist.bake()
-    preset_whitelist_baked = preset_whitelist.bake()
+    preset_nowhitelist_baked = await preset_nowhitelist.bake()
+    preset_whitelist_baked = await preset_whitelist.bake()
 
     assert preset_nowhitelist_baked.to_dict(include_target=True) == {
         "target": ["evilcorp.com"],
@@ -307,7 +309,7 @@ def test_preset_scope():
     assert {e.data for e in preset_whitelist_baked.whitelist} == {"1.2.3.0/24", "http://evilcorp.net/"}
 
     preset_nowhitelist.merge(preset_whitelist)
-    preset_nowhitelist_baked = preset_nowhitelist.bake()
+    preset_nowhitelist_baked = await preset_nowhitelist.bake()
     assert {e.data for e in preset_nowhitelist_baked.seeds} == {"evilcorp.com", "evilcorp.org"}
     assert {e.data for e in preset_nowhitelist_baked.whitelist} == {"1.2.3.0/24", "http://evilcorp.net/"}
     assert "www.evilcorp.org" in preset_nowhitelist_baked.seeds
@@ -322,7 +324,7 @@ def test_preset_scope():
     preset_nowhitelist = Preset("evilcorp.com")
     preset_whitelist = Preset("evilcorp.org", whitelist=["1.2.3.4/24"])
     preset_whitelist.merge(preset_nowhitelist)
-    preset_whitelist_baked = preset_whitelist.bake()
+    preset_whitelist_baked = await preset_whitelist.bake()
     assert {e.data for e in preset_whitelist_baked.seeds} == {"evilcorp.com", "evilcorp.org"}
     assert {e.data for e in preset_whitelist_baked.whitelist} == {"1.2.3.0/24"}
     assert "www.evilcorp.org" in preset_whitelist_baked.seeds
@@ -338,14 +340,14 @@ def test_preset_scope():
 
     preset_nowhitelist1 = Preset("evilcorp.com")
     preset_nowhitelist2 = Preset("evilcorp.de")
-    preset_nowhitelist1_baked = preset_nowhitelist1.bake()
-    preset_nowhitelist2_baked = preset_nowhitelist2.bake()
+    preset_nowhitelist1_baked = await preset_nowhitelist1.bake()
+    preset_nowhitelist2_baked = await preset_nowhitelist2.bake()
     assert {e.data for e in preset_nowhitelist1_baked.seeds} == {"evilcorp.com"}
     assert {e.data for e in preset_nowhitelist2_baked.seeds} == {"evilcorp.de"}
     assert {e.data for e in preset_nowhitelist1_baked.whitelist} == {"evilcorp.com"}
     assert {e.data for e in preset_nowhitelist2_baked.whitelist} == {"evilcorp.de"}
     preset_nowhitelist1.merge(preset_nowhitelist2)
-    preset_nowhitelist1_baked = preset_nowhitelist1.bake()
+    preset_nowhitelist1_baked = await preset_nowhitelist1.bake()
     assert {e.data for e in preset_nowhitelist1_baked.seeds} == {"evilcorp.com", "evilcorp.de"}
     assert {e.data for e in preset_nowhitelist2_baked.seeds} == {"evilcorp.de"}
     assert {e.data for e in preset_nowhitelist1_baked.whitelist} == {"evilcorp.com", "evilcorp.de"}
@@ -366,8 +368,8 @@ def test_preset_scope():
     preset_nowhitelist1 = Preset("evilcorp.com")
     preset_nowhitelist2 = Preset("evilcorp.de")
     preset_nowhitelist2.merge(preset_nowhitelist1)
-    preset_nowhitelist1_baked = preset_nowhitelist1.bake()
-    preset_nowhitelist2_baked = preset_nowhitelist2.bake()
+    preset_nowhitelist1_baked = await preset_nowhitelist1.bake()
+    preset_nowhitelist2_baked = await preset_nowhitelist2.bake()
     assert {e.data for e in preset_nowhitelist1_baked.seeds} == {"evilcorp.com"}
     assert {e.data for e in preset_nowhitelist2_baked.seeds} == {"evilcorp.com", "evilcorp.de"}
     assert {e.data for e in preset_nowhitelist1_baked.whitelist} == {"evilcorp.com"}
@@ -377,6 +379,7 @@ def test_preset_scope():
 @pytest.mark.asyncio
 async def test_preset_logging():
     scan = Scanner()
+    await scan._prep()
 
     # test individual verbosity levels
     original_log_level = CORE.logger.log_level
@@ -404,12 +407,12 @@ async def test_preset_logging():
         assert silent_and_verbose.silent is True
         assert silent_and_verbose.debug is False
         assert silent_and_verbose.verbose is True
-        baked = silent_and_verbose.bake()
+        baked = await silent_and_verbose.bake()
         assert baked.silent is True
         assert baked.debug is False
         assert baked.verbose is False
         assert baked.core.logger.log_level == original_log_level
-        baked = silent_and_verbose.bake(scan=scan)
+        baked = await silent_and_verbose.bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -420,12 +423,12 @@ async def test_preset_logging():
         assert silent_and_debug.silent is True
         assert silent_and_debug.debug is True
         assert silent_and_debug.verbose is False
-        baked = silent_and_debug.bake()
+        baked = await silent_and_debug.bake()
         assert baked.silent is True
         assert baked.debug is False
         assert baked.verbose is False
         assert baked.core.logger.log_level == original_log_level
-        baked = silent_and_debug.bake(scan=scan)
+        baked = await silent_and_debug.bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -436,12 +439,12 @@ async def test_preset_logging():
         assert debug_and_verbose.silent is False
         assert debug_and_verbose.debug is True
         assert debug_and_verbose.verbose is True
-        baked = debug_and_verbose.bake()
+        baked = await debug_and_verbose.bake()
         assert baked.silent is False
         assert baked.debug is True
         assert baked.verbose is False
         assert baked.core.logger.log_level == original_log_level
-        baked = debug_and_verbose.bake(scan=scan)
+        baked = await debug_and_verbose.bake(scan=scan)
         assert baked.core.logger.log_level == logging.DEBUG
         assert CORE.logger.log_level == logging.DEBUG
 
@@ -452,12 +455,12 @@ async def test_preset_logging():
         assert all_preset.silent is True
         assert all_preset.debug is True
         assert all_preset.verbose is True
-        baked = all_preset.bake()
+        baked = await all_preset.bake()
         assert baked.silent is True
         assert baked.debug is False
         assert baked.verbose is False
         assert baked.core.logger.log_level == original_log_level
-        baked = all_preset.bake(scan=scan)
+        baked = await all_preset.bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -465,7 +468,7 @@ async def test_preset_logging():
         assert CORE.logger.log_level == original_log_level
 
         # defaults
-        preset = Preset().bake()
+        preset = await Preset().bake()
         assert preset.core.logger.log_level == original_log_level
         assert CORE.logger.log_level == original_log_level
 
@@ -475,8 +478,8 @@ async def test_preset_logging():
         await scan._cleanup()
 
 
-def test_preset_module_resolution(clean_default_config):
-    preset = Preset().bake()
+async def test_preset_module_resolution(clean_default_config):
+    preset = await Preset().bake()
     sslcert_preloaded = preset.preloaded_module("sslcert")
     wayback_preloaded = preset.preloaded_module("wayback")
     wappalyzer_preloaded = preset.preloaded_module("wappalyzer")
@@ -504,11 +507,11 @@ def test_preset_module_resolution(clean_default_config):
     assert preset.modules == set(preset.output_modules).union(set(preset.internal_modules))
 
     # make sure dependency resolution works as expected
-    preset = Preset(modules=["wappalyzer"]).bake()
+    preset = await Preset(modules=["wappalyzer"]).bake()
     assert set(preset.scan_modules) == {"wappalyzer", "httpx"}
 
     # make sure flags work as expected
-    preset = Preset(flags=["subdomain-enum"]).bake()
+    preset = await Preset(flags=["subdomain-enum"]).bake()
     assert preset.flags == {"subdomain-enum"}
     assert "sslcert" in preset.modules
     assert "wayback" in preset.modules
@@ -516,41 +519,41 @@ def test_preset_module_resolution(clean_default_config):
     assert "wayback" in preset.scan_modules
 
     # flag + module exclusions
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["sslcert"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], exclude_modules=["sslcert"]).bake()
     assert "sslcert" not in preset.modules
     assert "wayback" in preset.modules
     assert "sslcert" not in preset.scan_modules
     assert "wayback" in preset.scan_modules
 
     # flag + flag exclusions
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
     assert "sslcert" not in preset.modules
     assert "wayback" in preset.modules
     assert "sslcert" not in preset.scan_modules
     assert "wayback" in preset.scan_modules
 
     # flag + flag requirements
-    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
     assert "sslcert" not in preset.modules
     assert "wayback" in preset.modules
     assert "sslcert" not in preset.scan_modules
     assert "wayback" in preset.scan_modules
 
     # normal module enableement
-    preset = Preset(modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    preset = await Preset(modules=["sslcert", "wappalyzer", "wayback"]).bake()
     assert set(preset.scan_modules) == {"sslcert", "wappalyzer", "wayback", "httpx"}
 
     # modules + flag exclusions
-    preset = Preset(exclude_flags=["active"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    preset = await Preset(exclude_flags=["active"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + flag requirements
-    preset = Preset(require_flags=["passive"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    preset = await Preset(require_flags=["passive"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + module exclusions
-    preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
-    baked_preset = preset.bake()
+    preset = await Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    baked_preset = preset
     assert baked_preset.modules == {
         "wayback",
         "cloudcheck",
@@ -701,6 +704,7 @@ modules:
     # should fail
     with pytest.raises(ValidationError):
         scan = Scanner(preset=preset)
+        await scan._prep()
 
     preset = Preset.from_yaml_string(
         f"""
@@ -851,6 +855,7 @@ conditions:
     assert preset.conditions
 
     scan = Scanner(preset=preset)
+    await scan._prep()
     assert scan.preset.conditions
 
     await scan._cleanup()
@@ -859,34 +864,35 @@ conditions:
     preset.merge(preset2)
 
     with pytest.raises(PresetAbortError):
-        Scanner(preset=preset)
+        scan = Scanner(preset=preset)
+        await scan._prep()
 
 
-def test_preset_module_disablement(clean_default_config):
+async def test_preset_module_disablement(clean_default_config):
     # internal module disablement
-    preset = Preset().bake()
+    preset = await Preset().bake()
     assert "speculate" in preset.internal_modules
     assert "excavate" in preset.internal_modules
     assert "aggregate" in preset.internal_modules
-    preset = Preset(config={"speculate": False}).bake()
+    preset = await Preset(config={"speculate": False}).bake()
     assert "speculate" not in preset.internal_modules
     assert "excavate" in preset.internal_modules
     assert "aggregate" in preset.internal_modules
-    preset = Preset(exclude_modules=["speculate", "excavate"]).bake()
+    preset = await Preset(exclude_modules=["speculate", "excavate"]).bake()
     assert "speculate" not in preset.internal_modules
     assert "excavate" not in preset.internal_modules
     assert "aggregate" in preset.internal_modules
 
     # internal module disablement
-    preset = Preset().bake()
+    preset = await Preset().bake()
     assert set(preset.output_modules) == {"python", "txt", "csv", "json"}
-    preset = Preset(exclude_modules=["txt", "csv"]).bake()
+    preset = await Preset(exclude_modules=["txt", "csv"]).bake()
     assert set(preset.output_modules) == {"python", "json"}
-    preset = Preset(output_modules=["json"]).bake()
+    preset = await Preset(output_modules=["json"]).bake()
     assert set(preset.output_modules) == {"json"}
 
 
-def test_preset_override():
+async def test_preset_override(clean_default_config):
     # tests to make sure a preset's config settings override others it includes
     preset_1_yaml = """
 name: override1
@@ -955,7 +961,7 @@ config:
     assert preset.debug is True
     assert preset.silent is True
     assert preset.name == "override4"
-    preset = preset.bake()
+    preset = await preset.bake()
     assert preset.debug is False
     assert preset.silent is True
     assert preset.name == "override4"
@@ -968,14 +974,14 @@ config:
     assert set(preset.scan_modules) == {"httpx", "c99", "robots", "virustotal", "securitytrails"}
 
 
-def test_preset_require_exclude():
+async def test_preset_require_exclude(clean_default_config):
     def get_module_flags(p):
         for m in p.scan_modules:
             preloaded = p.preloaded_module(m)
             yield m, preloaded.get("flags", [])
 
     # enable by flag, no exclusions/requirements
-    preset = Preset(flags=["subdomain-enum"]).bake()
+    preset = await Preset(flags=["subdomain-enum"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     dnsbrute_flags = preset.preloaded_module("dnsbrute").get("flags", [])
@@ -993,7 +999,7 @@ def test_preset_require_exclude():
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, one required flag
-    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "chaos" in [x[0] for x in module_flags]
@@ -1004,7 +1010,7 @@ def test_preset_require_exclude():
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded flag
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "chaos" in [x[0] for x in module_flags]
@@ -1015,7 +1021,7 @@ def test_preset_require_exclude():
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded module
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
@@ -1026,7 +1032,7 @@ def test_preset_require_exclude():
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, multiple required flags
-    preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
@@ -1036,7 +1042,7 @@ def test_preset_require_exclude():
     assert not any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded flags
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["aggressive", "active"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], exclude_flags=["aggressive", "active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
@@ -1046,7 +1052,7 @@ def test_preset_require_exclude():
     assert not any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded modules
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute", "c99"]).bake()
+    preset = await Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute", "c99"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
@@ -1078,9 +1084,9 @@ scan_name: bbot_test
 
 
 # regression test for https://github.com/blacklanternsecurity/bbot/issues/2337
-def test_preset_serialization():
+async def test_preset_serialization(clean_default_config):
     preset = Preset("192.168.1.1")
-    preset = preset.bake()
+    preset = await preset.bake()
 
     import orjson as json
 
