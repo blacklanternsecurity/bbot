@@ -100,7 +100,7 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
         "test.walmart.cn": {"A": ["127.0.0.1"]},
     }
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(self.dns_mock_data)
         self.queries = []
 

@@ -620,6 +620,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
 
     # make sure URL is detected normally
     scan = bbot_scanner("http://127.0.0.1:8888/", presets=["spider"], config={"excavate": True}, debug=True)
+    await scan._prep()
     assert {r.pattern for r in scan.target.blacklist.blacklist_regexes} == {r"/.*(sign|log)[_-]?out"}
     events = [e async for e in scan.async_start()]
     urls = [e.data for e in events if e.type == "URL"]
@@ -634,6 +635,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
         config={"excavate": True},
         debug=True,
     )
+    await scan._prep()
     assert len(scan.target.blacklist) == 2
     assert scan.target.blacklist.blacklist_regexes
     assert {r.pattern for r in scan.target.blacklist.blacklist_regexes} == {

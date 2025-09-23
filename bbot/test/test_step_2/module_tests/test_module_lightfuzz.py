@@ -1432,7 +1432,7 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
                 self.interactsh_mock_instance.mock_interaction(subdomain_tag)
         return Response(parameter_block, status=200)
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         self.interactsh_mock_instance = module_test.mock_interactsh("lightfuzz")
 
         module_test.monkeypatch.setattr(

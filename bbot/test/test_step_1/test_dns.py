@@ -794,7 +794,6 @@ async def test_dns_graph_structure(bbot_scanner):
 @pytest.mark.asyncio
 async def test_hostname_extraction(bbot_scanner):
     scan = bbot_scanner("evilcorp.com", config={"dns": {"minimal": False}})
-    await scan._prep()
     await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {
@@ -841,7 +840,6 @@ async def test_dns_helpers(bbot_scanner):
     # make sure system nameservers are excluded from use by DNS brute force
     brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8"])
     scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers}})
-    await scan._prep()
     scan.helpers.dns.system_resolvers = ["8.8.8.8", "8.8.4.4"]
     resolver_file = await scan.helpers.dns.brute.resolver_file()
     resolvers = set(scan.helpers.read_file(resolver_file))

@@ -22,7 +22,7 @@ class TestASNHelper(ModuleTestBase):
         # Point ASNHelper to local test harness
         from bbot.core.helpers.asn import ASNHelper
 
-        module_test.monkeypatch.setattr(ASNHelper, "asndb_url", "http://127.0.0.1:8888/v1/ip/")
+        module_test.monkeypatch.setattr(ASNHelper, "asndb_ip_url", "http://127.0.0.1:8888/v1/ip/")
 
         expect_args = {"method": "GET", "uri": "/v1/ip/8.8.8.8"}
         respond_args = {
@@ -37,5 +37,5 @@ class TestASNHelper(ModuleTestBase):
         asn_events = [e for e in events if e.type == "ASN"]
         assert asn_events, "No ASN event produced"
 
-        # Verify name field is not the unknown placeholder
-        assert any(e.data.get("name") and e.data.get("name") != "unknown" for e in asn_events)
+        # Verify ASN number is a valid integer
+        assert any(isinstance(e.data, int) and e.data > 0 for e in asn_events)

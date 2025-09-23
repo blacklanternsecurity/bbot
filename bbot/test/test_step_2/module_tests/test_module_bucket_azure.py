@@ -19,7 +19,7 @@ class TestBucket_Azure_NoDup(ModuleTestBase):
     module_name = "bucket_azure"
     config_overrides = {"cloudcheck": True}
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://tesla.blob.core.windows.net/tesla?restype=container",
             text="",
@@ -38,18 +38,20 @@ class TestBucket_Azure_NoDup(ModuleTestBase):
         assert bucket_event.data["url"] == "https://tesla.blob.core.windows.net/"
         assert (
             bucket_event.discovery_context
-            == f"bucket_azure tried  bucket variations of {event.data} and found {{event.type}} at {url}"
+            == f"bucket_azure tried 3 bucket variations of tesla.com and found STORAGE_BUCKET at https://tesla.blob.core.windows.net/tesla?restype=container"
         )
 
 
-class TestBucket_Azure_NoDup(TestBucket_Azure_NoDup):
+class TestBucket_Azure_NoDup_suppress_chain_dupes(TestBucket_Azure_NoDup):
     """
     This tests _suppress_chain_dupes functionality to make sure it works as expected
     """
 
     async def setup_after_prep(self, module_test):
+        # Call parent setup first
+        await super().setup_after_prep(module_test)
+        
         from bbot.core.event.base import STORAGE_BUCKET
-
         module_test.monkeypatch.setattr(STORAGE_BUCKET, "_suppress_chain_dupes", False)
 
     def check(self, module_test, events):

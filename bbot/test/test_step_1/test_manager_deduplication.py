@@ -48,7 +48,6 @@ async def test_manager_deduplication(bbot_scanner):
 
     async def do_scan(*args, _config={}, _dns_mock={}, scan_callback=None, **kwargs):
         scan = bbot_scanner(*args, config=_config, **kwargs)
-        await scan._prep()
         default_module = DefaultModule(scan)
         everything_module = EverythingModule(scan)
         no_suppress_dupes = NoSuppressDupes(scan)

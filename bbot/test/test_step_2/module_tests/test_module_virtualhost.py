@@ -247,8 +247,7 @@ class TestVirtualhostMutations(VirtualhostTestBase):
         # Call parent setup first
         await super().setup_before_prep(module_test)
 
-        # Set up DNS mocking for target.test
-        await module_test.mock_dns({"target.test": {"A": ["127.0.0.1"]}})
+
 
         # Mock wordcloud.mutations to return predictable results for "target"
         def mock_mutations(self, word, **kwargs):
@@ -264,6 +263,10 @@ class TestVirtualhostMutations(VirtualhostTestBase):
     async def setup_after_prep(self, module_test):
         # Keep request handler-based HTTP server
         await super().setup_after_prep(module_test)
+
+
+        # Set up DNS mocking for target.test
+        await module_test.mock_dns({"target.test": {"A": ["127.0.0.1"]}})
 
         # Emit URL event manually and ensure resolved_hosts
         from bbot.modules.base import BaseModule
@@ -355,9 +358,9 @@ class TestVirtualhostWordcloud(VirtualhostTestBase):
         }
     }
 
-    async def setup_before_prep(self, module_test):
-        # Call parent setup first
-        await super().setup_before_prep(module_test)
+    async def setup_after_prep(self, module_test):
+        # Keep request handler-based HTTP server
+        await super().setup_after_prep(module_test)
 
         # Set up DNS mocking for wordcloud.test
         await module_test.mock_dns({"wordcloud.test": {"A": ["127.0.0.1"]}})
@@ -367,10 +370,6 @@ class TestVirtualhostWordcloud(VirtualhostTestBase):
             return ["staging", "prod", "dev", "admin", "api"]
 
         module_test.monkeypatch.setattr("bbot.core.helpers.wordcloud.WordCloud.keys", mock_wordcloud_keys)
-
-    async def setup_after_prep(self, module_test):
-        # Keep request handler-based HTTP server
-        await super().setup_after_prep(module_test)
 
         # Emit URL event manually and ensure resolved_hosts
         from bbot.modules.base import BaseModule

@@ -25,7 +25,7 @@ class TestNmap_XML(ModuleTestBase):
                     {"host": str(event.host), "port": event.port, "protocol": "https"}, "PROTOCOL", parent=event
                 )
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         self.dummy_module = self.DummyModule(module_test.scan)
         module_test.scan.modules["dummy_module"] = self.dummy_module
         await module_test.mock_dns(
