@@ -1,5 +1,4 @@
 import asyncio
-import regex as re
 from pathlib import Path
 from subprocess import CalledProcessError
 from bbot.modules.base import BaseModule
@@ -35,7 +34,6 @@ class gitdumper(BaseModule):
         else:
             self.output_dir = self.scan.temp_dir / "git_repos"
         self.helpers.mkdir(self.output_dir)
-        self.unsafe_regex = self.helpers.re.compile(r"^\s*fsmonitor|sshcommand|askpass|editor|pager", re.IGNORECASE)
         self.ref_regex = self.helpers.re.compile(r"ref: refs/heads/([a-zA-Z\d_-]+)")
         self.obj_regex = self.helpers.re.compile(r"[a-f0-9]{40}")
         self.pack_regex = self.helpers.re.compile(r"pack-([a-f0-9]{40})\.pack")
@@ -131,7 +129,6 @@ class gitdumper(BaseModule):
         else:
             result = await self.git_fuzz(repo_url, repo_folder)
         if result:
-            await self.sanitize_config(repo_folder)
             await self.git_checkout(repo_folder)
             codebase_event = self.make_event({"path": str(repo_folder)}, "FILESYSTEM", tags=["git"], parent=event)
             await self.emit_event(
@@ -251,15 +248,6 @@ class gitdumper(BaseModule):
             self.debug(f"Unable to download git files to {folder}")
             return False
 
-    async def sanitize_config(self, folder):
-        config_file = folder / ".git/config"
-        if config_file.exists():
-            with config_file.open("r", encoding="utf-8", errors="ignore") as file:
-                content = file.read()
-                sanitized = await self.helpers.re.sub(self.unsafe_regex, r"# \g<0>", content)
-            with config_file.open("w", encoding="utf-8") as file:
-                file.write(sanitized)
-
     async def git_catfile(self, hash, option="-t", folder=Path()):
         command = ["git", "cat-file", option, hash]
         try:
@@ -270,8 +258,10 @@ class gitdumper(BaseModule):
         return output.stdout
 
     async def git_checkout(self, folder):
+        self.helpers.sanitize_git_repo(folder)
         self.verbose(f"Running git checkout to reconstruct the git repository at {folder}")
-        command = ["git", "checkout", "."]
+        # we do "checkout head -- ." because the sanitization deletes the index file, and it needs to be reconstructed
+        command = ["git", "checkout", "HEAD", "--", "."]
         try:
             await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, cwd=folder, check=True)
         except CalledProcessError as e:
