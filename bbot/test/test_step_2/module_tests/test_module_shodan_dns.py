@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestShodan_DNS(ModuleTestBase):
     config_overrides = {"modules": {"shodan": {"api_key": "asdf"}}}
 
-    async def setup_after_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.shodan.io/api-info?key=asdf",
         )
@@ -24,6 +24,8 @@ class TestShodan_DNS(ModuleTestBase):
                 ],
             },
         )
+
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {
