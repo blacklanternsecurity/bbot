@@ -150,15 +150,16 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         self.interactsh_mock_instance = module_test.mock_interactsh("dotnetnuke_blindssrf")
-        
+
         # Mock at the helper creation level BEFORE modules are set up
         def mock_interactsh_factory(*args, **kwargs):
             return self.interactsh_mock_instance
-            
+
         # Apply the mock to the core helpers so modules get the mock during setup
         from bbot.core.helpers.helper import ConfigAwareHelper
+
         module_test.monkeypatch.setattr(ConfigAwareHelper, "interactsh", mock_interactsh_factory)
-        
+
         # Simulate DotNetNuke Instance
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": dotnetnuke_http_response}

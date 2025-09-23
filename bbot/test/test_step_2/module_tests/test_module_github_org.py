@@ -11,7 +11,6 @@ class TestGithub_Org(ModuleTestBase):
         )
 
     async def setup_before_prep(self, module_test):
-
         module_test.httpx_mock.add_response(
             url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
         )

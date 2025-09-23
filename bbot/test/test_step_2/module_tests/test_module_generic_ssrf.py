@@ -37,15 +37,16 @@ class TestGeneric_SSRF(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         self.interactsh_mock_instance = module_test.mock_interactsh("generic_ssrf")
-        
+
         # Mock at the helper creation level BEFORE modules are set up
         def mock_interactsh_factory(*args, **kwargs):
             return self.interactsh_mock_instance
-            
+
         # Apply the mock to the core helpers so modules get the mock during setup
         from bbot.core.helpers.helper import ConfigAwareHelper
+
         module_test.monkeypatch.setattr(ConfigAwareHelper, "interactsh", mock_interactsh_factory)
-        
+
     async def setup_after_prep(self, module_test):
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)

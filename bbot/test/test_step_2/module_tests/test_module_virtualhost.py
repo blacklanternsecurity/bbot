@@ -247,8 +247,6 @@ class TestVirtualhostMutations(VirtualhostTestBase):
         # Call parent setup first
         await super().setup_before_prep(module_test)
 
-
-
         # Mock wordcloud.mutations to return predictable results for "target"
         def mock_mutations(self, word, **kwargs):
             # Return realistic mutations that would be found for "target"
@@ -263,7 +261,6 @@ class TestVirtualhostMutations(VirtualhostTestBase):
     async def setup_after_prep(self, module_test):
         # Keep request handler-based HTTP server
         await super().setup_after_prep(module_test)
-
 
         # Set up DNS mocking for target.test
         await module_test.mock_dns({"target.test": {"A": ["127.0.0.1"]}})

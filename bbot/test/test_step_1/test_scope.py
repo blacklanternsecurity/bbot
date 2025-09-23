@@ -5,9 +5,7 @@ from ..test_step_2.module_tests.base import ModuleTestBase
 class TestScopeBaseline(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx"]
-    config_overrides = {
-        "omit_event_types": []
-    }
+    config_overrides = {"omit_event_types": []}
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}

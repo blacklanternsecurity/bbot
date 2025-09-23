@@ -38,7 +38,7 @@ class TestBucket_Azure_NoDup(ModuleTestBase):
         assert bucket_event.data["url"] == "https://tesla.blob.core.windows.net/"
         assert (
             bucket_event.discovery_context
-            == f"bucket_azure tried 3 bucket variations of tesla.com and found STORAGE_BUCKET at https://tesla.blob.core.windows.net/tesla?restype=container"
+            == "bucket_azure tried 3 bucket variations of tesla.com and found STORAGE_BUCKET at https://tesla.blob.core.windows.net/tesla?restype=container"
         )
 
 
@@ -50,8 +50,9 @@ class TestBucket_Azure_NoDup_suppress_chain_dupes(TestBucket_Azure_NoDup):
     async def setup_after_prep(self, module_test):
         # Call parent setup first
         await super().setup_after_prep(module_test)
-        
+
         from bbot.core.event.base import STORAGE_BUCKET
+
         module_test.monkeypatch.setattr(STORAGE_BUCKET, "_suppress_chain_dupes", False)
 
     def check(self, module_test, events):
