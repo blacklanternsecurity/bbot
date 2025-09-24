@@ -5,7 +5,7 @@ class TestSpeculate_Subdirectories(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/subdir1/subdir2/"]
     modules_overrides = ["httpx", "speculate"]
 
-    async def setup_after_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": "alive"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -35,9 +35,58 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
             }
         )
 
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy"
+            watched_events = ["OPEN_TCP_PORT"]
+            scope_distance_modifier = 10
+            accept_dupes = True
+
+            async def setup(self):
+                self.events = []
+                return True
+
+            async def handle_event(self, event):
+                self.events.append(event)
+
+        dummy_module = DummyModule(module_test.scan)
+        await dummy_module.setup()
+        module_test.scan.modules["dummy"] = dummy_module
+
+        # Manually configure speculate module to emit OPEN_TCP_PORT events
+        # since the dummy module was added after speculate's setup phase
+        speculate_module = module_test.scan.modules["speculate"]
+        speculate_module.open_port_consumers = True
+        speculate_module.emit_open_ports = True
+
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.certspotter.com/v1/issuances?domain=evilcorp.com&include_subdomains=true&expand=dns_names",
             json=[{"dns_names": ["*.asdf.evilcorp.com"]}],
+        )
+
+    def check(self, module_test, events):
+        events_data = set()
+        for e in module_test.scan.modules["dummy"].events:
+            events_data.add(e.data)
+        assert all(
+            x in events_data
+            for x in ("evilcorp.com:80", "evilcorp.com:443", "asdf.evilcorp.com:80", "asdf.evilcorp.com:443")
+        )
+
+
+class TestSpeculate_OpenPorts_Portscanner(TestSpeculate_OpenPorts):
+    targets = ["evilcorp.com"]
+    modules_overrides = ["speculate", "certspotter", "portscan"]
+    config_overrides = {"speculate": True}
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(
+            {
+                "evilcorp.com": {"A": ["127.0.254.1"]},
+                "asdf.evilcorp.com": {"A": ["127.0.254.2"]},
+            }
         )
 
         from bbot.modules.base import BaseModule
@@ -55,22 +104,12 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
             async def handle_event(self, event):
                 self.events.append(event)
 
-        module_test.scan.modules["dummy"] = DummyModule(module_test.scan)
+        dummy_module = DummyModule(module_test.scan)
+        await dummy_module.setup()
+        module_test.scan.modules["dummy"] = dummy_module
 
-    def check(self, module_test, events):
-        events_data = set()
-        for e in module_test.scan.modules["dummy"].events:
-            events_data.add(e.data)
-        assert all(
-            x in events_data
-            for x in ("evilcorp.com:80", "evilcorp.com:443", "asdf.evilcorp.com:80", "asdf.evilcorp.com:443")
-        )
-
-
-class TestSpeculate_OpenPorts_Portscanner(TestSpeculate_OpenPorts):
-    targets = ["evilcorp.com"]
-    modules_overrides = ["speculate", "certspotter", "portscan"]
-    config_overrides = {"speculate": True}
+        # DON'T manually configure speculate module here - we want it to detect
+        # the portscan module and NOT emit OPEN_TCP_PORT events
 
     def check(self, module_test, events):
         events_data = set()
