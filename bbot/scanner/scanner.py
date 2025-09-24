@@ -288,12 +288,13 @@ class Scanner:
                 f.write(self.preset.to_yaml())
 
             # log scan overview
-            start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} targets"
+
+            start_msg = f"Scan seeded with {len(self.seeds):,} targets"
             details = []
             if self.whitelist != self.target:
-                details.append(f"{len(self.whitelist.event_seeds):,} in whitelist")
+                details.append(f"{len(self.whitelist):,} in whitelist")
             if self.blacklist:
-                details.append(f"{len(self.blacklist.event_seeds):,} in blacklist")
+                details.append(f"{len(self.blacklist):,} in blacklist")
             if details:
                 start_msg += f" ({', '.join(details)})"
             self.hugeinfo(start_msg)
