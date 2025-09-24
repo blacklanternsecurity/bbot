@@ -12,6 +12,8 @@ class TestSubDomainRadar(ModuleTestBase):
                 "asdf.blacklanternsecurity.com": {"A": ["127.0.0.88"]},
             }
         )
+
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.subdomainradar.io/profile",
             match_headers={"Authorization": "Bearer asdf"},
