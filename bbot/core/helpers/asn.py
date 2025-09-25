@@ -21,8 +21,8 @@ class ASNHelper:
 
     # Default record used when no ASN data can be found
     UNKNOWN_ASN = {
-        "asn": "UNKNOWN",
-        "subnet": "0.0.0.0/32",
+        "asn": "0",
+        "subnets": [],
         "name": "unknown",
         "description": "unknown",
         "country": "",

@@ -18,11 +18,11 @@ class asn(BaseReportModule):
 
     async def setup(self):
         self.unknown_asn = {
-            "asn": "UNKNOWN",
-            "subnet": "0.0.0.0/32",
-            "name": "unknown",
-            "description": "unknown",
-            "country": "",
+            "asn": "0",
+            "subnets": [],
+            "asn_name": "unknown",
+            "org": "unknown",
+            "country": "unknown",
         }
         # Track ASN data locally instead of relying on cache
         self.asn_data = {}  # ASN number -> ASN record mapping
@@ -78,20 +78,22 @@ class asn(BaseReportModule):
                     self.processed_subnets[subnet] = asn_number
 
             emails = asn_record.get("emails", [])
-            asn_event = self.make_event(asn_number, "ASN", parent=event)
-            if asn_event:
-                await self.emit_event(
-                    asn_event,
-                    context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_desc}, {asn_country})",
-                )
+            # Don't emit ASN 0 - it's reserved and indicates unknown ASN data
+            if asn_number != "0":
+                asn_event = self.make_event(int(asn_number), "ASN", parent=event)
+                if asn_event:
+                    await self.emit_event(
+                        asn_event,
+                        context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_desc}, {asn_country})",
+                    )
 
-            for email in emails:
-                await self.emit_event(
-                    email,
-                    "EMAIL_ADDRESS",
-                    parent=asn_event,
-                    context=f"{{module}} retrieved details for AS{asn_number} and found {{event.type}}: {{event.data}}",
-                )
+                    for email in emails:
+                        await self.emit_event(
+                            email,
+                            "EMAIL_ADDRESS",
+                            parent=asn_event,
+                            context=f"{{module}} retrieved details for AS{asn_number} and found {{event.type}}: {{event.data}}",
+                        )
 
     async def report(self):
         """Generate an ASN summary table based on locally tracked ASN data."""
@@ -105,7 +107,7 @@ class asn(BaseReportModule):
         header = ["ASN", "Subnet Count", "Name", "Description", "Country"]
         table = []
         for asn, data in sorted_asns:
-            number = "AS" + asn if asn != "UNKNOWN" else asn
+            number = "AS" + asn if asn != "0" else asn
             table.append(
                 [
                     number,
