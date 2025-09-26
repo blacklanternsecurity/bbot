@@ -23,9 +23,9 @@ class ASNHelper:
     UNKNOWN_ASN = {
         "asn": "0",
         "subnets": [],
-        "name": "unknown",
-        "description": "unknown",
-        "country": "",
+        "asn_name": "unknown",
+        "org": "unknown",
+        "country": "unknown",
     }
 
     async def _request_with_retry(self, url, max_retries=10):
@@ -104,7 +104,6 @@ class ASNHelper:
 
         status = getattr(response, "status_code", 0)
         if status != 200:
-            log.warning(f"ASN DB API: returned {status} for {ip}")
             return None
 
         try:
@@ -141,7 +140,6 @@ class ASNHelper:
 
         status = getattr(response, "status_code", 0)
         if status != 200:
-            log.warning(f"ASN DB API: returned {status} for {asn}")
             return None
 
         try:
