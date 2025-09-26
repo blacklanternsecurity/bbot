@@ -147,7 +147,6 @@ class waf_bypass(BaseModule):
                 "simhash": simhash,
                 "http_code": curl_response["http_code"],
             }
-            self.critical(f"{simhash:0128b}")
             self.debug(
                 f"Stored simhash of response from {url} (content length: {len(curl_response['response_data'])})"
             )
@@ -244,25 +243,15 @@ class waf_bypass(BaseModule):
         if bypass_response["http_code"] == 301 or bypass_response["http_code"] == 302:
             is_redirect = True
 
-        self.hugeinfo(f"{original_response['simhash']:0128b}")
-        self.hugeinfo(f"{bypass_simhash:0128b}")
         similarity = self.helpers.simhash.similarity(original_response["simhash"], bypass_simhash)
-
-        self.critical(similarity)
-
-        # similarity = self.helpers.web.text_similarity(
-        #     original_response["response_data"],
-        #     bypass_response["response_data"],
-        #     similarity_cache=self.similarity_cache,
-        # )
 
         # For redirects, require exact match (1.0), otherwise use configured threshold
         required_threshold = 1.0 if is_redirect else self.similarity_threshold
         return (matching_url, ip, similarity, source_event) if similarity >= required_threshold else None
 
     async def finish(self):
-        self.critical(f"Found {len(self.protected_domains)} Protected Domains")
-        self.critical(f"Found {len(self.bypass_candidates)} Bypass Candidates")
+        self.verbose(f"Found {len(self.protected_domains)} Protected Domains")
+        self.verbose(f"Found {len(self.bypass_candidates)} Bypass Candidates")
 
         confirmed_bypasses = []  # [(protected_url, matching_ip, similarity)]
         all_ips = {}  # {ip: domain}
@@ -307,7 +296,7 @@ class waf_bypass(BaseModule):
                                             f"Added Neighbor IP ({ip} -> {n_ip_str}) as potential bypass IP derived from {domain}"
                                         )
                     else:
-                        self.critical(f"IP {ip} is in CloudFlare IPS so we don't check as potential bypass")
+                        self.debug(f"IP {ip} is in CloudFlare IPS so we don't check as potential bypass")
 
         self.debug(f"\nFound {len(all_ips)} non-CloudFlare IPs to check: {all_ips}")
 
