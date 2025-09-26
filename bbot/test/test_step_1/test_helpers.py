@@ -1109,7 +1109,6 @@ def test_simhash_similarity(helpers):
     very_similarity = simhash.similarity(base_hash, very_hash)
     complete_similarity = simhash.similarity(base_hash, completely_hash)
 
-    print("@@@@")
     print(f"Identical: {identical_similarity:.3f}")
     print(f"Slightly different: {slight_similarity:.3f}")
     print(f"Moderately different: {moderate_similarity:.3f}")
