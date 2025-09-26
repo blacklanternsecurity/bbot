@@ -8,6 +8,7 @@ from bbot.core.helpers import regexes, smart_decode, smart_encode_punycode
 
 bbot_event_seeds = {}
 
+
 # Pre-compute sorted event classes for performance
 # This is computed once when the module is loaded instead of on every EventSeed() call
 def _get_sorted_event_classes():
@@ -16,6 +17,7 @@ def _get_sorted_event_classes():
     This ensures specific patterns like ASN:12345 are checked before broad patterns like hostname:port.
     """
     return sorted(bbot_event_seeds.items(), key=lambda x: getattr(x[1], "priority", 5), reverse=True)
+
 
 # This will be populated after all event seed classes are registered
 _sorted_event_classes = None
@@ -287,16 +289,15 @@ class ASN(BaseEventSeed):
     # This method resolves the ASN to a list of IP_RANGES using the ASN API, and then adds the cidr string as a child event seed.
     # These will later be automatically resolved to an IP_RANGE event seed and added to the target.
     async def _generate_children(self, helpers):
-        asns = await helpers.asn.asn_to_subnets(int(self.data))
+        asn_data = await helpers.asn.asn_to_subnets(int(self.data))
         children = []
-        if asns:
-            for asn in asns:
-                subnets = asn.get("subnets")
-                if isinstance(subnets, str):
-                    subnets = [subnets]
-                if subnets:
-                    for cidr in subnets:
-                        children.append(cidr)
+        if asn_data:
+            subnets = asn_data.get("subnets")
+            if isinstance(subnets, str):
+                subnets = [subnets]
+            if subnets:
+                for cidr in subnets:
+                    children.append(cidr)
         return children
 
     @staticmethod

@@ -158,19 +158,18 @@ class waf_bypass(BaseModule):
 
                 for ip in base_dns:
                     self.debug(f"Getting ASN info for IP {ip} from {provider_name} base domain {base_domain}")
-                    asns = await self.helpers.asn.ip_to_subnets(str(ip))
-                    if asns:
-                        for asn_info in asns:
-                            subnets = asn_info.get("subnets")
-                            if isinstance(subnets, str):
-                                subnets = [subnets]
-                            if subnets:
-                                for cidr in subnets:
-                                    self.bypass_candidates[base_domain].add(cidr)
-                                    self.debug(
-                                        f"Added CIDR {cidr} from {provider_name} base domain {base_domain} "
-                                        f"(ASN{asn_info.get('asn', 'Unknown')} - {asn_info.get('name', 'Unknown')})"
-                                    )
+                    asn_info = await self.helpers.asn.ip_to_subnets(str(ip))
+                    if asn_info:
+                        subnets = asn_info.get("subnets")
+                        if isinstance(subnets, str):
+                            subnets = [subnets]
+                        if subnets:
+                            for cidr in subnets:
+                                self.bypass_candidates[base_domain].add(cidr)
+                                self.debug(
+                                    f"Added CIDR {cidr} from {provider_name} base domain {base_domain} "
+                                    f"(ASN{asn_info.get('asn', 'Unknown')} - {asn_info.get('name', 'Unknown')})"
+                                )
                     else:
                         self.warning(f"No ASN info found for IP {ip}")
 
@@ -187,20 +186,19 @@ class waf_bypass(BaseModule):
 
                 for ip in dns_response:
                     self.debug(f"Getting ASN info for IP {ip} from non-CloudFlare domain {domain}")
-                    asns = await self.helpers.asn.ip_to_subnets(str(ip))
-                    if asns:
-                        for asn_info in asns:
-                            subnets = asn_info.get("subnets")
-                            if not subnets:
-                                continue
-                            if isinstance(subnets, str):
-                                subnets = [subnets]
-                            for cidr in subnets:
-                                self.bypass_candidates[base_domain].add(cidr)
-                                self.debug(
-                                    f"Added CIDR {cidr} from non-CloudFlare domain {domain} "
-                                    f"(ASN{asn_info.get('asn', 'Unknown')} - {asn_info.get('name', 'Unknown')})"
-                                )
+                    asn_info = await self.helpers.asn.ip_to_subnets(str(ip))
+                    if asn_info:
+                        subnets = asn_info.get("subnets")
+                        if not subnets:
+                            continue
+                        if isinstance(subnets, str):
+                            subnets = [subnets]
+                        for cidr in subnets:
+                            self.bypass_candidates[base_domain].add(cidr)
+                            self.debug(
+                                f"Added CIDR {cidr} from non-CloudFlare domain {domain} "
+                                f"(ASN{asn_info.get('asn', 'Unknown')} - {asn_info.get('name', 'Unknown')})"
+                            )
                     else:
                         self.warning(f"No ASN info found for IP {ip}")
 
@@ -278,18 +276,18 @@ class waf_bypass(BaseModule):
                         if self.search_ip_neighbors and ip not in self.cloud_ips:
                             import ipaddress
 
-                            orig_asns = await self.helpers.asn.ip_to_subnets(str(ip))
-                            if orig_asns:
+                            orig_asn = await self.helpers.asn.ip_to_subnets(str(ip))
+                            if orig_asn:
                                 neighbor_net = ipaddress.ip_network(f"{ip}/{self.neighbor_cidr}", strict=False)
                                 for neighbor_ip in neighbor_net.hosts():
                                     n_ip_str = str(neighbor_ip)
                                     if n_ip_str == ip or n_ip_str in cloudflare_ips or n_ip_str in all_ips:
                                         continue
-                                    asns_neighbor = await self.helpers.asn.ip_to_subnets(n_ip_str)
-                                    if not asns_neighbor:
+                                    asn_neighbor = await self.helpers.asn.ip_to_subnets(n_ip_str)
+                                    if not asn_neighbor:
                                         continue
-                                    # Check if any ASN matches
-                                    if any(a["asn"] == b["asn"] for a in orig_asns for b in asns_neighbor):
+                                    # Check if ASN matches
+                                    if orig_asn["asn"] == asn_neighbor["asn"]:
                                         all_ips[n_ip_str] = domain
                                         self.debug(
                                             f"Added Neighbor IP ({ip} -> {n_ip_str}) as potential bypass IP derived from {domain}"

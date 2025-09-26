@@ -58,7 +58,7 @@ class asn(BaseReportModule):
 
         asn_data = await self.helpers.asn.ip_to_subnets(host_str)
         if asn_data:
-            asn_record = asn_data[0]
+            asn_record = asn_data
             asn_number = asn_record.get("asn")
             asn_desc = asn_record.get("description", "")
             asn_name = asn_record.get("name", "")

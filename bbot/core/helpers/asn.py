@@ -15,16 +15,16 @@ class ASNHelper:
         # IP radix trees (authoritative store) – IPv4 and IPv6
         self._tree4: IPRadixTree = IPRadixTree()
         self._tree6: IPRadixTree = IPRadixTree()
-        self._subnet_to_asn_cache: dict[str, list] = {}
+        self._subnet_to_asn_cache: dict[str, dict] = {}
         # ASN cache (ASN ID -> data mapping)
-        self._asn_to_data_cache: dict[int, list] = {}
+        self._asn_to_data_cache: dict[int, dict] = {}
 
     # Default record used when no ASN data can be found
     UNKNOWN_ASN = {
         "asn": "0",
         "subnets": [],
-        "asn_name": "unknown",
-        "org": "unknown",
+        "name": "unknown",
+        "description": "unknown",
         "country": "unknown",
     }
 
@@ -74,20 +74,19 @@ class ASNHelper:
 
         if isinstance(raw, dict):
             return processor_method(raw, identifier)
-        
+
         log.warning(f"ASN DB API: returned unexpected format for {identifier}: {raw}")
         return None
 
     def _build_asn_record(self, raw, subnets):
         """Build standardized ASN record from API response."""
-        return [{
+        return {
             "asn": str(raw.get("asn", "")),
             "subnets": subnets,
-            "name": raw.get("asn_name", ""),
-            "description": raw.get("org", ""),
-            "country": raw.get("country", ""),
-        }]
-
+            "name": raw.get("asn_name") or "",
+            "description": raw.get("org") or "",
+            "country": raw.get("country") or "",
+        }
 
     async def asn_to_subnets(self, asn):
         """Return subnets for *asn* using cached subnet ranges where possible."""
@@ -99,7 +98,7 @@ class ASNHelper:
                 asn_int = int(str(asn.lower()).lstrip("as"))
             except ValueError:
                 log.warning(f"Invalid ASN format: {asn}")
-                return [self.UNKNOWN_ASN]
+                return self.UNKNOWN_ASN
 
         cached = self._cache_lookup_asn(asn_int)
         if cached is not None:
@@ -111,7 +110,7 @@ class ASNHelper:
         if asn_data:
             self._cache_store_asn(asn_data, asn_int)
             return asn_data
-        return [self.UNKNOWN_ASN]
+        return self.UNKNOWN_ASN
 
     async def ip_to_subnets(self, ip: str):
         """Return ASN info for *ip* using cached subnet ranges where possible."""
@@ -120,14 +119,14 @@ class ASNHelper:
         cached = self._cache_lookup_ip(ip_str)
         if cached is not None:
             log.debug(f"cache HIT for ip: {ip_str}")
-            return cached or [self.UNKNOWN_ASN]
+            return cached or self.UNKNOWN_ASN
 
         log.debug(f"cache MISS for ip: {ip_str}")
         asn_data = await self._query_api_ip(ip_str)
         if asn_data:
             self._cache_store_ip(asn_data)
             return asn_data
-        return [self.UNKNOWN_ASN]
+        return self.UNKNOWN_ASN
 
     async def _query_api_ip(self, ip: str):
         """Query ASN DB API for IP address information."""
@@ -135,12 +134,13 @@ class ASNHelper:
 
     def _process_ip_response(self, raw, ip):
         """Process IP lookup response from ASN DB API."""
-        subnets = raw.get("subnets")
+        subnets = raw.get("subnets", [])
+        # API returns subnets as array, but handle string case for safety
         if isinstance(subnets, str):
             subnets = [subnets]
         if not subnets:
             subnets = [f"{ip}/32"]
-        return self._build_asn_record(raw, subnets or [])
+        return self._build_asn_record(raw, subnets)
 
     async def _query_api_asn(self, asn: str):
         """Query ASN DB API for ASN information."""
@@ -148,36 +148,36 @@ class ASNHelper:
 
     def _process_asn_response(self, raw, asn):
         """Process ASN lookup response from ASN DB API."""
-        subnets = raw.get("subnets")
+        subnets = raw.get("subnets", [])
+        # API returns subnets as array, but handle string case for safety
         if isinstance(subnets, str):
             subnets = [subnets]
-        return self._build_asn_record(raw, subnets or [])
+        return self._build_asn_record(raw, subnets)
 
-    def _cache_store_asn(self, asn_list, asn_id: int):
+    def _cache_store_asn(self, asn_record, asn_id: int):
         """Cache ASN data by ASN ID"""
-        self._asn_to_data_cache[asn_id] = asn_list
-        log.debug(f"ASN cache ADD {asn_id} -> {asn_list[0].get('asn', '?') if asn_list else '?'}")
+        self._asn_to_data_cache[asn_id] = asn_record
+        log.debug(f"ASN cache ADD {asn_id} -> {asn_record.get('asn', '?') if asn_record else '?'}")
 
     def _cache_lookup_asn(self, asn_id: int):
         """Lookup cached ASN data by ASN ID"""
         return self._asn_to_data_cache.get(asn_id)
 
-    def _cache_store_ip(self, asn_list):
+    def _cache_store_ip(self, asn_record):
         if not (self._tree4 or self._tree6):
             return
-        for rec in asn_list:
-            subnets = rec.get("subnets") or []
-            if isinstance(subnets, str):
-                subnets = [subnets]
-            for p in subnets:
-                try:
-                    net = ipaddress.ip_network(p, strict=False)
-                except ValueError:
-                    continue
-                tree = self._tree4 if net.version == 4 else self._tree6
-                tree.insert(str(net), data=asn_list)
-                self._subnet_to_asn_cache[str(net)] = asn_list
-                log.debug(f"IP cache ADD {net} -> {asn_list[:1][0].get('asn', '?')}")
+        subnets = asn_record.get("subnets") or []
+        if isinstance(subnets, str):
+            subnets = [subnets]
+        for p in subnets:
+            try:
+                net = ipaddress.ip_network(p, strict=False)
+            except ValueError:
+                continue
+            tree = self._tree4 if net.version == 4 else self._tree6
+            tree.insert(str(net), data=asn_record)
+            self._subnet_to_asn_cache[str(net)] = asn_record
+            log.debug(f"IP cache ADD {net} -> {asn_record.get('asn', '?')}")
 
     def _cache_lookup_ip(self, ip: str):
         ip_obj = ipaddress.ip_address(ip)
