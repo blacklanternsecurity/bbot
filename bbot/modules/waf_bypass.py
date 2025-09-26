@@ -4,6 +4,45 @@ from bbot.modules.base import BaseModule
 class waf_bypass(BaseModule):
     """
     Module to detect WAF bypasses by finding domains not behind CloudFlare
+
+    Basic gist:
+
+        throughout the scan we build:
+            - a list of waf'd hosts
+            - a list of asns that our target is hopefully deploying their shit on
+
+        in .finish(), we look back on all the urls that aren't waf'd
+        for each unwaf'd host:
+            if it's in a our list of asns, we get its ip neighbors
+            for each of those neighbors we test it:
+                for each wafd host, we try and visit that ip with spoofed host
+
+    How it works:
+
+        In handle_event():
+            For each URL, we:
+                1) dns-resolve the host and save the host->ip mappings twice:
+                    once, always
+                    once, for only cloud ips
+                2) determine whether it's protected behind a WAF
+                    if it is WAF-protected, we:
+                        - visit the URL and hash its content
+                        - dns-resolve the base domain
+                    if the ips for the dns name are the same as the ips for the base domain, we abort
+                        - there is definitely a reason for this?
+                    we add the base domain to bypass_candidates if not already
+                    for all the IPs of the base domain, we get their ASNs
+
+    Potential issues:
+        - exponential duration of .finish() based on target size
+
+            n = urls not wafd
+            j = ip neighbors of n
+            k = wafd hosts
+
+            n, k scale with target size
+            duration of .finish == n * j * k
+
     """
 
     watched_events = ["URL"]
@@ -26,6 +65,8 @@ class waf_bypass(BaseModule):
         "created_date": "2025-08-11",
     }
 
+    per_host_only = True
+
     async def setup(self):
         # Track protected domains and their potential bypass CIDRs
         self.protected_domains = {}  # {domain: event} - store events for protected domains
@@ -46,52 +87,10 @@ class waf_bypass(BaseModule):
         self.cloud_ips = set()
         return True
 
-    async def get_url_content(self, url, ip=None):
-        """Helper function to fetch content from a URL, optionally through specific IP"""
-        try:
-            if ip:
-                # Build resolve dict for curl helper
-                host_tuple = self.helpers.extract_host(url)
-                if not host_tuple[0]:
-                    self.warning(f"Failed to extract host from URL: {url}")
-                    return None
-                host = host_tuple[0]
-
-                # Determine port from scheme (default 443/80) or explicit port in URL
-                try:
-                    from urllib.parse import urlparse
-
-                    parsed = urlparse(url)
-                    port = parsed.port or (443 if parsed.scheme == "https" else 80)
-                except Exception:
-                    port = 443  # safe default for https
-
-                self.debug(f"Fetching via curl with --resolve {host}:{port}:{ip} for {url}")
-
-                curl_response = await self.helpers.web.curl(
-                    url=url,
-                    resolve={"host": host, "port": port, "ip": ip},
-                )
-
-                if curl_response:
-                    return curl_response
-                else:
-                    self.debug(f"curl returned no content for {url} via IP {ip}")
-            else:
-                response = await self.helpers.web.curl(url=url)
-                if not response:
-                    self.debug(f"No response received from {url}")
-                    return None
-                elif response.get("http_code", 0) in [200, 301, 302, 500]:
-                    return response
-                else:
-                    self.debug(
-                        f"Failed to fetch content from {url} - Status: {response.get('http_code', 'unknown')} (not in allowed list)"
-                    )
-                    return None
-        except Exception as e:
-            self.debug(f"Error fetching content from {url}: {str(e)}")
-        return None
+    async def filter_event(self, event):
+        if "endpoint" in event.tags:
+            return False, "WAF bypass module only considers directory URLs"
+        return True
 
     async def handle_event(self, event):
         domain = str(event.host)
@@ -208,10 +207,52 @@ class waf_bypass(BaseModule):
                     else:
                         self.warning(f"No ASN info found for IP {ip}")
 
-    async def filter_event(self, event):
-        if "endpoint" in event.tags:
-            return False, "WAF bypass module only considers directory URLs"
-        return True
+    async def get_url_content(self, url, ip=None):
+        """Helper function to fetch content from a URL, optionally through specific IP"""
+        try:
+            if ip:
+                # Build resolve dict for curl helper
+                host_tuple = self.helpers.extract_host(url)
+                if not host_tuple[0]:
+                    self.warning(f"Failed to extract host from URL: {url}")
+                    return None
+                host = host_tuple[0]
+
+                # Determine port from scheme (default 443/80) or explicit port in URL
+                try:
+                    from urllib.parse import urlparse
+
+                    parsed = urlparse(url)
+                    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+                except Exception:
+                    port = 443  # safe default for https
+
+                self.debug(f"Fetching via curl with --resolve {host}:{port}:{ip} for {url}")
+
+                curl_response = await self.helpers.web.curl(
+                    url=url,
+                    resolve={"host": host, "port": port, "ip": ip},
+                )
+
+                if curl_response:
+                    return curl_response
+                else:
+                    self.debug(f"curl returned no content for {url} via IP {ip}")
+            else:
+                response = await self.helpers.web.curl(url=url)
+                if not response:
+                    self.debug(f"No response received from {url}")
+                    return None
+                elif response.get("http_code", 0) in [200, 301, 302, 500]:
+                    return response
+                else:
+                    self.debug(
+                        f"Failed to fetch content from {url} - Status: {response.get('http_code', 'unknown')} (not in allowed list)"
+                    )
+                    return None
+        except Exception as e:
+            self.debug(f"Error fetching content from {url}: {str(e)}")
+        return None
 
     async def check_ip(self, ip, source_domain, protected_domain, source_event):
         matching_url = next((url for url in self.content_fingerprints.keys() if protected_domain in url), None)
