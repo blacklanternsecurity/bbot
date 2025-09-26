@@ -12,10 +12,9 @@ class virtualhost(BaseModule):
     flags = ["active", "aggressive", "slow", "deadly"]
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
 
-    deps_pip = ["rapidfuzz"]
     deps_common = ["curl"]
 
-    SIMILARITY_THRESHOLD = 0.5
+    SIMILARITY_THRESHOLD = 0.8
     CANARY_LENGTH = 12
     MAX_RESULTS_FLOOD_PROTECTION = 50
 
@@ -416,12 +415,12 @@ class virtualhost(BaseModule):
                 )
             return True
 
+        probe_simhash = self.helpers.simhash.hash(probe_response["response_data"])
+        wildcard_simhash = self.helpers.simhash.hash(wildcard_canary_response["response_data"])
+        similarity = self.helpers.simhash.similarity(probe_simhash, wildcard_simhash)
+
         # Compare original probe response with modified response
-        similarity = self.helpers.web.text_similarity(
-            probe_response["response_data"],
-            wildcard_canary_response["response_data"],
-            similarity_cache=self.similarity_cache,
-        )
+
         result = similarity <= self.SIMILARITY_THRESHOLD
 
         if not result:
@@ -755,14 +754,12 @@ class virtualhost(BaseModule):
 
         # Calculate content similarity to canary (junk response)
         # Use probe hostname for normalization to remove hostname reflection differences
-        similarity = self.helpers.web.text_similarity(
-            canary_response["response_data"],
-            probe_response["response_data"],
-            normalization_filter=probe_host,
-            similarity_cache=self.similarity_cache,
-        )
 
-        # Debug logging only when we think we found a match
+        probe_simhash = self.helpers.simhash.hash(probe_response["response_data"], normalization_filter=probe_host)
+        canary_simhash = self.helpers.simhash.hash(canary_response["response_data"], normalization_filter=probe_host)
+
+        similarity = self.helpers.simhash.similarity(probe_simhash, canary_simhash)
+
         if similarity <= self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"POTENTIAL MATCH: {probe_host} vs canary - similarity: {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD}), probe status: {probe_status}, canary status: {canary_status}"
@@ -791,11 +788,10 @@ class virtualhost(BaseModule):
             )
             return False
 
-        similarity = self.helpers.web.text_similarity(
-            original_response["response_data"],
-            keyword_canary_response["response_data"],
-            similarity_cache=self.similarity_cache,
-        )
+        original_simhash = self.helpers.simhash.hash(original_response["response_data"])
+        keyword_simhash = self.helpers.simhash.hash(keyword_canary_response["response_data"])
+        similarity = self.helpers.simhash.similarity(original_simhash, keyword_simhash)
+
         if similarity >= self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"Intentionally wrong hostname has a canary too similar to the original. Using probe url: {probe_url} - similarity: {similarity:.3f} above threshold {self.SIMILARITY_THRESHOLD} - Original: {original_response.get('http_code', 'N/A')} ({len(original_response.get('response_data', ''))} bytes), Current: {keyword_canary_response.get('http_code', 'N/A')} ({len(keyword_canary_response.get('response_data', ''))} bytes)"
@@ -832,11 +828,9 @@ class virtualhost(BaseModule):
             return True
 
         # Fallback - use similarity comparison for response data (allows slight differences)
-        similarity = self.helpers.web.text_similarity(
-            original_canary_response["response_data"],
-            consistency_canary_response["response_data"],
-            similarity_cache=self.similarity_cache,
-        )
+        original_simhash = self.helpers.simhash.hash(original_canary_response["response_data"])
+        consistency_simhash = self.helpers.simhash.hash(consistency_canary_response["response_data"])
+        similarity = self.helpers.simhash.similarity(original_simhash, consistency_simhash)
         if similarity < self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"CANARY SIMILARITY CHANGED for {normalized_url} - similarity: {similarity:.3f} below threshold {self.SIMILARITY_THRESHOLD} - Original: {original_canary_response.get('http_code', 'N/A')} ({len(original_canary_response.get('response_data', ''))} bytes), Current: {consistency_canary_response.get('http_code', 'N/A')} ({len(consistency_canary_response.get('response_data', ''))} bytes)"

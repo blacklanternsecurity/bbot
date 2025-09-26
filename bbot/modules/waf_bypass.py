@@ -142,8 +142,15 @@ class waf_bypass(BaseModule):
                 return
 
             # Store the response object for later comparison
-            self.content_fingerprints[url] = curl_response
-            self.debug(f"Stored response from {url} (content length: {len(curl_response['response_data'])})")
+            simhash = self.helpers.simhash.hash(curl_response["response_data"])
+            self.content_fingerprints[url] = {
+                "simhash": simhash,
+                "http_code": curl_response["http_code"],
+            }
+            self.critical(f"{simhash:0128b}")
+            self.debug(
+                f"Stored simhash of response from {url} (content length: {len(curl_response['response_data'])})"
+            )
 
             # Get CIDRs from the base domain of the protected domain
             base_dns = await self.helpers.dns.resolve(base_domain)
@@ -221,11 +228,10 @@ class waf_bypass(BaseModule):
             self.debug(f"did not get original response for {matching_url}")
             return None
 
-        self.verbose(
-            f"Bypass attempt: {protected_domain} via {ip} (orig len {len(original_response['response_data'])}) from {source_domain}"
-        )
+        self.verbose(f"Bypass attempt: {protected_domain} via {ip} from {source_domain}")
 
         bypass_response = await self.get_url_content(matching_url, ip)
+        bypass_simhash = self.helpers.simhash.hash(bypass_response["response_data"])
         if not bypass_response:
             self.debug(f"Failed to get content through IP {ip} for URL {matching_url}")
             return None
@@ -238,19 +244,25 @@ class waf_bypass(BaseModule):
         if bypass_response["http_code"] == 301 or bypass_response["http_code"] == 302:
             is_redirect = True
 
-        similarity = self.helpers.web.text_similarity(
-            original_response["response_data"],
-            bypass_response["response_data"],
-            similarity_cache=self.similarity_cache,
-        )
+        self.hugeinfo(f"{original_response['simhash']:0128b}")
+        self.hugeinfo(f"{bypass_simhash:0128b}")
+        similarity = self.helpers.simhash.similarity(original_response["simhash"], bypass_simhash)
+
+        self.critical(similarity)
+
+        # similarity = self.helpers.web.text_similarity(
+        #     original_response["response_data"],
+        #     bypass_response["response_data"],
+        #     similarity_cache=self.similarity_cache,
+        # )
 
         # For redirects, require exact match (1.0), otherwise use configured threshold
         required_threshold = 1.0 if is_redirect else self.similarity_threshold
         return (matching_url, ip, similarity, source_event) if similarity >= required_threshold else None
 
     async def finish(self):
-        self.debug(f"Found {len(self.protected_domains)} Protected Domains")
-        self.debug(f"Found {len(self.bypass_candidates)} Bypass Candidates")
+        self.critical(f"Found {len(self.protected_domains)} Protected Domains")
+        self.critical(f"Found {len(self.bypass_candidates)} Bypass Candidates")
 
         confirmed_bypasses = []  # [(protected_url, matching_ip, similarity)]
         all_ips = {}  # {ip: domain}
@@ -294,6 +306,8 @@ class waf_bypass(BaseModule):
                                         self.debug(
                                             f"Added Neighbor IP ({ip} -> {n_ip_str}) as potential bypass IP derived from {domain}"
                                         )
+                    else:
+                        self.critical(f"IP {ip} is in CloudFlare IPS so we don't check as potential bypass")
 
         self.debug(f"\nFound {len(all_ips)} non-CloudFlare IPs to check: {all_ips}")
 
