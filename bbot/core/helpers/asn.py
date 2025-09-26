@@ -54,6 +54,41 @@ class ASNHelper:
 
         return response
 
+    async def _query_api(self, identifier, url_base, processor_method):
+        """Common API query method that handles request/response pattern."""
+        url = f"{url_base}{identifier}"
+        response = await self._request_with_retry(url)
+        if response is None:
+            log.warning(f"ASN DB API: no response for {identifier}")
+            return None
+
+        status = getattr(response, "status_code", 0)
+        if status != 200:
+            return None
+
+        try:
+            raw = response.json()
+        except Exception as e:
+            log.warning(f"ASN DB API: JSON decode error for {identifier}: {e}")
+            return None
+
+        if isinstance(raw, dict):
+            return processor_method(raw, identifier)
+        
+        log.warning(f"ASN DB API: returned unexpected format for {identifier}: {raw}")
+        return None
+
+    def _build_asn_record(self, raw, subnets):
+        """Build standardized ASN record from API response."""
+        return [{
+            "asn": str(raw.get("asn", "")),
+            "subnets": subnets,
+            "name": raw.get("asn_name", ""),
+            "description": raw.get("org", ""),
+            "country": raw.get("country", ""),
+        }]
+
+
     async def asn_to_subnets(self, asn):
         """Return subnets for *asn* using cached subnet ranges where possible."""
         # Handle both int and str inputs
@@ -95,77 +130,28 @@ class ASNHelper:
         return [self.UNKNOWN_ASN]
 
     async def _query_api_ip(self, ip: str):
-        # Build request URL using overridable base
-        url = f"{self.asndb_ip_url}{ip}"
-        response = await self._request_with_retry(url)
-        if response is None:
-            log.warning(f"ASN DB API: no response for {ip}")
-            return None
+        """Query ASN DB API for IP address information."""
+        return await self._query_api(ip, self.asndb_ip_url, self._process_ip_response)
 
-        status = getattr(response, "status_code", 0)
-        if status != 200:
-            return None
-
-        try:
-            raw = response.json()
-        except Exception as e:
-            log.warning(f"ASN DB API: JSON decode error for {ip}: {e}")
-            return None
-
-        if isinstance(raw, dict):
-            subnets = raw.get("subnets")
-            if isinstance(subnets, str):
-                subnets = [subnets]
-            if not subnets:
-                subnets = [f"{ip}/32"]
-
-            rec = {
-                "asn": str(raw.get("asn", "")),
-                "subnets": subnets,
-                "name": raw.get("asn_name", ""),
-                "description": raw.get("org", ""),
-                "country": raw.get("country", ""),
-            }
-            return [rec]
-
-        log.warning(f"ASN DB API: returned unexpected format for {ip}: {raw}")
-        return None
+    def _process_ip_response(self, raw, ip):
+        """Process IP lookup response from ASN DB API."""
+        subnets = raw.get("subnets")
+        if isinstance(subnets, str):
+            subnets = [subnets]
+        if not subnets:
+            subnets = [f"{ip}/32"]
+        return self._build_asn_record(raw, subnets or [])
 
     async def _query_api_asn(self, asn: str):
-        url = f"{self.asndb_asn_url}{asn}"
-        response = await self._request_with_retry(url)
-        if response is None:
-            log.warning(f"ASN DB API: no response for {asn}")
-            return None
+        """Query ASN DB API for ASN information."""
+        return await self._query_api(asn, self.asndb_asn_url, self._process_asn_response)
 
-        status = getattr(response, "status_code", 0)
-        if status != 200:
-            return None
-
-        try:
-            raw = response.json()
-        except Exception as e:
-            log.warning(f"ASN DB API: JSON decode error for {asn}: {e}")
-            return None
-
-        if isinstance(raw, dict):
-            subnets = raw.get("subnets")
-            if isinstance(subnets, str):
-                subnets = [subnets]
-            if not subnets:
-                subnets = []
-
-            rec = {
-                "asn": str(raw.get("asn", "")),
-                "subnets": subnets,
-                "name": raw.get("asn_name", ""),
-                "description": raw.get("org", ""),
-                "country": raw.get("country", ""),
-            }
-            return [rec]
-
-        log.warning(f"ASN DB API: returned unexpected format for {asn}: {raw}")
-        return None
+    def _process_asn_response(self, raw, asn):
+        """Process ASN lookup response from ASN DB API."""
+        subnets = raw.get("subnets")
+        if isinstance(subnets, str):
+            subnets = [subnets]
+        return self._build_asn_record(raw, subnets or [])
 
     def _cache_store_asn(self, asn_list, asn_id: int):
         """Cache ASN data by ASN ID"""
