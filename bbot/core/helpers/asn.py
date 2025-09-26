@@ -2,6 +2,7 @@ import ipaddress
 import logging
 import asyncio
 from radixtarget.tree.ip import IPRadixTree
+from cachetools import LRUCache
 
 log = logging.getLogger("bbot.core.helpers.asn")
 
@@ -15,9 +16,10 @@ class ASNHelper:
         # IP radix trees (authoritative store) – IPv4 and IPv6
         self._tree4: IPRadixTree = IPRadixTree()
         self._tree6: IPRadixTree = IPRadixTree()
-        self._subnet_to_asn_cache: dict[str, dict] = {}
+        # LRU caches with reasonable limits to prevent unbounded memory growth
+        self._subnet_to_asn_cache: LRUCache = LRUCache(maxsize=10000)  # Cache subnet -> ASN mappings
         # ASN cache (ASN ID -> data mapping)
-        self._asn_to_data_cache: dict[int, dict] = {}
+        self._asn_to_data_cache: LRUCache = LRUCache(maxsize=5000)  # Cache ASN records
 
     # Default record used when no ASN data can be found
     UNKNOWN_ASN = {
@@ -29,28 +31,34 @@ class ASNHelper:
     }
 
     async def _request_with_retry(self, url, max_retries=10):
+        log.critical(f"ASN API request: {url}")
         """Make request with retry for 429 responses using Retry-After header."""
         for attempt in range(max_retries + 1):
             response = await self.parent_helper.request(url, timeout=15)
-            if response is None or getattr(response, "status_code", 0) != 429:
+            if response is None or getattr(response, "status_code", 0) == 200:
                 log.debug(f"ASN API request successful, status code: {getattr(response, 'status_code', 0)}")
                 return response
 
-            if attempt < max_retries:
-                log.debug(f"ASN API rate limited, attempt {attempt + 1}")
-                # Get retry-after header value, default to 1 second if not present
-                retry_after = getattr(response, "headers", {}).get("retry-after", "1")
-                try:
-                    delay = int(retry_after) + 1
-                except (ValueError, TypeError):
-                    delay = 2  # fallback if header is invalid
-
-                log.debug(
-                    f"ASN API rate limited, waiting {delay}s (retry-after: {retry_after}) (attempt {attempt + 1})"
-                )
-                await asyncio.sleep(delay)
+            elif getattr(response, "status_code", 0) == 429:
+                if attempt < max_retries:
+                    attempt += 1
+                    # Get retry-after header value, default to 1 second if not present
+                    retry_after = getattr(response, "headers", {}).get("retry-after", "10")
+                    delay = int(retry_after)
+                    log.verbose(
+                        f"ASN API rate limited, waiting {delay}s (retry-after: {retry_after}) (attempt {attempt})"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    log.warning(f"ASN API gave up after {max_retries + 1} attempts due to repeatedrate limiting")
+            elif getattr(response, "status_code", 0) == 404:
+                log.debug(f"ASN API returned 404 for {url}")
+                return None
             else:
-                log.warning(f"ASN API gave up after {max_retries + 1} attempts due to rate limiting")
+                log.warning(
+                    f"Got unexpected status code: {getattr(response, 'status_code', 0)} from ASN DB api ({url})"
+                )
+                return None
 
         return response
 
