@@ -389,16 +389,14 @@ async def test_asn_targets(bbot_scanner):
     class MockASNHelper:
         async def asn_to_subnets(self, asn_number):
             if asn_number == 15169:
-                return [
-                    {
-                        "asn": 15169,
-                        "name": "GOOGLE",
-                        "description": "Google LLC",
-                        "country": "US",
-                        "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
-                    }
-                ]
-            return []
+                return {
+                    "asn": 15169,
+                    "name": "GOOGLE",
+                    "description": "Google LLC",
+                    "country": "US",
+                    "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
+                }
+            return None
 
     class MockHelpers:
         def __init__(self):
@@ -434,15 +432,13 @@ async def test_asn_targets_integration(bbot_scanner):
     from bbot.core.helpers.asn import ASNHelper
 
     # Mock ASN data for testing
-    mock_asn_data = [
-        {
-            "asn": 15169,
-            "name": "GOOGLE",
-            "description": "Google LLC",
-            "country": "US",
-            "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
-        }
-    ]
+    mock_asn_data = {
+        "asn": 15169,
+        "name": "GOOGLE",
+        "description": "Google LLC",
+        "country": "US",
+        "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
+    }
 
     # Create scanner with ASN target
     scan = bbot_scanner("ASN:15169")
@@ -451,7 +447,7 @@ async def test_asn_targets_integration(bbot_scanner):
     async def mock_asn_to_subnets(self, asn_number):
         if asn_number == 15169:
             return mock_asn_data
-        return []
+        return None
 
     # Apply the mock
     original_method = ASNHelper.asn_to_subnets
@@ -510,7 +506,7 @@ async def test_asn_targets_edge_cases(bbot_scanner):
     # Test ASN with no subnets
     class MockEmptyASNHelper:
         async def asn_to_subnets(self, asn_number):
-            return []  # No subnets found
+            return None  # No subnets found
 
     class MockEmptyHelpers:
         def __init__(self):
@@ -543,8 +539,8 @@ async def test_asn_blacklist_functionality(bbot_scanner):
     # Mock ASN 15169 to return 8.8.8.0/24 (within our target range)
     async def mock_asn_to_subnets(self, asn_number):
         if asn_number == 15169:
-            return [{"asn": 15169, "subnets": ["8.8.8.0/24"]}]
-        return []
+            return {"asn": 15169, "subnets": ["8.8.8.0/24"]}
+        return None
 
     original_method = ASNHelper.asn_to_subnets
     ASNHelper.asn_to_subnets = mock_asn_to_subnets

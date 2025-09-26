@@ -9,6 +9,20 @@ from bbot.core.helpers import regexes, smart_decode, smart_encode_punycode
 bbot_event_seeds = {}
 
 
+# Pre-compute sorted event classes for performance
+# This is computed once when the module is loaded instead of on every EventSeed() call
+def _get_sorted_event_classes():
+    """
+    Sort event classes by priority (higher priority first).
+    This ensures specific patterns like ASN:12345 are checked before broad patterns like hostname:port.
+    """
+    return sorted(bbot_event_seeds.items(), key=lambda x: getattr(x[1], "priority", 5), reverse=True)
+
+
+# This will be populated after all event seed classes are registered
+_sorted_event_classes = None
+
+
 """
 An "Event Seed" is a lightweight event containing only the minimum logic required to:
     - parse input to determine the event type + data
@@ -40,22 +54,25 @@ class EventSeedRegistry(type):
     """
 
     def __new__(mcs, name, bases, attrs):
-        global bbot_event_seeds
+        global bbot_event_seeds, _sorted_event_classes
         cls = super().__new__(mcs, name, bases, attrs)
         # Don't register the base EventSeed class
         if name != "BaseEventSeed":
             bbot_event_seeds[cls.__name__] = cls
+            # Recompute sorted classes whenever a new event seed is registered
+            _sorted_event_classes = _get_sorted_event_classes()
         return cls
 
 
 def EventSeed(input):
     input = smart_encode_punycode(smart_decode(input).strip())
 
-    # Sort event classes by priority (higher priority first)
-    # This ensures specific patterns like ASN:12345 are checked before broad patterns like hostname:port
-    sorted_event_classes = sorted(bbot_event_seeds.items(), key=lambda x: getattr(x[1], "priority", 5), reverse=True)
+    # Use pre-computed sorted event classes for better performance
+    global _sorted_event_classes
+    if _sorted_event_classes is None:
+        _sorted_event_classes = _get_sorted_event_classes()
 
-    for _, event_class in sorted_event_classes:
+    for _, event_class in _sorted_event_classes:
         if hasattr(event_class, "precheck"):
             if event_class.precheck(input):
                 return event_class(input)
@@ -272,16 +289,15 @@ class ASN(BaseEventSeed):
     # This method resolves the ASN to a list of IP_RANGES using the ASN API, and then adds the cidr string as a child event seed.
     # These will later be automatically resolved to an IP_RANGE event seed and added to the target.
     async def _generate_children(self, helpers):
-        asns = await helpers.asn.asn_to_subnets(int(self.data))
+        asn_data = await helpers.asn.asn_to_subnets(int(self.data))
         children = []
-        if asns:
-            for asn in asns:
-                subnets = asn.get("subnets")
-                if isinstance(subnets, str):
-                    subnets = [subnets]
-                if subnets:
-                    for cidr in subnets:
-                        children.append(cidr)
+        if asn_data:
+            subnets = asn_data.get("subnets")
+            if isinstance(subnets, str):
+                subnets = [subnets]
+            if subnets:
+                for cidr in subnets:
+                    children.append(cidr)
         return children
 
     @staticmethod
