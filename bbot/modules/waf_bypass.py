@@ -65,7 +65,6 @@ class waf_bypass(BaseModule):
         "created_date": "2025-08-11",
     }
 
-    per_host_only = True
 
     async def setup(self):
         # Track protected domains and their potential bypass CIDRs
