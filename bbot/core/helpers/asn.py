@@ -31,7 +31,6 @@ class ASNHelper:
     }
 
     async def _request_with_retry(self, url, max_retries=10):
-        log.critical(f"ASN API request: {url}")
         """Make request with retry for 429 responses using Retry-After header."""
         for attempt in range(max_retries + 1):
             response = await self.parent_helper.request(url, timeout=15)
