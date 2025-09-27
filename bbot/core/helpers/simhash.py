@@ -2,9 +2,29 @@ import xxhash
 import re
 
 
-class SimHash:
+class SimHashHelper:
     def __init__(self, bits=64):
         self.bits = bits
+
+    @staticmethod
+    def compute_simhash(text, bits=64, truncate=True, normalization_filter=None):
+        """
+        Static method for computing SimHash that can be used with multiprocessing.
+        
+        This method is designed to be used with run_in_executor_mp() for CPU-intensive
+        SimHash computations across multiple processes.
+        
+        Args:
+            text (str): The text to hash
+            bits (int): Number of bits for the hash. Defaults to 64.
+            truncate (bool): Whether to truncate large text for performance. Defaults to True.
+            normalization_filter (str): Text to remove for normalization. Defaults to None.
+            
+        Returns:
+            int: The SimHash fingerprint
+        """
+        helper = SimHashHelper(bits=bits)
+        return helper.hash(text, truncate=truncate, normalization_filter=normalization_filter)
 
     def _truncate_content(self, content):
         """
@@ -87,3 +107,7 @@ class SimHash:
         # Hamming distance: count of differing bits
         diff = (hash1 ^ hash2).bit_count()
         return 1.0 - (diff / self.bits)
+
+
+# Module-level alias for the static method to enable clean imports
+compute_simhash = SimHashHelper.compute_simhash

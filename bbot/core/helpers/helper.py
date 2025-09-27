@@ -14,8 +14,8 @@ from .regex import RegexHelper
 from .wordcloud import WordCloud
 from .interactsh import Interactsh
 from .yara_helper import YaraHelper
+from .simhash import SimHashHelper
 from .depsinstaller import DepsInstaller
-from .simhash import SimHash
 from .async_helpers import get_event_loop
 
 from bbot.scanner.target import BaseTarget
@@ -89,10 +89,10 @@ class ConfigAwareHelper:
 
         self.re = RegexHelper(self)
         self.yara = YaraHelper(self)
+        self.simhash = SimHashHelper()
         self._dns = None
         self._web = None
         self._asn = None
-        self._simhash = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
@@ -115,12 +115,6 @@ class ConfigAwareHelper:
         if self._asn is None:
             self._asn = ASNHelper(self)
         return self._asn
-
-    @property
-    def simhash(self):
-        if self._simhash is None:
-            self._simhash = SimHash()
-        return self._simhash
 
     @property
     def cloud(self):
