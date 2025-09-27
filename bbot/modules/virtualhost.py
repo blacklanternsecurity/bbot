@@ -4,6 +4,7 @@ import string
 
 from bbot.modules.base import BaseModule
 from bbot.errors import CurlError
+from bbot.core.helpers.simhash import compute_simhash
 
 
 class virtualhost(BaseModule):
@@ -415,8 +416,8 @@ class virtualhost(BaseModule):
                 )
             return True
 
-        probe_simhash = self.helpers.simhash.hash(probe_response["response_data"])
-        wildcard_simhash = self.helpers.simhash.hash(wildcard_canary_response["response_data"])
+        probe_simhash = await self.helpers.run_in_executor_mp(compute_simhash, probe_response["response_data"])
+        wildcard_simhash = await self.helpers.run_in_executor_mp(compute_simhash, wildcard_canary_response["response_data"])
         similarity = self.helpers.simhash.similarity(probe_simhash, wildcard_simhash)
 
         # Compare original probe response with modified response
@@ -638,7 +639,7 @@ class virtualhost(BaseModule):
             self.debug(f"{protocol} probe failed for {probe_host} on ip {host_ip} - no response or empty data")
             return None
 
-        similarity = self.analyze_response(probe_host, probe_response, canary_response, event)
+        similarity = await self.analyze_response(probe_host, probe_response, canary_response, event)
         if similarity is None:
             return None
 
@@ -710,7 +711,7 @@ class virtualhost(BaseModule):
             "content_length": len(probe_response.get("response_data", "")),
         }
 
-    def analyze_response(self, probe_host, probe_response, canary_response, event):
+    async def analyze_response(self, probe_host, probe_response, canary_response, event):
         probe_status = probe_response["http_code"]
         canary_status = canary_response["http_code"]
 
@@ -755,8 +756,8 @@ class virtualhost(BaseModule):
         # Calculate content similarity to canary (junk response)
         # Use probe hostname for normalization to remove hostname reflection differences
 
-        probe_simhash = self.helpers.simhash.hash(probe_response["response_data"], normalization_filter=probe_host)
-        canary_simhash = self.helpers.simhash.hash(canary_response["response_data"], normalization_filter=probe_host)
+        probe_simhash = await self.helpers.run_in_executor_mp(compute_simhash, probe_response["response_data"], normalization_filter=probe_host)
+        canary_simhash = await self.helpers.run_in_executor_mp(compute_simhash, canary_response["response_data"], normalization_filter=probe_host)
 
         similarity = self.helpers.simhash.similarity(probe_simhash, canary_simhash)
 
@@ -788,8 +789,8 @@ class virtualhost(BaseModule):
             )
             return False
 
-        original_simhash = self.helpers.simhash.hash(original_response["response_data"])
-        keyword_simhash = self.helpers.simhash.hash(keyword_canary_response["response_data"])
+        original_simhash = await self.helpers.run_in_executor_mp(compute_simhash, original_response["response_data"])
+        keyword_simhash = await self.helpers.run_in_executor_mp(compute_simhash, keyword_canary_response["response_data"])
         similarity = self.helpers.simhash.similarity(original_simhash, keyword_simhash)
 
         if similarity >= self.SIMILARITY_THRESHOLD:
@@ -828,8 +829,8 @@ class virtualhost(BaseModule):
             return True
 
         # Fallback - use similarity comparison for response data (allows slight differences)
-        original_simhash = self.helpers.simhash.hash(original_canary_response["response_data"])
-        consistency_simhash = self.helpers.simhash.hash(consistency_canary_response["response_data"])
+        original_simhash = await self.helpers.run_in_executor_mp(compute_simhash, original_canary_response["response_data"])
+        consistency_simhash = await self.helpers.run_in_executor_mp(compute_simhash, consistency_canary_response["response_data"])
         similarity = self.helpers.simhash.similarity(original_simhash, consistency_simhash)
         if similarity < self.SIMILARITY_THRESHOLD:
             self.verbose(
