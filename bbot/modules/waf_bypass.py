@@ -37,7 +37,6 @@ class waf_bypass(BaseModule):
         "created_date": "2025-09-26",
     }
 
-
     async def setup(self):
         # Track protected domains and their potential bypass CIDRs
         self.protected_domains = {}  # {domain: event} - track protected domains and store their parent events
@@ -46,7 +45,6 @@ class waf_bypass(BaseModule):
         self.similarity_threshold = self.config.get("similarity_threshold", 0.90)
         self.search_ip_neighbors = self.config.get("search_ip_neighbors", True)
         self.neighbor_cidr = int(self.config.get("neighbor_cidr", 24))
-
 
         if self.search_ip_neighbors and not (24 <= self.neighbor_cidr <= 31):
             self.warning(f"Invalid neighbor_cidr {self.neighbor_cidr}. Must be between 24 and 31.")
@@ -244,7 +242,11 @@ class waf_bypass(BaseModule):
                                 for neighbor_ip in neighbor_net.hosts():
                                     neighbor_ip_str = str(neighbor_ip)
                                     # Don't add the neighbor IP if its: ip we started with, a waf ip, or already in the list
-                                    if neighbor_ip_str == ip or neighbor_ip_str in waf_ips or neighbor_ip_str in ip_bypass_candidates:
+                                    if (
+                                        neighbor_ip_str == ip
+                                        or neighbor_ip_str in waf_ips
+                                        or neighbor_ip_str in ip_bypass_candidates
+                                    ):
                                         continue
 
                                     # make sure we aren't crossing an ASN boundary with our neighbor exploration

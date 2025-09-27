@@ -417,7 +417,9 @@ class virtualhost(BaseModule):
             return True
 
         probe_simhash = await self.helpers.run_in_executor_mp(compute_simhash, probe_response["response_data"])
-        wildcard_simhash = await self.helpers.run_in_executor_mp(compute_simhash, wildcard_canary_response["response_data"])
+        wildcard_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, wildcard_canary_response["response_data"]
+        )
         similarity = self.helpers.simhash.similarity(probe_simhash, wildcard_simhash)
 
         # Compare original probe response with modified response
@@ -756,8 +758,12 @@ class virtualhost(BaseModule):
         # Calculate content similarity to canary (junk response)
         # Use probe hostname for normalization to remove hostname reflection differences
 
-        probe_simhash = await self.helpers.run_in_executor_mp(compute_simhash, probe_response["response_data"], normalization_filter=probe_host)
-        canary_simhash = await self.helpers.run_in_executor_mp(compute_simhash, canary_response["response_data"], normalization_filter=probe_host)
+        probe_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, probe_response["response_data"], normalization_filter=probe_host
+        )
+        canary_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, canary_response["response_data"], normalization_filter=probe_host
+        )
 
         similarity = self.helpers.simhash.similarity(probe_simhash, canary_simhash)
 
@@ -790,7 +796,9 @@ class virtualhost(BaseModule):
             return False
 
         original_simhash = await self.helpers.run_in_executor_mp(compute_simhash, original_response["response_data"])
-        keyword_simhash = await self.helpers.run_in_executor_mp(compute_simhash, keyword_canary_response["response_data"])
+        keyword_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, keyword_canary_response["response_data"]
+        )
         similarity = self.helpers.simhash.similarity(original_simhash, keyword_simhash)
 
         if similarity >= self.SIMILARITY_THRESHOLD:
@@ -829,8 +837,12 @@ class virtualhost(BaseModule):
             return True
 
         # Fallback - use similarity comparison for response data (allows slight differences)
-        original_simhash = await self.helpers.run_in_executor_mp(compute_simhash, original_canary_response["response_data"])
-        consistency_simhash = await self.helpers.run_in_executor_mp(compute_simhash, consistency_canary_response["response_data"])
+        original_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, original_canary_response["response_data"]
+        )
+        consistency_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, consistency_canary_response["response_data"]
+        )
         similarity = self.helpers.simhash.similarity(original_simhash, consistency_simhash)
         if similarity < self.SIMILARITY_THRESHOLD:
             self.verbose(
