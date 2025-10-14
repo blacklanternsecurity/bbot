@@ -72,10 +72,10 @@ pytest-httpserver = "^1.0.11"
 pytest = "^8.3.1"
 pytest-asyncio = "1.2.0"
 uvicorn = ">=0.32,<0.36"
-fastapi = ">=0.115.5,<0.118.0"
+fastapi = ">=0.115.5,<0.120.0"
 pytest-httpx = ">=0.35"
 pytest-benchmark = ">=4,<6"
-ruff = "0.13.3"
+ruff = "0.14.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"
