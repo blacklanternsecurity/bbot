@@ -19,9 +19,8 @@ class asn(BaseReportModule):
 
     async def setup(self):
         self.unknown_asn = ASNHelper.UNKNOWN_ASN
-        # Track ASN data locally instead of relying on cache
-        self.asn_data = {}  # ASN number -> ASN record mapping
-        self.processed_subnets = {}  # subnet -> ASN number mapping for quick lookups
+        # Track ASN counts locally for reporting
+        self.asn_counts = {}  # ASN number -> count mapping
         return True
 
     async def filter_event(self, event):
@@ -35,22 +34,6 @@ class asn(BaseReportModule):
         host = event.host
         host_str = str(host)
 
-        # Check if this IP is already covered by a subnet we've processed
-        try:
-            ip_obj = ipaddress.ip_address(host_str)
-            for subnet_str, asn_number in self.processed_subnets.items():
-                try:
-                    subnet = ipaddress.ip_network(subnet_str, strict=False)
-                    if ip_obj in subnet:
-                        self.debug(
-                            f"IP {host_str} already covered by processed subnet {subnet_str} (ASN {asn_number})"
-                        )
-                        return
-                except ValueError:
-                    continue
-        except ValueError:
-            pass  # Invalid IP address, continue with normal processing
-
         asn_data = await self.helpers.asn.ip_to_subnets(host_str)
         if asn_data:
             asn_record = asn_data
@@ -60,17 +43,11 @@ class asn(BaseReportModule):
             asn_country = asn_record.get("country", "")
             subnets = asn_record.get("subnets", [])
 
-            # Store ASN data locally for reporting
-            if asn_number and asn_number != "UNKNOWN" and asn_number not in self.asn_data:
-                self.asn_data[asn_number] = {
-                    "name": asn_name,
-                    "description": asn_description,
-                    "country": asn_country,
-                    "subnets": set(subnets),
-                }
-                # Track processed subnets for quick lookups
-                for subnet in subnets:
-                    self.processed_subnets[subnet] = asn_number
+            # Track ASN subnet counts for reporting (only once per ASN)
+            if asn_number and asn_number != "UNKNOWN" and asn_number != "0":
+                if asn_number not in self.asn_counts:
+                    subnet_count = len(subnets)
+                    self.asn_counts[asn_number] = subnet_count
 
             emails = asn_record.get("emails", [])
             # Don't emit ASN 0 - it's reserved and indicates unknown ASN data
@@ -91,25 +68,34 @@ class asn(BaseReportModule):
                         )
 
     async def report(self):
-        """Generate an ASN summary table based on locally tracked ASN data."""
+        """Generate an ASN summary table based on locally tracked ASN counts."""
 
-        if not self.asn_data:
+        if not self.asn_counts:
             return
 
-        # Build table rows sorted by subnet count desc
-        sorted_asns = sorted(self.asn_data.items(), key=lambda x: len(x[1]["subnets"]), reverse=True)
+        # Build table rows sorted by ASN number (low to high)
+        sorted_asns = sorted(self.asn_counts.items(), key=lambda x: int(x[0]))
 
         header = ["ASN", "Subnet Count", "Name", "Description", "Country"]
         table = []
-        for asn, data in sorted_asns:
-            number = "AS" + asn if asn != "0" else asn
+        for asn_number, subnet_count in sorted_asns:
+            # Get ASN details from helper
+            asn_data = await self.helpers.asn.asn_to_subnets(asn_number)
+            if asn_data:
+                asn_name = asn_data.get("name", "")
+                asn_description = asn_data.get("description", "")
+                asn_country = asn_data.get("country", "")
+            else:
+                asn_name = asn_description = asn_country = "unknown"
+
+            number = "AS" + asn_number if asn_number != "0" else asn_number
             table.append(
                 [
                     number,
-                    f"{len(data['subnets']):,}",
-                    data["name"],
-                    data["description"],
-                    data["country"],
+                    f"{subnet_count:,}",
+                    asn_name,
+                    asn_description,
+                    asn_country,
                 ]
             )
 
