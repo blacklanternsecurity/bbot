@@ -17,7 +17,6 @@ class ASNHelper:
         self._tree4: IPRadixTree = IPRadixTree()
         self._tree6: IPRadixTree = IPRadixTree()
         # LRU caches with reasonable limits to prevent unbounded memory growth
-        self._subnet_to_asn_cache: LRUCache = LRUCache(maxsize=10000)  # Cache subnet -> ASN mappings
         # ASN cache (ASN ID -> data mapping)
         self._asn_to_data_cache: LRUCache = LRUCache(maxsize=5000)  # Cache ASN records
 
@@ -183,7 +182,6 @@ class ASNHelper:
                 continue
             tree = self._tree4 if net.version == 4 else self._tree6
             tree.insert(str(net), data=asn_record)
-            self._subnet_to_asn_cache[str(net)] = asn_record
             log.debug(f"IP cache ADD {net} -> {asn_record.get('asn', '?')}")
 
     def _cache_lookup_ip(self, ip: str):
