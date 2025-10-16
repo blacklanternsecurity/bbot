@@ -322,7 +322,6 @@ class WebHelper(EngineClient):
             method (str, optional): The HTTP method to use for the request (e.g., 'GET', 'POST').
             cookies (dict, optional): A dictionary of cookies to include in the request.
             path_override (str, optional): Overrides the request-target to use in the HTTP request line.
-            head_mode (bool, optional): If True, includes '-I' to fetch headers only. Defaults to None.
             raw_body (str, optional): Raw string to be sent in the body of the request.
             resolve (dict, optional): Host resolution override as dict with 'host', 'port', 'ip' keys for curl --resolve.
             **kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
@@ -431,10 +430,6 @@ class WebHelper(EngineClient):
         if path_override:
             curl_command.append("--request-target")
             curl_command.append(f"{path_override}")
-
-        head_mode = kwargs.get("head_mode", None)
-        if head_mode:
-            curl_command.append("-I")
 
         raw_body = kwargs.get("raw_body", None)
         if raw_body:

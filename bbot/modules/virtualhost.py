@@ -290,7 +290,7 @@ class virtualhost(BaseModule):
 
         http_response_data = {
             "input": canary_host,
-            "url": f"{actual_scheme}://{canary_host}/",  # Use the actual virtual host URL with correct scheme
+            "url": f"{actual_scheme}://{canary_host}/",
             "method": "GET",
             "status_code": canary_response.get("http_code", 0),
             "content_length": len(canary_response.get("response_data", "")),

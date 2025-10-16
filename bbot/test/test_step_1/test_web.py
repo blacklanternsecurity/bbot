@@ -362,8 +362,8 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
     result2 = await helpers.curl(url=url, ignore_bbot_global_settings=True)
     assert result2["response_data"] == "curl_yep"
 
-    result3 = await helpers.curl(url=url, head_mode=True)
-    assert result3["response_data"].startswith("HTTP/")
+    result3 = await helpers.curl(url=url)
+    assert result3["response_data"] == "curl_yep"
 
     result4 = await helpers.curl(url=url, raw_body="body")
     assert result4["response_data"] == "curl_yep"
