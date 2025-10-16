@@ -1,13 +1,13 @@
 from .base import ModuleTestBase
 
 
-class TestEmais(ModuleTestBase):
+class TestEmails(ModuleTestBase):
     modules_overrides = ["emails", "emailformat", "skymem"]
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://www.email-format.com/d/blacklanternsecurity.com/",
-            text="<p>info@blacklanternsecurity.com</p>",
+            text="""<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0a63646c654a68666b6961666b647e6f7864796f697f78637e7324696567">[email&#160;protected]</a>""",
         )
         module_test.httpx_mock.add_response(
             url="https://www.skymem.info/srch?q=blacklanternsecurity.com",
