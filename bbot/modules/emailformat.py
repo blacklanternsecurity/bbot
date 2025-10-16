@@ -15,13 +15,29 @@ class emailformat(BaseModule):
 
     base_url = "https://www.email-format.com"
 
+    async def setup(self):
+        self.cfemail_regex = self.helpers.re.compile(r'data-cfemail="([0-9a-z]+)"')
+        return True
+
     async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
         url = f"{self.base_url}/d/{self.helpers.quote(query)}/"
         r = await self.api_request(url)
         if not r:
             return
-        for email in await self.helpers.re.extract_emails(r.text):
+
+        encrypted_emails = await self.helpers.re.findall(self.cfemail_regex, r.text)
+
+        for enc in encrypted_emails:
+            enc_len = len(enc)
+
+            if enc_len < 2 or enc_len % 2 != 0:
+                continue
+
+            key = int(enc[:2], 16)
+
+            email = "".join([chr(int(enc[i : i + 2], 16) ^ key) for i in range(2, enc_len, 2)]).lower()
+
             if email.endswith(query):
                 await self.emit_event(
                     email,

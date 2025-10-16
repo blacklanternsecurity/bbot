@@ -1,4 +1,4 @@
-import re
+import json
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
 
@@ -15,78 +15,61 @@ class dnsdumpster(subdomain_enum):
 
     base_url = "https://dnsdumpster.com"
 
+    async def setup(self):
+        self.apikey_regex = self.helpers.re.compile(r'<form[^>]*data-form-id="mainform"[^>]*hx-headers=\'([^\']*)\'')
+        return True
+
     async def query(self, domain):
         ret = []
-        # first, get the CSRF tokens
+        # first, get the JWT token from the main page
         res1 = await self.api_request(self.base_url)
         status_code = getattr(res1, "status_code", 0)
-        if status_code in [429]:
-            self.verbose(f'Too many requests "{status_code}"')
-            return ret
-        elif status_code not in [200]:
+        if status_code not in [200]:
             self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
-        else:
-            self.debug(f'Valid response code "{status_code}" from DNSDumpster')
 
-        html = self.helpers.beautifulsoup(res1.content, "html.parser")
-        if html is False:
-            self.verbose("BeautifulSoup returned False")
+        # Extract JWT token from the form's hx-headers attribute using regex
+        jwt_token = None
+        try:
+            # Look for the form with data-form-id="mainform" and extract hx-headers
+            form_match = await self.helpers.re.search(self.apikey_regex, res1.text)
+            if form_match:
+                headers_json = form_match.group(1)
+                headers_data = json.loads(headers_json)
+                jwt_token = headers_data.get("Authorization")
+        except (AttributeError, json.JSONDecodeError, KeyError):
+            self.log.warning("Error obtaining JWT token")
             return ret
 
-        csrftoken = None
-        csrfmiddlewaretoken = None
-        try:
-            for cookie in res1.headers.get("set-cookie", "").split(";"):
-                try:
-                    k, v = cookie.split("=", 1)
-                except ValueError:
-                    self.verbose("Error retrieving cookie")
-                    return ret
-                if k == "csrftoken":
-                    csrftoken = str(v)
-            csrfmiddlewaretoken = html.find("input", {"name": "csrfmiddlewaretoken"}).attrs.get("value", None)
-        except AttributeError:
-            pass
-
-        # Abort if we didn't get the tokens
-        if not csrftoken or not csrfmiddlewaretoken:
-            self.verbose("Error obtaining CSRF tokens")
+        # Abort if we didn't get the JWT token
+        if not jwt_token:
+            self.verbose("Error obtaining JWT token")
             self.errorState = True
             return ret
         else:
-            self.debug("Successfully obtained CSRF tokens")
+            self.debug("Successfully obtained JWT token")
 
         if self.scan.stopping:
-            return
+            return ret
 
-        # Otherwise, do the needful
-        subdomains = set()
+        # Query the API with the JWT token
         res2 = await self.api_request(
-            f"{self.base_url}/",
+            "https://api.dnsdumpster.com/htmld/",
             method="POST",
-            cookies={"csrftoken": csrftoken},
-            data={
-                "csrfmiddlewaretoken": csrfmiddlewaretoken,
-                "targetip": str(domain).lower(),
-                "user": "free",
-            },
+            data={"target": str(domain).lower()},
             headers={
-                "origin": "https://dnsdumpster.com",
-                "referer": "https://dnsdumpster.com/",
+                "Authorization": jwt_token,
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Origin": "https://dnsdumpster.com",
+                "Referer": "https://dnsdumpster.com/",
+                "HX-Request": "true",
+                "HX-Target": "results",
+                "HX-Current-URL": "https://dnsdumpster.com/",
             },
         )
         status_code = getattr(res2, "status_code", 0)
         if status_code not in [200]:
-            self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
+            self.verbose(f'Bad response code "{status_code}" from DNSDumpster API')
             return ret
-        html = self.helpers.beautifulsoup(res2.content, "html.parser")
-        if html is False:
-            self.verbose("BeautifulSoup returned False")
-            return ret
-        escaped_domain = re.escape(domain)
-        match_pattern = re.compile(r"^[\w\.-]+\." + escaped_domain + r"$")
-        for subdomain in html.findAll(text=match_pattern):
-            subdomains.add(str(subdomain).strip().lower())
 
-        return list(subdomains)
+        return await self.scan.extract_in_scope_hostnames(res2.text)
