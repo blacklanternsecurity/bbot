@@ -53,22 +53,7 @@ class Stdout(BaseOutputModule):
         if self.show_event_fields:
             event_str = "\t".join([str(s) for s in event_json.values()])
         else:
-            # For ASN events, create a concise version for text output only
-            if event.type == "ASN" and isinstance(event.data, dict):
-                display_data = event.data.copy()
-                display_data.pop("prefixes", None)
-                subnets = display_data.get("subnets", [])
-                if subnets and isinstance(subnets, list):
-                    display_data["subnet_count"] = len(subnets)
-                    display_data.pop("subnets", None)
-
-                event_type = f"[{event.type}]"
-                event_tags = ""
-                if getattr(event, "tags", []):
-                    event_tags = f"\t({', '.join(sorted(getattr(event, 'tags', [])))})"
-                event_str = f"{event_type:<20}\t{json.dumps(display_data)}\t{event.module_sequence}{event_tags}"
-            else:
-                event_str = self.human_event_str(event)
+            event_str = self.human_event_str(event)
 
         # log vulnerabilities in vivid colors
         if event.type == "VULNERABILITY":
