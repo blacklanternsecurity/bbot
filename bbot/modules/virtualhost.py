@@ -9,7 +9,7 @@ from bbot.core.helpers.simhash import compute_simhash
 
 class virtualhost(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["VIRTUAL_HOST", "DNS_NAME"]
+    produced_events = ["VIRTUAL_HOST", "DNS_NAME", "HTTP_RESPONSE"]
     flags = ["active", "aggressive", "slow", "deadly"]
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
 
@@ -273,8 +273,47 @@ class virtualhost(BaseModule):
             virtualhost_dict,
             "VIRTUAL_HOST",
             parent=event,
+            tags=["virtual-host"],
             context=f"{{module}} discovered virtual host via {discovery_method} for {event.data} and found {{event.type}}: {canary_host}",
         )
+
+        # Emit HTTP_RESPONSE event with the canary response data
+        # Format to match what badsecrets expects
+        headers = canary_response.get("headers", {})
+
+        # Get the scheme from the actual probe URL
+        probe_url = canary_response.get("url", "")
+        from urllib.parse import urlparse
+
+        parsed_probe_url = urlparse(probe_url)
+        actual_scheme = parsed_probe_url.scheme if parsed_probe_url.scheme else "http"
+
+        http_response_data = {
+            "input": canary_host,
+            "url": f"{actual_scheme}://{canary_host}/",
+            "method": "GET",
+            "status_code": canary_response.get("http_code", 0),
+            "content_length": len(canary_response.get("response_data", "")),
+            "body": canary_response.get("response_data", ""),  # badsecrets expects 'body'
+            "response_data": canary_response.get("response_data", ""),  # keep for compatibility
+            "header": headers,
+            "raw_header": canary_response.get("raw_headers", ""),
+        }
+
+        # Include location header for redirect handling
+        if "location" in headers:
+            http_response_data["location"] = headers["location"]
+
+        http_response_event = await self.emit_event(
+            http_response_data,
+            "HTTP_RESPONSE",
+            parent=event,
+            tags=["virtual-host"],
+            context=f"{{module}} discovered virtual host via {discovery_method} for {event.data} and found {{event.type}}: {canary_host}",
+        )
+        # Set scope distance to match parent's scope distance for HTTP_RESPONSE events
+        if http_response_event:
+            http_response_event.scope_distance = event.scope_distance
 
     def _get_canary_random_host(self, host, basehost, mode="subdomain"):
         """Generate a random host for the canary"""
@@ -488,8 +527,49 @@ class virtualhost(BaseModule):
                 virtual_host_data["virtualhost_dict"],
                 "VIRTUAL_HOST",
                 parent=event,
+                tags=["virtual-host"],
                 context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.data} and found {{event.type}}: {virtual_host_data['probe_host']} (similarity: {virtual_host_data['similarity']:.2%})",
             )
+
+            # Emit HTTP_RESPONSE event with the probe response data
+            # Format to match what badsecrets expects
+            headers = virtual_host_data["probe_response"].get("headers", {})
+
+            # Get the scheme from the actual probe URL
+            probe_url = virtual_host_data["probe_response"].get("url", "")
+            from urllib.parse import urlparse
+
+            parsed_probe_url = urlparse(probe_url)
+            actual_scheme = parsed_probe_url.scheme if parsed_probe_url.scheme else "http"
+
+            http_response_data = {
+                "input": virtual_host_data["probe_host"],
+                "url": f"{actual_scheme}://{virtual_host_data['probe_host']}/",  # Use the actual virtual host URL with correct scheme
+                "method": "GET",
+                "status_code": virtual_host_data["probe_response"].get("http_code", 0),
+                "content_length": len(virtual_host_data["probe_response"].get("response_data", "")),
+                "body": virtual_host_data["probe_response"].get("response_data", ""),  # badsecrets expects 'body'
+                "response_data": virtual_host_data["probe_response"].get(
+                    "response_data", ""
+                ),  # keep for compatibility
+                "header": headers,
+                "raw_header": virtual_host_data["probe_response"].get("raw_headers", ""),
+            }
+
+            # Include location header for redirect handling
+            if "location" in headers:
+                http_response_data["location"] = headers["location"]
+
+            http_response_event = await self.emit_event(
+                http_response_data,
+                "HTTP_RESPONSE",
+                parent=event,
+                tags=["virtual-host"],
+                context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.data} and found {{event.type}}: {virtual_host_data['probe_host']}",
+            )
+            # Set scope distance to match parent's scope distance for HTTP_RESPONSE events
+            if http_response_event:
+                http_response_event.scope_distance = event.scope_distance
 
             # Emit DNS_NAME_UNVERIFIED event if needed
             if virtual_host_data["skip_dns_host"] is False:
@@ -711,6 +791,7 @@ class virtualhost(BaseModule):
             "discovery_method": f"{discovery_method} ({technique})",
             "status_code": probe_response.get("http_code", "N/A"),
             "content_length": len(probe_response.get("response_data", "")),
+            "probe_response": probe_response,
         }
 
     async def analyze_response(self, probe_host, probe_response, canary_response, event):
@@ -747,7 +828,7 @@ class virtualhost(BaseModule):
         # Check for redirects back to original domain - indicates virtual host just redirects to canonical
         if probe_status in [301, 302]:
             redirect_url = probe_response.get("redirect_url", "")
-            if str(event.parsed_url.netloc) in redirect_url:
+            if redirect_url and str(event.parsed_url.netloc) in redirect_url:
                 self.debug(f"SKIPPING {probe_host} - redirects back to original domain {event.parsed_url.netloc}")
                 return None
 

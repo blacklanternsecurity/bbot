@@ -735,3 +735,158 @@ class TestVirtualhostKeywordWildcard(VirtualhostTestBase):
 
         assert found_admin, "Expected VIRTUAL_HOST for admin.acme.test was not emitted"
         assert not found_www, "No VIRTUAL_HOST should be emitted for 'www' keyword wildcard entries"
+
+
+class TestVirtualhostHTTPResponse(VirtualhostTestBase):
+    """Test virtual host discovery with badsecrets analysis of HTTP_RESPONSE events"""
+
+    targets = ["http://secrets.test:8888"]
+    modules_overrides = ["virtualhost", "badsecrets"]
+    test_wordlist = ["admin"]
+    config_overrides = {
+        "modules": {
+            "virtualhost": {
+                "brute_wordlist": tempwordlist(test_wordlist),
+                "subdomain_brute": True,
+                "mutation_check": False,
+                "special_hosts": False,
+                "certificate_sans": False,
+                "wordcloud_check": False,
+                "require_inaccessible": False,
+            }
+        }
+    }
+
+    async def setup_after_prep(self, module_test):
+        # Call parent setup_after_prep to set up the HTTP server with request_handler
+        await super().setup_after_prep(module_test)
+
+        # Set up DNS mocking for secrets.test to resolve to 127.0.0.1
+        await module_test.mock_dns({"secrets.test": {"A": ["127.0.0.1"]}})
+
+        # Create a dummy module that will emit the URL event during the scan
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module_secrets"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    # Create and emit URL event for virtualhost module to process
+                    url_event = self.scan.make_event(
+                        "http://secrets.test:8888/", "URL", parent=event, tags=["status-200", "ip-127.0.0.1"]
+                    )
+                    await self.emit_event(url_event)
+
+        # Add the dummy module to the scan
+        dummy_module = DummyModule(module_test.scan)
+        module_test.scan.modules["dummy_module_secrets"] = dummy_module
+
+        # Patch virtualhost to inject resolved_hosts for URL events during the test
+        vh_module = module_test.scan.modules["virtualhost"]
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
+    def request_handler(self, request):
+        from werkzeug.wrappers import Response
+
+        host_header = request.headers.get("Host", "").lower()
+
+        # Baseline request to secrets.test (with or without port)
+        if not host_header or host_header in ["secrets.test", "secrets.test:8888"]:
+            return Response("baseline response from secrets.test", status=200)
+
+        # Wildcard canary check - change one character in secrets.test
+        if re.match(r"[a-z]ecrets\.test", host_header):
+            return Response("wildcard canary different response", status=404)
+
+        # Brute-force canary requests - random string + .secrets.test (with optional port)
+        if re.match(r"^[a-z]{12}\.secrets\.test(?::8888)?$", host_header):
+            return Response("subdomain canary response", status=404)
+
+        # Virtual host with vulnerable JWT cookie and JWT in body - both using weak secret '1234' - this should trigger badsecrets twice
+        if host_header in ["admin.secrets.test", "admin.secrets.test:8888"]:
+            return Response(
+                "<html><body><p>Admin Panel</p><script>const session = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsInVzZXJuYW1lIjoiYWRtaW4iLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.03xPSXavrMk0HK4BD3_hPKgu3RLu6CmTSPGfrDx2qpg';</script></body></html>",
+                status=200,
+                headers={
+                    "set-cookie": "vulnjwt=eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo; secure"
+                },
+            )
+
+        # Default response
+        return Response("default response", status=404)
+
+    def check(self, module_test, events):
+        virtual_host_found = False
+        http_response_found = False
+        jwt_cookie_vuln_found = False
+        jwt_body_vuln_found = False
+
+        # Debug: print all events to see what we're getting
+        print(f"\n=== DEBUG: Found {len(events)} events ===")
+        for e in events:
+            print(f"Event: {e.type} - {e.data}")
+            if hasattr(e, "tags"):
+                print(f"  Tags: {e.tags}")
+
+        for e in events:
+            # Check for virtual host discovery
+            if e.type == "VIRTUAL_HOST":
+                vhost = e.data["virtual_host"]
+                if vhost in ["admin.secrets.test"]:
+                    virtual_host_found = True
+                    # Verify it has the virtual-host tag
+                    assert "virtual-host" in e.tags, f"VIRTUAL_HOST event missing virtual-host tag: {e.tags}"
+
+            # Check for HTTP_RESPONSE with virtual-host tag
+            elif e.type == "HTTP_RESPONSE":
+                if "virtual-host" in e.tags:
+                    http_response_found = True
+                    # Verify the HTTP_RESPONSE has the expected format
+                    assert "input" in e.data, f"HTTP_RESPONSE missing input field: {e.data}"
+                    assert e.data["input"] == "admin.secrets.test", f"HTTP_RESPONSE input mismatch: {e.data['input']}"
+                    assert "status_code" in e.data, f"HTTP_RESPONSE missing status_code: {e.data}"
+                    assert e.data["status_code"] == 200, f"HTTP_RESPONSE status_code mismatch: {e.data['status_code']}"
+                    # Debug: print the response data to see what badsecrets is analyzing
+                    print(f"HTTP_RESPONSE data: {e.data}")
+
+            # Check for badsecrets vulnerability findings
+            elif e.type == "VULNERABILITY":
+                print(f"Found VULNERABILITY event: {e.data}")
+                description = e.data["description"]
+
+                # Check for JWT vulnerability (from cookie)
+                if (
+                    "1234" in description
+                    and "eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo"
+                    in description
+                    and "JWT" in description
+                ):
+                    jwt_cookie_vuln_found = True
+
+                # Check for JWT vulnerability (from body)
+                if (
+                    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsInVzZXJuYW1lIjoiYWRtaW4iLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.03xPSXavrMk0HK4BD3_hPKgu3RLu6CmTSPGfrDx2qpg"
+                    in description
+                    and "JWT" in description
+                ):
+                    jwt_body_vuln_found = True
+
+        assert virtual_host_found, "Failed to detect virtual host admin.secrets.test"
+        assert http_response_found, "Failed to detect HTTP_RESPONSE event with virtual-host tag"
+        assert jwt_cookie_vuln_found, (
+            "Failed to detect JWT vulnerability - JWT with weak secret '1234' should have been found"
+        )
+        assert jwt_body_vuln_found, (
+            "Failed to detect JWT vulnerability in body - JWT 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsInVzZXJuYW1lIjoiYWRtaW4iLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.03xPSXavrMk0HK4BD3_hPKgu3RLu6CmTSPGfrDx2qpg' should have been found"
+        )
+        print(
+            f"Test results: virtual_host_found={virtual_host_found}, http_response_found={http_response_found}, jwt_cookie_vuln_found={jwt_cookie_vuln_found}, jwt_body_vuln_found={jwt_body_vuln_found}"
+        )

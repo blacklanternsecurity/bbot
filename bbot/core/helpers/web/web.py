@@ -322,7 +322,6 @@ class WebHelper(EngineClient):
             method (str, optional): The HTTP method to use for the request (e.g., 'GET', 'POST').
             cookies (dict, optional): A dictionary of cookies to include in the request.
             path_override (str, optional): Overrides the request-target to use in the HTTP request line.
-            head_mode (bool, optional): If True, includes '-I' to fetch headers only. Defaults to None.
             raw_body (str, optional): Raw string to be sent in the body of the request.
             resolve (dict, optional): Host resolution override as dict with 'host', 'port', 'ip' keys for curl --resolve.
             **kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
@@ -432,10 +431,6 @@ class WebHelper(EngineClient):
             curl_command.append("--request-target")
             curl_command.append(f"{path_override}")
 
-        head_mode = kwargs.get("head_mode", None)
-        if head_mode:
-            curl_command.append("-I")
-
         raw_body = kwargs.get("raw_body", None)
         if raw_body:
             curl_command.append("-d")
@@ -478,23 +473,60 @@ class WebHelper(EngineClient):
             curl_command.append("--resolve")
             curl_command.append(f"{host}:{port}:{ip}")
 
-        # Always add JSON --write-out format with separator
-        curl_command.extend(["-w", "\\n---CURL_METADATA---\\n%{json}"])
+        # Always add JSON --write-out format with separator and capture headers
+        curl_command.extend(["-D", "-", "-w", "\\n---CURL_METADATA---\\n%{json}"])
 
         log.debug(f"Running curl command: {curl_command}")
         output = (await self.parent_helper.run(curl_command)).stdout
 
-        # Parse the output to separate content and metadata
-
+        # Parse the output to separate headers, content, and metadata
         parts = output.split("\n---CURL_METADATA---\n")
 
         # Raise CurlError if separator not found - this indicates a problem with our curl implementation
         if len(parts) < 2:
             raise CurlError(f"Curl output missing expected separator. Got: {output[:200]}...")
 
-        response_data = parts[0]
-        # Take the last part as JSON metadata (in case separator appears in content)
+        # Headers and content are in the first part, JSON metadata is in the last part
+        header_content = parts[0]
         json_data = parts[-1].strip()
+
+        # Split headers from content
+        header_lines = []
+        content_lines = []
+        in_headers = True
+
+        for line in header_content.split("\n"):
+            if in_headers:
+                if line.strip() == "":
+                    in_headers = False
+                else:
+                    header_lines.append(line)
+            else:
+                content_lines.append(line)
+
+        # Parse headers into dictionary
+        headers_dict = {}
+        raw_headers = "\n".join(header_lines)
+
+        for line in header_lines:
+            if ":" in line:
+                key, value = line.split(":", 1)
+                key = key.strip().lower()
+                value = value.strip()
+
+                # Convert hyphens to underscores to match httpx (projectdiscovery) format
+                # This ensures consistency with how other modules expect headers
+                normalized_key = key.replace("-", "_")
+
+                if normalized_key in headers_dict:
+                    if isinstance(headers_dict[normalized_key], list):
+                        headers_dict[normalized_key].append(value)
+                    else:
+                        headers_dict[normalized_key] = [headers_dict[normalized_key], value]
+                else:
+                    headers_dict[normalized_key] = value
+
+        response_data = "\n".join(content_lines)
 
         # Raise CurlError if JSON parsing fails - this indicates a problem with curl's %{json} output
         try:
@@ -512,7 +544,7 @@ class WebHelper(EngineClient):
                 raise CurlError(f"Failed to parse curl JSON metadata: {e}. JSON data: {json_data[:200]}...")
 
         # Combine into final JSON structure
-        return {"response_data": response_data, **metadata}
+        return {"response_data": response_data, "headers": headers_dict, "raw_headers": raw_headers, **metadata}
 
     def beautifulsoup(
         self,
