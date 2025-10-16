@@ -1,5 +1,6 @@
 import ipaddress
 from bbot.modules.report.base import BaseReportModule
+from bbot.core.helpers.asn import ASNHelper
 
 
 class asn(BaseReportModule):
@@ -17,13 +18,7 @@ class asn(BaseReportModule):
     accept_dupes = True
 
     async def setup(self):
-        self.unknown_asn = {
-            "asn": "0",
-            "subnets": [],
-            "asn_name": "unknown",
-            "org": "unknown",
-            "country": "unknown",
-        }
+        self.unknown_asn = ASNHelper.UNKNOWN_ASN
         # Track ASN data locally instead of relying on cache
         self.asn_data = {}  # ASN number -> ASN record mapping
         self.processed_subnets = {}  # subnet -> ASN number mapping for quick lookups
@@ -60,7 +55,7 @@ class asn(BaseReportModule):
         if asn_data:
             asn_record = asn_data
             asn_number = asn_record.get("asn")
-            asn_desc = asn_record.get("description", "")
+            asn_description = asn_record.get("description", "")
             asn_name = asn_record.get("name", "")
             asn_country = asn_record.get("country", "")
             subnets = asn_record.get("subnets", [])
@@ -69,7 +64,7 @@ class asn(BaseReportModule):
             if asn_number and asn_number != "UNKNOWN" and asn_number not in self.asn_data:
                 self.asn_data[asn_number] = {
                     "name": asn_name,
-                    "description": asn_desc,
+                    "description": asn_description,
                     "country": asn_country,
                     "subnets": set(subnets),
                 }
@@ -84,7 +79,7 @@ class asn(BaseReportModule):
                 if asn_event:
                     await self.emit_event(
                         asn_event,
-                        context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_desc}, {asn_country})",
+                        context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_description}, {asn_country})",
                     )
 
                     for email in emails:
