@@ -4,7 +4,7 @@ import html
 
 
 class web_report(BaseOutputModule):
-    watched_events = ["URL", "TECHNOLOGY", "FINDING", "VULNERABILITY", "VIRTUAL_HOST"]
+    watched_events = ["URL", "TECHNOLOGY", "FINDING", "VULNERABILITY"]
     meta = {
         "description": "Create a markdown report with web assets",
         "created_date": "2023-02-08",

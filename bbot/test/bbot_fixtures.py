@@ -183,11 +183,6 @@ def events(scan):
             parent=scan.root_event,
         )
         finding = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "FINDING", parent=scan.root_event)
-        virtualhost = scan.make_event(
-            {"host": "evilcorp.com", "virtual_host": "www.evilcorp.com", "description": "Test virtual host"},
-            "VIRTUAL_HOST",
-            parent=scan.root_event,
-        )
         http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
         storage_bucket = scan.make_event(
             {"name": "storage", "url": "https://storage.blob.core.windows.net"},
@@ -218,7 +213,6 @@ def events(scan):
         bbot_events.url_hint,
         bbot_events.vulnerability,
         bbot_events.finding,
-        bbot_events.virtualhost,
         bbot_events.http_response,
         bbot_events.storage_bucket,
         bbot_events.emoji,

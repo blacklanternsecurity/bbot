@@ -15,9 +15,6 @@ def extract_subdomain_tag(data):
 class TestGeneric_SSRF(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "generic_ssrf"]
-    config_overrides = {
-        "interactsh_disable": False,
-    }
 
     def request_handler(self, request):
         subdomain_tag = None
@@ -37,15 +34,9 @@ class TestGeneric_SSRF(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         self.interactsh_mock_instance = module_test.mock_interactsh("generic_ssrf")
-
-        # Mock at the helper creation level BEFORE modules are set up
-        def mock_interactsh_factory(*args, **kwargs):
-            return self.interactsh_mock_instance
-
-        # Apply the mock to the core helpers so modules get the mock during setup
-        from bbot.core.helpers.helper import ConfigAwareHelper
-
-        module_test.monkeypatch.setattr(ConfigAwareHelper, "interactsh", mock_interactsh_factory)
+        module_test.monkeypatch.setattr(
+            module_test.scan.helpers, "interactsh", lambda *args, **kwargs: self.interactsh_mock_instance
+        )
 
     async def setup_after_prep(self, module_test):
         expect_args = re.compile("/")

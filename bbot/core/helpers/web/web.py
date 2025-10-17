@@ -1,10 +1,7 @@
-import json
 import logging
-import re
 import warnings
 from pathlib import Path
 from bs4 import BeautifulSoup
-import ipaddress
 
 from bbot.core.engine import EngineClient
 from bbot.core.helpers.misc import truncate_filename
@@ -322,12 +319,12 @@ class WebHelper(EngineClient):
             method (str, optional): The HTTP method to use for the request (e.g., 'GET', 'POST').
             cookies (dict, optional): A dictionary of cookies to include in the request.
             path_override (str, optional): Overrides the request-target to use in the HTTP request line.
+            head_mode (bool, optional): If True, includes '-I' to fetch headers only. Defaults to None.
             raw_body (str, optional): Raw string to be sent in the body of the request.
-            resolve (dict, optional): Host resolution override as dict with 'host', 'port', 'ip' keys for curl --resolve.
             **kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Returns:
-            dict: JSON object with response data and metadata.
+            str: The output of the cURL command.
 
         Raises:
             CurlError: If 'url' is not supplied.
@@ -341,11 +338,7 @@ class WebHelper(EngineClient):
         if not url:
             raise CurlError("No URL supplied to CURL helper")
 
-        # Use BBOT-specific curl binary
-        bbot_curl = self.parent_helper.tools_dir / "curl"
-        if not bbot_curl.exists():
-            raise CurlError(f"BBOT curl binary not found at {bbot_curl}. Run dependency installation.")
-        curl_command = [str(bbot_curl), url, "-s"]
+        curl_command = ["curl", url, "-s"]
 
         raw_path = kwargs.get("raw_path", False)
         if raw_path:
@@ -389,12 +382,6 @@ class WebHelper(EngineClient):
         curl_command.append("-m")
         curl_command.append(str(timeout))
 
-        # mirror the web helper behavior
-        retries = self.parent_helper.web_config.get("http_retries", 1)
-        if retries > 0:
-            curl_command.extend(["--retry", str(retries)])
-            curl_command.append("--retry-all-errors")
-
         for k, v in headers.items():
             if isinstance(v, list):
                 for x in v:
@@ -431,120 +418,17 @@ class WebHelper(EngineClient):
             curl_command.append("--request-target")
             curl_command.append(f"{path_override}")
 
+        head_mode = kwargs.get("head_mode", None)
+        if head_mode:
+            curl_command.append("-I")
+
         raw_body = kwargs.get("raw_body", None)
         if raw_body:
             curl_command.append("-d")
             curl_command.append(raw_body)
-
-        # --resolve <host>:<port>:<ip>
-        resolve_dict = kwargs.get("resolve", None)
-
-        if resolve_dict is not None:
-            # Validate "resolve" is a dict
-            if not isinstance(resolve_dict, dict):
-                raise CurlError("'resolve' must be a dictionary containing 'host', 'port', and 'ip' keys")
-
-            # Extract and validate IP (required)
-            ip = resolve_dict.get("ip")
-            if not ip:
-                raise CurlError("'resolve' dictionary requires an 'ip' value")
-            try:
-                ipaddress.ip_address(ip)
-            except ValueError:
-                raise CurlError(f"Invalid IP address supplied to 'resolve': {ip}")
-
-            # Host, port, and ip must ALL be supplied explicitly
-            host = resolve_dict.get("host")
-            if not host:
-                raise CurlError("'resolve' dictionary requires a 'host' value")
-
-            if "port" not in resolve_dict:
-                raise CurlError("'resolve' dictionary requires a 'port' value")
-            port = resolve_dict["port"]
-
-            try:
-                port = int(port)
-            except (TypeError, ValueError):
-                raise CurlError("'port' supplied to resolve must be an integer")
-            if port < 1 or port > 65535:
-                raise CurlError("'port' supplied to resolve must be between 1 and 65535")
-
-            # Append the --resolve directive
-            curl_command.append("--resolve")
-            curl_command.append(f"{host}:{port}:{ip}")
-
-        # Always add JSON --write-out format with separator and capture headers
-        curl_command.extend(["-D", "-", "-w", "\\n---CURL_METADATA---\\n%{json}"])
-
-        log.debug(f"Running curl command: {curl_command}")
+        log.verbose(f"Running curl command: {curl_command}")
         output = (await self.parent_helper.run(curl_command)).stdout
-
-        # Parse the output to separate headers, content, and metadata
-        parts = output.split("\n---CURL_METADATA---\n")
-
-        # Raise CurlError if separator not found - this indicates a problem with our curl implementation
-        if len(parts) < 2:
-            raise CurlError(f"Curl output missing expected separator. Got: {output[:200]}...")
-
-        # Headers and content are in the first part, JSON metadata is in the last part
-        header_content = parts[0]
-        json_data = parts[-1].strip()
-
-        # Split headers from content
-        header_lines = []
-        content_lines = []
-        in_headers = True
-
-        for line in header_content.split("\n"):
-            if in_headers:
-                if line.strip() == "":
-                    in_headers = False
-                else:
-                    header_lines.append(line)
-            else:
-                content_lines.append(line)
-
-        # Parse headers into dictionary
-        headers_dict = {}
-        raw_headers = "\n".join(header_lines)
-
-        for line in header_lines:
-            if ":" in line:
-                key, value = line.split(":", 1)
-                key = key.strip().lower()
-                value = value.strip()
-
-                # Convert hyphens to underscores to match httpx (projectdiscovery) format
-                # This ensures consistency with how other modules expect headers
-                normalized_key = key.replace("-", "_")
-
-                if normalized_key in headers_dict:
-                    if isinstance(headers_dict[normalized_key], list):
-                        headers_dict[normalized_key].append(value)
-                    else:
-                        headers_dict[normalized_key] = [headers_dict[normalized_key], value]
-                else:
-                    headers_dict[normalized_key] = value
-
-        response_data = "\n".join(content_lines)
-
-        # Raise CurlError if JSON parsing fails - this indicates a problem with curl's %{json} output
-        try:
-            metadata = json.loads(json_data)
-        except json.JSONDecodeError as e:
-            # Try to fix common malformed JSON issues from curl output
-            try:
-                # Fix empty values like "certs":, -> "certs":null,
-                fixed_json = re.sub(r':"?\s*,', ":null,", json_data)
-                # Fix trailing commas before closing braces
-                fixed_json = re.sub(r",\s*}", "}", fixed_json)
-                metadata = json.loads(fixed_json)
-                log.debug(f"Fixed malformed JSON from curl: {json_data[:100]}... -> {fixed_json[:100]}...")
-            except json.JSONDecodeError:
-                raise CurlError(f"Failed to parse curl JSON metadata: {e}. JSON data: {json_data[:200]}...")
-
-        # Combine into final JSON structure
-        return {"response_data": response_data, "headers": headers_dict, "raw_headers": raw_headers, **metadata}
+        return output
 
     def beautifulsoup(
         self,

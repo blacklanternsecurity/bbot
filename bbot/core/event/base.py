@@ -623,7 +623,7 @@ class BaseEvent:
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
                 event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate", "virtual-host"):
+                    if t in ("affiliate"):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
@@ -1637,20 +1637,6 @@ class TECHNOLOGY(DictHostEvent):
 
     def _pretty_string(self):
         return self.data["technology"]
-
-
-class VIRTUAL_HOST(DictHostEvent):
-    class _data_validator(BaseModel):
-        host: str
-        virtual_host: str
-        description: str
-        url: Optional[str] = None
-        _validate_url = field_validator("url")(validators.validate_url)
-        _validate_host = field_validator("host")(validators.validate_host)
-
-    def _pretty_string(self):
-        return self.data["virtual_host"]
-
 
 class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
