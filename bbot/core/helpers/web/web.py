@@ -322,7 +322,6 @@ class WebHelper(EngineClient):
             method (str, optional): The HTTP method to use for the request (e.g., 'GET', 'POST').
             cookies (dict, optional): A dictionary of cookies to include in the request.
             path_override (str, optional): Overrides the request-target to use in the HTTP request line.
-            head_mode (bool, optional): If True, includes '-I' to fetch headers only. Defaults to None.
             raw_body (str, optional): Raw string to be sent in the body of the request.
             resolve (dict, optional): Host resolution override as dict with 'host', 'port', 'ip' keys for curl --resolve.
             **kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
@@ -432,10 +431,6 @@ class WebHelper(EngineClient):
             curl_command.append("--request-target")
             curl_command.append(f"{path_override}")
 
-        head_mode = kwargs.get("head_mode", None)
-        if head_mode:
-            curl_command.append("-I")
-
         raw_body = kwargs.get("raw_body", None)
         if raw_body:
             curl_command.append("-d")
@@ -478,23 +473,60 @@ class WebHelper(EngineClient):
             curl_command.append("--resolve")
             curl_command.append(f"{host}:{port}:{ip}")
 
-        # Always add JSON --write-out format with separator
-        curl_command.extend(["-w", "\\n---CURL_METADATA---\\n%{json}"])
+        # Always add JSON --write-out format with separator and capture headers
+        curl_command.extend(["-D", "-", "-w", "\\n---CURL_METADATA---\\n%{json}"])
 
         log.debug(f"Running curl command: {curl_command}")
         output = (await self.parent_helper.run(curl_command)).stdout
 
-        # Parse the output to separate content and metadata
-
+        # Parse the output to separate headers, content, and metadata
         parts = output.split("\n---CURL_METADATA---\n")
 
         # Raise CurlError if separator not found - this indicates a problem with our curl implementation
         if len(parts) < 2:
             raise CurlError(f"Curl output missing expected separator. Got: {output[:200]}...")
 
-        response_data = parts[0]
-        # Take the last part as JSON metadata (in case separator appears in content)
+        # Headers and content are in the first part, JSON metadata is in the last part
+        header_content = parts[0]
         json_data = parts[-1].strip()
+
+        # Split headers from content
+        header_lines = []
+        content_lines = []
+        in_headers = True
+
+        for line in header_content.split("\n"):
+            if in_headers:
+                if line.strip() == "":
+                    in_headers = False
+                else:
+                    header_lines.append(line)
+            else:
+                content_lines.append(line)
+
+        # Parse headers into dictionary
+        headers_dict = {}
+        raw_headers = "\n".join(header_lines)
+
+        for line in header_lines:
+            if ":" in line:
+                key, value = line.split(":", 1)
+                key = key.strip().lower()
+                value = value.strip()
+
+                # Convert hyphens to underscores to match httpx (projectdiscovery) format
+                # This ensures consistency with how other modules expect headers
+                normalized_key = key.replace("-", "_")
+
+                if normalized_key in headers_dict:
+                    if isinstance(headers_dict[normalized_key], list):
+                        headers_dict[normalized_key].append(value)
+                    else:
+                        headers_dict[normalized_key] = [headers_dict[normalized_key], value]
+                else:
+                    headers_dict[normalized_key] = value
+
+        response_data = "\n".join(content_lines)
 
         # Raise CurlError if JSON parsing fails - this indicates a problem with curl's %{json} output
         try:
@@ -512,7 +544,7 @@ class WebHelper(EngineClient):
                 raise CurlError(f"Failed to parse curl JSON metadata: {e}. JSON data: {json_data[:200]}...")
 
         # Combine into final JSON structure
-        return {"response_data": response_data, **metadata}
+        return {"response_data": response_data, "headers": headers_dict, "raw_headers": raw_headers, **metadata}
 
     def beautifulsoup(
         self,
@@ -626,134 +658,3 @@ class WebHelper(EngineClient):
         }
 
         return j
-
-    def text_similarity(self, text1, text2, normalization_filter=None, similarity_cache=None, truncate=True):
-        """
-        Calculate similarity between two text strings using rapidfuzz with performance optimizations.
-
-        This method compares two text strings and returns a similarity score between 0.0 (completely
-        different) and 1.0 (identical). It includes several optimizations:
-        - Fast exact equality check for identical text
-        - Optional content truncation for large text (>4KB) to improve performance
-        - Optional caching using xxHash for fast cache key generation (bring your own similarity_cache dict)
-        - Text normalization filtering to remove dynamic content
-
-        The method is particularly useful for:
-        - Comparing HTTP response bodies
-        - Content change detection
-        - Wildcard detection in web applications
-        - Deduplication of similar text content
-
-        Args:
-            text1 (str): First text string to compare
-            text2 (str): Second text string to compare
-            normalization_filter (str, optional): String to remove from both texts before comparison.
-                Useful for removing hostnames, timestamps, or other dynamic content that would skew
-                similarity calculations.
-            similarity_cache (dict, optional): Cache dictionary for storing/retrieving similarity results.
-                Uses xxHash-based keys for fast lookups. If provided, results will be cached to improve
-                performance on repeated comparisons.
-            truncate (bool, optional): Whether to truncate large text for performance. Defaults to True.
-                When enabled, text larger than 4KB is truncated to first 2KB + last 1KB for comparison.
-
-        Returns:
-            float: Similarity score between 0.0 (completely different) and 1.0 (identical).
-                Values closer to 1.0 indicate more similar content.
-
-        Examples:
-            Basic similarity comparison:
-            >>> similarity = self.helpers.web.text_similarity(text1, text2)
-            >>> if similarity > 0.8:
-            >>>     print("Texts are very similar")
-
-            With content normalization filtering:
-            >>> similarity = self.helpers.web.text_similarity(
-            >>>     baseline_text,
-            >>>     probe_text,
-            >>>     normalization_filter="example.com"
-            >>> )
-
-            With caching for performance:
-            >>> cache = {}
-            >>> similarity = self.helpers.web.text_similarity(
-            >>>     text1,
-            >>>     text2,
-            >>>     similarity_cache=cache
-            >>> )
-
-            Disable truncation for exact comparison:
-            >>> similarity = self.helpers.web.text_similarity(
-            >>>     text1,
-            >>>     text2,
-            >>>     truncate=False
-            >>> )
-
-        Performance Notes:
-            - Text larger than 4KB is automatically truncated to first 2KB + last 1KB for comparison (when truncate=True)
-            - Exact equality is checked first for optimal performance on identical text
-            - Cache keys are order-independent (comparing A,B gives same cache key as B,A)
-            - Disabling truncation may impact performance on very large text but provides more accurate results
-        """
-
-        # Fastest check: exact equality (very common for identical content)
-        if text1 == text2:
-            return 1.0  # Exactly the same
-
-        from rapidfuzz import fuzz
-        import xxhash
-
-        # Normalize by removing specified content to eliminate differences
-        if normalization_filter:
-            text1 = text1.replace(normalization_filter, "")
-            text2 = text2.replace(normalization_filter, "")
-
-        # Create fast hashes for cache key using xxHash
-        text1_hash = xxhash.xxh64(text1.encode() if isinstance(text1, str) else text1).hexdigest()
-        text2_hash = xxhash.xxh64(text2.encode() if isinstance(text2, str) else text2).hexdigest()
-
-        # Create cache key (order-independent) - include truncate setting in cache key
-        cache_key = tuple(sorted([text1_hash, text2_hash]) + [str(truncate)])
-
-        # Check cache first if provided
-        if similarity_cache is not None and cache_key in similarity_cache:
-            return similarity_cache[cache_key]
-
-        # Calculate similarity with optional truncation for performance
-        if truncate and (len(text1) > 4096 or len(text2) > 4096):
-            # Take first 2048 bytes + last 1024 bytes for comparison
-            text1_truncated = self._truncate_content_for_similarity(text1)
-            text2_truncated = self._truncate_content_for_similarity(text2)
-            similarity = fuzz.ratio(text1_truncated, text2_truncated) / 100.0
-        else:
-            # Use full content for comparison
-            similarity = fuzz.ratio(text1, text2) / 100.0
-
-        # Cache the result if cache provided
-        if similarity_cache is not None:
-            similarity_cache[cache_key] = similarity
-
-        return similarity
-
-    def _truncate_content_for_similarity(self, content):
-        """
-        Truncate content for similarity comparison to improve performance.
-
-        Truncation rules:
-        - If content <= 3072 bytes (2048 + 1024): return as-is
-        - If content > 3072 bytes: return first 2048 bytes + last 1024 bytes
-
-        This captures:
-        - First 2048 bytes: HTTP headers, HTML head, title, main content start
-        - Last 1024 bytes: Footers, closing scripts, HTML closing tags
-        """
-        content_length = len(content)
-
-        # No truncation needed for smaller content
-        if content_length <= 3072:
-            return content
-
-        # Truncate: first 2048 + last 1024 bytes
-        first_part = content[:2048]
-        last_part = content[-1024:]
-
-        return first_part + last_part

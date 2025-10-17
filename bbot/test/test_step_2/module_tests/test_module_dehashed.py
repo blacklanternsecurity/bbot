@@ -8,7 +8,7 @@ class TestDehashed(ModuleTestBase):
         "modules": {"dehashed": {"api_key": "deadbeef"}},
     }
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.dehashed.com/v2/search",
             method="POST",
@@ -119,7 +119,7 @@ class TestDehashedBadEmail(TestDehashed):
 
 
 class TestDehashedHTTPError(TestDehashed):
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.dehashed.com/v2/search",
             method="POST",

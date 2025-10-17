@@ -15,7 +15,6 @@ from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir, rand_string
-from bbot.core.helpers.async_helpers import get_event_loop
 
 
 log = logging.getLogger("bbot.test.fixtures")
@@ -55,6 +54,10 @@ def clean_default_config(monkeypatch):
     )
     with monkeypatch.context() as m:
         m.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
+        # Also mock custom config to be empty so user config doesn't contaminate tests
+        m.setattr("bbot.core.config.files.BBOTConfigFiles.get_custom_config", lambda self: OmegaConf.create({}))
+        # Reset the cached custom config on the global CORE instance to force reload
+        CORE._custom_config = OmegaConf.create({})
         yield
 
 
@@ -82,14 +85,14 @@ def bbot_scanner():
 
 
 @pytest.fixture
-def scan():
+async def scan():
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"])
+    await bbot_scan._prep()
     yield bbot_scan
 
-    loop = get_event_loop()
-    loop.run_until_complete(bbot_scan._cleanup())
+    await bbot_scan._cleanup()
 
 
 @pytest.fixture

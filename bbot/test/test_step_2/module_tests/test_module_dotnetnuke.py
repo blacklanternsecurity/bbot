@@ -46,7 +46,7 @@ MAPI=1
 </configuration>
     """
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         # Simulate DotNetNuke Instance
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": dotnetnuke_http_response}
@@ -137,6 +137,9 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     module_name = "dotnetnuke"
     modules_overrides = ["httpx", "dotnetnuke"]
+    config_overrides = {
+        "interactsh_disable": False,
+    }
 
     def request_handler(self, request):
         subdomain_tag = None
@@ -147,16 +150,22 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         self.interactsh_mock_instance = module_test.mock_interactsh("dotnetnuke_blindssrf")
-        module_test.monkeypatch.setattr(
-            module_test.scan.helpers, "interactsh", lambda *args, **kwargs: self.interactsh_mock_instance
-        )
 
-    async def setup_after_prep(self, module_test):
+        # Mock at the helper creation level BEFORE modules are set up
+        def mock_interactsh_factory(*args, **kwargs):
+            return self.interactsh_mock_instance
+
+        # Apply the mock to the core helpers so modules get the mock during setup
+        from bbot.core.helpers.helper import ConfigAwareHelper
+
+        module_test.monkeypatch.setattr(ConfigAwareHelper, "interactsh", mock_interactsh_factory)
+
         # Simulate DotNetNuke Instance
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": dotnetnuke_http_response}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+    async def setup_after_prep(self, module_test):
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 

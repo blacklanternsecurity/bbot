@@ -131,10 +131,9 @@ class host_header(BaseModule):
             # The fact that it's accepting two host headers is rare enough to note on its own, and not too noisy. Having the 3rd header be an interactsh would result in false negatives for the slightly less interesting cases.
             headers={"Host": ["", str(event.host), str(event.host)]},
             cookies=added_cookies,
-            head_mode=True,
         )
 
-        split_output = output["response_data"].split("\n")
+        split_output = output["raw_headers"].split("\n")
         if " 4" in split_output:
             description = "Duplicate Host Header Tolerated"
             await self.emit_event(

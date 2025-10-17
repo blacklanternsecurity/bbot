@@ -48,18 +48,29 @@ async def test_manager_deduplication(bbot_scanner):
 
     async def do_scan(*args, _config={}, _dns_mock={}, scan_callback=None, **kwargs):
         scan = bbot_scanner(*args, config=_config, **kwargs)
+        await scan._prep()
         default_module = DefaultModule(scan)
         everything_module = EverythingModule(scan)
         no_suppress_dupes = NoSuppressDupes(scan)
         accept_dupes = AcceptDupes(scan)
         per_hostport_only = PerHostOnly(scan)
         per_domain_only = PerDomainOnly(scan)
+        
+        # Add modules to scan
         scan.modules["default_module"] = default_module
         scan.modules["everything_module"] = everything_module
         scan.modules["no_suppress_dupes"] = no_suppress_dupes
         scan.modules["accept_dupes"] = accept_dupes
         scan.modules["per_hostport_only"] = per_hostport_only
         scan.modules["per_domain_only"] = per_domain_only
+        
+        # Setup each module manually since they were added after _prep()
+        modules_to_setup = [default_module, everything_module, no_suppress_dupes, accept_dupes, per_hostport_only, per_domain_only]
+        for module in modules_to_setup:
+            setup_result = await module.setup()
+            if setup_result is not True:
+                raise Exception(f"Module {module.name} setup failed: {setup_result}")
+        
         if _dns_mock:
             await scan.helpers.dns._mock_dns(_dns_mock)
         if scan_callback is not None:

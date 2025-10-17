@@ -101,8 +101,10 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
     }
 
     async def setup_before_prep(self, module_test):
-        await module_test.mock_dns(self.dns_mock_data)
         self.queries = []
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(self.dns_mock_data)
 
         async def mock_query(query):
             self.queries.append(query)
@@ -112,6 +114,7 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
         from bbot.modules.templates.subdomain_enum import subdomain_enum
 
         subdomain_enum_module = subdomain_enum(module_test.scan)
+        await subdomain_enum_module.setup()
 
         subdomain_enum_module.query = mock_query
         subdomain_enum_module._name = "subdomain_enum"

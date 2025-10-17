@@ -124,9 +124,11 @@ class Scanner:
         self.duration = None
         self.duration_human = None
         self.duration_seconds = None
+        self._dispatcher_arg = dispatcher
 
         self._success = False
         self._scan_finish_status_message = None
+        self._modules_loaded = False
 
         if scan_id is not None:
             self.id = str(scan_id)
@@ -141,14 +143,28 @@ class Scanner:
         if name is not None:
             kwargs["scan_name"] = name
 
-        base_preset = Preset(*targets, **kwargs)
+        self._unbaked_preset = Preset(*targets, **kwargs)
 
         if custom_preset is not None:
             if not isinstance(custom_preset, Preset):
                 raise ValidationError(f'Preset must be of type Preset, not "{type(custom_preset).__name__}"')
-            base_preset.merge(custom_preset)
+            self._unbaked_preset.merge(custom_preset)
 
-        self.preset = base_preset.bake(self)
+        self._prepped = False
+        self._finished_init = False
+        self._new_activity = False
+        self._cleanedup = False
+        self._omitted_event_types = None
+        self.modules = OrderedDict({})
+        self.dummy_modules = {}
+        self.preset = None
+
+    async def _prep(self):
+        """
+        Creates the scan's output folder, loads its modules, and calls their .setup() methods.
+        """
+
+        self.preset = await self._unbaked_preset.bake(self)
 
         # scan name
         if self.preset.scan_name is None:
@@ -186,16 +202,12 @@ class Scanner:
         self._status = "NOT_STARTED"
         self._status_code = 0
 
-        self.modules = OrderedDict({})
-        self._modules_loaded = False
-        self.dummy_modules = {}
-
-        if dispatcher is None:
+        if self._dispatcher_arg is None:
             from .dispatcher import Dispatcher
 
             self.dispatcher = Dispatcher()
         else:
-            self.dispatcher = dispatcher
+            self.dispatcher = self._dispatcher_arg
         self.dispatcher.set_scan(self)
 
         # scope distance
@@ -247,12 +259,6 @@ class Scanner:
 
         self.stats = ScanStats(self)
 
-        self._prepped = False
-        self._finished_init = False
-        self._new_activity = False
-        self._cleanedup = False
-        self._omitted_event_types = None
-
         self.init_events_task = None
         self.ticker_task = None
         self.dispatcher_tasks = []
@@ -268,21 +274,21 @@ class Scanner:
         self.__log_handlers = None
         self._log_handler_backup = []
 
-    async def _prep(self):
-        """
-        Creates the scan's output folder, loads its modules, and calls their .setup() methods.
-        """
-
         # update the master PID
         SHARED_INTERPRETER_STATE.update_scan_pid()
 
         self.helpers.mkdir(self.home)
         if not self._prepped:
+            # clear modules for fresh start
+            self.modules.clear()
+            self.dummy_modules.clear()
+
             # save scan preset
             with open(self.home / "preset.yml", "w") as f:
                 f.write(self.preset.to_yaml())
 
             # log scan overview
+
             start_msg = f"Scan seeded with {len(self.seeds):,} targets"
             details = []
             if self.whitelist != self.target:
@@ -343,9 +349,10 @@ class Scanner:
     async def async_start(self):
         """ """
         self.start_time = datetime.now()
-        self.root_event.data["started_at"] = self.start_time.isoformat()
         try:
-            await self._prep()
+            if not self._prepped:
+                await self._prep()
+            self.root_event.data["started_at"] = self.start_time.isoformat()
 
             self._start_log_handlers()
             self.trace(f"Ran BBOT {__version__} at {self.start_time}, command: {' '.join(sys.argv)}")

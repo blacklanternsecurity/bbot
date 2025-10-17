@@ -42,7 +42,7 @@ def bbot_other_httpservers():
 
 
 @pytest.mark.asyncio
-async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_httpservers, bbot_httpserver_ssl):
+async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbot_other_httpservers, bbot_httpserver_ssl):
     """
     This test ensures that BBOT correctly handles different scope distance settings.
     It performs these tests for normal modules, output modules, and their graph variants,
@@ -103,14 +103,21 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
 
     async def do_scan(*args, _config={}, _dns_mock={}, scan_callback=None, **kwargs):
         scan = bbot_scanner(*args, config=_config, **kwargs)
+        await scan._prep()
         dummy_module = DummyModule(scan)
         dummy_module_nodupes = DummyModuleNoDupes(scan)
         dummy_graph_output_module = DummyGraphOutputModule(scan)
         dummy_graph_batch_output_module = DummyGraphBatchOutputModule(scan)
+        await dummy_module.setup()
+        await dummy_module_nodupes.setup()
+        await dummy_graph_output_module.setup()
+        await dummy_graph_batch_output_module.setup()
+        
         scan.modules["dummy_module"] = dummy_module
         scan.modules["dummy_module_nodupes"] = dummy_module_nodupes
         scan.modules["dummy_graph_output_module"] = dummy_graph_output_module
         scan.modules["dummy_graph_batch_output_module"] = dummy_graph_batch_output_module
+        
         await scan.helpers.dns._mock_dns(_dns_mock)
         if scan_callback is not None:
             scan_callback(scan)
@@ -810,6 +817,7 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog):
         whitelist=["127.0.0.0/29", "test.notreal"],
         blacklist=["127.0.0.64/29"],
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns({
         "www-prod.test.notreal": {"A": ["127.0.0.66"]},
         "www-dev.test.notreal": {"A": ["127.0.0.22"]},
@@ -827,6 +835,7 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog):
 @pytest.mark.asyncio
 async def test_manager_scope_tagging(bbot_scanner):
     scan = bbot_scanner("test.notreal")
+    await scan._prep()
     e1 = scan.make_event("www.test.notreal", parent=scan.root_event, tags=["affiliate"])
     assert e1.scope_distance == 1
     assert "distance-1" in e1.tags

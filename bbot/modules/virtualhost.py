@@ -4,18 +4,33 @@ import string
 
 from bbot.modules.base import BaseModule
 from bbot.errors import CurlError
+from bbot.core.helpers.simhash import compute_simhash
 
 
 class virtualhost(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["VIRTUAL_HOST", "DNS_NAME"]
+    produced_events = ["VIRTUAL_HOST", "DNS_NAME", "HTTP_RESPONSE"]
     flags = ["active", "aggressive", "slow", "deadly"]
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
 
-    deps_pip = ["rapidfuzz"]
+    def _format_headers(self, headers):
+        """
+        Convert list headers back to strings for HTTP_RESPONSE compatibility.
+        The curl helper converts multiple headers with same name to lists,
+        but HTTP_RESPONSE events expect them as comma-separated strings.
+        """
+        formatted_headers = {}
+        for key, value in headers.items():
+            if isinstance(value, list):
+                # Convert list back to comma-separated string
+                formatted_headers[key] = ", ".join(str(v) for v in value)
+            else:
+                formatted_headers[key] = value
+        return formatted_headers
+
     deps_common = ["curl"]
 
-    SIMILARITY_THRESHOLD = 0.5
+    SIMILARITY_THRESHOLD = 0.8
     CANARY_LENGTH = 12
     MAX_RESULTS_FLOOD_PROTECTION = 50
 
@@ -273,8 +288,48 @@ class virtualhost(BaseModule):
             virtualhost_dict,
             "VIRTUAL_HOST",
             parent=event,
+            tags=["virtual-host"],
             context=f"{{module}} discovered virtual host via {discovery_method} for {event.data} and found {{event.type}}: {canary_host}",
         )
+
+        # Emit HTTP_RESPONSE event with the canary response data
+        # Format to match what badsecrets expects
+        headers = canary_response.get("headers", {})
+        headers = self._format_headers(headers)
+
+        # Get the scheme from the actual probe URL
+        probe_url = canary_response.get("url", "")
+        from urllib.parse import urlparse
+
+        parsed_probe_url = urlparse(probe_url)
+        actual_scheme = parsed_probe_url.scheme if parsed_probe_url.scheme else "http"
+
+        http_response_data = {
+            "input": canary_host,
+            "url": f"{actual_scheme}://{canary_host}/",
+            "method": "GET",
+            "status_code": canary_response.get("http_code", 0),
+            "content_length": len(canary_response.get("response_data", "")),
+            "body": canary_response.get("response_data", ""),  # badsecrets expects 'body'
+            "response_data": canary_response.get("response_data", ""),  # keep for compatibility
+            "header": headers,
+            "raw_header": canary_response.get("raw_headers", ""),
+        }
+
+        # Include location header for redirect handling
+        if "location" in headers:
+            http_response_data["location"] = headers["location"]
+
+        http_response_event = await self.emit_event(
+            http_response_data,
+            "HTTP_RESPONSE",
+            parent=event,
+            tags=["virtual-host"],
+            context=f"{{module}} discovered virtual host via {discovery_method} for {event.data} and found {{event.type}}: {canary_host}",
+        )
+        # Set scope distance to match parent's scope distance for HTTP_RESPONSE events
+        if http_response_event:
+            http_response_event.scope_distance = event.scope_distance
 
     def _get_canary_random_host(self, host, basehost, mode="subdomain"):
         """Generate a random host for the canary"""
@@ -416,12 +471,14 @@ class virtualhost(BaseModule):
                 )
             return True
 
-        # Compare original probe response with modified response
-        similarity = self.helpers.web.text_similarity(
-            probe_response["response_data"],
-            wildcard_canary_response["response_data"],
-            similarity_cache=self.similarity_cache,
+        probe_simhash = await self.helpers.run_in_executor_mp(compute_simhash, probe_response["response_data"])
+        wildcard_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, wildcard_canary_response["response_data"]
         )
+        similarity = self.helpers.simhash.similarity(probe_simhash, wildcard_simhash)
+
+        # Compare original probe response with modified response
+
         result = similarity <= self.SIMILARITY_THRESHOLD
 
         if not result:
@@ -486,8 +543,50 @@ class virtualhost(BaseModule):
                 virtual_host_data["virtualhost_dict"],
                 "VIRTUAL_HOST",
                 parent=event,
+                tags=["virtual-host"],
                 context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.data} and found {{event.type}}: {virtual_host_data['probe_host']} (similarity: {virtual_host_data['similarity']:.2%})",
             )
+
+            # Emit HTTP_RESPONSE event with the probe response data
+            # Format to match what badsecrets expects
+            headers = virtual_host_data["probe_response"].get("headers", {})
+            headers = self._format_headers(headers)
+
+            # Get the scheme from the actual probe URL
+            probe_url = virtual_host_data["probe_response"].get("url", "")
+            from urllib.parse import urlparse
+
+            parsed_probe_url = urlparse(probe_url)
+            actual_scheme = parsed_probe_url.scheme if parsed_probe_url.scheme else "http"
+
+            http_response_data = {
+                "input": virtual_host_data["probe_host"],
+                "url": f"{actual_scheme}://{virtual_host_data['probe_host']}/",  # Use the actual virtual host URL with correct scheme
+                "method": "GET",
+                "status_code": virtual_host_data["probe_response"].get("http_code", 0),
+                "content_length": len(virtual_host_data["probe_response"].get("response_data", "")),
+                "body": virtual_host_data["probe_response"].get("response_data", ""),  # badsecrets expects 'body'
+                "response_data": virtual_host_data["probe_response"].get(
+                    "response_data", ""
+                ),  # keep for compatibility
+                "header": headers,
+                "raw_header": virtual_host_data["probe_response"].get("raw_headers", ""),
+            }
+
+            # Include location header for redirect handling
+            if "location" in headers:
+                http_response_data["location"] = headers["location"]
+
+            http_response_event = await self.emit_event(
+                http_response_data,
+                "HTTP_RESPONSE",
+                parent=event,
+                tags=["virtual-host"],
+                context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.data} and found {{event.type}}: {virtual_host_data['probe_host']}",
+            )
+            # Set scope distance to match parent's scope distance for HTTP_RESPONSE events
+            if http_response_event:
+                http_response_event.scope_distance = event.scope_distance
 
             # Emit DNS_NAME_UNVERIFIED event if needed
             if virtual_host_data["skip_dns_host"] is False:
@@ -639,7 +738,7 @@ class virtualhost(BaseModule):
             self.debug(f"{protocol} probe failed for {probe_host} on ip {host_ip} - no response or empty data")
             return None
 
-        similarity = self.analyze_response(probe_host, probe_response, canary_response, event)
+        similarity = await self.analyze_response(probe_host, probe_response, canary_response, event)
         if similarity is None:
             return None
 
@@ -709,9 +808,10 @@ class virtualhost(BaseModule):
             "discovery_method": f"{discovery_method} ({technique})",
             "status_code": probe_response.get("http_code", "N/A"),
             "content_length": len(probe_response.get("response_data", "")),
+            "probe_response": probe_response,
         }
 
-    def analyze_response(self, probe_host, probe_response, canary_response, event):
+    async def analyze_response(self, probe_host, probe_response, canary_response, event):
         probe_status = probe_response["http_code"]
         canary_status = canary_response["http_code"]
 
@@ -745,7 +845,7 @@ class virtualhost(BaseModule):
         # Check for redirects back to original domain - indicates virtual host just redirects to canonical
         if probe_status in [301, 302]:
             redirect_url = probe_response.get("redirect_url", "")
-            if str(event.parsed_url.netloc) in redirect_url:
+            if redirect_url and str(event.parsed_url.netloc) in redirect_url:
                 self.debug(f"SKIPPING {probe_host} - redirects back to original domain {event.parsed_url.netloc}")
                 return None
 
@@ -755,14 +855,16 @@ class virtualhost(BaseModule):
 
         # Calculate content similarity to canary (junk response)
         # Use probe hostname for normalization to remove hostname reflection differences
-        similarity = self.helpers.web.text_similarity(
-            canary_response["response_data"],
-            probe_response["response_data"],
-            normalization_filter=probe_host,
-            similarity_cache=self.similarity_cache,
+
+        probe_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, probe_response["response_data"], normalization_filter=probe_host
+        )
+        canary_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, canary_response["response_data"], normalization_filter=probe_host
         )
 
-        # Debug logging only when we think we found a match
+        similarity = self.helpers.simhash.similarity(probe_simhash, canary_simhash)
+
         if similarity <= self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"POTENTIAL MATCH: {probe_host} vs canary - similarity: {similarity:.3f} (threshold: {self.SIMILARITY_THRESHOLD}), probe status: {probe_status}, canary status: {canary_status}"
@@ -791,11 +893,12 @@ class virtualhost(BaseModule):
             )
             return False
 
-        similarity = self.helpers.web.text_similarity(
-            original_response["response_data"],
-            keyword_canary_response["response_data"],
-            similarity_cache=self.similarity_cache,
+        original_simhash = await self.helpers.run_in_executor_mp(compute_simhash, original_response["response_data"])
+        keyword_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, keyword_canary_response["response_data"]
         )
+        similarity = self.helpers.simhash.similarity(original_simhash, keyword_simhash)
+
         if similarity >= self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"Intentionally wrong hostname has a canary too similar to the original. Using probe url: {probe_url} - similarity: {similarity:.3f} above threshold {self.SIMILARITY_THRESHOLD} - Original: {original_response.get('http_code', 'N/A')} ({len(original_response.get('response_data', ''))} bytes), Current: {keyword_canary_response.get('http_code', 'N/A')} ({len(keyword_canary_response.get('response_data', ''))} bytes)"
@@ -832,11 +935,13 @@ class virtualhost(BaseModule):
             return True
 
         # Fallback - use similarity comparison for response data (allows slight differences)
-        similarity = self.helpers.web.text_similarity(
-            original_canary_response["response_data"],
-            consistency_canary_response["response_data"],
-            similarity_cache=self.similarity_cache,
+        original_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, original_canary_response["response_data"]
         )
+        consistency_simhash = await self.helpers.run_in_executor_mp(
+            compute_simhash, consistency_canary_response["response_data"]
+        )
+        similarity = self.helpers.simhash.similarity(original_simhash, consistency_simhash)
         if similarity < self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"CANARY SIMILARITY CHANGED for {normalized_url} - similarity: {similarity:.3f} below threshold {self.SIMILARITY_THRESHOLD} - Original: {original_canary_response.get('http_code', 'N/A')} ({len(original_canary_response.get('response_data', ''))} bytes), Current: {consistency_canary_response.get('http_code', 'N/A')} ({len(consistency_canary_response.get('response_data', ''))} bytes)"

@@ -16,6 +16,7 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
     bbot_httpserver.expect_request(uri=re.compile(r"/nope")).respond_with_data("nope", status=500)
 
     scan = bbot_scanner()
+    await scan._prep()
 
     # request
     response = await scan.helpers.request(f"{base_url}1")
@@ -109,6 +110,7 @@ async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, httpx_m
     bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
 
     scan = bbot_scanner()
+    await scan._prep()
 
     urls = [f"{base_url}{i}" for i in range(100)]
 
@@ -135,6 +137,7 @@ async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, httpx_m
 async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
     # json conversion
     scan = bbot_scanner("evilcorp.com")
+    await scan._prep()
     url = "http://www.evilcorp.com/json_test?a=b"
     httpx_mock.add_response(url=url, text="hello\nworld")
     response = await scan.helpers.web.request(url)
@@ -155,6 +158,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
     scan2 = bbot_scanner("127.0.0.1")
 
     await scan1._prep()
+    await scan2._prep()
     module = scan1.modules["ipneighbor"]
 
     web_config = CORE.config.get("web", {})
@@ -289,6 +293,7 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     async_correct_url = False
 
     scan1 = bbot_scanner("8.8.8.8")
+    await scan1._prep()
     scan1.status = "RUNNING"
 
     interactsh_client = scan1.helpers.interactsh(poll_interval=3)
@@ -344,6 +349,7 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
 @pytest.mark.asyncio
 async def test_web_curl(bbot_scanner, bbot_httpserver):
     scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
     helpers = scan.helpers
     url = bbot_httpserver.url_for("/curl")
     bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
@@ -356,8 +362,8 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
     result2 = await helpers.curl(url=url, ignore_bbot_global_settings=True)
     assert result2["response_data"] == "curl_yep"
 
-    result3 = await helpers.curl(url=url, head_mode=True)
-    assert result3["response_data"].startswith("HTTP/")
+    result3 = await helpers.curl(url=url)
+    assert result3["response_data"] == "curl_yep"
 
     result4 = await helpers.curl(url=url, raw_body="body")
     assert result4["response_data"] == "curl_yep"
@@ -412,6 +418,7 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
 @pytest.mark.asyncio
 async def test_web_http_compare(httpx_mock, bbot_scanner):
     scan = bbot_scanner()
+    await scan._prep()
     helpers = scan.helpers
     httpx_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
     compare_helper = helpers.http_compare("http://www.example.com")
@@ -435,6 +442,7 @@ async def test_http_proxy(bbot_scanner, bbot_httpserver, proxy_server):
     proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
 
     scan = bbot_scanner("127.0.0.1", config={"web": {"http_proxy": proxy_address}})
+    await scan._prep()
 
     assert len(proxy_server.RequestHandlerClass.urls) == 0
 
@@ -459,6 +467,8 @@ async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
 
     scan1 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": True, "debug": True}})
     scan2 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": False, "debug": True}})
+    await scan1._prep()
+    await scan2._prep()
 
     r1 = await scan1.helpers.request(url)
     assert r1 is None, "Request to self-signed SSL server went through even with ssl_verify=True"
@@ -478,6 +488,7 @@ async def test_web_cookies(bbot_scanner, httpx_mock):
     # make sure cookies work when enabled
     httpx_mock.add_response(url="http://www.evilcorp.com/cookies", headers=[("set-cookie", "wat=asdf; path=/")])
     scan = bbot_scanner()
+    await scan._prep()
 
     client = BBOTAsyncClient(persist_cookies=True, _config=scan.config, _target=scan.target)
     r = await client.get(url="http://www.evilcorp.com/cookies")
@@ -494,6 +505,7 @@ async def test_web_cookies(bbot_scanner, httpx_mock):
     # make sure they don't when they're not
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies", headers=[("set-cookie", "wats=fdsa; path=/")])
     scan = bbot_scanner()
+    await scan._prep()
     client2 = BBOTAsyncClient(persist_cookies=False, _config=scan.config, _target=scan.target)
     r = await client2.get(url="http://www2.evilcorp.com/cookies")
     # make sure we can access the cookies
@@ -526,6 +538,7 @@ async def test_http_sendcookies(bbot_scanner, bbot_httpserver):
 
     bbot_httpserver.expect_request(uri=endpoint).respond_with_handler(echo_cookies_handler)
     scan1 = bbot_scanner("127.0.0.1", config={"web": {"debug": True}})
+    await scan1._prep()
     r1 = await scan1.helpers.request(url, cookies={"foo": "bar"})
 
     assert r1 is not None, "Request to self-signed SSL server went through even with ssl_verify=True"

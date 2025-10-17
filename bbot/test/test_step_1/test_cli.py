@@ -15,7 +15,7 @@ async def test_cli_scope(monkeypatch, capsys):
     # basic target without whitelist
     monkeypatch.setattr(
         "sys.argv",
-        ["bbot", "-t", "one.one.one.one", "-c", "scope.report_distance=10", "dns.minimal=false", "--json"],
+        ["bbot", "-t", "one.one.one.one", "-c", "scope.report_distance=10", "dns.minimal=false", "--json", "-y"],
     )
     result = await cli._main()
     out, err = capsys.readouterr()
@@ -55,6 +55,7 @@ async def test_cli_scope(monkeypatch, capsys):
             "dns.minimal=false",
             "dns.search_distance=2",
             "--json",
+            "-y",
         ],
     )
     result = await cli._main()
@@ -618,7 +619,7 @@ def test_cli_module_validation(monkeypatch, caplog):
     assert 'Did you mean "subdomain-enum"?' in caplog.text
 
 
-def test_cli_presets(monkeypatch, capsys, caplog):
+def test_cli_presets(monkeypatch, capsys, caplog, clean_default_config):
     import yaml
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)

@@ -18,6 +18,7 @@ mock_records = {
 @pytest.mark.asyncio
 async def test_dns_engine(bbot_scanner):
     scan = bbot_scanner()
+    await scan._prep()
     await scan.helpers._mock_dns(
         {"one.one.one.one": {"A": ["1.1.1.1"]}, "1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one"]}}
     )
@@ -168,6 +169,7 @@ async def test_dns_resolution(bbot_scanner):
     assert "a-record" not in resolved_hosts_event2.tags
 
     scan2 = bbot_scanner("evilcorp.com", config={"dns": {"minimal": False}})
+    await scan2._prep()
     await scan2.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"TXT": ['"v=spf1 include:cloudprovider.com ~all"']},
@@ -186,6 +188,7 @@ async def test_dns_resolution(bbot_scanner):
 @pytest.mark.asyncio
 async def test_wildcards(bbot_scanner):
     scan = bbot_scanner("1.1.1.1")
+    await scan._prep()
     helpers = scan.helpers
 
     from bbot.core.helpers.dns.engine import DNSEngine, all_rdtypes
@@ -260,6 +263,7 @@ def custom_lookup(query, rdtype):
             "speculate": True,
         },
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
 
     events = [e async for e in scan.async_start()]
@@ -317,6 +321,7 @@ def custom_lookup(query, rdtype):
             "speculate": True,
         },
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
 
     events = [e async for e in scan.async_start()]
@@ -414,6 +419,7 @@ def custom_lookup(query, rdtype):
             },
         },
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
 
     events = [e async for e in scan.async_start()]
@@ -491,6 +497,7 @@ def custom_lookup(query, rdtype):
     }
 
     scan = bbot_scanner("1.1.1.1")
+    await scan._prep()
     helpers = scan.helpers
 
     # event resolution
@@ -657,6 +664,7 @@ def custom_lookup(query, rdtype):
     scan = bbot_scanner(
         "evilcorp.com", config={"dns": {"minimal": False, "wildcard_ignore": []}, "omit_event_types": []}
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup)
     dummy_module = DummyModule(scan)
     scan.modules["dummy_module"] = dummy_module
@@ -682,8 +690,10 @@ async def test_dns_raw_records(bbot_scanner):
 
     # scan without omitted event type
     scan = bbot_scanner("one.one.one.one", "1.1.1.1", config={"dns": {"minimal": False}, "omit_event_types": []})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_records)
     dummy_module = DummyModule(scan)
+    await dummy_module.setup()
     scan.modules["dummy_module"] = dummy_module
     events = [e async for e in scan.async_start()]
     assert 1 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
@@ -715,8 +725,10 @@ async def test_dns_raw_records(bbot_scanner):
     )
     # scan with omitted event type
     scan = bbot_scanner("one.one.one.one", config={"dns": {"minimal": False}, "omit_event_types": ["RAW_DNS_RECORD"]})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_records)
     dummy_module = DummyModule(scan)
+    await dummy_module.setup()
     scan.modules["dummy_module"] = dummy_module
     events = [e async for e in scan.async_start()]
     # no raw records should be emitted
@@ -726,8 +738,10 @@ async def test_dns_raw_records(bbot_scanner):
     # scan with watching module
     DummyModule.watched_events = ["RAW_DNS_RECORD"]
     scan = bbot_scanner("one.one.one.one", config={"dns": {"minimal": False}, "omit_event_types": ["RAW_DNS_RECORD"]})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(mock_records)
     dummy_module = DummyModule(scan)
+    await dummy_module.setup()
     scan.modules["dummy_module"] = dummy_module
     events = [e async for e in scan.async_start()]
     # no raw records should be output
@@ -751,6 +765,7 @@ async def test_dns_raw_records(bbot_scanner):
 @pytest.mark.asyncio
 async def test_dns_graph_structure(bbot_scanner):
     scan = bbot_scanner("https://evilcorp.com", config={"dns": {"search_distance": 1, "minimal": False}})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {
@@ -779,6 +794,7 @@ async def test_dns_graph_structure(bbot_scanner):
 @pytest.mark.asyncio
 async def test_hostname_extraction(bbot_scanner):
     scan = bbot_scanner("evilcorp.com", config={"dns": {"minimal": False}})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {
@@ -825,6 +841,7 @@ async def test_dns_helpers(bbot_scanner):
     # make sure system nameservers are excluded from use by DNS brute force
     brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8"])
     scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers}})
+    await scan._prep()
     scan.helpers.dns.system_resolvers = ["8.8.8.8", "8.8.4.4"]
     resolver_file = await scan.helpers.dns.brute.resolver_file()
     resolvers = set(scan.helpers.read_file(resolver_file))

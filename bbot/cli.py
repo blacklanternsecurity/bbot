@@ -34,8 +34,13 @@ async def _main():
     import traceback
     from contextlib import suppress
 
-    # fix tee buffering
-    sys.stdout.reconfigure(line_buffering=True)
+    # fix tee buffering (only if on real TTY)
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            if sys.stdout.isatty():
+                sys.stdout.reconfigure(line_buffering=True)
+        except Exception:
+            pass
 
     log = logging.getLogger("bbot.cli")
 
@@ -90,7 +95,7 @@ async def _main():
                 preset._default_output_modules = options.output_modules
                 preset._default_internal_modules = []
 
-            preset.bake()
+            await preset.bake()
 
             # --list-modules
             if options.list_modules:
@@ -150,6 +155,8 @@ async def _main():
             log.warning(str(e))
             return
 
+        await scan._prep()
+
         deadly_modules = [
             m for m in scan.preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])
         ]
@@ -191,12 +198,18 @@ async def _main():
             log.verbose(row)
 
         scan.helpers.word_cloud.load()
-        await scan._prep()
 
         if not options.dry_run:
             log.trace(f"Command: {' '.join(sys.argv)}")
 
-            if sys.stdin.isatty():
+            try:
+                is_tty = (
+                    hasattr(sys.stdin, "isatty") and not getattr(sys.stdin, "closed", False) and sys.stdin.isatty()
+                )
+            except Exception:
+                is_tty = False
+
+            if is_tty:
                 # warn if any targets belong directly to a cloud provider
                 if not scan.preset.strict_scope:
                     for event in scan.target.seeds.event_seeds:
