@@ -1638,6 +1638,7 @@ class TECHNOLOGY(DictHostEvent):
     def _pretty_string(self):
         return self.data["technology"]
 
+
 class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
