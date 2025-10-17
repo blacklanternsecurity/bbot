@@ -15,7 +15,7 @@ class host_header(BaseModule):
     in_scope_only = True
     per_hostport_only = True
 
-    deps_apt = ["curl"]
+    deps_common = ["curl"]
 
     async def setup(self):
         self.subdomain_tags = {}
@@ -106,7 +106,7 @@ class host_header(BaseModule):
             ignore_bbot_global_settings=True,
             cookies=added_cookies,
         )
-        if self.domain in output:
+        if self.domain in output["response_data"]:
             domain_reflections.append(technique_description)
 
         # absolute URL / Host header transposition
@@ -120,7 +120,7 @@ class host_header(BaseModule):
             cookies=added_cookies,
         )
 
-        if self.domain in output:
+        if self.domain in output["response_data"]:
             domain_reflections.append(technique_description)
 
         # duplicate host header tolerance
@@ -131,10 +131,9 @@ class host_header(BaseModule):
             # The fact that it's accepting two host headers is rare enough to note on its own, and not too noisy. Having the 3rd header be an interactsh would result in false negatives for the slightly less interesting cases.
             headers={"Host": ["", str(event.host), str(event.host)]},
             cookies=added_cookies,
-            head_mode=True,
         )
 
-        split_output = output.split("\n")
+        split_output = output["raw_headers"].split("\n")
         if " 4" in split_output:
             description = "Duplicate Host Header Tolerated"
             await self.emit_event(
@@ -173,7 +172,7 @@ class host_header(BaseModule):
             headers=override_headers,
             cookies=added_cookies,
         )
-        if self.domain in output:
+        if self.domain in output["response_data"]:
             domain_reflections.append(technique_description)
 
         # emit all the domain reflections we found
