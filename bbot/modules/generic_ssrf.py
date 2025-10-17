@@ -39,6 +39,8 @@ class BaseSubmodule:
     severity = "INFO"
     paths = []
 
+    deps_common = ["curl"]
+
     def __init__(self, generic_ssrf):
         self.generic_ssrf = generic_ssrf
         self.test_paths = self.create_paths()
@@ -61,7 +63,7 @@ class BaseSubmodule:
                 self.generic_ssrf.debug(f"Sending request to URL: {test_url}")
                 r = await self.generic_ssrf.helpers.curl(url=test_url)
                 if r:
-                    self.process(event, r, subdomain_tag)
+                    self.process(event, r["response_data"], subdomain_tag)
 
     def process(self, event, r, subdomain_tag):
         response_token = self.generic_ssrf.interactsh_domain.split(".")[0][::-1]
@@ -123,7 +125,7 @@ class Generic_SSRF_POST(BaseSubmodule):
 
         for tag, pd in post_data_list:
             r = await self.generic_ssrf.helpers.curl(url=test_url, method="POST", post_data=pd)
-            self.process(event, r, tag)
+            self.process(event, r["response_data"], tag)
 
 
 class Generic_XXE(BaseSubmodule):
@@ -146,7 +148,7 @@ class Generic_XXE(BaseSubmodule):
             url=test_url, method="POST", raw_body=post_body, headers={"Content-type": "application/xml"}
         )
         if r:
-            self.process(event, r, subdomain_tag)
+            self.process(event, r["response_data"], subdomain_tag)
 
 
 class generic_ssrf(BaseModule):
