@@ -13,6 +13,21 @@ class virtualhost(BaseModule):
     flags = ["active", "aggressive", "slow", "deadly"]
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
 
+    def _format_headers(self, headers):
+        """
+        Convert list headers back to strings for HTTP_RESPONSE compatibility.
+        The curl helper converts multiple headers with same name to lists,
+        but HTTP_RESPONSE events expect them as comma-separated strings.
+        """
+        formatted_headers = {}
+        for key, value in headers.items():
+            if isinstance(value, list):
+                # Convert list back to comma-separated string
+                formatted_headers[key] = ", ".join(str(v) for v in value)
+            else:
+                formatted_headers[key] = value
+        return formatted_headers
+
     deps_common = ["curl"]
 
     SIMILARITY_THRESHOLD = 0.8
@@ -280,6 +295,7 @@ class virtualhost(BaseModule):
         # Emit HTTP_RESPONSE event with the canary response data
         # Format to match what badsecrets expects
         headers = canary_response.get("headers", {})
+        headers = self._format_headers(headers)
 
         # Get the scheme from the actual probe URL
         probe_url = canary_response.get("url", "")
@@ -534,6 +550,7 @@ class virtualhost(BaseModule):
             # Emit HTTP_RESPONSE event with the probe response data
             # Format to match what badsecrets expects
             headers = virtual_host_data["probe_response"].get("headers", {})
+            headers = self._format_headers(headers)
 
             # Get the scheme from the actual probe URL
             probe_url = virtual_host_data["probe_response"].get("url", "")

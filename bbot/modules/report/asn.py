@@ -1,4 +1,3 @@
-import ipaddress
 from bbot.modules.report.base import BaseReportModule
 from bbot.core.helpers.asn import ASNHelper
 
