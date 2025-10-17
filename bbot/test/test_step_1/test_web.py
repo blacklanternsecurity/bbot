@@ -354,6 +354,7 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
     url = bbot_httpserver.url_for("/curl")
     bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
     bbot_httpserver.expect_request(uri="/index.html").respond_with_data("curl_yep_index")
+<<<<<<< HEAD
     assert await helpers.curl(url=url) == "curl_yep"
     assert await helpers.curl(url=url, ignore_bbot_global_settings=True) == "curl_yep"
     assert (await helpers.curl(url=url, head_mode=True)).startswith("HTTP/")
@@ -370,6 +371,30 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
             path_override="/index.html",
         )
         == "curl_yep_index"
+=======
+
+    result1 = await helpers.curl(url=url)
+    assert result1["response_data"] == "curl_yep"
+
+    result2 = await helpers.curl(url=url, ignore_bbot_global_settings=True)
+    assert result2["response_data"] == "curl_yep"
+
+    result3 = await helpers.curl(url=url)
+    assert result3["response_data"] == "curl_yep"
+
+    result4 = await helpers.curl(url=url, raw_body="body")
+    assert result4["response_data"] == "curl_yep"
+
+    result5 = await helpers.curl(
+        url=url,
+        raw_path=True,
+        headers={"test": "test", "test2": ["test2"]},
+        ignore_bbot_global_settings=False,
+        post_data={"test": "test"},
+        method="POST",
+        cookies={"test": "test"},
+        path_override="/index.html",
+>>>>>>> a7ce13acd (just fixing stuff)
     )
     # test custom headers
     bbot_httpserver.expect_request("/test-custom-http-headers-curl", headers={"test": "header"}).respond_with_data(
