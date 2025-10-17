@@ -355,7 +355,6 @@ async def test_web_curl(bbot_scanner, bbot_httpserver):
     bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
     bbot_httpserver.expect_request(uri="/index.html").respond_with_data("curl_yep_index")
 
-    # Original tests - keep these working exactly as before
     result1 = await helpers.curl(url=url)
     assert result1["response_data"] == "curl_yep"
 
