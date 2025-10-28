@@ -6,6 +6,7 @@ flag_descriptions = {
     "cloud-enum": "Enumerates cloud resources",
     "code-enum": "Find public code repositories and search them for secrets etc.",
     "deadly": "Highly aggressive",
+    "download": "Modules that downloa files, apps, or repositories",
     "email-enum": "Enumerates email addresses",
     "iis-shortnames": "Scans for IIS Shortname vulnerability",
     "passive": "Never connects to target systems",
