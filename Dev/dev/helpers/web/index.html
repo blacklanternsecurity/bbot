@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.qfa5vgyd.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.rhyyu_cb.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1166,7 +1166,8 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">541</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">542</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">543</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">544</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">WebHelper</span><span style="color: #E6EDF3">(EngineClient):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">544</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">545</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">WebHelper</span><span style="color: #E6EDF3">(EngineClient):</span>
     <span style="color: #E6EDF3">SERVER_CLASS</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">HTTPEngine</span>
     <span style="color: #E6EDF3">ERROR_CLASS</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">WebError</span>
 
@@ -1415,7 +1416,8 @@
         <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">path:</span>
             <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Invalid wordlist: {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"cache_hrs"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
-            <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"cache_hrs"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">720</span>
+            <span style="color: #8B949E; font-style: italic"># 4320 hrs = 180 days = 6 months</span>
+            <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"cache_hrs"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">4320</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_url(path):</span>
             <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">download(str(path),</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
@@ -1840,8 +1842,7 @@ document to be parsed.</p>
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">433</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">434</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">434</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">435</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">436</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">437</span>
@@ -1896,7 +1897,8 @@ document to be parsed.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">486</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">487</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">488</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">489</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">489</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">490</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">self,</span>
     <span style="color: #E6EDF3">markup,</span>
     <span style="color: #E6EDF3">features</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"html.parser"</span><span style="color: #E6EDF3">,</span>
@@ -2092,8 +2094,7 @@ It offers support for various cURL options such as headers, post data, and cooki
 </code></pre></div>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">305</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">306</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">306</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">307</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">308</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">309</span>
@@ -2218,7 +2219,8 @@ It offers support for various cURL options such as headers, post data, and cooki
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">428</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">429</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">430</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">431</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">curl</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">431</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">432</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">curl</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    An asynchronous function that runs a cURL command with specified arguments and options.</span>
 
@@ -3038,8 +3040,7 @@ help correlate requests, etc.</p>
 <p>Convert web response to JSON object, similar to the output of <code>httpx -irr -json</code></p>
 <details class="quote">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">491</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">492</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">492</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">493</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">494</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">495</span>
@@ -3091,7 +3092,8 @@ help correlate requests, etc.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">541</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">542</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">543</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">544</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">response_to_json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">response):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">544</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">545</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">response_to_json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">response):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convert web response to JSON object, similar to the output of `httpx -irr -json`</span>
 <span style="color: #A5D6FF">    """</span>
@@ -3317,7 +3319,8 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">300</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">301</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">302</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">303</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">wordlist</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">path,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip_filename</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">303</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">304</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">wordlist</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">path,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip_filename</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronous function for retrieving wordlists, either from a local path or a URL.</span>
 <span style="color: #A5D6FF">    Allows for optional line-based truncation and caching. Returns the full path of the wordlist</span>
@@ -3352,7 +3355,8 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
     <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">path:</span>
         <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Invalid wordlist: {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
     <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"cache_hrs"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
-        <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"cache_hrs"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">720</span>
+        <span style="color: #8B949E; font-style: italic"># 4320 hrs = 180 days = 6 months</span>
+        <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"cache_hrs"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">4320</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_url(path):</span>
         <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">download(str(path),</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>

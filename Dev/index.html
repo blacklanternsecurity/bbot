@@ -19,7 +19,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="assets/stylesheets/extra-style.qfa5vgyd.min.css" rel="stylesheet"/></head>
+<link href="assets/stylesheets/extra-style.rhyyu_cb.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -703,13 +703,17 @@ pipx<span style="color: #6E7681"> </span>install<span style="color: #6E7681"> </
 bbot<span style="color: #6E7681"> </span>--help
 </code></pre></div>
 <h3 id="docker"><a href="https://hub.docker.com/r/blacklanternsecurity/bbot">Docker</a></h3>
-<p>Docker images are provided, along with helper script <code>bbot-docker.sh</code> to persist your scan data.</p>
+<p>Docker images are provided, along with helper script <code>bbot-docker.sh</code> to persist your scan data. Images come in four flavors: <code>dev</code>, <code>dev-full</code>, <code>stable</code>, and <code>stable-full</code>. <code>dev</code> is the latest bleeding edge version. <code>-full</code> images are larger and have all of BBOT's module dependencies preinstalled (wordlists, pip packages, etc.).</p>
 <p>Scans are output to <code>~/.bbot/scans</code> (the usual place for BBOT scan data).</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># bleeding edge (dev)</span>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># dev (bleeding edge)</span>
 docker<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>-it<span style="color: #6E7681"> </span>blacklanternsecurity/bbot<span style="color: #6E7681"> </span>--help
+<span style="color: #8B949E; font-style: italic"># dev (bleeding edge - full)</span>
+docker<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>-it<span style="color: #6E7681"> </span>blacklanternsecurity/bbot:dev-full<span style="color: #6E7681"> </span>--help
 
 <span style="color: #8B949E; font-style: italic"># stable</span>
 docker<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>-it<span style="color: #6E7681"> </span>blacklanternsecurity/bbot:stable<span style="color: #6E7681"> </span>--help
+<span style="color: #8B949E; font-style: italic"># stable (full)</span>
+docker<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>-it<span style="color: #6E7681"> </span>blacklanternsecurity/bbot:stable-full<span style="color: #6E7681"> </span>--help
 
 <span style="color: #8B949E; font-style: italic"># helper script</span>
 git<span style="color: #6E7681"> </span>clone<span style="color: #6E7681"> </span>https://github.com/blacklanternsecurity/bbot<span style="color: #6E7681"> </span><span style="color: #FF7B72; font-weight: bold">&amp;&amp;</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">cd</span><span style="color: #6E7681"> </span>bbot

@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.qfa5vgyd.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.rhyyu_cb.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -497,9 +497,9 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#setup">
+<a class="md-nav__link" href="#setup_deps-and-setup">
 <span class="md-ellipsis">
-      setup()
+      setup_deps() and setup()
     </span>
 </a>
 </li>
@@ -767,8 +767,10 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <h2 id="handle_event-and-emit_event"><code>handle_event()</code> and <code>emit_event()</code></h2>
 <p>The <code>handle_event()</code> method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an <a href="./scanning/events.md">event</a> from your <code>watched_events</code> is encountered (a <code>DNS_NAME</code> in this example), <code>handle_event()</code> is automatically called with that event as its argument.</p>
 <p>The <code>emit_event()</code> method is how modules return data. When you call <code>emit_event()</code>, it creates an <a href="./scanning/events.md">event</a> and outputs it, sending it any modules that are interested in that data type.</p>
-<h2 id="setup"><code>setup()</code></h2>
-<p>A module's <code>setup()</code> method is used for performing one-time setup at the start of the scan, like downloading a wordlist or checking to make sure an API key is valid. It needs to return either:</p>
+<h2 id="setup_deps-and-setup"><code>setup_deps()</code> and <code>setup()</code></h2>
+<p><code>setup_deps()</code> and <code>setup()</code> are used for performing one-time setup at the start of the scan.</p>
+<p><code>setup_deps()</code> is reserved for downloading or installing any dependencies not covered by Ansible, i.e. AI models or wordlists. Any other one-time setup tasks can be put into <code>setup()</code>.</p>
+<p>These methods must return either:</p>
 <ol>
 <li><code>True</code> - module setup succeeded</li>
 <li><code>None</code> - module setup soft-failed (scan will continue but module will be disabled)</li>
@@ -779,16 +781,16 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
     <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"api_key"</span><span style="color: #E6EDF3">):</span>
         <span style="color: #8B949E; font-style: italic"># soft-fail</span>
         <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"No API key specified"</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
 
-<span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup</span><span style="color: #E6EDF3">(self):</span>
-    <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #E6EDF3">wordlist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist(</span><span style="color: #A5D6FF">"https://raw.githubusercontent.com/user/wordlist.txt"</span><span style="color: #E6EDF3">)</span>
-    <span style="color: #FF7B72">except</span> <span style="color: #E6EDF3">WordlistError</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
-        <span style="color: #8B949E; font-style: italic"># hard-fail</span>
-        <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Error downloading wordlist: {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}"</span>
+<span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_deps</span><span style="color: #E6EDF3">(self):</span>
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist(</span><span style="color: #A5D6FF">"https://raw.githubusercontent.com/user/wordlist.txt"</span><span style="color: #E6EDF3">)</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
 
 <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup</span><span style="color: #E6EDF3">(self):</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timeout</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"timeout"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">5</span><span style="color: #E6EDF3">)</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timeout</span> <span style="color: #FF7B72; font-weight: bold">&lt;=</span> <span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">:</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"Timeout must be greater than or equal to 0"</span>
     <span style="color: #8B949E; font-style: italic"># success</span>
     <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
 </code></pre></div>
