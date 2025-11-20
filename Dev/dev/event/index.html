@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.jcmirzd8.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.nztvch_w.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -990,7 +990,7 @@ it updates the event based on the additional parameters provided.</p>
 
     <span style="color: #8B949E; font-style: italic"># if data is already an event, update it with the user's kwargs</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">is_event(data):</span>
-        <span style="color: #E6EDF3">event</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">copy(data)</span>
+        <span style="color: #E6EDF3">event</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>  <span style="color: #8B949E; font-style: italic"># this line used to be event = copy(data), and I don't know why. but it was breaking shit. because make_event() was being called multiple times and making shadow copies of events that were slightly different, i.e. one being internal and the other not.</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan:</span>
             <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">scan</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">module</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
