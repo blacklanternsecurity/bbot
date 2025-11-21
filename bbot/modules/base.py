@@ -4,8 +4,8 @@ import traceback
 from sys import exc_info
 from contextlib import suppress
 
-from ..errors import ValidationError
 from ..core.helpers.misc import get_size  # noqa
+from ..errors import ValidationError, WebError
 from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
 
 
@@ -165,7 +165,6 @@ class BaseModule:
         self._default_handle_batch_timeout = self.scan.config.get(
             "module_handle_batch_timeout", 60 * 60 * 2
         )  # 2 hours
-        self._event_handler_watchdog_task = None
         self._event_handler_watchdog_interval = self.event_handler_timeout / 10
 
         # used for optional "per host" tracking
@@ -211,6 +210,14 @@ class BaseModule:
             >>>     return True
         """
 
+        return True
+
+    async def setup_deps(self):
+        """
+        Similar to setup(), but reserved for installing dependencies not covered by Ansible.
+
+        This should always be used to install static dependencies like AI models, wordlists, etc.
+        """
         return True
 
     async def handle_event(self, event, **kwargs):
@@ -615,44 +622,32 @@ class BaseModule:
             asyncio.create_task(self._worker(), name=f"{self.scan.name}.{self.name}._worker()")
             for _ in range(self.module_threads)
         ]
-        self._event_handler_watchdog_task = asyncio.create_task(
+        watchdog_task = asyncio.create_task(
             self._event_handler_watchdog(),
             name=f"{self.scan.name}.{self.name}._event_handler_watchdog()",
         )
+        self._tasks.append(watchdog_task)
 
-    async def _setup(self):
-        """
-        Asynchronously sets up the module by invoking its 'setup()' method.
-
-        This method catches exceptions during setup, sets the module's error state if necessary, and determines the
-        status code based on the result of the setup process.
-
-        Args:
-            None
-
-        Returns:
-            tuple: A tuple containing the module's name, status (True for success, False for hard-fail, None for soft-fail),
-            and an optional status message.
-
-        Raises:
-            Exception: Captured exceptions from the 'setup()' method are logged, but not propagated.
-
-        Notes:
-            - The 'setup()' method can return either a simple boolean status or a tuple of status and message.
-            - A WordlistError exception triggers a soft-fail status.
-            - The debug log will contain setup status information for the module.
-        """
+    async def _setup(self, deps_only=False):
+        """ """
         status_codes = {False: "hard-fail", None: "soft-fail", True: "success"}
 
         status = False
         self.debug(f"Setting up module {self.name}")
         try:
-            result = await self.setup()
-            if type(result) == tuple and len(result) == 2:
-                status, msg = result
-            else:
-                status = result
-                msg = status_codes[status]
+            funcs = [self.setup_deps]
+            if not deps_only:
+                funcs.append(self.setup)
+            for func in funcs:
+                self.debug(f"Running {self.name}.{func.__name__}()")
+                result = await func()
+                if type(result) == tuple and len(result) == 2:
+                    status, msg = result
+                else:
+                    status = result
+                    msg = status_codes[status]
+                if status is False:
+                    break
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
             self.set_error_state(f"Unexpected error during module setup: {e}", critical=True)
@@ -1254,6 +1249,24 @@ class BaseModule:
 
         return r
 
+    async def api_download(self, url, **kwargs):
+        """
+        A wrapper around the `download()` web helper that incorporates API key cycling.
+        """
+        error = None
+        raise_error = kwargs.pop("raise_error", False)
+        for _ in range(self.api_retries):
+            new_url, kwargs = self.prepare_api_request(url, kwargs)
+            if "raise_error" not in kwargs:
+                kwargs["raise_error"] = True
+            try:
+                return await self.helpers.download(new_url, **kwargs)
+            except WebError as e:
+                error = e
+                self.cycle_api_key()
+        if raise_error:
+            raise error
+
     def _get_retry_after(self, r):
         # try to get retry_after from headers first
         headers = getattr(r, "headers", {})
@@ -1721,6 +1734,7 @@ class BaseInterceptModule(BaseModule):
     """
 
     accept_dupes = True
+    accept_url_special = True
     _intercept = True
 
     async def _worker(self):

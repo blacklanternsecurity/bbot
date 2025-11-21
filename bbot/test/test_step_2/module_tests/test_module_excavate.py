@@ -48,6 +48,21 @@ class TestExcavate(ModuleTestBase):
 
         module_test.httpserver.no_handler_status_code = 404
 
+    async def setup_after_prep(self, module_test):
+        # here we create a dummy module to consume all events including internal ones
+
+        class DummyModule(BaseModule):
+            watched_events = ["*"]
+            _name = "dummy_module"
+            accept_dupes = True
+            accept_url_special = True
+            events_seen = []
+
+            async def handle_event(self, event):
+                self.events_seen.append(event)
+
+        module_test.scan.modules["dummy_module"] = DummyModule(module_test.scan)
+
     def check(self, module_test, events):
         event_data = [e.data for e in events]
         assert "https://www1.test.notreal/" in event_data
@@ -63,10 +78,16 @@ class TestExcavate(ModuleTestBase):
         assert "www7.test.notreal" in event_data
         assert "www8.test.notreal" in event_data
         # .js files should be emitted as URL_UNVERIFIED events (they are processed by httpx which has accept_js_url=True)
-        assert "http://127.0.0.1:8888/a_relative.js" in event_data
-        assert "http://127.0.0.1:8888/link_relative.js" in event_data
+        # they are seen by internal modules but not by output modules
+        assert "http://127.0.0.1:8888/a_relative.js" not in event_data
+        assert "http://127.0.0.1:8888/link_relative.js" not in event_data
         assert "http://127.0.0.1:8888/a_relative.txt" in event_data
         assert "http://127.0.0.1:8888/link_relative.txt" in event_data
+        dummy_module_event_data = [e.data for e in module_test.scan.modules["dummy_module"].events_seen]
+        assert "http://127.0.0.1:8888/a_relative.js" in dummy_module_event_data
+        assert "http://127.0.0.1:8888/link_relative.js" in dummy_module_event_data
+        assert "http://127.0.0.1:8888/a_relative.txt" in dummy_module_event_data
+        assert "http://127.0.0.1:8888/link_relative.txt" in dummy_module_event_data
 
         assert "nhttps://www1.test.notreal/" not in event_data
         assert "x3dhttps://www2.test.notreal/" not in event_data
@@ -180,16 +201,19 @@ class TestExcavateInScopeJavascript(TestExcavate):
         )
 
     def check(self, module_test, events):
-        found_js_url_event = False
-        found_badsecrets_vulnerability = False
-        found_excavate_jwt_finding = False
-        for e in events:
-            if e.type == "URL" and e.data == "http://127.0.0.1:8888/script.js":
-                found_js_url_event = True
-            if e.type == "FINDING" and "JWT" in e.data["description"] and str(e.module) == "excavate":
-                found_excavate_jwt_finding = True
-            if e.type == "VULNERABILITY":
-                found_badsecrets_vulnerability = True
+        found_js_url_event = bool(
+            [e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/script.js"]
+        )
+        found_excavate_jwt_finding = bool(
+            [
+                e
+                for e in events
+                if e.type == "FINDING" and "JWT" in e.data["description"] and str(e.module) == "excavate"
+            ]
+        )
+        found_badsecrets_vulnerability = bool(
+            [e for e in events if e.type == "VULNERABILITY" and str(e.module) == "badsecrets"]
+        )
 
         assert found_js_url_event, "Failed to find URL event for script.js"
         assert found_badsecrets_vulnerability, "Failed to find BADSECRETs event from script.js"

@@ -491,7 +491,7 @@ class Scanner:
         for module in self.modules.values():
             module.start()
 
-    async def setup_modules(self, remove_failed=True):
+    async def setup_modules(self, remove_failed=True, deps_only=False):
         """Asynchronously initializes all loaded modules by invoking their `setup()` methods.
 
         Args:
@@ -516,7 +516,7 @@ class Scanner:
         hard_failed = []
         soft_failed = []
 
-        async for task in self.helpers.as_completed([m._setup() for m in self.modules.values()]):
+        async for task in self.helpers.as_completed([m._setup(deps_only=deps_only) for m in self.modules.values()]):
             module, status, msg = await task
             if status is True:
                 self.debug(f"Setup succeeded for {module.name} ({msg})")

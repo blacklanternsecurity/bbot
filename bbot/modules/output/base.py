@@ -40,19 +40,16 @@ class BaseOutputModule(BaseModule):
 
         # omit certain event types
         if event._omit:
-            if "target" in event.tags:
-                reason = "it's a target"
-                self.debug(f"Allowing omitted event: {event} because {reason}")
-            elif event.type in self.get_watched_events():
+            if event.type in self.get_watched_events():
                 reason = "its type is explicitly in watched_events"
                 self.debug(f"Allowing omitted event: {event} because {reason}")
             else:
-                return False, "_omit is True"
+                return False, "its type is omitted in the config"
 
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance
         if event._internal:
-            return False, "_internal is True"
+            return False, "event is internal and output modules don't accept internal events"
 
         return True, reason
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bbot"
-version = "2.7.1"
+version = "2.7.2"
 description = "OSINT automation for hackers."
 authors = [
     "TheTechromancer",
@@ -71,11 +71,11 @@ pytest-timeout = "^2.3.1"
 pytest-httpserver = "^1.0.11"
 pytest = "^8.3.1"
 pytest-asyncio = "1.2.0"
-uvicorn = ">=0.32,<0.38"
-fastapi = ">=0.115.5,<0.120.0"
+uvicorn = ">=0.32,<0.39"
+fastapi = ">=0.115.5,<0.122.0"
 pytest-httpx = ">=0.35"
 pytest-benchmark = ">=4,<6"
-ruff = "0.14.0"
+ruff = "0.14.3"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"
@@ -121,7 +121,7 @@ lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v2.7.1{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v2.7.2{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]

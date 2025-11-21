@@ -56,7 +56,6 @@ class ModuleLoader:
         self._shared_deps = dict(SHARED_DEPS)
 
         self.__preloaded = {}
-        self._modules = {}
         self._configs = {}
         self.flag_choices = set()
         self.all_module_choices = set()
@@ -463,7 +462,6 @@ class ModuleLoader:
         for module_name in module_names:
             module = self.load_module(module_name)
             modules[module_name] = module
-            self._modules[module_name] = module
         return modules
 
     def load_module(self, module_name):

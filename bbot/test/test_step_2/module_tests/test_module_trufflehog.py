@@ -16,6 +16,7 @@ class TestTrufflehog(ModuleTestBase):
         "modules": {
             "postman_download": {"api_key": "asdf", "output_folder": str(download_dir)},
             "docker_pull": {"output_folder": str(download_dir)},
+            "github_org": {"api_key": "asdf"},
             "git_clone": {"output_folder": str(download_dir)},
         }
     }
@@ -34,7 +35,9 @@ class TestTrufflehog(ModuleTestBase):
     file_content = "Verifiable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifiable Secret:\nhttps://admin:admin@internal.host.com"
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
+        )
         module_test.httpx_mock.add_response(
             url="https://api.getpostman.com/me",
             json={
@@ -68,6 +71,7 @@ class TestTrufflehog(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
+            match_headers={"Authorization": "token asdf"},
             json={
                 "login": "blacklanternsecurity",
                 "id": 25311592,
@@ -103,6 +107,7 @@ class TestTrufflehog(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
+            match_headers={"Authorization": "token asdf"},
             json=[
                 {
                     "id": 459780477,
@@ -310,6 +315,7 @@ class TestTrufflehog(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows?per_page=100&page=1",
+            match_headers={"Authorization": "token asdf"},
             json={
                 "total_count": 3,
                 "workflows": [
@@ -330,6 +336,7 @@ class TestTrufflehog(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?status=success&per_page=1",
+            match_headers={"Authorization": "token asdf"},
             json={
                 "total_count": 2993,
                 "workflow_runs": [
@@ -576,6 +583,7 @@ class TestTrufflehog(ModuleTestBase):
         )
         module_test.httpx_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
+            match_headers={"Authorization": "token asdf"},
             headers={
                 "location": "https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02"
             },
@@ -1221,6 +1229,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             "trufflehog": {"only_verified": False},
             "docker_pull": {"output_folder": str(download_dir)},
             "postman_download": {"api_key": "asdf", "output_folder": str(download_dir)},
+            "github_org": {"api_key": "asdf"},
             "git_clone": {"output_folder": str(download_dir)},
         }
     }

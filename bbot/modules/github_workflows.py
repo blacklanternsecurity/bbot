@@ -8,11 +8,12 @@ from bbot.modules.templates.github import github
 class github_workflows(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["passive", "safe", "code-enum", "download"]
     meta = {
         "description": "Download a github repositories workflow logs and workflow artifacts",
         "created_date": "2024-04-29",
         "author": "@domwhewell-sage",
+        "auth_required": True,
     }
     options = {"api_key": "", "num_logs": 1, "output_folder": ""}
     options_desc = {
@@ -152,7 +153,7 @@ class github_workflows(github):
         filename = f"run_{run_id}.zip"
         file_destination = folder / filename
         try:
-            await self.helpers.download(
+            await self.api_download(
                 f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs",
                 filename=file_destination,
                 headers=self.headers,
@@ -166,7 +167,7 @@ class github_workflows(github):
             status_code = getattr(response, "status_code", 0)
             if status_code == 403:
                 self.warning(
-                    f"The current access key does not have access to workflow {owner}/{repo}/{run_id} (status: {status_code})"
+                    f"The current access key does not have access to workflow {owner}/{repo}/{run_id}, The API key must have the 'repo' scope or read 'Actions' repository permissions (status: {status_code})"
                 )
             else:
                 self.info(
@@ -212,7 +213,7 @@ class github_workflows(github):
         self.helpers.mkdir(folder)
         file_destination = folder / artifact_name
         try:
-            await self.helpers.download(
+            await self.api_download(
                 f"{self.base_url}/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip",
                 filename=file_destination,
                 headers=self.headers,
@@ -228,6 +229,6 @@ class github_workflows(github):
             status_code = getattr(response, "status_code", 0)
             if status_code == 403:
                 self.warning(
-                    f"The current access key does not have access to workflow artifacts {owner}/{repo}/{artifact_id} (status: {status_code})"
+                    f"The current access key does not have access to workflow artifacts {owner}/{repo}/{artifact_id}, The API key must have the 'repo' scope or read 'Actions' repository permissions (status: {status_code})"
                 )
         return file_destination

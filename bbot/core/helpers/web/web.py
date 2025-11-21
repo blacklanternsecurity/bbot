@@ -267,7 +267,8 @@ class WebHelper(EngineClient):
         if not path:
             raise WordlistError(f"Invalid wordlist: {path}")
         if "cache_hrs" not in kwargs:
-            kwargs["cache_hrs"] = 720
+            # 4320 hrs = 180 days = 6 months
+            kwargs["cache_hrs"] = 4320
         if self.parent_helper.is_url(path):
             filename = await self.download(str(path), **kwargs)
             if filename is None:
