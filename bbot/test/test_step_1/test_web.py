@@ -572,6 +572,7 @@ async def test_api_download_api_key_cycle(bbot_scanner, bbot_httpserver):
     bbot_httpserver.expect_request(uri=endpoint).respond_with_handler(handler)
 
     scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
     module = BaseModule(scan)
     module.api_key = ["k1", "k2"]
 
