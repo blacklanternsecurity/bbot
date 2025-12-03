@@ -29,6 +29,7 @@ class virtualhost(BaseModule):
         return formatted_headers
 
     deps_common = ["curl"]
+    deps_pip = ["pyOpenSSL~=25.3.0"]
 
     SIMILARITY_THRESHOLD = 0.8
     CANARY_LENGTH = 12
