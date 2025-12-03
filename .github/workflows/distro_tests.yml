@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: ["ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "kalilinux/kali-rolling", "parrotsec/security"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install Python and Poetry
         run: |
           if [ -f /etc/os-release ]; then

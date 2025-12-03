@@ -460,7 +460,12 @@ class ModuleLoader:
     def load_modules(self, module_names):
         modules = {}
         for module_name in module_names:
-            module = self.load_module(module_name)
+            try:
+                module = self.load_module(module_name)
+            except ModuleNotFoundError as e:
+                raise BBOTError(
+                    f"Error loading module {module_name}: {e}. You may have leftover artifacts from an older version of BBOT. Try deleting/renaming your '~/.bbot' directory."
+                ) from e
             modules[module_name] = module
         return modules
 

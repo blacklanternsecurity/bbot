@@ -16,6 +16,7 @@ from secrets import token_bytes
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
+from bbot import __version__
 from ..misc import can_sudo_without_password, os_platform, rm_at_exit, get_python_constraints
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
@@ -174,6 +175,7 @@ class DepsInstaller:
                     + self.venv
                     + str(self.parent_helper.bbot_home)
                     + os.uname()[1]
+                    + str(__version__)
                 ).hexdigest()
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
