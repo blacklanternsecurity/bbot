@@ -32,16 +32,20 @@ bbot --help
 
 ### [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot)
 
-Docker images are provided, along with helper script `bbot-docker.sh` to persist your scan data.
+Docker images are provided, along with helper script `bbot-docker.sh` to persist your scan data. Images come in four flavors: `dev`, `dev-full`, `stable`, and `stable-full`. `dev` is the latest bleeding edge version. `-full` images are larger and have all of BBOT's module dependencies preinstalled (wordlists, pip packages, etc.).
 
 Scans are output to `~/.bbot/scans` (the usual place for BBOT scan data).
 
 ```bash
-# bleeding edge (dev)
+# dev (bleeding edge)
 docker run -it blacklanternsecurity/bbot --help
+# dev (bleeding edge - full)
+docker run -it blacklanternsecurity/bbot:dev-full --help
 
 # stable
 docker run -it blacklanternsecurity/bbot:stable --help
+# stable (full)
+docker run -it blacklanternsecurity/bbot:stable-full --help
 
 # helper script
 git clone https://github.com/blacklanternsecurity/bbot && cd bbot

@@ -37,12 +37,15 @@ class ffuf(BaseModule):
 
     in_scope_only = True
 
+    async def setup_deps(self):
+        self.wordlist = await self.helpers.wordlist(self.config.get("wordlist"))
+        return True
+
     async def setup(self):
         self.proxy = self.scan.web_config.get("http_proxy", "")
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
-        self.wordlist = await self.helpers.wordlist(wordlist_url)
         self.wordlist_lines = self.generate_wordlist(self.wordlist)
         self.tempfile, tempfile_len = self.generate_templist()
         self.rate = self.config.get("rate", 0)

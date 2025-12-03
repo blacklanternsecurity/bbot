@@ -11,7 +11,7 @@ class lightfuzz(BaseModule):
 
     options = {
         "force_common_headers": False,
-        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial"],
+        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
         "disable_post": False,
     }
     options_desc = {

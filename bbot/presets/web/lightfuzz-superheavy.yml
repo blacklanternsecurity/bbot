@@ -8,6 +8,6 @@ config:
   modules:
     lightfuzz:
       force_common_headers: True # Fuzz common headers like X-Forwarded-For even if they're not observed on the target
-      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss]
+      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi]
     excavate:
       speculate_params: True # speculate potential parameters extracted from JSON/XML web responses

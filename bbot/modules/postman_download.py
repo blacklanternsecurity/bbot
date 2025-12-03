@@ -7,7 +7,7 @@ from bbot.modules.templates.postman import postman
 class postman_download(postman):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
+    flags = ["passive", "subdomain-enum", "safe", "code-enum", "download"]
     meta = {
         "description": "Download workspaces, collections, requests from Postman",
         "created_date": "2024-09-07",

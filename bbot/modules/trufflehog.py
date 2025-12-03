@@ -41,11 +41,14 @@ class trufflehog(BaseModule):
 
     scope_distance_modifier = 2
 
-    async def setup(self):
-        self.verified = self.config.get("only_verified", True)
+    async def setup_deps(self):
         self.config_file = self.config.get("config", "")
         if self.config_file:
             self.config_file = await self.helpers.wordlist(self.config_file)
+        return True
+
+    async def setup(self):
+        self.verified = self.config.get("only_verified", True)
         self.concurrency = int(self.config.get("concurrency", 8))
 
         self.deleted_forks = self.config.get("deleted_forks", False)

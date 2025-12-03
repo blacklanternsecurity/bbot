@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class apkpure(BaseModule):
     watched_events = ["MOBILE_APP"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["passive", "safe", "code-enum", "download"]
     meta = {
         "description": "Download android applications from apkpure.com",
         "created_date": "2024-10-11",

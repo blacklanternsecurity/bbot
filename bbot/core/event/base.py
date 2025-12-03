@@ -1839,7 +1839,7 @@ def make_event(
 
     # if data is already an event, update it with the user's kwargs
     if is_event(data):
-        event = copy(data)
+        event = data  # this line used to be event = copy(data), and I don't know why. but it was breaking shit. because make_event() was being called multiple times and making shadow copies of events that were slightly different, i.e. one being internal and the other not.
         if scan is not None and not event.scan:
             event.scan = scan
         if module is not None:

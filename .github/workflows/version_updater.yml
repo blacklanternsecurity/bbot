@@ -9,7 +9,7 @@ jobs:
   update-nuclei-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: dev
           fetch-depth: 0
@@ -61,7 +61,7 @@ jobs:
   update-trufflehog-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: dev
           fetch-depth: 0

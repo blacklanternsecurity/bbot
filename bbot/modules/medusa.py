@@ -1,6 +1,5 @@
 import re
 from bbot.modules.base import BaseModule
-from bbot.errors import WordlistError
 
 
 class medusa(BaseModule):
@@ -102,13 +101,11 @@ class medusa(BaseModule):
         },
     ]
 
-    async def setup(self):
-        # Try to cache wordlist
-        try:
-            self.snmp_wordlist_path = await self.helpers.wordlist(self.config.get("snmp_wordlist"))
-        except WordlistError as e:
-            return False, f"Error retrieving wordlist: {e}"
+    async def setup_deps(self):
+        self.snmp_wordlist_path = await self.helpers.wordlist(self.config.get("snmp_wordlist"))
+        return True
 
+    async def setup(self):
         self.password_match_regex = re.compile(r"Password:\s*(\S+)")
         self.success_indicator_match_regex = re.compile(r"\[([^\]]+)\]\s*$")
 
