@@ -131,7 +131,12 @@ class virtualhost(BaseModule):
 
             is_https = event.parsed_url.scheme == "https"
 
+            if not event.resolved_hosts:
+                self.debug(f"HANDLE EVENT METHOD: No resolved hosts for {normalized_url}, skipping virtual host check")
+                return None
+
             host_ip = next(iter(event.resolved_hosts))
+
             try:
                 baseline_response = await self._get_baseline_response(event, normalized_url, host_ip)
             except CurlError as e:
@@ -1030,6 +1035,11 @@ class virtualhost(BaseModule):
 
                 # Get fresh canary and original response for this host
                 is_https = host_parsed_url.scheme == "https"
+
+                if not event.resolved_hosts:
+                    self.debug(f"FINISH METHOD: No resolved hosts for {host}, skipping wordcloud check")
+                    continue
+
                 host_ip = next(iter(event.resolved_hosts))
 
                 self.verbose(f"FINISH METHOD: Starting wildcard check for {host}")
