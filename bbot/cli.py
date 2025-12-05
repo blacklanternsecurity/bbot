@@ -7,7 +7,7 @@ import multiprocessing
 from bbot.errors import *
 from bbot import __version__
 from bbot.logger import log_to_stderr
-from bbot.core.helpers.misc import chain_lists, rm_rf
+from bbot.core.helpers.misc import chain_lists
 
 
 if multiprocessing.current_process().name == "MainProcess":
@@ -34,13 +34,8 @@ async def _main():
     import traceback
     from contextlib import suppress
 
-    # fix tee buffering (only if on real TTY)
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            if sys.stdout.isatty():
-                sys.stdout.reconfigure(line_buffering=True)
-        except Exception:
-            pass
+    # fix tee buffering
+    sys.stdout.reconfigure(line_buffering=True)
 
     log = logging.getLogger("bbot.cli")
 
@@ -61,6 +56,10 @@ async def _main():
             return
         # ensure arguments (-c config options etc.) are valid
         options = preset.args.parsed
+        # apply CLI log level options (e.g. --debug/--verbose/--silent) to the
+        # global core logger even for CLI-only commands (like --install-all-deps)
+        # that don't construct a full Scanner.
+        preset.apply_log_level(apply_core=True)
 
         # print help if no arguments
         if len(sys.argv) == 1:
@@ -95,7 +94,8 @@ async def _main():
                 preset._default_output_modules = options.output_modules
                 preset._default_internal_modules = []
 
-            await preset.bake()
+            # Bake a temporary copy of the preset so that flags correctly enable their associated modules before listing them
+            preset = await preset.bake()
 
             # --list-modules
             if options.list_modules:
@@ -149,16 +149,28 @@ async def _main():
                 print(row)
             return
 
-        try:
-            scan = Scanner(preset=preset)
-        except (PresetAbortError, ValidationError) as e:
-            log.warning(str(e))
+        baked_preset = await preset.bake()
+
+        # --current-preset / --current-preset-full
+        if options.current_preset or options.current_preset_full:
+            # Ensure we always have a human-friendly description. Prefer an
+            # explicit scan_name if present, otherwise fall back to the
+            # preset name (e.g. "bbot_cli_main").
+            if not baked_preset.description:
+                if baked_preset.scan_name:
+                    baked_preset.description = str(baked_preset.scan_name)
+                elif baked_preset.name:
+                    baked_preset.description = str(baked_preset.name)
+            if options.current_preset_full:
+                print(baked_preset.to_yaml(full_config=True))
+            else:
+                print(baked_preset.to_yaml())
+            sys.exit(0)
             return
 
-        await scan._prep()
-
+        # deadly modules (no scan required yet)
         deadly_modules = [
-            m for m in scan.preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])
+            m for m in baked_preset.scan_modules if "deadly" in baked_preset.preloaded_module(m).get("flags", [])
         ]
         if deadly_modules and not options.allow_deadly:
             log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
@@ -166,44 +178,39 @@ async def _main():
             log.hugewarning("Please specify --allow-deadly to continue")
             return False
 
-        # --current-preset
-        if options.current_preset:
-            print(scan.preset.to_yaml())
-            sys.exit(0)
-            return
-
-        # --current-preset-full
-        if options.current_preset_full:
-            print(scan.preset.to_yaml(full_config=True))
-            sys.exit(0)
+        try:
+            scan = Scanner(preset=baked_preset)
+        except (PresetAbortError, ValidationError) as e:
+            log.warning(str(e))
             return
 
         # --install-all-deps
         if options.install_all_deps:
+            # create a throwaway Scanner solely so that Preset.bake(scan) can perform find_and_replace() on all module configs so that placeholders like "#{BBOT_TOOLS}" are resolved before running Ansible tasks.
+            from bbot.scanner import Scanner as _ScannerForDeps
+
             preloaded_modules = preset.module_loader.preloaded()
-            scan_modules = [k for k, v in preloaded_modules.items() if str(v.get("type", "")) == "scan"]
-            output_modules = [k for k, v in preloaded_modules.items() if str(v.get("type", "")) == "output"]
-            log.verbose("Creating dummy scan with all modules + output modules for deps installation")
-            dummy_scan = Scanner(preset=preset, modules=scan_modules, output_modules=output_modules)
-            dummy_scan.helpers.depsinstaller.force_deps = True
+            modules_for_deps = [
+                k for k, v in preloaded_modules.items() if str(v.get("type", "")) in ("scan", "output")
+            ]
+
+            # dummy scan used only for environment preparation
+            dummy_scan = _ScannerForDeps(preset=preset)
+            await dummy_scan._unbaked_preset.bake(dummy_scan)
+
+            helper = dummy_scan.helpers
             log.info("Installing module dependencies")
-            await dummy_scan.load_modules()
-            log.verbose("Running module setups")
-            succeeded, hard_failed, soft_failed = await dummy_scan.setup_modules(deps_only=True)
-            # remove any leftovers from the dummy scan
-            rm_rf(dummy_scan.home, ignore_errors=True)
-            rm_rf(dummy_scan.temp_dir, ignore_errors=True)
+            succeeded, failed = await helper.depsinstaller.install(*modules_for_deps)
             if succeeded:
                 log.success(
                     f"Successfully installed dependencies for {len(succeeded):,} modules: {','.join(succeeded)}"
                 )
-            if soft_failed or hard_failed:
-                failed = soft_failed + hard_failed
+            if failed:
                 log.warning(f"Failed to install dependencies for {len(failed):,} modules: {', '.join(failed)}")
                 return False
             return True
 
-        scan_name = str(scan.name)
+        await scan._prep()
 
         log.verbose("")
         log.verbose("### MODULES ENABLED ###")
@@ -213,17 +220,18 @@ async def _main():
 
         scan.helpers.word_cloud.load()
 
+        scan_name = str(scan.name)
+
         if not options.dry_run:
             log.trace(f"Command: {' '.join(sys.argv)}")
 
+            # In some environments (e.g. tests) stdin may be closed or not support isatty(). Treat those cases as non-interactive.
             try:
-                is_tty = (
-                    hasattr(sys.stdin, "isatty") and not getattr(sys.stdin, "closed", False) and sys.stdin.isatty()
-                )
-            except Exception:
-                is_tty = False
+                stdin_is_tty = sys.stdin.isatty()
+            except (ValueError, io.UnsupportedOperation):
+                stdin_is_tty = False
 
-            if is_tty:
+            if stdin_is_tty:
                 # warn if any targets belong directly to a cloud provider
                 if not scan.preset.strict_scope:
                     for event in scan.target.seeds.event_seeds:
