@@ -66,7 +66,7 @@ class TestNucleiSevere(TestNucleiManual):
             "nuclei": {
                 "mode": "severe",
                 "concurrency": 1,
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/vulnerabilities/generic/generic-env.yaml",
+                "templates": "/tmp/.bbot_test/tools/nuclei-templates/http/vulnerabilities/generic/generic-env.yaml",
             }
         },
         "interactsh_disable": True,
