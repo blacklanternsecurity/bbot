@@ -937,7 +937,13 @@ class Scanner:
 
     @property
     def helpers(self):
-        return self.preset.helpers
+        # Before `_prep()` runs, `self.preset` is None. In those cases,
+        # fall back to the unbaked preset's helpers so that CLI utilities
+        # (e.g. depsinstaller) and other lightweight helper functionality
+        # remain available without requiring a full scan prep.
+        if self.preset is not None:
+            return self.preset.helpers
+        return self._unbaked_preset.helpers
 
     @property
     def force_start(self):
