@@ -158,6 +158,9 @@ class Scanner:
         self.modules = OrderedDict({})
         self.dummy_modules = {}
         self.preset = None
+        # initial status before `_prep()` runs
+        self._status = "NOT_STARTED"
+        self._status_code = self._status_codes[self._status]
 
     async def _prep(self):
         """
@@ -216,26 +219,26 @@ class Scanner:
         self.scope_report_distance = int(self.scope_config.get("report_distance", 1))
 
         # web config
-        self.web_config = self.config.get("web", {})
-        self.web_spider_distance = self.web_config.get("spider_distance", 0)
-        self.web_spider_depth = self.web_config.get("spider_depth", 1)
-        self.web_spider_links_per_page = self.web_config.get("spider_links_per_page", 20)
-        max_redirects = self.web_config.get("http_max_redirects", 5)
+        web_config = self.config.get("web", {})
+        self.web_spider_distance = web_config.get("spider_distance", 0)
+        self.web_spider_depth = web_config.get("spider_depth", 1)
+        self.web_spider_links_per_page = web_config.get("spider_links_per_page", 20)
+        max_redirects = web_config.get("http_max_redirects", 5)
         self.web_max_redirects = max(max_redirects, self.web_spider_distance)
-        self.http_proxy = self.web_config.get("http_proxy", "")
-        self.http_timeout = self.web_config.get("http_timeout", 10)
-        self.httpx_timeout = self.web_config.get("httpx_timeout", 5)
-        self.http_retries = self.web_config.get("http_retries", 1)
-        self.httpx_retries = self.web_config.get("httpx_retries", 1)
-        self.useragent = self.web_config.get("user_agent", "BBOT")
+        self.http_proxy = web_config.get("http_proxy", "")
+        self.http_timeout = web_config.get("http_timeout", 10)
+        self.httpx_timeout = web_config.get("httpx_timeout", 5)
+        self.http_retries = web_config.get("http_retries", 1)
+        self.httpx_retries = web_config.get("httpx_retries", 1)
+        self.useragent = web_config.get("user_agent", "BBOT")
         # custom HTTP headers warning
-        self.custom_http_headers = self.web_config.get("http_headers", {})
+        self.custom_http_headers = web_config.get("http_headers", {})
         if self.custom_http_headers:
             self.warning(
                 "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
             )
         # custom HTTP cookies warning
-        self.custom_http_cookies = self.web_config.get("http_cookies", {})
+        self.custom_http_cookies = web_config.get("http_cookies", {})
         if self.custom_http_cookies:
             self.warning(
                 "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by httpx."
@@ -562,8 +565,18 @@ class Scanner:
             After all modules are loaded, they are sorted by `_priority` and stored in the `modules` dictionary.
         """
         if not self._modules_loaded:
+            # If the preset hasn't been baked yet but modules have been
+            # manually attached (e.g. in tests), skip the automatic loading
+            # pipeline and operate only on the existing modules.
+            if self.preset is None:
+                if not self.modules:
+                    self.warning("No modules to load")
+                self._modules_loaded = True
+                return
+
             if not self.preset.modules:
                 self.warning("No modules to load")
+                self._modules_loaded = True
                 return
 
             if not self.preset.scan_modules:
@@ -897,9 +910,15 @@ class Scanner:
             # clean up modules
             for mod in self.modules.values():
                 await mod._cleanup()
-            with contextlib.suppress(Exception):
-                self.home.rmdir()
-            self.helpers.rm_rf(self.temp_dir, ignore_errors=True)
+            # In some test paths, `_prep()` is never called, so `home` and
+            # `temp_dir` may not exist. Treat those as best-effort cleanups.
+            home = getattr(self, "home", None)
+            if home is not None:
+                with contextlib.suppress(Exception):
+                    home.rmdir()
+            temp_dir = getattr(self, "temp_dir", None)
+            if temp_dir is not None:
+                self.helpers.rm_rf(temp_dir, ignore_errors=True)
             self.helpers.clean_old_scans()
 
     def in_scope(self, *args, **kwargs):
@@ -913,11 +932,29 @@ class Scanner:
 
     @property
     def core(self):
-        return self.preset.core
+        # Before `_prep()` runs, fall back to the unbaked preset's core so that basic configuration is still available (during module construction in tests)
+        if self.preset is not None:
+            return self.preset.core
+        return self._unbaked_preset.core
 
     @property
     def config(self):
-        return self.preset.core.config
+        # Allow access to the scan config even before `_prep()` by falling back to the unbaked preset's core config. 
+        if self.preset is not None:
+            return self.preset.core.config
+        return self._unbaked_preset.core.config
+
+    @property
+    def web_config(self):
+        """
+        Web-related configuration for the scan.
+
+        Exposed as a property so it is available even before `_prep()` runs,
+        falling back to the underlying config's `web` section. During `_prep()`
+        an instance attribute of the same name is assigned, which will then
+        override this property for the remainder of the scan lifetime.
+        """
+        return self.config.get("web", {})
 
     @property
     def target(self):
@@ -992,12 +1029,15 @@ class Scanner:
                 if status != self._status:
                     self._status = status
                     self._status_code = self._status_codes[status]
-                    self.dispatcher_tasks.append(
-                        asyncio.create_task(
-                            self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id),
-                            name=f"{self.name}.dispatcher.on_status({status})",
+                    # During early initialization (or in certain tests),`dispatcher` may not be set yet. In that case we just update the status without scheduling dispatcher tasks
+                    dispatcher = getattr(self, "dispatcher", None)
+                    if dispatcher is not None:
+                        self.dispatcher_tasks.append(
+                            asyncio.create_task(
+                                dispatcher.catch(self.dispatcher.on_status, self._status, self.id),
+                                name=f"{self.name}.dispatcher.on_status({status})",
+                            )
                         )
-                    )
                 else:
                     self.debug(f'Scan status is already "{status}"')
         else:
