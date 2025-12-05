@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.cv3klt92.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.dlt183gv.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -858,18 +858,17 @@
 <div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">make_event(data,</span> <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">context</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents first">
-<p>Creates and returns a new event object or modifies an existing one.</p>
-<p>This function serves as a factory for creating new event objects, either by generating a new <code>Event</code>
-object or by updating an existing event with additional metadata. If <code>data</code> is already an event,
-it updates the event based on the additional parameters provided.</p>
+<p>Creates and returns a new event object.</p>
+<p>This function serves as a factory for creating new event objects from raw data.
+If you need to modify an existing event, use <code>update_event()</code> instead.</p>
 <p><span class="doc-section-title">Parameters:</span></p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code><span title="Union">Union</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>, <a class="autorefs autorefs-internal" href="#bbot.core.event.base.BaseEvent" title='&lt;span class="doc doc-object-name doc-class-name"&gt;BaseEvent&lt;/span&gt; (&lt;code&gt;bbot.core.event.base.BaseEvent&lt;/code&gt;)'>BaseEvent</a>]</code>)
+              (<code><span title="Union">Union</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>]</code>)
           –
           <div class="doc-md-description">
-<p>The primary data for the event or an existing event object.</p>
+<p>The primary data for the event.</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
@@ -976,7 +975,7 @@ it updates the event based on the additional parameters provided.</p>
 <li class="doc-section-item field-body">
 <b><code>BaseEvent</code></b>          –
           <div class="doc-md-description">
-<p>A new or updated event object.</p>
+<p>A new event object.</p>
 </div>
 </li>
 </ul>
@@ -990,87 +989,9 @@ it updates the event based on the additional parameters provided.</p>
 </div>
 </li>
 </ul>
-<p><span class="doc-section-title">Examples:</span></p>
-<p>If inside a module, e.g. from within its <code>handle_event()</code>:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">make_event(</span><span style="color: #A5D6FF">"1.2.3.4"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">event)</span>
-<span style="color: #8B949E">IP_ADDRESS("1.2.3.4", module=portscan, tags={'ipv4', 'distance-1'})</span>
-</code></pre></div>
-<p>If you're outside a module but you have a scan object:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">make_event(</span><span style="color: #A5D6FF">"1.2.3.4"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">root_event)</span>
-<span style="color: #8B949E">IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4', 'distance-1'})</span>
-</code></pre></div>
-<p>If you're outside a scan and just messing around:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.event.base</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">make_event</span>
-<span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">make_event(</span><span style="color: #A5D6FF">"1.2.3.4"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
-<span style="color: #8B949E">IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4'})</span>
-</code></pre></div>
-<details class="note" open="">
-<summary>Note</summary>
-<p>When working within a module's <code>handle_event()</code>, use the instance method
-<code>self.make_event()</code> instead of calling this function directly.</p>
-</details>
 <details class="quote">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1751</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1752</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1753</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1754</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1755</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1756</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1757</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1758</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1759</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1760</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1761</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1762</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1763</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1764</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1765</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1766</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1767</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1768</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1769</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1770</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1771</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1772</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1773</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1774</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1775</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1776</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1777</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1778</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1779</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1780</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1781</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1782</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1783</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1784</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1785</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1786</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1787</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1788</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1789</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1790</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1791</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1792</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1793</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1794</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1795</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1796</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1797</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1798</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1799</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1800</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1801</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1802</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1803</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1804</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1805</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1806</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1807</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1808</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1809</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1810</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1810</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1811</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1812</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1813</span>
@@ -1146,7 +1067,35 @@ it updates the event based on the additional parameters provided.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1883</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1884</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1885</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1886</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1886</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1887</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1888</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1889</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1890</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1891</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1892</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1893</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1894</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1895</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1896</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1897</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1898</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1899</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1900</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1901</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1902</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1903</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1904</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1905</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1906</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1907</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1908</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1909</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1910</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1911</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1912</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1913</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1914</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">data,</span>
     <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -1159,14 +1108,13 @@ it updates the event based on the additional parameters provided.</p>
     <span style="color: #E6EDF3">internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
 <span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
-<span style="color: #A5D6FF">    Creates and returns a new event object or modifies an existing one.</span>
+<span style="color: #A5D6FF">    Creates and returns a new event object.</span>
 
-<span style="color: #A5D6FF">    This function serves as a factory for creating new event objects, either by generating a new `Event`</span>
-<span style="color: #A5D6FF">    object or by updating an existing event with additional metadata. If `data` is already an event,</span>
-<span style="color: #A5D6FF">    it updates the event based on the additional parameters provided.</span>
+<span style="color: #A5D6FF">    This function serves as a factory for creating new event objects from raw data.</span>
+<span style="color: #A5D6FF">    If you need to modify an existing event, use ``update_event()`` instead.</span>
 
 <span style="color: #A5D6FF">    Parameters:</span>
-<span style="color: #A5D6FF">        data (Union[str, dict, BaseEvent]): The primary data for the event or an existing event object.</span>
+<span style="color: #A5D6FF">        data (Union[str, dict]): The primary data for the event.</span>
 <span style="color: #A5D6FF">        event_type (str, optional): Type of the event, e.g., 'IP_ADDRESS'. Auto-detected if not provided.</span>
 <span style="color: #A5D6FF">        parent (BaseEvent, optional): Parent event leading to this event's discovery.</span>
 <span style="color: #A5D6FF">        context (str, optional): Description of circumstances leading to event's discovery.</span>
@@ -1179,31 +1127,19 @@ it updates the event based on the additional parameters provided.</p>
 <span style="color: #A5D6FF">        internal (Any, optional): Makes the event internal if set to True. Defaults to None.</span>
 
 <span style="color: #A5D6FF">    Returns:</span>
-<span style="color: #A5D6FF">        BaseEvent: A new or updated event object.</span>
+<span style="color: #A5D6FF">        BaseEvent: A new event object.</span>
 
 <span style="color: #A5D6FF">    Raises:</span>
 <span style="color: #A5D6FF">        ValidationError: Raised when there's an error in event data or type sanitization.</span>
-
-<span style="color: #A5D6FF">    Examples:</span>
-<span style="color: #A5D6FF">        If inside a module, e.g. from within its `handle_event()`:</span>
-<span style="color: #A5D6FF">        &gt;&gt;&gt; self.make_event("1.2.3.4", parent=event)</span>
-<span style="color: #A5D6FF">        IP_ADDRESS("1.2.3.4", module=portscan, tags={'ipv4', 'distance-1'})</span>
-
-<span style="color: #A5D6FF">        If you're outside a module but you have a scan object:</span>
-<span style="color: #A5D6FF">        &gt;&gt;&gt; scan.make_event("1.2.3.4", parent=scan.root_event)</span>
-<span style="color: #A5D6FF">        IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4', 'distance-1'})</span>
-
-<span style="color: #A5D6FF">        If you're outside a scan and just messing around:</span>
-<span style="color: #A5D6FF">        &gt;&gt;&gt; from bbot.core.event.base import make_event</span>
-<span style="color: #A5D6FF">        &gt;&gt;&gt; make_event("1.2.3.4", dummy=True)</span>
-<span style="color: #A5D6FF">        IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4'})</span>
-
-<span style="color: #A5D6FF">    Note:</span>
-<span style="color: #A5D6FF">        When working within a module's `handle_event()`, use the instance method</span>
-<span style="color: #A5D6FF">        `self.make_event()` instead of calling this function directly.</span>
 <span style="color: #A5D6FF">    """</span>
     <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">data:</span>
         <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span><span style="color: #A5D6FF">"No data provided"</span><span style="color: #E6EDF3">)</span>
+
+    <span style="color: #8B949E; font-style: italic"># do not allow passing an existing event here – use update_event() instead</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">is_event(data):</span>
+        <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span>
+            <span style="color: #A5D6FF">"make_event() does not accept an existing event object. Use update_event(event, ...) to modify an event."</span>
+        <span style="color: #E6EDF3">)</span>
 
     <span style="color: #8B949E; font-style: italic"># allow tags to be either a string or an array</span>
     <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">tags:</span>
@@ -1212,76 +1148,58 @@ it updates the event based on the additional parameters provided.</p>
         <span style="color: #E6EDF3">tags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[tags]</span>
     <span style="color: #E6EDF3">tags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(tags)</span>
 
-    <span style="color: #8B949E; font-style: italic"># if data is already an event, update it with the user's kwargs</span>
-    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">is_event(data):</span>
-        <span style="color: #E6EDF3">event</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>  <span style="color: #8B949E; font-style: italic"># this line used to be event = copy(data), and I don't know why. but it was breaking shit. because make_event() was being called multiple times and making shadow copies of events that were slightly different, i.e. one being internal and the other not.</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan:</span>
-            <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">scan</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">module</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">module</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">parent</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">context</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">discovery_context</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">context</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">internal</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">internal</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">tags:</span>
-            <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">union(event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags)</span>
-        <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span>
-        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">event</span>
-    <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #8B949E; font-style: italic"># if event_type is not provided, autodetect it</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">event_seed</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">EventSeed(data)</span>
-            <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">event_seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span>
-            <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">event_seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">dummy:</span>
-                <span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">'Autodetected event type "{</span><span style="color: #E6EDF3">event_type</span><span style="color: #A5D6FF">}" based on data: "{</span><span style="color: #E6EDF3">data</span><span style="color: #A5D6FF">}"'</span><span style="color: #E6EDF3">)</span>
+    <span style="color: #8B949E; font-style: italic"># if event_type is not provided, autodetect it</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+        <span style="color: #E6EDF3">event_seed</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">EventSeed(data)</span>
+        <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">event_seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span>
+        <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">event_seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">dummy:</span>
+            <span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">'Autodetected event type "{</span><span style="color: #E6EDF3">event_type</span><span style="color: #A5D6FF">}" based on data: "{</span><span style="color: #E6EDF3">data</span><span style="color: #A5D6FF">}"'</span><span style="color: #E6EDF3">)</span>
 
-        <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">str(event_type)</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strip()</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">upper()</span>
+    <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">str(event_type)</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strip()</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">upper()</span>
 
-        <span style="color: #8B949E; font-style: italic"># Catch these common whoopsies</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"IP_ADDRESS"</span><span style="color: #E6EDF3">):</span>
-            <span style="color: #8B949E; font-style: italic"># DNS_NAME &lt;--&gt; EMAIL_ADDRESS confusion</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">validators</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">soft_validate(data,</span> <span style="color: #A5D6FF">"email"</span><span style="color: #E6EDF3">):</span>
-                <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"EMAIL_ADDRESS"</span>
-            <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #8B949E; font-style: italic"># DNS_NAME &lt;--&gt; IP_ADDRESS confusion</span>
-                <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
-                    <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">validators</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">validate_host(data)</span>
-                <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
-                    <span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">trace(traceback</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">format_exc())</span>
-                    <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">'Error sanitizing event data "{</span><span style="color: #E6EDF3">data</span><span style="color: #A5D6FF">}" for type "{</span><span style="color: #E6EDF3">event_type</span><span style="color: #A5D6FF">}": {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}'</span><span style="color: #E6EDF3">)</span>
-                <span style="color: #E6EDF3">data_is_ip</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">is_ip(data)</span>
-                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"DNS_NAME"</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">data_is_ip:</span>
-                    <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"IP_ADDRESS"</span>
-                <span style="color: #FF7B72">elif</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"IP_ADDRESS"</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">data_is_ip:</span>
-                    <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"DNS_NAME"</span>
-        <span style="color: #8B949E; font-style: italic"># USERNAME &lt;--&gt; EMAIL_ADDRESS confusion</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"USERNAME"</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">validators</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">soft_validate(data,</span> <span style="color: #A5D6FF">"email"</span><span style="color: #E6EDF3">):</span>
+    <span style="color: #8B949E; font-style: italic"># Catch these common whoopsies</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"IP_ADDRESS"</span><span style="color: #E6EDF3">):</span>
+        <span style="color: #8B949E; font-style: italic"># DNS_NAME &lt;--&gt; EMAIL_ADDRESS confusion</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">validators</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">soft_validate(data,</span> <span style="color: #A5D6FF">"email"</span><span style="color: #E6EDF3">):</span>
             <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"EMAIL_ADDRESS"</span>
-            <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add(</span><span style="color: #A5D6FF">"affiliate"</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #8B949E; font-style: italic"># Convert single-host IP_RANGE to IP_ADDRESS</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"IP_RANGE"</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">suppress(</span><span style="color: #F0883E; font-weight: bold">Exception</span><span style="color: #E6EDF3">):</span>
-                <span style="color: #E6EDF3">net</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">ipaddress</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ip_network(data,</span> <span style="color: #E6EDF3">strict</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
-                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">net</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">prefixlen</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">net</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">max_prefixlen:</span>
-                    <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"IP_ADDRESS"</span>
-                    <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">net</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">network_address</span>
+        <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #8B949E; font-style: italic"># DNS_NAME &lt;--&gt; IP_ADDRESS confusion</span>
+            <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
+                <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">validators</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">validate_host(data)</span>
+            <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
+                <span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">trace(traceback</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">format_exc())</span>
+                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">'Error sanitizing event data "{</span><span style="color: #E6EDF3">data</span><span style="color: #A5D6FF">}" for type "{</span><span style="color: #E6EDF3">event_type</span><span style="color: #A5D6FF">}": {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}'</span><span style="color: #E6EDF3">)</span>
+            <span style="color: #E6EDF3">data_is_ip</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">is_ip(data)</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"DNS_NAME"</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">data_is_ip:</span>
+                <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"IP_ADDRESS"</span>
+            <span style="color: #FF7B72">elif</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"IP_ADDRESS"</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">data_is_ip:</span>
+                <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"DNS_NAME"</span>
+    <span style="color: #8B949E; font-style: italic"># USERNAME &lt;--&gt; EMAIL_ADDRESS confusion</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"USERNAME"</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">validators</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">soft_validate(data,</span> <span style="color: #A5D6FF">"email"</span><span style="color: #E6EDF3">):</span>
+        <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"EMAIL_ADDRESS"</span>
+        <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add(</span><span style="color: #A5D6FF">"affiliate"</span><span style="color: #E6EDF3">)</span>
+    <span style="color: #8B949E; font-style: italic"># Convert single-host IP_RANGE to IP_ADDRESS</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"IP_RANGE"</span><span style="color: #E6EDF3">:</span>
+        <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">suppress(</span><span style="color: #F0883E; font-weight: bold">Exception</span><span style="color: #E6EDF3">):</span>
+            <span style="color: #E6EDF3">net</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">ipaddress</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ip_network(data,</span> <span style="color: #E6EDF3">strict</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">net</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">prefixlen</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">net</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">max_prefixlen:</span>
+                <span style="color: #E6EDF3">event_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"IP_ADDRESS"</span>
+                <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">net</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">network_address</span>
 
-        <span style="color: #E6EDF3">event_class</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">globals()</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(event_type,</span> <span style="color: #E6EDF3">DefaultEvent)</span>
-        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">event_class(</span>
-            <span style="color: #E6EDF3">data,</span>
-            <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">event_type,</span>
-            <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">parent,</span>
-            <span style="color: #E6EDF3">context</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">context,</span>
-            <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">module,</span>
-            <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">scan,</span>
-            <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">tags,</span>
-            <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">confidence,</span>
-            <span style="color: #E6EDF3">_dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">dummy,</span>
-            <span style="color: #E6EDF3">_internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">internal,</span>
-        <span style="color: #E6EDF3">)</span>
+    <span style="color: #E6EDF3">event_class</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">globals()</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(event_type,</span> <span style="color: #E6EDF3">DefaultEvent)</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">event_class(</span>
+        <span style="color: #E6EDF3">data,</span>
+        <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">event_type,</span>
+        <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">parent,</span>
+        <span style="color: #E6EDF3">context</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">context,</span>
+        <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">module,</span>
+        <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">scan,</span>
+        <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">tags,</span>
+        <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">confidence,</span>
+        <span style="color: #E6EDF3">_dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">dummy,</span>
+        <span style="color: #E6EDF3">_internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">internal,</span>
+    <span style="color: #E6EDF3">)</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -1335,35 +1253,7 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 </details>
 <details class="quote">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1889</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1890</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1891</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1892</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1893</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1894</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1895</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1896</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1897</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1898</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1899</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1900</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1901</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1902</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1903</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1904</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1905</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1906</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1907</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1908</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1909</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1910</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1911</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1912</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1913</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1914</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1915</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1916</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1917</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1917</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1918</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1919</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1920</span>
@@ -1389,7 +1279,35 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1940</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1941</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1942</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1943</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1943</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1944</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1945</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1946</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1947</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1948</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1949</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1950</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1951</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1952</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1953</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1954</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1955</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1956</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1957</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1958</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1959</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1960</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1961</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1962</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1963</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1964</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1965</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1966</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1967</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1968</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1969</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1970</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1971</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Creates an event object from a JSON dictionary.</span>
 
@@ -2638,7 +2556,17 @@ top of the base class.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1013</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1014</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1015</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1016</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseEvent</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1016</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1017</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1018</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1019</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1020</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1021</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1022</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1023</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1024</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1025</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1026</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseEvent</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Represents a piece of data discovered during a BBOT scan.</span>
 
@@ -3381,26 +3309,32 @@ top of the base class.</p>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__contains__</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">other):</span>
 <span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
-<span style="color: #A5D6FF">        Allows events to be compared using the "in" operator:</span>
-<span style="color: #A5D6FF">        E.g.:</span>
-<span style="color: #A5D6FF">            if some_event in other_event:</span>
-<span style="color: #A5D6FF">                ...</span>
+<span style="color: #A5D6FF">        Membership checks for Events.</span>
+
+<span style="color: #A5D6FF">        Supports:</span>
+<span style="color: #A5D6FF">            - some_event in other_event   (event vs event)</span>
+<span style="color: #A5D6FF">            - "host:port" in other_event  (string coerced to an event)</span>
 <span style="color: #A5D6FF">        """</span>
-        <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">other</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">make_event(other,</span> <span style="color: #E6EDF3">dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">except</span> <span style="color: #E6EDF3">ValidationError:</span>
-            <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">False</span>
+        <span style="color: #8B949E; font-style: italic"># Fast path: already an Event</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">is_event(other):</span>
+            <span style="color: #E6EDF3">other_event</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">other</span>
+        <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
+                <span style="color: #E6EDF3">other_event</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">make_event(other,</span> <span style="color: #E6EDF3">dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
+            <span style="color: #FF7B72">except</span> <span style="color: #E6EDF3">ValidationError:</span>
+                <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">False</span>
+
         <span style="color: #8B949E; font-style: italic"># if hashes match</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">other</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">self:</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">other_event</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">self:</span>
             <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
-        <span style="color: #8B949E; font-style: italic"># if hosts match</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host:</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host:</span>
+        <span style="color: #8B949E; font-style: italic"># if hosts match (including subnet / domain containment)</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">other_event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host:</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">other_event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host:</span>
                 <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
             <span style="color: #8B949E; font-style: italic"># hostnames and IPs</span>
             <span style="color: #E6EDF3">radixtarget</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">RadixTarget()</span>
             <span style="color: #E6EDF3">radixtarget</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">insert(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host)</span>
-            <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">bool(radixtarget</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">search(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host))</span>
+            <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">bool(radixtarget</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">search(other_event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host))</span>
         <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">False</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
@@ -3588,10 +3522,14 @@ top of the base class.</p>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">priority</span> <span style="color: #FF7B72; font-weight: bold">&gt;</span> <span style="color: #E6EDF3">getattr(other,</span> <span style="color: #A5D6FF">"priority"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">,))</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__eq__</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">other):</span>
-        <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">other</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">make_event(other,</span> <span style="color: #E6EDF3">dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">except</span> <span style="color: #E6EDF3">ValidationError:</span>
-            <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">False</span>
+<span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
+<span style="color: #A5D6FF">        Event equality is **only** defined between Event instances.</span>
+
+<span style="color: #A5D6FF">        Equality is based on the event hash (derived from its id). Comparisons to</span>
+<span style="color: #A5D6FF">        non-Event types raise a ValueError to make incorrect comparisons explicit.</span>
+<span style="color: #A5D6FF">        """</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">is_event(other):</span>
+            <span style="color: #FF7B72">raise</span> <span style="color: #F0883E; font-weight: bold">ValueError</span><span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"Event equality is only defined between Event instances"</span><span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">hash(self)</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">hash(other)</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__hash__</span><span style="color: #E6EDF3">(self):</span>
@@ -4029,13 +3967,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 </ul>
 <details class="quote">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">814</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">815</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">816</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">817</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">818</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">819</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">820</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">820</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">821</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">822</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">823</span>
@@ -4113,7 +4045,13 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">895</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">896</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">897</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">898</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">898</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">899</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">900</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">901</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">902</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">903</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">904</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Serializes the event object to a JSON-compatible dictionary.</span>
 
@@ -4236,20 +4174,20 @@ Additional specific attributes can be serialized based on the mode specified.</p
 </ul>
 <details class="quote">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">900</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">901</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">902</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">903</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">904</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">905</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">906</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">906</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">907</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">908</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">909</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">910</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">911</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">912</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">913</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">913</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">914</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">915</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">916</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">917</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">918</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">919</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_json</span><span style="color: #E6EDF3">(j):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convenience shortcut to create an Event object from a JSON-compatible dictionary.</span>
