@@ -153,8 +153,14 @@ async def _main():
 
         # --current-preset / --current-preset-full
         if options.current_preset or options.current_preset_full:
-            if not baked_preset.description and baked_preset.scan_name:
-                baked_preset.description = str(baked_preset.scan_name)
+            # Ensure we always have a human-friendly description. Prefer an
+            # explicit scan_name if present, otherwise fall back to the
+            # preset name (e.g. "bbot_cli_main").
+            if not baked_preset.description:
+                if baked_preset.scan_name:
+                    baked_preset.description = str(baked_preset.scan_name)
+                elif baked_preset.name:
+                    baked_preset.description = str(baked_preset.name)
             if options.current_preset_full:
                 print(baked_preset.to_yaml(full_config=True))
             else:
