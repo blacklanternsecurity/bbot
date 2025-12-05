@@ -939,7 +939,7 @@ class Scanner:
 
     @property
     def config(self):
-        # Allow access to the scan config even before `_prep()` by falling back to the unbaked preset's core config. 
+        # Allow access to the scan config even before `_prep()` by falling back to the unbaked preset's core config.
         if self.preset is not None:
             return self.preset.core.config
         return self._unbaked_preset.core.config
