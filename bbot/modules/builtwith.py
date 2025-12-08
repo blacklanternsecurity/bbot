@@ -33,8 +33,7 @@ class builtwith(subdomain_enum_apikey):
         subdomains = await self.query(query, parse_fn=self.parse_domains, request_fn=self.request_domains)
         if subdomains:
             for s in subdomains:
-                # `s` is a hostname string; compare against the event's data, not the Event object itself.
-                if s != event.data:
+                if s != event:
                     await self.emit_event(
                         s,
                         "DNS_NAME",
@@ -46,8 +45,7 @@ class builtwith(subdomain_enum_apikey):
             redirects = await self.query(query, parse_fn=self.parse_redirects, request_fn=self.request_redirects)
             if redirects:
                 for r in redirects:
-                    # `r` is a hostname string; compare against the event's data, not the Event object itself.
-                    if r != event.data:
+                    if r != event:
                         await self.emit_event(
                             r,
                             "DNS_NAME",

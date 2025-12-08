@@ -10,7 +10,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 from bbot import __version__
-from bbot.core.event import make_event, update_event
+from bbot.core.event import make_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
@@ -994,10 +994,6 @@ class Scanner:
         kwargs["scan"] = self
         event = make_event(*args, **kwargs)
         return event
-
-    def update_event(self, event, **kwargs):
-        kwargs["scan"] = self
-        return update_event(event, **kwargs)
 
     @property
     def root_event(self):
