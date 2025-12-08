@@ -32,22 +32,11 @@ if __name__ == "__main__":
 
 <!-- BBOT HELP OUTPUT -->
 ```text
-usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]]
-               [-b BLACKLIST [BLACKLIST ...]] [--strict-scope]
-               [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
-               [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]]
-               [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
-               [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d]
-               [-s] [--force] [-y] [--fast-mode] [--dry-run]
-               [--current-preset] [--current-preset-full] [-mh MODULE]
-               [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
-               [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
-               [--no-deps | --force-deps | --retry-deps |
-               --ignore-failed-deps | --install-all-deps] [--version]
-               [--proxy HTTP_PROXY] [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
-               [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
-               [--custom-yara-rules CUSTOM_YARA_RULES]
-               [--user-agent USER_AGENT]
+usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
+               [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v]
+               [-d] [-s] [--force] [-y] [--fast-mode] [--dry-run] [--current-preset] [--current-preset-full] [-mh MODULE] [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
+               [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [--version]
+               [--proxy HTTP_PROXY] [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]] [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]] [--custom-yara-rules CUSTOM_YARA_RULES] [--user-agent USER_AGENT]
 
 Bighuge BLS OSINT Tool
 
@@ -61,7 +50,7 @@ Target:
                         What's considered in-scope (by default it's the same as --targets)
   -b, --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things
-  --strict-scope        Don't consider subdomains of target/whitelist to be in-scope
+  --strict-scope        Don't consider subdomains of target/whitelist to be in-scope - exact matches only
 
 Presets:
   -p, --preset [PRESET ...]
@@ -105,7 +94,7 @@ Scan:
 Output:
   -o, --output-dir DIR  Directory to output scan results
   -om, --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,json,mysql,neo4j,nmap_xml,postgres,python,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,websocket
+                        Output module(s). Choices: asset_inventory,csv,discord,elastic,emails,http,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,python,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,websocket,zeromq
   -lo, --list-output-modules
                         List available output modules
   --json, -j            Output scan data in JSON format
