@@ -8,9 +8,8 @@ class droopescan(BaseModule):
     flags = ["active", "web-recon"]
     meta = {"description": "Enumerate CMS (Drupal, WP, Joomla, etc.) using Droopescan"}
 
-    
-    deps_pipx = ["droopescan"]                     
-    options = {"allow_dep_install": True}          
+    deps_pipx = ["droopescan"]
+    options = {"allow_dep_install": True}
 
     async def setup(self):
         self.info("Droopescan module loaded")
@@ -37,11 +36,15 @@ class droopescan(BaseModule):
                 interesting = entry.get("interesting urls", []) or entry.get("interesting_urls", [])
 
                 if version != "unknown":
-                    await self.emit_event({
-                        "severity": "INFO",
-                        "description": f"{cms} version {version} detected by Droopescan",
-                        "url": url
-                    }, "VULNERABILITY", source=event)
+                    await self.emit_event(
+                        {
+                            "severity": "INFO",
+                            "description": f"{cms} version {version} detected by Droopescan",
+                            "url": url,
+                        },
+                        "VULNERABILITY",
+                        source=event,
+                    )
 
                 for path in interesting:
                     new_url = self.helpers.make_url(url, path.strip())
