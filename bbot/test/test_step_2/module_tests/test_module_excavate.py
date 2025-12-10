@@ -212,7 +212,7 @@ class TestExcavateInScopeJavascript(TestExcavate):
             ]
         )
         found_badsecrets_vulnerability = bool(
-            [e for e in events if e.type == "VULNERABILITY" and str(e.module) == "badsecrets"]
+            [e for e in events if e.type == "FINDING" and str(e.module) == "badsecrets"]
         )
 
         assert found_js_url_event, "Failed to find URL event for script.js"

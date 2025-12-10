@@ -1890,18 +1890,18 @@ def make_event(
                 event_type = "IP_ADDRESS"
                 data = net.network_address
 
-        event_class = globals().get(event_type, DefaultEvent)
-        return event_class(
-            data,
-            event_type=event_type,
-            parent=parent,
-            context=context,
-            module=module,
-            scan=scan,
-            tags=tags,
-            _dummy=dummy,
-            _internal=internal,
-        )
+    event_class = globals().get(event_type, DefaultEvent)
+    return event_class(
+        data,
+        event_type=event_type,
+        parent=parent,
+        context=context,
+        module=module,
+        scan=scan,
+        tags=tags,
+        _dummy=dummy,
+        _internal=internal,
+    )
 
 
 def event_from_json(j):

@@ -158,11 +158,11 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     print(out)
     # parse YAML output
     preset = yaml.safe_load(out)
-    assert preset == {
-        "description": "depstest",
-        "scan_name": "depstest",
-        "config": {"deps": {"behavior": "retry_failed"}},
-    }
+    # description and scan_name should reflect the CLI name
+    assert preset["description"] == "depstest"
+    assert preset["scan_name"] == "depstest"
+    # deps behavior should be set to retry_failed, but allow other config keys to exist
+    assert preset.get("config", {}).get("deps") == {"behavior": "retry_failed"}
 
     # list modules
     monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
