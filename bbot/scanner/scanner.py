@@ -341,6 +341,9 @@ class Scanner:
             pass
 
     async def async_start(self):
+        """
+        Main asynchronous entrypoint for running a scan.
+        """
         self.start_time = datetime.now(ZoneInfo("UTC"))
         self.root_event.data["started_at"] = self.start_time.timestamp()
         await self._set_status(SCAN_STATUS_STARTING)
@@ -399,6 +402,9 @@ class Scanner:
                     new_activity = await self.finish()
                     if not new_activity:
                         self._success = True
+                        scan_finish_event = await self._mark_finished()
+                        if scan_finish_event is not None:
+                            yield scan_finish_event
                         break
 
                 await asyncio.sleep(0.1)
@@ -422,8 +428,6 @@ class Scanner:
                     self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
-            scan_finish_event = await self._mark_finished()
-            yield scan_finish_event
             tasks = self._cancel_tasks()
             self.debug(f"Awaiting {len(tasks):,} tasks")
             for task in tasks:
