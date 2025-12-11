@@ -24,8 +24,31 @@ class TestPostgres(ModuleTestBase):
             "postgres",
         )
 
-        # wait for the container to start
+        # wait for the container to start accepting TCP connections
         await self.wait_for_port_open(5432)
+
+        # additionally, wait until PostgreSQL is actually ready to accept queries.
+        # Port open does not guarantee the server has finished initialization.
+        try:
+            import asyncpg
+        except Exception:  # pragma: no cover - import errors should surface in the test itself
+            asyncpg = None
+
+        if asyncpg is not None:
+            max_attempts = 20
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    conn = await asyncpg.connect(
+                        user="postgres",
+                        password="bbotislife",
+                        database="bbot",
+                        host="127.0.0.1",
+                    )
+                    await conn.close()
+                    break
+                except Exception as e:
+                    self.log.verbose(f"PostgreSQL not ready yet (attempt {attempt}/{max_attempts}): {e}")
+                    await asyncio.sleep(1)
 
         if process.returncode != 0:
             self.log.error("Failed to start PostgreSQL server")

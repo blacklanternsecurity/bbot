@@ -27,8 +27,33 @@ class TestMySQL(ModuleTestBase):
         )
         stdout, stderr = await process.communicate()
 
-        # wait for the container to start
+        # wait for the container to start accepting TCP connections
         await self.wait_for_port_open(3306)
+
+        # additionally, wait until MySQL is actually ready to accept queries.
+        # Port open does not guarantee the server has finished initialization,
+        # which can cause flaky IncompleteReadError / CR_SERVER_LOST failures.
+        try:
+            import aiomysql
+        except Exception:  # pragma: no cover - import errors should surface in the test itself
+            aiomysql = None
+
+        if aiomysql is not None:
+            max_attempts = 20
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    conn = await aiomysql.connect(
+                        user="root",
+                        password="bbotislife",
+                        db="bbot",
+                        host="localhost",
+                    )
+                    conn.close()
+                    break
+                except Exception as e:
+                    # MySQL isn't ready yet; keep waiting a bit longer
+                    module_test.log.verbose(f"MySQL not ready yet (attempt {attempt}/{max_attempts}): {e}")
+                    await asyncio.sleep(1)
 
         if process.returncode != 0:
             self.log.error(f"Failed to start MySQL server: {stderr.decode()}")

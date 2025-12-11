@@ -50,7 +50,24 @@ class TestKafka(ModuleTestBase):
         # Wait for Kafka to be ready
         await self.wait_for_port_open(9092)
 
-        await asyncio.sleep(1)
+        # Port open does not guarantee Kafka is fully initialized.
+        # Try to connect using AIOKafkaConsumer until it succeeds.
+        from aiokafka import AIOKafkaConsumer
+
+        max_attempts = 30
+        for attempt in range(1, max_attempts + 1):
+            consumer = AIOKafkaConsumer(
+                "bbot_events",
+                bootstrap_servers="localhost:9092",
+                group_id="readiness_check_group",
+            )
+            try:
+                await consumer.start()
+                await consumer.stop()
+                break
+            except Exception as e:
+                module_test.log.verbose(f"Kafka not ready yet (attempt {attempt}/{max_attempts}): {e}")
+                await asyncio.sleep(1)
 
     async def check(self, module_test, events):
         from aiokafka import AIOKafkaConsumer

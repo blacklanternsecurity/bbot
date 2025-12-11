@@ -25,14 +25,22 @@ class TestNats(ModuleTestBase):
         # Wait for NATS to be ready by checking the port
         await self.wait_for_port_open(4222)
 
-        # Connect to NATS
+        # Connect to NATS (with retries until it is actually ready to accept connections)
         import nats
 
-        try:
-            self.nc = await nats.connect(["nats://localhost:4222"])
-        except Exception as e:
-            self.log.error(f"Error connecting to NATS: {e}")
-            raise
+        max_attempts = 20
+        last_exc = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                self.nc = await nats.connect(["nats://localhost:4222"])
+                break
+            except Exception as e:
+                last_exc = e
+                self.log.verbose(f"NATS not ready yet (attempt {attempt}/{max_attempts}): {e}")
+                await asyncio.sleep(1)
+        else:
+            self.log.error(f"Error connecting to NATS after {max_attempts} attempts: {last_exc}")
+            raise last_exc
 
         # Collect events from NATS
         self.nats_events = []

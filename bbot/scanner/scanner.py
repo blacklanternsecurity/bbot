@@ -470,9 +470,7 @@ class Scanner:
         self.duration_seconds = self.duration.total_seconds()
         self.duration_human = self.helpers.human_timedelta(self.duration)
 
-        self._scan_finish_status_message = (
-            f"Scan {self.name} completed in {self.duration_human} with status {self.status}"
-        )
+        self._scan_finish_status_message = f"Scan {self.name} completed in {self.duration_human} with status {status}"
 
         scan_finish_event = self.finish_event(self._scan_finish_status_message, status)
 
