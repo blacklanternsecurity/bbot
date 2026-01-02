@@ -6,19 +6,17 @@ from cachetools import LFUCache
 from radixtarget import RadixTarget
 
 from bbot.errors import DNSError
-from bbot.core.engine import EngineClient
 from bbot.core.helpers.async_helpers import async_cachedmethod
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name
+
+from blastdns import Client, get_system_resolvers
 
 from .engine import DNSEngine
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
 
-class DNSHelper(EngineClient):
-    SERVER_CLASS = DNSEngine
-    ERROR_CLASS = DNSError
-
+class DNSHelper:
     """Helper class for DNS-related operations within BBOT.
 
     This class provides mechanisms for host resolution, wildcard domain detection, event tagging, and more.
@@ -31,12 +29,10 @@ class DNSHelper(EngineClient):
         timeout (int): The timeout value for DNS queries. Defaults to 5 seconds.
         retries (int): The number of retries for failed DNS queries. Defaults to 1.
         abort_threshold (int): The threshold for aborting after consecutive failed queries. Defaults to 50.
-        runaway_limit (int): Maximum allowed distance for consecutive DNS resolutions. Defaults to 5.
         all_rdtypes (list): A list of DNS record types to be considered during operations.
         wildcard_ignore (tuple): Domains to be ignored during wildcard detection.
         wildcard_tests (int): Number of tests to be run for wildcard detection. Defaults to 5.
         _wildcard_cache (dict): Cache for wildcard detection results.
-        _dns_cache (LRUCache): Cache for DNS resolution results, limited in size.
         resolver_file (Path): File containing system's current resolver nameservers.
 
     Args:
@@ -51,20 +47,27 @@ class DNSHelper(EngineClient):
     """
 
     def __init__(self, parent_helper):
+        self.log = logging.getLogger("bbot.core.helpers.dns")
         self.parent_helper = parent_helper
         self.config = self.parent_helper.config
         self.dns_config = self.config.get("dns", {})
         engine_debug = self.config.get("engine", {}).get("debug", False)
-        super().__init__(server_kwargs={"config": self.config}, debug=engine_debug)
+        # super().__init__(server_kwargs={"config": self.config}, debug=engine_debug)
 
         # resolver
         self.timeout = self.dns_config.get("timeout", 5)
-        self.resolver = dns.asyncresolver.Resolver()
-        self.resolver.rotate = True
-        self.resolver.timeout = self.timeout
-        self.resolver.lifetime = self.timeout
-
-        self.runaway_limit = self.dns_config.get("runaway_limit", 5)
+        self.retries = self.dns_config.get("retries", 5)
+        self.system_resolvers = get_system_resolvers()
+        self.threads = self.dns_config.get("threads", 5)
+        self.cache_size = self.dns_config.get("cache_size", 10000)
+        self.log.debug(f"Starting BlastDNS client with {self.threads} threads per resolver, {self.retries} retries, {self.cache_size} cache size, and {self.timeout} second timeout")
+        self.blastdns = Client(
+            resolvers=self.system_resolvers,
+            request_timeout_ms=self.timeout * 1000,
+            max_retries=self.retries,
+            threads_per_resolver=self.threads,
+            cache_capacity=self.cache_size,
+        )
 
         # wildcard handling
         self.wildcard_disable = self.dns_config.get("wildcard_disable", False)
@@ -73,8 +76,6 @@ class DNSHelper(EngineClient):
             self.wildcard_ignore.insert(d)
 
         # copy the system's current resolvers to a text file for tool use
-        self.system_resolvers = dns.resolver.Resolver().nameservers
-        # TODO: DNS server speed test (start in background task)
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
         # brute force helper
@@ -84,28 +85,28 @@ class DNSHelper(EngineClient):
         self._is_wildcard_domain_cache = LFUCache(maxsize=1000)
 
     async def resolve(self, query, **kwargs):
-        return await self.run_and_return("resolve", query=query, **kwargs)
+        return await self.blastdns.resolve(query, **kwargs)
 
-    async def resolve_raw(self, query, **kwargs):
-        return await self.run_and_return("resolve_raw", query=query, **kwargs)
+    # async def resolve_raw(self, query, **kwargs):
+    #     return await self.run_and_return("resolve_raw", query=query, **kwargs)
 
-    async def resolve_batch(self, queries, **kwargs):
-        agen = self.run_and_yield("resolve_batch", queries=queries, **kwargs)
-        while 1:
-            try:
-                yield await agen.__anext__()
-            except (StopAsyncIteration, GeneratorExit):
-                await agen.aclose()
-                break
+    # async def resolve_batch(self, queries, **kwargs):
+    #     agen = self.run_and_yield("resolve_batch", queries=queries, **kwargs)
+    #     while 1:
+    #         try:
+    #             yield await agen.__anext__()
+    #         except (StopAsyncIteration, GeneratorExit):
+    #             await agen.aclose()
+    #             break
 
-    async def resolve_raw_batch(self, queries):
-        agen = self.run_and_yield("resolve_raw_batch", queries=queries)
-        while 1:
-            try:
-                yield await agen.__anext__()
-            except (StopAsyncIteration, GeneratorExit):
-                await agen.aclose()
-                break
+    # async def resolve_raw_batch(self, queries):
+    #     agen = self.run_and_yield("resolve_raw_batch", queries=queries)
+    #     while 1:
+    #         try:
+    #             yield await agen.__anext__()
+    #         except (StopAsyncIteration, GeneratorExit):
+    #             await agen.aclose()
+    #             break
 
     @property
     def brute(self):
@@ -192,8 +193,8 @@ class DNSHelper(EngineClient):
 
         return host
 
-    async def _mock_dns(self, mock_data, custom_lookup_fn=None):
-        from .mock import MockResolver
+    async def _mock_dns(self, mock_data):
+        from blastdns import MockClient
 
-        self.resolver = MockResolver(mock_data, custom_lookup_fn=custom_lookup_fn)
-        await self.run_and_return("_mock_dns", mock_data=mock_data, custom_lookup_fn=custom_lookup_fn)
+        self.resolver = MockClient()
+        self.resolver.mock_dns(mock_data)

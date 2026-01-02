@@ -16,6 +16,18 @@ mock_records = {
 
 
 @pytest.mark.asyncio
+async def test_dns_helper(bbot_scanner):
+    scan = bbot_scanner()
+    await scan.helpers.dns._mock_dns({
+        "asdf.example.com": {
+            "A": ["1.2.3.4"]
+        }
+    })
+    result = await scan.helpers.dns.resolve("asdf.example.com")
+    assert "1.2.3.4" in result
+
+
+@pytest.mark.asyncio
 async def test_dns_engine(bbot_scanner):
     scan = bbot_scanner()
     await scan.helpers._mock_dns(

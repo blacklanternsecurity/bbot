@@ -32,8 +32,10 @@ dns:
   disable: false
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
-  # How many instances of the dns module to run concurrently
-  threads: 25
+  # How many threads to use per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
+  threads: 5
+  # How many DNS records to cache
+  cache_size: 100000
   # How many concurrent DNS resolvers to use when brute-forcing
   # (under the hood this is passed through directly to massdns -s)
   brute_threads: 1000
