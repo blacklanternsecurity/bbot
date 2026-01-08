@@ -244,26 +244,6 @@ DEP_JAVA = [
     },
 ]
 
-DEP_RUST = [
-    {
-        "name": "Check if Rust is installed",
-        "command": "which rustc",
-        "register": "rust_installed",
-        "ignore_errors": True,
-    },
-    {
-        "name": "Download Rust Installer",
-        "get_url": {
-            "url": "https://sh.rustup.rs",
-            "dest": "/tmp/sh.rustup.rs",
-            "mode": "0755",
-            "force": "yes",
-        },
-        "when": "rust_installed.rc != 0",
-    },
-    {"name": "Install Rust", "command": "/tmp/sh.rustup.rs -y", "when": "rust_installed.rc != 0"},
-]
-
 # shared module dependencies -- ffuf, massdns, chromium, etc.
 SHARED_DEPS = {}
 for var, val in list(locals().items()):

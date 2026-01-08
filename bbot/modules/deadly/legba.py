@@ -23,7 +23,7 @@ class legba(BaseModule):
     meta = {
         "description": "Credential bruteforcing supporting various services.",
         "created_date": "2025-07-18",
-        "author": "@christianfl",
+        "author": "@christianfl, @fuzikowski",
     }
     _module_threads = 25
     scope_distance_modifier = None
@@ -38,6 +38,7 @@ class legba(BaseModule):
         "postgresql_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt",
         "concurrency": 3,
         "rate_limit": 3,
+        "version": "1.1.1",
     }
 
     options_desc = {
@@ -50,72 +51,47 @@ class legba(BaseModule):
         "postgresql_wordlist": "Wordlist URL for PostgreSQL combined username:password wordlist, newline separated",
         "concurrency": "Number of concurrent workers, gets overridden for SSH",
         "rate_limit": "Limit the number of requests per second, gets overridden for SSH",
+        "version": "legba version",
     }
 
-    deps_common = ["rust"]
     deps_ansible = [
         {
-            "name": "Install dev tools (Debian)",
-            "package": {
-                "name": ["pkg-config", "cmake", "libclang-dev", "clang"],
-                "state": "present",
+            "name": "Download legba (x86)",
+            "unarchive": {
+                "src": "https://github.com/evilsocket/legba/releases/download/#{BBOT_MODULES_LEGBA_VERSION}/legba-#{BBOT_MODULES_LEGBA_VERSION}-linux-x86_64.tar.gz",
+                "dest": "#{BBOT_TEMP}",
+                "include": "legba-#{BBOT_MODULES_LEGBA_VERSION}-linux-x86_64/legba",
+                "remote_src": True,
             },
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'Debian'",
-            "ignore_errors": True,
+            "when": "ansible_facts['system'] == 'Linux' and ansible_facts['architecture'] == 'x86_64'",
         },
         {
-            "name": "Install dev tools (Fedora)",
-            "package": {
-                "name": ["pkgconf-pkg-config", "cmake", "clang-devel", "llvm-devel", "perl-core"],
-                "state": "present",
-            },
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'RedHat'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Install dev tools (Arch)",
-            "package": {
-                "name": ["pkgconf", "cmake", "clang", "openssl"],
-                "state": "present",
-            },
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'Archlinux'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Get legba repo",
-            "git": {
-                "repo": "https://github.com/evilsocket/legba",
-                "dest": "#{BBOT_TEMP}/legba/gitrepo",
-                "version": "1.1.1",  # Newest stable, 2025-08-25
-            },
-        },
-        {
-            # The git repo will be copied because during build, files and subfolders get created. That prevents the Ansible git module to cache the repo.
-            "name": "Copy legba repo",
+            "name": "Install legba (x86)",
             "copy": {
-                "src": "#{BBOT_TEMP}/legba/gitrepo/",
-                "dest": "#{BBOT_TEMP}/legba/workdir/",
-            },
-        },
-        {
-            "name": "Build legba",
-            "command": {
-                "chdir": "#{BBOT_TEMP}/legba/workdir",
-                "cmd": "cargo build --release",
-                "creates": "#{BBOT_TEMP}/legba/workdir/target/release/legba",
-            },
-            "environment": {"PATH": "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.cargo/bin"},
-        },
-        {
-            "name": "Install legba",
-            "copy": {
-                "src": "#{BBOT_TEMP}/legba/workdir/target/release/legba",
+                "src": "#{BBOT_TEMP}/legba-#{BBOT_MODULES_LEGBA_VERSION}-linux-x86_64/legba",
                 "dest": "#{BBOT_TOOLS}/",
                 "mode": "u+x,g+x,o+x",
             },
+            "when": "ansible_facts['system'] == 'Linux' and ansible_facts['architecture'] == 'x86_64'",
+        },
+        {
+            "name": "Download legba (ARM64)",
+            "unarchive": {
+                "src": "https://github.com/evilsocket/legba/releases/download/#{BBOT_MODULES_LEGBA_VERSION}/legba-#{BBOT_MODULES_LEGBA_VERSION}-linux-arm64.tar.gz",
+                "dest": "#{BBOT_TEMP}",
+                "include": "legba-#{BBOT_MODULES_LEGBA_VERSION}-linux-arm64/legba",
+                "remote_src": True,
+            },
+            "when": "ansible_facts['system'] == 'Linux' and ansible_facts['architecture'] == 'aarch64'",
+        },
+        {
+            "name": "Install legba (ARM64)",
+            "copy": {
+                "src": "#{BBOT_TEMP}/legba-#{BBOT_MODULES_LEGBA_VERSION}-linux-arm64/legba",
+                "dest": "#{BBOT_TOOLS}/",
+                "mode": "u+x,g+x,o+x",
+            },
+            "when": "ansible_facts['system'] == 'Linux' and ansible_facts['architecture'] == 'aarch64'",
         },
     ]
 
