@@ -69,7 +69,7 @@
             28,
             29,
             30,
-            31,
+            32,
             33,
             34,
             35,
@@ -234,7 +234,7 @@
             27,
             29,
             30,
-            31,
+            32,
             33,
             34,
             37,
@@ -467,7 +467,7 @@
         "produces": [
             29,
             30,
-            31,
+            32,
             33,
             34
         ]
@@ -556,7 +556,7 @@
         "produces": [
             19,
             28,
-            32,
+            31,
             52,
             56,
             60,
@@ -840,19 +840,6 @@
     },
     {
         "id": 30,
-        "name": "bucket_azure",
-        "parent": 99999999,
-        "consumes": [
-            7,
-            25
-        ],
-        "produces": [
-            4,
-            25
-        ]
-    },
-    {
-        "id": 31,
         "name": "bucket_digitalocean",
         "parent": 99999999,
         "consumes": [
@@ -865,7 +852,7 @@
         ]
     },
     {
-        "id": 32,
+        "id": 31,
         "name": "bucket_file_enum",
         "parent": 99999999,
         "consumes": [
@@ -876,7 +863,7 @@
         ]
     },
     {
-        "id": 33,
+        "id": 32,
         "name": "bucket_firebase",
         "parent": 99999999,
         "consumes": [
@@ -889,8 +876,21 @@
         ]
     },
     {
-        "id": 34,
+        "id": 33,
         "name": "bucket_google",
+        "parent": 99999999,
+        "consumes": [
+            7,
+            25
+        ],
+        "produces": [
+            4,
+            25
+        ]
+    },
+    {
+        "id": 34,
+        "name": "bucket_microsoft",
         "parent": 99999999,
         "consumes": [
             7,
