@@ -43,6 +43,8 @@ class TestPortfilter_enabled(TestPortfilter_disabled):
     modules_overrides = ["portfilter"]
 
     def check(self, module_test, events):
+        # even though portfilter listens for URLs, enabling it should not automatically enable httpx
+        assert "httpx" not in module_test.scan.modules
         open_ports = {event.data for event in events if event.type == "OPEN_TCP_PORT"}
         # we should be missing the 8080 port because it's a CDN and not in portfilter's allowed list of open ports
         assert open_ports == {"www.blacklanternsecurity.com:443", "www.blacklanternsecurity.com:21"}

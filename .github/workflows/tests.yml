@@ -39,7 +39,7 @@ jobs:
           poetry run pytest -vv --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Debug Logs
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: pytest-debug-logs-${{ env.PYTHON_VERSION }}
           path: pytest_debug.log
@@ -188,7 +188,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           key: mkdocs-material-${{ env.cache_id }}
           path: .cache

@@ -19,7 +19,7 @@ class bucket_google(bucket_template):
         "permutations": "Whether to try permutations",
     }
 
-    cloud_helper_name = "google"
+    cloudcheck_provider_name = "Google"
     delimiters = ("", "-", ".", "_")
     base_domains = ["storage.googleapis.com"]
     bad_permissions = [

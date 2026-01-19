@@ -1,7 +1,7 @@
 from bbot.modules.templates.bucket import bucket_template
 
 
-class bucket_azure(bucket_template):
+class bucket_microsoft(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "cloud-enum", "web-basic"]
@@ -15,7 +15,7 @@ class bucket_azure(bucket_template):
         "permutations": "Whether to try permutations",
     }
 
-    cloud_helper_name = "azure"
+    cloudcheck_provider_name = "Microsoft"
     delimiters = ("", "-")
     base_domains = ["blob.core.windows.net"]
     # Dirbusting is required to know whether a bucket is public

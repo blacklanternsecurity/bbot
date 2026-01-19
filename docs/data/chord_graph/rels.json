@@ -266,23 +266,18 @@
     },
     {
         "source": 31,
-        "target": 7,
-        "type": "consumes"
-    },
-    {
-        "source": 31,
         "target": 25,
         "type": "consumes"
     },
     {
-        "source": 4,
+        "source": 20,
         "target": 31,
         "type": "produces"
     },
     {
-        "source": 25,
-        "target": 31,
-        "type": "produces"
+        "source": 32,
+        "target": 7,
+        "type": "consumes"
     },
     {
         "source": 32,
@@ -290,7 +285,12 @@
         "type": "consumes"
     },
     {
-        "source": 20,
+        "source": 4,
+        "target": 32,
+        "type": "produces"
+    },
+    {
+        "source": 25,
         "target": 32,
         "type": "produces"
     },

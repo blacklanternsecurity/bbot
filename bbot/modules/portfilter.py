@@ -19,6 +19,8 @@ class portfilter(BaseInterceptModule):
     }
 
     _priority = 4
+    # we consume URLs but we don't want to automatically enable httpx
+    _disable_auto_module_deps = True
 
     async def setup(self):
         self.cdn_tags = [t.strip() for t in self.config.get("cdn_tags", "").split(",")]
