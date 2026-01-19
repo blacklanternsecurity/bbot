@@ -77,7 +77,7 @@ class sslcert(BaseModule):
                 dns_names = dns_names[:1] + [n for n in dns_names[1:] if self.scan.in_scope(n)]
             for event_type, results in (("DNS_NAME", set(dns_names)), ("EMAIL_ADDRESS", emails)):
                 for event_data in results:
-                    if event_data is not None and event_data != event:
+                    if event_data is not None and event_data != event.data:
                         self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
                         try:
                             ssl_event = self.make_event(event_data, event_type, parent=event, raise_error=True)

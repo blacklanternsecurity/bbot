@@ -2,6 +2,8 @@ from .base import ModuleTestBase
 
 
 class TestOTX(ModuleTestBase):
+    config_overrides = {"modules": {"otx": {"api_key": "test"}}}
+
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://otx.alienvault.com/api/v1/indicators/domain/blacklanternsecurity.com/passive_dns",
@@ -21,6 +23,7 @@ class TestOTX(ModuleTestBase):
                     }
                 ]
             },
+            headers={"X-OTX-API-KEY": "test"},
         )
 
     def check(self, module_test, events):

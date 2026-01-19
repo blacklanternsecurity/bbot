@@ -21,6 +21,8 @@ class Bucket_Amazon_Base(ModuleTestBase):
     random_bucket_2 = f"{random_bucket_name_2}.s3-ap-southeast-2.amazonaws.com"
     random_bucket_3 = f"{random_bucket_name_3}.s3.amazonaws.com"
 
+    nonexistent_is_404 = True
+
     open_bucket_body = """<?xml version="1.0" encoding="UTF-8"?>
     <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>vpn-static</Name><Prefix></Prefix><Marker></Marker><MaxKeys>1000</MaxKeys><IsTruncated>false</IsTruncated><Contents><Key>style.css</Key><LastModified>2017-03-18T06:41:59.000Z</LastModified><ETag>&quot;bf9e72bdab09b785f05ff0395023cc35&quot;</ETag><Size>429</Size><StorageClass>STANDARD</StorageClass></Contents></ListBucketResult>"""
 
@@ -66,30 +68,62 @@ class Bucket_Amazon_Base(ModuleTestBase):
             url=self.url_3,
             text="",
         )
-        module_test.httpx_mock.add_response(url=re.compile(".*"), text="", status_code=404)
+        if self.nonexistent_is_404:
+            module_test.httpx_mock.add_response(url=re.compile(".*"), text="", status_code=404)
 
     def check(self, module_test, events):
-        # make sure buckets were excavated
-        assert any(e.type == "STORAGE_BUCKET" and str(e.module) == f"cloud_{self.provider}" for e in events), (
-            f'bucket not found for module "{self.module_name}"'
+        storage_buckets = [e for e in events if e.type == "STORAGE_BUCKET"]
+        assert len(storage_buckets) == 3
+        assert 1 == len(
+            [
+                e
+                for e in storage_buckets
+                if e.data["name"] == random_bucket_name_1
+                and str(e.module) == "cloudcheck"
+                and f"cloud-{self.provider}" in e.tags
+                and f"{self.provider}-domain" in e.tags
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in storage_buckets
+                if e.data["name"] == random_bucket_name_2
+                and str(e.module) == "cloudcheck"
+                and f"cloud-{self.provider}" in e.tags
+                and f"{self.provider}-domain" in e.tags
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in storage_buckets
+                if e.data["name"] == random_bucket_name_3
+                and str(e.module) == str(self.module_name)
+                and f"cloud-{module_test.module.cloudcheck_provider_name.lower()}" in e.tags
+                and f"{module_test.module.cloudcheck_provider_name.lower()}-domain" in e.tags
+            ]
         )
         # make sure open buckets were found
         if module_test.module.supports_open_check:
-            assert any(e.type == "FINDING" and str(e.module) == self.module_name for e in events), (
-                f'open bucket not found for module "{self.module_name}"'
-            )
-            for e in events:
-                if e.type == "FINDING" and str(e.module) == self.module_name:
-                    url = e.data.get("url", "")
-                    assert self.random_bucket_2 in url
-                    assert self.random_bucket_1 not in url
-                    assert self.random_bucket_3 not in url
+            assert 1 == len(
+                [
+                    e
+                    for e in events
+                    if e.type == "FINDING"
+                    and str(e.module) == self.module_name
+                    and e.data.get("url") == f"https://{self.random_bucket_2}/"
+                ]
+            ), f'open bucket not found for module "{self.module_name}"'
         # make sure bucket mutations were found
-        assert any(
-            e.type == "STORAGE_BUCKET"
-            and str(e.module) == self.module_name
-            and f"{random_bucket_name_3}" in e.data["url"]
-            for e in events
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "STORAGE_BUCKET"
+                and str(e.module) == self.module_name
+                and f"{random_bucket_name_3}" in e.data["url"]
+            ]
         ), f'bucket (dev mutation: {self.random_bucket_3}) not found for module "{self.module_name}"'
 
 

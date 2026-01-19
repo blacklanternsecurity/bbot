@@ -44,7 +44,7 @@ jobs:
         run: "sed -i '0,/\"version\": \".*\",/ s/\"version\": \".*\",/\"version\": \"${{ env.latest_version }}\",/g' bbot/modules/nuclei.py"
       - name: Create pull request to update the version
         if: steps.update-version.outcome == 'success'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           commit-message: "Update nuclei"
@@ -96,7 +96,7 @@ jobs:
         run: "sed -i '0,/\"version\": \".*\",/ s/\"version\": \".*\",/\"version\": \"${{ env.latest_version }}\",/g' bbot/modules/trufflehog.py"
       - name: Create pull request to update the version
         if: steps.update-version.outcome == 'success'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           commit-message: "Update trufflehog"

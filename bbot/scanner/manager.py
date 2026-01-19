@@ -240,9 +240,6 @@ class ScanEgress(BaseInterceptModule):
         parent = event.get_parent()
         event_is_graph_worthy = (not event.internal) or event._graph_important
         parent_is_graph_worthy = (not parent.internal) or parent._graph_important
-        self.debug(
-            f"event {event}:{id(event)} graph worthy: {event_is_graph_worthy} (internal: {event.internal}, graph-important: {event._graph_important}) (parent {parent}:{id(parent)}) graph worthy: {parent_is_graph_worthy} (internal: {parent.internal}, graph-important: {parent._graph_important})"
-        )
         if event_is_graph_worthy and not parent_is_graph_worthy:
             parent_in_report_distance = parent.scope_distance <= self.scan.scope_report_distance
             self.debug(f"parent {parent} in report distance: {parent_in_report_distance}")

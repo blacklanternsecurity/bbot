@@ -11,7 +11,7 @@ async def test_python_api(clean_default_config):
     events1 = []
     async for event in scan1.async_start():
         events1.append(event)
-    assert any("127.0.0.1" == e for e in events1)
+    assert any(e.type == "IP_ADDRESS" and e.data == "127.0.0.1" for e in events1)
     # make sure output files work
     scan2 = Scanner("127.0.0.1", output_modules=["json"], scan_name="python_api_test")
     await scan2._prep()
@@ -78,7 +78,7 @@ async def test_python_api_sync(clean_default_config):
     events1 = []
     async for event in scan1.async_start():
         events1.append(event)
-    assert any("127.0.0.1" == e for e in events1)
+    assert any(e.type == "IP_ADDRESS" and e.data == "127.0.0.1" for e in events1)
     # make sure output files work
     scan2 = Scanner("127.0.0.1", output_modules=["json"], scan_name="python_api_test")
     await scan2._prep()

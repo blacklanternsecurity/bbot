@@ -16,7 +16,7 @@ class bucket_amazon(bucket_template):
     }
     scope_distance_modifier = 3
 
-    cloud_helper_name = "amazon"
+    cloudcheck_provider_name = "Amazon"
     delimiters = ("", ".", "-")
     base_domains = ["s3.amazonaws.com"]
     regions = [None]

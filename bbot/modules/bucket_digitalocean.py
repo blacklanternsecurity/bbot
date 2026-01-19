@@ -15,7 +15,7 @@ class bucket_digitalocean(bucket_template):
         "permutations": "Whether to try permutations",
     }
 
-    cloud_helper_name = "digitalocean"
+    cloudcheck_provider_name = "DigitalOcean"
     delimiters = ("", "-")
     base_domains = ["digitaloceanspaces.com"]
     regions = ["ams3", "fra1", "nyc3", "sfo2", "sfo3", "sgp1"]

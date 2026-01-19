@@ -42,7 +42,7 @@ async def test_events(events, helpers):
     assert events.ipv4 == scan.make_event("8.8.8.8", dummy=True)
     assert "8.8.8.8" in events.ipv4
     assert events.ipv4.host_filterable == "8.8.8.8"
-    assert "8.8.8.8" == events.ipv4
+    assert events.ipv4.data == "8.8.8.8"
     assert "8.8.8.8" in events.netv4
     assert "8.8.8.9" not in events.ipv4
     assert "8.8.9.8" not in events.netv4
@@ -60,7 +60,7 @@ async def test_events(events, helpers):
     assert events.emoji not in events.netv6
     assert events.netv6 not in events.emoji
     ipv6_event = scan.make_event(" [DEaD::c0De]:88", "DNS_NAME", dummy=True)
-    assert "dead::c0de" == ipv6_event
+    assert ipv6_event.data == "dead::c0de"
     assert ipv6_event.host_filterable == "dead::c0de"
     range_to_ip = scan.make_event("1.2.3.4/32", dummy=True)
     assert range_to_ip.type == "IP_ADDRESS"
@@ -87,7 +87,7 @@ async def test_events(events, helpers):
     open_port_event = scan.make_event(" eViLcorp.COM.:88", "DNS_NAME", dummy=True)
     dns_event = scan.make_event("evilcorp.com.", "DNS_NAME", dummy=True)
     for e in (open_port_event, dns_event):
-        assert "evilcorp.com" == e
+        assert e.data == "evilcorp.com"
         assert e.netloc == "evilcorp.com"
         assert e.json()["netloc"] == "evilcorp.com"
         assert e.port is None
@@ -117,17 +117,19 @@ async def test_events(events, helpers):
     assert events.emoji not in events.url_unverified
     assert events.emoji not in events.ipv6_url_unverified
     assert events.url_unverified not in events.emoji
-    assert "https://evilcorp.com" == scan.make_event("https://evilcorp.com:443", dummy=True)
-    assert "http://evilcorp.com" == scan.make_event("http://evilcorp.com:80", dummy=True)
+
+    # URL normalization tests – compare against normalized event.data / .with_port().geturl()
+    assert scan.make_event("https://evilcorp.com:443", dummy=True).data == "https://evilcorp.com/"
+    assert scan.make_event("http://evilcorp.com:80", dummy=True).data == "http://evilcorp.com/"
     assert "http://evilcorp.com:80/asdf.js" in scan.make_event("http://evilcorp.com/asdf.js", dummy=True)
     assert "http://evilcorp.com/asdf.js" in scan.make_event("http://evilcorp.com:80/asdf.js", dummy=True)
-    assert "https://evilcorp.com:443" == scan.make_event("https://evilcorp.com", dummy=True)
-    assert "http://evilcorp.com:80" == scan.make_event("http://evilcorp.com", dummy=True)
-    assert "https://evilcorp.com:80" == scan.make_event("https://evilcorp.com:80", dummy=True)
-    assert "http://evilcorp.com:443" == scan.make_event("http://evilcorp.com:443", dummy=True)
+    assert scan.make_event("https://evilcorp.com", dummy=True).data == "https://evilcorp.com/"
+    assert scan.make_event("http://evilcorp.com", dummy=True).data == "http://evilcorp.com/"
+    assert scan.make_event("https://evilcorp.com:80", dummy=True).data == "https://evilcorp.com:80/"
+    assert scan.make_event("http://evilcorp.com:443", dummy=True).data == "http://evilcorp.com:443/"
     assert scan.make_event("https://evilcorp.com", dummy=True).with_port().geturl() == "https://evilcorp.com:443/"
     assert scan.make_event("https://evilcorp.com:666", dummy=True).with_port().geturl() == "https://evilcorp.com:666/"
-    assert scan.make_event("https://evilcorp.com.:666", dummy=True) == "https://evilcorp.com:666/"
+    assert scan.make_event("https://evilcorp.com.:666", dummy=True).data == "https://evilcorp.com:666/"
     assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
     url_event = scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"])
@@ -260,20 +262,20 @@ async def test_events(events, helpers):
     )
     assert event.discovery_context == "something discovered IP_ADDRESS: 127.0.0.1"
 
-    # updating an already-created event with make_event()
+    # updating an already-created event with update_event()
     # updating tags
     event1 = scan.make_event("127.0.0.1", parent=scan.root_event)
-    updated_event = scan.make_event(event1, tags="asdf")
+    updated_event = scan.update_event(event1, tags="asdf")
     # assert "asdf" not in event1.tags # why was this test added? why is it important the original event stays untouched? 🤔
     assert "asdf" in updated_event.tags
     # updating parent
     event2 = scan.make_event("127.0.0.1", parent=scan.root_event)
-    updated_event = scan.make_event(event2, parent=event1)
+    updated_event = scan.update_event(event2, parent=event1)
     # assert event2.parent == scan.root_event
     assert updated_event.parent == event1
-    # updating module
+    # updating module/internal flag
     event3 = scan.make_event("127.0.0.1", parent=scan.root_event)
-    updated_event = scan.make_event(event3, internal=True)
+    updated_event = scan.update_event(event3, internal=True)
     # assert event3.internal is False
     assert updated_event.internal is True
 

@@ -2294,25 +2294,6 @@ def is_file(f):
     return False
 
 
-def cloudcheck(ip):
-    """
-    Check whether an IP address belongs to a cloud provider and returns the provider name, type, and subnet.
-
-    Args:
-        ip (str): The IP address to check.
-
-    Returns:
-        tuple: A tuple containing provider name (str), provider type (str), and subnet (IPv4Network).
-
-    Examples:
-        >>> cloudcheck("168.62.20.37")
-        ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
-    """
-    import cloudcheck as _cloudcheck
-
-    return _cloudcheck.check(ip)
-
-
 def is_async_function(f):
     """
     Check if a given function is an asynchronous function.

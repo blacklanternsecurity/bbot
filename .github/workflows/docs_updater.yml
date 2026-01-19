@@ -25,7 +25,7 @@ jobs:
         run: |
           poetry run bbot/scripts/docs.py
       - name: Create or Update Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
           branch: update-docs
