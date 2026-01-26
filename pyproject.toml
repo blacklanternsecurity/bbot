@@ -57,7 +57,7 @@ radixtarget = "^3.0.13"
 orjson = "^3.10.12"
 ansible-core = "^2.15.13"
 tldextract = "^5.3.0"
-cloudcheck = "^8.7.2"
+cloudcheck = ">=8.7.2,<10.0.0"
 
 [tool.poetry.group.dev.dependencies]
 poetry-dynamic-versioning = ">=0.21.4,<1.10.0"
