@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.l6eamuju.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style._w0xe6t7.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -928,7 +928,7 @@ event type      event data          source module    tags
 <li><code>.discovery_path</code>: a list of every discovery context leading to this event</li>
 <li><code>.parent_chain</code>: a list of every event UUID leading to the discovery of this event (corresponds exactly to <code>.discovery_path</code>)</li>
 </ul>
-<p>These attributes allow us to construct a visual graph of events (e.g. in <a href="../output#neo4j">Neo4j</a>) and query/filter/grep them more easily. Here is what a typical event looks like in JSON format:</p>
+<p>These attributes allow us to construct a visual graph of events (e.g. in <a href="../output/#neo4j">Neo4j</a>) and query/filter/grep them more easily. Here is what a typical event looks like in JSON format:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">{</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"type"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"id"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:33bc005c2bdfea4d73e07db733bd11861cf6520e"</span><span style="color: #E6EDF3">,</span>
@@ -987,7 +987,7 @@ event type      event data          source module    tags
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">]</span>
 <span style="color: #E6EDF3">}</span>
 </code></pre></div>
-<p>For a more detailed description of BBOT events, see <a href="../../dev/event">Developer Documentation - Event</a>.</p>
+<p>For a more detailed description of BBOT events, see <a href="../../dev/event/">Developer Documentation - Event</a>.</p>
 <p>Below is a full list of event types along with which modules produce/consume them.</p>
 <h2 id="list-of-event-types">List of Event Types</h2>
 <!-- BBOT EVENTS -->
@@ -1032,10 +1032,10 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>DNS_NAME</td>
-<td>59</td>
-<td>41</td>
-<td>anubisdb, asset_inventory, azure_realm, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, certspotter, chaos, credshed, crt, crt_db, dehashed, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otx, passivetotal, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
-<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, certspotter, chaos, crt, crt_db, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otx, passivetotal, rapiddns, securitytrails, shodan_dns, shodan_idb, sitedossier, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, vhost, viewdns, virustotal, wayback</td>
+<td>60</td>
+<td>43</td>
+<td>anubisdb, asset_inventory, azure_realm, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, credshed, crt, crt_db, dehashed, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otx, passivetotal, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
+<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, crt, crt_db, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otx, passivetotal, rapiddns, securitytrails, shodan_dns, shodan_idb, sitedossier, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, vhost, viewdns, virustotal, wayback</td>
 </tr>
 <tr>
 <td>DNS_NAME_UNRESOLVED</td>
@@ -1081,17 +1081,17 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>HTTP_RESPONSE</td>
-<td>19</td>
+<td>18</td>
 <td>1</td>
-<td>ajaxpro, asset_inventory, badsecrets, dotnetnuke, excavate, filedownload, gitlab_onprem, host_header, newsletters, nmap_xml, ntlm, paramminer_cookies, paramminer_getparams, paramminer_headers, speculate, telerik, trufflehog, wappalyzer, wpscan</td>
+<td>ajaxpro, asset_inventory, badsecrets, dotnetnuke, excavate, filedownload, gitlab_onprem, host_header, newsletters, nmap_xml, ntlm, paramminer_cookies, paramminer_getparams, paramminer_headers, speculate, telerik, trufflehog, wpscan</td>
 <td>httpx</td>
 </tr>
 <tr>
 <td>IP_ADDRESS</td>
-<td>9</td>
-<td>4</td>
-<td>asn, asset_inventory, ip2location, ipneighbor, ipstack, nmap_xml, portscan, shodan_idb, speculate</td>
-<td>asset_inventory, dnsresolve, ipneighbor, speculate</td>
+<td>10</td>
+<td>5</td>
+<td>asn, asset_inventory, censys_ip, ip2location, ipneighbor, ipstack, nmap_xml, portscan, shodan_idb, speculate</td>
+<td>asset_inventory, censys_ip, dnsresolve, ipneighbor, speculate</td>
 </tr>
 <tr>
 <td>IP_RANGE</td>
@@ -1110,9 +1110,16 @@ event type      event data          source module    tags
 <tr>
 <td>OPEN_TCP_PORT</td>
 <td>6</td>
-<td>4</td>
+<td>5</td>
 <td>asset_inventory, fingerprintx, httpx, nmap_xml, portfilter, sslcert</td>
-<td>asset_inventory, portscan, shodan_idb, speculate</td>
+<td>asset_inventory, censys_ip, portscan, shodan_idb, speculate</td>
+</tr>
+<tr>
+<td>OPEN_UDP_PORT</td>
+<td>0</td>
+<td>1</td>
+<td></td>
+<td>censys_ip</td>
 </tr>
 <tr>
 <td>ORG_STUB</td>
@@ -1131,9 +1138,9 @@ event type      event data          source module    tags
 <tr>
 <td>PROTOCOL</td>
 <td>3</td>
-<td>1</td>
+<td>2</td>
 <td>legba, medusa, nmap_xml</td>
-<td>fingerprintx</td>
+<td>censys_ip, fingerprintx</td>
 </tr>
 <tr>
 <td>RAW_DNS_RECORD</td>
@@ -1168,7 +1175,7 @@ event type      event data          source module    tags
 <td>4</td>
 <td>8</td>
 <td>asset_inventory, gitlab_onprem, web_report, wpscan</td>
-<td>badsecrets, dotnetnuke, gitlab_onprem, gowitness, nuclei, shodan_idb, wappalyzer, wpscan</td>
+<td>badsecrets, censys_ip, dotnetnuke, gitlab_onprem, gowitness, nuclei, shodan_idb, wpscan</td>
 </tr>
 <tr>
 <td>URL</td>
@@ -1187,9 +1194,9 @@ event type      event data          source module    tags
 <tr>
 <td>URL_UNVERIFIED</td>
 <td>8</td>
-<td>18</td>
+<td>19</td>
 <td>code_repository, filedownload, httpx, oauth, portfilter, retirejs, social, speculate</td>
-<td>azure_realm, bevigil, bucket_file_enum, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, ffuf, ffuf_shortnames, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, wpscan</td>
+<td>azure_realm, bevigil, bucket_file_enum, censys_ip, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, ffuf, ffuf_shortnames, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, wpscan</td>
 </tr>
 <tr>
 <td>USERNAME</td>

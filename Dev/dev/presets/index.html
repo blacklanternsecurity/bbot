@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.l6eamuju.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style._w0xe6t7.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1204,7 +1204,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_yaml_file(</span><span style="color: #A5D6FF">"my_preset.yml"</span><span style="color: #E6EDF3">)</span>
 <span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Scanner(preset</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset)</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  59</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  60</span>
@@ -3348,7 +3348,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </div>
 </li>
 </ul>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">116</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">117</span>
@@ -3698,7 +3698,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </div>
 </li>
 </ul>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">568</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">569</span>
@@ -3771,7 +3771,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 performing final validations, and substituting environment variables in preloaded modules.
 It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <p>This function is automatically called in Scanner.<strong>init</strong>(). There is no need to call it manually.</p>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">401</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">402</span>
@@ -4042,7 +4042,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <p><span class="doc-section-title">Examples:</span></p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_dict({</span><span style="color: #A5D6FF">"target"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"evilcorp.com"</span><span style="color: #E6EDF3">],</span> <span style="color: #A5D6FF">"modules"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"portscan"</span><span style="color: #E6EDF3">]})</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">641</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">642</span>
@@ -4146,7 +4146,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <p><span class="doc-section-title">Examples:</span></p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_yaml_file(</span><span style="color: #A5D6FF">"/home/user/my_preset.yml"</span><span style="color: #E6EDF3">)</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">704</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">705</span>
@@ -4237,7 +4237,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #A5D6FF">- portscan'''</span>
 <span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_yaml_string(yaml_string)</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">738</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">739</span>
@@ -4298,7 +4298,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <p><span class="doc-section-title">Examples:</span></p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">include_preset(</span><span style="color: #A5D6FF">"/home/user/my_preset.yml"</span><span style="color: #E6EDF3">)</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">684</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">685</span>
@@ -4372,7 +4372,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">preset1</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan_modules</span>
 <span style="color: #8B949E">['portscan', 'sslcert']</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">331</span>
@@ -4526,7 +4526,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <div class="doc doc-contents">
 <p>Parse CLI arguments, and merge them into this preset.</p>
 <p>Used in <code>cli.py</code>.</p>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
@@ -4555,7 +4555,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Return a table of all the presets in the form of a string</p>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">980</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">981</span>
@@ -4637,7 +4637,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">to_dict()</span>
 <span style="color: #8B949E">{"flags": ["subdomain-enum"], "modules": ["portscan"]}</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">755</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">756</span>
@@ -4858,7 +4858,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #8B949E">modules:</span>
 <span style="color: #8B949E">- portscan</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">835</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">836</span>
@@ -4915,7 +4915,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Validate module/flag exclusions/requirements, and CLI config options if applicable.</p>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">902</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">903</span>
