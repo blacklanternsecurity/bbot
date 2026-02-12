@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.zkc1ebnu.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.e2_9y2ar.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -862,7 +862,7 @@ to a separate process. It leverages ZeroMQ in a ROUTER-DEALER configuration.</p>
 This offloads I/O and helps free up the main event loop for other tasks.</p>
 <p>To use Engine, you must subclass both EngineClient and EngineServer.</p>
 <p>See the respective EngineClient and EngineServer classes for usage examples.</p>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">28</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">29</span>
@@ -1016,7 +1016,7 @@ define methods for each of your desired functions.</p>
 <span style="color: #8B949E">&gt;&gt;&gt; </span>        <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">_</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">run_and_yield(</span><span style="color: #A5D6FF">"my_generator"</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #8B949E">&gt;&gt;&gt; </span>            <span style="color: #FF7B72">yield</span> <span style="color: #E6EDF3">_</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 89</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 90</span>
@@ -1549,7 +1549,7 @@ define methods for each of your desired functions.</p>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Send a cancel message and wait for confirmation from the server</p>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">215</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">216</span>
@@ -1617,7 +1617,7 @@ define methods for each of your desired functions.</p>
 <span style="color: #8B949E">&gt;&gt;&gt; </span>            <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">asyncio</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">sleep(</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">)</span>
 <span style="color: #8B949E">&gt;&gt;&gt; </span>            <span style="color: #FF7B72">yield</span> <span style="color: #E6EDF3">i</span>
 </code></pre></div>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">350</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">351</span>
@@ -2308,7 +2308,7 @@ define methods for each of your desired functions.</p>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Given a list of asyncio tasks, return the ones that are finished with an optional timeout</p>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">633</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">634</span>
@@ -2362,7 +2362,7 @@ define methods for each of your desired functions.</p>
 <div class="doc doc-contents">
 <p>Create a new asyncio task, making sure to track it based on the client id.</p>
 <p>This allows the task to be automatically cancelled if its parent is cancelled.</p>
-<details class="quote">
+<details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/engine.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">607</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">608</span>
