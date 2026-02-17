@@ -18,7 +18,7 @@ class wayback(subdomain_enum):
     options_desc = {
         "urls": "emit URLs in addition to DNS_NAMEs",
         "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
-        "parameters": "emit WEB_PARAMETER events for query parameters discovered in archived URLs (forces urls=true)",
+        "parameters": "emit WEB_PARAMETER events for query parameters discovered in archived URLs (requires urls=true)",
     }
     in_scope_only = True
 
@@ -29,7 +29,17 @@ class wayback(subdomain_enum):
         self.urls = self.config.get("urls", False)
         self.parameters = self.config.get("parameters", False)
         if self.parameters:
-            self.urls = True
+            if not self.urls:
+                self.warning("parameters option requires urls to be enabled")
+                return False
+            consumers = [m for m, mod in self.scan.modules.items() if "WEB_PARAMETER" in mod.watched_events]
+            if not consumers:
+                self.warning("Disabling parameter extraction because no modules consume WEB_PARAMETER events")
+                self.parameters = False
+            else:
+                self.hugeinfo(
+                    f"Parameter extraction enabled because the following modules consume WEB_PARAMETER events: [{', '.join(consumers)}]"
+                )
         self.garbage_threshold = self.config.get("garbage_threshold", 10)
         self._parameter_cache = {}
         return await super().setup()
