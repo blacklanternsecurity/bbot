@@ -1112,7 +1112,7 @@ class TestExcavateYaraConfidence(ModuleTestBase):
         yara_rules = {
             "ConfirmedRule": 'rule ConfirmedRule { meta: description = "Confirmed rule" severity = "HIGH" confidence = "CONFIRMED" strings: $text = "CONFIRMED_SECRET_DATA" condition: $text }',
             "HighConfidenceRule": 'rule HighConfidenceRule { meta: description = "High confidence rule" severity = "MEDIUM" confidence = "HIGH" strings: $text = "HIGH_CONFIDENCE_INDICATOR" condition: $text }',
-            "ModerateConfidenceRule": 'rule ModerateConfidenceRule { meta: description = "Moderate confidence rule" severity = "LOW" confidence = "MODERATE" strings: $text = "MODERATE_RISK_PATTERN" condition: $text }',
+            "ModerateConfidenceRule": 'rule ModerateConfidenceRule { meta: description = "Moderate confidence rule" severity = "LOW" confidence = "MEDIUM" strings: $text = "MODERATE_RISK_PATTERN" condition: $text }',
             "LowConfidenceRule": 'rule LowConfidenceRule { meta: description = "Low confidence rule" severity = "INFORMATIONAL" confidence = "LOW" strings: $text = "LOW_CONFIDENCE_MATCH" condition: $text }',
             "UnknownConfidenceRule": 'rule UnknownConfidenceRule { meta: description = "Unknown confidence rule" severity = "INFORMATIONAL" confidence = "UNKNOWN" strings: $text = "UNKNOWN_PATTERN_TYPE" condition: $text }',
         }
@@ -1128,7 +1128,7 @@ class TestExcavateYaraConfidence(ModuleTestBase):
         confidence_findings = {f.data.get("confidence", "UNKNOWN"): f for f in findings}
 
         # Verify all confidence levels are present
-        expected_confidences = ["CONFIRMED", "HIGH", "MODERATE", "LOW", "UNKNOWN"]
+        expected_confidences = ["CONFIRMED", "HIGH", "MEDIUM", "LOW", "UNKNOWN"]
         for confidence in expected_confidences:
             assert confidence in confidence_findings, f"Missing finding with confidence: {confidence}"
             finding = confidence_findings[confidence]

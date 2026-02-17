@@ -92,7 +92,7 @@ class xss(BaseLightfuzz):
                 {
                     "name": "Possible Reflected XSS",
                     "severity": "MEDIUM",
-                    "confidence": "MODERATE",
+                    "confidence": "MEDIUM",
                     "description": f"Possible Reflected XSS. Parameter: [{self.event.data['name']}] Context: [{context}] Parameter Type: [{self.event.data['type']}]",
                 }
             )

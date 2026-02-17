@@ -12,7 +12,7 @@ class WebhookOutputModule(BaseOutputModule):
     message_size_limit = 2000
     content_key = "content"
     severities = ["INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
-    confidences = ["UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED"]
+    confidences = ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED"]
 
     # abort module after 10 failed requests (not including retries)
     _api_failure_abort_threshold = 10

@@ -180,7 +180,7 @@ class wpscan(BaseModule):
                         "host": str(source_event.host),
                         "name": "WPScan - Possible Vulnerability",
                         "severity": "INFORMATIONAL",
-                        "confidence": "MODERATE",
+                        "confidence": "MEDIUM",
                     },
                     "FINDING",
                     source_event,
@@ -201,7 +201,7 @@ class wpscan(BaseModule):
             yield self.make_event(
                 {
                     "severity": "HIGH",
-                    "confidence": "MODERATE",
+                    "confidence": "MEDIUM",
                     "host": str(source_event.host),
                     "url": url,
                     "description": self.vulnerability_to_s(wp_vuln),
@@ -228,7 +228,7 @@ class wpscan(BaseModule):
             yield self.make_event(
                 {
                     "severity": "HIGH",
-                    "confidence": "MODERATE",
+                    "confidence": "MEDIUM",
                     "host": str(source_event.host),
                     "url": url,
                     "description": self.vulnerability_to_s(theme_vuln),
@@ -259,7 +259,7 @@ class wpscan(BaseModule):
                 yield self.make_event(
                     {
                         "severity": "HIGH",
-                        "confidence": "MODERATE",
+                        "confidence": "MEDIUM",
                         "host": str(source_event.host),
                         "url": url,
                         "description": self.vulnerability_to_s(vuln),

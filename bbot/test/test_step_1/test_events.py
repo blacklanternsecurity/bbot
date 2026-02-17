@@ -401,7 +401,7 @@ async def test_events(events, helpers):
     # test confidence colors and formatting
     from bbot.core.event.base import FINDING
 
-    expected_colors = {"CONFIRMED": "🟣", "HIGH": "🔴", "MODERATE": "🟠", "LOW": "🟡", "UNKNOWN": "⚪"}
+    expected_colors = {"CONFIRMED": "🟣", "HIGH": "🔴", "MEDIUM": "🟠", "LOW": "🟡", "UNKNOWN": "⚪"}
     assert FINDING.confidence_colors == expected_colors
 
     # test CONFIRMED gets bold formatting
@@ -994,7 +994,7 @@ def test_event_closest_host():
     assert not event3.host
     # finding automatically uses the host from the second event
     finding = scan.make_event(
-        {"description": "test", "severity": "LOW", "confidence": "MODERATE", "name": "Test Finding"},
+        {"description": "test", "severity": "LOW", "confidence": "MEDIUM", "name": "Test Finding"},
         "FINDING",
         parent=event3,
     )
@@ -1018,7 +1018,7 @@ def test_event_closest_host():
     assert not event3.host
     with pytest.raises(ValueError):
         finding = scan.make_event(
-            {"description": "test", "severity": "LOW", "confidence": "MODERATE", "name": "Test Finding"},
+            {"description": "test", "severity": "LOW", "confidence": "MEDIUM", "name": "Test Finding"},
             "FINDING",
             parent=event3,
         )
@@ -1027,7 +1027,7 @@ def test_event_closest_host():
             "path": "/tmp/asdf.txt",
             "description": "test",
             "severity": "LOW",
-            "confidence": "MODERATE",
+            "confidence": "MEDIUM",
             "name": "Test Finding",
         },
         "FINDING",
@@ -1039,7 +1039,7 @@ def test_event_closest_host():
             "host": "evilcorp.com",
             "description": "test",
             "severity": "LOW",
-            "confidence": "MODERATE",
+            "confidence": "MEDIUM",
             "name": "Test Finding",
         },
         "FINDING",

@@ -140,7 +140,7 @@ def validate_severity(severity: str):
     return severity
 
 
-FINDING_CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED")
+FINDING_CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")
 
 
 @validator

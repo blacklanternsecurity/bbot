@@ -385,7 +385,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
                     "description": "asdf",
                     "name": "Finding",
                     "severity": "LOW",
-                    "confidence": "MODERATE",
+                    "confidence": "MEDIUM",
                 },
                 "FINDING",
                 event,

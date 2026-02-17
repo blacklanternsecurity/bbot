@@ -1,7 +1,5 @@
 from .base import ModuleTestBase
 
-from .test_module_azure_realm import TestAzure_Realm as Azure_Realm
-
 
 class TestOAUTH(ModuleTestBase):
     targets = ["evilcorp.com"]
@@ -168,7 +166,13 @@ class TestOAUTH(ModuleTestBase):
         await module_test.mock_dns({"evilcorp.com": {"A": ["127.0.0.1"]}})
         module_test.httpx_mock.add_response(
             url="https://login.microsoftonline.com/getuserrealm.srf?login=test@evilcorp.com",
-            json=Azure_Realm.response_json,
+            json={
+                "NameSpaceType": "Managed",
+                "DomainName": "evilcorp.com",
+                "FederationBrandName": "evilcorp",
+                "TenantId": "cc74fc12-4142-400e-a653-f98bdeadbeef",
+                "AuthURL": "https://login.windows.net/evilcorp.com",
+            },
         )
         module_test.httpx_mock.add_response(
             url="https://login.windows.net/evilcorp.com/.well-known/openid-configuration",

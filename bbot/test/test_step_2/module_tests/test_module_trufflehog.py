@@ -1332,4 +1332,4 @@ class TestTrufflehog_RAWText(ModuleTestBase):
         assert "Possible Secret Found" in finding_events[0].data["description"]
         # Trufflehog emits HIGH severity and MODERATE confidence for possible secrets
         assert finding_events[0].data["severity"] == "HIGH"
-        assert finding_events[0].data["confidence"] == "MODERATE"
+        assert finding_events[0].data["confidence"] == "MEDIUM"
