@@ -623,7 +623,7 @@ class BaseEvent:
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
                 event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate",):
+                    if t in ("affiliate", "from-wayback"):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
