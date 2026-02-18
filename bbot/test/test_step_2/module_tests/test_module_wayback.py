@@ -1,3 +1,10 @@
+import re
+from urllib.parse import unquote
+
+from werkzeug.wrappers import Response
+
+from bbot.modules.wayback import wayback
+
 from .base import ModuleTestBase
 
 
@@ -49,3 +56,388 @@ class TestWaybackParameters(ModuleTestBase):
                 assert e.data["additional_params"] == {"foo": "bar"}, (
                     f"baz's additional_params wrong: {e.data['additional_params']}"
                 )
+
+
+class TestWaybackInterestingFiles(ModuleTestBase):
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[["original"], ["http://blacklanternsecurity.com/backup/site.zip"]],
+        )
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://blacklanternsecurity.com/backup/site.zip",
+            headers={"Content-Type": "application/zip", "Content-Length": "1048576"},
+        )
+
+    def check(self, module_test, events):
+        assert any(
+            e.type == "FINDING"
+            and "Interesting archived file found" in e.data["description"]
+            and "site.zip" in e.data["description"]
+            for e in events
+        ), "Failed to emit FINDING for interesting archived file"
+        for e in events:
+            if e.type == "FINDING" and "site.zip" in e.data.get("description", ""):
+                assert "web.archive.org" in e.data["url"]
+
+
+class TestWaybackArchive(ModuleTestBase):
+    module_name = "wayback"
+    modules_overrides = ["wayback", "badsecrets", "excavate"]
+    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
+
+    sample_viewstate = """<html>
+<form method="post" action="./query.aspx" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="rJdyYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESf4nBu" />
+</div>
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="EDD8C9AE" />
+<input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
+</div>
+</form>
+</html>"""
+
+    async def setup_after_prep(self, module_test):
+        # wayback returns a URL on an unreachable port — httpx binary can't verify it
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[["original"], ["http://127.0.0.1:1/deadpage"]],
+        )
+        # the archived page itself contains the vulnerable viewstate
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/deadpage",
+            text=self.sample_viewstate,
+            headers={"Content-Type": "text/html"},
+        )
+
+    def check(self, module_test, events):
+        # the dead URL (port 1) should NOT be verified as live
+        assert not any(e.type == "URL" and "deadpage" in e.data for e in events)
+        # badsecrets should have found the vulnerability in the archived viewstate
+        assert any(e.type == "VULNERABILITY" and "Known Secret Found." in e.data["description"] for e in events), (
+            "Failed to detect badsecrets vulnerability from archived content"
+        )
+        # the vulnerability should reference the original URL, with "from-wayback" tag for provenance
+        for e in events:
+            if e.type == "VULNERABILITY" and "Known Secret Found." in e.data["description"]:
+                assert "127.0.0.1" in e.data["url"], (
+                    f"VULNERABILITY url should contain the original host, got: {e.data['url']}"
+                )
+                assert "web.archive.org" not in e.data["url"], (
+                    f"VULNERABILITY url should NOT be an archive.org URL, got: {e.data['url']}"
+                )
+        # web.archive.org should NOT appear as a DNS_NAME event
+        assert not any(e.type == "DNS_NAME" and e.data == "web.archive.org" for e in events), (
+            "web.archive.org should not leak as a DNS_NAME event"
+        )
+
+
+class TestWaybackHttpHttpsDedup(ModuleTestBase):
+    """When CDX returns both http:// and https:// for the same URL, only emit https://."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[
+                ["original"],
+                ["http://blacklanternsecurity.com/page"],
+                ["https://blacklanternsecurity.com/page"],
+            ],
+        )
+
+    def check(self, module_test, events):
+        url_unverified = [e for e in events if e.type == "URL_UNVERIFIED" and "/page" in e.data]
+        # should have only one, the https version
+        assert len(url_unverified) == 1, (
+            f"Expected 1 URL_UNVERIFIED, got {len(url_unverified)}: {[e.data for e in url_unverified]}"
+        )
+        assert url_unverified[0].data.startswith("https://"), f"Expected https URL, got: {url_unverified[0].data}"
+
+
+class TestWaybackHttpOnlyKept(ModuleTestBase):
+    """When CDX returns only http:// (no https:// counterpart), emit the http:// URL."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[
+                ["original"],
+                ["http://blacklanternsecurity.com/old-http-only"],
+            ],
+        )
+
+    def check(self, module_test, events):
+        url_unverified = [e for e in events if e.type == "URL_UNVERIFIED" and "/old-http-only" in e.data]
+        assert len(url_unverified) == 1, f"Expected 1 URL_UNVERIFIED, got {len(url_unverified)}"
+        assert url_unverified[0].data.startswith("http://"), (
+            f"Expected http URL when no https exists, got: {url_unverified[0].data}"
+        )
+
+
+class TestWaybackCdnCgiBlacklist(ModuleTestBase):
+    """cdn-cgi/ URLs (Cloudflare infrastructure) should be filtered out."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[
+                ["original"],
+                ["https://blacklanternsecurity.com/cdn-cgi/challenge-platform/h/g/something"],
+                ["https://blacklanternsecurity.com/real-page"],
+            ],
+        )
+
+    def check(self, module_test, events):
+        # cdn-cgi URL should be filtered
+        assert not any(e.type == "URL_UNVERIFIED" and "cdn-cgi" in e.data for e in events), (
+            "cdn-cgi URL should have been filtered"
+        )
+        # real page should still be emitted
+        assert any(e.type == "URL_UNVERIFIED" and "real-page" in e.data for e in events), (
+            "Non-cdn-cgi URL should have been emitted"
+        )
+
+
+class TestWaybackArchiveHostField(ModuleTestBase):
+    """Archived HTTP_RESPONSE events should use original URL (not archive.org) to prevent cascade."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback", "excavate"]
+    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[["original"], ["http://127.0.0.1:1/archived-page"]],
+        )
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/archived-page",
+            text="<html><body>archived content</body></html>",
+            headers={"Content-Type": "text/html"},
+        )
+
+    def check(self, module_test, events):
+        http_responses = [e for e in events if e.type == "HTTP_RESPONSE" and "from-wayback" in e.tags]
+        assert len(http_responses) >= 1, "Expected at least one archived HTTP_RESPONSE"
+        for e in http_responses:
+            # URL should be the ORIGINAL (not archive.org) so event.host returns the original host
+            assert "web.archive.org" not in e.data["url"], (
+                f"HTTP_RESPONSE url should NOT be an archive.org URL, got: {e.data['url']}"
+            )
+            assert "127.0.0.1" in e.data["url"], (
+                f"HTTP_RESPONSE url should contain original host, got: {e.data['url']}"
+            )
+            # archive_url should contain the archive.org provenance URL
+            assert "web.archive.org" in e.data.get("archive_url", ""), (
+                f"HTTP_RESPONSE archive_url should be the archive.org URL, got: {e.data.get('archive_url')}"
+            )
+            # event.host should be the original host
+            assert str(e.host) != "web.archive.org", f"event.host should be original host, got: {e.host}"
+        # web.archive.org should NOT appear as a DNS_NAME event
+        assert not any(e.type == "DNS_NAME" and e.data == "web.archive.org" for e in events), (
+            "web.archive.org should not leak as a DNS_NAME event"
+        )
+
+
+class TestWaybackArchiveHuntFinding(ModuleTestBase):
+    """When hunt processes a WEB_PARAMETER extracted from archived content,
+    the resulting FINDING should have the original host and original URL — NOT web.archive.org."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback", "excavate", "hunt"]
+    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
+
+    async def setup_after_prep(self, module_test):
+        # CDX returns a dead URL (port 1 = unreachable) with a huntable form
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[["original"], ["http://127.0.0.1:1/search"]],
+        )
+        # the archived page contains a form with "redirect" — a known hunt parameter
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/search",
+            text='<html><form method="GET" action="/search"><input name="redirect" value="test"></form></html>',
+            headers={"Content-Type": "text/html"},
+        )
+
+    def check(self, module_test, events):
+        # hunt should have found the "redirect" parameter as interesting
+        hunt_findings = [
+            e for e in events if e.type == "FINDING" and "redirect" in e.data.get("description", "").lower()
+        ]
+        assert len(hunt_findings) >= 1, (
+            f"Expected at least one hunt FINDING for 'redirect' param, got: "
+            f"{[(e.type, e.data.get('description', '')) for e in events if e.type == 'FINDING']}"
+        )
+        for finding in hunt_findings:
+            # host must be the original, NOT web.archive.org
+            assert finding.data.get("host") != "web.archive.org", (
+                f"Hunt FINDING host should NOT be web.archive.org, got: {finding.data}"
+            )
+            assert finding.data.get("host") == "127.0.0.1", (
+                f"Hunt FINDING host should be 127.0.0.1 (original), got: {finding.data.get('host')}"
+            )
+            # URL should NOT contain web.archive.org — it should be the original URL
+            finding_url = finding.data.get("url", "")
+            assert "web.archive.org" not in finding_url, (
+                f"Hunt FINDING url should NOT contain web.archive.org, got: {finding_url}"
+            )
+            # archive_url should propagate from HTTP_RESPONSE → WEB_PARAMETER → FINDING
+            assert "archive_url" in finding.data, (
+                f"Hunt FINDING should have archive_url for provenance, got: {finding.data}"
+            )
+            assert "web.archive.org" in finding.data["archive_url"], (
+                f"Hunt FINDING archive_url should be archive.org URL, got: {finding.data['archive_url']}"
+            )
+
+        # WEB_PARAMETERs from archived content should also have archive_url
+        archived_params = [
+            e for e in events if e.type == "WEB_PARAMETER" and "redirect" in e.data.get("name", "").lower()
+        ]
+        for param in archived_params:
+            assert "archive_url" in param.data, (
+                f"WEB_PARAMETER from archived content should have archive_url, got: {param.data}"
+            )
+
+        # web.archive.org should never appear as a DNS_NAME
+        assert not any(e.type == "DNS_NAME" and e.data == "web.archive.org" for e in events), (
+            "web.archive.org should not leak as a DNS_NAME event"
+        )
+
+
+class TestWaybackLightfuzzXSS(ModuleTestBase):
+    """End-to-end: wayback discovers URL with param → httpx verifies → wayback emits WEB_PARAMETER → lightfuzz finds XSS."""
+
+    module_name = "wayback"
+    targets = ["blacklanternsecurity.com"]
+    modules_overrides = ["wayback", "httpx", "lightfuzz", "excavate"]
+    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "wayback": {"urls": True, "parameters": True},
+            "lightfuzz": {"enabled_submodules": ["xss"]},
+        },
+    }
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        if "search=" in qs:
+            value = qs.split("search=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            return Response(
+                f"<html><h1>Results for '{unquote(value)}'</h1></html>",
+                status=200,
+            )
+        return Response("<html><p>default page</p></html>", status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        # CDX returns a URL with a search parameter pointing at the local httpserver
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[["original"], ["http://127.0.0.1:8888/?search=test"]],
+        )
+        # httpserver handles httpx verification and lightfuzz probes
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        # wayback should have emitted WEB_PARAMETER for "search"
+        assert any(
+            e.type == "WEB_PARAMETER" and e.data["name"] == "search" and "wayback" in e.data["description"].lower()
+            for e in events
+        ), "wayback failed to emit WEB_PARAMETER for search"
+        # lightfuzz should have detected XSS
+        assert any(
+            e.type == "FINDING" and "XSS" in e.data["description"] and "search" in e.data["description"]
+            for e in events
+        ), (
+            f"lightfuzz failed to detect XSS. FINDINGs: "
+            f"{[(e.data.get('description', '')) for e in events if e.type == 'FINDING']}"
+        )
+
+
+class TestWaybackStripBodyArtifacts(ModuleTestBase):
+    """Test that _strip_wayback_wrapper removes all archive.org artifacts from HTML body."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[["original"]],
+        )
+
+    def check(self, module_test, events):
+        w = wayback.__new__(wayback)
+
+        # test stripping of rewritten URLs
+        body = '<a href="http://web.archive.org/web/20250101120000/http://example.com/page">link</a>'
+        stripped = w._strip_wayback_wrapper(body)
+        assert "web.archive.org" not in stripped
+        assert "http://example.com/page" in stripped
+
+        # test stripping of toolbar
+        body = (
+            "<!-- BEGIN WAYBACK TOOLBAR INSERT --><div>toolbar</div><!-- END WAYBACK TOOLBAR INSERT --><p>content</p>"
+        )
+        stripped = w._strip_wayback_wrapper(body)
+        assert "toolbar" not in stripped
+        assert "content" in stripped
+
+        # test stripping of stale archive.org references (e.g. /web/submit form)
+        body = '<form action="http://web.archive.org/web/submit"><input name="date"></form><p>real</p>'
+        stripped = w._strip_wayback_wrapper(body)
+        assert "web.archive.org" not in stripped
+        assert "real" in stripped
+
+        # test stripping of protocol-relative archive.org URLs
+        body = '<script src="//archive.org/includes/athena.js"></script><p>content</p>'
+        stripped = w._strip_wayback_wrapper(body)
+        assert "archive.org" not in stripped
+        assert "content" in stripped
+
+        # test stripping of relative wayback URL rewrites (href)
+        body = '<a href="/web/19971024185506/http://www.example.com/PDF%20files/data.pdf">link</a>'
+        stripped = w._strip_wayback_wrapper(body)
+        assert "/web/19971024185506/" not in stripped
+        assert "http://www.example.com/PDF%20files/data.pdf" in stripped
+
+        # test stripping of relative wayback URL rewrites with modifier suffix (im_ for images)
+        body = '<img src="/web/19971024185506im_/http://www.example.com/images/logo.gif">'
+        stripped = w._strip_wayback_wrapper(body)
+        assert "/web/19971024185506im_/" not in stripped
+        assert "http://www.example.com/images/logo.gif" in stripped
+
+        # test stripping of relative wayback URL rewrites with js_ suffix
+        body = '<script src="/web/20250529193232js_/https://www.example.com/script.js"></script>'
+        stripped = w._strip_wayback_wrapper(body)
+        assert "/web/20250529193232js_/" not in stripped
+        assert "https://www.example.com/script.js" in stripped

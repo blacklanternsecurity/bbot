@@ -261,6 +261,7 @@ parameter_blacklist:
   - .AspNetCore.Session
   - PHPSESSID
   - __cf_bm
+  - _cfuvid
   - f5_cspm
 
 parameter_blacklist_prefixes:

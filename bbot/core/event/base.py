@@ -1069,6 +1069,19 @@ class DictEvent(BaseEvent):
 
 
 class DictHostEvent(DictEvent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # inherit archive_url from parent for provenance tracking (e.g. wayback archived content)
+        if isinstance(self.data, dict) and "archive_url" not in self.data:
+            parent = self.parent
+            if (
+                parent is not None
+                and parent is not self
+                and isinstance(parent.data, dict)
+                and "archive_url" in parent.data
+            ):
+                self.data["archive_url"] = parent.data["archive_url"]
+
     def _host(self):
         if isinstance(self.data, dict) and "host" in self.data:
             return make_ip_type(self.data["host"])
@@ -1645,6 +1658,7 @@ class FINDING(ClosestHostEvent):
         full_url: Optional[str] = None
         path: Optional[str] = None
         cves: Optional[list[str]] = None
+        archive_url: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)

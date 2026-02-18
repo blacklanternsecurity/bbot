@@ -12,3 +12,7 @@ config:
       avoid_wafs: False
     excavate:
       speculate_params: True # speculate potential parameters extracted from JSON/XML web responses
+    wayback:
+      urls: True
+      parameters: True
+      archive: True
