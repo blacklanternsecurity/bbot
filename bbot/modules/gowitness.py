@@ -43,7 +43,7 @@ class gowitness(BaseModule):
         {
             "name": "Download gowitness",
             "get_url": {
-                "url": "https://github.com/sensepost/gowitness/releases/download/#{BBOT_MODULES_GOWITNESS_VERSION}/gowitness-#{BBOT_MODULES_GOWITNESS_VERSION}-#{BBOT_OS_PLATFORM}-#{BBOT_CPU_ARCH}",
+                "url": "https://github.com/sensepost/gowitness/releases/download/#{BBOT_MODULES_GOWITNESS_VERSION}/gowitness-#{BBOT_MODULES_GOWITNESS_VERSION}-#{BBOT_OS_PLATFORM}-#{BBOT_CPU_ARCH_GOLANG}",
                 "dest": "#{BBOT_TOOLS}/gowitness",
                 "mode": "755",
             },

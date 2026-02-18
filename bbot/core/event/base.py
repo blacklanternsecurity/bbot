@@ -1282,6 +1282,10 @@ class OPEN_TCP_PORT(BaseEvent):
         return set()
 
 
+class OPEN_UDP_PORT(OPEN_TCP_PORT):
+    pass
+
+
 class URL_UNVERIFIED(BaseEvent):
     _status_code_regex = re.compile(r"^status-(\d{1,3})$")
 
