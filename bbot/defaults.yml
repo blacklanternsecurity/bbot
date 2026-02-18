@@ -248,6 +248,7 @@ parameter_blacklist:
   - ASP.NET_SessionId
   - PHPSESSID
   - __cf_bm
+  - _cfuvid
   - f5_cspm
 
 parameter_blacklist_prefixes:
