@@ -187,15 +187,23 @@ class wayback(subdomain_enum):
         """Fetch URLs from the CDX API with retries. Returns the URL list or None on failure."""
         waybackurl = f"{self.base_url}/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
         r = None
+        last_error = None
         for i in range(3):
-            r = await self.helpers.request(waybackurl, timeout=self.http_timeout + 30)
-            if r:
-                break
+            try:
+                r = await self.helpers.request(waybackurl, timeout=self.http_timeout + 60, raise_error=True)
+            except Exception as e:
+                last_error = str(e)
+                r = None
+            if r is not None:
+                if r.status_code == 200:
+                    break
+                last_error = f"HTTP status {r.status_code}"
+                r = None
             if i < 2:
-                self.verbose(f'Error connecting to archive.org for query "{query}", retrying ({i + 1}/2)')
+                self.verbose(f'Error connecting to archive.org for query "{query}" ({last_error}), retrying ({i + 1}/2)')
                 await self.helpers.sleep(2**i)
-        if not r:
-            self.warning(f'Error connecting to archive.org for query "{query}"')
+        if r is None:
+            self.warning(f'Error connecting to archive.org for query "{query}": {last_error}')
             return None
         try:
             j = r.json()
