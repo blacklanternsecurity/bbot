@@ -33,18 +33,21 @@ if __name__ == "__main__":
 <!-- BBOT HELP OUTPUT -->
 ```text
 usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]]
-               [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-p [PRESET ...]]
-               [-c [CONFIG ...]] [-lp] [-m MODULE [MODULE ...]] [-l] [-lmo]
-               [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
-               [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d] [-s]
-               [--force] [-y] [--fast-mode] [--dry-run] [--current-preset]
-               [--current-preset-full] [-mh MODULE] [-o DIR] [-om MODULE [MODULE ...]] [-lo]
-               [--json] [--brief] [--event-types EVENT_TYPES [EVENT_TYPES ...]]
-               [--exclude-cdn] [--no-deps | --force-deps | --retry-deps |
-               --ignore-failed-deps | --install-all-deps] [--version] [--proxy HTTP_PROXY]
-               [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
+               [-b BLACKLIST [BLACKLIST ...]] [--strict-scope]
+               [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
+               [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]]
+               [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
+               [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d]
+               [-s] [--force] [-y] [--fast-mode] [--dry-run]
+               [--current-preset] [--current-preset-full] [-mh MODULE]
+               [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
+               [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
+               [--no-deps | --force-deps | --retry-deps |
+               --ignore-failed-deps | --install-all-deps] [--version]
+               [--proxy HTTP_PROXY] [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
                [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
-               [--custom-yara-rules CUSTOM_YARA_RULES] [--user-agent USER_AGENT]
+               [--custom-yara-rules CUSTOM_YARA_RULES]
+               [--user-agent USER_AGENT]
 
 Bighuge BLS OSINT Tool
 
@@ -69,7 +72,7 @@ Presets:
 
 Modules:
   -m, --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_realm,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,extractous,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,leakix,legba,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,wpscan
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_realm,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,extractous,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,leakix,legba,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wayback,wpscan
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
