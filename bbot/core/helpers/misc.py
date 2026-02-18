@@ -2617,6 +2617,24 @@ async def as_completed(coros):
             yield task
 
 
+def get_waf_strings():
+    """
+    Returns a list of common WAF (Web Application Firewall) detection strings.
+
+    Returns:
+        list: List of WAF detection strings
+
+    Examples:
+        >>> waf_strings = get_waf_strings()
+        >>> "The requested URL was rejected" in waf_strings
+        True
+    """
+    return [
+        "The requested URL was rejected",
+        "This content has been blocked",
+    ]
+
+
 def clean_dns_record(record):
     """
     Cleans and formats a given DNS record for further processing.

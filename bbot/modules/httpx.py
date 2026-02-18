@@ -183,6 +183,13 @@ class httpx(BaseModule):
                 self.debug(f'Discarding 404 from "{url}"')
                 continue
 
+            # discard 4xx responses that contain WAF strings
+            if 400 <= status_code < 500:
+                body = j.get("body", "")
+                if any(ws in body for ws in self.helpers.get_waf_strings()):
+                    self.debug(f'Discarding WAF {status_code} from "{url}"')
+                    continue
+
             # main URL
             tags = [f"status-{status_code}"]
             httpx_ip = j.get("host", "")
