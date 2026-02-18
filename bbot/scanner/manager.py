@@ -188,54 +188,34 @@ class ScanEgress(BaseInterceptModule):
         abort_if = kwargs.pop("abort_if", None)
         on_success_callback = kwargs.pop("on_success_callback", None)
 
-        # omit certain event types
-        if event.type in self.scan.omitted_event_types:
-            if "target" in event.tags:
-                self.debug(f"Allowing omitted event: {event} because it's a target")
-            else:
-                event._omit = True
+        # mark omitted event types
+        # we could do this all in the output module's filter_event(), but we mark it here permanently so the events' .get_parent() can factor in the omission, and skip over omitted parents
+        omitted_event_type = event.type in self.scan.omitted_event_types
+        is_target = "target" in event.tags
+        if omitted_event_type and not is_target:
+            self.debug(f"Making {event} omitted because its type is omitted in the config")
+            event._omit = True
 
         # make event internal if it's above our configured report distance
         event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
         event_will_be_output = event.always_emit or event_in_report_distance
 
-        if not event_will_be_output:
-            self.debug(
-                f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-            )
-            event.internal = True
-
-        # mark special URLs (e.g. Javascript) as internal so they don't get output except when they're critical to the graph
-        if event.type.startswith("URL"):
-            extension = getattr(event, "url_extension", "")
-            if extension in self.scan.url_extension_special:
+        # if an event isn't being re-emitted for output, we may want to make it internal
+        if not event._graph_important:
+            if not event_will_be_output and not event.internal:
+                self.debug(
+                    f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                )
                 event.internal = True
-                self.debug(f"Making {event} internal because it is a special URL (extension {extension})")
 
-        if event.type in self.scan.omitted_event_types:
-            self.debug(f"Omitting {event} because its type is omitted in the config")
-            event._omit = True
+            # mark special URLs (e.g. Javascript) as internal so they don't get output except when they're critical to the graph
+            if event.type.startswith("URL") and not event.internal:
+                extension = getattr(event, "url_extension", "")
+                if extension in self.scan.url_extension_special:
+                    self.debug(f"Making {event} internal because it is a special URL (extension {extension})")
+                    event.internal = True
 
-        # if we discovered something interesting from an internal event,
-        # make sure we preserve its chain of parents
-        parent = event.parent
-        event_is_graph_worthy = (not event.internal) or event._graph_important
-        parent_is_graph_worthy = (not parent.internal) or parent._graph_important
-        if event_is_graph_worthy and not parent_is_graph_worthy:
-            parent_in_report_distance = parent.scope_distance <= self.scan.scope_report_distance
-            if parent_in_report_distance:
-                parent.internal = False
-            if not parent._graph_important:
-                parent._graph_important = True
-                self.debug(f"Re-queuing internal event {parent} with parent {event} to prevent graph orphan")
-                await self.emit_event(parent)
-
-        if event._suppress_chain_dupes:
-            for parent in event.get_parents():
-                if parent == event:
-                    return False, f"an identical parent {event} was found, and _suppress_chain_dupes=True"
-
-        # custom callback - abort event emission it returns true
+        # custom callback - abort event emission if it returns true
         abort_result = False
         if callable(abort_if):
             async with self.scan._acatch(context=abort_if):
@@ -246,6 +226,30 @@ class ScanEgress(BaseInterceptModule):
                 msg += f": {reason}"
             if abort_result:
                 return False, msg
+
+        if event._suppress_chain_dupes:
+            for parent in event.get_parents():
+                if parent == event:
+                    return False, f"an identical parent {event} was found, and _suppress_chain_dupes=True"
+
+        # if we discovered something interesting from an internal event,
+        # make sure we preserve its chain of parents
+        # here we retroactively resurrect any interesting internal events that led to this discovery
+        # "interesting" meaning any event types that aren't omitted in the config
+        # (by using .get_parent() instead of .parent, we're intentionally skipping over omitted events)
+        parent = event.get_parent()
+        event_is_graph_worthy = (not event.internal) or event._graph_important
+        parent_is_graph_worthy = (not parent.internal) or parent._graph_important
+        if event_is_graph_worthy and not parent_is_graph_worthy:
+            parent_in_report_distance = parent.scope_distance <= self.scan.scope_report_distance
+            self.debug(f"parent {parent} in report distance: {parent_in_report_distance}")
+            if parent_in_report_distance:
+                self.debug(f"setting parent {parent} internal to False")
+                parent.internal = False
+            if not parent._graph_important:
+                self.debug(f"Re-queuing internal event {parent} with parent {event} to prevent graph orphan")
+                parent._graph_important = True
+                await self.emit_event(parent)
 
         # run success callback before distributing event (so it can add tags, etc.)
         if callable(on_success_callback):

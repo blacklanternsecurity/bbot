@@ -608,7 +608,7 @@ class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
         "interactsh_disable": True,
         "modules": {
             "lightfuzz": {
-                "enabled_submodules": ["cmdi", "crypto", "path", "serial", "sqli", "ssti", "xss"],
+                "enabled_submodules": ["cmdi", "crypto", "path", "serial", "sqli", "ssti", "xss", "esi"],
             }
         },
     }
@@ -1817,3 +1817,71 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
 
         assert web_parameter_emitted, "WEB_PARAMETER for was not emitted"
         assert xss_finding_emitted, "XSS FINDING not emitted"
+
+
+class Test_Lightfuzz_esi(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["esi"],
+            }
+        },
+    }
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            # Decode the URL-encoded value
+            decoded_value = unquote(value)
+            # Simulate ESI processing: if the payload contains <!--esi-->, remove it
+            if "<!--esi-->" in decoded_value:
+                # ESI processor removes <!--esi--> tag, leaving the rest
+                processed_value = decoded_value.replace("<!--esi-->", "")
+            else:
+                # For non-ESI payloads, just reflect the value as-is
+                processed_value = decoded_value
+
+            esi_block = f"""
+        <section class=blog-header>
+            <h1>Search results for '{processed_value}'</h1>
+            <hr>
+        </section>
+        """
+            return Response(esi_block, status=200)
+
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        esi_finding_emitted = False
+
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [search]" in e.data["description"]:
+                    web_parameter_emitted = True
+
+            if e.type == "FINDING":
+                if "Edge Side Include. Parameter: [search] Parameter Type: [GETPARAM]" in e.data["description"]:
+                    esi_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert esi_finding_emitted, "ESI FINDING not emitted"

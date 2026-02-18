@@ -20,7 +20,7 @@ class sslcert(BaseModule):
     options = {"timeout": 5.0, "skip_non_ssl": True}
     options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
     deps_apt = ["openssl"]
-    deps_pip = ["pyOpenSSL~=24.0.0"]
+    deps_pip = ["pyOpenSSL~=25.3.0"]
     _module_threads = 25
     scope_distance_modifier = 1
     _priority = 2
@@ -77,7 +77,7 @@ class sslcert(BaseModule):
                 dns_names = dns_names[:1] + [n for n in dns_names[1:] if self.scan.in_scope(n)]
             for event_type, results in (("DNS_NAME", set(dns_names)), ("EMAIL_ADDRESS", emails)):
                 for event_data in results:
-                    if event_data is not None and event_data != event:
+                    if event_data is not None and event_data != event.data:
                         self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
                         try:
                             ssl_event = self.make_event(event_data, event_type, parent=event, raise_error=True)

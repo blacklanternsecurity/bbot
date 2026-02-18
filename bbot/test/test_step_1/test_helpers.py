@@ -409,6 +409,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.validators.validate_host("LOCALHOST ") == "localhost"
     assert helpers.validators.validate_host(" 192.168.1.1") == "192.168.1.1"
     assert helpers.validators.validate_host(" Dead::c0dE ") == "dead::c0de"
+    assert helpers.validators.validate_host(".*.wildcard.evilcorp.com") == "wildcard.evilcorp.com"
     assert helpers.validators.soft_validate(" evilCorp.COM", "host") is True
     assert helpers.validators.soft_validate("!@#$", "host") is False
     with pytest.raises(ValueError):

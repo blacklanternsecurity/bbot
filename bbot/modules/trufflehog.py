@@ -31,7 +31,7 @@ class trufflehog(BaseModule):
         {
             "name": "Download trufflehog",
             "unarchive": {
-                "src": "https://github.com/trufflesecurity/trufflehog/releases/download/v#{BBOT_MODULES_TRUFFLEHOG_VERSION}/trufflehog_#{BBOT_MODULES_TRUFFLEHOG_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH}.tar.gz",
+                "src": "https://github.com/trufflesecurity/trufflehog/releases/download/v#{BBOT_MODULES_TRUFFLEHOG_VERSION}/trufflehog_#{BBOT_MODULES_TRUFFLEHOG_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH_GOLANG}.tar.gz",
                 "include": "trufflehog",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -41,11 +41,14 @@ class trufflehog(BaseModule):
 
     scope_distance_modifier = 2
 
-    async def setup(self):
-        self.verified = self.config.get("only_verified", True)
+    async def setup_deps(self):
         self.config_file = self.config.get("config", "")
         if self.config_file:
             self.config_file = await self.helpers.wordlist(self.config_file)
+        return True
+
+    async def setup(self):
+        self.verified = self.config.get("only_verified", True)
         self.concurrency = int(self.config.get("concurrency", 8))
 
         self.deleted_forks = self.config.get("deleted_forks", False)

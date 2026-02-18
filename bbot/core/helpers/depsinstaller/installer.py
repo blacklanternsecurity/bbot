@@ -2,6 +2,8 @@ import os
 import sys
 import stat
 import json
+import mmh3
+import orjson
 import shutil
 import getpass
 import logging
@@ -14,6 +16,7 @@ from secrets import token_bytes
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
+from bbot import __version__
 from ..misc import can_sudo_without_password, os_platform, rm_at_exit, get_python_constraints
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
@@ -68,7 +71,7 @@ class DepsInstaller:
             },
         ],
         # to compile just about any tool, we need the openssl dev headers
-        "openssl": [
+        "openssl_dev_headers": [
             {
                 "name": "Install OpenSSL library and development headers (Debian/Ubuntu)",
                 "package": {"name": ["libssl-dev", "openssl"], "state": "present"},
@@ -172,6 +175,7 @@ class DepsInstaller:
                     + self.venv
                     + str(self.parent_helper.bbot_home)
                     + os.uname()[1]
+                    + str(__version__)
                 ).hexdigest()
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
@@ -439,6 +443,13 @@ class DepsInstaller:
                     log.warning("Incorrect password")
 
     async def install_core_deps(self):
+        # skip if we've already successfully installed core deps for this definition
+        core_deps_hash = str(mmh3.hash(orjson.dumps(self.CORE_DEPS, option=orjson.OPT_SORT_KEYS)))
+        core_deps_cache_file = self.parent_helper.cache_dir / core_deps_hash
+        if core_deps_cache_file.exists():
+            log.debug("Skipping core dependency installation (cache hit)")
+            return
+
         to_install = set()
         to_install_friendly = set()
         playbook = []
@@ -454,6 +465,7 @@ class DepsInstaller:
                 else:
                     playbook.extend(package_name_or_playbook)
         # install ansible community.general collection
+        overall_success = True
         if not self.setup_status.get("ansible:community.general", False):
             log.info("Installing Ansible Community General Collection")
             try:
@@ -465,6 +477,7 @@ class DepsInstaller:
                 log.warning(
                     f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
                 )
+                overall_success = False
         # construct ansible playbook
         if to_install:
             playbook.append(
@@ -478,7 +491,13 @@ class DepsInstaller:
         if playbook:
             log.info(f"Installing core BBOT dependencies: {','.join(sorted(to_install_friendly))}")
             self.ensure_root()
-            self.ansible_run(tasks=playbook)
+            success, _ = self.ansible_run(tasks=playbook)
+            overall_success &= success
+
+        # mark cache only if everything succeeded (or nothing needed doing)
+        if overall_success:
+            with suppress(Exception):
+                core_deps_cache_file.touch()
 
     def _setup_sudo_cache(self):
         if not self._sudo_cache_setup:

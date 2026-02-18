@@ -498,3 +498,49 @@ async def test_http_sendcookies(bbot_scanner, bbot_httpserver):
     assert r1 is not None, "Request to self-signed SSL server went through even with ssl_verify=True"
     assert "bar" in r1.text
     await scan1._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_api_download_api_key_cycle(bbot_scanner, bbot_httpserver):
+    from werkzeug.wrappers import Response
+    from bbot.modules.base import BaseModule
+
+    endpoint = "/api_download_cycle_one_test"
+    url = bbot_httpserver.url_for(endpoint)
+
+    seen_auth = []
+    n_request = 0
+
+    # First key should trigger 500, second key should succeed with 200
+    def handler(request):
+        nonlocal n_request
+        n_request += 1
+        auth = request.headers.get("Authorization", "")
+        seen_auth.append(auth)
+        if auth == "Bearer k1":
+            if n_request == 1:
+                return Response("ok_k1", status=200)
+            return Response("fail_k1", status=500)
+        elif auth == "Bearer k2":
+            return Response("ok_k2", status=200)
+        return Response("unexpected_key", status=400)
+
+    bbot_httpserver.expect_request(uri=endpoint).respond_with_handler(handler)
+
+    scan = bbot_scanner("127.0.0.1")
+    module = BaseModule(scan)
+    module.api_key = ["k1", "k2"]
+
+    filename = await module.api_download(url)
+    assert filename is not None
+    with open(filename) as f:
+        assert f.read() == "ok_k1"
+
+    assert seen_auth == ["Bearer k1"]
+
+    filename = await module.api_download(url)
+
+    # verify the requests occurred in expected order with expected API keys
+    assert seen_auth == ["Bearer k1", "Bearer k1", "Bearer k2"]
+
+    await scan._cleanup()

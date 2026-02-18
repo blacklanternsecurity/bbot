@@ -789,26 +789,32 @@ class BaseEvent:
 
     def __contains__(self, other):
         """
-        Allows events to be compared using the "in" operator:
-        E.g.:
-            if some_event in other_event:
-                ...
+        Membership checks for Events.
+
+        Supports:
+            - some_event in other_event   (event vs event)
+            - "host:port" in other_event  (string coerced to an event)
         """
-        try:
-            other = make_event(other, dummy=True)
-        except ValidationError:
-            return False
+        # Fast path: already an Event
+        if is_event(other):
+            other_event = other
+        else:
+            try:
+                other_event = make_event(other, dummy=True)
+            except ValidationError:
+                return False
+
         # if hashes match
-        if other == self:
+        if other_event == self:
             return True
-        # if hosts match
-        if self.host and other.host:
-            if self.host == other.host:
+        # if hosts match (including subnet / domain containment)
+        if self.host and other_event.host:
+            if self.host == other_event.host:
                 return True
             # hostnames and IPs
             radixtarget = RadixTarget()
             radixtarget.insert(self.host)
-            return bool(radixtarget.search(other.host))
+            return bool(radixtarget.search(other_event.host))
         return False
 
     def json(self, mode="json", siem_friendly=False):
@@ -996,10 +1002,14 @@ class BaseEvent:
         return self.priority > getattr(other, "priority", (0,))
 
     def __eq__(self, other):
-        try:
-            other = make_event(other, dummy=True)
-        except ValidationError:
-            return False
+        """
+        Event equality is **only** defined between Event instances.
+
+        Equality is based on the event hash (derived from its id). Comparisons to
+        non-Event types raise a ValueError to make incorrect comparisons explicit.
+        """
+        if not is_event(other):
+            raise ValueError("Event equality is only defined between Event instances")
         return hash(self) == hash(other)
 
     def __hash__(self):
@@ -1235,6 +1245,10 @@ class OPEN_TCP_PORT(BaseEvent):
         if not is_ip(self.host) and not is_ptr(self.host):
             return extract_words(self.host_stem)
         return set()
+
+
+class OPEN_UDP_PORT(OPEN_TCP_PORT):
+    pass
 
 
 class URL_UNVERIFIED(BaseEvent):
@@ -1748,6 +1762,55 @@ class MOBILE_APP(DictEvent):
         return self.data["url"]
 
 
+def update_event(
+    event,
+    parent=None,
+    context=None,
+    module=None,
+    scan=None,
+    tags=None,
+    internal=None,
+):
+    """
+    Updates an existing event object with additional metadata.
+
+    Parameters:
+        event (BaseEvent): The event object to update.
+        parent (BaseEvent, optional): New parent event.
+        context (str, optional): Discovery context to set.
+        module (str or BaseModule, optional): Module that discovered the event.
+        scan (Scan, optional): BBOT Scan object associated with the event.
+        tags (Union[str, List[str]], optional): Tags to merge into the event.
+        internal (Any, optional): Marks the event as internal if True.
+
+    Returns:
+        BaseEvent: The updated event object.
+    """
+    if not is_event(event):
+        raise ValidationError(f"update_event() expects an Event, got {type(event)}")
+
+    # allow tags to be either a string or an array
+    if not tags:
+        tags = []
+    elif isinstance(tags, str):
+        tags = [tags]
+    tags = set(tags)
+
+    if scan is not None and not event.scan:
+        event.scan = scan
+    if module is not None:
+        event.module = module
+    if parent is not None:
+        event.parent = parent
+    if context is not None:
+        event.discovery_context = context
+    if internal is True:
+        event.internal = True
+    if tags:
+        event.tags = tags.union(event.tags)
+    return event
+
+
 def make_event(
     data,
     event_type=None,
@@ -1761,14 +1824,13 @@ def make_event(
     internal=None,
 ):
     """
-    Creates and returns a new event object or modifies an existing one.
+    Creates and returns a new event object.
 
-    This function serves as a factory for creating new event objects, either by generating a new `Event`
-    object or by updating an existing event with additional metadata. If `data` is already an event,
-    it updates the event based on the additional parameters provided.
+    This function serves as a factory for creating new event objects from raw data.
+    If you need to modify an existing event, use ``update_event()`` instead.
 
     Parameters:
-        data (Union[str, dict, BaseEvent]): The primary data for the event or an existing event object.
+        data (Union[str, dict]): The primary data for the event.
         event_type (str, optional): Type of the event, e.g., 'IP_ADDRESS'. Auto-detected if not provided.
         parent (BaseEvent, optional): Parent event leading to this event's discovery.
         context (str, optional): Description of circumstances leading to event's discovery.
@@ -1781,31 +1843,19 @@ def make_event(
         internal (Any, optional): Makes the event internal if set to True. Defaults to None.
 
     Returns:
-        BaseEvent: A new or updated event object.
+        BaseEvent: A new event object.
 
     Raises:
         ValidationError: Raised when there's an error in event data or type sanitization.
-
-    Examples:
-        If inside a module, e.g. from within its `handle_event()`:
-        >>> self.make_event("1.2.3.4", parent=event)
-        IP_ADDRESS("1.2.3.4", module=portscan, tags={'ipv4', 'distance-1'})
-
-        If you're outside a module but you have a scan object:
-        >>> scan.make_event("1.2.3.4", parent=scan.root_event)
-        IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4', 'distance-1'})
-
-        If you're outside a scan and just messing around:
-        >>> from bbot.core.event.base import make_event
-        >>> make_event("1.2.3.4", dummy=True)
-        IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4'})
-
-    Note:
-        When working within a module's `handle_event()`, use the instance method
-        `self.make_event()` instead of calling this function directly.
     """
     if not data:
         raise ValidationError("No data provided")
+
+    # do not allow passing an existing event here – use update_event() instead
+    if is_event(data):
+        raise ValidationError(
+            "make_event() does not accept an existing event object. Use update_event(event, ...) to modify an event."
+        )
 
     # allow tags to be either a string or an array
     if not tags:
@@ -1814,76 +1864,58 @@ def make_event(
         tags = [tags]
     tags = set(tags)
 
-    # if data is already an event, update it with the user's kwargs
-    if is_event(data):
-        event = copy(data)
-        if scan is not None and not event.scan:
-            event.scan = scan
-        if module is not None:
-            event.module = module
-        if parent is not None:
-            event.parent = parent
-        if context is not None:
-            event.discovery_context = context
-        if internal is True:
-            event.internal = True
-        if tags:
-            event.tags = tags.union(event.tags)
-        event_type = data.type
-        return event
-    else:
-        # if event_type is not provided, autodetect it
-        if event_type is None:
-            event_seed = EventSeed(data)
-            event_type = event_seed.type
-            data = event_seed.data
-            if not dummy:
-                log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
+    # if event_type is not provided, autodetect it
+    if event_type is None:
+        event_seed = EventSeed(data)
+        event_type = event_seed.type
+        data = event_seed.data
+        if not dummy:
+            log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
 
-        event_type = str(event_type).strip().upper()
+    event_type = str(event_type).strip().upper()
 
-        # Catch these common whoopsies
-        if event_type in ("DNS_NAME", "IP_ADDRESS"):
-            # DNS_NAME <--> EMAIL_ADDRESS confusion
-            if validators.soft_validate(data, "email"):
-                event_type = "EMAIL_ADDRESS"
-            else:
-                # DNS_NAME <--> IP_ADDRESS confusion
-                try:
-                    data = validators.validate_host(data)
-                except Exception as e:
-                    log.trace(traceback.format_exc())
-                    raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
-                data_is_ip = is_ip(data)
-                if event_type == "DNS_NAME" and data_is_ip:
-                    event_type = "IP_ADDRESS"
-                elif event_type == "IP_ADDRESS" and not data_is_ip:
-                    event_type = "DNS_NAME"
-        # USERNAME <--> EMAIL_ADDRESS confusion
-        if event_type == "USERNAME" and validators.soft_validate(data, "email"):
+    # Catch these common whoopsies
+    if event_type in ("DNS_NAME", "IP_ADDRESS"):
+        # DNS_NAME <--> EMAIL_ADDRESS confusion
+        if validators.soft_validate(data, "email"):
             event_type = "EMAIL_ADDRESS"
-            tags.add("affiliate")
-        # Convert single-host IP_RANGE to IP_ADDRESS
-        if event_type == "IP_RANGE":
-            with suppress(Exception):
-                net = ipaddress.ip_network(data, strict=False)
-                if net.prefixlen == net.max_prefixlen:
-                    event_type = "IP_ADDRESS"
-                    data = net.network_address
+        else:
+            # DNS_NAME <--> IP_ADDRESS confusion
+            try:
+                data = validators.validate_host(data)
+            except Exception as e:
+                log.trace(traceback.format_exc())
+                raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
+            data_is_ip = is_ip(data)
+            if event_type == "DNS_NAME" and data_is_ip:
+                event_type = "IP_ADDRESS"
+            elif event_type == "IP_ADDRESS" and not data_is_ip:
+                event_type = "DNS_NAME"
+    # USERNAME <--> EMAIL_ADDRESS confusion
+    if event_type == "USERNAME" and validators.soft_validate(data, "email"):
+        event_type = "EMAIL_ADDRESS"
+        tags.add("affiliate")
+    # Convert single-host IP_RANGE to IP_ADDRESS
+    if event_type == "IP_RANGE":
+        with suppress(Exception):
+            net = ipaddress.ip_network(data, strict=False)
+            if net.prefixlen == net.max_prefixlen:
+                event_type = "IP_ADDRESS"
+                data = net.network_address
 
-        event_class = globals().get(event_type, DefaultEvent)
-        return event_class(
-            data,
-            event_type=event_type,
-            parent=parent,
-            context=context,
-            module=module,
-            scan=scan,
-            tags=tags,
-            confidence=confidence,
-            _dummy=dummy,
-            _internal=internal,
-        )
+    event_class = globals().get(event_type, DefaultEvent)
+    return event_class(
+        data,
+        event_type=event_type,
+        parent=parent,
+        context=context,
+        module=module,
+        scan=scan,
+        tags=tags,
+        confidence=confidence,
+        _dummy=dummy,
+        _internal=internal,
+    )
 
 
 def event_from_json(j, siem_friendly=False):

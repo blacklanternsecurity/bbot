@@ -89,6 +89,7 @@ class ConfigAwareHelper:
         self.yara = YaraHelper(self)
         self._dns = None
         self._web = None
+        self._cloudcheck = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
@@ -107,12 +108,12 @@ class ConfigAwareHelper:
         return self._web
 
     @property
-    def cloud(self):
-        if self._cloud is None:
-            from cloudcheck import cloud_providers
+    def cloudcheck(self):
+        if self._cloudcheck is None:
+            from cloudcheck import CloudCheck
 
-            self._cloud = cloud_providers
-        return self._cloud
+            self._cloudcheck = CloudCheck()
+        return self._cloudcheck
 
     def bloom_filter(self, size):
         from .bloom import BloomFilter

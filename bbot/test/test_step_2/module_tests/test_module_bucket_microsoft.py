@@ -2,11 +2,13 @@ from .test_module_bucket_amazon import *
 from .base import ModuleTestBase
 
 
-class TestBucket_Azure(Bucket_Amazon_Base):
-    provider = "azure"
+class TestBucket_Microsoft(Bucket_Amazon_Base):
+    provider = "microsoft"
     random_bucket_1 = f"{random_bucket_name_1}.blob.core.windows.net"
     random_bucket_2 = f"{random_bucket_name_2}.blob.core.windows.net"
     random_bucket_3 = f"{random_bucket_name_3}.blob.core.windows.net"
+
+    nonexistent_is_404 = False
 
     def url_setup(self):
         self.url_1 = f"https://{self.random_bucket_1}"
@@ -14,9 +16,9 @@ class TestBucket_Azure(Bucket_Amazon_Base):
         self.url_3 = f"https://{self.random_bucket_3}/{random_bucket_name_3}?restype=container"
 
 
-class TestBucket_Azure_NoDup(ModuleTestBase):
+class TestBucket_Microsoft_NoDup(ModuleTestBase):
     targets = ["tesla.com"]
-    module_name = "bucket_azure"
+    module_name = "bucket_microsoft"
     config_overrides = {"cloudcheck": True}
 
     async def setup_before_prep(self, module_test):
@@ -42,7 +44,7 @@ class TestBucket_Azure_NoDup(ModuleTestBase):
         )
 
 
-class TestBucket_Azure_NoDup(TestBucket_Azure_NoDup):
+class TestBucket_Microsoft_NoDup(TestBucket_Microsoft_NoDup):
     """
     This tests _suppress_chain_dupes functionality to make sure it works as expected
     """

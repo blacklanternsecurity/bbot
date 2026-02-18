@@ -7,7 +7,7 @@ import multiprocessing
 from bbot.errors import *
 from bbot import __version__
 from bbot.logger import log_to_stderr
-from bbot.core.helpers.misc import chain_lists
+from bbot.core.helpers.misc import chain_lists, rm_rf
 
 
 if multiprocessing.current_process().name == "MainProcess":
@@ -173,13 +173,27 @@ async def _main():
 
         # --install-all-deps
         if options.install_all_deps:
-            all_modules = list(preset.module_loader.preloaded())
-            scan.helpers.depsinstaller.force_deps = True
-            succeeded, failed = await scan.helpers.depsinstaller.install(*all_modules)
-            if failed:
-                log.hugewarning(f"Failed to install dependencies for the following modules: {', '.join(failed)}")
+            preloaded_modules = preset.module_loader.preloaded()
+            scan_modules = [k for k, v in preloaded_modules.items() if str(v.get("type", "")) == "scan"]
+            output_modules = [k for k, v in preloaded_modules.items() if str(v.get("type", "")) == "output"]
+            log.verbose("Creating dummy scan with all modules + output modules for deps installation")
+            dummy_scan = Scanner(preset=preset, modules=scan_modules, output_modules=output_modules)
+            dummy_scan.helpers.depsinstaller.force_deps = True
+            log.info("Installing module dependencies")
+            await dummy_scan.load_modules()
+            log.verbose("Running module setups")
+            succeeded, hard_failed, soft_failed = await dummy_scan.setup_modules(deps_only=True)
+            # remove any leftovers from the dummy scan
+            rm_rf(dummy_scan.home, ignore_errors=True)
+            rm_rf(dummy_scan.temp_dir, ignore_errors=True)
+            if succeeded:
+                log.success(
+                    f"Successfully installed dependencies for {len(succeeded):,} modules: {','.join(succeeded)}"
+                )
+            if soft_failed or hard_failed:
+                failed = soft_failed + hard_failed
+                log.warning(f"Failed to install dependencies for {len(failed):,} modules: {', '.join(failed)}")
                 return False
-            log.hugesuccess(f"Successfully installed dependencies for the following modules: {', '.join(succeeded)}")
             return True
 
         scan_name = str(scan.name)
@@ -201,7 +215,7 @@ async def _main():
                 if not scan.preset.strict_scope:
                     for event in scan.target.seeds.event_seeds:
                         if event.type == "DNS_NAME":
-                            cloudcheck_result = scan.helpers.cloudcheck(event.host)
+                            cloudcheck_result = await scan.helpers.cloudcheck.lookup(event.host)
                             if cloudcheck_result:
                                 scan.hugewarning(
                                     f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'

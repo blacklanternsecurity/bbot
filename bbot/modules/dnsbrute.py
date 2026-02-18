@@ -23,9 +23,14 @@ class dnsbrute(subdomain_enum):
     dedup_strategy = "lowest_parent"
     _qsize = 10000
 
+    async def setup_deps(self):
+        self.subdomain_file = await self.helpers.wordlist(self.config.get("wordlist"))
+        # tell the dnsbrute helper to fetch the resolver file
+        await self.helpers.dns.brute.resolver_file()
+        return True
+
     async def setup(self):
         self.max_depth = max(1, self.config.get("max_depth", 5))
-        self.subdomain_file = await self.helpers.wordlist(self.config.get("wordlist"))
         self.subdomain_list = set(self.helpers.read_file(self.subdomain_file))
         self.wordlist_size = len(self.subdomain_list)
         return await super().setup()

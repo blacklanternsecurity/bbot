@@ -94,6 +94,12 @@ class filedownload(BaseModule):
 
     scope_distance_modifier = 3
 
+    async def setup_deps(self):
+        self.mime_db_file = await self.helpers.wordlist(
+            "https://raw.githubusercontent.com/jshttp/mime-db/master/db.json"
+        )
+        return True
+
     async def setup(self):
         self.extensions = list({e.lower().strip(".") for e in self.config.get("extensions", [])})
         self.max_filesize = self.config.get("max_filesize", "10MB")
@@ -105,9 +111,6 @@ class filedownload(BaseModule):
         else:
             self.download_dir = self.scan.temp_dir / "filedownload"
         self.helpers.mkdir(self.download_dir)
-        self.mime_db_file = await self.helpers.wordlist(
-            "https://raw.githubusercontent.com/jshttp/mime-db/master/db.json"
-        )
         self.mime_db = {}
         with open(self.mime_db_file) as f:
             mime_db = json.load(f)

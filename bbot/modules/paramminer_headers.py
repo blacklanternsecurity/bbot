@@ -82,18 +82,21 @@ class paramminer_headers(BaseModule):
 
     header_regex = re.compile(r"^[!#$%&\'*+\-.^_`|~0-9a-zA-Z]+: [^\r\n]+$")
 
+    async def setup_deps(self):
+        wordlist = self.config.get("wordlist", "")
+        if not wordlist:
+            wordlist = f"{self.helpers.wordlist_dir}/{self.default_wordlist}"
+        self.wordlist_file = await self.helpers.wordlist(wordlist)
+        self.debug(f"Using wordlist: [{wordlist}]")
+        return True
+
     async def setup(self):
         self.recycle_words = self.config.get("recycle_words", True)
         self.event_dict = {}
         self.already_checked = set()
-        wordlist = self.config.get("wordlist", "")
-        if not wordlist:
-            wordlist = f"{self.helpers.wordlist_dir}/{self.default_wordlist}"
-        self.debug(f"Using wordlist: [{wordlist}]")
+
         self.wl = {
-            h.strip().lower()
-            for h in self.helpers.read_file(await self.helpers.wordlist(wordlist))
-            if len(h) > 0 and "%" not in h
+            h.strip().lower() for h in self.helpers.read_file(self.wordlist_file) if len(h) > 0 and "%" not in h
         }
 
         # check against the boring list (if the option is set)

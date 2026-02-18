@@ -56,7 +56,6 @@ class ModuleLoader:
         self._shared_deps = dict(SHARED_DEPS)
 
         self.__preloaded = {}
-        self._modules = {}
         self._configs = {}
         self.flag_choices = set()
         self.all_module_choices = set()
@@ -165,8 +164,10 @@ class ModuleLoader:
                         if module_dir.name in ("output", "internal"):
                             module_type = str(module_dir.name)
 
+                        disable_auto_module_deps = preloaded.get("disable_auto_module_deps", False)
+
                         # derive module dependencies from watched event types (only for scan modules)
-                        if module_type == "scan":
+                        if module_type == "scan" and not disable_auto_module_deps:
                             for event_type in preloaded["watched_events"]:
                                 if event_type in self.default_module_deps:
                                     deps_modules = set(preloaded.get("deps", {}).get("modules", []))
@@ -329,6 +330,7 @@ class ModuleLoader:
         ansible_tasks = []
         config = {}
         options_desc = {}
+        disable_auto_module_deps = False
         python_code = open(module_file).read()
         # take a hash of the code so we can keep track of when it changes
         module_hash = sha1(python_code).hexdigest()
@@ -353,8 +355,11 @@ class ModuleLoader:
             # look for classes
             if type(root_element) == ast.ClassDef:
                 for class_attr in root_element.body:
+                    if not type(class_attr) == ast.Assign:
+                        continue
+
                     # class attributes that are dictionaries
-                    if type(class_attr) == ast.Assign and type(class_attr.value) == ast.Dict:
+                    if type(class_attr.value) == ast.Dict:
                         # module options
                         if any(target.id == "options" for target in class_attr.targets):
                             config.update(ast.literal_eval(class_attr.value))
@@ -366,7 +371,7 @@ class ModuleLoader:
                             meta = ast.literal_eval(class_attr.value)
 
                     # class attributes that are lists
-                    if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
+                    if type(class_attr.value) == ast.List:
                         # flags
                         if any(target.id == "flags" for target in class_attr.targets):
                             for flag in class_attr.value.elts:
@@ -415,6 +420,12 @@ class ModuleLoader:
                                 if type(dep_common.value) == str:
                                     deps_common.append(dep_common.value)
 
+                    # class attributes that are booleans
+                    if type(class_attr.value) == ast.Constant:
+                        if any(target.id == "_disable_auto_module_deps" for target in class_attr.targets):
+                            if type(class_attr.value.value) == bool:
+                                disable_auto_module_deps = class_attr.value.value
+
         for task in ansible_tasks:
             if "become" not in task:
                 task["become"] = False
@@ -441,6 +452,7 @@ class ModuleLoader:
                 "common": deps_common,
             },
             "sudo": len(deps_apt) > 0,
+            "disable_auto_module_deps": disable_auto_module_deps,
         }
         ansible_task_list = list(ansible_tasks)
         for dep_common in deps_common:
@@ -461,9 +473,13 @@ class ModuleLoader:
     def load_modules(self, module_names):
         modules = {}
         for module_name in module_names:
-            module = self.load_module(module_name)
+            try:
+                module = self.load_module(module_name)
+            except ModuleNotFoundError as e:
+                raise BBOTError(
+                    f"Error loading module {module_name}: {e}. You may have leftover artifacts from an older version of BBOT. Try deleting/renaming your '~/.bbot' directory."
+                ) from e
             modules[module_name] = module
-            self._modules[module_name] = module
         return modules
 
     def load_module(self, module_name):

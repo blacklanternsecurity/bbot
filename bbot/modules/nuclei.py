@@ -15,7 +15,7 @@ class nuclei(BaseModule):
     }
 
     options = {
-        "version": "3.4.10",
+        "version": "3.7.0",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -50,7 +50,7 @@ class nuclei(BaseModule):
         {
             "name": "Download nuclei",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v#{BBOT_MODULES_NUCLEI_VERSION}/nuclei_#{BBOT_MODULES_NUCLEI_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
+                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v#{BBOT_MODULES_NUCLEI_VERSION}/nuclei_#{BBOT_MODULES_NUCLEI_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH_GOLANG}.zip",
                 "include": "nuclei",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,

@@ -2,7 +2,7 @@ DEP_FFUF = [
     {
         "name": "Download ffuf",
         "unarchive": {
-            "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_DEPS_FFUF_VERSION}/ffuf_#{BBOT_DEPS_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
+            "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_DEPS_FFUF_VERSION}/ffuf_#{BBOT_DEPS_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH_GOLANG}.tar.gz",
             "include": "ffuf",
             "dest": "#{BBOT_TOOLS}",
             "remote_src": True,

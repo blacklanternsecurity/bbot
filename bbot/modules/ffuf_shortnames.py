@@ -87,14 +87,17 @@ class ffuf_shortnames(ffuf):
                     found_prefixes.add(prefix)
         return list(found_prefixes)
 
-    async def setup(self):
-        self.proxy = self.scan.web_config.get("http_proxy", "")
-        self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
+    async def setup_deps(self):
         wordlist_extensions = self.config.get("wordlist_extensions", "")
         if not wordlist_extensions:
             wordlist_extensions = f"{self.helpers.wordlist_dir}/raft-small-extensions-lowercase_CLEANED.txt"
         self.debug(f"Using [{wordlist_extensions}] for shortname candidate extension list")
         self.wordlist_extensions = await self.helpers.wordlist(wordlist_extensions)
+        return True
+
+    async def setup(self):
+        self.proxy = self.scan.web_config.get("http_proxy", "")
+        self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         self.ignore_redirects = self.config.get("ignore_redirects")
         self.max_predictions = self.config.get("max_predictions")
         self.find_subwords = self.config.get("find_subwords")

@@ -10,7 +10,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 from bbot import __version__
-from bbot.core.event import make_event
+from bbot.core.event import make_event, update_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
@@ -484,7 +484,7 @@ class Scanner:
         for module in self.modules.values():
             module.start()
 
-    async def setup_modules(self, remove_failed=True):
+    async def setup_modules(self, remove_failed=True, deps_only=False):
         """Asynchronously initializes all loaded modules by invoking their `setup()` methods.
 
         Args:
@@ -509,7 +509,7 @@ class Scanner:
         hard_failed = []
         soft_failed = []
 
-        async for task in self.helpers.as_completed([m._setup() for m in self.modules.values()]):
+        async for task in self.helpers.as_completed([m._setup(deps_only=deps_only) for m in self.modules.values()]):
             module, status, msg = await task
             if status is True:
                 self.debug(f"Setup succeeded for {module.name} ({msg})")
@@ -994,6 +994,10 @@ class Scanner:
         kwargs["scan"] = self
         event = make_event(*args, **kwargs)
         return event
+
+    def update_event(self, event, **kwargs):
+        kwargs["scan"] = self
+        return update_event(event, **kwargs)
 
     @property
     def root_event(self):

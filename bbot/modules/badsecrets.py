@@ -17,7 +17,7 @@ class badsecrets(BaseModule):
     options_desc = {
         "custom_secrets": "Include custom secrets loaded from a local file",
     }
-    deps_pip = ["badsecrets~=0.12.12"]
+    deps_pip = ["badsecrets~=0.13.47"]
 
     async def setup(self):
         self.custom_secrets = None

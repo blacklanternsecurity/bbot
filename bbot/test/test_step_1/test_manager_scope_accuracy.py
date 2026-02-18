@@ -848,3 +848,48 @@ async def test_manager_scope_tagging(bbot_scanner):
     assert not distance_tags
 
     await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_scope_accuracy_with_special_urls(bbot_scanner, bbot_httpserver):
+    """
+    This is a regression test for https://github.com/blacklanternsecurity/bbot/issues/2785
+
+    The original bug was that the "special URL" filtering logic (for Javascript URls etc.)
+    was causing special URLs to be rejected by critical internal modules like `_scan_egress`, leading to the output of unwanted URLs.
+    """
+    bbot_httpserver.expect_request(uri="/v2/users/spacex").respond_with_data(response_data="")
+    bbot_httpserver.expect_request(uri="/u/spacex").respond_with_data(response_data="<a href='http://127.0.0.1:8888/asdf.js'/>")
+
+    scan = bbot_scanner("ORG:spacex", modules=["httpx", "social", "dockerhub"], config={"speculate": True, "excavate": True})
+
+    await scan._prep()
+    scan.modules["dockerhub"].site_url = "http://127.0.0.1:8888"
+    scan.modules["dockerhub"].api_url = "http://127.0.0.1:8888/v2"
+
+    from bbot.modules.base import BaseModule
+
+    class DummyModule(BaseModule):
+        _name = "dummy_module"
+        watched_events = ["*"]
+        scope_distance_modifier = 10
+        accept_dupes = True
+        accept_url_special = True
+        events = []
+        
+        async def handle_event(self, event):
+            self.events.append(event)
+
+    dummy_module = DummyModule(scan)
+    scan.modules["dummy_module"] = dummy_module
+
+    events = [e async for e in scan.async_start()]
+    
+    # there are actually 2 URL events. They are both from the same URL, but one was extracted by the full URL regex, and the other by the src/href= regex.
+    # however, they should be deduped by scan_ingress.
+    bad_url_events = [e for e in dummy_module.events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/asdf.js"]
+    assert len(bad_url_events) == 1
+    # they should both be internal
+    assert all(e.internal is True for e in bad_url_events)
+    # but they shouldn't be output at all
+    assert not any(e.type == "URL_UNVERIFIED" for e in events)

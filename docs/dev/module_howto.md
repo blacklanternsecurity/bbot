@@ -4,7 +4,7 @@ Here we'll go over a basic example of writing a custom BBOT module.
 
 ## Create the python file
 
-1. Create a new `.py` file in `bbot/modules` (or in a [custom module directory](#custom-module-directory))
+1. Create a new `.py` file in `bbot/modules` (or in a [custom module directory](#load-modules-from-custom-locations))
 1. At the top of the file, import `BaseModule`
 1. Declare a class that inherits from `BaseModule`
    - the class must have the same name as your file (case-insensitive)
@@ -80,9 +80,13 @@ The `handle_event()` method is the most important part of the module. By overrid
 
 The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events.md) and outputs it, sending it any modules that are interested in that data type.
 
-## `setup()`
+## `setup_deps()` and `setup()`
 
-A module's `setup()` method is used for performing one-time setup at the start of the scan, like downloading a wordlist or checking to make sure an API key is valid. It needs to return either:
+`setup_deps()` and `setup()` are used for performing one-time setup at the start of the scan.
+
+`setup_deps()` is reserved for downloading or installing any dependencies not covered by Ansible, i.e. AI models or wordlists. Any other one-time setup tasks can be put into `setup()`.
+
+These methods must return either:
 
 1. `True` - module setup succeeded
 2. `None` - module setup soft-failed (scan will continue but module will be disabled)
@@ -95,16 +99,16 @@ async def setup(self):
     if not self.config.get("api_key"):
         # soft-fail
         return None, "No API key specified"
+    return True
 
-async def setup(self):
-    try:
-        wordlist = self.helpers.wordlist("https://raw.githubusercontent.com/user/wordlist.txt")
-    except WordlistError as e:
-        # hard-fail
-        return False, f"Error downloading wordlist: {e}"
+async def setup_deps(self):
+    self.wordlist = self.helpers.wordlist("https://raw.githubusercontent.com/user/wordlist.txt")
+    return True
 
 async def setup(self):
     self.timeout = self.config.get("timeout", 5)
+    if self.timeout <= 0:
+        return False, "Timeout must be greater than or equal to 0"
     # success
     return True
 ```

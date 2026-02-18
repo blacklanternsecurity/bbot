@@ -22,7 +22,7 @@ class baddns(BaseModule):
         "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.10.185"]
+    deps_pip = ["baddns~=1.12.294"]
 
     def select_modules(self):
         selected_submodules = []

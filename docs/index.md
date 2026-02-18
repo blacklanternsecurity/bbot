@@ -8,7 +8,7 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 
 !!! info "Supported Platforms"
 
-    Only **Linux** is supported at this time. **Windows** and **macOS** are *not* supported. If you use one of these platforms, consider using [Docker](#Docker).
+    Only **Linux** is supported at this time. **Windows** and **macOS** are *not* supported. If you use one of these platforms, consider using [Docker](#docker).
 
 BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you're looking to tinker or write your own module, see [Setting up a Dev Environment](./dev/dev_environment.md).
 
@@ -30,18 +30,22 @@ pipx install --pip-args '\--pre' bbot
 bbot --help
 ```
 
-### [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot)
+### Docker
 
-Docker images are provided, along with helper script `bbot-docker.sh` to persist your scan data.
+[Docker images](https://hub.docker.com/r/blacklanternsecurity/bbot) are provided, along with helper script `bbot-docker.sh` to persist your scan data. Images come in four flavors: `dev`, `dev-full`, `stable`, and `stable-full`. `dev` is the latest bleeding edge version. `-full` images are larger and have all of BBOT's module dependencies preinstalled (wordlists, pip packages, etc.).
 
 Scans are output to `~/.bbot/scans` (the usual place for BBOT scan data).
 
 ```bash
-# bleeding edge (dev)
+# dev (bleeding edge)
 docker run -it blacklanternsecurity/bbot --help
+# dev (bleeding edge - full)
+docker run -it blacklanternsecurity/bbot:dev-full --help
 
 # stable
 docker run -it blacklanternsecurity/bbot:stable --help
+# stable (full)
+docker run -it blacklanternsecurity/bbot:stable-full --help
 
 # helper script
 git clone https://github.com/blacklanternsecurity/bbot && cd bbot
@@ -87,7 +91,7 @@ bbot -t evilcorp.com -p subdomain-enum -m portscan gowitness -n my_scan -o .
 **Subdomains + basic web scan:**
 
 ```bash
-# A basic web scan includes wappalyzer, robots.txt, and other non-intrusive web modules
+# A basic web scan includes robots.txt, storage buckets, IIS shortnames, and other non-intrusive web modules
 bbot -t evilcorp.com -p subdomain-enum web-basic
 ```
 

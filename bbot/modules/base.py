@@ -4,9 +4,10 @@ import traceback
 from sys import exc_info
 from contextlib import suppress
 
-from ..errors import ValidationError
 from ..core.helpers.misc import get_size  # noqa
+from ..errors import ValidationError, WebError
 from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
+from ..core.event import is_event
 
 
 class BaseModule:
@@ -69,6 +70,8 @@ class BaseModule:
 
         _stats_exclude (bool): Whether to exclude this module from scan statistics. Default is False.
 
+        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the httpx module. Default is False.
+
         _qsize (int): Outgoing queue size (0 for infinite). Default is 0.
 
         _priority (int): Priority level of the module. Lower values are higher priority. Default is 3.
@@ -112,6 +115,7 @@ class BaseModule:
 
     _preserve_graph = False
     _stats_exclude = False
+    _disable_auto_module_deps = False
     _qsize = 1000
     _priority = 3
     _name = "base"
@@ -165,7 +169,6 @@ class BaseModule:
         self._default_handle_batch_timeout = self.scan.config.get(
             "module_handle_batch_timeout", 60 * 60 * 2
         )  # 2 hours
-        self._event_handler_watchdog_task = None
         self._event_handler_watchdog_interval = self.event_handler_timeout / 10
 
         # used for optional "per host" tracking
@@ -211,6 +214,14 @@ class BaseModule:
             >>>     return True
         """
 
+        return True
+
+    async def setup_deps(self):
+        """
+        Similar to setup(), but reserved for installing dependencies not covered by Ansible.
+
+        This should always be used to install static dependencies like AI models, wordlists, etc.
+        """
         return True
 
     async def handle_event(self, event, **kwargs):
@@ -512,6 +523,12 @@ class BaseModule:
             if (not args) or getattr(args[0], "module", None) is None:
                 kwargs["module"] = self
         try:
+            if args and is_event(args[0]):
+                raise ValidationError(
+                    f"{self.__class__.__name__}.make_event() does not accept an existing event "
+                    f"({type(args[0]).__name__}) as the first argument. "
+                    "Use update_event(event, ...) or emit_event(event, ...) instead."
+                )
             event = self.scan.make_event(*args, **kwargs)
         except ValidationError as e:
             if raise_error:
@@ -519,6 +536,39 @@ class BaseModule:
             self.warning(f"{e}")
             return
         return event
+
+    def update_event(self, event, **kwargs):
+        """Update an existing event for the scan.
+
+        This is the counterpart to :meth:`make_event` for modifying an existing
+        :class:`bbot.core.event.base.BaseEvent` instance.
+
+        Raises a validation error if the update could not be applied, unless
+        ``raise_error`` is set to False.
+
+        Args:
+            event: The event object to update.
+            **kwargs: Keyword arguments to be passed to the scan's update_event method.
+            raise_error (bool, optional): Whether to raise a validation error if the event could not be updated. Defaults to False.
+
+        Returns:
+            Event or None: The updated event, or None if a validation error occurred and raise_error was False.
+
+        Raises:
+            ValidationError: If the event could not be validated and raise_error is True.
+        """
+        raise_error = kwargs.pop("raise_error", False)
+        module = kwargs.pop("module", None)
+        if module is None and getattr(event, "module", None) is None:
+            kwargs["module"] = self
+        try:
+            updated = self.scan.update_event(event, **kwargs)
+        except ValidationError as e:
+            if raise_error:
+                raise
+            self.warning(f"{e}")
+            return
+        return updated
 
     async def emit_event(self, *args, **kwargs):
         """Emit an event to the event queue and distribute it to interested modules.
@@ -555,7 +605,23 @@ class BaseModule:
             v = event_kwargs.pop(o, None)
             if v is not None:
                 emit_kwargs[o] = v
-        event = self.make_event(*args, **event_kwargs)
+
+        # Two entry points:
+        #  - emit_event(data, ...)           -> create a new event via make_event()
+        #  - emit_event(existing_event, ...) -> update and re‑emit that event
+        if args and is_event(args[0]):
+            event, *rest = args
+            if rest:
+                self.warning(
+                    f"emit_event() was called on {self.name} with an existing event and extra "
+                    f"positional args ({rest}); extra args are ignored. "
+                    "Pass only the event plus keyword arguments, or call make_event() explicitly."
+                )
+            # Update the existing event (e.g. tags/context/module) before emitting
+            event = self.update_event(event, **event_kwargs)
+        else:
+            event = self.make_event(*args, **event_kwargs)
+
         if event is not None:
             children = event.children
             for e in [event] + children:
@@ -615,44 +681,32 @@ class BaseModule:
             asyncio.create_task(self._worker(), name=f"{self.scan.name}.{self.name}._worker()")
             for _ in range(self.module_threads)
         ]
-        self._event_handler_watchdog_task = asyncio.create_task(
+        watchdog_task = asyncio.create_task(
             self._event_handler_watchdog(),
             name=f"{self.scan.name}.{self.name}._event_handler_watchdog()",
         )
+        self._tasks.append(watchdog_task)
 
-    async def _setup(self):
-        """
-        Asynchronously sets up the module by invoking its 'setup()' method.
-
-        This method catches exceptions during setup, sets the module's error state if necessary, and determines the
-        status code based on the result of the setup process.
-
-        Args:
-            None
-
-        Returns:
-            tuple: A tuple containing the module's name, status (True for success, False for hard-fail, None for soft-fail),
-            and an optional status message.
-
-        Raises:
-            Exception: Captured exceptions from the 'setup()' method are logged, but not propagated.
-
-        Notes:
-            - The 'setup()' method can return either a simple boolean status or a tuple of status and message.
-            - A WordlistError exception triggers a soft-fail status.
-            - The debug log will contain setup status information for the module.
-        """
+    async def _setup(self, deps_only=False):
+        """ """
         status_codes = {False: "hard-fail", None: "soft-fail", True: "success"}
 
         status = False
         self.debug(f"Setting up module {self.name}")
         try:
-            result = await self.setup()
-            if type(result) == tuple and len(result) == 2:
-                status, msg = result
-            else:
-                status = result
-                msg = status_codes[status]
+            funcs = [self.setup_deps]
+            if not deps_only:
+                funcs.append(self.setup)
+            for func in funcs:
+                self.debug(f"Running {self.name}.{func.__name__}()")
+                result = await func()
+                if type(result) == tuple and len(result) == 2:
+                    status, msg = result
+                else:
+                    status = result
+                    msg = status_codes[status]
+                if status is False:
+                    break
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
             self.set_error_state(f"Unexpected error during module setup: {e}", critical=True)
@@ -740,6 +794,9 @@ class BaseModule:
 
     @property
     def max_scope_distance(self):
+        """
+        Maximum scope distance for events that are accepted by the module.
+        """
         if self.in_scope_only or self.target_only:
             return 0
         if self.scope_distance_modifier is None:
@@ -1254,6 +1311,24 @@ class BaseModule:
 
         return r
 
+    async def api_download(self, url, **kwargs):
+        """
+        A wrapper around the `download()` web helper that incorporates API key cycling.
+        """
+        error = None
+        raise_error = kwargs.pop("raise_error", False)
+        for _ in range(self.api_retries):
+            new_url, kwargs = self.prepare_api_request(url, kwargs)
+            if "raise_error" not in kwargs:
+                kwargs["raise_error"] = True
+            try:
+                return await self.helpers.download(new_url, **kwargs)
+            except WebError as e:
+                error = e
+                self.cycle_api_key()
+        if raise_error:
+            raise error
+
     def _get_retry_after(self, r):
         # try to get retry_after from headers first
         headers = getattr(r, "headers", {})
@@ -1265,7 +1340,10 @@ class BaseModule:
                 if isinstance(body_json, dict):
                     retry_after = body_json.get("retry_after", None)
         if retry_after is not None:
-            return float(retry_after)
+            # we don't allow retry-after smaller than 1 second
+            # this is to prevent cases where APIs erroneously return a retry-after value of 0
+            # e.g. https://github.com/blacklanternsecurity/bbot/issues/2826
+            return max(1.0, float(retry_after))
 
     def _prepare_api_iter_req(self, url, page, page_size, offset, **requests_kwargs):
         """
@@ -1721,6 +1799,7 @@ class BaseInterceptModule(BaseModule):
     """
 
     accept_dupes = True
+    accept_url_special = True
     _intercept = True
 
     async def _worker(self):

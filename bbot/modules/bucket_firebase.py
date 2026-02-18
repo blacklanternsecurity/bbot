@@ -15,7 +15,7 @@ class bucket_firebase(bucket_template):
         "permutations": "Whether to try permutations",
     }
 
-    cloud_helper_name = "google"
+    cloudcheck_provider_name = "Google"
     delimiters = ("", "-")
     base_domains = ["firebaseio.com"]
 

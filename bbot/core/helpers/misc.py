@@ -2088,11 +2088,31 @@ def cpu_architecture():
     import platform
 
     uname = platform.uname()
-    arch = uname.machine.lower()
+    return uname.machine.lower()
+
+
+def cpu_architecture_golang():
+    """
+    CPU architecture for GoLang release binaries.
+    """
+    arch = cpu_architecture()
+    # golang uses "arm64" instead of "aarch64"
     if arch.startswith("aarch"):
         return "arm64"
-    elif arch == "x86_64":
+    # golang uses "amd64" instead of "x86_64"
+    if arch == "x86_64":
         return "amd64"
+    return arch
+
+
+def cpu_architecture_rust():
+    """
+    CPU architecture for Rust release binaries.
+    """
+    arch = cpu_architecture()
+    # rust uses "arm64" instead of "aarch64"
+    if arch.startswith("aarch"):
+        return "arm64"
     return arch
 
 
@@ -2290,25 +2310,6 @@ def is_file(f):
     with suppress(Exception):
         return Path(f).is_file()
     return False
-
-
-def cloudcheck(ip):
-    """
-    Check whether an IP address belongs to a cloud provider and returns the provider name, type, and subnet.
-
-    Args:
-        ip (str): The IP address to check.
-
-    Returns:
-        tuple: A tuple containing provider name (str), provider type (str), and subnet (IPv4Network).
-
-    Examples:
-        >>> cloudcheck("168.62.20.37")
-        ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
-    """
-    import cloudcheck as _cloudcheck
-
-    return _cloudcheck.check(ip)
 
 
 def is_async_function(f):

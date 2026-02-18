@@ -29,7 +29,7 @@ async def test_modules_basic_checks(events, httpx_mock):
     localhost._internal = True
     result, reason = base_output_module_1._event_precheck(localhost)
     assert result is False
-    assert reason == "_internal is True"
+    assert reason == "event is internal and output modules don't accept internal events"
     localhost._internal = False
     result, reason = base_output_module_1._event_precheck(localhost)
     assert result is True
@@ -57,7 +57,7 @@ async def test_modules_basic_checks(events, httpx_mock):
     localhost._internal = True
     result, reason = base_output_module_2._event_precheck(localhost)
     assert result is False
-    assert reason == "_internal is True"
+    assert reason == "event is internal and output modules don't accept internal events"
     localhost._internal = False
     result, reason = base_output_module_2._event_precheck(localhost)
     assert result is True
@@ -66,7 +66,7 @@ async def test_modules_basic_checks(events, httpx_mock):
     localhost._omit = True
     result, reason = base_output_module_2._event_precheck(localhost)
     assert result is False
-    assert reason == "_omit is True"
+    assert reason == "its type is omitted in the config"
     # normal event should be accepted
     url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", parent=scan.root_event)
     result, reason = base_output_module_2._event_precheck(url_unverified)
@@ -76,18 +76,18 @@ async def test_modules_basic_checks(events, httpx_mock):
     await scan.egress_module.handle_event(url_unverified)
     result, reason = base_output_module_2._event_precheck(url_unverified)
     assert result is False
-    assert reason == "_omit is True"
-    # omitted events that are targets should be accepted
-    dns_name = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
-    dns_name._omit = True
-    result, reason = base_output_module_2._event_precheck(dns_name)
-    assert result is False
-    assert reason == "_omit is True"
-    # omitted results that are targets should be accepted
-    dns_name.add_tag("target")
-    result, reason = base_output_module_2._event_precheck(dns_name)
-    assert result is True
-    assert reason == "it's a target"
+    assert reason == "its type is omitted in the config"
+
+    egress_module = scan.egress_module
+    url = scan.make_event("http://evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event, tags=["target"])
+    assert url._omit is False
+    # targets should not be omitted
+    await egress_module.handle_event(url)
+    assert url._omit is False
+    # non-targets should be omitted
+    url = scan.make_event("http://evilcorp.com", "URL_UNVERIFIED", parent=scan.root_event)
+    await egress_module.handle_event(url)
+    assert url._omit is True
 
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
@@ -340,6 +340,31 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
                 assert valid_2 is True
 
     await per_domain_scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_modules_basic_setup_deps(bbot_scanner):
+    from bbot.modules.base import BaseModule
+
+    class dummy(BaseModule):
+        _name = "dummy"
+        deps_ran = False
+        setup_ran = False
+
+        async def setup_deps(self):
+            self.deps_ran = True
+            return True
+
+        async def setup(self):
+            self.setup_ran = True
+            return True
+
+    scan = bbot_scanner()
+    scan.modules["dummy"] = dummy(scan)
+    await scan.setup_modules(deps_only=True)
+    assert scan.modules["dummy"].deps_ran
+    assert not scan.modules["dummy"].setup_ran
+    await scan._cleanup()
 
 
 @pytest.mark.asyncio
