@@ -42,6 +42,7 @@ class http(BaseModule):
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.store_responses = self.config.get("store_responses", False)
         self.client = self.helpers.blasthttp
+        self.waf_yara_rule = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
         return True
 
     async def filter_event(self, event):
@@ -274,6 +275,13 @@ class http(BaseModule):
             if parent_event.type == "URL_UNVERIFIED" and status_code in (404,) and path != "/":
                 self.debug(f'Discarding 404 from "{url}"')
                 continue
+
+            # discard 4xx responses that contain WAF strings
+            if 400 <= status_code < 500:
+                body = j.get("body", "")
+                if body and await self.helpers.yara.match(self.waf_yara_rule, body):
+                    self.debug(f'Discarding WAF {status_code} from "{url}"')
+                    continue
 
             # main URL
             tags = [f"status-{status_code}"]
