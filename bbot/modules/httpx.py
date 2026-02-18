@@ -38,7 +38,7 @@ class httpx(BaseModule):
         {
             "name": "Download httpx",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/httpx/releases/download/v#{BBOT_MODULES_HTTPX_VERSION}/httpx_#{BBOT_MODULES_HTTPX_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
+                "src": "https://github.com/projectdiscovery/httpx/releases/download/v#{BBOT_MODULES_HTTPX_VERSION}/httpx_#{BBOT_MODULES_HTTPX_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH_GOLANG}.zip",
                 "include": "httpx",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,

@@ -2090,11 +2090,31 @@ def cpu_architecture():
     import platform
 
     uname = platform.uname()
-    arch = uname.machine.lower()
+    return uname.machine.lower()
+
+
+def cpu_architecture_golang():
+    """
+    CPU architecture for GoLang release binaries.
+    """
+    arch = cpu_architecture()
+    # golang uses "arm64" instead of "aarch64"
     if arch.startswith("aarch"):
         return "arm64"
-    elif arch == "x86_64":
+    # golang uses "amd64" instead of "x86_64"
+    if arch == "x86_64":
         return "amd64"
+    return arch
+
+
+def cpu_architecture_rust():
+    """
+    CPU architecture for Rust release binaries.
+    """
+    arch = cpu_architecture()
+    # rust uses "arm64" instead of "aarch64"
+    if arch.startswith("aarch"):
+        return "arm64"
     return arch
 
 

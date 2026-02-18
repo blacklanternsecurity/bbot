@@ -64,11 +64,11 @@ targets = ["evilcorp.com", "evilcorp.org", "evilcorp.ce", "4.3.2.1", "1.2.3.4/24
 scan = Scanner(*targets, presets=["subdomain-enum"])
 ```
 
-For more details, including which types of targets are valid, see [Targets](../scanning/index.md#targets)
+For more details, including which types of targets are valid, see [Targets](../scanning/index.md#targets-t)
 
 #### Other Custom Options
 
-In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments that can override the default functionality. You can specify [`flags`](../index.md#flags), [`modules`](../index.md#modules), [`output_modules`](../output.md), a [`whitelist` or `blacklist`](../scanning/index.md#whitelists-and-blacklists), and custom [`config` options](../scanning/configuration.md):
+In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments that can override the default functionality. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../output.md), a [`whitelist` or `blacklist`](../scanning/index.md#whitelists-and-blacklists), and custom [`config` options](../scanning/configuration.md):
 
 ```python
 # create a scan against multiple targets
