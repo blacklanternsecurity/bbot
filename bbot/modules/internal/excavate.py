@@ -971,6 +971,34 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             if yara_results:
                 event.add_tag("login-page")
 
+    class DirectoryListingExtractor(ExcavateRule):
+        description = "Detects directory listing pages from web servers."
+        signatures = {
+            "Apache_Nginx": '"<title>Index of /"',
+            "IIS": '"[To Parent Directory]"',
+            "Python_HTTP_Server": '"<h1>Directory listing for"',
+            "Generic_Directory_Listing": '"<title>Directory Listing"',
+        }
+        yara_rules = {}
+
+        def __init__(self, excavate):
+            super().__init__(excavate)
+            signature_component_list = []
+            for signature_name, signature in self.signatures.items():
+                signature_component_list.append(rf"${signature_name} = {signature}")
+            signature_component = " ".join(signature_component_list)
+            self.yara_rules["directory_listing"] = (
+                f'rule directory_listing {{meta: description = "contains a directory listing" strings: {signature_component} condition: any of them}}'
+            )
+
+        async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            for identifier in yara_results.keys():
+                for findings in yara_results[identifier]:
+                    event_data = {
+                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})"
+                    }
+                    await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
+
     def add_yara_rule(self, rule_name, rule_content, rule_instance):
         rule_instance.name = rule_name
         self.yara_rules_dict[rule_name] = rule_content
