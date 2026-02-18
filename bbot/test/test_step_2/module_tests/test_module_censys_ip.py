@@ -6,25 +6,6 @@ class TestCensys_IP(ModuleTestBase):
     config_overrides = {"modules": {"censys_ip": {"api_key": "api_id:api_secret"}}}
 
     async def setup_before_prep(self, module_test):
-        await module_test.mock_dns(
-            {
-                "wildcard.evilcorp.com": {
-                    "A": ["1.2.3.4"],
-                },
-                "certname.evilcorp.com": {
-                    "A": ["1.2.3.4"],
-                },
-                "certsubject.evilcorp.com": {
-                    "A": ["1.2.3.4"],
-                },
-                "reversedns.evilcorp.com": {
-                    "A": ["1.2.3.4"],
-                },
-                "ptr.evilcorp.com": {
-                    "A": ["1.2.3.4"],
-                },
-            }
-        )
         module_test.httpx_mock.add_response(
             url="https://search.censys.io/api/v1/account",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
@@ -135,6 +116,27 @@ class TestCensys_IP(ModuleTestBase):
             },
         )
 
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(
+            {
+                "wildcard.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+                "certname.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+                "certsubject.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+                "reversedns.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+                "ptr.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+            }
+        )
+
     def check(self, module_test, events):
         # Check OPEN_UDP_PORT event for DNS
         assert any(e.type == "OPEN_UDP_PORT" and e.data == "1.2.3.4:53" for e in events), (
@@ -226,7 +228,6 @@ class TestCensys_IP_InScopeOnly(ModuleTestBase):
     config_overrides = {"modules": {"censys_ip": {"api_key": "api_id:api_secret", "in_scope_only": True}}}
 
     async def setup_before_prep(self, module_test):
-        await module_test.mock_dns({"evilcorp.com": {"A": ["1.1.1.1"]}})
         module_test.httpx_mock.add_response(
             url="https://search.censys.io/api/v1/account",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
@@ -248,6 +249,9 @@ class TestCensys_IP_InScopeOnly(ModuleTestBase):
             },
         )
 
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"evilcorp.com": {"A": ["1.1.1.1"]}})
+
     def check(self, module_test, events):
         # Should NOT have queried the IP since it's out of scope
         assert not any(e.type == "OPEN_TCP_PORT" and "1.1.1.1" in e.data for e in events), (
@@ -267,7 +271,6 @@ class TestCensys_IP_OutOfScope(ModuleTestBase):
     }
 
     async def setup_before_prep(self, module_test):
-        await module_test.mock_dns({"evilcorp.com": {"A": ["1.1.1.1"]}})
         module_test.httpx_mock.add_response(
             url="https://search.censys.io/api/v1/account",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
@@ -288,6 +291,9 @@ class TestCensys_IP_OutOfScope(ModuleTestBase):
                 },
             },
         )
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"evilcorp.com": {"A": ["1.1.1.1"]}})
 
     def check(self, module_test, events):
         # Should have queried the IP since in_scope_only=False
