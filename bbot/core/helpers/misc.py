@@ -2691,6 +2691,7 @@ def get_waf_strings():
     return [
         "The requested URL was rejected",
         "This content has been blocked",
+        "You don't have permission to access ",
     ]
 
 
