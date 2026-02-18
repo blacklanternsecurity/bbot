@@ -28,7 +28,7 @@ class TestWebReport(ModuleTestBase):
         )
         assert """Possible Secret Found. Detector Type: [PrivateKey]""" in report_content
         assert "<h3>TECHNOLOGY</h3>" in report_content
-        assert "<li>DotNetNuke</li>" in report_content
+        assert "<li>dotnetnuke</li>" in report_content
 
 
 web_body = """

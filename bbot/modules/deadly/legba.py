@@ -133,6 +133,7 @@ class legba(BaseModule):
                             "confidence": "CONFIRMED",
                             "host": str(event.host),
                             "port": str(event.port),
+                            "name": f"Legba - {protocol.upper()} Credentials",
                             "description": f"Valid {protocol} credentials found - {message_addition}",
                         },
                         "FINDING",
