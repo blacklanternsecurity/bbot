@@ -1885,3 +1885,29 @@ class Test_Lightfuzz_esi(ModuleTestBase):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert esi_finding_emitted, "ESI FINDING not emitted"
+
+
+# Envelope state isolation: crypto error detection with all submodules enabled.
+# Crypto runs after sqli/cmdi/xss/path/ssti. Each prior submodule calls outgoing_probe_value()
+# which must not corrupt the envelope state that crypto reads via incoming_probe_value().
+class Test_Lightfuzz_envelope_isolation_crypto(Test_Lightfuzz_crypto_error):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
+            }
+        },
+    }
+
+
+# Envelope state isolation: padding oracle detection with all submodules enabled.
+class Test_Lightfuzz_envelope_isolation_paddingoracle(Test_Lightfuzz_PaddingOracleDetection):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
+            }
+        },
+    }
