@@ -17,12 +17,12 @@ class unarchive(BaseInternalModule):
     async def setup(self):
         self.ignore_compressions = ["application/java-archive", "application/vnd.android.package-archive"]
         self.compression_methods = {
-            "zip": ["7z", "x", '-p""', "-aoa", "{filename}", "-o{extract_dir}/"],
+            "zip": ["7z", "x", "-aoa", "{filename}", "-o{extract_dir}/"],
             "bzip2": ["tar", "--overwrite", "-xvjf", "{filename}", "-C", "{extract_dir}/"],
             "xz": ["tar", "--overwrite", "-xvJf", "{filename}", "-C", "{extract_dir}/"],
-            "7z": ["7z", "x", '-p""', "-aoa", "{filename}", "-o{extract_dir}/"],
-            # "rar": ["7z", "x", '-p""', "-aoa", "{filename}", "-o{extract_dir}/"],
-            # "lzma": ["7z", "x", '-p""', "-aoa", "{filename}", "-o{extract_dir}/"],
+            "7z": ["7z", "x", "-aoa", "{filename}", "-o{extract_dir}/"],
+            # "rar": ["7z", "x", "-aoa", "{filename}", "-o{extract_dir}/"],
+            # "lzma": ["7z", "x", "-aoa", "{filename}", "-o{extract_dir}/"],
             "tar": ["tar", "--overwrite", "-xvf", "{filename}", "-C", "{extract_dir}/"],
             "gzip": ["tar", "--overwrite", "-xvzf", "{filename}", "-C", "{extract_dir}/"],
         }
