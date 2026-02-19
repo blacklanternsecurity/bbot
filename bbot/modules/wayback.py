@@ -3,9 +3,19 @@ from collections import Counter
 from datetime import datetime
 from urllib.parse import parse_qs, urlparse, urlunparse
 
+import orjson
+
 from bbot.core.helpers.misc import get_file_extension
 from bbot.core.helpers.validators import clean_url
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+
+
+def _parse_cdx_response(text):
+    """Parse CDX JSON response text into a URL list. Designed to run in a separate process."""
+    j = orjson.loads(text)
+    if not isinstance(j, list):
+        return None
+    return [result[0] for result in j[1:] if result]
 
 
 class wayback(subdomain_enum):
@@ -255,13 +265,16 @@ class wayback(subdomain_enum):
         if r is None:
             self.warning(f'Error connecting to archive.org for query "{query}": {last_error}')
             return None
+        # parse JSON + extract URLs in a separate process to avoid blocking the event loop
+        # (CDX responses can contain 100k+ entries)
         try:
-            j = r.json()
-            assert type(j) == list
+            urls = await self.helpers.run_in_executor_mp(_parse_cdx_response, r.text)
         except Exception:
+            urls = None
+        if urls is None:
             self.warning(f'Error JSON-decoding archive.org response for query "{query}"')
             return None
-        return [result[0] for result in j[1:] if result]
+        return urls
 
     def _pre_process_urls(self, urls):
         """Extract parameters, archive URLs, and interesting files from raw CDX URLs before collapse."""
