@@ -8,7 +8,7 @@ class TestDiscord(ModuleTestBase):
     modules_overrides = ["discord", "excavate", "badsecrets", "httpx"]
 
     webhook_url = "https://discord.com/api/webhooks/1234/deadbeef-P-uF-asdf"
-    config_overrides = {"modules": {"discord": {"webhook_url": webhook_url, "min_severity": "INFORMATIONAL"}}}
+    config_overrides = {"modules": {"discord": {"webhook_url": webhook_url, "min_severity": "INFO"}}}
 
     def custom_setup(self, module_test):
         respond_args = {

@@ -145,7 +145,7 @@ class bypass403(BaseModule):
                     "description": f"403 Bypass MULTIPLE SIGNATURES (exceeded threshold {str(collapse_threshold)})",
                     "host": str(event.host),
                     "url": event.data,
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "LOW",
                 },
                 "FINDING",

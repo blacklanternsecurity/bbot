@@ -347,11 +347,11 @@ async def test_events(events, helpers):
         dummy=True,
     )
     assert test_vuln.data["host"] == "evilcorp.com"
-    assert test_vuln.data["severity"] == "INFORMATIONAL"
+    assert test_vuln.data["severity"] == "INFO"
     test_vuln2 = scan.make_event(
         {
             "host": "192.168.1.1",
-            "severity": "INFORMATIONAL",
+            "severity": "INFO",
             "confidence": "HIGH",
             "description": "asdf",
             "name": "Vulnerability",
@@ -359,14 +359,14 @@ async def test_events(events, helpers):
         "FINDING",
         dummy=True,
     )
-    assert json.loads(test_vuln2.data_human)["severity"] == "INFORMATIONAL"
+    assert json.loads(test_vuln2.data_human)["severity"] == "INFO"
     assert test_vuln2.host.is_private
     # must have severity
     with pytest.raises(ValidationError, match=".*validation error.*\nseverity\n.*Field required.*"):
         test_vuln = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "FINDING", dummy=True)
     with pytest.raises(ValidationError, match=".*host.*\n.*Invalid host.*"):
         test_vuln = scan.make_event(
-            {"host": "!@#$", "severity": "INFORMATIONAL", "confidence": "HIGH", "description": "asdf"},
+            {"host": "!@#$", "severity": "INFO", "confidence": "HIGH", "description": "asdf"},
             "FINDING",
             dummy=True,
         )
@@ -428,7 +428,7 @@ async def test_events(events, helpers):
     # must have name
     with pytest.raises(ValidationError, match=".*name.*\n.*Field required.*"):
         test_vuln = scan.make_event(
-            {"host": "evilcorp.com", "severity": "INFORMATIONAL", "description": "asdf", "confidence": "HIGH"},
+            {"host": "evilcorp.com", "severity": "INFO", "description": "asdf", "confidence": "HIGH"},
             "FINDING",
             dummy=True,
         )

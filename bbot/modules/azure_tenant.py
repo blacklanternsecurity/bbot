@@ -446,7 +446,7 @@ class azure_tenant(BaseModule):
                     "host": domain,
                     "name": "Azure AD Desktop SSO Enabled",
                     "description": f"Azure AD Desktop SSO (Seamless SSO) is enabled for {domain}, indicating pass-through authentication or password hash sync from on-premises Active Directory. This reveals hybrid infrastructure where compromising the on-premises environment could provide a pivot point into Azure AD.",
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "MEDIUM",
                 },
                 "FINDING",
@@ -461,7 +461,7 @@ class azure_tenant(BaseModule):
                     "host": domain,
                     "name": "Certificate-Based Authentication Enabled",
                     "description": f"Certificate-based authentication is enabled for {domain}. This provides an alternative authentication vector where stolen or compromised certificates can be used for access, potentially bypassing MFA and password-based security controls.",
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "HIGH",
                 },
                 "FINDING",
@@ -477,7 +477,7 @@ class azure_tenant(BaseModule):
                     "host": domain,
                     "name": "Azure Government Cloud Tenant",
                     "description": f"{domain} is hosted on Azure Government Cloud ({cloud_type}), indicating a high-value target that likely handles sensitive government data, classified information, or critical infrastructure systems.",
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "HIGH",
                 },
                 "FINDING",
@@ -492,7 +492,7 @@ class azure_tenant(BaseModule):
                     "host": domain,
                     "name": "Directory Synchronization Enabled",
                     "description": f"Directory synchronization (Azure AD Connect or Cloud Sync) is enabled for {domain}, indicating hybrid identity infrastructure. Compromising the on-premises Active Directory would allow an attacker to sync malicious changes to Azure AD, including creating backdoor accounts.",
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "HIGH",
                 },
                 "FINDING",
@@ -510,20 +510,23 @@ class azure_tenant(BaseModule):
                     "full_url": fed_url,  # Preserve full URL with query string
                     "name": "Federated Authentication Detected",
                     "description": f"{domain} uses federated authentication with an external identity provider at {fed_url}. Compromising the federated IdP would grant access to Azure AD, and misconfigurations in the federation trust can be exploited (e.g., Golden SAML attacks).",
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "HIGH",
                 },
                 "FINDING",
                 parent=event,
                 tags=["azure-federated"],
             )
-            # Also emit URL for further enumeration
-            await self.emit_event(
+            # Also emit URL for further enumeration (ms-auth-url tag triggers oauth module OIDC check)
+            fed_url_event = self.make_event(
                 fed_url,
                 "URL_UNVERIFIED",
                 parent=event,
-                tags=["affiliate", "azure-federation-url"],
+                tags=["affiliate", "ms-auth-url"],
             )
+            if fed_url_event:
+                fed_url_event.source_domain = domain
+                await self.emit_event(fed_url_event)
 
     def _derive_cloud_type(self, openid_data):
         """Derive cloud type from OpenID configuration data."""

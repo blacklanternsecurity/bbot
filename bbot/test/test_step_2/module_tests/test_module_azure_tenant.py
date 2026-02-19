@@ -188,7 +188,7 @@ class TestAzure_Tenant_DesktopSSO(AzureTenantTestBase):
         assert any(
             e.type == "FINDING"
             and e.data.get("name") == "Azure AD Desktop SSO Enabled"
-            and e.data.get("severity") == "INFORMATIONAL"
+            and e.data.get("severity") == "INFO"
             and e.data.get("confidence") == "MEDIUM"
             and "azure-sso" in e.tags
             for e in events
@@ -208,7 +208,7 @@ class TestAzure_Tenant_CertificateAuth(AzureTenantTestBase):
         assert any(
             e.type == "FINDING"
             and e.data.get("name") == "Certificate-Based Authentication Enabled"
-            and e.data.get("severity") == "INFORMATIONAL"
+            and e.data.get("severity") == "INFO"
             and e.data.get("confidence") == "HIGH"
             and "azure-cba" in e.tags
             for e in events
@@ -228,7 +228,7 @@ class TestAzure_Tenant_GovCloud(AzureTenantTestBase):
         assert any(
             e.type == "FINDING"
             and e.data.get("name") == "Azure Government Cloud Tenant"
-            and e.data.get("severity") == "INFORMATIONAL"
+            and e.data.get("severity") == "INFO"
             and e.data.get("confidence") == "HIGH"
             and "azure-gov-cloud" in e.tags
             for e in events
@@ -268,7 +268,7 @@ class TestAzure_Tenant_DirectorySync(AzureTenantTestBase):
         assert any(
             e.type == "FINDING"
             and e.data.get("name") == "Directory Synchronization Enabled"
-            and e.data.get("severity") == "INFORMATIONAL"
+            and e.data.get("severity") == "INFO"
             and e.data.get("confidence") == "HIGH"
             and "azure-dir-sync" in e.tags
             for e in events
@@ -288,7 +288,7 @@ class TestAzure_Tenant_FederatedAuth(AzureTenantTestBase):
         assert any(
             e.type == "FINDING"
             and e.data.get("name") == "Federated Authentication Detected"
-            and e.data.get("severity") == "INFORMATIONAL"
+            and e.data.get("severity") == "INFO"
             and e.data.get("confidence") == "HIGH"
             and e.data.get("full_url") == self.federation_url  # full_url preserves query string
             and e.data.get("url") == "https://authfs.example.com/adfs/ls/"  # url is cleaned
@@ -298,9 +298,7 @@ class TestAzure_Tenant_FederatedAuth(AzureTenantTestBase):
 
         # URL_UNVERIFIED also gets cleaned (query string removed)
         assert any(
-            e.type == "URL_UNVERIFIED"
-            and e.data == "https://authfs.example.com/adfs/ls/"
-            and "azure-federation-url" in e.tags
+            e.type == "URL_UNVERIFIED" and e.data == "https://authfs.example.com/adfs/ls/" and "ms-auth-url" in e.tags
             for e in events
         ), "Should emit URL_UNVERIFIED for federation URL"
 

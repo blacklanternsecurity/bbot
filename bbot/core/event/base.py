@@ -1551,7 +1551,7 @@ class FINDING(ClosestHostEvent):
         "HIGH": "🟥",
         "MEDIUM": "🟧",
         "LOW": "🟨",
-        "INFORMATIONAL": "⬜",
+        "INFO": "⬜",
     }
 
     confidence_colors = {

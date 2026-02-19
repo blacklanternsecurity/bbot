@@ -26,7 +26,7 @@ class TestHunt(ModuleTestBase):
 
         assert finding_event is not None
         # Hunt emits INFORMATIONAL severity and LOW confidence
-        assert finding_event.data["severity"] == "INFORMATIONAL"
+        assert finding_event.data["severity"] == "INFO"
         assert finding_event.data["confidence"] == "LOW"
 
 

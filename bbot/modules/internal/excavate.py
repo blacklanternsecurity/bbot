@@ -155,7 +155,7 @@ class ExcavateRule:
         description = ""
         tags = []
         emit_match = False
-        severity = "INFORMATIONAL"
+        severity = "INFO"
         confidence = "UNKNOWN"
 
         if "description" in r.meta.keys():
@@ -734,7 +734,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 signature_component_list.append(rf"${signature_name} = {signature}")
             signature_component = " ".join(signature_component_list)
             self.yara_rules["error_detection"] = (
-                f'rule error_detection {{meta: description = "contains a verbose error message" severity = "INFORMATIONAL" confidence = "MEDIUM" strings: {signature_component} condition: any of them}}'
+                f'rule error_detection {{meta: description = "contains a verbose error message" severity = "INFO" confidence = "MEDIUM" strings: {signature_component} condition: any of them}}'
             )
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
@@ -766,7 +766,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 regexes_component_list.append(rf"${regex_name} = /\b{regex.pattern}/")
             regexes_component = " ".join(regexes_component_list)
             self.yara_rules["serialization_detection"] = (
-                f'rule serialization_detection {{meta: description = "contains a possible serialized object" severity = "INFORMATIONAL" confidence = "MEDIUM" strings: {regexes_component} condition: any of them}}'
+                f'rule serialization_detection {{meta: description = "contains a possible serialized object" severity = "INFO" confidence = "MEDIUM" strings: {regexes_component} condition: any of them}}'
             )
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
