@@ -60,6 +60,10 @@ class wayback(subdomain_enum):
         self.garbage_threshold = self.config.get("garbage_threshold", 10)
         self._parameter_cache = {}
         self._archive_cache = {}
+        # bloom filter to deduplicate archive fetches by the response URL archive.org actually served
+        # (multiple request URLs can redirect to the same archived snapshot)
+        # 32M bits (~4MB) supports ~400K entries with negligible false-positive rate
+        self._archive_bloom = self.helpers.bloom_filter(32000000)
         return await super().setup()
 
     async def handle_event(self, event):
@@ -343,6 +347,10 @@ class wayback(subdomain_enum):
         body = self._wayback_stale_ref_re.sub("", body)
         return body
 
+    # archive.org rate-limits aggressively; keep concurrency low to avoid cascading timeouts
+    _archive_threads = 2
+    _archive_max_retries = 2
+
     async def finish(self):
         if not self.archive or not self._archive_cache:
             return
@@ -367,66 +375,121 @@ class wayback(subdomain_enum):
         if not url_metadata:
             return
 
-        gen = self.helpers.request_batch(list(url_metadata), timeout=self.http_timeout + 30, follow_redirects=True)
+        total = len(url_metadata)
+        self.info(f"Fetching {total:,} archived pages from archive.org (concurrency={self._archive_threads})")
+
+        failed, succeeded, processed = await self._fetch_archive_batch(url_metadata, total, 0)
+
+        # retry failed URLs with backoff
+        for retry_num in range(1, self._archive_max_retries + 1):
+            if not failed:
+                break
+            delay = 2**retry_num
+            self.info(
+                f"Retrying {len(failed):,} failed archive fetches (attempt {retry_num}/{self._archive_max_retries}, "
+                f"backoff {delay}s)"
+            )
+            await self.helpers.sleep(delay)
+            retry_metadata = {url: url_metadata[url] for url in failed}
+            new_failed, new_succeeded, processed = await self._fetch_archive_batch(
+                retry_metadata, total, processed - len(failed)
+            )
+            succeeded += new_succeeded
+            failed = new_failed
+
+        if failed:
+            self.warning(f"Failed to fetch {len(failed):,} archived URLs after retries")
+        self.info(f"Archive loading complete: {succeeded:,}/{total:,} succeeded")
+
+    async def _fetch_archive_batch(self, url_metadata, total, processed_offset):
+        """Fetch a batch of archive URLs. Returns (failed_urls, success_count, processed_count)."""
+        failed = []
+        succeeded = 0
+        processed = processed_offset
+
+        gen = self.helpers.request_batch(
+            list(url_metadata), threads=self._archive_threads, timeout=self.http_timeout + 30, follow_redirects=True
+        )
         async for archive_url, r in gen:
+            processed += 1
             raw_url, parent_event = url_metadata[archive_url]
 
             if not r or r.status_code != 200:
                 status = getattr(r, "status_code", "no response") if r else "no response"
                 self.verbose(f"Archive fetch failed for {raw_url}: status={status}")
+                failed.append(archive_url)
                 continue
 
-            j = self.helpers.response_to_json(r)
-            if not j:
-                self.verbose(f"Failed to parse archive response for {raw_url}")
-                continue
+            if await self._process_archive_response(r, raw_url, parent_event):
+                succeeded += 1
 
-            if "body" in j:
-                j["body"] = self._strip_wayback_wrapper(j["body"])
+            if processed % 50 == 0 or processed == total:
+                self.verbose(f"Archive progress: {processed:,}/{total:,} ({succeeded:,} succeeded, {len(failed):,} failed)")
 
-            # strip wayback-injected headers to prevent excavate from extracting archive.org artifacts
-            if "header" in j:
-                j["header"] = {
-                    k: v for k, v in j["header"].items() if not k.startswith("x_archive_") and k != "set_cookie"
-                }
-            if "raw_header" in j:
-                j["raw_header"] = "\r\n".join(
-                    line
-                    for line in j["raw_header"].split("\r\n")
-                    if not line.lower().startswith(("set-cookie:", "x-archive-"))
-                )
+        return failed, succeeded, processed
 
-            # use the original URL so event.host returns the original host, not web.archive.org
-            # this prevents internal modules (speculate, host, dnsresolve) from treating archive.org as a target
-            parsed_original = urlparse(raw_url)
-            hostname = str(parsed_original.hostname or "")
-            port = parsed_original.port or (443 if parsed_original.scheme == "https" else 80)
-            scheme = parsed_original.scheme
-            # strip redundant port (e.g. :80 for http, :443 for https)
-            if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
-                netloc = hostname
-            else:
-                netloc = f"{hostname}:{port}"
-            j["url"] = urlunparse((scheme, netloc, parsed_original.path or "/", "", parsed_original.query, ""))
-            # store the archive URL for provenance — downstream modules can check this field
-            j["archive_url"] = str(r.url)
-            # override host/port/scheme/path to match the original URL (response_to_json set them from archive.org)
-            j["host"] = hostname
-            j["port"] = port
-            j["scheme"] = scheme
-            j["path"] = parsed_original.path or "/"
+    async def _process_archive_response(self, r, raw_url, parent_event):
+        """Process a successful archive.org response into an HTTP_RESPONSE event. Returns True on success."""
+        # deduplicate by the actual response URL archive.org served (after redirects)
+        # multiple request URLs can redirect to the same archived snapshot
+        response_url = str(r.url)
+        if response_url in self._archive_bloom:
+            self.verbose(f"Skipping duplicate archive response for {raw_url} (response URL: {response_url})")
+            return False
+        self._archive_bloom.add(response_url)
 
-            http_response = self.make_event(
-                j,
-                "HTTP_RESPONSE",
-                parent_event,
-                tags=["from-wayback", "archived"],
-                context=f"{{module}} loaded archived version of {raw_url} from the Wayback Machine",
+        j = self.helpers.response_to_json(r)
+        if not j:
+            self.verbose(f"Failed to parse archive response for {raw_url}")
+            return False
+
+        if "body" in j:
+            j["body"] = self._strip_wayback_wrapper(j["body"])
+
+        # strip wayback-injected headers to prevent excavate from extracting archive.org artifacts
+        if "header" in j:
+            j["header"] = {
+                k: v for k, v in j["header"].items() if not k.startswith("x_archive_") and k != "set_cookie"
+            }
+        if "raw_header" in j:
+            j["raw_header"] = "\r\n".join(
+                line
+                for line in j["raw_header"].split("\r\n")
+                if not line.lower().startswith(("set-cookie:", "x-archive-"))
             )
-            if http_response is None:
-                self.verbose(f"Failed to create HTTP_RESPONSE event for {raw_url}")
-                continue
-            # keep the event in scope so modules like badsecrets can process the archived content
-            http_response.scope_distance = 0
-            self.verbose(f"Emitting archived HTTP_RESPONSE for dead URL: {raw_url}")
-            await self.emit_event(http_response)
+
+        # use the original URL so event.host returns the original host, not web.archive.org
+        # this prevents internal modules (speculate, host, dnsresolve) from treating archive.org as a target
+        parsed_original = urlparse(raw_url)
+        hostname = str(parsed_original.hostname or "")
+        port = parsed_original.port or (443 if parsed_original.scheme == "https" else 80)
+        scheme = parsed_original.scheme
+        # strip redundant port (e.g. :80 for http, :443 for https)
+        if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
+            netloc = hostname
+        else:
+            netloc = f"{hostname}:{port}"
+        j["url"] = urlunparse((scheme, netloc, parsed_original.path or "/", "", parsed_original.query, ""))
+        # store the archive URL for provenance — downstream modules can check this field
+        j["archive_url"] = str(r.url)
+        # override host/port/scheme/path to match the original URL (response_to_json set them from archive.org)
+        j["host"] = hostname
+        j["port"] = port
+        j["scheme"] = scheme
+        j["path"] = parsed_original.path or "/"
+
+        http_response = self.make_event(
+            j,
+            "HTTP_RESPONSE",
+            parent_event,
+            tags=["from-wayback", "archived"],
+            context=f"{{module}} loaded archived version of {raw_url} from the Wayback Machine",
+        )
+        if http_response is None:
+            self.verbose(f"Failed to create HTTP_RESPONSE event for {raw_url}")
+            return False
+        # keep the event in scope so modules like badsecrets can process the archived content
+        http_response.scope_distance = 0
+        self.verbose(f"Emitting archived HTTP_RESPONSE for dead URL: {raw_url}")
+        await self.emit_event(http_response)
+        return True
