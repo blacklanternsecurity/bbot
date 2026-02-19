@@ -515,6 +515,4 @@ class TestWaybackArchiveRetry(ModuleTestBase):
 
     def check(self, module_test, events):
         http_responses = [e for e in events if e.type == "HTTP_RESPONSE" and "from-wayback" in e.tags]
-        assert len(http_responses) == 1, (
-            f"Expected 1 archived HTTP_RESPONSE from retry, got {len(http_responses)}"
-        )
+        assert len(http_responses) == 1, f"Expected 1 archived HTTP_RESPONSE from retry, got {len(http_responses)}"
