@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 from datetime import datetime
 from urllib.parse import parse_qs, urlparse, urlunparse
 
@@ -30,6 +31,24 @@ class wayback(subdomain_enum):
 
     interesting_extensions = frozenset({"zip", "sql", "bak", "env", "config"})
     interesting_compound_extensions = frozenset({"tar.gz", "tar.bz2"})
+
+    # maximum URL length before we consider it garbage (crawler traps produce absurdly long URLs)
+    _max_url_length = 2000
+    # if any single path segment repeats more than this many times, it's a path loop / crawler trap
+    _max_path_segment_repeats = 3
+
+    def _is_garbage_url(self, url):
+        """Detect crawler-trap URLs with repeating path segments or excessive length."""
+        if len(url) > self._max_url_length:
+            return True
+        path = urlparse(url).path
+        if not path:
+            return False
+        segments = [s for s in path.split("/") if s]
+        if not segments:
+            return False
+        counts = Counter(segments)
+        return counts.most_common(1)[0][1] > self._max_path_segment_repeats
 
     def _is_interesting_file(self, url):
         ext = get_file_extension(url)
@@ -199,7 +218,7 @@ class wayback(subdomain_enum):
     _cdx_limit = 100000
 
     async def _fetch_cdx(self, query):
-        """Fetch URLs from the CDX API with retries. Returns the URL list or None on failure."""
+        """Fetch URLs from the CDX API with retries and 429 handling. Returns the URL list or None on failure."""
         params = f"url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
         params += f"&limit={self._cdx_limit}"
         params += "&" + "&".join(self._cdx_filters)
@@ -215,6 +234,17 @@ class wayback(subdomain_enum):
             if r is not None:
                 if r.status_code == 200:
                     break
+                if r.status_code == 429:
+                    retry_after = r.headers.get("retry-after", "")
+                    try:
+                        delay = min(int(retry_after), 120)
+                    except (ValueError, TypeError):
+                        delay = self._archive_429_default_delay
+                    last_error = "HTTP 429 rate limited"
+                    self.verbose(f'Archive.org rate limit (429) for CDX query "{query}", sleeping {delay}s')
+                    await self.helpers.sleep(delay)
+                    r = None
+                    continue
                 last_error = f"HTTP status {r.status_code}"
                 r = None
             if i < 2:
@@ -243,6 +273,8 @@ class wayback(subdomain_enum):
             try:
                 parsed = urlparse(url)
                 if any(bl in url for bl in self.url_blacklist):
+                    continue
+                if self._is_garbage_url(url):
                     continue
                 if not (parsed.hostname and self.scan.in_scope(parsed.hostname)):
                     continue
@@ -283,8 +315,10 @@ class wayback(subdomain_enum):
 
         self.verbose(f"Found {len(urls):,} URLs for {query}")
 
-        # filter blacklisted URLs before any further processing
-        urls = [url for url in urls if not any(bl in url for bl in self.url_blacklist)]
+        # filter blacklisted and garbage URLs before any further processing
+        urls = [
+            url for url in urls if not any(bl in url for bl in self.url_blacklist) and not self._is_garbage_url(url)
+        ]
 
         # pre-extract metadata from raw URLs before collapse strips query strings
         raw_url_params, archive_urls, interesting_files = {}, {}, {}
@@ -395,7 +429,7 @@ class wayback(subdomain_enum):
             return
 
         total = len(url_metadata)
-        self.info(f"Fetching {total:,} archived pages from archive.org (concurrency={self._archive_threads})")
+        self.info(f"Fetching {total:,} archived pages from archive.org")
 
         failed, succeeded, processed = await self._fetch_archive_batch(url_metadata, total, 0)
 
