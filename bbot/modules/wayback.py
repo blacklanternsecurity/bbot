@@ -27,12 +27,13 @@ class wayback(subdomain_enum):
         "created_date": "2022-04-01",
         "author": "@liquidsec",
     }
-    options = {"urls": False, "garbage_threshold": 10, "parameters": False, "archive": False}
+    options = {"urls": False, "garbage_threshold": 10, "parameters": False, "archive": False, "max_records": 100000}
     options_desc = {
         "urls": "emit URLs in addition to DNS_NAMEs",
         "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
         "parameters": "emit WEB_PARAMETER events for query parameters discovered in archived URLs (requires urls=true)",
         "archive": "fetch archived versions of dead URLs from the Wayback Machine and emit HTTP_RESPONSE events (requires urls=true)",
+        "max_records": "Maximum number of URLs to fetch from the CDX API",
     }
     in_scope_only = True
 
@@ -87,6 +88,7 @@ class wayback(subdomain_enum):
             self.hugewarning("archive option requires urls to be enabled. Please add modules.wayback.urls=True")
             return False
         self.garbage_threshold = self.config.get("garbage_threshold", 10)
+        self.max_records = self.config.get("max_records", 100000)
         self._parameter_cache = {}
         self._archive_cache = {}
         # bloom filter to deduplicate archive fetches by the response URL archive.org actually served
@@ -225,12 +227,10 @@ class wayback(subdomain_enum):
         "filter=!mimetype:text/css",
         "filter=!mimetype:warc/revisit",
     )
-    _cdx_limit = 100000
-
     async def _fetch_cdx(self, query):
         """Fetch URLs from the CDX API with retries and 429 handling. Returns the URL list or None on failure."""
         params = f"url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
-        params += f"&limit={self._cdx_limit}"
+        params += f"&limit={self.max_records}"
         params += "&" + "&".join(self._cdx_filters)
         waybackurl = f"{self.base_url}/cdx/search/cdx?{params}"
         r = None
@@ -421,7 +421,7 @@ class wayback(subdomain_enum):
         if not self.archive or not self._archive_cache:
             return
 
-        self.hugeinfo(f"Loading {len(self._archive_cache):,} archived URLs from the Wayback Machine")
+        self.verbose(f"Loading {len(self._archive_cache):,} archived URLs from the Wayback Machine")
 
         # build combined set of extensions to skip (blacklist + static + special)
         skip_extensions = set(self.scan.url_extension_blacklist)
@@ -539,23 +539,8 @@ class wayback(subdomain_enum):
                 r = None
                 continue
 
-            if r.status_code == 200:
-                return r
-
-            # non-200, non-429 status
-            if attempt < self._archive_per_request_retries - 1:
-                delay = self._archive_error_delay * (2**attempt)
-                self.verbose(
-                    f"Archive fetch got HTTP {r.status_code} for {raw_url} "
-                    f"(attempt {attempt + 1}/{self._archive_per_request_retries}), retrying in {delay}s"
-                )
-                await self.helpers.sleep(delay)
-            else:
-                self.verbose(
-                    f"Archive fetch got HTTP {r.status_code} for {raw_url} "
-                    f"(final attempt {attempt + 1}/{self._archive_per_request_retries})"
-                )
-            r = None
+            # any other status code (200, 404, 503, etc.) is a definitive answer — return it
+            return r
 
         return r
 

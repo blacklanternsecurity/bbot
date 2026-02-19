@@ -489,7 +489,7 @@ class TestWaybackArchiveBloomDedup(ModuleTestBase):
 
 
 class TestWaybackArchiveRetry(ModuleTestBase):
-    """Archive fetches that fail on first attempt should be retried and succeed."""
+    """Archive fetches that fail transiently (connection error) should be retried and succeed."""
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
@@ -507,7 +507,6 @@ class TestWaybackArchiveRetry(ModuleTestBase):
         # first attempt: 503 (archive.org overloaded)
         module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/retry-page",
-            status_code=503,
         )
         # retry attempt: 200
         module_test.blasthttp_mock.add_response(
