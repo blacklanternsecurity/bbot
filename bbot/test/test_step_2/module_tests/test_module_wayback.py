@@ -11,7 +11,7 @@ from .base import ModuleTestBase
 class TestWayback(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.blasthttp_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://asdf.blacklanternsecurity.com"]],
         )
 
@@ -26,8 +26,8 @@ class TestWaybackParameters(ModuleTestBase):
     config_overrides = {"modules": {"wayback": {"urls": True, "parameters": True}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[
                 ["original"],
                 ["http://127.0.0.1:8888/page?foo=bar&baz=qux"],
@@ -65,11 +65,11 @@ class TestWaybackInterestingFiles(ModuleTestBase):
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://blacklanternsecurity.com/backup/site.zip"]],
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://blacklanternsecurity.com/backup/site.zip",
             headers={"Content-Type": "application/zip", "Content-Length": "1048576"},
         )
@@ -106,12 +106,12 @@ class TestWaybackArchive(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         # wayback returns a URL on an unreachable port — httpx binary can't verify it
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://127.0.0.1:1/deadpage"]],
         )
         # the archived page itself contains the vulnerable viewstate
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/deadpage",
             text=self.sample_viewstate,
             headers={"Content-Type": "text/html"},
@@ -148,8 +148,8 @@ class TestWaybackHttpHttpsDedup(ModuleTestBase):
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[
                 ["original"],
                 ["http://blacklanternsecurity.com/page"],
@@ -175,8 +175,8 @@ class TestWaybackHttpOnlyKept(ModuleTestBase):
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[
                 ["original"],
                 ["http://blacklanternsecurity.com/old-http-only"],
@@ -200,8 +200,8 @@ class TestWaybackCdnCgiBlacklist(ModuleTestBase):
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[
                 ["original"],
                 ["https://blacklanternsecurity.com/cdn-cgi/challenge-platform/h/g/something"],
@@ -229,11 +229,11 @@ class TestWaybackArchiveHostField(ModuleTestBase):
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://127.0.0.1:1/archived-page"]],
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/archived-page",
             text="<html><body>archived content</body></html>",
             headers={"Content-Type": "text/html"},
@@ -273,12 +273,12 @@ class TestWaybackArchiveHuntFinding(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         # CDX returns a dead URL (port 1 = unreachable) with a huntable form
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://127.0.0.1:1/search"]],
         )
         # the archived page contains a form with "redirect" — a known hunt parameter
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/search",
             text='<html><form method="GET" action="/search"><input name="redirect" value="test"></form></html>',
             headers={"Content-Type": "text/html"},
@@ -359,8 +359,8 @@ class TestWaybackLightfuzzXSS(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         # CDX returns a URL with a search parameter pointing at the local httpserver
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://127.0.0.1:8888/?search=test"]],
         )
         # httpserver handles httpx verification and lightfuzz probes
@@ -390,8 +390,8 @@ class TestWaybackStripBodyArtifacts(ModuleTestBase):
     modules_overrides = ["wayback"]
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"]],
         )
 
@@ -453,8 +453,8 @@ class TestWaybackArchiveBloomDedup(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         # CDX returns two different dead URLs
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[
                 ["original"],
                 ["http://127.0.0.1:1/page-a"],
@@ -463,19 +463,19 @@ class TestWaybackArchiveBloomDedup(ModuleTestBase):
         )
         # both archive URLs redirect to the same archived snapshot
         redirect_target = "http://web.archive.org/web/20230101120000/http://127.0.0.1:1/same-page"
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/page-a",
             status_code=301,
             headers={"Location": redirect_target},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/page-b",
             status_code=301,
             headers={"Location": redirect_target},
         )
         # two responses for the redirect target (one consumed per redirect)
         for _ in range(2):
-            module_test.httpx_mock.add_response(
+            module_test.blasthttp_mock.add_response(
                 url=redirect_target,
                 text="<html><body>archived content</body></html>",
                 headers={"Content-Type": "text/html"},
@@ -497,17 +497,17 @@ class TestWaybackArchiveRetry(ModuleTestBase):
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://127.0.0.1:1/retry-page"]],
         )
         # first attempt: 503 (archive.org overloaded)
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/retry-page",
             status_code=503,
         )
         # retry attempt: 200
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/retry-page",
             text="<html><body>recovered content</body></html>",
             headers={"Content-Type": "text/html"},

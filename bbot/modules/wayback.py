@@ -187,9 +187,23 @@ class wayback(subdomain_enum):
                 context=f"{{module}} found interesting archived file: {raw_url}",
             )
 
+    # CDX API filters applied server-side to reduce response size
+    _cdx_filters = (
+        "filter=!statuscode:404",
+        "filter=!statuscode:301",
+        "filter=!statuscode:302",
+        "filter=!mimetype:image/.*",
+        "filter=!mimetype:text/css",
+        "filter=!mimetype:warc/revisit",
+    )
+    _cdx_limit = 100000
+
     async def _fetch_cdx(self, query):
         """Fetch URLs from the CDX API with retries. Returns the URL list or None on failure."""
-        waybackurl = f"{self.base_url}/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
+        params = f"url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
+        params += f"&limit={self._cdx_limit}"
+        params += "&" + "&".join(self._cdx_filters)
+        waybackurl = f"{self.base_url}/cdx/search/cdx?{params}"
         r = None
         last_error = None
         for i in range(3):
