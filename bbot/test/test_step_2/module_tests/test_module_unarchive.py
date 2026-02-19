@@ -33,11 +33,11 @@ class TestUnarchive(ModuleTestBase):
         tar_file = temp_path / "test.tar"
         tgz_file = temp_path / "test.tgz"
         commands = [
-            ("7z", "a", '-p""', "-aoa", f"{zip_file}", f"{text_file}"),
-            ("7z", "a", '-p""', "-aoa", f"{zip_zip_file}", f"{zip_file}"),
+            ("7z", "a", "-aoa", f"{zip_file}", f"{text_file}"),
+            ("7z", "a", "-aoa", f"{zip_zip_file}", f"{zip_file}"),
             ("tar", "-C", f"{temp_path}", "-cvjf", f"{bz2_file}", f"{text_file.name}"),
             ("tar", "-C", f"{temp_path}", "-cvJf", f"{xz_file}", f"{text_file.name}"),
-            ("7z", "a", '-p""', "-aoa", f"{zip7_file}", f"{text_file}"),
+            ("7z", "a", "-aoa", f"{zip7_file}", f"{text_file}"),
             # ("tar", "-C", f"{temp_path}", "--lzma", "-cvf", f"{lzma_file}", f"{text_file.name}"),
             ("tar", "-C", f"{temp_path}", "-cvf", f"{tar_file}", f"{text_file.name}"),
             ("tar", "-C", f"{temp_path}", "-cvzf", f"{tgz_file}", f"{text_file.name}"),
