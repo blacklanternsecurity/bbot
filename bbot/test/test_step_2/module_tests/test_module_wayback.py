@@ -497,6 +497,9 @@ class TestWaybackArchiveRetry(ModuleTestBase):
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     async def setup_after_prep(self, module_test):
+        # speed up retries for testing
+        module_test.scan.modules["wayback"]._archive_error_delay = 0.01
+        module_test.scan.modules["wayback"]._archive_delay = 0
         module_test.httpx_mock.add_response(
             url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://127.0.0.1:1/retry-page"]],
@@ -516,3 +519,104 @@ class TestWaybackArchiveRetry(ModuleTestBase):
     def check(self, module_test, events):
         http_responses = [e for e in events if e.type == "HTTP_RESPONSE" and "from-wayback" in e.tags]
         assert len(http_responses) == 1, f"Expected 1 archived HTTP_RESPONSE from retry, got {len(http_responses)}"
+
+
+class TestWaybackGarbageUrlFilter(ModuleTestBase):
+    """Crawler-trap URLs with repeating path segments should be filtered out."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    async def setup_after_prep(self, module_test):
+        # build a crawler-trap URL with repeating path segments (like the real-world example)
+        repeating = "/themes/sites/example.com".lstrip("/")
+        garbage_path = "/get-materials/" + "/".join([repeating] * 20)
+        garbage_url = f"https://blacklanternsecurity.com{garbage_path}"
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
+            json=[
+                ["original"],
+                [garbage_url],
+                ["https://blacklanternsecurity.com/real-page"],
+            ],
+        )
+
+    def check(self, module_test, events):
+        # garbage URL should be filtered
+        assert not any(e.type == "URL_UNVERIFIED" and "get-materials" in e.data for e in events), (
+            "Crawler-trap URL with repeating path segments should have been filtered"
+        )
+        # real page should still be emitted
+        assert any(e.type == "URL_UNVERIFIED" and "real-page" in e.data for e in events), (
+            "Non-garbage URL should have been emitted"
+        )
+
+
+class TestWaybackGarbageUrlLength(ModuleTestBase):
+    """Excessively long URLs should be filtered out as garbage."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    async def setup_after_prep(self, module_test):
+        # URL exceeding 2000 character limit
+        long_url = "https://blacklanternsecurity.com/" + "a" * 2000
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
+            json=[
+                ["original"],
+                [long_url],
+                ["https://blacklanternsecurity.com/normal-page"],
+            ],
+        )
+
+    def check(self, module_test, events):
+        # long URL should be filtered
+        assert not any(e.type == "URL_UNVERIFIED" and "aaaa" in e.data for e in events), (
+            "Excessively long URL should have been filtered"
+        )
+        # normal page should still be emitted
+        assert any(e.type == "URL_UNVERIFIED" and "normal-page" in e.data for e in events), (
+            "Normal-length URL should have been emitted"
+        )
+
+
+class TestWaybackArchive429Retry(ModuleTestBase):
+    """Archive fetches that get 429 rate-limited should back off and retry successfully."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
+
+    async def setup_after_prep(self, module_test):
+        # speed up delays for testing
+        module_test.scan.modules["wayback"]._archive_429_default_delay = 0.01
+        module_test.scan.modules["wayback"]._archive_error_delay = 0.01
+        module_test.scan.modules["wayback"]._archive_delay = 0
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
+            json=[["original"], ["http://127.0.0.1:1/rate-limited-page"]],
+        )
+        # first attempt: 429 rate limited
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/rate-limited-page",
+            status_code=429,
+            headers={"Retry-After": "1"},
+        )
+        # retry after backoff: 200
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/rate-limited-page",
+            text="<html><body>content after rate limit</body></html>",
+            headers={"Content-Type": "text/html"},
+        )
+
+    def check(self, module_test, events):
+        http_responses = [e for e in events if e.type == "HTTP_RESPONSE" and "from-wayback" in e.tags]
+        assert len(http_responses) == 1, (
+            f"Expected 1 archived HTTP_RESPONSE after 429 retry, got {len(http_responses)}"
+        )
