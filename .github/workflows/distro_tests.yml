@@ -30,7 +30,7 @@ jobs:
             elif [ "$ID" = "arch" ]; then
               pacman -Syu --noconfirm curl docker git bash base-devel
             elif [ "$ID" = "fedora" ]; then
-              dnf install -y curl docker git bash gcc make openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel tk-devel gdbm-devel readline-devel sqlite-devel python3-libdnf5
+              dnf install -y curl docker git bash gcc make patch p7zip p7zip-plugins openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel tk-devel gdbm-devel readline-devel sqlite-devel python3-libdnf5
             elif [ "$ID" = "gentoo" ]; then
               echo "media-libs/libglvnd X" >> /etc/portage/package.use/libglvnd
               emerge-webrsync
