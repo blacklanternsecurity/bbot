@@ -218,7 +218,9 @@ class wayback(subdomain_enum):
                 last_error = f"HTTP status {r.status_code}"
                 r = None
             if i < 2:
-                self.verbose(f'Error connecting to archive.org for query "{query}" ({last_error}), retrying ({i + 1}/2)')
+                self.verbose(
+                    f'Error connecting to archive.org for query "{query}" ({last_error}), retrying ({i + 1}/2)'
+                )
                 await self.helpers.sleep(2**i)
         if r is None:
             self.warning(f'Error connecting to archive.org for query "{query}": {last_error}')
@@ -361,9 +363,12 @@ class wayback(subdomain_enum):
         body = self._wayback_stale_ref_re.sub("", body)
         return body
 
-    # archive.org rate-limits aggressively; keep concurrency low to avoid cascading timeouts
-    _archive_threads = 2
-    _archive_max_retries = 2
+    # archive.org rate-limits aggressively; pace requests to avoid cascading ReadErrors
+    _archive_per_request_retries = 3
+    _archive_batch_retries = 1
+    _archive_delay = 0.5  # seconds between successful requests
+    _archive_error_delay = 3  # initial backoff seconds after a failed request
+    _archive_429_default_delay = 30  # default delay on 429 when no retry-after header
 
     async def finish(self):
         if not self.archive or not self._archive_cache:
@@ -394,13 +399,14 @@ class wayback(subdomain_enum):
 
         failed, succeeded, processed = await self._fetch_archive_batch(url_metadata, total, 0)
 
-        # retry failed URLs with backoff
-        for retry_num in range(1, self._archive_max_retries + 1):
+        # batch-level retry as safety net (per-request retry handles most transient errors,
+        # but a temporary outage window could still leave a batch of failures)
+        for retry_num in range(1, self._archive_batch_retries + 1):
             if not failed:
                 break
-            delay = 2**retry_num
+            delay = 30 * retry_num
             self.info(
-                f"Retrying {len(failed):,} failed archive fetches (attempt {retry_num}/{self._archive_max_retries}, "
+                f"Retrying {len(failed):,} failed archive fetches (batch retry {retry_num}/{self._archive_batch_retries}, "
                 f"backoff {delay}s)"
             )
             await self.helpers.sleep(delay)
@@ -416,21 +422,22 @@ class wayback(subdomain_enum):
         self.info(f"Archive loading complete: {succeeded:,}/{total:,} succeeded")
 
     async def _fetch_archive_batch(self, url_metadata, total, processed_offset):
-        """Fetch a batch of archive URLs. Returns (failed_urls, success_count, processed_count)."""
+        """Fetch a batch of archive URLs with per-request retry and rate-limit handling.
+
+        Returns (failed_urls, success_count, processed_count).
+        """
         failed = []
         succeeded = 0
         processed = processed_offset
 
-        gen = self.helpers.request_batch(
-            list(url_metadata), threads=self._archive_threads, timeout=self.http_timeout + 30, follow_redirects=True
-        )
-        async for archive_url, r in gen:
+        for archive_url, (raw_url, parent_event) in url_metadata.items():
             processed += 1
-            raw_url, parent_event = url_metadata[archive_url]
+
+            r = await self._fetch_single_archive_url(archive_url, raw_url)
 
             if not r or r.status_code != 200:
                 status = getattr(r, "status_code", "no response") if r else "no response"
-                self.verbose(f"Archive fetch failed for {raw_url}: status={status}")
+                self.verbose(f"Archive fetch failed for {raw_url} after retries: status={status}")
                 failed.append(archive_url)
                 continue
 
@@ -438,9 +445,72 @@ class wayback(subdomain_enum):
                 succeeded += 1
 
             if processed % 50 == 0 or processed == total:
-                self.verbose(f"Archive progress: {processed:,}/{total:,} ({succeeded:,} succeeded, {len(failed):,} failed)")
+                self.verbose(
+                    f"Archive progress: {processed:,}/{total:,} ({succeeded:,} succeeded, {len(failed):,} failed)"
+                )
+
+            # pace requests to avoid triggering rate limits
+            await self.helpers.sleep(self._archive_delay)
 
         return failed, succeeded, processed
+
+    async def _fetch_single_archive_url(self, archive_url, raw_url):
+        """Fetch a single archive URL with per-request retry, 429 handling, and backoff.
+
+        archive.org rate-limits CDX at ~60 req/min and blocks the IP at the firewall
+        if 429 responses are ignored for more than a minute. We must respect 429 + Retry-After.
+        """
+        r = None
+        for attempt in range(self._archive_per_request_retries):
+            try:
+                r = await self.helpers.request(
+                    archive_url, timeout=self.http_timeout + 60, follow_redirects=True, raise_error=True
+                )
+            except Exception as e:
+                r = None
+                if attempt < self._archive_per_request_retries - 1:
+                    delay = self._archive_error_delay * (2**attempt)
+                    self.verbose(
+                        f"Archive fetch error for {raw_url} (attempt {attempt + 1}/{self._archive_per_request_retries}): "
+                        f"{e} -- retrying in {delay}s"
+                    )
+                    await self.helpers.sleep(delay)
+                else:
+                    self.verbose(
+                        f"Archive fetch error for {raw_url} (final attempt {attempt + 1}/{self._archive_per_request_retries}): {e}"
+                    )
+                continue
+
+            if r.status_code == 429:
+                retry_after = r.headers.get("retry-after", "")
+                try:
+                    delay = min(int(retry_after), 120)
+                except (ValueError, TypeError):
+                    delay = self._archive_429_default_delay
+                self.verbose(f"Archive.org rate limit (429) for {raw_url}, sleeping {delay}s")
+                await self.helpers.sleep(delay)
+                r = None
+                continue
+
+            if r.status_code == 200:
+                return r
+
+            # non-200, non-429 status
+            if attempt < self._archive_per_request_retries - 1:
+                delay = self._archive_error_delay * (2**attempt)
+                self.verbose(
+                    f"Archive fetch got HTTP {r.status_code} for {raw_url} "
+                    f"(attempt {attempt + 1}/{self._archive_per_request_retries}), retrying in {delay}s"
+                )
+                await self.helpers.sleep(delay)
+            else:
+                self.verbose(
+                    f"Archive fetch got HTTP {r.status_code} for {raw_url} "
+                    f"(final attempt {attempt + 1}/{self._archive_per_request_retries})"
+                )
+            r = None
+
+        return r
 
     async def _process_archive_response(self, r, raw_url, parent_event):
         """Process a successful archive.org response into an HTTP_RESPONSE event. Returns True on success."""
