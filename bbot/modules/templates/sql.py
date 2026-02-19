@@ -49,7 +49,9 @@ class SQLTemplate(BaseOutputModule):
             except Exception as e:
                 last_error = e
                 if attempt < retries:
-                    self.verbose(f"Failed to connect to {connection_string} (attempt {attempt + 1}/{max_attempts}): {e}")
+                    self.verbose(
+                        f"Failed to connect to {connection_string} (attempt {attempt + 1}/{max_attempts}): {e}"
+                    )
                     await asyncio.sleep(1)
 
         return False, f"Failed to reach {connection_string} after {max_attempts} attempts: {last_error}"
