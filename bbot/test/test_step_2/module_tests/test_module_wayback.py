@@ -441,3 +441,80 @@ class TestWaybackStripBodyArtifacts(ModuleTestBase):
         stripped = w._strip_wayback_wrapper(body)
         assert "/web/20250529193232js_/" not in stripped
         assert "https://www.example.com/script.js" in stripped
+
+
+class TestWaybackArchiveBloomDedup(ModuleTestBase):
+    """When multiple archive URLs redirect to the same snapshot, bloom filter prevents duplicate HTTP_RESPONSEs."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
+
+    async def setup_after_prep(self, module_test):
+        # CDX returns two different dead URLs
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[
+                ["original"],
+                ["http://127.0.0.1:1/page-a"],
+                ["http://127.0.0.1:1/page-b"],
+            ],
+        )
+        # both archive URLs redirect to the same archived snapshot
+        redirect_target = "http://web.archive.org/web/20230101120000/http://127.0.0.1:1/same-page"
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/page-a",
+            status_code=301,
+            headers={"Location": redirect_target},
+        )
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/page-b",
+            status_code=301,
+            headers={"Location": redirect_target},
+        )
+        # two responses for the redirect target (one consumed per redirect)
+        for _ in range(2):
+            module_test.httpx_mock.add_response(
+                url=redirect_target,
+                text="<html><body>archived content</body></html>",
+                headers={"Content-Type": "text/html"},
+            )
+
+    def check(self, module_test, events):
+        http_responses = [e for e in events if e.type == "HTTP_RESPONSE" and "from-wayback" in e.tags]
+        assert len(http_responses) == 1, (
+            f"Expected exactly 1 archived HTTP_RESPONSE (bloom dedup should prevent duplicate), got {len(http_responses)}"
+        )
+
+
+class TestWaybackArchiveRetry(ModuleTestBase):
+    """Archive fetches that fail on first attempt should be retried and succeed."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
+            json=[["original"], ["http://127.0.0.1:1/retry-page"]],
+        )
+        # first attempt: 503 (archive.org overloaded)
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/retry-page",
+            status_code=503,
+        )
+        # retry attempt: 200
+        module_test.httpx_mock.add_response(
+            url="http://web.archive.org/web/http://127.0.0.1:1/retry-page",
+            text="<html><body>recovered content</body></html>",
+            headers={"Content-Type": "text/html"},
+        )
+
+    def check(self, module_test, events):
+        http_responses = [e for e in events if e.type == "HTTP_RESPONSE" and "from-wayback" in e.tags]
+        assert len(http_responses) == 1, (
+            f"Expected 1 archived HTTP_RESPONSE from retry, got {len(http_responses)}"
+        )
