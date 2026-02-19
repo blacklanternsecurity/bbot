@@ -338,7 +338,7 @@ async def test_events(events, helpers):
     test_vuln = scan.make_event(
         {
             "host": "EVILcorp.com",
-            "severity": "iNformational ",
+            "severity": "iNfo ",
             "confidence": "HIGH",
             "description": "asdf",
             "name": "Test Finding",
