@@ -1333,7 +1333,11 @@ def which(*executables, path=None):
     for e in executables:
         location = shutil.which(e, path=path)
         if location:
-            return location
+            # Resolve directory symlinks but preserve the binary name.
+            # This fixes native 7zip on Fedora where /usr/sbin -> bin symlink
+            # causes codec loading to fail when invoked as /usr/sbin/7z.
+            resolved_dir = os.path.realpath(os.path.dirname(location))
+            return os.path.join(resolved_dir, os.path.basename(location))
 
 
 def search_dict_by_key(key, d):
