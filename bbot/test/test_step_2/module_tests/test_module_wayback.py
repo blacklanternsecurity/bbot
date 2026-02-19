@@ -489,7 +489,7 @@ class TestWaybackArchiveBloomDedup(ModuleTestBase):
 
 
 class TestWaybackArchiveRetry(ModuleTestBase):
-    """Archive fetches that fail on first attempt should be retried and succeed."""
+    """Archive fetches that fail transiently (connection error) should be retried and succeed."""
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
@@ -504,10 +504,12 @@ class TestWaybackArchiveRetry(ModuleTestBase):
             url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://127.0.0.1:1/retry-page"]],
         )
-        # first attempt: 503 (archive.org overloaded)
-        module_test.httpx_mock.add_response(
+        # first attempt: connection error (simulated by httpx_mock raising)
+        import httpx
+
+        module_test.httpx_mock.add_exception(
+            httpx.ReadError("Connection reset"),
             url="http://web.archive.org/web/http://127.0.0.1:1/retry-page",
-            status_code=503,
         )
         # retry attempt: 200
         module_test.httpx_mock.add_response(
