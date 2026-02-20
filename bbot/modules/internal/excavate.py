@@ -366,24 +366,32 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         return False
 
-    def _event_host(self, event):
-        """Get the effective host from an event, preferring data["host"] over parsed_url.
+    def _is_archived(self, event):
+        """Check if an event represents archived wayback content."""
+        return isinstance(event.data, dict) and "archive_url" in event.data
 
-        HTTP_RESPONSE._host() derives from parsed_url.hostname (i.e. data["url"]),
-        but data["host"] may be explicitly overridden (e.g. for archived wayback content
-        where url is archive.org but host is the original target).
+    def _event_host(self, event):
+        """Get the effective host from an event.
+
+        For archived wayback content, data["host"] contains the original target hostname
+        (since data["url"] points to archive.org). For regular events, we use event.host.
+
+        NOTE: Regular HTTP_RESPONSE events also have data["host"], but it contains the
+        resolved IP from the httpx binary — NOT a hostname override.
         """
-        if isinstance(event.data, dict) and event.data.get("host"):
+        if self._is_archived(event) and event.data.get("host"):
             return str(event.data["host"])
         return str(event.host)
 
     def _event_base_url(self, event):
-        """Reconstruct the effective base URL from event data fields.
+        """Get the effective base URL from an event.
 
-        For normal HTTP_RESPONSE events, this matches event.parsed_url.
-        For archived content (e.g. wayback), the data fields (host/scheme/path)
-        reflect the original URL while parsed_url comes from the archive URL.
+        For archived wayback content, reconstructs the original URL from override fields
+        (host/scheme/port/path) since parsed_url points to archive.org.
+        For regular events, returns event.parsed_url directly.
         """
+        if not self._is_archived(event):
+            return event.parsed_url
         scheme = event.data.get("scheme", event.parsed_url.scheme)
         host = self._event_host(event)
         port = event.data.get("port")

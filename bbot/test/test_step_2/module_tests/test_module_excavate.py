@@ -1290,6 +1290,41 @@ class TestExcavate_webparameter_outofscope(ModuleTestBase):
         assert not web_parameter_outofscope, "Out of scope domain was emitted"
 
 
+class TestExcavate_webparameter_ip_host(ModuleTestBase):
+    """Verify that when the httpx binary resolves a hostname to an IP (data["host"]),
+    excavate still uses the URL hostname for WEB_PARAMETER host — not the resolved IP.
+
+    This test uses 'localhost' as the target. The httpx binary resolves it to 127.0.0.1
+    and sets data["host"] = "127.0.0.1" in its JSON output. Without the archive_url guard
+    in _event_host(), this IP would be used as the WEB_PARAMETER host, putting it out of
+    scope and preventing downstream modules (like lightfuzz) from processing it.
+    """
+
+    targets = ["http://localhost:8888"]
+    modules_overrides = ["httpx", "excavate", "hunt"]
+    config_overrides = {"interactsh_disable": True}
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"localhost": {"A": ["127.0.0.1"]}})
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<html><p>hello</p></html>",
+            status=200,
+            headers={"Set-Cookie": "session=abc123; Path=/"},
+        )
+
+    def check(self, module_test, events):
+        web_params = [e for e in events if e.type == "WEB_PARAMETER" and e.data["name"] == "session"]
+        assert len(web_params) > 0, "WEB_PARAMETER for 'session' cookie was not emitted"
+        for wp in web_params:
+            assert wp.data["host"] != "127.0.0.1", (
+                f"WEB_PARAMETER host should be 'localhost', not the resolved IP '127.0.0.1'. "
+                f"excavate._event_host() is using data['host'] (resolved IP) instead of event.host"
+            )
+            assert wp.data["host"] == "localhost", (
+                f"WEB_PARAMETER host should be 'localhost', got '{wp.data['host']}'"
+            )
+
+
 class TestExcavateHeaders(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["excavate", "http", "hunt"]
