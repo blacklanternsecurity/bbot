@@ -197,6 +197,11 @@ class HTTPEngine(EngineServer):
                 raise
             else:
                 log.debug(f"HTTP connect failed to URL: {url}")
+        except httpx.ReadError as e:
+            if raise_error:
+                raise
+            else:
+                log.verbose(f"HTTP read error for URL: {url}: {e}")
         except httpx.HTTPError as e:
             if raise_error:
                 raise

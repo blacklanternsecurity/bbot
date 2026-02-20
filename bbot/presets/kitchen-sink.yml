@@ -16,3 +16,7 @@ config:
   modules:
     baddns:
       enable_references: True
+    wayback:
+      urls: True
+      parameters: True
+      archive: True

@@ -250,7 +250,7 @@ Everything everywhere all at once
 ??? note "`kitchen-sink.yml`"
     ```yaml title="~/.bbot/presets/kitchen-sink.yml"
     description: Everything everywhere all at once
-    
+
     include:
       - subdomain-enum
       - cloud-enum
@@ -262,11 +262,15 @@ Everything everywhere all at once
       - dirbust-light
       - web-screenshots
       - baddns-intense
-    
+
     config:
       modules:
         baddns:
           enable_references: True
+        wayback:
+          urls: True
+          parameters: True
+          archive: True
     ```
 
 
@@ -280,21 +284,25 @@ Discover web parameters and lightly fuzz them for vulnerabilities, with more int
 ??? note "`lightfuzz-heavy.yml`"
     ```yaml title="~/.bbot/presets/web/lightfuzz-heavy.yml"
     description: Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery.
-    
+
     include:
       - lightfuzz-medium
-    
+
     flags:
       - web-paramminer
-    
+
     modules:
       - robots
-    
+      - wayback
+
     config:
       modules:
         lightfuzz:
           enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi]
           disable_post: False
+        wayback:
+          urls: True
+          parameters: True
     ```
 
 Category: web
@@ -366,10 +374,10 @@ Discover web parameters and lightly fuzz them for vulnerabilities, with the most
 ??? note "`lightfuzz-superheavy.yml`"
     ```yaml title="~/.bbot/presets/web/lightfuzz-superheavy.yml"
     description: Discover web parameters and lightly fuzz them for vulnerabilities, with the most intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually.
-    
+
     include:
       - lightfuzz-heavy
-    
+
     config:
       url_querystring_collapse: False # in cases where the same parameter is observed multiple times, fuzz them individually instead of collapsing them into a single parameter
       modules:
@@ -378,6 +386,10 @@ Discover web parameters and lightly fuzz them for vulnerabilities, with the most
           enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi]
         excavate:
           speculate_params: True # speculate potential parameters extracted from JSON/XML web responses
+        wayback:
+          urls: True
+          parameters: True
+          archive: True
     ```
 
 Category: web
@@ -771,6 +783,57 @@ Aggressive web scan
 
 
 Modules: [32]("`ajaxpro`, `aspnet_bin_exposure`, `azure_realm`, `baddns`, `badsecrets`, `bucket_amazon`, `bucket_digitalocean`, `bucket_firebase`, `bucket_google`, `bucket_microsoft`, `bypass403`, `dotnetnuke`, `ffuf_shortnames`, `filedownload`, `generic_ssrf`, `git`, `graphql_introspection`, `host_header`, `httpx`, `hunt`, `iis_shortnames`, `lightfuzz`, `ntlm`, `oauth`, `reflected_parameters`, `retirejs`, `robots`, `securitytxt`, `smuggler`, `sslcert`, `telerik`, `url_manipulation`")
+
+## **wayback**
+
+Discover URLs and interesting archived files via the Wayback Machine
+
+??? note "`wayback.yml`"
+    ```yaml title="~/.bbot/presets/wayback.yml"
+    description: Discover URLs and interesting archived files via the Wayback Machine
+
+    include:
+      - subdomain-enum
+
+    modules:
+      - wayback
+
+    config:
+      modules:
+        wayback:
+          urls: True
+    ```
+
+
+
+Modules: [52]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `bevigil`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `crt`, `crt_db`, `digitorus`, `dnsbimi`, `dnsbrute`, `dnsbrute_mutations`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman`, `postman_download`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`, `httpx`")
+
+## **wayback-intense**
+
+Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
+
+??? note "`wayback-intense.yml`"
+    ```yaml title="~/.bbot/presets/wayback-intense.yml"
+    description: Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
+
+    include:
+      - subdomain-enum
+
+    modules:
+      - wayback
+      - badsecrets
+
+    config:
+      modules:
+        wayback:
+          urls: True
+          parameters: True
+          archive: True
+    ```
+
+
+
+Modules: [53]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `badsecrets`, `bevigil`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `crt`, `crt_db`, `digitorus`, `dnsbimi`, `dnsbrute`, `dnsbrute_mutations`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman`, `postman_download`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`, `httpx`")
 <!-- END BBOT PRESET YAML -->
 
 ## Table of Default Presets
@@ -807,4 +870,6 @@ Here is a the same data, but in a table:
 | web-basic            |            | Quick web scan                                                                                                                                                                                                                                                                                               | 18          | azure_realm, baddns, badsecrets, bucket_amazon, bucket_firebase, bucket_google, bucket_microsoft, ffuf_shortnames, filedownload, git, graphql_introspection, httpx, iis_shortnames, ntlm, oauth, robots, securitytxt, sslcert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | web-screenshots      |            | Take screenshots of webpages                                                                                                                                                                                                                                                                                 | 3           | gowitness, httpx, social                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | web-thorough         |            | Aggressive web scan                                                                                                                                                                                                                                                                                          | 32          | ajaxpro, aspnet_bin_exposure, azure_realm, baddns, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bypass403, dotnetnuke, ffuf_shortnames, filedownload, generic_ssrf, git, graphql_introspection, host_header, httpx, hunt, iis_shortnames, lightfuzz, ntlm, oauth, reflected_parameters, retirejs, robots, securitytxt, smuggler, sslcert, telerik, url_manipulation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| wayback              |            | Discover URLs and interesting archived files via the Wayback Machine                                                                                                                                                                                                                                         | 52          | anubisdb, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback |
+| wayback-intense      |            | Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection                                                                                                                                                                               | 53          | anubisdb, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, badsecrets, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback |
 <!-- END BBOT PRESETS -->

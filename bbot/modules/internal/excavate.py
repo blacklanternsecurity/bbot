@@ -344,6 +344,34 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         return False
 
+    def _event_host(self, event):
+        """Get the effective host from an event, preferring data["host"] over parsed_url.
+
+        HTTP_RESPONSE._host() derives from parsed_url.hostname (i.e. data["url"]),
+        but data["host"] may be explicitly overridden (e.g. for archived wayback content
+        where url is archive.org but host is the original target).
+        """
+        if isinstance(event.data, dict) and event.data.get("host"):
+            return str(event.data["host"])
+        return str(event.host)
+
+    def _event_base_url(self, event):
+        """Reconstruct the effective base URL from event data fields.
+
+        For normal HTTP_RESPONSE events, this matches event.parsed_url.
+        For archived content (e.g. wayback), the data fields (host/scheme/path)
+        reflect the original URL while parsed_url comes from the archive URL.
+        """
+        scheme = event.data.get("scheme", event.parsed_url.scheme)
+        host = self._event_host(event)
+        port = event.data.get("port")
+        if port is not None:
+            port = int(port)
+            if not ((scheme == "http" and port == 80) or (scheme == "https" and port == 443)):
+                host = f"{host}:{port}"
+        path = event.data.get("path", event.parsed_url.path)
+        return urlparse(f"{scheme}://{host}{path}")
+
     def url_unparse(self, param_type, parsed_url):
         # Reconstructs a URL, optionally omitting the query string based on remove_querystring configuration value.
         if param_type == "GETPARAM":
@@ -616,8 +644,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
                         # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
                         else:
-                            # Use the original URL as the base and resolve the endpoint correctly in case of relative paths
-                            base_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{event.parsed_url.path}"
+                            # Use the effective base URL (which may differ from parsed_url for archived content)
+                            event_base = self.excavate._event_base_url(event)
+                            base_url = f"{event_base.scheme}://{event_base.netloc}{event_base.path}"
                             if not self.excavate.remove_querystring and len(event.parsed_url.query) > 0:
                                 base_url += f"?{event.parsed_url.query}"
                             url = urljoin(base_url, endpoint)
@@ -942,6 +971,34 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             if yara_results:
                 event.add_tag("login-page")
 
+    class DirectoryListingExtractor(ExcavateRule):
+        description = "Detects directory listing pages from web servers."
+        signatures = {
+            "Apache_Nginx": '"<title>Index of /"',
+            "IIS": '"[To Parent Directory]"',
+            "Python_HTTP_Server": '"<h1>Directory listing for"',
+            "Generic_Directory_Listing": '"<title>Directory Listing"',
+        }
+        yara_rules = {}
+
+        def __init__(self, excavate):
+            super().__init__(excavate)
+            signature_component_list = []
+            for signature_name, signature in self.signatures.items():
+                signature_component_list.append(rf"${signature_name} = {signature}")
+            signature_component = " ".join(signature_component_list)
+            self.yara_rules["directory_listing"] = (
+                f'rule directory_listing {{meta: description = "contains a directory listing" strings: {signature_component} condition: any of them}}'
+            )
+
+        async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            for identifier in yara_results.keys():
+                for findings in yara_results[identifier]:
+                    event_data = {
+                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})"
+                    }
+                    await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
+
     def add_yara_rule(self, rule_name, rule_content, rule_instance):
         rule_instance.name = rule_name
         self.yara_rules_dict[rule_name] = rule_content
@@ -969,12 +1026,13 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # Emits WEB_PARAMETER events for custom headers and cookies from the configuration.
         custom_params = self.scan.web_config.get(config_key, {})
         for param_name, param_value in custom_params.items():
+            event_base = self._event_base_url(event)
             await self.emit_web_parameter(
-                host=event.parsed_url.hostname,
+                host=self._event_host(event),
                 param_type=param_type,
                 name=param_name,
                 original_value=param_value,
-                url=self.url_unparse(param_type, event.parsed_url),
+                url=self.url_unparse(param_type, event_base),
                 description=f"HTTP Extracted Parameter [{param_name}] ({description_suffix})",
                 additional_params=_exclude_key(custom_params, param_name),
                 event=event,
@@ -1088,15 +1146,15 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     if results:
                         for parameter_name, original_value in results:
                             await self.emit_web_parameter(
-                                host=str(event.host),
+                                host=self._event_host(event),
                                 param_type="SPECULATIVE",
                                 name=parameter_name,
                                 original_value=original_value,
-                                url=str(event.data["url"]),
+                                url=self._event_base_url(event).geturl(),
                                 description=f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]",
                                 additional_params={},
                                 event=event,
-                                context=f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {str(event.host)}",
+                                context=f"excavate's Parameter extractor found a speculative WEB_PARAMETER: {parameter_name} by parsing {source_type} data from {self._event_host(event)}",
                             )
                     return
 
@@ -1148,7 +1206,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     ) in extract_params_url(event.parsed_url):
                         if self.in_bl(parameter_name) is False:
                             await self.emit_web_parameter(
-                                host=parsed_url.hostname,
+                                host=self._event_host(event),
                                 param_type="GETPARAM",
                                 name=parameter_name,
                                 original_value=original_value,
@@ -1182,12 +1240,13 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
                             if self.in_bl(cookie_name) is False:
                                 self.assigned_cookies[cookie_name] = cookie_value
+                                event_base = self._event_base_url(event)
                                 await self.emit_web_parameter(
-                                    host=str(event.host),
+                                    host=self._event_host(event),
                                     param_type="COOKIE",
                                     name=cookie_name,
                                     original_value=cookie_value,
-                                    url=self.url_unparse("COOKIE", event.parsed_url),
+                                    url=self.url_unparse("COOKIE", event_base),
                                     description=f"Set-Cookie Assigned Cookie [{cookie_name}]",
                                     additional_params={},
                                     event=event,
@@ -1224,10 +1283,10 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                     original_value,
                                     regex_name,
                                     additional_params,
-                                ) in extract_params_location(header_value, event.parsed_url):
+                                ) in extract_params_location(header_value, self._event_base_url(event)):
                                     if self.in_bl(parameter_name) is False:
                                         await self.emit_web_parameter(
-                                            host=parsed_url.hostname,
+                                            host=self._event_host(event),
                                             param_type="GETPARAM",
                                             name=parameter_name,
                                             original_value=original_value,
