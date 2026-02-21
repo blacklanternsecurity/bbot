@@ -338,6 +338,9 @@ class wayback(subdomain_enum):
         if self.parameters or self.archive or self.urls:
             raw_url_params, archive_urls, interesting_files = self._pre_process_urls(urls)
 
+        if not urls:
+            return results, interesting_files
+
         dns_names = set()
         collapsed_urls = 0
         start_time = datetime.now()
