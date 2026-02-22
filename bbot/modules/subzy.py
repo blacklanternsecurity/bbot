@@ -31,7 +31,7 @@ class subzy(BaseModule):
     in_scope_only = True
 
     async def setup(self):
-        self.binary = str(self.config.get("binary", "subzy")).strip() or "subzy"
+        self.binary = str(self.config.get("binary", "subzy")).strip()
         self.concurrency = int(self.config.get("concurrency", 25))
         self.timeout = int(self.config.get("timeout", 10))
         self.https = bool(self.config.get("https", False))

@@ -30,7 +30,8 @@ Save this as a preset, for example `ip_range-discovery-yes.yml`, and run with:
 ```yaml
 description: IP_RANGE discovery with all modules marked "Should use = Yes"
 
-modules: []
+modules:
+  - naabu
 ```
 
 ## Modules supporting entry event `IP_RANGE`

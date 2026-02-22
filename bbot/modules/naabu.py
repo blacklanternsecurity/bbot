@@ -101,7 +101,8 @@ class naabu(BaseModule):
         target_file = self.helpers.tempfile(targets, pipe=False)
         try:
             command = self._build_naabu_command(target_file)
-            async for line in self.run_process_live(command, stderr=subprocess.DEVNULL):
+            use_sudo = self.scan_type in ("s", "syn")
+            async for line in self.run_process_live(command, sudo=use_sudo, stderr=subprocess.DEVNULL):
                 for ip, port in self.parse_json_line(line):
                     parent_events = correlator.search(ip)
                     if parent_events is None:

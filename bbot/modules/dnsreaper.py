@@ -14,6 +14,7 @@ class dnsreaper(BaseModule):
         "author": "@carlospolop",
     }
     options = {
+        "version": "2.0.3",
         "binary": "dnsreaper",
         "parallelism": 30,
         "resolver": "",
@@ -23,6 +24,7 @@ class dnsreaper(BaseModule):
         "exclude_signatures": [],
     }
     options_desc = {
+        "version": "dnsreaper version",
         "binary": "Path to dnsreaper executable",
         "parallelism": "Number of domains to test in parallel",
         "resolver": "Optional custom resolver list (comma separated)",
@@ -33,9 +35,48 @@ class dnsreaper(BaseModule):
     }
     _batch_size = 500
     in_scope_only = True
+    deps_ansible = [
+        {
+            "name": "Install python venv",
+            "package": {"name": ["python3-venv"], "state": "present"},
+            "become": True,
+            "ignore_errors": True,
+        },
+        {
+            "name": "Clone dnsReaper repository",
+            "git": {
+                "repo": "https://github.com/punk-security/dnsReaper",
+                "dest": "#{BBOT_TEMP}/dnsreaper",
+                "version": "#{BBOT_MODULES_DNSREAPER_VERSION}",
+            },
+        },
+        {
+            "name": "Create dnsreaper venv",
+            "command": {
+                "cmd": "python3 -m venv .venv",
+                "chdir": "#{BBOT_TEMP}/dnsreaper",
+                "creates": "#{BBOT_TEMP}/dnsreaper/.venv/bin/python",
+            },
+        },
+        {
+            "name": "Install dnsreaper requirements",
+            "command": {
+                "cmd": ".venv/bin/pip install -r requirements.txt",
+                "chdir": "#{BBOT_TEMP}/dnsreaper",
+            },
+        },
+        {
+            "name": "Install dnsreaper wrapper",
+            "copy": {
+                "dest": "#{BBOT_TOOLS}/dnsreaper",
+                "mode": "u+x,g+x,o+x",
+                "content": "#!/usr/bin/env bash\nexec \"#{BBOT_TEMP}/dnsreaper/.venv/bin/python\" \"#{BBOT_TEMP}/dnsreaper/main.py\" \"$@\"\n",
+            },
+        },
+    ]
 
     async def setup(self):
-        self.binary = str(self.config.get("binary", "dnsreaper")).strip() or "dnsreaper"
+        self.binary = str(self.config.get("binary", "dnsreaper")).strip()
         self.parallelism = int(self.config.get("parallelism", 30))
         self.resolver = str(self.config.get("resolver", "")).strip()
         self.disable_probable = bool(self.config.get("disable_probable", False))

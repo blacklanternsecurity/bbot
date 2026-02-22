@@ -1,9 +1,7 @@
-import re
-
-from bbot.modules.base import BaseModule
+from bbot.modules.templates.thc_lookup_base import thc_lookup_base
 
 
-class thc_subdomains(BaseModule):
+class thc_subdomains(thc_lookup_base):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["passive", "safe", "subdomain-enum"]
@@ -20,7 +18,6 @@ class thc_subdomains(BaseModule):
 
     api_url = "https://ip.thc.org/lookup/subdomains"
     legacy_url = "https://ip.thc.org/sb"
-    ansi_escape_re = re.compile(r"\x1b\[[0-9;]*m")
 
     async def setup(self):
         self.limit = max(1, int(self.config.get("limit", 100)))
@@ -92,31 +89,9 @@ class thc_subdomains(BaseModule):
             if response is None:
                 break
             text = response.text or ""
-            for line in text.splitlines():
-                clean = self.ansi_escape_re.sub("", line).strip()
-                if not clean:
-                    continue
-                if clean.startswith(";;Next Page:"):
-                    next_url = clean.split(":", 1)[1].strip()
-                    continue
-                if clean.startswith(";"):
-                    continue
-                hostname = clean.rstrip(".")
-                if hostname:
-                    results.add(hostname)
-            if ";;Next Page:" not in text:
+            page_results, next_page = self._parse_legacy_page(text)
+            results.update(page_results)
+            if not next_page:
                 break
+            next_url = next_page
         return results
-
-    def _safe_json(self, response):
-        if response is None:
-            return {}
-        if getattr(response, "status_code", 0) != 200:
-            return {}
-        try:
-            data = response.json()
-            if isinstance(data, dict):
-                return data
-        except Exception:
-            pass
-        return {}

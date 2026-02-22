@@ -13,6 +13,7 @@ class ggshield(code_secret_scanner):
         "created_date": "2026-02-19",
         "author": "@carlospolop",
     }
+    deps_pip = ["ggshield"]
 
     options = {
         "output_folder": "",
