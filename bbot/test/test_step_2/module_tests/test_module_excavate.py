@@ -1320,9 +1320,7 @@ class TestExcavate_webparameter_ip_host(ModuleTestBase):
                 f"WEB_PARAMETER host should be 'localhost', not the resolved IP '127.0.0.1'. "
                 f"excavate._event_host() is using data['host'] (resolved IP) instead of event.host"
             )
-            assert wp.data["host"] == "localhost", (
-                f"WEB_PARAMETER host should be 'localhost', got '{wp.data['host']}'"
-            )
+            assert wp.data["host"] == "localhost", f"WEB_PARAMETER host should be 'localhost', got '{wp.data['host']}'"
 
 
 class TestExcavateHeaders(ModuleTestBase):

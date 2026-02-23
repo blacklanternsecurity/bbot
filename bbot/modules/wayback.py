@@ -227,6 +227,7 @@ class wayback(subdomain_enum):
         "filter=!mimetype:text/css",
         "filter=!mimetype:warc/revisit",
     )
+
     async def _fetch_cdx(self, query):
         """Fetch URLs from the CDX API with retries and 429 handling. Returns the URL list or None on failure."""
         params = f"url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
