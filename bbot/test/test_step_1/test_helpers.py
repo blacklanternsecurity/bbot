@@ -978,6 +978,7 @@ async def test_rm_temp_dir_at_exit(helpers):
     assert not temp_dir.exists()
 
 
+<<<<<<< HEAD
 def test_simhash_similarity(helpers):
     """Test SimHash helper with increasingly different HTML pages."""
 
@@ -1146,3 +1147,29 @@ def test_clean_dns_record():
     assert clean_dns_record("'d1jwhzvlef5tfb.example.com'") == "d1jwhzvlef5tfb.example.com"
     # quotes + trailing dot
     assert clean_dns_record('"d1jwhzvlef5tfb.example.com."') == "d1jwhzvlef5tfb.example.com"
+
+
+# these must be top-level functions so they can be pickled for the subprocess
+def _hang_forever():
+    import time
+
+    time.sleep(9999)
+
+
+def _cpu_work(n):
+    return sum(range(n))
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_mp(helpers):
+    # normal tasks should complete fine
+    result = await helpers.run_in_executor_mp(_cpu_work, 100_000)
+    assert result == sum(range(100_000))
+
+    # a hanging task should raise TimeoutError
+    with pytest.raises(asyncio.TimeoutError):
+        await helpers.run_in_executor_mp(_hang_forever, _timeout=2)
+
+    # pool should still work after a timeout
+    result = await helpers.run_in_executor_mp(_cpu_work, 50_000, _timeout=30)
+    assert result == sum(range(50_000))

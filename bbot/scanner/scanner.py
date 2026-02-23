@@ -908,8 +908,8 @@ class Scanner:
             tasks.append(self._stop_task)
 
         self.helpers.cancel_tasks_sync(tasks)
-        # process pool
-        self.helpers.process_pool.shutdown(cancel_futures=True)
+        # process pool (wait=False so a stuck worker can't hang the cleanup)
+        self.helpers.process_pool.shutdown(wait=False, cancel_futures=True)
         self.debug("Finished cancelling all scan tasks")
         return tasks
 

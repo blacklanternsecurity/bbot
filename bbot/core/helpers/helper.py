@@ -1,4 +1,6 @@
 import os
+import sys
+import asyncio
 import logging
 from pathlib import Path
 import multiprocessing as mp
@@ -83,7 +85,12 @@ class ConfigAwareHelper:
         # we spawn 1 fewer processes than cores
         # this helps to avoid locking up the system or competing with the main python process for cpu time
         num_processes = max(1, mp.cpu_count() - 1)
-        self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
+        pool_kwargs = {"max_workers": num_processes}
+        # max_tasks_per_child replaces workers after N tasks, preventing memory leaks
+        # and reducing the chance of a degraded worker process causing hangs
+        if sys.version_info >= (3, 11):
+            pool_kwargs["max_tasks_per_child"] = 25
+        self.process_pool = ProcessPoolExecutor(**pool_kwargs)
 
         self._cloud = None
         self._blasthttp_client = None
@@ -237,17 +244,24 @@ class ConfigAwareHelper:
         callback = partial(callback, **kwargs)
         return self.loop.run_in_executor(self._cpu_executor, callback, *args)
 
-    def run_in_executor_mp(self, callback, *args, **kwargs):
+    async def run_in_executor_mp(self, callback, *args, **kwargs):
         """
-        Same as run_in_executor_io() except with a process pool executor
-        Use only in cases where callback is CPU-bound
+        Same as run_in_executor_io() except with a process pool executor.
+        Use only in cases where callback is CPU-bound.
+
+        Includes a timeout (default 300s) to prevent indefinite hangs if a
+        child process dies or the pool enters a broken state.
+
+        Pass ``_timeout=seconds`` to override the default timeout.
 
         Examples:
             Execute callback:
             >>> result = await self.helpers.run_in_executor_mp(callback_fn, arg1, arg2)
         """
+        timeout = kwargs.pop("_timeout", 300)
         callback = partial(callback, **kwargs)
-        return self.loop.run_in_executor(self.process_pool, callback, *args)
+        future = self.loop.run_in_executor(self.process_pool, callback, *args)
+        return await asyncio.wait_for(future, timeout=timeout)
 
     @property
     def in_tests(self):
