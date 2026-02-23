@@ -89,7 +89,7 @@ class BaseTarget(RadixTarget):
             event_seeds.add(event_seed)
 
         # sort by host size to ensure consistency
-        event_seeds = sorted(event_seeds, key=lambda e: ((0, 0) if not e.host else host_size_key(e.host)))
+        event_seeds = sorted(event_seeds, key=lambda e: (0, 0) if not e.host else host_size_key(e.host))
         for event_seed in event_seeds:
             self.event_seeds.add(event_seed)
             # Some event seeds (e.g. ORG_STUB, USERNAME, BLACKLIST_REGEX) are not host-based and have

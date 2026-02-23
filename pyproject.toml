@@ -3,7 +3,7 @@ name = "bbot"
 dynamic = ["version"]
 description = "OSINT automation for hackers."
 readme = "README.md"
-license = "GPL-3.0"
+license = "AGPL-3.0"
 requires-python = ">=3.10"
 authors = [
     { name = "TheTechromancer" },

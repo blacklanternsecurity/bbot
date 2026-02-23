@@ -265,13 +265,16 @@ class BaseLightfuzz:
 
     def outgoing_probe_value(self, outgoing_probe_value):
         """
-        Transparently modifies the outgoing probe value (fuzz probe being sent to the target), given any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
+        Transparently packs the outgoing probe value (fuzz probe being sent to the target) through
+        any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
+
+        Uses pack_value() to avoid mutating the envelope's internal state, preventing cross-contamination
+        between submodules that share the same event/envelope object.
         """
         self.debug(f"outgoing_probe_value (before packing): {outgoing_probe_value} / {self.event}")
         envelopes = getattr(self.event, "envelopes", None)
         if envelopes is not None:
-            envelopes.set_subparam(value=outgoing_probe_value)
-            outgoing_probe_value = envelopes.pack()
+            outgoing_probe_value = envelopes.pack_value(outgoing_probe_value)
             self.debug(
                 f"outgoing_probe_value (after packing): {outgoing_probe_value} with envelopes [{envelopes}] / {self.event}"
             )
