@@ -1,4 +1,4 @@
-description: Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery.
+description: Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery.
 
 include:
   - lightfuzz-medium
