@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.e0qmnzs9.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.jw2ky9m8.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1247,7 +1247,8 @@ configuration provided by <code>parent_helper</code>.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">314</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">315</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">316</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">317</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Interactsh</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">317</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">318</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Interactsh</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    A pure python implementation of ProjectDiscovery's interact.sh.</span>
 
@@ -1523,7 +1524,7 @@ configuration provided by <code>parent_helper</code>.</p>
 <span style="color: #A5D6FF">        Decrypts and returns the data received from the interact.sh server.</span>
 
 <span style="color: #A5D6FF">        Uses RSA and AES for decrypting the data. RSA with PKCS1_OAEP and SHA256 is used to decrypt the AES key,</span>
-<span style="color: #A5D6FF">        and then AES (CFB mode) is used to decrypt the actual data payload.</span>
+<span style="color: #A5D6FF">        and then AES (CTR mode) is used to decrypt the actual data payload.</span>
 
 <span style="color: #A5D6FF">        Parameters:</span>
 <span style="color: #A5D6FF">            aes_key (str): The AES key for decryption, encrypted with RSA and base64 encoded.</span>
@@ -1541,9 +1542,10 @@ configuration provided by <code>parent_helper</code>.</p>
         <span style="color: #E6EDF3">decode</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">base64</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">b64decode(data)</span>
         <span style="color: #E6EDF3">bs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">AES</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">block_size</span>
         <span style="color: #E6EDF3">iv</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">decode[:bs]</span>
-        <span style="color: #E6EDF3">cryptor</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">AES</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">new(key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">aes_plain_key,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">AES</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">MODE_CFB,</span> <span style="color: #E6EDF3">IV</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">iv,</span> <span style="color: #E6EDF3">segment_size</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">128</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #E6EDF3">plain_text</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">cryptor</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">decrypt(decode)</span>
-        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">loads(plain_text[</span><span style="color: #A5D6FF">16</span><span style="color: #E6EDF3">:])</span>
+        <span style="color: #E6EDF3">ciphertext</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">decode[bs:]</span>
+        <span style="color: #E6EDF3">cryptor</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">AES</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">new(key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">aes_plain_key,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">AES</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">MODE_CTR,</span> <span style="color: #E6EDF3">nonce</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">b</span><span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">initial_value</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">iv)</span>
+        <span style="color: #E6EDF3">plain_text</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">cryptor</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">decrypt(ciphertext)</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">loads(plain_text)</span>
 </code></pre></div></td></tr></table></div>
 </details>
 <div class="doc doc-children">
