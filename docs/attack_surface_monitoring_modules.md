@@ -207,7 +207,7 @@ Use outputs to persist state (DB/NDJSON) and to send alerts (Slack/Teams/HTTP/Sp
 | credshed | Send queries to your own credshed server to check for known credentials of your targets | Yes | Yes if self-hosted: key is for your own credshed instance. | Low (passive) |  |
 | extractous | Module to extract data from files | No | N/A | Low (passive) |  |
 | ffuf | A fast web fuzzer written in Go | No | N/A | Very high (deadly) | Safer: keep `lines` small, set `max_depth: 0`, and set a low `rate`. |
-| ip2location | Query IP2location.io's API for geolocation information. | Yes | Often yes: may offer free tier/trial (verify). | Low (passive) |  |
+| ipwhois | Query ipwho.is API for geolocation information. | No | Yes: free keyless endpoint for basic lookups. | Low (passive) |  |
 | ipstack | Query IPStack's GeoIP API | Yes | Often yes: may offer free tier/trial (verify). | Low (passive) |  |
 | legba | Credential bruteforcing supporting various services. | No | N/A | Very high (deadly) | Safer: reduce concurrency/rate, keep scope tight, and run only on newly discovered assets. |
 | medusa | Medusa SNMP bruteforcing with v1, v2c and R/W check. | No | N/A | Very high (deadly) | Safer: reduce concurrency/rate, keep scope tight, and run only on newly discovered assets. |

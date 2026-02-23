@@ -7,23 +7,23 @@ This doc is entry-event based and lists modules that support `IP_ADDRESS` input 
 
 ## Quick start (recommended)
 - Run with a focused set of `IP_ADDRESS` modules (example):
-  - `bbot -t example.com -m ip2location ipneighbor ipstack naabu portscan`
+  - `bbot -t example.com -m ipwhois ipneighbor ipstack naabu portscan`
 - If the chosen modules are passive-capable, you can force passive mode:
-  - `bbot -t example.com -m ip2location ipneighbor ipstack naabu portscan -rf passive`
+  - `bbot -t example.com -m ipwhois ipneighbor ipstack naabu portscan -rf passive`
 
 ## Enable a specific set of `IP_ADDRESS` modules
 Use `-m` to list modules explicitly (example):
-`bbot -t example.com -m ip2location ipneighbor ipstack naabu portscan`
+`bbot -t example.com -m ipwhois ipneighbor ipstack naabu portscan`
 
 ## API keys
 Put keys in your config (or pass via `-c`):
-- Example: `bbot -t example.com -m ip2location ipneighbor ipstack naabu portscan -c modules.<module>.api_key=YOURKEY`
+- Example (`ipstack`): `bbot -t example.com -m ipwhois ipneighbor ipstack naabu portscan -c modules.ipstack.api_key=YOURKEY`
 
 ## What these modules do
 - Grouped by emitted event type:
 - Emit `DNS_NAME`: `censys_ip`, `shodan_idb`, `thc_rdns`.
 - Emit `FINDING`: `shodan_idb`.
-- Emit `GEOLOCATION`: `ip2location`, `ipstack`.
+- Emit `GEOLOCATION`: `ipwhois`, `ipstack`.
 - Emit `IP_ADDRESS`: `censys_ip`, `ipneighbor`.
 - Emit `OPEN_TCP_PORT`: `censys_ip`, `naabu`, `portscan`, `shodan_idb`.
 - Emit `OPEN_UDP_PORT`: `censys_ip`.
@@ -40,7 +40,7 @@ Save this as a preset, for example `ip_address-discovery-yes.yml`, and run with:
 description: IP_ADDRESS discovery with all modules marked "Should use = Yes"
 
 modules:
-  - ip2location
+  - ipwhois
   - ipneighbor
   - ipstack
   - shodan_idb
@@ -48,8 +48,6 @@ modules:
 
 config:
   modules:
-    ip2location:
-      api_key: ${env:IP2LOCATION_API_KEY}
     ipstack:
       api_key: ${env:IPSTACK_API_KEY}
 ```
@@ -64,7 +62,7 @@ config:
 | censys_ip | PROTOCOL | Query the Censys /v2/hosts/{ip} endpoint for associated hostnames, IPs, and URLs. | Yes | No, disabled by policy | No |
 | censys_ip | TECHNOLOGY | Query the Censys /v2/hosts/{ip} endpoint for associated hostnames, IPs, and URLs. | Yes | No, disabled by policy | No |
 | censys_ip | URL_UNVERIFIED | Query the Censys /v2/hosts/{ip} endpoint for associated hostnames, IPs, and URLs. | Yes | No, disabled by policy | No |
-| ip2location | GEOLOCATION | IP2Location.io Geolocation API. | Yes | Yes, recommended | Yes |
+| ipwhois | GEOLOCATION | Query ipwho.is API for geolocation information. | No | Yes, recommended | Yes |
 | ipneighbor | IP_ADDRESS | Module `ipneighbor` functionality. | No | Yes, recommended | Yes |
 | ipstack | GEOLOCATION | Ipstack GeoIP | Yes | Yes, recommended | Yes |
 | naabu | OPEN_TCP_PORT | Module `naabu` functionality. | No | Optional, active port scan | Optional |

@@ -62,7 +62,7 @@ modules:
   - hunt
   - hunterio
   - iis_shortnames
-  - ip2location
+  - ipwhois
   - ipneighbor
   - ipstack
   - jadx
@@ -123,8 +123,6 @@ config:
       api_key: ${env:GITLAB_COM_API_KEY}
     hunterio:
       api_key: ${env:HUNTERIO_API_KEY}
-    ip2location:
-      api_key: ${env:IP2LOCATION_API_KEY}
     ipstack:
       api_key: ${env:IPSTACK_API_KEY}
     leaklookup:
@@ -157,7 +155,6 @@ config:
 | `GITHUB_WORKFLOWS_API_KEY` | `github_workflows` | Access GitHub Actions/workflow artifacts from repositories. |
 | `GITLAB_COM_API_KEY` | `gitlab_com` | Access GitLab.com project/org data during social/repo discovery. |
 | `HUNTERIO_API_KEY` | `hunterio` | Query Hunter.io for emails and related domains. |
-| `IP2LOCATION_API_KEY` | `ip2location` | Enrich IPs with IP2Location geolocation/intelligence data. |
 | `IPSTACK_API_KEY` | `ipstack` | Enrich IPs with Ipstack geolocation data. |
 | `LEAKLOOKUP_API_KEY` | `leaklookup`, `leaklookup_hash` | Query LeakLookup for leaked credentials and hash lookups. |
 | `OTX_API_KEY` | `otx` | Query AlienVault OTX for subdomain and OSINT data. |
@@ -177,7 +174,6 @@ export GITHUB_ORG_API_KEY=""
 export GITHUB_WORKFLOWS_API_KEY=""
 export GITLAB_COM_API_KEY=""
 export HUNTERIO_API_KEY=""
-export IP2LOCATION_API_KEY=""
 export IPSTACK_API_KEY=""
 export LEAKLOOKUP_API_KEY=""
 export OTX_API_KEY=""

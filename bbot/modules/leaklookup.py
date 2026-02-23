@@ -5,7 +5,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 class leaklookup(subdomain_enum):
     watched_events = ["DNS_NAME", "HASHED_PASSWORD"]
-    produced_events = ["EMAIL_ADDRESS", "HASHED_PASSWORD", "PASSWORD", "USERNAME"]
+    produced_events = ["EMAIL_ADDRESS", "FINDING", "HASHED_PASSWORD", "PASSWORD", "USERNAME"]
     flags = ["passive", "safe", "email-enum"]
     meta = {
         "description": "Query leak-lookup.com for leaked credentials and crack hashes",
@@ -13,11 +13,15 @@ class leaklookup(subdomain_enum):
         "author": "@carlospolop",
         "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "Leak-Lookup API key"}
+    options = {"api_key": "", "check_key_type": True}
+    options_desc = {
+        "api_key": "Leak-Lookup API key (public or private)",
+        "check_key_type": "Check /api/stats to detect key type and adapt module behavior",
+    }
 
     search_url = "https://leak-lookup.com/api/search"
     hash_url = "https://leak-lookup.com/api/hash"
+    stats_url = "https://leak-lookup.com/api/stats"
 
     email_fields = {
         "email_address",
@@ -32,9 +36,13 @@ class leaklookup(subdomain_enum):
     hashed_password_fields = {"hash"}
 
     async def setup(self):
-        self.api_key = self.config.get("api_key", "")
+        self.api_key = str(self.config.get("api_key", "")).strip()
+        self.check_key_type = bool(self.config.get("check_key_type", True))
+        self.api_key_type = "unknown"
         if not self.api_key:
             return None, "No API key set"
+        if self.check_key_type:
+            await self._detect_api_key_type()
         return await super().setup()
 
     def _incoming_dedup_hash(self, event):
@@ -74,6 +82,16 @@ class leaklookup(subdomain_enum):
         if not isinstance(raw_results, dict):
             self.debug(f'No valid results returned from Leak-Lookup for "{query}"')
             return
+        if self.api_key_type == "public" and raw_results:
+            sources = ", ".join(sorted(str(s) for s in raw_results.keys() if str(s).strip()))
+            if sources:
+                await self.emit_event(
+                    {"host": query, "description": f'Leak-Lookup public API matched sources for "{query}": [{sources}]'},
+                    "FINDING",
+                    parent=event,
+                    tags=["leaklookup-public-api"],
+                    context=f'{{module}} queried Leak-Lookup with a public API key and found {{event.type}}: {{event.data}}',
+                )
         for source, source_rows in raw_results.items():
             if not isinstance(source_rows, list):
                 continue
@@ -124,6 +142,11 @@ class leaklookup(subdomain_enum):
     async def handle_hashed_password_event(self, event):
         identity, hash_value = self._split_hashed_password_event(event)
         if not hash_value:
+            return
+        if self.api_key_type == "public":
+            self.info(
+                f'Skipping Leak-Lookup hash lookup for "{hash_value}" because public API keys do not provide hash-cracking results'
+            )
             return
 
         response = await self.helpers.request(
@@ -201,3 +224,21 @@ class leaklookup(subdomain_enum):
         with suppress(Exception):
             json_result = response.json()
         return json_result
+
+    async def _detect_api_key_type(self):
+        response = await self.helpers.request(self.stats_url, method="POST", data={"key": self.api_key})
+        stats = self._safe_json(response)
+        if not stats:
+            return
+        if str(stats.get("error", "")).lower() == "true":
+            message = str(stats.get("message", "")).strip()
+            if message:
+                self.warning(f"Leak-Lookup key type detection failed: {message}")
+            return
+        details = stats.get("message", {})
+        if not isinstance(details, dict):
+            return
+        key_type = str(details.get("type", "")).strip().lower()
+        if key_type in {"public", "private"}:
+            self.api_key_type = key_type
+            self.verbose(f"Leak-Lookup API key type detected: {self.api_key_type}")
