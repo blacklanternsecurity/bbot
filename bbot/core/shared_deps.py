@@ -105,7 +105,7 @@ DEP_CHROMIUM = [
             "return_content": True,
         },
         "register": "chromium_version",
-        "when": "ansible_facts['os_family'] == 'Debian'",
+        "when": "ansible_facts['os_family'] == 'Debian' and ansible_facts['architecture'] in ['x86_64', 'amd64']",
         "ignore_errors": True,
     },
     {
@@ -134,7 +134,7 @@ DEP_CHROMIUM = [
             "dest": "#{BBOT_TOOLS}",
             "creates": "#{BBOT_TOOLS}/chrome-linux",
         },
-        "when": "ansible_facts['os_family'] == 'Debian'",
+        "when": "ansible_facts['os_family'] == 'Debian' and ansible_facts['architecture'] in ['x86_64', 'amd64']",
         "ignore_errors": True,
     },
     {
@@ -162,14 +162,16 @@ DEP_CHROMIUM = [
     {
         "name": "Chown chrome_sandbox to root:root",
         "command": {"cmd": "chown -R root:root #{BBOT_TOOLS}/chrome-linux/chrome_sandbox"},
-        "when": "ansible_facts['os_family'] == 'Debian'",
+        "when": "ansible_facts['os_family'] == 'Debian' and ansible_facts['architecture'] in ['x86_64', 'amd64']",
         "become": True,
+        "ignore_errors": True,
     },
     {
         "name": "Chmod chrome_sandbox to 4755",
         "command": {"cmd": "chmod -R 4755 #{BBOT_TOOLS}/chrome-linux/chrome_sandbox"},
-        "when": "ansible_facts['os_family'] == 'Debian'",
+        "when": "ansible_facts['os_family'] == 'Debian' and ansible_facts['architecture'] in ['x86_64', 'amd64']",
         "become": True,
+        "ignore_errors": True,
     },
 ]
 

@@ -25,9 +25,9 @@ class code_secret_scanner(BaseModule):
         output_folder = self.config.get("output_folder", "")
         self.clone_repositories = bool(self.config.get("clone_repositories", True))
         if output_folder:
-            self.output_dir = Path(output_folder) / "code_repos"
+            self.output_dir = Path(output_folder) / "code_repos" / self.name
         else:
-            self.output_dir = self.scan.temp_dir / "code_repos"
+            self.output_dir = self.scan.temp_dir / "code_repos" / self.name
         self.helpers.mkdir(self.output_dir)
         return True
 
@@ -74,8 +74,8 @@ class code_secret_scanner(BaseModule):
                     context=f"{{module}} scanned {{event.type}} for secrets and found {{event.type}}: {{event.data}}",
                 )
         finally:
-            if cleanup:
-                self.helpers.rm_rf(scan_path)
+            if cleanup and scan_path.exists():
+                self.helpers.rm_rf(scan_path, ignore_errors=True)
 
     async def prepare_scan_path(self, event):
         if event.type == "FILESYSTEM":
@@ -96,7 +96,7 @@ class code_secret_scanner(BaseModule):
     async def clone_git_repository(self, repository_url):
         repo_name = self.helpers.tagify(repository_url, maxlen=80)
         repo_path = self.output_dir / repo_name
-        self.helpers.rm_rf(repo_path)
+        self.helpers.rm_rf(repo_path, ignore_errors=True)
 
         command = ["git", "clone", "--depth", "1", repository_url, str(repo_path)]
         try:
@@ -104,7 +104,7 @@ class code_secret_scanner(BaseModule):
             self.debug(f"Git clone output: {output.stdout}")
         except CalledProcessError as e:
             self.debug(f"Error cloning {repository_url}. STDERR: {repr(e.stderr)}")
-            self.helpers.rm_rf(repo_path)
+            self.helpers.rm_rf(repo_path, ignore_errors=True)
             return None
 
         self.helpers.sanitize_git_repo(repo_path)

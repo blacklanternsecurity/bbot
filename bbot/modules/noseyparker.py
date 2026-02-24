@@ -15,18 +15,54 @@ class noseyparker(code_secret_scanner):
     }
 
     options = {
+        "version": "0.24.0",
         "output_folder": "",
         "clone_repositories": True,
     }
     options_desc = {
+        "version": "noseyparker version",
         "output_folder": "Folder to clone repositories to. If not specified, repositories are deleted after scanning.",
         "clone_repositories": "Clone CODE_REPOSITORY events before scanning.",
     }
+    deps_ansible = [
+        {
+            "name": "Set noseyparker release target",
+            "set_fact": {
+                "bbot_noseyparker_target": "{{ 'aarch64-unknown-linux-gnu' if ansible_facts['system'] == 'Linux' and ansible_facts['architecture'] in ['aarch64', 'arm64'] else 'x86_64-unknown-linux-gnu' if ansible_facts['system'] == 'Linux' and ansible_facts['architecture'] in ['x86_64', 'amd64'] else 'aarch64-apple-darwin' if ansible_facts['system'] == 'Darwin' and ansible_facts['architecture'] in ['aarch64', 'arm64'] else 'x86_64-apple-darwin' if ansible_facts['system'] == 'Darwin' and ansible_facts['architecture'] in ['x86_64', 'amd64'] else '' }}"
+            },
+        },
+        {
+            "name": "Create noseyparker temp directory",
+            "file": {
+                "path": "#{BBOT_TEMP}/noseyparker",
+                "state": "directory",
+                "mode": "0755",
+            },
+            "when": "bbot_noseyparker_target != ''",
+        },
+        {
+            "name": "Download noseyparker",
+            "unarchive": {
+                "src": "https://github.com/praetorian-inc/noseyparker/releases/download/v#{BBOT_MODULES_NOSEYPARKER_VERSION}/noseyparker-v#{BBOT_MODULES_NOSEYPARKER_VERSION}-{{ bbot_noseyparker_target }}.tar.gz",
+                "dest": "#{BBOT_TEMP}/noseyparker",
+                "remote_src": True,
+            },
+            "when": "bbot_noseyparker_target != ''",
+        },
+        {
+            "name": "Install noseyparker",
+            "shell": {
+                "cmd": "install -m 0755 \"$(find #{BBOT_TEMP}/noseyparker -type f -name noseyparker | head -n1)\" \"#{BBOT_TOOLS}/noseyparker\""
+            },
+            "when": "bbot_noseyparker_target != ''",
+        },
+    ]
 
     async def iter_findings(self, scan_path, event):
         datastore = self.helpers.temp_filename(extension="np")
-        self.helpers.mkdir(datastore)
+        self.helpers.rm_rf(datastore, ignore_errors=True)
         try:
+            await self.run_process(["noseyparker", "datastore", "init", "--datastore", str(datastore)])
             await self.run_process(["noseyparker", "scan", "--datastore", str(datastore), str(scan_path)])
             result = await self.run_process(
                 ["noseyparker", "report", "--datastore", str(datastore), "--format", "json"],

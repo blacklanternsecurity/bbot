@@ -27,6 +27,18 @@ class subzy(BaseModule):
         "https": "Use HTTPS when protocol is not supplied",
         "verify_ssl": "Only check sites with valid SSL certs",
     }
+    deps_apt = ["golang-go"]
+    deps_ansible = [
+        {
+            "name": "Install subzy",
+            "shell": "GOBIN=#{BBOT_TOOLS} go install github.com/PentestPad/subzy@latest",
+            "args": {"creates": "#{BBOT_TOOLS}/subzy"},
+        },
+        {
+            "name": "Ensure subzy executable mode",
+            "file": {"path": "#{BBOT_TOOLS}/subzy", "mode": "0755"},
+        },
+    ]
     _batch_size = 500
     in_scope_only = True
 

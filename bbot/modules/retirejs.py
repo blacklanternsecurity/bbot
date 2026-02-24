@@ -39,22 +39,20 @@ class retirejs(BaseModule):
     }
 
     deps_ansible = [
-        # Download Node.js binary (Linux x64)
+        # Pick the proper Node.js architecture for this runtime
         {
-            "name": "Download Node.js binary (Linux x64)",
-            "get_url": {
-                "url": "https://nodejs.org/dist/v#{BBOT_MODULES_RETIREJS_NODE_VERSION}/node-v#{BBOT_MODULES_RETIREJS_NODE_VERSION}-linux-x64.tar.xz",
-                "dest": "#{BBOT_TEMP}/node-v#{BBOT_MODULES_RETIREJS_NODE_VERSION}-linux-x64.tar.xz",
-                "mode": "0644",
+            "name": "Set Node.js architecture",
+            "set_fact": {
+                "bbot_retirejs_node_arch": "{{ 'x64' if ansible_architecture in ['x86_64', 'amd64'] else 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else ansible_architecture }}"
             },
         },
-        # Extract Node.js binary (x64)
+        # Download Node.js binary
         {
-            "name": "Extract Node.js binary (x64)",
-            "unarchive": {
-                "src": "#{BBOT_TEMP}/node-v#{BBOT_MODULES_RETIREJS_NODE_VERSION}-linux-x64.tar.xz",
-                "dest": "#{BBOT_TOOLS}",
-                "remote_src": True,
+            "name": "Download Node.js binary",
+            "get_url": {
+                "url": "https://nodejs.org/dist/v#{BBOT_MODULES_RETIREJS_NODE_VERSION}/node-v#{BBOT_MODULES_RETIREJS_NODE_VERSION}-linux-{{ bbot_retirejs_node_arch }}.tar.xz",
+                "dest": "#{BBOT_TEMP}/node-v#{BBOT_MODULES_RETIREJS_NODE_VERSION}-linux.tar.xz",
+                "mode": "0644",
             },
         },
         # Remove existing node directory if it exists
@@ -62,10 +60,20 @@ class retirejs(BaseModule):
             "name": "Remove existing node directory",
             "file": {"path": "#{BBOT_TOOLS}/node", "state": "absent"},
         },
-        # Rename extracted directory to 'node' (x64)
+        # Create node directory
         {
-            "name": "Rename Node.js directory (x64)",
-            "command": "mv #{BBOT_TOOLS}/node-v#{BBOT_MODULES_RETIREJS_NODE_VERSION}-linux-x64 #{BBOT_TOOLS}/node",
+            "name": "Create node directory",
+            "file": {"path": "#{BBOT_TOOLS}/node", "state": "directory", "mode": "0755"},
+        },
+        # Extract Node.js binary into #{BBOT_TOOLS}/node
+        {
+            "name": "Extract Node.js binary",
+            "unarchive": {
+                "src": "#{BBOT_TEMP}/node-v#{BBOT_MODULES_RETIREJS_NODE_VERSION}-linux.tar.xz",
+                "dest": "#{BBOT_TOOLS}/node",
+                "remote_src": True,
+                "extra_opts": ["--strip-components=1"],
+            },
         },
         # Set permissions on entire Node.js bin directory
         {

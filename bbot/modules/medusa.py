@@ -30,76 +30,7 @@ class medusa(BaseModule):
         "threads": "Number of communities to be tested concurrently (default 5)",
     }
 
-    deps_ansible = [
-        {
-            "name": "Install build dependencies",
-            "package": {
-                "name": [
-                    "autoconf",
-                    "automake",
-                    "libtool",
-                    "gcc",
-                    "make",
-                ],
-                "state": "present",
-            },
-            "become": True,
-            "ignore_errors": True,
-        },
-        {
-            "name": "Get medusa repo",
-            "git": {
-                "repo": "https://github.com/jmk-foofus/medusa",
-                "dest": "#{BBOT_TEMP}/medusa/gitrepo",
-                "version": "2.3",  # Newest stable, 2025-05-15
-            },
-        },
-        {
-            # The git repo will be copied because during build, files and subfolders get created. That prevents the Ansible git module to cache the repo.
-            "name": "Copy medusa repo",
-            "copy": {
-                "src": "#{BBOT_TEMP}/medusa/gitrepo/",
-                "dest": "#{BBOT_TEMP}/medusa/workdir/",
-            },
-        },
-        {
-            "name": "Build medusa: autoreconf",
-            "command": {
-                "chdir": "#{BBOT_TEMP}/medusa/workdir",
-                "cmd": "autoreconf -f -i",
-            },
-        },
-        {
-            "name": "Build medusa: configure",
-            "command": {
-                "chdir": "#{BBOT_TEMP}/medusa/workdir",
-                "cmd": "./configure --prefix=#{BBOT_TEMP}/medusa/build",
-            },
-        },
-        {
-            "name": "Build medusa: make",
-            "command": {
-                "chdir": "#{BBOT_TEMP}/medusa/workdir",
-                "cmd": "make",
-            },
-        },
-        {
-            "name": "Build medusa: make install",
-            "command": {
-                "chdir": "#{BBOT_TEMP}/medusa/workdir",
-                "cmd": "make install",
-                "creates": "#{BBOT_TEMP}/medusa/build/bin/medusa",
-            },
-        },
-        {
-            "name": "Install medusa",
-            "copy": {
-                "src": "#{BBOT_TEMP}/medusa/build/bin/medusa",
-                "dest": "#{BBOT_TOOLS}/",
-                "mode": "u+x,g+x,o+x",
-            },
-        },
-    ]
+    deps_apt = ["medusa"]
 
     async def setup_deps(self):
         self.snmp_wordlist_path = await self.helpers.wordlist(self.config.get("snmp_wordlist"))

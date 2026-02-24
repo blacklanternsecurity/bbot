@@ -15,17 +15,36 @@ class gitleaks(code_secret_scanner):
     }
 
     options = {
+        "version": "8.30.0",
         "config": "",
         "redact": True,
         "output_folder": "",
         "clone_repositories": True,
     }
     options_desc = {
+        "version": "gitleaks version",
         "config": "File path or URL to a Gitleaks TOML config",
         "redact": "Redact secrets in command output/report",
         "output_folder": "Folder to clone repositories to. If not specified, repositories are deleted after scanning.",
         "clone_repositories": "Clone CODE_REPOSITORY events before scanning.",
     }
+    deps_ansible = [
+        {
+            "name": "Set gitleaks architecture",
+            "set_fact": {
+                "bbot_gitleaks_arch": "{{ 'x64' if ansible_facts['architecture'] in ['x86_64', 'amd64'] else 'arm64' if ansible_facts['architecture'] in ['aarch64', 'arm64'] else ansible_facts['architecture'] }}"
+            },
+        },
+        {
+            "name": "Download gitleaks",
+            "unarchive": {
+                "src": "https://github.com/gitleaks/gitleaks/releases/download/v#{BBOT_MODULES_GITLEAKS_VERSION}/gitleaks_#{BBOT_MODULES_GITLEAKS_VERSION}_#{BBOT_OS_PLATFORM}_{{ bbot_gitleaks_arch }}.tar.gz",
+                "include": "gitleaks",
+                "dest": "#{BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        },
+    ]
 
     async def setup_deps(self):
         self.config_file = self.config.get("config", "")

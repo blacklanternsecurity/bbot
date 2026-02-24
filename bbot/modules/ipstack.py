@@ -29,23 +29,29 @@ class Ipstack(BaseModule):
         return await self.require_api_key()
 
     async def handle_event(self, event):
+        geo_data = {}
         try:
             url = f"{self.base_url}/{event.data}?access_key={{api_key}}"
             result = await self.api_request(url)
-            if result:
-                geo_data = result.json()
-                if not geo_data:
-                    self.verbose(f"No JSON response from {url}")
-            else:
+            if not result:
                 self.verbose(f"No response from {url}")
+                return
+            geo_data = result.json()
+            if not isinstance(geo_data, dict) or not geo_data:
+                self.verbose(f"No JSON response from {url}")
+                return
         except Exception:
             self.verbose(f"Error retrieving results for {event.data}", trace=True)
             return
         geo_data = {k: v for k, v in geo_data.items() if v is not None}
         if "error" in geo_data:
-            error_msg = geo_data.get("error").get("info", "")
+            error = geo_data.get("error") or {}
+            if not isinstance(error, dict):
+                error = {"info": str(error)}
+            error_msg = error.get("info", "")
             if error_msg:
                 self.warning(error_msg)
+            return
         elif geo_data:
             country = geo_data.get("country_name", "unknown country")
             region = geo_data.get("region_name", "unknown region")

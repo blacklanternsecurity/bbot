@@ -34,6 +34,7 @@ modules:
   - dnscaa
   - dnscommonsrv
   - dnsdumpster
+  - domain_phishing
   - dnsreaper
   - docker_pull
   - dockerhub
@@ -179,3 +180,22 @@ export VT_API_KEY=""
 ## Notes
 - This preset keeps generic/root URL checks but removes URL-internal deep probing modules.
 - Some modules are still active and can be intensive (`naabu`, `dnsbrute*`, `gowitness`, `trufflehog`, etc.).
+
+## How to run
+
+Build local BBot:
+
+```bash
+docker build -f Dockerfile.full -t bbot-local:full .
+```
+
+Run scan:
+```bash
+# run local image with your preset + .env
+docker run --rm -it \
+  --env-file <(sed -E 's/[[:space:]]+#.*$//' my_bbot/.env | sed '/^[[:space:]]*$/d') \
+  -v "$HOME/.bbot/scans:/root/.bbot/scans" \
+  -v "$PWD/my_bbot/all-but-intense-http.yml:/preset.yml:ro" \
+  bbot-local:full \
+  -t <your-target> -p /preset.yml --allow-deadly --no-deps
+```

@@ -174,7 +174,6 @@ class DepsInstaller:
                     json.dumps(preloaded["deps"], sort_keys=True)
                     + self.venv
                     + str(self.parent_helper.bbot_home)
-                    + os.uname()[1]
                     + str(__version__)
                 ).hexdigest()
                 success = self.setup_status.get(module_hash, None)

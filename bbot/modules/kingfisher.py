@@ -15,13 +15,33 @@ class kingfisher(code_secret_scanner):
     }
 
     options = {
+        "version": "1.84.0",
         "output_folder": "",
         "clone_repositories": True,
     }
     options_desc = {
+        "version": "Kingfisher version",
         "output_folder": "Folder to clone repositories to. If not specified, repositories are deleted after scanning.",
         "clone_repositories": "Clone CODE_REPOSITORY events before scanning.",
     }
+    deps_ansible = [
+        {
+            "name": "Set kingfisher architecture",
+            "set_fact": {
+                "bbot_kingfisher_arch": "{{ 'x64' if ansible_facts['architecture'] in ['x86_64', 'amd64'] else 'arm64' if ansible_facts['architecture'] in ['aarch64', 'arm64'] else ansible_facts['architecture'] }}"
+            },
+        },
+        {
+            "name": "Download kingfisher",
+            "unarchive": {
+                "src": "https://github.com/mongodb/kingfisher/releases/download/v#{BBOT_MODULES_KINGFISHER_VERSION}/kingfisher-#{BBOT_OS_PLATFORM}-{{ bbot_kingfisher_arch }}.tgz",
+                "include": "kingfisher",
+                "dest": "#{BBOT_TOOLS}",
+                "remote_src": True,
+            },
+            "when": "ansible_facts['system'] in ['Linux', 'Darwin']",
+        },
+    ]
 
     async def iter_findings(self, scan_path, event):
         command_variants = [

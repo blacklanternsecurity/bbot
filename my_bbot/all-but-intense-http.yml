@@ -1,0 +1,131 @@
+description: Generic discovery preset excluding deep/intense URL-internal probing modules
+
+modules:
+  - apkpure
+  - azure_tenant
+  - baddns
+  - baddns_direct
+  - badsecrets
+  - bucket_amazon
+  - bucket_digitalocean
+  - bucket_file_enum
+  - bucket_firebase
+  - bucket_google
+  - bucket_microsoft
+  - certspotter
+  - chaos
+  - code_repository
+  - crt
+  - crt_db
+  - dehashed
+  - dnsbrute
+  - dnsbrute_mutations
+  - dnscaa
+  - dnscommonsrv
+  - dnsdumpster
+  - domain_phishing
+  - dnsreaper
+  - docker_pull
+  - dockerhub
+  - extractous
+  - filedownload
+  - fingerprintx
+  - ggshield
+  - git
+  - git_clone
+  - gitdumper
+  - github_org
+  - github_workflows
+  - gitlab_com
+  - gitleaks
+  - google_playstore
+  - gowitness
+  - httpx
+  - hunterio
+  - ipwhois
+  - ipneighbor
+  - ipstack
+  - jadx
+  - kingfisher
+  - leakix
+  - leaklookup
+  - leaklookup_hash
+  - medusa
+  - naabu
+  - newsletters
+  - noseyparker
+  - nuclei
+  - nuclei_takeover
+  - oauth
+  - otx
+  - portfilter
+  - postman
+  - postman_download
+  - rapiddns
+  - robots
+  - securitytrails
+  - shodan_dns
+  - shodan_idb
+  - social
+  - sslcert
+  - subzy
+  - thc_rdns
+  - thc_subdomains
+  - trufflehog
+  - urlscan
+  - virustotal
+  - wafw00f
+  - wayback
+
+output_modules:
+  - sqlite
+  - websocket
+
+config:
+  modules:
+    websocket:
+      url: ws://127.0.0.1:8765/ws
+    nuclei:
+      mode: manual
+      tags: ""
+      templates: ""
+      severity: ""
+      etags: ""
+      ratelimit: 200
+      concurrency: 40
+      retries: 1
+      batch_size: 400
+      directory_only: false
+      silent: true
+    chaos:
+      api_key: ${env:CHAOS_API_KEY}
+    dehashed:
+      api_key: ${env:DEHASHED_API_KEY}
+    git_clone:
+      api_key: ${env:GIT_CLONE_API_KEY}
+    github_org:
+      api_key: ${env:GITHUB_ORG_API_KEY}
+    github_workflows:
+      api_key: ${env:GITHUB_WORKFLOWS_API_KEY}
+    gitlab_com:
+      api_key: ${env:GITLAB_COM_API_KEY}
+    hunterio:
+      api_key: ${env:HUNTERIO_API_KEY}
+    ipstack:
+      api_key: ${env:IPSTACK_API_KEY}
+    leaklookup:
+      api_key: ${env:LEAKLOOKUP_API_KEY}
+    leaklookup_hash:
+      api_key: ${env:LEAKLOOKUP_API_KEY}
+    otx:
+      api_key: ${env:OTX_API_KEY}
+    postman:
+      api_key: ${env:POSTMAN_API_KEY}
+    postman_download:
+      api_key: ${env:POSTMAN_DOWNLOAD_API_KEY}
+    securitytrails:
+      api_key: ${env:SECURITYTRAILS_API_KEY}
+    shodan_dns:
+      api_key: ${env:SHODAN_API_KEY}
+    virustotal:
+      api_key: ${env:VT_API_KEY}

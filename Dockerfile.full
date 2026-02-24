@@ -6,7 +6,20 @@ ENV PIP_NO_CACHE_DIR=off
 
 WORKDIR /usr/src/bbot
 
-RUN apt-get update && apt-get install -y openssl gcc git make unzip curl wget vim nano sudo
+RUN apt-get update && apt-get install -y \
+    openssl \
+    gcc \
+    g++ \
+    git \
+    make \
+    pkg-config \
+    zlib1g-dev \
+    unzip \
+    curl \
+    wget \
+    vim \
+    nano \
+    sudo
 
 COPY . .
 

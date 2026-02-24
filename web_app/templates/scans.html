@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BBOT Guardian Scans</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='guardian_audits_bbot.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<div class="page-wrap">
+    <div class="bg-grid"></div>
+    <div class="bg-orb a"></div>
+    <div class="bg-orb b"></div>
+
+    <div class="container">
+        <header class="topbar">
+            <div class="brand">
+                <img class="brand-logo" src="{{ url_for('static', filename='guardian_audits_bbot.png') }}" alt="Guardian Audits BBOT">
+                <span>BBOT Guardian <small>Scan History</small></span>
+            </div>
+            <nav class="nav">
+                <a href="/">New Scan</a>
+                <a href="/scans">Past Scans</a>
+            </nav>
+        </header>
+
+        <section class="panel" style="margin-top:16px; padding: 16px;">
+            <h1 class="panel-title" style="margin:0;">Past Scans</h1>
+            <p class="panel-subtitle">Only named scans are shown here. Open any generated web report with one click.</p>
+
+            {% if scans %}
+            <div class="scan-grid">
+                {% for scan in scans %}
+                <article class="scan-card">
+                    <h2 class="scan-name">{{ scan.name }}</h2>
+                    <div class="scan-actions">
+                        {% if scan.running %}
+                        <span class="scan-action-disabled">
+                            <span class="spinner"></span>
+                            Running...
+                        </span>
+                        {% else %}
+                        <a href="/scans/{{ scan.name }}/report">View Report</a>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <img class="empty-logo" src="{{ url_for('static', filename='guardian_audits_bbot.png') }}" alt="Guardian Audits BBOT">
+                No scans found yet. Start one from the launcher and it will appear here.
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+</body>
+</html>

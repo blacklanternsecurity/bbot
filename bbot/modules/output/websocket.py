@@ -1,6 +1,7 @@
 import json
 import asyncio
 import ssl
+import time
 import websockets
 
 from bbot.modules.output.base import BaseOutputModule
@@ -23,6 +24,8 @@ class Websocket(BaseOutputModule):
             return False, "Must set URL"
         self.token = self.config.get("token", "")
         self._ws = None
+        self._next_retry_at = 0.0
+        self._consecutive_failures = 0
         return True
 
     async def handle_event(self, event):
@@ -47,19 +50,32 @@ class Websocket(BaseOutputModule):
         return self._ws
 
     async def send(self, message):
+        now = time.time()
+        if now < self._next_retry_at:
+            return
+
         rebuild = False
-        while not self.scan.stopped:
+        max_retries = 3
+        for _ in range(max_retries):
+            if self.scan.stopped:
+                return
             try:
                 ws = await self.ws(rebuild=rebuild)
                 message_str = json.dumps(message)
                 self.debug(f"Sending message of length {len(message_str)}")
                 await ws.send(message_str)
-                rebuild = False
-                break
+                self._consecutive_failures = 0
+                self._next_retry_at = 0.0
+                return
             except Exception as e:
-                self.warning(f"Error sending message: {e}, retrying")
+                self.warning(f"Error sending message: {e}, retrying", trace=False)
                 await asyncio.sleep(1)
                 rebuild = True
+
+        self._consecutive_failures += 1
+        cooldown = min(60, 2 ** min(self._consecutive_failures, 6))
+        self._next_retry_at = time.time() + cooldown
+        self.verbose(f"Websocket unavailable, skipping event output for {cooldown} seconds")
 
     async def cleanup(self):
         if self._ws is not None:

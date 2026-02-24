@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BBOT Guardian</title>
+    <script src="https://cdn.jsdelivr.net/npm/vivagraphjs@0.12.0/dist/vivagraph.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='guardian_audits_bbot.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<div class="page-wrap">
+    <div class="bg-grid"></div>
+    <div class="bg-orb a"></div>
+    <div class="bg-orb b"></div>
+
+    <div class="container">
+        <header class="topbar">
+            <div class="brand">
+                <img class="brand-logo" src="{{ url_for('static', filename='guardian_audits_bbot.png') }}" alt="Guardian Audits BBOT">
+                <span>BBOT Guardian <small>Live Recon Workspace</small></span>
+            </div>
+            <nav class="nav">
+                <a href="/">New Scan</a>
+                <a href="/scans">Past Scans</a>
+            </nav>
+        </header>
+
+        <main class="layout">
+            <section class="panel">
+                <div class="panel-header">
+                    <h1 class="panel-title">Launch Scan</h1>
+                    <p class="panel-subtitle">Mix targets as needed. At least one target and a scan name are required.</p>
+                </div>
+
+                <div class="controls-body">
+                    <form id="scanForm" class="form-grid">
+                        <div class="field scope-field">
+                            <label for="domains">Domains (one per line)</label>
+                            <textarea name="domains" id="domains" rows="2" placeholder="guardianaudits.com&#10;app.guardianaudits.com"></textarea>
+                        </div>
+                        <div class="field scope-field">
+                            <label for="ips">IP Addresses (one per line)</label>
+                            <textarea name="ips" id="ips" rows="2" placeholder="1.1.1.1&#10;8.8.8.8"></textarea>
+                        </div>
+                        <div class="field scope-field">
+                            <label for="ranges">IP Ranges (CIDR, one per line)</label>
+                            <textarea name="ranges" id="ranges" rows="2" placeholder="192.168.1.0/24"></textarea>
+                        </div>
+                        <div class="field scope-field">
+                            <label for="orgs">Organization Names (one per line)</label>
+                            <textarea name="orgs" id="orgs" rows="2" placeholder="GuardianAudits"></textarea>
+                        </div>
+                        <div class="field">
+                            <label for="scan_name">Scan Name</label>
+                            <input type="text" name="scan_name" id="scan_name" placeholder="Guardian Audits" required>
+                        </div>
+                        <button id="launchBtn" type="submit" class="primary-btn">
+                            <span class="btn-content">
+                                <span id="launchSpinner" class="spinner hidden"></span>
+                                <span id="launchBtnText">Launch Scan</span>
+                            </span>
+                        </button>
+                    </form>
+
+                    <div class="log-box">
+                        <h2 class="panel-title" style="font-size:0.95rem; margin-bottom:8px;">Runtime Log</h2>
+                        <div id="logs-content" class="log-content"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel graph-shell">
+                <div id="graphVisualization"></div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    const socketProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socketUrl = `${socketProto}//${window.location.host}/ws`;
+    const socket = new WebSocket(socketUrl);
+
+    const logsContent = document.getElementById('logs-content');
+    const launchBtn = document.getElementById('launchBtn');
+    const launchSpinner = document.getElementById('launchSpinner');
+    const launchBtnText = document.getElementById('launchBtnText');
+    const scanForm = document.getElementById('scanForm');
+    let scanRunning = false;
+
+    function setScanRunningState(running) {
+        scanRunning = running;
+        launchBtn.disabled = running;
+        launchSpinner.classList.toggle('hidden', !running);
+        launchBtnText.textContent = running ? 'Scan Running...' : 'Launch Scan';
+        scanForm.classList.toggle('compact', running);
+    }
+
+    socket.onopen = () => {
+        logSystem('Connected to Server');
+    };
+
+    socket.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data);
+
+            if (msg.type === 'log') {
+                logSystem(msg.data);
+                if (typeof msg.data === 'string' && msg.data.includes('Scan finished with exit code')) {
+                    setScanRunningState(false);
+                }
+            } else if (msg.type) {
+                updateGraph(msg);
+            } else {
+                processBBOTEvent(msg);
+            }
+        } catch (e) {
+            logSystem(event.data);
+        }
+    };
+
+    function logSystem(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        logsContent.appendChild(div);
+        logsContent.scrollTop = logsContent.scrollHeight;
+    }
+
+    document.getElementById('scanForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const scan_name = document.getElementById('scan_name').value.trim();
+        const domains = document.getElementById('domains').value.trim();
+        const ips = document.getElementById('ips').value.trim();
+        const ranges = document.getElementById('ranges').value.trim();
+        const orgs = document.getElementById('orgs').value.trim();
+
+        if (!domains && !ips && !ranges && !orgs) {
+            logSystem('Error: Please enter at least one domain, IP, IP range, or org name.');
+            return;
+        }
+
+        if (scanRunning) {
+            logSystem('A scan is already running. Wait for it to finish.');
+            return;
+        }
+
+        setScanRunningState(true);
+        logSystem(`Requesting scan '${scan_name}'...`);
+
+        const formData = new FormData();
+        formData.append('scan_name', scan_name);
+        formData.append('domains', domains);
+        formData.append('ips', ips);
+        formData.append('ranges', ranges);
+        formData.append('orgs', orgs);
+
+        try {
+            const resp = await fetch('/scan/start', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            logSystem(data.message || 'Scan request sent.');
+            if (!resp.ok || (data && data.status === 'error')) {
+                setScanRunningState(false);
+            }
+        } catch (err) {
+            logSystem('Error starting scan: ' + err);
+            setScanRunningState(false);
+        }
+    });
+
+    let graph, graphics, layout, renderer;
+
+    function initGraph() {
+        graph = Viva.Graph.graph();
+
+        layout = Viva.Graph.Layout.forceDirected(graph, {
+            springLength: 30,
+            springCoeff: 0.0001,
+            dragCoeff: 0.02,
+            gravity: -1.2
+        });
+
+        graphics = Viva.Graph.View.webglGraphics();
+
+        graphics.node(function(node) {
+            let color = 0x67d8ffff;
+            if (node.data && node.data.type) {
+                switch (node.data.type) {
+                    case 'DNS_NAME':
+                        color = 0x5bc0ffff;
+                        break;
+                    case 'IP_ADDRESS':
+                        color = 0xff7f50ff;
+                        break;
+                    case 'OPEN_TCP_PORT':
+                        color = 0x2ee59dff;
+                        break;
+                    case 'URL':
+                        color = 0xa7f432ff;
+                        break;
+                    default:
+                        color = 0xb0bac3ff;
+                }
+            }
+            return Viva.Graph.View.webglSquare(9, color);
+        });
+
+        renderer = Viva.Graph.View.renderer(graph, {
+            layout: layout,
+            graphics: graphics,
+            container: document.getElementById('graphVisualization')
+        });
+
+        renderer.run();
+    }
+
+    function processBBOTEvent(event) {
+        if (!event.id) return;
+
+        if (!graph.getNode(event.id)) {
+            graph.addNode(event.id, { type: event.type, label: event.data });
+        }
+
+        if (event.parent) {
+            graph.addLink(event.parent, event.id);
+        }
+    }
+
+    function updateGraph(msg) {
+        if (msg.type === 'graph' && msg.data) {
+            if (msg.data.id && msg.data.parent) {
+                graph.addLink(msg.data.parent, msg.data.id);
+            }
+        } else {
+            processBBOTEvent(msg);
+        }
+    }
+
+    initGraph();
+</script>
+
+</body>
+</html>

@@ -1,4 +1,6 @@
-from extractous import Extractor
+import ctypes
+import site
+from pathlib import Path
 
 from bbot.modules.base import BaseModule
 
@@ -65,7 +67,7 @@ class extractous(BaseModule):
         "extensions": "File extensions to parse",
     }
 
-    deps_pip = ["extractous~=0.3.0"]
+    deps_pip = []
     scope_distance_modifier = 1
 
     async def setup(self):
@@ -108,7 +110,8 @@ def extract_text(file_path):
     """
 
     try:
-        extractor = Extractor()
+        extractor_cls = _load_extractor_cls()
+        extractor = extractor_cls()
         reader, metadata = extractor.extract_file(str(file_path))
 
         result = ""
@@ -118,7 +121,48 @@ def extract_text(file_path):
             buffer = reader.read(4096)
 
         return result.strip()
+    except ImportError:
+        # Fallback path when optional extractous dependency is unavailable.
+        return _fallback_extract_text(file_path)
     except Exception as e:
         import traceback
 
         return (str(e), traceback.format_exc())
+
+
+def _load_extractor_cls():
+    try:
+        from extractous import Extractor
+
+        return Extractor
+    except ImportError:
+        _ensure_libtika_native_loaded()
+        from extractous import Extractor
+
+        return Extractor
+
+
+def _ensure_libtika_native_loaded():
+    for site_pkg in site.getsitepackages():
+        static_candidates = [
+            Path(site_pkg) / "bindings" / "extractous-python" / "python" / "extractous" / "libtika_native.so",
+        ]
+        dynamic_candidates = list(
+            (Path(site_pkg) / "bindings" / "extractous-python" / "target" / "release" / "build").glob(
+                "extractous-*/out/libs/libtika_native.so"
+            )
+        )
+        for lib_path in static_candidates + dynamic_candidates:
+            if lib_path.is_file():
+                ctypes.CDLL(str(lib_path), mode=ctypes.RTLD_GLOBAL)
+                return
+
+
+def _fallback_extract_text(file_path):
+    path = Path(file_path)
+    if not path.is_file():
+        return ""
+    data = path.read_bytes()
+    if not data:
+        return ""
+    return data.decode("utf-8", errors="ignore").strip()

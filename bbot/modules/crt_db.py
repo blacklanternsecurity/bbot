@@ -26,8 +26,8 @@ class crt_db(subdomain_enum):
         self.db_conn = None
         return await super().setup()
 
-    async def request_url(self, query):
-        if not self.db_conn:
+    async def _connect(self):
+        if self.db_conn is None or self.db_conn.is_closed():
             self.db_conn = await asyncpg.connect(
                 host=self.db_host,
                 port=self.db_port,
@@ -35,6 +35,18 @@ class crt_db(subdomain_enum):
                 database=self.db_name,
                 statement_cache_size=0,  # Disable automatic statement preparation
             )
+
+    async def _reconnect(self):
+        if self.db_conn is not None:
+            try:
+                await self.db_conn.close()
+            except Exception:
+                pass
+        self.db_conn = None
+        await self._connect()
+
+    async def request_url(self, query):
+        await self._connect()
 
         sql = """
         WITH ci AS (
@@ -51,7 +63,12 @@ class crt_db(subdomain_enum):
         SELECT DISTINCT unnest(NAME_VALUES) as name_value FROM ci;
         """
         start = time.time()
-        results = await self.db_conn.fetch(sql, query)
+        try:
+            results = await self.db_conn.fetch(sql, query)
+        except (asyncpg.InterfaceError, asyncpg.ConnectionDoesNotExistError, OSError):
+            self.verbose("crt.sh DB connection dropped, reconnecting")
+            await self._reconnect()
+            results = await self.db_conn.fetch(sql, query)
         end = time.time()
         self.verbose(f"SQL query executed in: {end - start} seconds with {len(results):,} results")
         return results

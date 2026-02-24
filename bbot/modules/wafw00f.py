@@ -40,16 +40,17 @@ class wafw00f(BaseModule):
         return hash(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/")
 
     async def handle_event(self, event):
-        url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
-        WW = await self.helpers.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
-        waf_detections, url = await self.helpers.run_in_executor(WW.identwaf)
+        original_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
+        WW = await self.helpers.run_in_executor(wafw00f_main.WAFW00F, original_url, followredirect=False)
+        waf_detections, detected_url = await self.helpers.run_in_executor(WW.identwaf)
+        resolved_url = detected_url or original_url
         if waf_detections:
             for waf in waf_detections:
                 await self.emit_event(
-                    {"host": str(event.host), "url": url, "waf": waf},
+                    {"host": str(event.host), "url": resolved_url, "waf": waf},
                     "WAF",
                     parent=event,
-                    context=f"{{module}} scanned {url} and identified {{event.type}}: {waf}",
+                    context=f"{{module}} scanned {resolved_url} and identified {{event.type}}: {waf}",
                 )
         else:
             if self.config.get("generic_detect") is True:
@@ -59,11 +60,11 @@ class wafw00f(BaseModule):
                     await self.emit_event(
                         {
                             "host": str(event.host),
-                            "url": url,
+                            "url": resolved_url,
                             "waf": waf,
                             "info": WW.knowledge["generic"]["reason"],
                         },
                         "WAF",
                         parent=event,
-                        context=f"{{module}} scanned {url} and identified {{event.type}}: {waf}",
+                        context=f"{{module}} scanned {resolved_url} and identified {{event.type}}: {waf}",
                     )
