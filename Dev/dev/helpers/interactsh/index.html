@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.lka2tt52.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.scyxf3fv.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1248,7 +1248,9 @@ configuration provided by <code>parent_helper</code>.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">315</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">316</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">317</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">318</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Interactsh</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">318</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">319</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">320</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Interactsh</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    A pure python implementation of ProjectDiscovery's interact.sh.</span>
 
@@ -1464,7 +1466,9 @@ configuration provided by <code>parent_helper</code>.</p>
 
         <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
             <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(</span>
-                <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/poll?id={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id</span><span style="color: #A5D6FF">}&amp;secret={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secret</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers</span>
+                <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/poll?id={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id</span><span style="color: #A5D6FF">}&amp;secret={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secret</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">,</span>
+                <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span>
+                <span style="color: #E6EDF3">timeout</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">15</span><span style="color: #E6EDF3">,</span>
             <span style="color: #E6EDF3">)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">InteractshError(</span><span style="color: #A5D6FF">"Error polling interact.sh: No response from server"</span><span style="color: #E6EDF3">)</span>
@@ -1742,7 +1746,9 @@ using an AES key provided by the server response.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">249</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">250</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">251</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">252</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">poll</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">252</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">253</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">254</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">poll</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Polls the interact.sh server for interactions tied to the current instance.</span>
 
@@ -1777,7 +1783,9 @@ using an AES key provided by the server response.</p>
 
     <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
         <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(</span>
-            <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/poll?id={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id</span><span style="color: #A5D6FF">}&amp;secret={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secret</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers</span>
+            <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/poll?id={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id</span><span style="color: #A5D6FF">}&amp;secret={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secret</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span>
+            <span style="color: #E6EDF3">timeout</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">15</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">InteractshError(</span><span style="color: #A5D6FF">"Error polling interact.sh: No response from server"</span><span style="color: #E6EDF3">)</span>
@@ -1836,9 +1844,7 @@ function with each interaction data.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/interactsh.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">254</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">255</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">256</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">256</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">257</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">258</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">259</span>
@@ -1854,7 +1860,9 @@ function with each interaction data.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">269</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">270</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">271</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">272</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">poll_loop</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">callback):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">272</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">273</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">274</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">poll_loop</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">callback):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Starts a polling loop to continuously check for interactions with the interact.sh server.</span>
 
