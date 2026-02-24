@@ -2,3 +2,6 @@ __pycache__/
 .coverage*
 /data/
 /neo4j/
+
+.env
+**/.env
