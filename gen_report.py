@@ -6,6 +6,7 @@ import os
 import re
 import sqlite3
 from collections import Counter, defaultdict
+from datetime import datetime
 from urllib.parse import quote, urlparse
 
 
@@ -169,6 +170,34 @@ def parse_tags(raw_tags):
     if isinstance(parsed, list):
         return [str(t).strip() for t in parsed if str(t).strip()]
     return []
+
+
+def parse_timestamp(value):
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        return datetime.fromisoformat(text)
+    except Exception:
+        return None
+
+
+def format_duration(start_dt, end_dt):
+    if not start_dt or not end_dt:
+        return "N/A"
+    seconds = int((end_dt - start_dt).total_seconds())
+    if seconds < 0:
+        return "N/A"
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+    if hours >= 1:
+        return f"{hours}h {minutes}m {secs}s"
+    if minutes >= 1:
+        return f"{minutes}m {secs}s"
+    return f"{secs}s"
 
 
 def truncate_text(value, max_len=320):
@@ -820,6 +849,7 @@ def render_report(
     all_dns_names,
     port_metadata_by_host_base,
     emails_by_host,
+    duration_text,
 ):
     host_names = sorted(grouped.keys(), key=lambda x: (x == "misc", x))
     total_events = sum(event_counter.values())
@@ -1065,7 +1095,7 @@ def render_report(
         <img class="report-logo" src="/static/guardian_audits_bbot.png" alt="Guardian Audits BBOT">
         <h1>BBOT CYBER REPORT :: {html.escape(scan_name)}</h1>
       </div>
-      <p>Targets: {host_count} | Events: {total_events}</p>
+      <p>Targets: {host_count} | Events: {total_events} | Duration: {html.escape(duration_text)}</p>
       <div class="kpi-group">
         <div class="kpi-label">Event Types</div>
         <div class="kpis">{top_types}</div>
@@ -1281,6 +1311,13 @@ def generate_report(db_path, output_file="web_report.html"):
             if email_host:
                 emails_by_host[email_host].add(email_value)
 
+    timestamps = [parse_timestamp(e.get("timestamp")) for e in selected_events.values()]
+    timestamps = [t for t in timestamps if t is not None]
+    if timestamps:
+        duration_text = format_duration(min(timestamps), max(timestamps))
+    else:
+        duration_text = "N/A"
+
     # Show actionable items first.
     for host in grouped:
         grouped[host].sort(
@@ -1305,6 +1342,7 @@ def generate_report(db_path, output_file="web_report.html"):
         all_dns_names,
         port_metadata_by_host_base,
         emails_by_host,
+        duration_text,
     )
 
     output_path = output_file or db_path.replace("output.sqlite", "web_report.html")

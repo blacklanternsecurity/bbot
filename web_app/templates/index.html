@@ -91,6 +91,8 @@
     const launchBtnText = document.getElementById('launchBtnText');
     const scanForm = document.getElementById('scanForm');
     let scanRunning = false;
+    let activeScanName = null;
+    let statusPollTimer = null;
 
     function setScanRunningState(running) {
         scanRunning = running;
@@ -110,8 +112,8 @@
 
             if (msg.type === 'log') {
                 logSystem(msg.data);
-                if (typeof msg.data === 'string' && msg.data.includes('Scan finished with exit code')) {
-                    setScanRunningState(false);
+                if (typeof msg.data === 'string' && msg.data.includes('Scan finished with exit code') && activeScanName) {
+                    pollScanStatus(activeScanName);
                 }
             } else if (msg.type) {
                 updateGraph(msg);
@@ -128,6 +130,52 @@
         div.textContent = text;
         logsContent.appendChild(div);
         logsContent.scrollTop = logsContent.scrollHeight;
+    }
+
+    function clearStatusPolling() {
+        if (statusPollTimer) {
+            clearInterval(statusPollTimer);
+            statusPollTimer = null;
+        }
+    }
+
+    function maybeRedirectToReport(scanName, state) {
+        if (!scanName || !state || state.status !== 'finished') return;
+        if (window.location.pathname !== '/') return;
+        setTimeout(() => {
+            window.location.href = `/scans/${encodeURIComponent(scanName)}/report`;
+        }, 700);
+    }
+
+    async function pollScanStatus(scanName) {
+        if (!scanName) return;
+        try {
+            const resp = await fetch(`/scan/status/${encodeURIComponent(scanName)}`);
+            if (!resp.ok) return;
+            const state = await resp.json();
+            if (state.running || state.status === 'running') {
+                return;
+            }
+
+            clearStatusPolling();
+            setScanRunningState(false);
+
+            const codeText = state.exit_code === null || state.exit_code === undefined ? '' : ` (exit code ${state.exit_code})`;
+            logSystem(`Scan '${scanName}' completed with status '${state.status}'${codeText}.`);
+            activeScanName = null;
+            maybeRedirectToReport(scanName, state);
+        } catch (_) {
+            // If polling briefly fails, keep waiting for the next interval.
+        }
+    }
+
+    function startStatusPolling(scanName) {
+        activeScanName = scanName;
+        clearStatusPolling();
+        statusPollTimer = setInterval(() => {
+            pollScanStatus(scanName);
+        }, 3000);
+        pollScanStatus(scanName);
     }
 
     document.getElementById('scanForm').addEventListener('submit', async (e) => {
@@ -168,10 +216,16 @@
             logSystem(data.message || 'Scan request sent.');
             if (!resp.ok || (data && data.status === 'error')) {
                 setScanRunningState(false);
+                clearStatusPolling();
+                activeScanName = null;
+            } else {
+                startStatusPolling((data && data.scan_name) ? data.scan_name : scan_name);
             }
         } catch (err) {
             logSystem('Error starting scan: ' + err);
             setScanRunningState(false);
+            clearStatusPolling();
+            activeScanName = null;
         }
     });
 
