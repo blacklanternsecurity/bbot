@@ -67,6 +67,7 @@ class kreuzberg(BaseModule):
     }
 
     deps_pip = ["kreuzberg~=1.0"]
+    deps_apt = ["pandoc"]
     scope_distance_modifier = 1
 
     async def setup(self):
