@@ -1742,7 +1742,7 @@ class Test_Lightfuzz_PaddingOracleDetection_Reflecting(Test_Lightfuzz_PaddingOra
                 ):
                     cryptographic_parameter_finding = True
 
-            if e.type == "VULNERABILITY":
+            if e.type == "FINDING":
                 if (
                     "Padding Oracle Vulnerability. Block size: [16]" in e.data["description"]
                     and "encrypted_data" in e.data["description"]
@@ -1756,7 +1756,7 @@ class Test_Lightfuzz_PaddingOracleDetection_Reflecting(Test_Lightfuzz_PaddingOra
 
 class Test_Lightfuzz_PaddingOracleDetection_Noisy(Test_Lightfuzz_PaddingOracleDetection):
     """Padding oracle negative test: the server returns different responses for ~30 byte values,
-    which exceeds any valid block size. This should NOT produce a VULNERABILITY."""
+    which exceeds any valid block size. This should NOT produce a FINDING."""
 
     def request_handler(self, request):
         encrypted_value = quote(
@@ -1818,7 +1818,7 @@ class Test_Lightfuzz_PaddingOracleDetection_Noisy(Test_Lightfuzz_PaddingOracleDe
                     and "encrypted_data" in e.data["description"]
                 ):
                     cryptographic_parameter_finding = True
-            if e.type == "VULNERABILITY":
+            if e.type == "FINDING":
                 if "Padding Oracle" in e.data["description"]:
                     padding_oracle_detected = True
 
