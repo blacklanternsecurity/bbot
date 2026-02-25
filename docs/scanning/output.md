@@ -102,24 +102,23 @@ config:
 bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
 ```
 
-By default, only `VULNERABILITY` and `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
+By default, only `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
 
 ```yaml title="discord_preset.yml"
 config:
   modules:
     discord:
       event_types:
-        - VULNERABILITY
         - FINDING
         - STORAGE_BUCKET
 ```
 
 ...or on the command line:
 ```bash
-bbot -t evilcorp.com -om discord -c modules.discord.event_types=["STORAGE_BUCKET","FINDING","VULNERABILITY"]
+bbot -t evilcorp.com -om discord -c modules.discord.event_types=["STORAGE_BUCKET","FINDING"]
 ```
 
-You can also filter on the severity of `VULNERABILITY` events by setting `min_severity`:
+You can also filter on the severity of `FINDING` events by setting `min_severity`:
 
 
 ```yaml title="discord_preset.yml"
