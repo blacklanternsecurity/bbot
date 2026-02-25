@@ -111,7 +111,7 @@ class BaseEvent:
 
     _always_emit_tags = ["affiliate", "seed"]
     # Bypass scope checking and dns resolution, distribute immediately to modules
-    # This is useful for "end-of-line" events like FINDING and VULNERABILITY
+    # This is useful for "end-of-line" events like FINDING
     _quick_emit = False
     # Data validation, if data is a dictionary
     _data_validator = None
@@ -1061,7 +1061,7 @@ class DictHostEvent(DictEvent):
 
 class ClosestHostEvent(DictHostEvent):
     # if a host/path/url isn't specified, this event type grabs it from the closest parent
-    # inherited by FINDING and VULNERABILITY
+    # inherited by FINDING
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.host:

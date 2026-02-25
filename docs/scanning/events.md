@@ -141,18 +141,10 @@ Below is a full list of event types along with which modules produce/consume the
 | WEB_PARAMETER       | 7                     | 4                     | hunt, lightfuzz, paramminer_cookies, paramminer_getparams, paramminer_headers, reflected_parameters, web_parameters                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | excavate, paramminer_cookies, paramminer_getparams, paramminer_headers                                                                                                                                                                                                                                                                                                                                                                                                      |
 <!-- END BBOT EVENTS -->
 
-## Findings Vs. Vulnerabilities
+## Findings
 
-BBOT has a sharp distinction between Findings and Vulnerabilities:
+All vulnerability discoveries, security-relevant observations, and other notable results in BBOT are emitted as **`FINDING`** events.
 
-**VULNERABILITY**
-
-* There's a higher standard for what is allowed to be a vulnerability. They should be considered **confirmed** and **actionable** - no additional confirmation required
-* They are always assigned a severity. The possible severities are: LOW, MEDIUM, HIGH, or CRITICAL
-
-**FINDING**
-
-* Findings can range anywhere from "slightly interesting behavior" to "likely, but unconfirmed vulnerability"
-* Are often false positives
-
-By making this separation, actionable vulnerabilities can be identified quickly in the midst of a large scan
+* Findings are always assigned a **severity** (`INFO`, `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`) and a **confidence** (`UNKNOWN`, `LOW`, `MEDIUM`, `HIGH`, or `CONFIRMED`).
+* Findings can range anywhere from "slightly interesting behavior" to confirmed, actionable vulnerabilities.
+* Use severity and confidence together to prioritize results: a `HIGH` severity / `CONFIRMED` confidence finding is immediately actionable, while a `LOW` severity / `LOW` confidence finding may warrant further investigation.

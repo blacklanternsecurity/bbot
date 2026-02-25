@@ -1330,6 +1330,6 @@ class TestTrufflehog_RAWText(ModuleTestBase):
         finding_events = [e for e in events if e.type == "FINDING"]
         assert len(finding_events) == 1
         assert "Possible Secret Found" in finding_events[0].data["description"]
-        # Trufflehog emits HIGH severity and MODERATE confidence for possible secrets
+        # Trufflehog emits HIGH severity and MEDIUM confidence for possible secrets
         assert finding_events[0].data["severity"] == "HIGH"
         assert finding_events[0].data["confidence"] == "MEDIUM"

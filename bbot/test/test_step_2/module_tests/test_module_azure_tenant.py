@@ -294,7 +294,7 @@ class TestAzure_Tenant_FederatedAuth(AzureTenantTestBase):
             and e.data.get("url") == "https://authfs.example.com/adfs/ls/"  # url is cleaned
             and "azure-federated" in e.tags
             for e in events
-        ), "Should emit Federated Auth FINDING with INFORMATIONAL severity"
+        ), "Should emit Federated Auth FINDING with INFO severity"
 
         # URL_UNVERIFIED also gets cleaned (query string removed)
         assert any(
