@@ -238,8 +238,15 @@ class BaseLightfuzz:
         self.debug(f"standard_probe requested URL: [{request_params['url']}]")
         return await self.lightfuzz.helpers.request(**request_params)
 
+    def conversion_note(self):
+        if self.event.data.get("converted_from_post", False):
+            return " (converted from POSTPARAM)"
+        elif self.event.data.get("converted_from_get", False):
+            return " (converted from GETPARAM)"
+        return ""
+
     def metadata(self):
-        metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]"
+        metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]{self.conversion_note()}"
         if self.event.data["original_value"] != "" and self.event.data["original_value"] is not None:
             metadata_string += (
                 f" Original Value: [{self.lightfuzz.helpers.truncate_string(self.event.data['original_value'], 200)}]"

@@ -25,7 +25,7 @@ class esi(BaseLightfuzz):
                     "name": "Edge Side Include Processing",
                     "severity": "MEDIUM",
                     "confidence": "HIGH",
-                    "description": f"Edge Side Include. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]",
+                    "description": f"Edge Side Include. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]{self.conversion_note()}",
                 }
             )
             return True
