@@ -93,7 +93,8 @@ class xss(BaseLightfuzz):
                     "name": "Possible Reflected XSS",
                     "severity": "MEDIUM",
                     "confidence": "MODERATE",
-                    "description": f"Possible Reflected XSS. Parameter: [{self.event.data['name']}] Context: [{context}] Parameter Type: [{self.event.data['type']}]",
+                    "type": "FINDING",
+                    "description": f"Possible Reflected XSS. Parameter: [{self.event.data['name']}] Context: [{context}] Parameter Type: [{self.event.data['type']}]{self.conversion_note()}",
                 }
             )
             return True

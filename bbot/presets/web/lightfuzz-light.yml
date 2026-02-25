@@ -12,6 +12,7 @@ config:
     lightfuzz:
       enabled_submodules: [path,sqli,xss] # only look for the most common vulnerabilities
       disable_post: True # don't send POST requests (less aggressive)
+      avoid_wafs: True
 
 conditions:
 - |

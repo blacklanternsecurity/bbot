@@ -234,7 +234,9 @@ class Interactsh:
 
         try:
             r = await self.parent_helper.request(
-                f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
+                f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}",
+                headers=headers,
+                timeout=15,
             )
             if r is None:
                 raise InteractshError("Error polling interact.sh: No response from server")
@@ -294,7 +296,7 @@ class Interactsh:
         Decrypts and returns the data received from the interact.sh server.
 
         Uses RSA and AES for decrypting the data. RSA with PKCS1_OAEP and SHA256 is used to decrypt the AES key,
-        and then AES (CFB mode) is used to decrypt the actual data payload.
+        and then AES (CTR mode) is used to decrypt the actual data payload.
 
         Parameters:
             aes_key (str): The AES key for decryption, encrypted with RSA and base64 encoded.
@@ -312,6 +314,7 @@ class Interactsh:
         decode = base64.b64decode(data)
         bs = AES.block_size
         iv = decode[:bs]
-        cryptor = AES.new(key=aes_plain_key, mode=AES.MODE_CFB, IV=iv, segment_size=128)
-        plain_text = cryptor.decrypt(decode)
-        return json.loads(plain_text[16:])
+        ciphertext = decode[bs:]
+        cryptor = AES.new(key=aes_plain_key, mode=AES.MODE_CTR, nonce=b"", initial_value=iv)
+        plain_text = cryptor.decrypt(ciphertext)
+        return json.loads(plain_text)
