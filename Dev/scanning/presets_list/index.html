@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.scyxf3fv.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.uz4p17ox.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1351,10 +1351,10 @@
 </details>
 <p>Modules: <a href="" title="anubisdb, apkpure, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, baddns, badsecrets, bevigil, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, code_repository, crt_db, crt, dehashed, digitorus, dnsbimi, dnsbrute_mutations, dnsbrute, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, docker_pull, dockerhub, emailformat, ffuf_shortnames, ffuf, filedownload, fullhunt, git_clone, git, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, gowitness, graphql_introspection, hackertarget, httpx, hunt, hunterio, iis_shortnames, ipneighbor, jadx, leakix, myssl, ntlm, oauth, otx, paramminer_cookies, paramminer_getparams, paramminer_headers, passivetotal, pgp, postman_download, postman, rapiddns, reflected_parameters, robots, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, skymem, social, sslcert, subdomaincenter, subdomainradar, trickest, trufflehog, urlscan, virustotal, wayback">90</a></p>
 <h2 id="lightfuzz-heavy"><strong>lightfuzz-heavy</strong></h2>
-<p>Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery.</p>
+<p>Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.</p>
 <details class="note">
 <summary><code>lightfuzz-heavy.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-heavy.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery.</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-heavy.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.</span>
 
 <span style="color: #7EE787">include</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz-medium</span>
@@ -1392,6 +1392,7 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">path</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">sqli</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">]</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># only look for the most common vulnerabilities</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">disable_post</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># don't send POST requests (less aggressive)</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
 
 <span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
 <span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
@@ -1403,10 +1404,10 @@
 <p>Category: web</p>
 <p>Modules: <a href="" title="httpx, lightfuzz, portfilter">3</a></p>
 <h2 id="lightfuzz-medium"><strong>lightfuzz-medium</strong></h2>
-<p>Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz modules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point.</p>
+<p>Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz modules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.</p>
 <details class="note">
 <summary><code>lightfuzz-medium.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-medium.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz modules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point.</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-medium.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz modules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.</span>
 
 <span style="color: #7EE787">include</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz-light</span>
@@ -1439,6 +1440,7 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">force_common_headers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># Fuzz common headers like X-Forwarded-For even if they're not observed on the target</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">cmdi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">crypto</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">path</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">serial</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">sqli</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssti</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">esi</span><span style="color: #E6EDF3">]</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">False</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">excavate</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">speculate_params</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># speculate potential parameters extracted from JSON/XML web responses</span>
 </code></pre></div>
@@ -1446,10 +1448,10 @@
 <p>Category: web</p>
 <p>Modules: <a href="" title="badsecrets, httpx, hunt, lightfuzz, paramminer_cookies, paramminer_getparams, paramminer_headers, portfilter, reflected_parameters, robots">10</a></p>
 <h2 id="lightfuzz-xss"><strong>lightfuzz-xss</strong></h2>
-<p>Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.</p>
+<p>Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. Avoids running against confirmed WAFs. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.</p>
 <details class="note">
 <summary><code>lightfuzz-xss.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-xss.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-xss.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. Avoids running against confirmed WAFs. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
@@ -1858,7 +1860,7 @@
 <tr>
 <td>lightfuzz-heavy</td>
 <td>web</td>
-<td>Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery.</td>
+<td>Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.</td>
 <td>10</td>
 <td>badsecrets, httpx, hunt, lightfuzz, paramminer_cookies, paramminer_getparams, paramminer_headers, portfilter, reflected_parameters, robots</td>
 </tr>
@@ -1872,7 +1874,7 @@
 <tr>
 <td>lightfuzz-medium</td>
 <td>web</td>
-<td>Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz modules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point.</td>
+<td>Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz modules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.</td>
 <td>6</td>
 <td>badsecrets, httpx, hunt, lightfuzz, portfilter, reflected_parameters</td>
 </tr>
@@ -1886,7 +1888,7 @@
 <tr>
 <td>lightfuzz-xss</td>
 <td>web</td>
-<td>Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.</td>
+<td>Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. Avoids running against confirmed WAFs. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.</td>
 <td>5</td>
 <td>httpx, lightfuzz, paramminer_getparams, portfilter, reflected_parameters</td>
 </tr>
