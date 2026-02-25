@@ -75,7 +75,7 @@ dev = [
     "fastapi>=0.115.5,<0.129.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
-    "ruff==0.14.14",
+    "ruff==0.15.2",
 ]
 docs = [
     "mkdocs>=1.5.2,<2",
@@ -87,6 +87,7 @@ docs = [
     "griffe>=1,<2",
     "livereload>=2.6.3,<3",
     "mike>=2.1.3,<3",
+    "pymdown-extensions>=10.20.1,<11",
 ]
 
 [build-system]
