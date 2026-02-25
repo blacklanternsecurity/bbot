@@ -1317,8 +1317,8 @@ class TestExcavate_webparameter_ip_host(ModuleTestBase):
         assert len(web_params) > 0, "WEB_PARAMETER for 'session' cookie was not emitted"
         for wp in web_params:
             assert wp.data["host"] != "127.0.0.1", (
-                f"WEB_PARAMETER host should be 'localhost', not the resolved IP '127.0.0.1'. "
-                f"excavate._event_host() is using data['host'] (resolved IP) instead of event.host"
+                "WEB_PARAMETER host should be 'localhost', not the resolved IP '127.0.0.1'. "
+                "excavate._event_host() is using data['host'] (resolved IP) instead of event.host"
             )
             assert wp.data["host"] == "localhost", f"WEB_PARAMETER host should be 'localhost', got '{wp.data['host']}'"
 
