@@ -5,9 +5,9 @@ from .base import ModuleTestBase
 from ...bbot_fixtures import *
 
 
-class TestExtractous(ModuleTestBase):
+class TestKreuzberg(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["extractous", "filedownload", "httpx", "excavate", "speculate"]
+    modules_overrides = ["kreuzberg", "filedownload", "httpx", "excavate", "speculate"]
     config_overrides = {
         "web": {
             "spider_distance": 2,
