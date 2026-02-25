@@ -1242,6 +1242,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     if header.lower() == "content-type":
                         content_type = headers["content-type"][0]
 
+            # skip PDF responses -- running YARA/regex on raw PDF bytes produces false positives and wastes time.
+            # PDFs are still processed correctly via the filedownload → extractous → RAW_TEXT pipeline,
+            # which extracts readable text and feeds it back to excavate as a RAW_TEXT event (handled separately below).
+            # TODO: remove this in favor of a proper categorization system for text vs non-text (i.e. to-be-extracted) content
+            if content_type and "application/pdf" in content_type.lower():
+                self.debug(f"Skipping PDF response: {event.data.get('url', 'unknown')}")
+                return
+
             await self.search(
                 body,
                 event,

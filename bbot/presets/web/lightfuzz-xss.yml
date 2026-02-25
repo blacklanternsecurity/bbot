@@ -1,4 +1,4 @@
-description: Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.
+description: Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. Avoids running against confirmed WAFs. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.
 
 modules:
   - httpx
