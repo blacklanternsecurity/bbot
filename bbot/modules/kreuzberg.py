@@ -85,7 +85,7 @@ class kreuzberg(BaseModule):
         file_path = event.data["path"]
         try:
             if file_path.lower().endswith(".pdf"):
-                content = self.extract_pdf(file_path)
+                content = await self.helpers.run_in_executor_mp(self.extract_pdf, file_path)
             else:
                 result = await extract_file(file_path)
                 content = result.content.strip()
@@ -105,7 +105,8 @@ class kreuzberg(BaseModule):
             )
             await self.emit_event(raw_text_event)
 
-    def extract_pdf(self, file_path):
+    @staticmethod
+    def extract_pdf(file_path):
         """Extract text from PDF using pypdfium2 directly instead of kreuzberg.
 
         kreuzberg's bundled pdfium extracts text spatially via get_text_bounded(), which
