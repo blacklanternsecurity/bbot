@@ -512,25 +512,25 @@ class DepsInstaller:
                     "become": True,
                 }
             )
-        # only run ansible if there's actually something to install
+        # install ansible community.general collection if needed
         overall_success = True
+        if not self.setup_status.get("ansible:community.general", False):
+            log.info("Installing Ansible Community General Collection")
+            try:
+                command = ["ansible-galaxy", "collection", "install", "community.general"]
+                await self.parent_helper.run(command, check=True)
+                self.setup_status["ansible:community.general"] = True
+                log.info("Successfully installed Ansible Community General Collection")
+            except CalledProcessError as err:
+                log.warning(
+                    f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
+                )
+                overall_success = False
+        # only run ansible if there's actually something to install
         if playbook:
             self._install_sudo_askpass()
             # ensure tldextract data is cached
             self.parent_helper.tldextract("evilcorp.co.uk")
-            # install ansible community.general collection if needed
-            if not self.setup_status.get("ansible:community.general", False):
-                log.info("Installing Ansible Community General Collection")
-                try:
-                    command = ["ansible-galaxy", "collection", "install", "community.general"]
-                    await self.parent_helper.run(command, check=True)
-                    self.setup_status["ansible:community.general"] = True
-                    log.info("Successfully installed Ansible Community General Collection")
-                except CalledProcessError as err:
-                    log.warning(
-                        f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
-                    )
-                    overall_success = False
             # run playbook
             log.info(f"Installing core BBOT dependencies: {','.join(sorted(to_install_friendly))}")
             self.ensure_root()
