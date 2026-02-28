@@ -312,7 +312,13 @@ class hunt(BaseModule):
                     f" Original Value: [{self.helpers.truncate_string(str(event.data['original_value']), 200)}]"
                 )
 
-            data = {"host": str(event.host), "description": description}
+            data = {
+                "host": str(event.host),
+                "description": description,
+                "name": "Potentially Interesting Parameter",
+                "severity": "INFORMATIONAL",
+                "confidence": "LOW",
+            }
             url = event.data.get("url", "")
             if url:
                 data["url"] = url

@@ -53,8 +53,11 @@ class TestNucleiManual(ModuleTestBase):
             if e.type == "FINDING":
                 if "Directory listing enabled" in e.data["description"]:
                     first_run_detect = True
+                    # Nuclei emits HIGH confidence for most findings
+                    assert e.data["confidence"] == "HIGH"
                 elif "Copyright" in e.data["description"]:
                     second_run_detect = True
+                    assert e.data["confidence"] == "HIGH"
         assert first_run_detect
         assert second_run_detect
 
@@ -82,9 +85,7 @@ class TestNucleiSevere(TestNucleiManual):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "VULNERABILITY" and "Generic Env File Disclosure" in e.data["description"] for e in events
-        )
+        assert any(e.type == "FINDING" and "Generic Env File Disclosure" in e.data["description"] for e in events)
 
 
 class TestNucleiTechnology(TestNucleiManual):

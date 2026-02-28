@@ -7,7 +7,7 @@ import logging
 
 class baddns_direct(BaseModule):
     watched_events = ["URL", "STORAGE_BUCKET"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["active", "safe", "subdomain-enum", "baddns", "cloud-enum"]
     meta = {
         "description": "Check for unusual subdomain / service takeover edge cases that require direct detection",
@@ -57,8 +57,11 @@ class baddns_direct(BaseModule):
                     r_dict = r.to_dict()
 
                     data = {
+                        "name": f"BadDNS {r_dict['signature']}",
                         "description": f"Possible [{r_dict['signature']}] via direct BadDNS analysis. Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                         "host": str(event.host),
+                        "severity": "HIGH",
+                        "confidence": "MODERATE",
                     }
 
                     await self.emit_event(

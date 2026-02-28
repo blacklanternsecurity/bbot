@@ -8,7 +8,7 @@ class TestDiscord(ModuleTestBase):
     modules_overrides = ["discord", "excavate", "badsecrets", "httpx"]
 
     webhook_url = "https://discord.com/api/webhooks/1234/deadbeef-P-uF-asdf"
-    config_overrides = {"modules": {"discord": {"webhook_url": webhook_url}}}
+    config_overrides = {"modules": {"discord": {"webhook_url": webhook_url, "min_severity": "INFORMATIONAL"}}}
 
     def custom_setup(self, module_test):
         respond_args = {
@@ -34,8 +34,6 @@ class TestDiscord(ModuleTestBase):
         module_test.httpx_mock.add_callback(custom_response, url=self.webhook_url)
 
     def check(self, module_test, events):
-        vulns = [e for e in events if e.type == "VULNERABILITY"]
         findings = [e for e in events if e.type == "FINDING"]
-        assert len(findings) == 1
-        assert len(vulns) == 2
+        assert len(findings) == 3
         assert module_test.request_count == 4

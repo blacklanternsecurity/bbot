@@ -95,7 +95,7 @@ async def _main():
                 preset._default_internal_modules = []
 
             # Bake a temporary copy of the preset so that flags correctly enable their associated modules before listing them
-            preset = await preset.bake()
+            preset = preset.bake()
 
             # --list-modules
             if options.list_modules:
@@ -149,7 +149,7 @@ async def _main():
                 print(row)
             return
 
-        baked_preset = await preset.bake()
+        baked_preset = preset.bake()
 
         # --current-preset / --current-preset-full
         if options.current_preset or options.current_preset_full:
@@ -196,7 +196,6 @@ async def _main():
 
             # dummy scan used only for environment preparation
             dummy_scan = _ScannerForDeps(preset=preset)
-            await dummy_scan._unbaked_preset.bake(dummy_scan)
 
             helper = dummy_scan.helpers
             log.info("Installing module dependencies")

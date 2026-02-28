@@ -72,7 +72,7 @@ class ScanStats:
         header = ["Module", "Produced", "Consumed"]
         table = []
         for mname, mstat in self.module_stats.items():
-            if mname == "TARGET" or mstat.module._stats_exclude:
+            if mname == "SEED" or mstat.module._stats_exclude:
                 continue
             table_row = []
             table_row.append(mname)

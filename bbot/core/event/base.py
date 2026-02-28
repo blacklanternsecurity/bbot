@@ -11,6 +11,7 @@ import traceback
 
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
 from copy import copy, deepcopy
 from contextlib import suppress
 from radixtarget import RadixTarget
@@ -40,6 +41,7 @@ from bbot.core.helpers import (
     validators,
     get_file_extension,
 )
+from bbot.models.helpers import utc_datetime_validator
 from bbot.core.helpers.web.envelopes import BaseEnvelope
 
 
@@ -106,7 +108,8 @@ class BaseEvent:
     # Always emit this event type even if it's not in scope
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
-    _always_emit_tags = ["affiliate", "target"]
+
+    _always_emit_tags = ["affiliate", "seed"]
     # Bypass scope checking and dns resolution, distribute immediately to modules
     # This is useful for "end-of-line" events like FINDING and VULNERABILITY
     _quick_emit = False
@@ -150,7 +153,6 @@ class BaseEvent:
         "_discovery_context_regex",
         "_stats_recorded",
         "_internal",
-        "_confidence",
         "_dummy",
         "_module",
         # DNS-related attributes
@@ -179,7 +181,6 @@ class BaseEvent:
         module=None,
         scan=None,
         tags=None,
-        confidence=100,
         timestamp=None,
         _dummy=False,
         _internal=None,
@@ -197,7 +198,6 @@ class BaseEvent:
             module (str, optional): Module that discovered the event. Defaults to None.
             scan (Scan, optional): BBOT Scan object. Required unless _dummy is True. Defaults to None.
             tags (list of str, optional): Descriptive tags for the event. Defaults to None.
-            confidence (int, optional): Confidence level for the event, on a scale of 1-100. Defaults to 100.
             timestamp (datetime, optional): Time of event discovery. Defaults to current UTC time.
             _dummy (bool, optional): If True, disables certain data validations. Defaults to False.
             _internal (Any, optional): If specified, makes the event internal. Defaults to None.
@@ -245,7 +245,6 @@ class BaseEvent:
             except AttributeError:
                 self.timestamp = datetime.datetime.utcnow()
 
-        self.confidence = int(confidence)
         self._internal = False
 
         # self.scan holds the instantiated scan object (for helpers, etc.)
@@ -284,27 +283,6 @@ class BaseEvent:
     @property
     def data(self):
         return self._data
-
-    @property
-    def confidence(self):
-        return self._confidence
-
-    @confidence.setter
-    def confidence(self, confidence):
-        self._confidence = min(100, max(1, int(confidence)))
-
-    @property
-    def cumulative_confidence(self):
-        """
-        Considers the confidence of parent events. This is useful for filtering out speculative/unreliable events.
-
-        E.g. an event with a confidence of 50 whose parent is also 50 would have a cumulative confidence of 25.
-
-        A confidence of 100 will reset the cumulative confidence to 100.
-        """
-        if self._confidence == 100 or self.parent is None or self.parent is self:
-            return self._confidence
-        return int(self._confidence * self.parent.cumulative_confidence / 100)
 
     @property
     def resolved_hosts(self):
@@ -401,6 +379,8 @@ class BaseEvent:
     @property
     def port(self):
         self.host
+        if self._port:
+            return self._port
         if getattr(self, "parsed_url", None):
             if self.parsed_url.port is not None:
                 return self.parsed_url.port
@@ -408,7 +388,6 @@ class BaseEvent:
                 return 443
             elif self.parsed_url.scheme == "http":
                 return 80
-        return self._port
 
     @property
     def netloc(self):
@@ -618,6 +597,9 @@ class BaseEvent:
                     new_scope_distance += 1
             self.scope_distance = new_scope_distance
             # inherit certain tags
+            # inherit seed tag from DNS_NAME_UNRESOLVED -> DNS_NAME only
+            if "seed" in parent.tags and parent.type == "DNS_NAME_UNRESOLVED" and self.type == "DNS_NAME":
+                self.add_tag("seed")
             if hosts_are_same:
                 # inherit web spider distance from parent
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
@@ -817,7 +799,7 @@ class BaseEvent:
             return bool(radixtarget.search(other_event.host))
         return False
 
-    def json(self, mode="json", siem_friendly=False):
+    def json(self, mode="json"):
         """
         Serializes the event object to a JSON-compatible dictionary.
 
@@ -826,7 +808,6 @@ class BaseEvent:
 
         Parameters:
             mode (str): Specifies the data serialization mode. Default is "json". Other options include "graph", "human", and "id".
-            siem_friendly (bool): Whether to format the JSON in a way that's friendly to SIEM ingestion by Elastic, Splunk, etc. This ensures the value of "data" is always the same type (a dictionary).
 
         Returns:
             dict: JSON-serializable dictionary representation of the event object.
@@ -843,10 +824,12 @@ class BaseEvent:
             data = data_attr
         else:
             data = smart_decode(self.data)
-        if siem_friendly:
-            j["data"] = {self.type: data}
-        else:
+        if isinstance(data, str):
             j["data"] = data
+        elif isinstance(data, dict):
+            j["data_json"] = data
+        else:
+            raise ValueError(f"Invalid data type: {type(data)}")
         # host, dns children
         if self.host:
             j["host"] = str(self.host)
@@ -864,7 +847,7 @@ class BaseEvent:
         if self.scan:
             j["scan"] = self.scan.id
         # timestamp
-        j["timestamp"] = self.timestamp.isoformat()
+        j["timestamp"] = utc_datetime_validator(self.timestamp).timestamp()
         # parent event
         parent_id = self.parent_id
         if parent_id:
@@ -873,8 +856,7 @@ class BaseEvent:
         if parent_uuid:
             j["parent_uuid"] = parent_uuid
         # tags
-        if self.tags:
-            j.update({"tags": list(self.tags)})
+        j.update({"tags": sorted(self.tags)})
         # parent module
         if self.module:
             j.update({"module": str(self.module)})
@@ -1094,9 +1076,10 @@ class ClosestHostEvent(DictHostEvent):
                     parent_path = parent.data.get("path", None)
                     if parent_path is not None:
                         self.data["path"] = parent_path
-                # inherit closest host
+                # inherit closest host+port
                 if parent.host:
                     self.data["host"] = str(parent.host)
+                    self._port = parent.port
                     # we do this to refresh the hash
                     self.data = self.data
                     break
@@ -1107,6 +1090,7 @@ class ClosestHostEvent(DictHostEvent):
 
 class DictPathEvent(DictEvent):
     def sanitize_data(self, data):
+        data = super().sanitize_data(data)
         new_data = dict(data)
         new_data["path"] = str(new_data["path"])
         file_blobs = getattr(self.scan, "_file_blobs", False)
@@ -1269,6 +1253,9 @@ class DNS_NAME(DnsEvent):
 
 
 class OPEN_TCP_PORT(BaseEvent):
+    # we generally don't care about open ports on affiliates
+    _always_emit_tags = ["seed"]
+
     def sanitize_data(self, data):
         return validators.validate_open_port(data)
 
@@ -1591,7 +1578,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         return location
 
 
-class VULNERABILITY(ClosestHostEvent):
+class FINDING(ClosestHostEvent):
     _always_emit = True
     _quick_emit = True
     severity_colors = {
@@ -1599,41 +1586,48 @@ class VULNERABILITY(ClosestHostEvent):
         "HIGH": "🟥",
         "MEDIUM": "🟧",
         "LOW": "🟨",
-        "UNKNOWN": "⬜",
+        "INFORMATIONAL": "⬜",
+    }
+
+    confidence_colors = {
+        "CONFIRMED": "🟣",
+        "HIGH": "🔴",
+        "MODERATE": "🟠",
+        "LOW": "🟡",
+        "UNKNOWN": "⚪",
     }
 
     def sanitize_data(self, data):
-        self.add_tag(data["severity"].lower())
+        data = super().sanitize_data(data)
+        self.add_tag(f"severity-{data['severity'].lower()}")
+        self.add_tag(f"confidence-{data['confidence'].lower()}")
         return data
 
     class _data_validator(BaseModel):
         host: Optional[str] = None
         severity: str
+        name: str
         description: str
+        confidence: str
         url: Optional[str] = None
         path: Optional[str] = None
+        cves: Optional[list[str]] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
+        _validate_confidence = field_validator("confidence")(validators.validate_confidence)
 
     def _pretty_string(self):
-        return f"[{self.data['severity']}] {self.data['description']}"
+        severity = self.data["severity"]
+        confidence = self.data["confidence"]
+        description = self.data["description"]
 
-
-class FINDING(ClosestHostEvent):
-    _always_emit = True
-    _quick_emit = True
-
-    class _data_validator(BaseModel):
-        host: Optional[str] = None
-        description: str
-        url: Optional[str] = None
-        path: Optional[str] = None
-        _validate_url = field_validator("url")(validators.validate_url)
-        _validate_host = field_validator("host")(validators.validate_host)
-
-    def _pretty_string(self):
-        return self.data["description"]
+        # Add bold formatting for CONFIRMED confidence
+        if confidence == "CONFIRMED":
+            confidence_str = f"[\033[1m{confidence}\033[0m]"
+        else:
+            confidence_str = f"[{confidence}]"
+        return f"Severity: [{severity}] Confidence: {confidence_str} {description}"
 
 
 class TECHNOLOGY(DictHostEvent):
@@ -1643,6 +1637,11 @@ class TECHNOLOGY(DictHostEvent):
         url: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
+
+    def _sanitize_data(self, data):
+        data = super()._sanitize_data(data)
+        data["technology"] = data["technology"].lower()
+        return data
 
     def _data_id(self):
         # dedupe by host+port+tech
@@ -1754,13 +1753,14 @@ class FILESYSTEM(DictPathEvent):
 
 class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
     # don't emit raw DNS records for affiliates
-    _always_emit_tags = ["target"]
+    _always_emit_tags = ["seed"]
 
 
 class MOBILE_APP(DictEvent):
     _always_emit = True
 
     def _sanitize_data(self, data):
+        data = super()._sanitize_data(data)
         if isinstance(data, str):
             data = {"url": data}
         if "url" not in data:
@@ -1842,7 +1842,6 @@ def make_event(
     module=None,
     scan=None,
     tags=None,
-    confidence=100,
     dummy=False,
     internal=None,
 ):
@@ -1861,7 +1860,6 @@ def make_event(
         scan (Scan, optional): BBOT Scan object associated with the event.
         scans (List[Scan], optional): Multiple BBOT Scan objects, primarily used for unserialization.
         tags (Union[str, List[str]], optional): Descriptive tags for the event, as a list or a single string.
-        confidence (int, optional): Confidence level for the event, on a scale of 1-100. Defaults to 100.
         dummy (bool, optional): Disables data validations if set to True. Defaults to False.
         internal (Any, optional): Makes the event internal if set to True. Defaults to None.
 
@@ -1935,13 +1933,12 @@ def make_event(
         module=module,
         scan=scan,
         tags=tags,
-        confidence=confidence,
         _dummy=dummy,
         _internal=internal,
     )
 
 
-def event_from_json(j, siem_friendly=False):
+def event_from_json(j):
     """
     Creates an event object from a JSON dictionary.
 
@@ -1968,14 +1965,15 @@ def event_from_json(j, siem_friendly=False):
         kwargs = {
             "event_type": event_type,
             "tags": j.get("tags", []),
-            "confidence": j.get("confidence", 100),
             "context": j.get("discovery_context", None),
             "dummy": True,
         }
-        if siem_friendly:
-            data = j["data"][event_type]
-        else:
-            data = j["data"]
+        data = j.get("data_json", None)
+        if data is None:
+            data = j.get("data", None)
+        if data is None:
+            json_pretty = json.dumps(j, indent=2)
+            raise ValueError(f"data or data_json must be provided. JSON: {json_pretty}")
         kwargs["data"] = data
         event = make_event(**kwargs)
         event_uuid = j.get("uuid", None)
@@ -1984,7 +1982,12 @@ def event_from_json(j, siem_friendly=False):
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
-        event.timestamp = datetime.datetime.fromisoformat(j["timestamp"])
+
+        # accept both isoformat and unix timestamp
+        try:
+            event.timestamp = datetime.datetime.fromtimestamp(j["timestamp"], ZoneInfo("UTC"))
+        except Exception:
+            event.timestamp = datetime.datetime.fromisoformat(j["timestamp"])
         event.scope_distance = j["scope_distance"]
         parent_id = j.get("parent", None)
         if parent_id is not None:

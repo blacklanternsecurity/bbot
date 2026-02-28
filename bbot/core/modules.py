@@ -476,9 +476,10 @@ class ModuleLoader:
             try:
                 module = self.load_module(module_name)
             except ModuleNotFoundError as e:
-                raise BBOTError(
+                log.warning(
                     f"Error loading module {module_name}: {e}. You may have leftover artifacts from an older version of BBOT. Try deleting/renaming your '~/.bbot' directory."
-                ) from e
+                )
+                module = None
             modules[module_name] = module
         return modules
 

@@ -38,6 +38,9 @@ class BaseOutputModule(BaseModule):
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
 
+        if event.always_emit:
+            return True, "event is always emitted"
+
         # omit certain event types
         if event._omit:
             if event.type in self.get_watched_events():

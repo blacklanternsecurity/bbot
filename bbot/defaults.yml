@@ -1,5 +1,14 @@
 ### BASIC OPTIONS ###
 
+# NOTE: If used in a preset, these options must be nested underneath "config:" like so:
+# config:
+#   home: ~/.bbot
+#   keep_scans: 20
+#   scope:
+#     strict: true
+#   dns:
+#     minimal: true
+
 # BBOT working directory
 home: ~/.bbot
 # How many scan results to keep before cleaning up the older ones
@@ -15,7 +24,7 @@ folder_blobs: false
 
 scope:
   # strict scope means only exact DNS names are considered in-scope
-  # subdomains are not included unless they are explicitly provided in the target list
+  # their subdomains are not included unless explicitly whitelisted
   strict: false
   # Filter by scope distance which events are displayed in the output
   # 0 == show only in-scope events (affiliates are always shown)

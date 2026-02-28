@@ -1177,6 +1177,9 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
         lightfuzz_serial_detect_errorresolution = False
 
         for e in events:
+            print("@@@@")
+            print(e.type)
+            print(e.data)
             if e.type == "WEB_PARAMETER":
                 if e.data["name"] == "TextBox1":
                     excavate_extracted_form_parameter = True
@@ -1456,7 +1459,7 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
                 if "HTTP Extracted Parameter [search]" in e.data["description"]:
                     web_parameter_emitted = True
 
-            if e.type == "VULNERABILITY":
+            if e.type == "FINDING":
                 if (
                     "OS Command Injection (OOB Interaction) Type: [GETPARAM] Parameter Name: [search] Probe: [&&]"
                     in e.data["description"]
@@ -1683,8 +1686,6 @@ class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
                     == "Probable Cryptographic Parameter. Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Detection Technique(s): [Single-byte Mutation] Envelopes: [URL-Encoded]"
                 ):
                     cryptographic_parameter_finding = True
-
-            if e.type == "VULNERABILITY":
                 if (
                     e.data["description"]
                     == "Padding Oracle Vulnerability. Block size: [16] Parameter: [encrypted_data] Parameter Type: [POSTPARAM] Original Value: [dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q%2B4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg%3D%3D] Envelopes: [URL-Encoded]"
@@ -1746,7 +1747,7 @@ class Test_Lightfuzz_PaddingOracleDetection_Reflecting(Test_Lightfuzz_PaddingOra
                 ):
                     cryptographic_parameter_finding = True
 
-            if e.type == "VULNERABILITY":
+            if e.type == "FINDING":
                 if (
                     "Padding Oracle Vulnerability. Block size: [16]" in e.data["description"]
                     and "encrypted_data" in e.data["description"]
@@ -1760,7 +1761,7 @@ class Test_Lightfuzz_PaddingOracleDetection_Reflecting(Test_Lightfuzz_PaddingOra
 
 class Test_Lightfuzz_PaddingOracleDetection_Noisy(Test_Lightfuzz_PaddingOracleDetection):
     """Padding oracle negative test: the server returns different responses for ~30 byte values,
-    which exceeds any valid block size. This should NOT produce a VULNERABILITY."""
+    which exceeds any valid block size. This should NOT produce a FINDING."""
 
     def request_handler(self, request):
         encrypted_value = quote(
@@ -1822,7 +1823,7 @@ class Test_Lightfuzz_PaddingOracleDetection_Noisy(Test_Lightfuzz_PaddingOracleDe
                     and "encrypted_data" in e.data["description"]
                 ):
                     cryptographic_parameter_finding = True
-            if e.type == "VULNERABILITY":
+            if e.type == "FINDING":
                 if "Padding Oracle" in e.data["description"]:
                     padding_oracle_detected = True
 

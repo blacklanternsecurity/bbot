@@ -7,6 +7,7 @@ import regex as re
 from pathlib import Path
 from sys import exc_info
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from collections import OrderedDict
 
 from bbot import __version__
@@ -18,6 +19,18 @@ from bbot.core.config.logger import GzipRotatingFileHandler
 from bbot.core.multiprocess import SHARED_INTERPRETER_STATE
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.errors import BBOTError, ScanError, ValidationError
+from bbot.constants import (
+    get_scan_status_code,
+    get_scan_status_name,
+    SCAN_STATUS_NOT_STARTED,
+    SCAN_STATUS_STARTING,
+    SCAN_STATUS_RUNNING,
+    SCAN_STATUS_FINISHING,
+    SCAN_STATUS_ABORTING,
+    SCAN_STATUS_ABORTED,
+    SCAN_STATUS_FAILED,
+    SCAN_STATUS_FINISHED,
+)
 
 log = logging.getLogger("bbot.scanner")
 
@@ -54,7 +67,6 @@ class Scanner:
             - "STARTING" (1): Status when the scan is initializing.
             - "RUNNING" (2): Status when the scan is in progress.
             - "FINISHING" (3): Status when the scan is in the process of finalizing.
-            - "CLEANING_UP" (4): Status when the scan is cleaning up resources.
             - "ABORTING" (5): Status when the scan is in the process of being aborted.
             - "ABORTED" (6): Status when the scan has been aborted.
             - "FAILED" (7): Status when the scan has encountered a failure.
@@ -64,7 +76,7 @@ class Scanner:
         target (Target): Target of scan (alias to `self.preset.target`).
         preset (Preset): The main scan Preset in its baked form.
         config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `self.preset.config`).
-        whitelist (Target): Scan whitelist (by default this is the same as `target`) (alias to `self.preset.whitelist`).
+        seeds (Target): Scan seeds (by default this is the same as `target`) (alias to `self.preset.seeds`).
         blacklist (Target): Scan blacklist (this takes ultimate precedence) (alias to `self.preset.blacklist`).
         helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc. (alias to `self.preset.helpers`).
         output_dir (pathlib.Path): Output directory for scan (alias to `self.preset.output_dir`).
@@ -83,18 +95,6 @@ class Scanner:
         - Invalid statuses are logged but not applied.
         - Setting a status will trigger the `on_status` event in the dispatcher.
     """
-
-    _status_codes = {
-        "NOT_STARTED": 0,
-        "STARTING": 1,
-        "RUNNING": 2,
-        "FINISHING": 3,
-        "CLEANING_UP": 4,
-        "ABORTING": 5,
-        "ABORTED": 6,
-        "FAILED": 7,
-        "FINISHED": 8,
-    }
 
     def __init__(
         self,
@@ -124,10 +124,10 @@ class Scanner:
         self.duration = None
         self.duration_human = None
         self.duration_seconds = None
-        self._dispatcher_arg = dispatcher
 
         self._success = False
         self._scan_finish_status_message = None
+        self._marked_finished = False
         self._modules_loaded = False
 
         if scan_id is not None:
@@ -143,12 +143,14 @@ class Scanner:
         if name is not None:
             kwargs["scan_name"] = name
 
-        self._unbaked_preset = Preset(*targets, **kwargs)
+        base_preset = Preset(*targets, **kwargs)
 
         if custom_preset is not None:
             if not isinstance(custom_preset, Preset):
                 raise ValidationError(f'Preset must be of type Preset, not "{type(custom_preset).__name__}"')
-            self._unbaked_preset.merge(custom_preset)
+            base_preset.merge(custom_preset)
+
+        self.preset = base_preset.bake(self)
 
         self._prepped = False
         self._finished_init = False
@@ -157,17 +159,7 @@ class Scanner:
         self._omitted_event_types = None
         self.modules = OrderedDict({})
         self.dummy_modules = {}
-        self.preset = None
-        # initial status before `_prep()` runs
-        self._status = "NOT_STARTED"
-        self._status_code = self._status_codes[self._status]
-
-    async def _prep(self):
-        """
-        Creates the scan's output folder, loads its modules, and calls their .setup() methods.
-        """
-
-        self.preset = await self._unbaked_preset.bake(self)
+        self._status_code = SCAN_STATUS_NOT_STARTED
 
         # scan name
         if self.preset.scan_name is None:
@@ -198,19 +190,18 @@ class Scanner:
         else:
             self.home = self.preset.bbot_home / "scans" / self.name
 
+        self._status_code = SCAN_STATUS_NOT_STARTED
+
         # scan temp dir
         self.temp_dir = self.home / "temp"
-        self.helpers.mkdir(self.temp_dir)
 
-        self._status = "NOT_STARTED"
-        self._status_code = 0
-
-        if self._dispatcher_arg is None:
+        # dispatcher
+        if dispatcher is None:
             from .dispatcher import Dispatcher
 
             self.dispatcher = Dispatcher()
         else:
-            self.dispatcher = self._dispatcher_arg
+            self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
 
         # scope distance
@@ -280,7 +271,28 @@ class Scanner:
         # update the master PID
         SHARED_INTERPRETER_STATE.update_scan_pid()
 
+    async def _prep(self):
+        """
+        Expands async seed types (e.g. ASN → IP ranges), evaluates preset conditions,
+        creates the scan's output folder, loads its modules, and calls their .setup() methods.
+        """
+        # expand async seed types (e.g. ASN → IP ranges)
+        await self.preset.target.generate_children(self.helpers)
+
+        # evaluate preset conditions (may abort the scan)
+        if self.preset.conditions:
+            from .preset.conditions import ConditionEvaluator
+
+            evaluator = ConditionEvaluator(self.preset)
+            evaluator.evaluate()
+
         self.helpers.mkdir(self.home)
+        self.helpers.mkdir(self.temp_dir)
+
+        if not self._modules_loaded:
+            self.modules = OrderedDict({})
+            self.dummy_modules = {}
+
         if not self._prepped:
             # clear modules for fresh start
             self.modules.clear()
@@ -291,11 +303,10 @@ class Scanner:
                 f.write(self.preset.to_yaml())
 
             # log scan overview
-
-            start_msg = f"Scan seeded with {len(self.seeds):,} targets"
+            start_msg = f"Scan seeded with {len(self.seeds):,} seed(s)"
             details = []
-            if self.whitelist != self.target:
-                details.append(f"{len(self.whitelist):,} in whitelist")
+            if self.target.target:
+                details.append(f"{len(self.target.target):,} in target")
             if self.blacklist:
                 details.append(f"{len(self.blacklist):,} in blacklist")
             if details:
@@ -332,9 +343,10 @@ class Scanner:
                 self._fail_setup(msg)
 
             total_modules = total_failed + len(self.modules)
-            success_msg = f"Setup succeeded for {len(self.modules):,}/{total_modules:,} modules."
+            success_msg = f"Setup succeeded for {len(self.modules) - 2:,}/{total_modules - 2:,} modules."
 
             self.success(success_msg)
+            self._modules_loaded = True
             self._prepped = True
 
     def start(self):
@@ -350,11 +362,11 @@ class Scanner:
             pass
 
     async def async_start(self):
-        """ """
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(ZoneInfo("UTC"))
         try:
             if not self._prepped:
                 await self._prep()
+            await self._set_status(SCAN_STATUS_STARTING)
             self.root_event.data["started_at"] = self.start_time.isoformat()
 
             self._start_log_handlers()
@@ -370,18 +382,16 @@ class Scanner:
                 self._status_ticker(self.status_frequency), name=f"{self.name}._status_ticker()"
             )
 
-            self.status = "STARTING"
-
             if not self.modules:
                 self.error("No modules loaded")
-                self.status = "FAILED"
+                await self._set_status(SCAN_STATUS_FAILED)
                 return
             else:
                 self.hugesuccess(f"Starting scan {self.name}")
 
             await self.dispatcher.on_start(self)
 
-            self.status = "RUNNING"
+            await self._set_status(SCAN_STATUS_RUNNING)
             self._start_modules()
             self.verbose(f"{len(self.modules):,} modules started")
 
@@ -411,8 +421,6 @@ class Scanner:
                     new_activity = await self.finish()
                     if not new_activity:
                         self._success = True
-                        scan_finish_event = await self._mark_finished()
-                        yield scan_finish_event
                         break
 
                 await asyncio.sleep(0.1)
@@ -421,7 +429,7 @@ class Scanner:
 
         except BaseException as e:
             if self.helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
-                self.stop()
+                await self.async_stop()
                 self._success = True
             else:
                 try:
@@ -436,6 +444,8 @@ class Scanner:
                     self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
+            scan_finish_event = await self._mark_finished()
+            yield scan_finish_event
             tasks = self._cancel_tasks()
             self.debug(f"Awaiting {len(tasks):,} tasks")
             for task in tasks:
@@ -445,7 +455,7 @@ class Scanner:
             self.debug(f"Awaited {len(tasks):,} tasks")
             await self._report()
             await self._cleanup()
-
+            # report on final scan status
             await self.dispatcher.on_finish(self)
 
             self._stop_log_handlers()
@@ -459,34 +469,44 @@ class Scanner:
                 log_fn(self._scan_finish_status_message)
 
     async def _mark_finished(self):
-        if self.status == "ABORTING":
-            status = "ABORTED"
-        elif not self._success:
-            status = "FAILED"
-        else:
-            status = "FINISHED"
+        if self._marked_finished:
+            return
 
-        self.end_time = datetime.now()
+        self._marked_finished = True
+
+        if self._status_code == SCAN_STATUS_ABORTING:
+            status_code = SCAN_STATUS_ABORTED
+        elif not self._success:
+            status_code = SCAN_STATUS_FAILED
+        else:
+            status_code = SCAN_STATUS_FINISHED
+
+        status = get_scan_status_name(status_code)
+
+        self.end_time = datetime.now(ZoneInfo("UTC"))
         self.duration = self.end_time - self.start_time
         self.duration_seconds = self.duration.total_seconds()
         self.duration_human = self.helpers.human_timedelta(self.duration)
 
-        self._scan_finish_status_message = f"Scan {self.name} completed in {self.duration_human} with status {status}"
+        self._scan_finish_status_message = (
+            f"Scan {self.name} completed in {self.duration_human} with status {self.status}"
+        )
 
         scan_finish_event = self.finish_event(self._scan_finish_status_message, status)
 
-        # queue final scan event with output modules
-        output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
-        for m in output_modules:
-            await m.queue_event(scan_finish_event)
-        # wait until output modules are flushed
-        while 1:
-            modules_finished = all(m.finished for m in output_modules)
-            if modules_finished:
-                break
-            await asyncio.sleep(0.05)
+        if not self._stopping:
+            # queue final scan event with output modules
+            output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
+            for m in output_modules:
+                await m.queue_event(scan_finish_event)
+            # wait until output modules are flushed
+            while 1:
+                modules_finished = all([m.finished for m in output_modules])
+                if modules_finished:
+                    break
+                await asyncio.sleep(0.05)
 
-        self.status = status
+        await self._set_status(status)
         return scan_finish_event
 
     def _start_modules(self):
@@ -529,7 +549,8 @@ class Scanner:
                 self.modules[module.name].set_error_state()
                 hard_failed.append(module.name)
             else:
-                self.info(f"Setup soft-failed for {module.name}: {msg}")
+                log_fn = self.warning if module._type == "output" else self.info
+                log_fn(f"Setup soft-failed for {module.name}: {msg}")
                 soft_failed.append(module.name)
             if (not status) and (module._intercept or remove_failed):
                 # if a intercept module fails setup, we always remove it
@@ -667,7 +688,7 @@ class Scanner:
             total += len(q._queue)
         return total
 
-    def modules_status(self, _log=False):
+    def modules_status(self, _log=False, detailed=False):
         finished = True
         status = {"modules": {}}
 
@@ -737,7 +758,7 @@ class Scanner:
                     f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds)"
                 )
 
-            if self.log_level <= logging.DEBUG:
+            if detailed or self.log_level <= logging.DEBUG:
                 # status debugging
                 scan_active_status = []
                 scan_active_status.append(f"scan._finished_init: {self._finished_init}")
@@ -770,7 +791,7 @@ class Scanner:
 
         return status
 
-    def stop(self):
+    async def async_stop(self):
         """Stops the in-progress scan and performs necessary cleanup.
 
         This method sets the scan's status to "ABORTING," cancels any pending tasks, and drains event queues. It also kills child processes spawned during the scan.
@@ -780,7 +801,7 @@ class Scanner:
         """
         if not self._stopping:
             self._stopping = True
-            self.status = "ABORTING"
+            await self._set_status(SCAN_STATUS_ABORTING)
             self.hugewarning("Aborting scan")
             self.trace()
             self._cancel_tasks()
@@ -789,6 +810,10 @@ class Scanner:
             self._drain_queues()
             self.helpers.kill_children()
             self.debug("Finished aborting scan")
+            await self._set_status(SCAN_STATUS_ABORTED)
+
+    def stop(self):
+        asyncio.create_task(self.async_stop())
 
     async def finish(self):
         """Finalizes the scan by invoking the `finished()` method on all active modules if new activity is detected.
@@ -805,7 +830,7 @@ class Scanner:
         # if new events were generated since last time we were here
         if self._new_activity:
             self._new_activity = False
-            self.status = "FINISHING"
+            await self._set_status(SCAN_STATUS_FINISHING)
             # Trigger .finished() on every module and start over
             log.info("Finishing scan")
             for module in self.modules.values():
@@ -859,8 +884,7 @@ class Scanner:
         # ticker
         if self.ticker_task:
             tasks.append(self.ticker_task)
-        # dispatcher
-        tasks += self.dispatcher_tasks
+
         self.helpers.cancel_tasks_sync(tasks)
         # process pool
         self.helpers.process_pool.shutdown(cancel_futures=True)
@@ -889,7 +913,8 @@ class Scanner:
 
         This method is called once at the end of the scan to perform resource cleanup
         tasks. It is executed regardless of whether the scan was aborted or completed
-        successfully. The scan status is set to "CLEANING_UP" during the execution.
+        successfully.
+
         After calling the `cleanup()` method for each module, it performs additional
         cleanup tasks such as removing the scan's home directory if empty and cleaning
         old scans.
@@ -900,16 +925,15 @@ class Scanner:
         # clean up self
         if not self._cleanedup:
             self._cleanedup = True
-            self.status = "CLEANING_UP"
+            # clean up modules
+            for mod in self.modules.values():
+                await mod._cleanup()
             # clean up dns engine
             if self.helpers._dns is not None:
                 await self.helpers.dns.shutdown()
             # clean up web engine
             if self.helpers._web is not None:
                 await self.helpers.web.shutdown()
-            # clean up modules
-            for mod in self.modules.values():
-                await mod._cleanup()
             # In some test paths, `_prep()` is never called, so `home` and
             # `temp_dir` may not exist. Treat those as best-effort cleanups.
             home = getattr(self, "home", None)
@@ -924,36 +948,22 @@ class Scanner:
     def in_scope(self, *args, **kwargs):
         return self.preset.in_scope(*args, **kwargs)
 
-    def whitelisted(self, *args, **kwargs):
-        return self.preset.whitelisted(*args, **kwargs)
+    def in_target(self, *args, **kwargs):
+        return self.preset.in_target(*args, **kwargs)
 
     def blacklisted(self, *args, **kwargs):
         return self.preset.blacklisted(*args, **kwargs)
 
     @property
     def core(self):
-        # Before `_prep()` runs, fall back to the unbaked preset's core so that basic configuration is still available (during module construction in tests)
-        if self.preset is not None:
-            return self.preset.core
-        return self._unbaked_preset.core
+        return self.preset.core
 
     @property
     def config(self):
-        # Allow access to the scan config even before `_prep()` by falling back to the unbaked preset's core config.
-        if self.preset is not None:
-            return self.preset.core.config
-        return self._unbaked_preset.core.config
+        return self.preset.core.config
 
     @property
     def web_config(self):
-        """
-        Web-related configuration for the scan.
-
-        Exposed as a property so it is available even before `_prep()` runs,
-        falling back to the underlying config's `web` section. During `_prep()`
-        an instance attribute of the same name is assigned, which will then
-        override this property for the remainder of the scan lifetime.
-        """
         return self.config.get("web", {})
 
     @property
@@ -965,22 +975,12 @@ class Scanner:
         return self.preset.seeds
 
     @property
-    def whitelist(self):
-        return self.preset.whitelist
-
-    @property
     def blacklist(self):
         return self.preset.blacklist
 
     @property
     def helpers(self):
-        # Before `_prep()` runs, `self.preset` is None. In those cases,
-        # fall back to the unbaked preset's helpers so that CLI utilities
-        # (e.g. depsinstaller) and other lightweight helper functionality
-        # remain available without requiring a full scan prep.
-        if self.preset is not None:
-            return self.preset.helpers
-        return self._unbaked_preset.helpers
+        return self.preset.helpers
 
     @property
     def force_start(self):
@@ -996,19 +996,19 @@ class Scanner:
 
     @property
     def stopped(self):
-        return self._status_code > 5
+        return self._status_code >= SCAN_STATUS_ABORTED
 
     @property
     def running(self):
-        return 0 < self._status_code < 4
+        return SCAN_STATUS_STARTING <= self._status_code <= SCAN_STATUS_FINISHING
 
     @property
     def aborting(self):
-        return 5 <= self._status_code <= 6
+        return SCAN_STATUS_ABORTING <= self._status_code <= SCAN_STATUS_ABORTED
 
     @property
     def status(self):
-        return self._status
+        return get_scan_status_name(self._status_code)
 
     @property
     def omitted_event_types(self):
@@ -1016,32 +1016,22 @@ class Scanner:
             self._omitted_event_types = self.config.get("omit_event_types", [])
         return self._omitted_event_types
 
-    @status.setter
-    def status(self, status):
-        """
-        Block setting after status has been aborted
-        """
-        status = str(status).strip().upper()
-        if status in self._status_codes:
-            if self.status == "ABORTING" and not status == "ABORTED":
-                self.debug(f'Attempt to set invalid status "{status}" on aborted scan')
-            else:
-                if status != self._status:
-                    self._status = status
-                    self._status_code = self._status_codes[status]
-                    # During early initialization (or in certain tests),`dispatcher` may not be set yet. In that case we just update the status without scheduling dispatcher tasks
-                    dispatcher = getattr(self, "dispatcher", None)
-                    if dispatcher is not None:
-                        self.dispatcher_tasks.append(
-                            asyncio.create_task(
-                                dispatcher.catch(self.dispatcher.on_status, self._status, self.id),
-                                name=f"{self.name}.dispatcher.on_status({status})",
-                            )
-                        )
-                else:
-                    self.debug(f'Scan status is already "{status}"')
-        else:
-            self.debug(f'Attempt to set invalid status "{status}" on scan')
+    async def _set_status(self, status):
+        try:
+            status_code = get_scan_status_code(status)
+            status = get_scan_status_name(status_code)
+        except ValueError:
+            self.warning(f'Attempt to set invalid status "{status}" on scan')
+
+        self.debug(f"Setting scan status from {self.status} to {status}")
+        # if the status isn't progressing forward, skip setting it
+        if status_code <= self._status_code:
+            self.debug(f'Attempt to set invalid status "{status}" on scan with status "{self.status}"')
+            return
+
+        self._status_code = status_code
+        with self.dispatcher.catch():
+            await self.dispatcher.on_status(self.status, self.id)
 
     def make_event(self, *args, **kwargs):
         kwargs["scan"] = self
@@ -1068,22 +1058,26 @@ class Scanner:
               "tags": [
                 "distance-0"
               ],
-              "module": "TARGET",
-              "module_sequence": "TARGET"
+              "module": "SEED",
+              "module_sequence": "SEED"
             }
             ```
         """
         if self._root_event is None:
             self._root_event = self.make_root_event(f"Scan {self.name} started at {self.start_time}")
         self._root_event.data["status"] = self.status
+        self._root_event.data["status_code"] = self._status_code
         return self._root_event
 
-    def finish_event(self, context=None, status=None):
+    def finish_event(self, context=None, status_code=None):
         if self._finish_event is None:
-            if context is None or status is None:
-                raise ValueError("Must specify context and status")
+            if context is None or status_code is None:
+                raise ValueError("Must specify context and status_code")
             self._finish_event = self.make_root_event(context)
+            status_code = get_scan_status_code(status_code)
+            status = get_scan_status_name(status_code)
             self._finish_event.data["status"] = status
+            self._finish_event.data["status_code"] = status_code
         return self._finish_event
 
     def make_root_event(self, context):
@@ -1092,7 +1086,7 @@ class Scanner:
         root_event.scope_distance = 0
         root_event.parent = root_event
         root_event._dummy = False
-        root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
+        root_event.module = self._make_dummy_module(name="SEED", _type="SEED")
         return root_event
 
     @property
@@ -1101,13 +1095,13 @@ class Scanner:
         A list of DNS hostname strings generated from the scan target
         """
         if self._dns_strings is None:
-            dns_whitelist = {t.host for t in self.whitelist if t.host and isinstance(t.host, str)}
-            dns_whitelist = sorted(dns_whitelist, key=len)
-            dns_whitelist_set = set()
+            dns_target = {t.host for t in self.target.target if t.host and isinstance(t.host, str)}
+            dns_target = sorted(dns_target, key=len)
+            dns_target_set = set()
             dns_strings = []
-            for t in dns_whitelist:
-                if not any(x in dns_whitelist_set for x in self.helpers.domain_parents(t, include_self=True)):
-                    dns_whitelist_set.add(t)
+            for t in dns_target:
+                if not any(x in dns_target_set for x in self.helpers.domain_parents(t, include_self=True)):
+                    dns_target_set.add(t)
                     dns_strings.append(t)
             self._dns_strings = dns_strings
         return self._dns_strings
@@ -1206,19 +1200,23 @@ class Scanner:
     @property
     def json(self):
         """
-        A dictionary representation of the scan including its name, ID, targets, whitelist, blacklist, and modules
+        A dictionary representation of the scan including its name, ID, targets, target, blacklist, and modules
         """
         j = {}
         for i in ("id", "name"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        j["target"] = self.preset.target.json
-        j["preset"] = self.preset.to_dict(redact_secrets=True)
+        if self.preset is not None:
+            j["target"] = self.preset.target.json
+            j["preset"] = self.preset.to_dict(redact_secrets=True)
+        else:
+            j["target"] = {}
+            j["preset"] = {}
         if self.start_time is not None:
-            j["started_at"] = self.start_time.isoformat()
+            j["started_at"] = self.start_time.timestamp()
         if self.end_time is not None:
-            j["finished_at"] = self.end_time.isoformat()
+            j["finished_at"] = self.end_time.timestamp()
         if self.duration is not None:
             j["duration_seconds"] = self.duration_seconds
         if self.duration_human is not None:

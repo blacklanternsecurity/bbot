@@ -19,35 +19,34 @@ async def test_scan(
         modules=["ipneighbor"],
     )
     await scan0._prep()
-    assert scan0.whitelisted("1.1.1.1")
-    assert scan0.whitelisted("1.1.1.0")
+    assert scan0.in_target("1.1.1.1")
+    assert scan0.in_target("1.1.1.0")
     assert scan0.blacklisted("1.1.1.15")
     assert not scan0.blacklisted("1.1.1.16")
     assert scan0.blacklisted("1.1.1.1/30")
     assert not scan0.blacklisted("1.1.1.1/27")
     assert not scan0.in_scope("1.1.1.1")
-    assert scan0.whitelisted("api.evilcorp.com")
-    assert scan0.whitelisted("www.evilcorp.com")
+    assert scan0.in_target("api.evilcorp.com")
+    assert scan0.in_target("www.evilcorp.com")
     assert not scan0.blacklisted("api.evilcorp.com")
     assert scan0.blacklisted("asdf.www.evilcorp.com")
     assert scan0.in_scope("test.api.evilcorp.com")
     assert not scan0.in_scope("test.www.evilcorp.com")
     assert not scan0.in_scope("www.evilcorp.co.uk")
     j = scan0.json
-    assert set(j["target"]["seeds"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
-    # we preserve the original whitelist inputs
-    assert set(j["target"]["whitelist"]) == {"1.1.1.0/32", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
-    # but in the background they are collapsed
-    assert scan0.target.whitelist.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
+    assert not "seeds" in j["target"], "seeds should not be in target json"
+    # Positional arguments become the target
+    assert set(j["target"]["target"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
+    # Seeds are backfilled from target when not explicitly set
+    assert scan0.target.target.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
     assert set(j["target"]["blacklist"]) == {"1.1.1.0/28", "www.evilcorp.com"}
     assert "ipneighbor" in j["preset"]["modules"]
 
-    scan1 = bbot_scanner("1.1.1.1", whitelist=["1.0.0.1"])
-    await scan1._prep()
+    scan1 = bbot_scanner("1.0.0.1", seeds=["1.1.1.1"])
     assert not scan1.blacklisted("1.1.1.1")
     assert not scan1.blacklisted("1.0.0.1")
-    assert not scan1.whitelisted("1.1.1.1")
-    assert scan1.whitelisted("1.0.0.1")
+    assert not scan1.in_target("1.1.1.1")
+    assert scan1.in_target("1.0.0.1")
     assert scan1.in_scope("1.0.0.1")
     assert not scan1.in_scope("1.1.1.1")
 
@@ -55,8 +54,8 @@ async def test_scan(
     await scan2._prep()
     assert not scan2.blacklisted("1.1.1.1")
     assert not scan2.blacklisted("1.0.0.1")
-    assert scan2.whitelisted("1.1.1.1")
-    assert not scan2.whitelisted("1.0.0.1")
+    assert scan2.in_target("1.1.1.1")
+    assert not scan2.in_target("1.0.0.1")
     assert scan2.in_scope("1.1.1.1")
     assert not scan2.in_scope("1.0.0.1")
 
@@ -91,6 +90,36 @@ async def test_scan(
     scan6 = bbot_scanner("a.foobar.io", "b.foobar.io", "c.foobar.io", "foobar.io")
     await scan6._prep()
     assert len(scan6.dns_strings) == 1
+
+
+def test_seeds_target_separation(bbot_scanner):
+    """
+    Test that when seeds are explicitly provided (via -s), they are properly separated from target.
+    """
+    # Simulate: bbot -t 192.168.1.0/24 -s seed1.example.com seed2.example.com
+    scan = bbot_scanner(
+        "192.168.1.0/24",
+        seeds=["seed1.example.com", "seed2.example.com"],
+    )
+
+    # Verify target and seeds are properly separated in JSON
+    j = scan.json
+    assert set(j["target"]["target"]) == {"192.168.1.0/24"}, "Target should only contain the IP range"
+    assert set(j["target"]["seeds"]) == {"seed1.example.com", "seed2.example.com"}, (
+        "Seeds should contain the DNS names, not the target"
+    )
+
+    # Verify target functionality
+    assert scan.in_target("192.168.1.1"), "IP in target range should be in target"
+    assert not scan.in_target("seed1.example.com"), "Seed DNS name should not be in target"
+    assert not scan.in_target("seed2.example.com"), "Seed DNS name should not be in target"
+
+    # Verify seeds are accessible
+    assert "seed1.example.com" in scan.target.seeds.inputs, "seed1.example.com should be in seeds"
+    assert "seed2.example.com" in scan.target.seeds.inputs, "seed2.example.com should be in seeds"
+    assert "192.168.1.0/24" not in scan.target.seeds.inputs, (
+        "Target should not be in seeds when seeds are explicitly provided"
+    )
 
 
 @pytest.mark.asyncio
@@ -200,7 +229,7 @@ async def test_python_output_matches_json(bbot_scanner):
     assert len(events) == 5
     scan_events = [e for e in events if e["type"] == "SCAN"]
     assert len(scan_events) == 2
-    assert all(isinstance(e["data"]["status"], str) for e in scan_events)
+    assert all(isinstance(e["data_json"]["status"], str) for e in scan_events)
     assert len([e for e in events if e["type"] == "DNS_NAME"]) == 1
     assert len([e for e in events if e["type"] == "ORG_STUB"]) == 1
     assert len([e for e in events if e["type"] == "IP_ADDRESS"]) == 1
@@ -229,7 +258,7 @@ async def test_huge_target_list(bbot_scanner, monkeypatch):
 async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
     # test that CDN exclusion works
 
-    from bbot import Preset
+    from bbot.scanner import Preset
 
     dns_mock = {
         "evilcorp.com": {"A": ["127.0.0.1"]},
@@ -270,7 +299,7 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
     # then run a scan with --exclude-cdn enabled
     preset = Preset("evilcorp.com")
     preset.parse_args()
-    baked_preset = await preset.bake()
+    baked_preset = preset.bake()
     assert baked_preset.to_yaml() == "modules:\n- portfilter\n"
     scan = bbot_scanner("evilcorp.com", preset=preset)
     await scan._prep()

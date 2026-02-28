@@ -1,0 +1,92 @@
+import json
+import asyncio
+
+from .base import ModuleTestBase
+
+
+class TestKafka(ModuleTestBase):
+    config_overrides = {
+        "modules": {
+            "kafka": {
+                "bootstrap_servers": "localhost:9092",
+                "topic": "bbot_events",
+            }
+        }
+    }
+    skip_distro_tests = True
+
+    async def setup_before_prep(self, module_test):
+        # Start Zookeeper
+        await asyncio.create_subprocess_exec(
+            "docker", "run", "-d", "--rm", "--name", "bbot-test-zookeeper", "-p", "2181:2181", "zookeeper:3.9"
+        )
+
+        # Wait for Zookeeper to be ready
+        await self.wait_for_port_open(2181)
+
+        # Start Kafka using wurstmeister/kafka
+        await asyncio.create_subprocess_exec(
+            "docker",
+            "run",
+            "-d",
+            "--rm",
+            "--name",
+            "bbot-test-kafka",
+            "--link",
+            "bbot-test-zookeeper:zookeeper",
+            "-e",
+            "KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181",
+            "-e",
+            "KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092",
+            "-e",
+            "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092",
+            "-e",
+            "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1",
+            "-p",
+            "9092:9092",
+            "wurstmeister/kafka",
+        )
+
+        # Wait for Kafka to be ready
+        await self.wait_for_port_open(9092)
+
+        await asyncio.sleep(1)
+
+    async def check(self, module_test, events):
+        from aiokafka import AIOKafkaConsumer
+
+        self.consumer = AIOKafkaConsumer(
+            "bbot_events",
+            bootstrap_servers="localhost:9092",
+            group_id="test_group",
+        )
+        await self.consumer.start()
+
+        try:
+            events_json = [e.json() for e in events]
+            events_json.sort(key=lambda x: x["timestamp"])
+
+            # Collect events from Kafka
+            kafka_events = []
+            async for msg in self.consumer:
+                event_data = json.loads(msg.value.decode("utf-8"))
+                kafka_events.append(event_data)
+                if len(kafka_events) >= len(events_json):
+                    break
+
+            kafka_events.sort(key=lambda x: x["timestamp"])
+
+            # Verify the events match
+            assert events_json == kafka_events, "Events do not match"
+
+        finally:
+            # Clean up: Stop the Kafka consumer
+            if hasattr(self, "consumer") and not self.consumer._closed:
+                await self.consumer.stop()
+            # Stop Kafka and Zookeeper containers
+            await asyncio.create_subprocess_exec(
+                "docker", "stop", "bbot-test-kafka", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            await asyncio.create_subprocess_exec(
+                "docker", "stop", "bbot-test-zookeeper", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )

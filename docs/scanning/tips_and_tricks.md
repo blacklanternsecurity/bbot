@@ -108,24 +108,6 @@ config:
 bbot -t evilcorp.com -p skip_cdns.yml
 ```
 
-### Ingest BBOT Data Into SIEM (Elastic, Splunk)
-
-If your goal is to run a BBOT scan and later feed its data into a SIEM such as Elastic, be sure to enable this option when scanning:
-
-```bash
-bbot -t evilcorp.com -c modules.json.siem_friendly=true
-```
-
-This ensures the `.data` event attribute is always the same type (a dictionary), by nesting it like so:
-```json
-{
-  "type": "DNS_NAME",
-  "data": {
-    "DNS_NAME": "blacklanternsecurity.com"
-  }
-}
-```
-
 ### Custom HTTP Proxy
 
 Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `web.http_proxy` config option like so:
@@ -152,20 +134,28 @@ By default, BBOT only shows in-scope events (with a few exceptions for things li
 bbot -f subdomain-enum -t evilcorp.com -c scope.report_distance=2
 ~~~
 
-### Speed Up Scans By Disabling DNS Resolution
+### Speed Up Scans with `--fast-mode`
+
+If you have a ready list of hosts/urls and just want to scan them as fast as possible without any extra discovery, use `--fast-mode`. It's a CLI alias for `--preset fast`, which disables non-essential speculation and DNS resolution:
+
+```yaml
+--8<-- "bbot/presets/fast.yml"
+```
 
 If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting `dns.disable` to `true`:
 
+If you don't care about DNS-based scope checks, you can go even further by completely disabling DNS resolution:
+
 ~~~bash
 # completely disable DNS resolution
-bbot -m httpx gowitness wappalyzer -t urls.txt -c dns.disable=true
+bbot -m httpx gowitness -t urls.txt -c dns.disable=true
 ~~~
 
-Note that the above setting _completely_ disables DNS resolution, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use `dns.minimal` instead:
+Note that the above setting _completely_ disables DNS, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use `dns.minimal` instead:
 
 ~~~bash
 # only resolve A and AAAA records
-bbot -m httpx gowitness wappalyzer -t urls.txt -c dns.minimal=true
+bbot -m httpx gowitness -t urls.txt -c dns.minimal=true
 ~~~
 
 ## FAQ

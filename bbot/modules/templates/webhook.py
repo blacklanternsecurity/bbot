@@ -11,7 +11,8 @@ class WebhookOutputModule(BaseOutputModule):
     accept_dupes = False
     message_size_limit = 2000
     content_key = "content"
-    vuln_severities = ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    severities = ["INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    confidences = ["UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED"]
 
     # abort module after 10 failed requests (not including retries)
     _api_failure_abort_threshold = 10
@@ -21,10 +22,10 @@ class WebhookOutputModule(BaseOutputModule):
     async def setup(self):
         self.webhook_url = self.config.get("webhook_url", "")
         self.min_severity = self.config.get("min_severity", "LOW").strip().upper()
-        assert self.min_severity in self.vuln_severities, (
-            f"min_severity must be one of the following: {','.join(self.vuln_severities)}"
+        assert self.min_severity in self.severities, (
+            f"min_severity must be one of the following: {','.join(self.severities)}"
         )
-        self.allowed_severities = self.vuln_severities[self.vuln_severities.index(self.min_severity) :]
+        self.allowed_severities = self.severities[self.severities.index(self.min_severity) :]
         if not self.webhook_url:
             self.warning("Must set Webhook URL")
             return False
@@ -45,15 +46,15 @@ class WebhookOutputModule(BaseOutputModule):
 
     def get_watched_events(self):
         if self._watched_events is None:
-            event_types = self.config.get("event_types", ["VULNERABILITY"])
+            event_types = self.config.get("event_types", ["FINDING"])
             if isinstance(event_types, str):
                 event_types = [event_types]
             self._watched_events = set(event_types)
         return self._watched_events
 
     async def filter_event(self, event):
-        if event.type == "VULNERABILITY":
-            severity = event.data.get("severity", "UNKNOWN")
+        if event.type == "FINDING":
+            severity = event.data.get("severity", "INFORMATIONAL")
             if severity not in self.allowed_severities:
                 return False, f"{severity} is below min_severity threshold"
         return True
@@ -65,17 +66,20 @@ class WebhookOutputModule(BaseOutputModule):
     def format_message_other(self, event):
         event_yaml = yaml.dump(event.data)
         event_type = f"**`[{event.type}]`**"
-        if event.type in ("VULNERABILITY", "FINDING"):
-            event_str, color = self.get_severity_color(event)
-            event_type = f"{color} {event_str} {color}"
+        if event.type == "FINDING":
+            event_str, severity_color, confidence_color = self.get_colors(event)
+            event_type = f"{severity_color} {confidence_color} {event_str}"
         return f"""**`{event_type}`**\n```yaml\n{event_yaml}```"""
 
-    def get_severity_color(self, event):
-        if event.type == "VULNERABILITY":
-            severity = event.data.get("severity", "UNKNOWN")
-            return f"{event.type} ({severity})", event.severity_colors[severity]
+    def get_colors(self, event):
+        if event.type == "FINDING":
+            severity = event.data.get("severity", "INFORMATIONAL")
+            confidence = event.data.get("confidence", "UNKNOWN")
+            severity_color = event.severity_colors.get(severity, "⬜")
+            confidence_color = event.confidence_colors.get(confidence, "⚪")
+            return f"{event.type} (Severity: {severity} / Confidence: {confidence})", severity_color, confidence_color
         else:
-            return event.type, "🟦"
+            return event.type, "🟦", ""
 
     def format_message(self, event):
         if isinstance(event.data, str):

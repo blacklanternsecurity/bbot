@@ -165,13 +165,13 @@ class censys_ip(censys):
         # Validate and emit as DNS_NAME
         try:
             validated = self.helpers.validators.validate_host(host)
+            if validated and validated not in seen:
+                seen.add(validated)
+                await self.emit_event(
+                    validated,
+                    "DNS_NAME",
+                    parent=event,
+                    context=f"{{module}} found {{event.data}} in {source} of {{event.parent.data}}",
+                )
         except ValueError as e:
             self.debug(f"Error validating host {host} in {source}: {e}")
-        if validated and validated not in seen:
-            seen.add(validated)
-            await self.emit_event(
-                validated,
-                "DNS_NAME",
-                parent=event,
-                context=f"{{module}} found {{event.data}} in {source} of {{event.parent.data}}",
-            )

@@ -17,7 +17,7 @@ jobs:
       # if one python version fails, let the others finish
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python
@@ -26,17 +26,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Set Python Version Environment Variable
         run: echo "PYTHON_VERSION=${{ matrix.python-version }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
       - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install
+        run: uv sync --group dev
       - name: Lint
         run: |
-          poetry run ruff check
-          poetry run ruff format --check
+          uv run ruff check
+          uv run ruff format --check
       - name: Run tests
         run: |
-          poetry run pytest -vv --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+          uv run pytest -vv --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Debug Logs
         if: always()
         uses: actions/upload-artifact@v6
@@ -69,14 +69,32 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.x"
-      - name: Install dependencies
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Calculate version
+        id: calc_version
         run: |
-          python -m pip install --upgrade pip
-          pip install poetry build
-          poetry self add "poetry-dynamic-versioning[plugin]"
+          # Get base version from latest stable tag (exclude rc tags, strip 'v' prefix)
+          LATEST_STABLE_TAG=$(git describe --tags --abbrev=0 --exclude="*rc*")
+          BASE_VERSION=$(echo "$LATEST_STABLE_TAG" | sed 's/^v//')
+
+          if [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
+            # Stable: clean version from tag
+            VERSION="$BASE_VERSION"
+          elif [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            # Dev: version.distancerc (e.g., 3.0.0.123rc)
+            DISTANCE=$(git rev-list ${LATEST_STABLE_TAG}..HEAD --count)
+            VERSION="${BASE_VERSION}.${DISTANCE}rc"
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated version: $VERSION"
+
+          # Write version to file for hatchling to pick up
+          echo "__version__ = \"$VERSION\"" > bbot/_version.py
       - name: Build Pypi package
         if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
-        run: python -m build
+        run: uv build
       - name: Publish Pypi package
         if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
         uses: pypa/gh-action-pypi-publish@release/v1.13
@@ -85,7 +103,7 @@ jobs:
       - name: Get BBOT version
         id: version
         run: |
-          FULL_VERSION=$(poetry version | cut -d' ' -f2)
+          FULL_VERSION="${{ steps.calc_version.outputs.VERSION }}"
           echo "BBOT_VERSION=$FULL_VERSION" >> $GITHUB_OUTPUT
           # Extract major.minor (e.g., 2.7 from 2.7.1)
           MAJOR_MINOR=$(echo "$FULL_VERSION" | cut -d'.' -f1-2)
@@ -177,6 +195,28 @@ jobs:
           done
     outputs:
       BBOT_VERSION: ${{ steps.version.outputs.BBOT_VERSION }}
+  tag_commit:
+    needs: publish_code
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Configure git
+        run: |
+          git config --local user.email "info@blacklanternsecurity.com"
+          git config --local user.name "GitHub Actions"
+      - name: Tag commit
+        run: |
+          VERSION="v${{ needs.publish_code.outputs.BBOT_VERSION }}"
+          if [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
+            git tag -a "$VERSION" -m "Stable Release $VERSION"
+          else
+            git tag -a "$VERSION" -m "Dev Release $VERSION"
+          fi
+          git push origin "$VERSION"
+
   publish_docs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
@@ -194,10 +234,10 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
       - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install --only=docs
+        run: uv sync --only-group docs
       - name: Configure Git
         run: |
           git config user.name github-actions
@@ -211,35 +251,12 @@ jobs:
       - name: Generate docs (stable branch)
         if: github.ref == 'refs/heads/stable'
         run: |
-          poetry run mike deploy Stable
+          uv run mike deploy Stable
       - name: Generate docs (dev branch)
         if: github.ref == 'refs/heads/dev'
         run: |
-          poetry run mike deploy Dev
+          uv run mike deploy Dev
       - name: Publish docs
         run: |
           git switch gh-pages
           git push
-  # tag_commit:
-  #   needs: publish_code
-  #   runs-on: ubuntu-latest
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #       with:
-  #         ref: ${{ github.head_ref }}
-  #         fetch-depth: 0 # Fetch all history for all tags and branches
-  #     - name: Configure git
-  #       run: |
-  #         git config --local user.email "info@blacklanternsecurity.com"
-  #         git config --local user.name "GitHub Actions"
-  #     - name: Tag commit
-  #       run: |
-  #         VERSION="${{ needs.publish_code.outputs.BBOT_VERSION }}"
-  #         if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-  #           TAG_MESSAGE="Dev Release $VERSION"
-  #         elif [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
-  #           TAG_MESSAGE="Stable Release $VERSION"
-  #         fi
-  #         git tag -a $VERSION -m "$TAG_MESSAGE"
-  #         git push origin --tags

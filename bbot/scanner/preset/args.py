@@ -105,9 +105,12 @@ class BBOTArgs:
     def preset_from_args(self):
         # the order here is important
         # first we make the preset
+        # -t/--targets becomes target (defines target, what in_target() checks)
+        # -s/--seeds becomes seeds (drives passive modules), defaults to targets if not specified
+        seeds = self.parsed.seeds if self.parsed.seeds is not None else self.parsed.targets
         args_preset = self.preset.__class__(
-            *self.parsed.targets,
-            whitelist=self.parsed.whitelist,
+            *(self.parsed.targets or []),
+            seeds=seeds if seeds else None,
             blacklist=self.parsed.blacklist,
             name="args_preset",
         )
@@ -225,21 +228,19 @@ class BBOTArgs:
         p = argparse.ArgumentParser(*args, **kwargs)
 
         target = p.add_argument_group(title="Target")
+        target.add_argument("-t", "--targets", nargs="+", default=[], help="Target scope", metavar="TARGET")
         target.add_argument(
-            "-t", "--targets", nargs="+", default=[], help="Targets to seed the scan", metavar="TARGET"
-        )
-        target.add_argument(
-            "-w",
-            "--whitelist",
+            "-s",
+            "--seeds",
             nargs="+",
             default=None,
-            help="What's considered in-scope (by default it's the same as --targets)",
+            help="Define seeds to drive passive modules without being in scope (if not specified, defaults to same as targets)",
         )
         target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
         target.add_argument(
             "--strict-scope",
             action="store_true",
-            help="Don't consider subdomains of target/whitelist to be in-scope",
+            help="Don't consider subdomains of target to be in-scope - exact matches only",
         )
         presets = p.add_argument_group(title="Presets")
         presets.add_argument(
@@ -307,7 +308,7 @@ class BBOTArgs:
         scan.add_argument("-n", "--name", help="Name of scan (default: random)", metavar="SCAN_NAME")
         scan.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
         scan.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
-        scan.add_argument("-s", "--silent", action="store_true", help="Be quiet")
+        scan.add_argument("-S", "--silent", action="store_true", help="Be quiet")
         scan.add_argument(
             "--force",
             action="store_true",
@@ -412,9 +413,9 @@ class BBOTArgs:
         self.parsed.targets = chain_lists(
             self.parsed.targets, try_files=True, msg="Reading targets from file: {filename}"
         )
-        if self.parsed.whitelist is not None:
-            self.parsed.whitelist = chain_lists(
-                self.parsed.whitelist, try_files=True, msg="Reading whitelist from file: {filename}"
+        if self.parsed.seeds is not None:
+            self.parsed.seeds = chain_lists(
+                self.parsed.seeds, try_files=True, msg="Reading seeds from file: {filename}"
             )
         self.parsed.blacklist = chain_lists(
             self.parsed.blacklist, try_files=True, msg="Reading blacklist from file: {filename}"

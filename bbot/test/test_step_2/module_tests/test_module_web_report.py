@@ -17,7 +17,9 @@ class TestWebReport(ModuleTestBase):
         report_file = module_test.scan.home / "web_report.html"
         with open(report_file) as f:
             report_content = f.read()
-        assert "<li>[CRITICAL] Known Secret Found" in report_content
+        assert "<li>Severity: [CRITICAL] Confidence: [" in report_content
+        assert "CONFIRMED" in report_content
+        assert "Known Secret Found" in report_content
         assert (
             """<h3>URL</h3>
 <ul>
@@ -26,7 +28,7 @@ class TestWebReport(ModuleTestBase):
         )
         assert """Possible Secret Found. Detector Type: [PrivateKey]""" in report_content
         assert "<h3>TECHNOLOGY</h3>" in report_content
-        assert "<li>DotNetNuke</li>" in report_content
+        assert "<li>dotnetnuke</li>" in report_content
 
 
 web_body = """

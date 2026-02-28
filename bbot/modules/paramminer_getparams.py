@@ -8,7 +8,6 @@ class paramminer_getparams(paramminer_headers):
 
     watched_events = ["HTTP_RESPONSE", "WEB_PARAMETER"]
     produced_events = ["WEB_PARAMETER"]
-    produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {
         "description": "Use smart brute-force to check for common HTTP GET parameters",

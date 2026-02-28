@@ -52,30 +52,26 @@ class TestGeneric_SSRF(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
-        total_vulnerabilities = 0
         total_findings = 0
 
         for e in events:
-            if e.type == "VULNERABILITY":
-                total_vulnerabilities += 1
-            elif e.type == "FINDING":
+            if e.type == "FINDING":
                 total_findings += 1
 
-        assert total_vulnerabilities == 30, "Incorrect number of vulnerabilities detected"
-        assert total_findings == 30, "Incorrect number of findings detected"
+        assert total_findings == 60, "Incorrect number of findings detected"
 
         assert any(
-            e.type == "VULNERABILITY"
+            e.type == "FINDING"
             and "Out-of-band interaction: [Generic SSRF (GET)]"
             and "[Triggering Parameter: Dest]" in e.data["description"]
             for e in events
         ), "Failed to detect Generic SSRF (GET)"
         assert any(
-            e.type == "VULNERABILITY" and "Out-of-band interaction: [Generic SSRF (POST)]" in e.data["description"]
+            e.type == "FINDING" and "Out-of-band interaction: [Generic SSRF (POST)]" in e.data["description"]
             for e in events
         ), "Failed to detect Generic SSRF (POST)"
         assert any(
-            e.type == "VULNERABILITY" and "Out-of-band interaction: [Generic XXE] [HTTP]" in e.data["description"]
+            e.type == "FINDING" and "Out-of-band interaction: [Generic XXE] [HTTP]" in e.data["description"]
             for e in events
         ), "Failed to detect Generic SSRF (XXE)"
 
@@ -84,14 +80,10 @@ class TestGeneric_SSRF_httponly(TestGeneric_SSRF):
     config_overrides = {"modules": {"generic_ssrf": {"skip_dns_interaction": True}}}
 
     def check(self, module_test, events):
-        total_vulnerabilities = 0
         total_findings = 0
 
         for e in events:
-            if e.type == "VULNERABILITY":
-                total_vulnerabilities += 1
-            elif e.type == "FINDING":
+            if e.type == "FINDING":
                 total_findings += 1
 
-        assert total_vulnerabilities == 30, "Incorrect number of vulnerabilities detected"
-        assert total_findings == 0, "Incorrect number of findings detected"
+        assert total_findings == 30, "Incorrect number of findings detected"

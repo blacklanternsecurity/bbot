@@ -40,7 +40,7 @@ class shodan_idb(BaseModule):
     """
 
     watched_events = ["IP_ADDRESS", "DNS_NAME"]
-    produced_events = ["TECHNOLOGY", "VULNERABILITY", "FINDING", "OPEN_TCP_PORT", "DNS_NAME"]
+    produced_events = ["TECHNOLOGY", "FINDING", "OPEN_TCP_PORT", "DNS_NAME"]
     flags = ["passive", "safe", "portscan", "subdomain-enum"]
     meta = {
         "description": "Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities",
@@ -143,7 +143,14 @@ class shodan_idb(BaseModule):
         if vulns:
             vulns_str = ", ".join([str(v) for v in vulns])
             await self.emit_event(
-                {"description": f"Shodan reported possible vulnerabilities: {vulns_str}", "host": str(event.host)},
+                {
+                    "description": f"Shodan reported possible vulnerabilities: {vulns_str}",
+                    "host": str(event.host),
+                    "cves": vulns,
+                    "name": "Shodan - Possible Vulnerabilities",
+                    "severity": "MEDIUM",
+                    "confidence": "LOW",
+                },
                 "FINDING",
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found potential {{event.type}}: {vulns_str}',

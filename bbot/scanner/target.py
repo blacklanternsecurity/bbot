@@ -20,7 +20,7 @@ class BaseTarget(RadixTarget):
     while allowing lightning fast scope lookups.
 
     This class is inherited by all three components of the BBOT target:
-        - Whitelist
+        - Target
         - Blacklist
         - Seeds
     """
@@ -95,7 +95,26 @@ class BaseTarget(RadixTarget):
         event_seeds = sorted(event_seeds, key=lambda e: (0, 0) if not e.host else host_size_key(e.host))
         for event_seed in event_seeds:
             self.event_seeds.add(event_seed)
+            # Some event seeds (e.g. ORG_STUB, USERNAME, BLACKLIST_REGEX) are not host-based and have
+            # host == None. These are still useful as parsed target entries, but cannot always be
+            # represented in the underlying RadixTarget tree, which expects a concrete host.
+            # Subclasses like ScanBlacklist may still need to see these entries (for regex handling,
+            # etc.), so we always call self._add() and let the subclass decide whether to forward to
+            # the radix layer.
             self._add(event_seed.host, data=(event_seed if data is None else data))
+
+    def _add(self, host, data):
+        """
+        Wrapper around RadixTarget._add().
+
+        The radix tree cannot handle host == None, but some subclasses (e.g. ScanBlacklist)
+        need to receive non-host-based entries such as BLACKLIST_REGEX. BaseTarget.add()
+        always calls self._add(); this default implementation safely ignores hostless
+        entries while still delegating normal hosts to the underlying RadixTarget.
+        """
+        if host is None:
+            return
+        super()._add(host, data)
 
     def __iter__(self):
         yield from self.event_seeds
@@ -105,7 +124,8 @@ class ScanSeeds(BaseTarget):
     """
     Initial events used to seed a scan.
 
-    These are the targets specified by the user, e.g. via `-t` on the CLI.
+    These are the seeds specified by the user, e.g. via `-s` on the CLI.
+    If no seeds were specified, the targets (`-t`) are copied here.
     """
 
     def get(self, event, single=True, **kwargs):
@@ -143,9 +163,9 @@ class ACLTarget(BaseTarget):
         super().__init__(*args, **kwargs)
 
 
-class ScanWhitelist(ACLTarget):
+class ScanTarget(ACLTarget):
     """
-    A collection of BBOT events that represent a scan's whitelist.
+    A collection of BBOT events that represent a scan's targets.
     """
 
     pass
@@ -213,48 +233,55 @@ class BBOTTarget:
     """
     A convenient abstraction of a scan target that contains three subtargets:
         - seeds
-        - whitelist
+        - target
         - blacklist
 
-    Provides high-level functions like in_scope(), which includes both whitelist and blacklist checks.
+    Provides high-level functions like in_scope(), which includes both target and blacklist checks.
     """
 
-    def __init__(self, *seeds, whitelist=None, blacklist=None, strict_scope=False):
-        self.strict_scope = strict_scope
-        self.seeds = ScanSeeds(*seeds, strict_dns_scope=strict_scope)
-        if whitelist is None:
-            whitelist = self.seeds.hosts
-        self.whitelist = ScanWhitelist(*whitelist, strict_dns_scope=strict_scope)
-        if blacklist is None:
-            blacklist = []
-        self.blacklist = ScanBlacklist(*blacklist)
+    def __init__(self, seeds=None, target=None, blacklist=None, strict_dns_scope=False):
+        self.strict_dns_scope = strict_dns_scope
+        self._orig_seeds = seeds
+
+        target_list = list(target) if target else []
+        self.target = ScanTarget(*target_list, strict_dns_scope=strict_dns_scope)
+
+        # Seeds are only copied from target if target is defined but seeds are NOT defined
+        # Use target.inputs (original inputs) to preserve all inputs, including subdomains
+        if seeds is None:
+            seeds = self.target.inputs
+        self.seeds = ScanSeeds(*list(seeds), strict_dns_scope=strict_dns_scope)
+
+        blacklist_list = list(blacklist) if blacklist else []
+        self.blacklist = ScanBlacklist(*blacklist_list)
 
     @property
     def json(self):
-        return {
-            "seeds": sorted(self.seeds.inputs),
-            "whitelist": sorted(self.whitelist.inputs),
+        j = {
+            "target": sorted(self.target.inputs),
             "blacklist": sorted(self.blacklist.inputs),
-            "strict_scope": self.strict_scope,
+            "strict_dns_scope": self.strict_dns_scope,
             "hash": self.hash.hex(),
             "seed_hash": self.seeds.hash.hex(),
-            "whitelist_hash": self.whitelist.hash.hex(),
+            "target_hash": self.target.hash.hex(),
             "blacklist_hash": self.blacklist.hash.hex(),
             "scope_hash": self.scope_hash.hex(),
         }
+        if self._orig_seeds is not None:
+            j["seeds"] = sorted(self.seeds.inputs)
+        return j
 
     @property
     def hash(self):
         sha1_hash = sha1()
-        for target_hash in [t.hash for t in (self.seeds, self.whitelist, self.blacklist)]:
+        for target_hash in [t.hash for t in (self.seeds, self.target, self.blacklist)]:
             sha1_hash.update(target_hash)
         return sha1_hash.digest()
 
     @property
     def scope_hash(self):
         sha1_hash = sha1()
-        # Consider only the hash values of the whitelist and blacklist
-        for target_hash in [t.hash for t in (self.whitelist, self.blacklist)]:
+        for target_hash in [t.hash for t in (self.target, self.blacklist)]:
             sha1_hash.update(target_hash)
         return sha1_hash.digest()
 
@@ -263,8 +290,12 @@ class BBOTTarget:
         Check whether a hostname, url, IP, etc. is in scope.
         Accepts either events or string data.
 
-        Checks whitelist and blacklist.
-        If `host` is an event and its scope distance is zero, it will automatically be considered in-scope.
+        This method checks both target AND blacklist.
+        A host is in-scope if it is in the target AND not blacklisted.
+
+        Note: This is different from `in_target()` which only checks the target.
+        - `in_target()`: checks if host is in the target
+        - `in_scope()`: checks if host is in the target AND not blacklisted
 
         Examples:
             Check if a URL is in scope:
@@ -272,8 +303,9 @@ class BBOTTarget:
             True
         """
         blacklisted = self.blacklisted(host)
-        whitelisted = self.whitelisted(host)
-        return whitelisted and not blacklisted
+        if blacklisted:
+            return False
+        return self.in_target(host)
 
     def blacklisted(self, host):
         """
@@ -291,21 +323,24 @@ class BBOTTarget:
         """
         return host in self.blacklist
 
-    def whitelisted(self, host):
+    def in_target(self, host):
         """
-        Check whether a hostname, url, IP, etc. is whitelisted.
+        Check whether a hostname, url, IP, etc. is in the target.
+
+        This method ONLY checks the target, NOT the blacklist.
+        Use `in_scope()` to check both target AND blacklist.
 
         Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
 
         Args:
-            host (str or IPAddress or Event): The host to check against the whitelist
+            host (str or IPAddress or Event): The host to check against the target
 
         Examples:
-            Check if a URL's host is whitelisted:
-            >>> preset.whitelisted("http://www.evilcorp.com")
+            Check if a URL's host is in target:
+            >>> preset.in_target("http://www.evilcorp.com")
             True
         """
-        return host in self.whitelist
+        return host in self.target
 
     def __eq__(self, other):
         return self.hash == other.hash
@@ -315,9 +350,10 @@ class BBOTTarget:
         Generate children for the target, for seed types that expand into other seed types.
         Helpers are passed into the _generate_children method to enable the use of network lookups and other utilities during the expansion process.
         """
-        # Check if this target had a custom whitelist (whitelist different from the default seed hosts)
-        original_seed_hosts = self.seeds.hosts
-        had_custom_whitelist = set(self.whitelist.inputs) != set(original_seed_hosts)
+        # Check if this target had a custom target scope (target different from the default seed hosts)
+        # Compare inputs (strings) to inputs (strings) to avoid type mismatches
+        # between string inputs and host objects (IP networks, etc.)
+        had_custom_target = set(self.target.inputs) != set(self.seeds.inputs)
 
         # Expand seeds first
         for event_seed in list(self.seeds.event_seeds):
@@ -331,11 +367,11 @@ class BBOTTarget:
             for child in children:
                 self.blacklist.add(child)
 
-        # After expanding seeds, update the whitelist to include any new hosts from seed expansion
+        # After expanding seeds, update the target to include any new hosts from seed expansion
         # This ensures that expanded targets (like IP ranges from ASN) are considered in-scope
-        # BUT only if no custom whitelist was provided - don't override user's custom whitelist
-        if not had_custom_whitelist:
+        # BUT only if no custom target was provided - don't override user's custom target
+        if not had_custom_target:
             expanded_seed_hosts = self.seeds.hosts
             for host in expanded_seed_hosts:
-                if host not in self.whitelist:
-                    self.whitelist.add(host)
+                if host not in self.target:
+                    self.target.add(host)

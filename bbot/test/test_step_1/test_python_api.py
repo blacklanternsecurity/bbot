@@ -3,7 +3,7 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_python_api(clean_default_config):
-    from bbot import Scanner
+    from bbot.scanner import Scanner
 
     # make sure events are properly yielded
     scan1 = Scanner("127.0.0.1")
@@ -51,20 +51,18 @@ async def test_python_api(clean_default_config):
 
     # output modules override
     scan5 = Scanner()
-    await scan5._prep()
     assert set(scan5.preset.output_modules) == {"csv", "json", "python", "txt"}
     scan6 = Scanner(output_modules=["json"])
-    await scan6._prep()
     assert set(scan6.preset.output_modules) == {"json"}
 
     # custom target types
     custom_target_scan = Scanner("ORG:evilcorp")
     events = [e async for e in custom_target_scan.async_start()]
-    assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp" and "target" in e.tags])
+
+    assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp" and "seed" in e.tags])
 
     # presets
     scan7 = Scanner("evilcorp.com", presets=["subdomain-enum"])
-    await scan7._prep()
     assert "sslcert" in scan7.preset.modules
 
 
@@ -108,9 +106,8 @@ async def test_python_api_validation():
     assert str(error.value) == 'Could not find scan module "asdf". Did you mean "asn"?'
     # invalid output module
     with pytest.raises(ValidationError) as error:
-        scan = Scanner(output_modules=["asdf"])
-        await scan._prep()
-    assert str(error.value) == 'Could not find output module "asdf". Did you mean "teams"?'
+        Scanner(output_modules=["asdf"])
+    assert str(error.value) == 'Could not find output module "asdf". Did you mean "nats"?'
     # invalid excluded module
     with pytest.raises(ValidationError) as error:
         scan = Scanner(exclude_modules=["asdf"])
@@ -138,9 +135,8 @@ async def test_python_api_validation():
     assert str(error.value) == 'Could not find scan module "json". Did you mean "asn"?'
     # normal module as output module
     with pytest.raises(ValidationError) as error:
-        scan = Scanner(output_modules=["robots"])
-        await scan._prep()
-    assert str(error.value) == 'Could not find output module "robots". Did you mean "web_report"?'
+        Scanner(output_modules=["robots"])
+    assert str(error.value) == 'Could not find output module "robots". Did you mean "rabbitmq"?'
     # invalid preset type
     with pytest.raises(ValidationError) as error:
         scan = Scanner(preset="asdf")

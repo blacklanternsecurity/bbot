@@ -90,9 +90,9 @@ class BBOTAsyncClient(httpx.AsyncClient):
             kwargs["url"] = url
         url = kwargs["url"]
 
-        target_in_scope = self._target.in_scope(str(url))
+        in_target = self._target.in_target(str(url))
 
-        if target_in_scope:
+        if in_target:
             if not kwargs.get("cookies", None):
                 kwargs["cookies"] = {}
             for ck, cv in self._web_config.get("http_cookies", {}).items():
@@ -101,7 +101,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
 
         request = super().build_request(**kwargs)
 
-        if target_in_scope:
+        if in_target:
             for hk, hv in self._web_config.get("http_headers", {}).items():
                 hv = str(hv)
                 # don't clobber headers

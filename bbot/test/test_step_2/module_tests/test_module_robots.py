@@ -22,7 +22,7 @@ class TestRobots(ModuleTestBase):
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
-                if str(e.module) != "TARGET":
+                if str(e.module) != "SEED":
                     assert "spider-danger" in e.tags, f"{e} doesn't have spider-danger tag"
                 if e.data == "http://127.0.0.1:8888/allow/":
                     allow_bool = True

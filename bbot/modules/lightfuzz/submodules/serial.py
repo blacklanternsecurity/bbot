@@ -165,7 +165,9 @@ class serial(BaseLightfuzz):
 
                     self.results.append(
                         {
-                            "type": "FINDING",
+                            "name": "Possible Unsafe Deserialization",
+                            "severity": "HIGH",
+                            "confidence": "LOW",
                             "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Error Resolution (Baseline: [{payload_baseline.baseline.status_code}] {baseline_title} -> Probe: [{status_code}] {probe_title})] Serialization Payload: [{type}]",
                         }
                     )
@@ -182,7 +184,9 @@ class serial(BaseLightfuzz):
                             self.debug(f"Error string '{serialization_error}' found in response for {type}")
                             self.results.append(
                                 {
-                                    "type": "FINDING",
+                                    "name": "Possible Unsafe Deserialization",
+                                    "severity": "HIGH",
+                                    "confidence": "LOW",
                                     "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Differential Error Analysis] Error-String: [{serialization_error}] Payload: [{type}]",
                                 }
                             )

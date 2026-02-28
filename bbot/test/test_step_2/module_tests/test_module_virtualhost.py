@@ -857,9 +857,9 @@ class TestVirtualhostHTTPResponse(VirtualhostTestBase):
                     # Debug: print the response data to see what badsecrets is analyzing
                     print(f"HTTP_RESPONSE data: {e.data}")
 
-            # Check for badsecrets vulnerability findings
-            elif e.type == "VULNERABILITY":
-                print(f"Found VULNERABILITY event: {e.data}")
+            # Check for badsecrets findings
+            elif e.type == "FINDING":
+                print(f"Found FINDING event: {e.data}")
                 description = e.data["description"]
 
                 # Check for JWT vulnerability (from cookie)

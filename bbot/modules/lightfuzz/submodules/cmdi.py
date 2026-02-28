@@ -74,7 +74,9 @@ class cmdi(BaseLightfuzz):
         if len(positive_detections) > 0:
             self.results.append(
                 {
-                    "type": "FINDING",
+                    "name": "Possible Command Injection",
+                    "severity": "CRITICAL",
+                    "confidence": "MODERATE",
                     "description": f"POSSIBLE OS Command Injection. {self.metadata()} Detection Method: [echo canary] CMD Probe Delimeters: [{' '.join(positive_detections)}]",
                 }
             )

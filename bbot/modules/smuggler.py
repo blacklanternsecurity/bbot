@@ -40,7 +40,14 @@ class smuggler(BaseModule):
                     text = f.split(":")[1].split("-")[0].strip()
                     description = f"[HTTP SMUGGLER] [{text}] Technique: {technique}"
                     await self.emit_event(
-                        {"host": str(event.host), "url": event.data, "description": description},
+                        {
+                            "host": str(event.host),
+                            "url": event.data,
+                            "description": description,
+                            "name": "Possible HTTP Smuggling",
+                            "severity": "MEDIUM",
+                            "confidence": "LOW",
+                        },
                         "FINDING",
                         parent=event,
                         context=f"{{module}} scanned {event.data} and found HTTP smuggling ({{event.type}}): {text}",

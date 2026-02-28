@@ -1,6 +1,7 @@
 import sys
 from xml.dom import minidom
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 from bbot import __version__
@@ -76,7 +77,7 @@ class Nmap_XML(BaseOutputModule):
     async def report(self):
         scan_start_time = str(int(self.scan.start_time.timestamp()))
         scan_start_time_str = self.scan.start_time.strftime("%a %b %d %H:%M:%S %Y")
-        scan_end_time = datetime.now()
+        scan_end_time = datetime.now(ZoneInfo("UTC"))
         scan_end_time_str = scan_end_time.strftime("%a %b %d %H:%M:%S %Y")
         scan_end_time_timestamp = str(scan_end_time.timestamp())
         scan_duration = scan_end_time - self.scan.start_time

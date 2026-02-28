@@ -1,5 +1,5 @@
 from typing import List
-from bbot import Scanner
+from bbot.scanner import Scanner
 from fastapi import FastAPI, Query
 
 app = FastAPI()

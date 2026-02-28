@@ -17,7 +17,7 @@ jobs:
         os: ["ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "kalilinux/kali-rolling", "parrotsec/security"]
     steps:
       - uses: actions/checkout@v6
-      - name: Install Python and Poetry
+      - name: Install Python and uv
         run: |
           if [ -f /etc/os-release ]; then
             . /etc/os-release
@@ -51,7 +51,7 @@ jobs:
             pyenv rehash
             python3.11 -m pip install --user pipx
             python3.11 -m pipx ensurepath
-            pipx install poetry
+            pipx install uv
           "
       - name: Set OS Environment Variable
         run: echo "OS_NAME=${{ matrix.os }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
@@ -61,9 +61,9 @@ jobs:
           export PATH="$HOME/.pyenv/bin:$PATH"
           export PATH="$HOME/.pyenv/shims:$PATH"
           export BBOT_DISTRO_TESTS=true
-          poetry env use python3.11
-          poetry install
-          poetry run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
+          uv python pin 3.11
+          uv sync --group dev
+          uv run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
       - name: Upload Debug Logs
         if: always()
         uses: actions/upload-artifact@v6

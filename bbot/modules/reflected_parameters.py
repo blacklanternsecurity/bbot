@@ -25,7 +25,14 @@ class reflected_parameters(BaseModule):
                 description += (
                     f" Original Value: [{self.helpers.truncate_string(str(event.data['original_value']), 200)}]"
                 )
-            data = {"host": str(event.host), "description": description, "url": url}
+            data = {
+                "host": str(event.host),
+                "description": description,
+                "url": url,
+                "name": "Reflected Parameter",
+                "severity": "INFORMATIONAL",
+                "confidence": "HIGH",
+            }
             await self.emit_event(data, "FINDING", event)
 
     async def detect_reflection(self, event, url):
@@ -56,17 +63,18 @@ class reflected_parameters(BaseModule):
         data = None
         json_data = None
         params = {parameter_name: parameter_value, "c4n4ry": canary_value}
+        param_type = event.data["type"]
 
-        if event.data["type"] == "GETPARAM":
+        if param_type == "GETPARAM":
             url = f"{url}?{parameter_name}={parameter_value}&c4n4ry={canary_value}"
-        elif event.data["type"] == "COOKIE":
+        elif param_type == "COOKIE":
             cookies.update(params)
-        elif event.data["type"] == "HEADER":
+        elif param_type == "HEADER":
             headers.update(params)
-        elif event.data["type"] == "POSTPARAM":
+        elif param_type == "POSTPARAM":
             method = "POST"
             data = params
-        elif event.data["type"] == "BODYJSON":
+        elif param_type == "BODYJSON":
             method = "POST"
             json_data = params
 

@@ -94,6 +94,7 @@ class ConfigAwareHelper:
         self._web = None
         self._asn = None
         self._cloudcheck = None
+        self._asn = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)

@@ -59,15 +59,15 @@ class DNSResolve(BaseInterceptModule):
             non_minimal_rdtypes = self.non_minimal_rdtypes
 
         # first, we find or create the main DNS_NAME or IP_ADDRESS associated with this event
-        main_host_event, whitelisted, blacklisted, new_event = self.get_dns_parent(event)
+        main_host_event, in_target, blacklisted, new_event = self.get_dns_parent(event)
         original_tags = set(event.tags)
 
         # minimal resolution - first, we resolve A/AAAA records for scope purposes
         if new_event or event is main_host_event:
             await self.resolve_event(main_host_event, types=minimal_rdtypes)
-            # are any of its IPs whitelisted/blacklisted?
-            whitelisted, blacklisted = self.check_scope(main_host_event)
-            if whitelisted and event.scope_distance > 0:
+            # are any of its IPs in target scope or blacklisted?
+            in_target, blacklisted = self.check_scope(main_host_event)
+            if in_target and main_host_event.scope_distance > 0:
                 self.debug(f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)")
                 main_host_event.scope_distance = 0
 
@@ -99,9 +99,13 @@ class DNSResolve(BaseInterceptModule):
                                 )
 
         # if there weren't any DNS children and it's not an IP address, tag as unresolved
+        # Exception: don't convert seed events to DNS_NAME_UNRESOLVED so accept_seeds modules can process them
         if not main_host_event.raw_dns_records and not event_is_ip:
-            main_host_event.add_tag("unresolved")
-            main_host_event.type = "DNS_NAME_UNRESOLVED"
+            if "seed" not in main_host_event.tags:
+                main_host_event.add_tag("unresolved")
+                main_host_event.type = "DNS_NAME_UNRESOLVED"
+                # avoid emitting DNS_NAME_UNRESOLVED affiliates
+                main_host_event.always_emit_tags = []
 
         # main_host_event.add_tag(f"resolve-distance-{main_host_event.dns_resolve_distance}")
 
@@ -150,7 +154,7 @@ class DNSResolve(BaseInterceptModule):
             event.add_tag(f"{rdtype}-{wildcard_tag}")
 
         # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-        if wildcard_rdtypes and "target" not in event.tags:
+        if wildcard_rdtypes and "seed" not in event.tags:
             # these are the rdtypes that have wildcards
             wildcard_rdtypes_set = set(wildcard_rdtypes)
             # consider the event a full wildcard if all its records are wildcards
@@ -219,7 +223,7 @@ class DNSResolve(BaseInterceptModule):
                         )
 
     def check_scope(self, event):
-        whitelisted = False
+        in_target = False
         blacklisted = False
         dns_children = getattr(event, "dns_children", {})
         for rdtype in ("A", "AAAA", "CNAME"):
@@ -229,11 +233,11 @@ class DNSResolve(BaseInterceptModule):
             for host in hosts:
                 # having a CNAME to an in-scope host doesn't make you in-scope
                 if rdtype != "CNAME":
-                    if not whitelisted:
+                    if not in_target:
                         with suppress(ValidationError):
-                            if self.scan.whitelisted(host):
-                                whitelisted = True
-                                event.add_tag(f"dns-whitelisted-{rdtype}")
+                            if self.scan.in_target(host):
+                                in_target = True
+                                event.add_tag(f"dns-in-target-{rdtype}")
                 # but a CNAME to a blacklisted host means you're blacklisted
                 if not blacklisted:
                     with suppress(ValidationError):
@@ -242,8 +246,8 @@ class DNSResolve(BaseInterceptModule):
                             event.add_tag("blacklisted")
                             event.add_tag(f"dns-blacklisted-{rdtype}")
         if blacklisted:
-            whitelisted = False
-        return whitelisted, blacklisted
+            in_target = False
+        return in_target, blacklisted
 
     async def resolve_event(self, event, types):
         if not types:
@@ -287,16 +291,22 @@ class DNSResolve(BaseInterceptModule):
     def get_dns_parent(self, event):
         """
         Get the first parent DNS_NAME / IP_ADDRESS of an event. If one isn't found, create it.
+
+        Returns a 4-tuple of:
+        - the parent event
+        - whether the parent is in target
+        - whether the parent is blacklisted
+        - whether the parent is a new event, i.e. it is newly created or is the current event
         """
         for parent in event.get_parents(include_self=True):
             if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
                 blacklisted = any(t.startswith("dns-blacklisted-") for t in parent.tags)
-                whitelisted = any(t.startswith("dns-whitelisted-") for t in parent.tags)
+                in_target = any(t.startswith("dns-in-target-") for t in parent.tags)
                 new_event = parent is event
-                return parent, whitelisted, blacklisted, new_event
+                return parent, in_target, blacklisted, new_event
         tags = set()
-        if "target" in event.tags:
-            tags.add("target")
+        if "seed" in event.tags:
+            tags.add("seed")
         return (
             self.scan.make_event(
                 event.host,
