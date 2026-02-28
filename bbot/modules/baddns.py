@@ -5,6 +5,9 @@ from .base import BaseModule
 import asyncio
 import logging
 
+SEVERITY_LEVELS = ("INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL")
+CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED")
+
 
 class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
@@ -15,14 +18,15 @@ class baddns(BaseModule):
         "created_date": "2024-01-18",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "only_high_confidence": False, "enabled_submodules": []}
+    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MODERATE", "enabled_submodules": []}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
-        "only_high_confidence": "Do not emit low-confidence or generic detections",
+        "min_severity": "Minimum severity to emit (INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL)",
+        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)",
         "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.12.294"]
+    deps_pip = ["baddns~=2.0.0"]
 
     def select_modules(self):
         selected_submodules = []
@@ -36,12 +40,26 @@ class baddns(BaseModule):
         if self.enabled_submodules == []:
             self.enabled_submodules = ["CNAME", "MX", "TXT"]
 
+    def _meets_threshold(self, severity, confidence):
+        sev_idx = SEVERITY_LEVELS.index(severity) if severity in SEVERITY_LEVELS else 0
+        conf_idx = CONFIDENCE_LEVELS.index(confidence) if confidence in CONFIDENCE_LEVELS else 0
+        return sev_idx >= self._min_sev_idx and conf_idx >= self._min_conf_idx
+
     async def setup(self):
         self.preset.core.logger.include_logger(logging.getLogger("baddns"))
         self.custom_nameservers = self.config.get("custom_nameservers", []) or None
         if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
-        self.only_high_confidence = self.config.get("only_high_confidence", False)
+        min_severity = self.config.get("min_severity", "LOW").upper()
+        min_confidence = self.config.get("min_confidence", "MODERATE").upper()
+        if min_severity not in SEVERITY_LEVELS:
+            self.warning(f"Invalid min_severity: {min_severity}, defaulting to LOW")
+            min_severity = "LOW"
+        if min_confidence not in CONFIDENCE_LEVELS:
+            self.warning(f"Invalid min_confidence: {min_confidence}, defaulting to MODERATE")
+            min_confidence = "MODERATE"
+        self._min_sev_idx = SEVERITY_LEVELS.index(min_severity)
+        self._min_conf_idx = CONFIDENCE_LEVELS.index(min_confidence)
         self.signatures = load_signatures()
         self.set_modules()
         all_submodules_list = [m.name for m in get_all_modules()]
@@ -88,46 +106,28 @@ class baddns(BaseModule):
                         r_dict = r.to_dict()
 
                         confidence = r_dict["confidence"]
+                        severity = r_dict["severity"]
 
-                        if confidence in ["CONFIRMED", "PROBABLE"]:
-                            data = {
-                                "severity": "MEDIUM",
-                                "name": f"BadDNS {r_dict['signature']}",
-                                "confidence": "HIGH",
-                                "description": f"{r_dict['description']}. Confidence: [{confidence}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
-                                "host": str(event.host),
-                            }
-                            await self.emit_event(
-                                data,
-                                "FINDING",
-                                event,
-                                tags=[f"baddns-{module_instance.name.lower()}"],
-                                context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
+                        if not self._meets_threshold(severity, confidence):
+                            self.debug(
+                                f"Skipping result below threshold (severity={severity}, confidence={confidence})"
                             )
+                            continue
 
-                        elif confidence in ["UNLIKELY", "POSSIBLE"]:
-                            if not self.only_high_confidence:
-                                data = {
-                                    "name": f"BadDNS {r_dict['signature']}",
-                                    "description": f"{r_dict['description']} Confidence: [{confidence}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
-                                    "host": str(event.host),
-                                    "severity": "MEDIUM",
-                                    "confidence": "LOW",
-                                }
-                                await self.emit_event(
-                                    data,
-                                    "FINDING",
-                                    event,
-                                    tags=[f"baddns-{module_instance.name.lower()}"],
-                                    context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
-                                )
-                            else:
-                                self.debug(
-                                    f"Skipping low-confidence result due to only_high_confidence setting: {confidence}"
-                                )
-
-                        else:
-                            self.warning(f"Got unrecognized confidence level: {confidence}")
+                        data = {
+                            "severity": severity,
+                            "name": f"BadDNS {r_dict['signature']}",
+                            "confidence": confidence,
+                            "description": f"{r_dict['description']}. Confidence: [{confidence}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
+                            "host": str(event.host),
+                        }
+                        await self.emit_event(
+                            data,
+                            "FINDING",
+                            event,
+                            tags=[f"baddns-{module_instance.name.lower()}"],
+                            context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
+                        )
 
                         found_domains = r_dict.get("found_domains", None)
                         if found_domains:
