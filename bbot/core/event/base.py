@@ -605,7 +605,7 @@ class BaseEvent:
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
                 event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate",):
+                    if t in ("affiliate"):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
@@ -1129,6 +1129,41 @@ class ASN(DictEvent):
     _always_emit = True
     _quick_emit = True
 
+    def sanitize_data(self, data):
+        if not isinstance(data, int):
+            raise ValidationError(f"ASN number must be an integer: {data}")
+        return data
+
+    def _data_human(self):
+        """Create a concise human-readable representation of ASN data."""
+        # Start with basic ASN info
+        display_data = {"asn": str(self.data)}
+
+        # Try to get additional ASN data from the helper if available
+        if hasattr(self, "scan") and self.scan and hasattr(self.scan, "helpers"):
+            try:
+                # Check if we can access the ASN helper synchronously
+                asn_helper = self.scan.helpers.asn
+                # Try to get cached data first (this should be synchronous)
+                cached_data = asn_helper._cache_lookup_asn(self.data)
+                if cached_data:
+                    display_data.update(
+                        {
+                            "name": cached_data.get("name", ""),
+                            "description": cached_data.get("description", ""),
+                            "country": cached_data.get("country", ""),
+                        }
+                    )
+                    # Replace subnets list with count for readability
+                    subnets = cached_data.get("subnets", [])
+                    if subnets and isinstance(subnets, list):
+                        display_data["subnet_count"] = len(subnets)
+            except Exception:
+                # If anything fails, just return basic ASN info
+                pass
+
+        return json.dumps(display_data, sort_keys=True)
+
 
 class CODE_REPOSITORY(DictHostEvent):
     _always_emit = True
@@ -1615,18 +1650,6 @@ class TECHNOLOGY(DictHostEvent):
 
     def _pretty_string(self):
         return self.data["technology"]
-
-
-class VHOST(DictHostEvent):
-    class _data_validator(BaseModel):
-        host: str
-        vhost: str
-        url: Optional[str] = None
-        _validate_url = field_validator("url")(validators.validate_url)
-        _validate_host = field_validator("host")(validators.validate_host)
-
-    def _pretty_string(self):
-        return self.data["vhost"]
 
 
 class PROTOCOL(DictHostEvent):

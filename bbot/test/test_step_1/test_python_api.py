@@ -2,17 +2,19 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_python_api():
+async def test_python_api(clean_default_config):
     from bbot.scanner import Scanner
 
     # make sure events are properly yielded
     scan1 = Scanner("127.0.0.1")
+    await scan1._prep()
     events1 = []
     async for event in scan1.async_start():
         events1.append(event)
     assert any(e.type == "IP_ADDRESS" and e.data == "127.0.0.1" for e in events1)
     # make sure output files work
     scan2 = Scanner("127.0.0.1", output_modules=["json"], scan_name="python_api_test")
+    await scan2._prep()
     await scan2.async_start_without_generator()
     scan_home = scan2.helpers.scans_dir / "python_api_test"
     out_file = scan_home / "output.json"
@@ -25,6 +27,7 @@ async def test_python_api():
     assert "python_api_test" in open(debug_log).read()
 
     scan3 = Scanner("127.0.0.1", output_modules=["json"], scan_name="scan_logging_test")
+    await scan3._prep()
     await scan3.async_start_without_generator()
 
     assert "scan_logging_test" not in open(scan_log).read()
@@ -46,10 +49,10 @@ async def test_python_api():
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
     # output modules override
-    scan4 = Scanner()
-    assert set(scan4.preset.output_modules) == {"csv", "json", "python", "txt"}
-    scan5 = Scanner(output_modules=["json"])
-    assert set(scan5.preset.output_modules) == {"json"}
+    scan5 = Scanner()
+    assert set(scan5.preset.output_modules) == {"csv", "json", "python", "txt"}
+    scan6 = Scanner(output_modules=["json"])
+    assert set(scan6.preset.output_modules) == {"json"}
 
     # custom target types
     custom_target_scan = Scanner("ORG:evilcorp")
@@ -58,22 +61,25 @@ async def test_python_api():
     assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp" and "seed" in e.tags])
 
     # presets
-    scan6 = Scanner("evilcorp.com", presets=["subdomain-enum"])
-    assert "sslcert" in scan6.preset.modules
+    scan7 = Scanner("evilcorp.com", presets=["subdomain-enum"])
+    assert "sslcert" in scan7.preset.modules
 
 
-def test_python_api_sync():
+@pytest.mark.asyncio
+async def test_python_api_sync(clean_default_config):
     from bbot.scanner import Scanner
 
     # make sure events are properly yielded
     scan1 = Scanner("127.0.0.1")
+    await scan1._prep()
     events1 = []
-    for event in scan1.start():
+    async for event in scan1.async_start():
         events1.append(event)
     assert any(e.type == "IP_ADDRESS" and e.data == "127.0.0.1" for e in events1)
     # make sure output files work
     scan2 = Scanner("127.0.0.1", output_modules=["json"], scan_name="python_api_test")
-    scan2.start_without_generator()
+    await scan2._prep()
+    await scan2.async_start_without_generator()
     out_file = scan2.helpers.scans_dir / "python_api_test" / "output.json"
     assert list(scan2.helpers.read_file(out_file))
     # make sure config loads properly
@@ -82,7 +88,8 @@ def test_python_api_sync():
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
 
-def test_python_api_validation():
+@pytest.mark.asyncio
+async def test_python_api_validation():
     from bbot.scanner import Scanner, Preset
 
     # invalid target

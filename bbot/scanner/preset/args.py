@@ -369,6 +369,7 @@ class BBOTArgs:
         deps = p.add_argument_group(
             title="Module dependencies", description="Control how modules install their dependencies"
         )
+        # Behavior flags are mutually exclusive with each other. But need to be able to be combined with --install-all-deps.
         g2 = deps.add_mutually_exclusive_group()
         g2.add_argument("--no-deps", action="store_true", help="Don't install module dependencies")
         g2.add_argument("--force-deps", action="store_true", help="Force install all module dependencies")
@@ -376,7 +377,7 @@ class BBOTArgs:
         g2.add_argument(
             "--ignore-failed-deps", action="store_true", help="Run modules even if they have failed dependencies"
         )
-        g2.add_argument("--install-all-deps", action="store_true", help="Install dependencies for all modules")
+        deps.add_argument("--install-all-deps", action="store_true", help="Install dependencies for all modules")
 
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")

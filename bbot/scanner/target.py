@@ -83,6 +83,9 @@ class BaseTarget(RadixTarget):
         event_seeds = set()
         for target in targets:
             event_seed = EventSeed(target)
+            log.debug(
+                f"Created EventSeed: {event_seed} (type: {event_seed.type}, target_type: {event_seed._target_type}, host: {event_seed.host})"
+            )
             if not event_seed._target_type in self.accept_target_types:
                 log.warning(f"Invalid target type for {self.__class__.__name__}: {event_seed.type}")
                 continue
@@ -341,3 +344,34 @@ class BBOTTarget:
 
     def __eq__(self, other):
         return self.hash == other.hash
+
+    async def generate_children(self, helpers=None):
+        """
+        Generate children for the target, for seed types that expand into other seed types.
+        Helpers are passed into the _generate_children method to enable the use of network lookups and other utilities during the expansion process.
+        """
+        # Check if this target had a custom target scope (target different from the default seed hosts)
+        # Compare inputs (strings) to inputs (strings) to avoid type mismatches
+        # between string inputs and host objects (IP networks, etc.)
+        had_custom_target = set(self.target.inputs) != set(self.seeds.inputs)
+
+        # Expand seeds first
+        for event_seed in list(self.seeds.event_seeds):
+            children = await event_seed._generate_children(helpers)
+            for child in children:
+                self.seeds.add(child)
+
+        # Also expand blacklist event seeds (like ASN targets)
+        for event_seed in list(self.blacklist.event_seeds):
+            children = await event_seed._generate_children(helpers)
+            for child in children:
+                self.blacklist.add(child)
+
+        # After expanding seeds, update the target to include any new hosts from seed expansion
+        # This ensures that expanded targets (like IP ranges from ASN) are considered in-scope
+        # BUT only if no custom target was provided - don't override user's custom target
+        if not had_custom_target:
+            expanded_seed_hosts = self.seeds.hosts
+            for host in expanded_seed_hosts:
+                if host not in self.target:
+                    self.target.add(host)

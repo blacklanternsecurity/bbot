@@ -15,7 +15,6 @@ from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir, rand_string
-from bbot.core.helpers.async_helpers import get_event_loop
 
 
 log = logging.getLogger("bbot.test.fixtures")
@@ -84,14 +83,14 @@ def bbot_scanner():
 
 
 @pytest.fixture
-def scan():
+async def scan():
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"])
+    await bbot_scan._prep()
     yield bbot_scan
 
-    loop = get_event_loop()
-    loop.run_until_complete(bbot_scan._cleanup())
+    await bbot_scan._cleanup()
 
 
 @pytest.fixture
@@ -224,9 +223,6 @@ def events(scan):
             parent=scan.root_event,
             module=dummy_module,
         )
-        vhost = scan.make_event(
-            {"host": "evilcorp.com", "vhost": "www.evilcorp.com"}, "VHOST", parent=scan.root_event, module=dummy_module
-        )
         http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event, module=dummy_module)
         storage_bucket = scan.make_event(
             {"name": "storage", "url": "https://storage.blob.core.windows.net"},
@@ -257,7 +253,6 @@ def events(scan):
         bbot_events.ipv6_url,
         bbot_events.url_hint,
         bbot_events.finding,
-        bbot_events.vhost,
         bbot_events.http_response,
         bbot_events.storage_bucket,
         bbot_events.emoji,

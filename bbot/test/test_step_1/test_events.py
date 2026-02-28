@@ -710,6 +710,7 @@ async def test_event_discovery_context():
     from bbot.modules.base import BaseModule
 
     scan = Scanner("evilcorp.com")
+    await scan._prep()
     await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"A": ["1.2.3.4"]},
@@ -719,7 +720,6 @@ async def test_event_discovery_context():
             "four.evilcorp.com": {"A": ["1.2.3.4"]},
         }
     )
-    await scan._prep()
 
     dummy_module_1 = scan._make_dummy_module("module_1")
     dummy_module_2 = scan._make_dummy_module("module_2")
@@ -869,6 +869,7 @@ async def test_event_discovery_context():
     # test to make sure this doesn't come back
     #  https://github.com/blacklanternsecurity/bbot/issues/1498
     scan = Scanner("http://blacklanternsecurity.com", config={"dns": {"minimal": False}})
+    await scan._prep()
     await scan.helpers.dns._mock_dns(
         {"blacklanternsecurity.com": {"TXT": ["blsops.com"], "A": ["127.0.0.1"]}, "blsops.com": {"A": ["127.0.0.1"]}}
     )
@@ -887,6 +888,7 @@ async def test_event_web_spider_distance(bbot_scanner):
 
     # URL_UNVERIFIED events should not increment web spider distance
     scan = bbot_scanner(config={"web": {"spider_distance": 1}})
+    await scan._prep()
     url_event_1 = scan.make_event("http://www.evilcorp.com/test1", "URL_UNVERIFIED", parent=scan.root_event)
     assert url_event_1.web_spider_distance == 0
     url_event_2 = scan.make_event("http://www.evilcorp.com/test2", "URL_UNVERIFIED", parent=url_event_1)
@@ -900,6 +902,7 @@ async def test_event_web_spider_distance(bbot_scanner):
 
     # URL events should increment web spider distance
     scan = bbot_scanner(config={"web": {"spider_distance": 1}})
+    await scan._prep()
     url_event_1 = scan.make_event("http://www.evilcorp.com/test1", "URL", parent=scan.root_event, tags="status-200")
     assert url_event_1.web_spider_distance == 0
     url_event_2 = scan.make_event("http://www.evilcorp.com/test2", "URL", parent=url_event_1, tags="status-200")
@@ -972,8 +975,10 @@ async def test_event_web_spider_distance(bbot_scanner):
     assert "spider-max" not in url_event_5.tags
 
 
-def test_event_closest_host():
+@pytest.mark.asyncio
+async def test_event_closest_host():
     scan = Scanner()
+    await scan._prep()
     # first event has a host
     event1 = scan.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
     assert event1.host == "evilcorp.com"
@@ -1078,7 +1083,8 @@ def test_event_closest_host():
     assert vuln is not None
 
 
-def test_event_magic():
+@pytest.mark.asyncio
+async def test_event_magic():
     from bbot.core.helpers.libmagic import get_magic_info, get_compression
 
     import base64
@@ -1099,6 +1105,7 @@ def test_event_magic():
 
     # test filesystem event - file
     scan = Scanner()
+    await scan._prep()
     event = scan.make_event({"path": zip_file}, "FILESYSTEM", parent=scan.root_event)
     assert event.data == {
         "path": "/tmp/.bbottestzipasdkfjalsdf.zip",
@@ -1112,6 +1119,7 @@ def test_event_magic():
 
     # test filesystem event - folder
     scan = Scanner()
+    await scan._prep()
     event = scan.make_event({"path": "/tmp"}, "FILESYSTEM", parent=scan.root_event)
     assert event.data == {"path": "/tmp"}
     assert event.tags == {"folder"}
@@ -1122,6 +1130,7 @@ def test_event_magic():
 @pytest.mark.asyncio
 async def test_mobile_app():
     scan = Scanner()
+    await scan._prep()
     with pytest.raises(ValidationError):
         scan.make_event("com.evilcorp.app", "MOBILE_APP", parent=scan.root_event)
     with pytest.raises(ValidationError):
@@ -1150,6 +1159,7 @@ async def test_mobile_app():
 @pytest.mark.asyncio
 async def test_filesystem():
     scan = Scanner("FILESYSTEM:/tmp/asdfasdgasdfasdfddsdf")
+    await scan._prep()
     events = [e async for e in scan.async_start()]
     assert len(events) == 3
     filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
@@ -1158,8 +1168,10 @@ async def test_filesystem():
     assert filesystem_events[0].data == {"path": "/tmp/asdfasdgasdfasdfddsdf"}
 
 
-def test_event_hashing():
+@pytest.mark.asyncio
+async def test_event_hashing():
     scan = Scanner("example.com")
+    await scan._prep()
     url_event = scan.make_event("https://api.example.com/", "URL_UNVERIFIED", parent=scan.root_event)
     host_event_1 = scan.make_event("www.example.com", "DNS_NAME", parent=url_event)
     host_event_2 = scan.make_event("test.example.com", "DNS_NAME", parent=url_event)

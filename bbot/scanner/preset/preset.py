@@ -234,7 +234,7 @@ class Preset(metaclass=BasePreset):
         # preset description, default blank
         self.description = description or ""
 
-        # custom conditions, evaluated during .bake()
+        # custom conditions, evaluated during Scanner._prep()
         self.conditions = []
         if conditions is not None:
             for condition in conditions:
@@ -290,20 +290,18 @@ class Preset(metaclass=BasePreset):
 
     @property
     def target(self):
-        if self._target is None:
-            raise ValueError("Cannot access target before preset is baked (use ._seeds instead)")
         return self._target
 
     @property
     def seeds(self):
         if self._target is None:
-            raise ValueError("Cannot access target before preset is baked (use ._seeds instead)")
+            return None
         return self.target.seeds
 
     @property
     def blacklist(self):
         if self._target is None:
-            raise ValueError("Cannot access blacklist before preset is baked (use ._blacklist instead)")
+            return None
         return self.target.blacklist
 
     @property
@@ -407,7 +405,6 @@ class Preset(metaclass=BasePreset):
 
         Baking a preset finalizes it by populating `preset.modules` based on flags,
         performing final validations, and substituting environment variables in preloaded modules.
-        It also evaluates custom `conditions` as specified in the preset.
 
         This function is automatically called in Scanner.__init__(). There is no need to call it manually.
         """
@@ -431,9 +428,6 @@ class Preset(metaclass=BasePreset):
             # update os environ
             os.environ.clear()
             os.environ.update(os_environ)
-
-            # assign baked preset to our scan
-            scan.preset = baked_preset
 
         # validate log level options
         baked_preset.apply_log_level(apply_core=scan is not None)
@@ -491,14 +485,6 @@ class Preset(metaclass=BasePreset):
             blacklist=self._blacklist,
             strict_dns_scope=self.strict_scope,
         )
-
-        if scan is not None:
-            # evaluate conditions
-            if baked_preset.conditions:
-                from .conditions import ConditionEvaluator
-
-                evaluator = ConditionEvaluator(baked_preset)
-                evaluator.evaluate()
 
         self._baked = True
         return baked_preset
@@ -994,11 +980,13 @@ class Preset(metaclass=BasePreset):
         if include_modules:
             header.append("Modules")
         for loaded_preset, category, preset_path, original_file in self.all_presets.values():
-            loaded_preset = loaded_preset.bake()
-            num_modules = f"{len(loaded_preset.scan_modules):,}"
+            # Use explicit_scan_modules which contains the raw modules from YAML
+            # This avoids needing to call bake()
+            explicit_modules = loaded_preset.explicit_scan_modules
+            num_modules = f"{len(explicit_modules):,}"
             row = [loaded_preset.name, category, loaded_preset.description, num_modules]
             if include_modules:
-                row.append(", ".join(sorted(loaded_preset.scan_modules)))
+                row.append(", ".join(sorted(explicit_modules)))
             table.append(row)
         return make_table(table, header)
 

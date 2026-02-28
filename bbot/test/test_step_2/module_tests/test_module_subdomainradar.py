@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestSubDomainRadar(ModuleTestBase):
     config_overrides = {"modules": {"subdomainradar": {"api_key": "asdf"}}}
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["127.0.0.88"]},
@@ -12,6 +12,8 @@ class TestSubDomainRadar(ModuleTestBase):
                 "asdf.blacklanternsecurity.com": {"A": ["127.0.0.88"]},
             }
         )
+
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.subdomainradar.io/profile",
             match_headers={"Authorization": "Bearer asdf"},
