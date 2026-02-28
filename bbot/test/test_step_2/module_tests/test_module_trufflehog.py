@@ -1309,7 +1309,7 @@ class TestTrufflehog_HTTPResponse(ModuleTestBase):
 
 class TestTrufflehog_RAWText(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/test.pdf"]
-    modules_overrides = ["httpx", "trufflehog", "filedownload", "extractous"]
+    modules_overrides = ["httpx", "trufflehog", "filedownload", "kreuzberg"]
 
     download_dir = bbot_test_dir / "test_trufflehog_rawtext"
     config_overrides = {

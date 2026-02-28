@@ -33,7 +33,12 @@ def get_current_branch() -> str:
 
 
 def checkout_branch(branch: str, repo_path: Path = None):
-    """Checkout a git branch."""
+    """Checkout a git branch, cleaning up generated files first."""
+    # Remove untracked files before checkout. Without this, files generated
+    # by one branch's toolchain (e.g. uv.lock from `uv run` on a Poetry
+    # branch) block checkout to a branch that tracks those same files.
+    print("Cleaning untracked files before checkout")
+    run_command(["git", "clean", "-fd"], cwd=repo_path)
     print(f"Checking out branch: {branch}")
     run_command(["git", "checkout", branch], cwd=repo_path)
 
@@ -376,9 +381,6 @@ def main():
         temp_path = Path(temp_dir)
         base_results_file = temp_path / "base_results.json"
         current_results_file = temp_path / "current_results.json"
-
-        base_data = {}
-        current_data = {}
 
         base_data = {}
         current_data = {}

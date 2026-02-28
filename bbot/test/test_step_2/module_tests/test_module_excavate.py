@@ -1322,7 +1322,7 @@ class TestExcavateHeaders(ModuleTestBase):
 
 class TestExcavateRAWTEXT(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/", "test.notreal"]
-    modules_overrides = ["excavate", "httpx", "filedownload", "extractous"]
+    modules_overrides = ["excavate", "httpx", "filedownload", "kreuzberg"]
     config_overrides = {
         "scope": {"report_distance": 1},
         "web": {"spider_distance": 2, "spider_depth": 2},
@@ -1400,15 +1400,7 @@ trailer
 startxref
 1669
 %%EOF"""
-    extractous_response = """This is an email example@blacklanternsecurity.notreal
-
-An example JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
-
-A serialized DOTNET object AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA==
-
-A full url https://www.test.notreal/about
-
-A href <a href='/donot_detect.js'>Click me</a>"""
+    kreuzberg_response = "This is an email example@blacklanternsecurity.notreal An example JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c A serialized DOTNET object AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA== A full url https://www.test.notreal/about A href <a href='/donot_detect.js'>Click me</a>"
 
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests(
@@ -1429,13 +1421,13 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
         raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
         assert 1 == len(raw_text_events), "Failed to emit RAW_TEXT event"
-        assert raw_text_events[0].data == self.extractous_response, (
+        assert raw_text_events[0].data == self.kreuzberg_response, (
             f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
         )
         email_events = [e for e in events if e.type == "EMAIL_ADDRESS"]
         assert 1 == len(email_events), "Failed to emit EMAIL_ADDRESS event"
         assert email_events[0].data == "example@blacklanternsecurity.notreal", (
-            f"Email extracted from extractous text is incorrect, got {email_events[0].data}"
+            f"Email extracted from kreuzberg text is incorrect, got {email_events[0].data}"
         )
         finding_events = [e for e in events if e.type == "FINDING"]
         assert 2 == len(finding_events), "Failed to emit FINDING events"
@@ -1460,10 +1452,10 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
         url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
         assert "https://www.test.notreal/about" in url_events, (
-            f"URL extracted from extractous text is incorrect, got {url_events}"
+            f"URL extracted from kreuzberg text is incorrect, got {url_events}"
         )
         assert "/donot_detect.js" not in url_events, (
-            f"URL extracted from extractous text is incorrect, got {url_events}"
+            f"URL extracted from kreuzberg text is incorrect, got {url_events}"
         )
 
 
