@@ -92,7 +92,7 @@ This is a special Lightfuzz preset that focuses entirely on XSS, to make XSS hun
 
 We also *strongly* recommend running Lightfuzz with the spider enabled, as this will dramatically increase the number of parameters that are discovered. If you don't, you will see a warning reminding you that things will work a lot better if you do.
 
-That can be done by simply also enabling either the `spider` or `spider-intense` preset.
+That can be done by simply also enabling either the `spider` or `spider-heavy` preset.
 
 # Usage
 

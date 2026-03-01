@@ -10,7 +10,7 @@ class baddns_zone(baddns_module):
         "created_date": "2024-01-29",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MODERATE"}
+    options = {"custom_nameservers": [], "min_severity": "INFORMATIONAL", "min_confidence": "MODERATE"}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "min_severity": "Minimum severity to emit (INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL)",
