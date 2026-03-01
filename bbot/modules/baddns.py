@@ -8,6 +8,34 @@ import logging
 SEVERITY_LEVELS = ("INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL")
 CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED")
 
+SUBMODULE_MAX_SEVERITY = {
+    "CNAME": "MEDIUM",
+    "NS": "MEDIUM",
+    "MX": "MEDIUM",
+    "TXT": "LOW",
+    "references": "MEDIUM",
+    "NSEC": "INFORMATIONAL",
+    "zonetransfer": "INFORMATIONAL",
+    "DMARC": "INFORMATIONAL",
+    "SPF": "MEDIUM",
+    "MTA-STS": "HIGH",
+    "WILDCARD": "HIGH",
+}
+
+SUBMODULE_MAX_CONFIDENCE = {
+    "CNAME": "CONFIRMED",
+    "NS": "HIGH",
+    "MX": "CONFIRMED",
+    "TXT": "CONFIRMED",
+    "references": "CONFIRMED",
+    "NSEC": "CONFIRMED",
+    "zonetransfer": "CONFIRMED",
+    "DMARC": "CONFIRMED",
+    "SPF": "CONFIRMED",
+    "MTA-STS": "CONFIRMED",
+    "WILDCARD": "CONFIRMED",
+}
+
 
 class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
@@ -40,6 +68,24 @@ class baddns(BaseModule):
         if self.enabled_submodules == []:
             self.enabled_submodules = ["CNAME", "MX", "TXT"]
 
+    def _filter_submodules(self):
+        filtered = []
+        for name in self.enabled_submodules:
+            max_sev = SUBMODULE_MAX_SEVERITY.get(name)
+            max_conf = SUBMODULE_MAX_CONFIDENCE.get(name)
+            if max_sev is None or max_conf is None:
+                filtered.append(name)
+                continue
+            sev_idx = SEVERITY_LEVELS.index(max_sev) if max_sev in SEVERITY_LEVELS else 0
+            conf_idx = CONFIDENCE_LEVELS.index(max_conf) if max_conf in CONFIDENCE_LEVELS else 0
+            if sev_idx < self._min_sev_idx or conf_idx < self._min_conf_idx:
+                self.verbose(
+                    f"Auto-disabling submodule [{name}]: max_severity={max_sev}, max_confidence={max_conf} below configured thresholds"
+                )
+            else:
+                filtered.append(name)
+        return filtered
+
     def _meets_threshold(self, severity, confidence):
         sev_idx = SEVERITY_LEVELS.index(severity) if severity in SEVERITY_LEVELS else 0
         conf_idx = CONFIDENCE_LEVELS.index(confidence) if confidence in CONFIDENCE_LEVELS else 0
@@ -62,6 +108,10 @@ class baddns(BaseModule):
         self._min_conf_idx = CONFIDENCE_LEVELS.index(min_confidence)
         self.signatures = load_signatures()
         self.set_modules()
+        self.enabled_submodules = self._filter_submodules()
+        if not self.enabled_submodules:
+            self.warning("All submodules were disabled by severity/confidence thresholds")
+            return False
         all_submodules_list = [m.name for m in get_all_modules()]
         for m in self.enabled_submodules:
             if m not in all_submodules_list:
