@@ -295,6 +295,8 @@ Discover web parameters and lightly fuzz them for vulnerabilities, with more int
         lightfuzz:
           enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi]
           disable_post: False
+          try_post_as_get: True
+          try_get_as_post: True
     ```
 
 Category: web
@@ -354,6 +356,7 @@ Discover web parameters and lightly fuzz them for vulnerabilities. Uses all ligh
       modules:
         lightfuzz:
           enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi]
+          try_post_as_get: True
     ```
 
 Category: web
