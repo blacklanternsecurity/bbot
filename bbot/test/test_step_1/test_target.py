@@ -376,11 +376,11 @@ async def test_asn_targets(bbot_scanner):
     assert "evilcorp.com" in target.seeds.inputs
     assert "1.2.3.0/24" in target.seeds.inputs  # IP ranges are normalized to network address
 
-    # Test ASN targets must be expanded before being useful in whitelist/blacklist
-    # Direct ASN targets in whitelist/blacklist don't work since they have no host
+    # Test ASN targets must be expanded before being useful in scope/blacklist
+    # Direct ASN targets don't work since they have no host
     # Instead, test that the ASN input is captured correctly
     target = BBOTTarget(target=["evilcorp.com"])
-    # ASN targets should be added to seeds, not whitelist/blacklist directly
+    # ASN targets should be added to seeds
     target.seeds.add("ASN:15169")
     assert "ASN:15169" in target.seeds.inputs
 
