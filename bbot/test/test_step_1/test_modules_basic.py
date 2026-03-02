@@ -89,6 +89,36 @@ async def test_modules_basic_checks(events, httpx_mock):
     await egress_module.handle_event(url)
     assert url._omit is True
 
+    # omitted always_emit events should still be omitted
+    finding_data = {
+        "host": "evilcorp.com",
+        "description": "test",
+        "severity": "LOW",
+        "confidence": "LOW",
+        "name": "test",
+    }
+    finding = scan.make_event(finding_data, "FINDING", parent=scan.root_event)
+    assert finding.always_emit is True
+    finding._omit = True
+    result, reason = base_output_module_2._event_precheck(finding)
+    assert result is False
+    assert reason == "its type is omitted in the config"
+
+    # always_emit should bypass the internal check
+    finding_data2 = {
+        "host": "evilcorp.com",
+        "description": "test2",
+        "severity": "LOW",
+        "confidence": "LOW",
+        "name": "test2",
+    }
+    finding2 = scan.make_event(finding_data2, "FINDING", parent=scan.root_event)
+    assert finding2.always_emit is True
+    finding2._internal = True
+    result, reason = base_output_module_2._event_precheck(finding2)
+    assert result is True
+    assert reason == "event is always emitted"
+
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
         base_module = module_class(scan)
