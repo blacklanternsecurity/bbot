@@ -73,11 +73,6 @@ ruff format          # auto-format
 ruff format --check  # verify formatting without changes
 ```
 
-Ruff config (from `pyproject.toml`):
-- Line length: 119
-- Rules: `E` + `F` (pycodestyle + pyflakes)
-- Ignored: `E402`, `E711`, `E713`, `E721`, `E741`, `F403`, `F405`, `E501`
-
 ### Git Workflow
 
 - `stable` - production releases
