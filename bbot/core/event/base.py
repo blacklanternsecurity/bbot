@@ -1138,6 +1138,12 @@ class ASN(DictEvent):
         data["asn"] = int(data["asn"])
         return data
 
+    def _data_id(self):
+        return str(self.data["asn"])
+
+    def _pretty_string(self):
+        return str(self.data["asn"])
+
     def _data_human(self):
         """Create a concise human-readable representation of ASN data."""
         display_data = {"asn": str(self.data["asn"])}

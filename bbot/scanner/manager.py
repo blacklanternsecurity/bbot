@@ -56,7 +56,7 @@ class ScanIngress(BaseInterceptModule):
                     event_seed.type,
                     parent=root_event,
                     module=target_module,
-                    context=f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}",
+                    context=f"Scan {self.scan.name} seeded with " + "{event.type}: {event.pretty_string}",
                     tags=["seed"],
                 )
                 # If the seed is also in the target scope, add the target tag
