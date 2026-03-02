@@ -1130,26 +1130,23 @@ class ASN(DictEvent):
     _quick_emit = True
 
     def sanitize_data(self, data):
-        if not isinstance(data, int):
-            raise ValidationError(f"ASN number must be an integer: {data}")
+        # accept bare int (from make_event(12345, "ASN")) or dict (from JSON round-trip)
+        if isinstance(data, int):
+            data = {"asn": data}
+        if not isinstance(data, dict) or "asn" not in data:
+            raise ValidationError(f"Invalid ASN data (expected dict with 'asn' key): {data}")
+        data["asn"] = int(data["asn"])
         return data
-
-    @property
-    def data_json(self):
-        return {"asn": self.data}
 
     def _data_human(self):
         """Create a concise human-readable representation of ASN data."""
-        # Start with basic ASN info
-        display_data = {"asn": str(self.data)}
+        display_data = {"asn": str(self.data["asn"])}
 
         # Try to get additional ASN data from the helper if available
         if hasattr(self, "scan") and self.scan and hasattr(self.scan, "helpers"):
             try:
-                # Check if we can access the ASN helper synchronously
                 asn_helper = self.scan.helpers.asn
-                # Try to get cached data first (this should be synchronous)
-                cached_data = asn_helper._cache_lookup_asn(self.data)
+                cached_data = asn_helper._cache_lookup_asn(self.data["asn"])
                 if cached_data:
                     display_data.update(
                         {
@@ -1158,12 +1155,10 @@ class ASN(DictEvent):
                             "country": cached_data.get("country", ""),
                         }
                     )
-                    # Replace subnets list with count for readability
                     subnets = cached_data.get("subnets", [])
                     if subnets and isinstance(subnets, list):
                         display_data["subnet_count"] = len(subnets)
             except Exception:
-                # If anything fails, just return basic ASN info
                 pass
 
         return json.dumps(display_data, sort_keys=True)

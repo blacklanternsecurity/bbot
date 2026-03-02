@@ -606,12 +606,9 @@ async def test_asn_len_overflow(bbot_scanner):
 
 @pytest.mark.asyncio
 async def test_asn_event_json_serialization(bbot_scanner):
-    """Regression test: ASN events must serialize to JSON without errors.
-
-    ASN events store an int as data, but the json() method only handled str/dict.
-    The data_json property on the ASN event class must return a dict.
-    """
+    """Regression test: ASN events must serialize and deserialize correctly."""
     from bbot.core.helpers.asn import ASNHelper
+    from bbot.core.event.base import event_from_json
 
     async def mock_asn_to_subnets(self, asn_number):
         if asn_number == 12345:
@@ -625,13 +622,19 @@ async def test_asn_event_json_serialization(bbot_scanner):
         scan = bbot_scanner("ASN:12345")
         await scan._prep()
 
-        # Create an ASN event like the scanner does
+        # Create an ASN event like the scanner does (bare int input)
         asn_event = scan.make_event(12345, "ASN", parent=scan.root_event)
+        assert asn_event.data == {"asn": 12345}
 
-        # This must not raise ValueError("Invalid data type: <class 'int'>")
+        # Serialize to JSON
         j = asn_event.json()
         assert j["type"] == "ASN"
         assert j["data_json"] == {"asn": 12345}
+
+        # Round-trip: reconstruct from JSON
+        reconstructed = event_from_json(j)
+        assert reconstructed.type == "ASN"
+        assert reconstructed.data == {"asn": 12345}
     finally:
         ASNHelper.asn_to_subnets = original_method
 
