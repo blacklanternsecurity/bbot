@@ -1134,6 +1134,10 @@ class ASN(DictEvent):
             raise ValidationError(f"ASN number must be an integer: {data}")
         return data
 
+    @property
+    def data_json(self):
+        return {"asn": self.data}
+
     def _data_human(self):
         """Create a concise human-readable representation of ASN data."""
         # Start with basic ASN info

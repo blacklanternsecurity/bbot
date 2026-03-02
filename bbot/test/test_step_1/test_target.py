@@ -572,6 +572,71 @@ async def test_asn_blacklist_functionality(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_asn_len_overflow(bbot_scanner):
+    """Regression test: len() on targets with many ASN subnets must not overflow.
+
+    RadixTarget.__len__() counts individual IPs, which can exceed sys.maxsize
+    for large ASNs (e.g. AS15169 with 1000+ subnets). The scanner log message
+    must use len(event_seeds) instead.
+    """
+    from bbot.core.helpers.asn import ASNHelper
+
+    # Simulate a large ASN with many /16 subnets — total IPs would overflow an index
+    many_subnets = [f"10.{i}.0.0/16" for i in range(200)]
+
+    async def mock_asn_to_subnets(self, asn_number):
+        if asn_number == 99999:
+            return {"asn": 99999, "subnets": many_subnets}
+        return None
+
+    original_method = ASNHelper.asn_to_subnets
+    ASNHelper.asn_to_subnets = mock_asn_to_subnets
+
+    try:
+        scan = bbot_scanner("ASN:99999")
+        # _prep() calls generate_children() and then does len(self.seeds.event_seeds)
+        # Before the fix, this raised OverflowError from len() on the RadixTarget
+        await scan._prep()
+
+        # Verify expansion worked
+        assert len(scan.preset.target.seeds.event_seeds) > 200
+    finally:
+        ASNHelper.asn_to_subnets = original_method
+
+
+@pytest.mark.asyncio
+async def test_asn_event_json_serialization(bbot_scanner):
+    """Regression test: ASN events must serialize to JSON without errors.
+
+    ASN events store an int as data, but the json() method only handled str/dict.
+    The data_json property on the ASN event class must return a dict.
+    """
+    from bbot.core.helpers.asn import ASNHelper
+
+    async def mock_asn_to_subnets(self, asn_number):
+        if asn_number == 12345:
+            return {"asn": 12345, "subnets": ["192.0.2.0/24"]}
+        return None
+
+    original_method = ASNHelper.asn_to_subnets
+    ASNHelper.asn_to_subnets = mock_asn_to_subnets
+
+    try:
+        scan = bbot_scanner("ASN:12345")
+        await scan._prep()
+
+        # Create an ASN event like the scanner does
+        asn_event = scan.make_event(12345, "ASN", parent=scan.root_event)
+
+        # This must not raise ValueError("Invalid data type: <class 'int'>")
+        j = asn_event.json()
+        assert j["type"] == "ASN"
+        assert j["data_json"] == {"asn": 12345}
+    finally:
+        ASNHelper.asn_to_subnets = original_method
+
+
+@pytest.mark.asyncio
 async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     from bbot.scanner.target import ScanBlacklist
 
