@@ -82,7 +82,11 @@ class BaseTarget(RadixTarget):
             targets = [targets]
         event_seeds = set()
         for target in targets:
-            event_seed = EventSeed(target)
+            # accept pre-parsed EventSeed objects to avoid expensive re-parsing
+            if isinstance(target, BaseEventSeed):
+                event_seed = target
+            else:
+                event_seed = EventSeed(target)
             if not event_seed._target_type in self.accept_target_types:
                 log.warning(f"Invalid target type for {self.__class__.__name__}: {event_seed.type}")
                 continue
@@ -244,9 +248,9 @@ class BBOTTarget:
         self.target = ScanTarget(*target_list, strict_dns_scope=strict_dns_scope)
 
         # Seeds are only copied from target if target is defined but seeds are NOT defined
-        # Use target.inputs (original inputs) to preserve all inputs, including subdomains
+        # Pass pre-parsed event_seeds to avoid expensive re-parsing of every target string
         if seeds is None:
-            seeds = self.target.inputs
+            seeds = list(self.target.event_seeds)
         self.seeds = ScanSeeds(*list(seeds), strict_dns_scope=strict_dns_scope)
 
         blacklist_list = list(blacklist) if blacklist else []
