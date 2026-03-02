@@ -572,6 +572,74 @@ async def test_asn_blacklist_functionality(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_asn_len_overflow(bbot_scanner):
+    """Regression test: len() on targets with many ASN subnets must not overflow.
+
+    RadixTarget.__len__() counts individual IPs, which can exceed sys.maxsize
+    for large ASNs (e.g. AS15169 with 1000+ subnets). The scanner log message
+    must use len(event_seeds) instead.
+    """
+    from bbot.core.helpers.asn import ASNHelper
+
+    # Simulate a large ASN with many /16 subnets — total IPs would overflow an index
+    many_subnets = [f"10.{i}.0.0/16" for i in range(200)]
+
+    async def mock_asn_to_subnets(self, asn_number):
+        if asn_number == 99999:
+            return {"asn": 99999, "subnets": many_subnets}
+        return None
+
+    original_method = ASNHelper.asn_to_subnets
+    ASNHelper.asn_to_subnets = mock_asn_to_subnets
+
+    try:
+        scan = bbot_scanner("ASN:99999")
+        # _prep() calls generate_children() and then does len(self.seeds.event_seeds)
+        # Before the fix, this raised OverflowError from len() on the RadixTarget
+        await scan._prep()
+
+        # Verify expansion worked
+        assert len(scan.preset.target.seeds.event_seeds) > 200
+    finally:
+        ASNHelper.asn_to_subnets = original_method
+
+
+@pytest.mark.asyncio
+async def test_asn_event_json_serialization(bbot_scanner):
+    """Regression test: ASN events must serialize and deserialize correctly."""
+    from bbot.core.helpers.asn import ASNHelper
+    from bbot.core.event.base import event_from_json
+
+    async def mock_asn_to_subnets(self, asn_number):
+        if asn_number == 12345:
+            return {"asn": 12345, "subnets": ["192.0.2.0/24"]}
+        return None
+
+    original_method = ASNHelper.asn_to_subnets
+    ASNHelper.asn_to_subnets = mock_asn_to_subnets
+
+    try:
+        scan = bbot_scanner("ASN:12345")
+        await scan._prep()
+
+        # Create an ASN event like the scanner does (bare int input)
+        asn_event = scan.make_event(12345, "ASN", parent=scan.root_event)
+        assert asn_event.data == {"asn": 12345}
+
+        # Serialize to JSON
+        j = asn_event.json()
+        assert j["type"] == "ASN"
+        assert j["data_json"] == {"asn": 12345}
+
+        # Round-trip: reconstruct from JSON
+        reconstructed = event_from_json(j)
+        assert reconstructed.type == "ASN"
+        assert reconstructed.data == {"asn": 12345}
+    finally:
+        ASNHelper.asn_to_subnets = original_method
+
+
+@pytest.mark.asyncio
 async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     from bbot.scanner.target import ScanBlacklist
 
@@ -641,3 +709,31 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     urls = [e.data for e in events if e.type == "URL"]
     assert len(urls) == 1
     assert set(urls) == {"http://127.0.0.1:8888/"}
+
+
+def test_no_double_parsing():
+    """Regression test: when seeds are auto-populated from target, EventSeed parsing
+    should happen only once (via ScanTarget), not twice. BBOTTarget should pass
+    pre-parsed EventSeed objects to ScanSeeds instead of raw strings."""
+    from unittest.mock import patch
+    from bbot.scanner.target import BBOTTarget
+    from bbot.core.event.helpers import EventSeed as _real_EventSeed
+
+    targets = ["evilcorp.com", "1.2.3.4", "https://example.com", "10.0.0.0/24"]
+
+    call_count = 0
+    original_EventSeed = _real_EventSeed
+
+    def counting_EventSeed(input):
+        nonlocal call_count
+        call_count += 1
+        return original_EventSeed(input)
+
+    with patch("bbot.scanner.target.EventSeed", side_effect=counting_EventSeed):
+        BBOTTarget(target=targets)
+
+    # EventSeed should be called once per target (for ScanTarget), not twice
+    assert call_count == len(targets), (
+        f"EventSeed was called {call_count} times for {len(targets)} targets; "
+        f"expected {len(targets)} (seeds should reuse pre-parsed EventSeed objects)"
+    )

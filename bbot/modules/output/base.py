@@ -38,9 +38,6 @@ class BaseOutputModule(BaseModule):
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
 
-        if event.always_emit:
-            return True, "event is always emitted"
-
         # omit certain event types
         if event._omit:
             if event.type in self.get_watched_events():
@@ -48,6 +45,9 @@ class BaseOutputModule(BaseModule):
                 self.debug(f"Allowing omitted event: {event} because {reason}")
             else:
                 return False, "its type is omitted in the config"
+
+        if event.always_emit:
+            return True, "event is always emitted"
 
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance

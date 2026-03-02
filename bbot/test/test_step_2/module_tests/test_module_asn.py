@@ -37,8 +37,8 @@ class TestASNHelper(ModuleTestBase):
         asn_events = [e for e in events if e.type == "ASN"]
         assert asn_events, "No ASN event produced"
 
-        # Verify ASN number is a valid integer
-        assert any(isinstance(e.data, int) and e.data > 0 for e in asn_events)
+        # Verify ASN data contains a valid ASN number
+        assert any(isinstance(e.data, dict) and e.data.get("asn", 0) > 0 for e in asn_events)
 
 
 class TestASNUnknownHandling(ModuleTestBase):
