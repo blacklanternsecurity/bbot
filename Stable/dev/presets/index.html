@@ -11,7 +11,7 @@
 <link href="../scanner/" rel="prev"/>
 <link href="../event/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.2" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Presets - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.l9zyw2qg.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.k9cg8em1.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1016,18 +1016,11 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.target">target</span></code></b>
-              (<code><span title="Target">Target</span></code>)
+              (<code><span title="BBOTTarget">BBOTTarget</span></code>)
           –
           <div class="doc-md-description">
-<p>Target(s) of scan.</p>
-</div>
-</li>
-<li class="doc-section-item field-body">
-<b><code><span title="bbot.scanner.Preset.whitelist">whitelist</span></code></b>
-              (<code><span title="Target">Target</span></code>)
-          –
-          <div class="doc-md-description">
-<p>Scan whitelist (by default this is the same as <code>target</code>).</p>
+<p>The scan target object containing seeds, target, and blacklist.
+Use <code>target.target</code> to access what's in the target (what <code>in_target()</code> checks).</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
@@ -1048,7 +1041,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.output_dir">output_dir</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path" title="&lt;code&gt;pathlib.Path&lt;/code&gt;">Path</a></code>)
+              (<code><span title="pathlib.Path">Path</span></code>)
           –
           <div class="doc-md-description">
 <p>Output directory for scan.</p>
@@ -1056,7 +1049,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.scan_name">scan_name</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code><span title="str">str</span></code>)
           –
           <div class="doc-md-description">
 <p>Name of scan. Defaults to random value, e.g. "demonic_jimmy".</p>
@@ -1064,7 +1057,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.name">name</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code><span title="str">str</span></code>)
           –
           <div class="doc-md-description">
 <p>Human-friendly name of preset. Used mainly for logging purposes.</p>
@@ -1072,7 +1065,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.description">description</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
+              (<code><span title="str">str</span></code>)
           –
           <div class="doc-md-description">
 <p>Description of preset.</p>
@@ -1080,7 +1073,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.modules">modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Combined modules to enable for the scan. Includes scan modules, internal modules, and output modules.</p>
@@ -1088,7 +1081,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.scan_modules">scan_modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Modules to enable for the scan.</p>
@@ -1096,7 +1089,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.output_modules">output_modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Output modules to enable for the scan. (note: if no output modules are specified, this is not populated until .bake())</p>
@@ -1104,7 +1097,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.internal_modules">internal_modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Internal modules for the scan. (note: not populated until .bake())</p>
@@ -1112,7 +1105,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.exclude_modules">exclude_modules</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Modules to exclude from the scan. When set, automatically removes excluded modules.</p>
@@ -1120,7 +1113,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.flags">flags</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Flags to enable for the scan. When set, automatically enables modules.</p>
@@ -1128,7 +1121,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.require_flags">require_flags</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Require modules to have these flags. When set, automatically removes offending modules.</p>
@@ -1136,7 +1129,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.exclude_flags">exclude_flags</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Exclude modules that have any of these flags. When set, automatically removes offending modules.</p>
@@ -1144,7 +1137,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.module_dirs">module_dirs</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
+              (<code><span title="set">set</span></code>)
           –
           <div class="doc-md-description">
 <p>Custom directories from which to load modules (alias to <code>self.module_loader.module_dirs</code>). When set, automatically preloads contained modules.</p>
@@ -1168,7 +1161,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.verbose">verbose</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code><span title="bool">bool</span></code>)
           –
           <div class="doc-md-description">
 <p>Whether log level is currently set to verbose. When set, updates log level for all BBOT log handlers.</p>
@@ -1176,7 +1169,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.debug">debug</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code><span title="bool">bool</span></code>)
           –
           <div class="doc-md-description">
 <p>Whether log level is currently set to debug. When set, updates log level for all BBOT log handlers.</p>
@@ -1184,7 +1177,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.silent">silent</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
+              (<code><span title="bool">bool</span></code>)
           –
           <div class="doc-md-description">
 <p>Whether logging is currently disabled. When set to True, silences all stderr.</p>
@@ -2150,7 +2143,15 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1000</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1001</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1002</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1003</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Preset</span><span style="color: #E6EDF3">(metaclass</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">BasePreset):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1003</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1004</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1005</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1006</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1007</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1008</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1009</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1010</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1011</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Preset</span><span style="color: #E6EDF3">(metaclass</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">BasePreset):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    A preset is the central config for a BBOT scan. It contains everything a scan needs to run --</span>
 <span style="color: #A5D6FF">        targets, modules, flags, config options like API keys, etc.</span>
@@ -2170,8 +2171,8 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #A5D6FF">        Based on the state of the preset, you can print a warning message, abort the scan, enable/disable modules, etc..</span>
 
 <span style="color: #A5D6FF">    Attributes:</span>
-<span style="color: #A5D6FF">        target (Target): Target(s) of scan.</span>
-<span style="color: #A5D6FF">        whitelist (Target): Scan whitelist (by default this is the same as `target`).</span>
+<span style="color: #A5D6FF">        target (BBOTTarget): The scan target object containing seeds, target, and blacklist.</span>
+<span style="color: #A5D6FF">            Use `target.target` to access what's in the target (what `in_target()` checks).</span>
 <span style="color: #A5D6FF">        blacklist (Target): Scan blacklist (this takes ultimate precedence).</span>
 <span style="color: #A5D6FF">        helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc.</span>
 <span style="color: #A5D6FF">        output_dir (pathlib.Path): Output directory for scan.</span>
@@ -2209,8 +2210,8 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
         <span style="color: #E6EDF3">self,</span>
-        <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">targets,</span>
-        <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">target,</span>
+        <span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">output_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -2236,8 +2237,11 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #A5D6FF">        Initializes the Preset class.</span>
 
 <span style="color: #A5D6FF">        Args:</span>
-<span style="color: #A5D6FF">            *targets (str): Target(s) to scan. Types supported: hostnames, IPs, CIDRs, emails, open ports.</span>
-<span style="color: #A5D6FF">            whitelist (list, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.</span>
+<span style="color: #A5D6FF">            *target (str): Target(s) to scan. These ALWAYS become the target (what `in_target()` checks).</span>
+<span style="color: #A5D6FF">                Types supported: hostnames, IPs, CIDRs, emails, open ports.</span>
+<span style="color: #A5D6FF">                Note: Positional arguments always mean target, never seeds.</span>
+<span style="color: #A5D6FF">            seeds (list, optional): Explicitly define seeds (initial events for passive modules).</span>
+<span style="color: #A5D6FF">                If not specified, seeds will be backfilled from target when target is defined.</span>
 <span style="color: #A5D6FF">            blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.</span>
 <span style="color: #A5D6FF">            modules (list[str], optional): List of scan modules to enable for the scan. Defaults to empty list.</span>
 <span style="color: #A5D6FF">            output_modules (list[str], optional): List of output modules to use. Defaults to csv, human, and json.</span>
@@ -2354,12 +2358,17 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_module_dirs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set()</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_dirs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">module_dirs</span>
 
-        <span style="color: #8B949E; font-style: italic"># target / whitelist / blacklist</span>
+        <span style="color: #8B949E; font-style: italic"># target / seeds / blacklist</span>
         <span style="color: #8B949E; font-style: italic"># these are temporary receptacles until they all get .baked() together</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(targets</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">[])</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(whitelist)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">whitelist</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target_list</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(target</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[])</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_blacklist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(blacklist</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">blacklist</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">[])</span>
+        <span style="color: #8B949E; font-style: italic"># seeds are special. Instead of initializing them as an empty set, we use "None"</span>
+        <span style="color: #8B949E; font-style: italic"># to signify they haven't been explicitly set.</span>
+        <span style="color: #8B949E; font-style: italic"># after all the merging is done, if seeds are still untouched by the user</span>
+        <span style="color: #8B949E; font-style: italic"># (i.e. they are still None), we'll know it's okay to copy them from the targets.</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(seeds)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72">else</span> <span style="color: #79C0FF">None</span>
 
+        <span style="color: #8B949E; font-style: italic"># _target doesn't get set until .bake()</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
 
         <span style="color: #8B949E; font-style: italic"># we don't fill self.modules yet (that happens in .bake())</span>
@@ -2382,15 +2391,9 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">seeds</span><span style="color: #E6EDF3">(self):</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #FF7B72">raise</span> <span style="color: #F0883E; font-weight: bold">ValueError</span><span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"Cannot access target before preset is baked (use ._seeds instead)"</span><span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span>
-
-    <span style="color: #D2A8FF; font-weight: bold">@property</span>
-    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">whitelist</span><span style="color: #E6EDF3">(self):</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #FF7B72">raise</span> <span style="color: #F0883E; font-weight: bold">ValueError</span><span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"Cannot access whitelist before preset is baked (use ._whitelist instead)"</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">whitelist</span>
 
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">blacklist</span><span style="color: #E6EDF3">(self):</span>
@@ -2458,13 +2461,12 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flags</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flags)</span>
 
         <span style="color: #8B949E; font-style: italic"># target / scope</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds)</span>
-        <span style="color: #8B949E; font-style: italic"># leave whitelist as None until we encounter one</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist)</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target_list</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target_list)</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+                <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds)</span>
             <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist)</span>
+                <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds)</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_blacklist</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_blacklist)</span>
 
         <span style="color: #8B949E; font-style: italic"># module dirs</span>
@@ -2495,6 +2497,8 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">bake</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">        Return a "baked" copy of this preset, ready for use by a BBOT scan.</span>
+
+<span style="color: #A5D6FF">        Presets can be merged and modified before baking, but once baked, they are immutable.</span>
 
 <span style="color: #A5D6FF">        Baking a preset finalizes it by populating `preset.modules` based on flags,</span>
 <span style="color: #A5D6FF">        performing final validations, and substituting environment variables in preloaded modules.</span>
@@ -2577,10 +2581,10 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
         <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.scanner.target</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BBOTTarget</span>
 
         <span style="color: #E6EDF3">baked_preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">BBOTTarget(</span>
-            <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">list(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds),</span>
-            <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist,</span>
+            <span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">list(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72">else</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">list(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target_list),</span>
             <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_blacklist,</span>
-            <span style="color: #E6EDF3">strict_scope</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strict_scope,</span>
+            <span style="color: #E6EDF3">strict_dns_scope</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strict_scope,</span>
         <span style="color: #E6EDF3">)</span>
 
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
@@ -2729,8 +2733,8 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">blacklisted</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">host):</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blacklisted(host)</span>
 
-    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">whitelisted</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">host):</span>
-        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">whitelisted(host)</span>
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">in_target</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">host):</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">in_target(host)</span>
 
     <span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_dict</span><span style="color: #E6EDF3">(cls,</span> <span style="color: #E6EDF3">preset_dict,</span> <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
@@ -2749,9 +2753,14 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #A5D6FF">        Examples:</span>
 <span style="color: #A5D6FF">            &gt;&gt;&gt; preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})</span>
 <span style="color: #A5D6FF">        """</span>
+        <span style="color: #8B949E; font-style: italic"># Handle seeds and targets from dict</span>
+        <span style="color: #8B949E; font-style: italic"># for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.</span>
+        <span style="color: #E6EDF3">target_vals</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">(preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"target"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[])</span> <span style="color: #FF7B72; font-weight: bold">+</span> <span style="color: #E6EDF3">(preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"targets"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[])</span>
+        <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromkeys(target_vals))</span>
+        <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"seeds"</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">new_preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">cls(</span>
-            <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"target"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[]),</span>
-            <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"whitelist"</span><span style="color: #E6EDF3">),</span>
+            <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">targets,</span>
+            <span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">seeds,</span>
             <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"blacklist"</span><span style="color: #E6EDF3">),</span>
             <span style="color: #E6EDF3">modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"modules"</span><span style="color: #E6EDF3">),</span>
             <span style="color: #E6EDF3">output_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"output_modules"</span><span style="color: #E6EDF3">),</span>
@@ -2851,7 +2860,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #A5D6FF">        Convert this preset into a Python dictionary.</span>
 
 <span style="color: #A5D6FF">        Args:</span>
-<span style="color: #A5D6FF">            include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary</span>
+<span style="color: #A5D6FF">            include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary</span>
 <span style="color: #A5D6FF">            full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.</span>
 
 <span style="color: #A5D6FF">        Returns:</span>
@@ -2880,15 +2889,15 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 
         <span style="color: #8B949E; font-style: italic"># scope</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">include_target:</span>
-            <span style="color: #E6EDF3">target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
-            <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[]</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
+            <span style="color: #E6EDF3">target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
+            <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[]</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+                <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
             <span style="color: #E6EDF3">blacklist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">target:</span>
                 <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"target"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">target</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">!=</span> <span style="color: #E6EDF3">target:</span>
-                <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"whitelist"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">whitelist</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">!=</span> <span style="color: #E6EDF3">target:</span>
+                <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"seeds"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">seeds</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">blacklist:</span>
                 <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"blacklist"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">blacklist</span>
 
@@ -2918,7 +2927,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan_name:</span>
             <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"scan_name"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan_name</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan_name</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">output_dir</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"output_dir"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">output_dir</span>
+            <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"output_dir"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">str(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">output_dir)</span>
 
         <span style="color: #8B949E; font-style: italic"># conditions</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">conditions:</span>
@@ -2931,7 +2940,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #A5D6FF">        Return the preset in the form of a YAML string.</span>
 
 <span style="color: #A5D6FF">        Args:</span>
-<span style="color: #A5D6FF">            include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary</span>
+<span style="color: #A5D6FF">            include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary</span>
 <span style="color: #A5D6FF">            full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.</span>
 <span style="color: #A5D6FF">            sort_keys (bool, optional): If True, sort YAML keys alphabetically</span>
 
@@ -3115,35 +3124,61 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <h2 class="doc doc-heading" id="bbot.scanner.Preset.__init__">
 <span class="doc doc-object-name doc-function-name">__init__</span>
 </h2>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span><span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">targets,</span> <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">output_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">exclude_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">flags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">require_flags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">exclude_flags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">module_dirs</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">output_dir</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">scan_name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">conditions</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">force_start</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">verbose</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">debug</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">silent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
+    <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">target,</span>
+    <span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">output_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">exclude_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">flags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">require_flags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">exclude_flags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">module_dirs</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">output_dir</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">scan_name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">conditions</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">force_start</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">verbose</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">debug</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">silent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span>
+<span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Initializes the Preset class.</p>
 <p><span class="doc-section-title">Parameters:</span></p>
 <ul>
 <li class="doc-section-item field-body">
-<b><code>*targets</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+<b><code>*target</code></b>
+              (<code><span title="str">str</span></code>, default:
                   <code>()</code>
 )
           –
           <div class="doc-md-description">
-<p>Target(s) to scan. Types supported: hostnames, IPs, CIDRs, emails, open ports.</p>
+<p>Target(s) to scan. These ALWAYS become the target (what <code>in_target()</code> checks).
+Types supported: hostnames, IPs, CIDRs, emails, open ports.
+Note: Positional arguments always mean target, never seeds.</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
-<b><code>whitelist</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>, default:
+<b><code>seeds</code></b>
+              (<code><span title="list">list</span></code>, default:
                   <code>None</code>
 )
           –
           <div class="doc-md-description">
-<p>Whitelisted target(s) to scan. Defaults to the same as <code>targets</code>.</p>
+<p>Explicitly define seeds (initial events for passive modules).
+If not specified, seeds will be backfilled from target when target is defined.</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
 <b><code>blacklist</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a></code>, default:
+              (<code><span title="list">list</span></code>, default:
                   <code>None</code>
 )
           –
@@ -3153,7 +3188,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>modules</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -3163,7 +3198,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>output_modules</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -3173,7 +3208,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>exclude_modules</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -3183,7 +3218,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>require_flags</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -3193,7 +3228,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>exclude_flags</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -3203,7 +3238,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>module_dirs</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -3213,7 +3248,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>config</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>, default:
+              (<code><span title="dict">dict</span></code>, default:
                   <code>None</code>
 )
           –
@@ -3223,7 +3258,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>include</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>)
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>)
           –
           <div class="doc-md-description">
 <p>names or filenames of other presets to include.</p>
@@ -3231,7 +3266,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>presets</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>)
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>)
           –
           <div class="doc-md-description">
 <p>an alias for <code>include</code>.</p>
@@ -3239,7 +3274,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>output_dir</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path" title="&lt;code&gt;pathlib.Path&lt;/code&gt;">Path</a></code>, default:
+              (<code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>, default:
                   <code>None</code>
 )
           –
@@ -3249,7 +3284,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>scan_name</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code><span title="str">str</span></code>, default:
                   <code>None</code>
 )
           –
@@ -3259,7 +3294,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>name</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code><span title="str">str</span></code>, default:
                   <code>None</code>
 )
           –
@@ -3269,7 +3304,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>description</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code><span title="str">str</span></code>, default:
                   <code>None</code>
 )
           –
@@ -3279,7 +3314,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>conditions</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="str">str</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -3289,7 +3324,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>force_start</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -3299,7 +3334,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>verbose</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -3309,7 +3344,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>debug</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -3319,7 +3354,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>silent</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -3329,7 +3364,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_exclude</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path" title="&lt;code&gt;pathlib.Path&lt;/code&gt;">Path</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -3339,7 +3374,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_log</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>True</code>
 )
           –
@@ -3511,10 +3546,18 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">274</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">275</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">276</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">277</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">277</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">278</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">279</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">280</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">281</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">282</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">283</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">284</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">285</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">self,</span>
-    <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">targets,</span>
-    <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">target,</span>
+    <span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">output_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -3540,8 +3583,11 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #A5D6FF">    Initializes the Preset class.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
-<span style="color: #A5D6FF">        *targets (str): Target(s) to scan. Types supported: hostnames, IPs, CIDRs, emails, open ports.</span>
-<span style="color: #A5D6FF">        whitelist (list, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.</span>
+<span style="color: #A5D6FF">        *target (str): Target(s) to scan. These ALWAYS become the target (what `in_target()` checks).</span>
+<span style="color: #A5D6FF">            Types supported: hostnames, IPs, CIDRs, emails, open ports.</span>
+<span style="color: #A5D6FF">            Note: Positional arguments always mean target, never seeds.</span>
+<span style="color: #A5D6FF">        seeds (list, optional): Explicitly define seeds (initial events for passive modules).</span>
+<span style="color: #A5D6FF">            If not specified, seeds will be backfilled from target when target is defined.</span>
 <span style="color: #A5D6FF">        blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.</span>
 <span style="color: #A5D6FF">        modules (list[str], optional): List of scan modules to enable for the scan. Defaults to empty list.</span>
 <span style="color: #A5D6FF">        output_modules (list[str], optional): List of output modules to use. Defaults to csv, human, and json.</span>
@@ -3658,12 +3704,17 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_module_dirs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set()</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_dirs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">module_dirs</span>
 
-    <span style="color: #8B949E; font-style: italic"># target / whitelist / blacklist</span>
+    <span style="color: #8B949E; font-style: italic"># target / seeds / blacklist</span>
     <span style="color: #8B949E; font-style: italic"># these are temporary receptacles until they all get .baked() together</span>
-    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(targets</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">[])</span>
-    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(whitelist)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">whitelist</span>
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target_list</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(target</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[])</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_blacklist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(blacklist</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">blacklist</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">[])</span>
+    <span style="color: #8B949E; font-style: italic"># seeds are special. Instead of initializing them as an empty set, we use "None"</span>
+    <span style="color: #8B949E; font-style: italic"># to signify they haven't been explicitly set.</span>
+    <span style="color: #8B949E; font-style: italic"># after all the merging is done, if seeds are still untouched by the user</span>
+    <span style="color: #8B949E; font-style: italic"># (i.e. they are still None), we'll know it's okay to copy them from the targets.</span>
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(seeds)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72">else</span> <span style="color: #79C0FF">None</span>
 
+    <span style="color: #8B949E; font-style: italic"># _target doesn't get set until .bake()</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
 
     <span style="color: #8B949E; font-style: italic"># we don't fill self.modules yet (that happens in .bake())</span>
@@ -3689,7 +3740,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>apply_core</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -3700,10 +3751,7 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">568</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">569</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">570</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">571</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">571</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">572</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">573</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">574</span>
@@ -3727,7 +3775,10 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">593</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">595</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">apply_log_level</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">apply_core</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">595</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">596</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">597</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">598</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">apply_log_level</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">apply_core</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Apply the log level to the preset.</span>
 
@@ -3767,14 +3818,14 @@ subdomain enumeration, web spidering, dirbusting, etc.</p>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Return a "baked" copy of this preset, ready for use by a BBOT scan.</p>
+<p>Presets can be merged and modified before baking, but once baked, they are immutable.</p>
 <p>Baking a preset finalizes it by populating <code>preset.modules</code> based on flags,
 performing final validations, and substituting environment variables in preloaded modules.
 It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <p>This function is automatically called in Scanner.<strong>init</strong>(). There is no need to call it manually.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">401</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">402</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">402</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">403</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">404</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">405</span>
@@ -3873,9 +3924,14 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">498</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">499</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">500</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">bake</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">bake</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return a "baked" copy of this preset, ready for use by a BBOT scan.</span>
+
+<span style="color: #A5D6FF">    Presets can be merged and modified before baking, but once baked, they are immutable.</span>
 
 <span style="color: #A5D6FF">    Baking a preset finalizes it by populating `preset.modules` based on flags,</span>
 <span style="color: #A5D6FF">    performing final validations, and substituting environment variables in preloaded modules.</span>
@@ -3958,10 +4014,10 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
     <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.scanner.target</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BBOTTarget</span>
 
     <span style="color: #E6EDF3">baked_preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">BBOTTarget(</span>
-        <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">list(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds),</span>
-        <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist,</span>
+        <span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">list(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72">else</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">list(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target_list),</span>
         <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_blacklist,</span>
-        <span style="color: #E6EDF3">strict_scope</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strict_scope,</span>
+        <span style="color: #E6EDF3">strict_dns_scope</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strict_scope,</span>
     <span style="color: #E6EDF3">)</span>
 
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
@@ -3985,7 +4041,9 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
 </span>
 </h2>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">from_dict(preset_dict,</span> <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">from_dict(</span>
+    <span style="color: #E6EDF3">preset_dict,</span> <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span>
+<span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Create a preset from a Python dictionary object.</p>
@@ -3993,7 +4051,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>preset_dict</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
+              (<code><span title="dict">dict</span></code>)
           –
           <div class="doc-md-description">
 <p>Preset in dictionary form</p>
@@ -4001,7 +4059,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>name</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
+              (<code><span title="str">str</span></code>, default:
                   <code>None</code>
 )
           –
@@ -4011,7 +4069,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_exclude</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path" title="&lt;code&gt;pathlib.Path&lt;/code&gt;">Path</a>]</code>, default:
+              (<code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>, default:
                   <code>None</code>
 )
           –
@@ -4021,7 +4079,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>_log</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -4044,10 +4102,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">641</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">642</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">643</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">644</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">644</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">645</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">646</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">647</span>
@@ -4085,7 +4140,15 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">679</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">680</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">681</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">682</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">682</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">683</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">684</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">685</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">686</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">687</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">688</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">689</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">690</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_dict</span><span style="color: #E6EDF3">(cls,</span> <span style="color: #E6EDF3">preset_dict,</span> <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Create a preset from a Python dictionary object.</span>
@@ -4102,9 +4165,14 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #A5D6FF">    Examples:</span>
 <span style="color: #A5D6FF">        &gt;&gt;&gt; preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})</span>
 <span style="color: #A5D6FF">    """</span>
+    <span style="color: #8B949E; font-style: italic"># Handle seeds and targets from dict</span>
+    <span style="color: #8B949E; font-style: italic"># for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.</span>
+    <span style="color: #E6EDF3">target_vals</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">(preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"target"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[])</span> <span style="color: #FF7B72; font-weight: bold">+</span> <span style="color: #E6EDF3">(preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"targets"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[])</span>
+    <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromkeys(target_vals))</span>
+    <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"seeds"</span><span style="color: #E6EDF3">)</span>
     <span style="color: #E6EDF3">new_preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">cls(</span>
-        <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"target"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[]),</span>
-        <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"whitelist"</span><span style="color: #E6EDF3">),</span>
+        <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">targets,</span>
+        <span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">seeds,</span>
         <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"blacklist"</span><span style="color: #E6EDF3">),</span>
         <span style="color: #E6EDF3">modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"modules"</span><span style="color: #E6EDF3">),</span>
         <span style="color: #E6EDF3">output_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">preset_dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"output_modules"</span><span style="color: #E6EDF3">),</span>
@@ -4148,15 +4216,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">704</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">705</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">706</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">707</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">708</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">709</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">711</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">712</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">712</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">713</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">714</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">715</span>
@@ -4180,7 +4240,15 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">733</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">734</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">735</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">736</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">736</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">737</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">738</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">739</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">740</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">741</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">742</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">743</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">744</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_yaml_file</span><span style="color: #E6EDF3">(cls,</span> <span style="color: #E6EDF3">filename,</span> <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.</span>
@@ -4239,22 +4307,22 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">738</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">739</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">740</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">741</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">742</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">743</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">744</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">745</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">746</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">746</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">747</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">748</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">749</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">750</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">751</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">752</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">753</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">753</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">754</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">755</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">756</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">757</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">758</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">759</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">760</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">761</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_yaml_string</span><span style="color: #E6EDF3">(cls,</span> <span style="color: #E6EDF3">yaml_preset):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Create a preset from a YAML string.</span>
@@ -4288,7 +4356,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>filename</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/pathlib.html#pathlib.Path" title="&lt;code&gt;pathlib.Path&lt;/code&gt;">Path</a></code>)
+              (<code><span title="pathlib.Path">Path</span></code>)
           –
           <div class="doc-md-description">
 <p>The preset YAML file to merge</p>
@@ -4300,15 +4368,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">684</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">685</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">686</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">687</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">688</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">689</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">690</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">691</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">692</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">692</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">693</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">694</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">695</span>
@@ -4318,7 +4378,15 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">699</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">700</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">701</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">702</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">include_preset</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">filename):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">702</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">703</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">704</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">705</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">706</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">707</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">708</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">709</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">include_preset</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">filename):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Load a preset from a yaml file and merge it into this one.</span>
 
@@ -4374,9 +4442,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">331</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
@@ -4443,7 +4509,8 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">396</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">397</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">398</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">399</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">merge</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">other):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">399</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">400</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">merge</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">other):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Merge another preset into this one.</span>
 
@@ -4480,13 +4547,12 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flags</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flags)</span>
 
     <span style="color: #8B949E; font-style: italic"># target / scope</span>
-    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds)</span>
-    <span style="color: #8B949E; font-style: italic"># leave whitelist as None until we encounter one</span>
-    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist)</span>
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target_list</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_target_list)</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds)</span>
         <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_whitelist)</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_seeds)</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_blacklist</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_blacklist)</span>
 
     <span style="color: #8B949E; font-style: italic"># module dirs</span>
@@ -4528,14 +4594,14 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <p>Used in <code>cli.py</code>.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">508</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">509</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">510</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">parse_args</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">510</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">511</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">512</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">513</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">parse_args</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Parse CLI arguments, and merge them into this preset.</span>
 
@@ -4557,22 +4623,22 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <p>Return a table of all the presets in the form of a string</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">980</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">981</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">982</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">983</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">984</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">985</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">986</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">987</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">988</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">989</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">990</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">991</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">992</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">993</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">994</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">995</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">presets_table</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 988</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 989</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 990</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 991</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 992</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 993</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 994</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 995</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 996</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 997</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 998</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 999</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1000</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1001</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1002</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1003</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">presets_table</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return a table of all the presets in the form of a string</span>
 <span style="color: #A5D6FF">    """</span>
@@ -4596,7 +4662,11 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <h2 class="doc doc-heading" id="bbot.scanner.Preset.to_dict">
 <span class="doc doc-object-name doc-function-name">to_dict</span>
 </h2>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">to_dict(include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">to_dict(</span>
+    <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+<span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Convert this preset into a Python dictionary.</p>
@@ -4604,17 +4674,17 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>include_target</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
           <div class="doc-md-description">
-<p>If True, include target, whitelist, and blacklist in the dictionary</p>
+<p>If True, include seeds, target, and blacklist in the dictionary</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
 <b><code>full_config</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -4639,15 +4709,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">755</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">756</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">757</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">758</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">759</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">760</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">761</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">762</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">763</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">763</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">764</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">765</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">766</span>
@@ -4717,12 +4779,20 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">830</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">831</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">832</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">833</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_dict</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">833</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">834</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">835</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">836</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">837</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">838</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">839</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">840</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">841</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_dict</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convert this preset into a Python dictionary.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
-<span style="color: #A5D6FF">        include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary</span>
+<span style="color: #A5D6FF">        include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary</span>
 <span style="color: #A5D6FF">        full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.</span>
 
 <span style="color: #A5D6FF">    Returns:</span>
@@ -4751,15 +4821,15 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 
     <span style="color: #8B949E; font-style: italic"># scope</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">include_target:</span>
-        <span style="color: #E6EDF3">target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
-        <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[]</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
+        <span style="color: #E6EDF3">target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
+        <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[]</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
         <span style="color: #E6EDF3">blacklist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">inputs)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">target:</span>
             <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"target"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">target</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">whitelist</span> <span style="color: #FF7B72; font-weight: bold">!=</span> <span style="color: #E6EDF3">target:</span>
-            <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"whitelist"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">whitelist</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">!=</span> <span style="color: #E6EDF3">target:</span>
+            <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"seeds"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">seeds</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">blacklist:</span>
             <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"blacklist"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">blacklist</span>
 
@@ -4789,7 +4859,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan_name:</span>
         <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"scan_name"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan_name</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan_name</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">output_dir</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"output_dir"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">output_dir</span>
+        <span style="color: #E6EDF3">preset_dict[</span><span style="color: #A5D6FF">"output_dir"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">str(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">output_dir)</span>
 
     <span style="color: #8B949E; font-style: italic"># conditions</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">conditions:</span>
@@ -4804,7 +4874,9 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <h2 class="doc doc-heading" id="bbot.scanner.Preset.to_yaml">
 <span class="doc doc-object-name doc-function-name">to_yaml</span>
 </h2>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">to_yaml(include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">to_yaml(</span>
+    <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span>
+<span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Return the preset in the form of a YAML string.</p>
@@ -4812,17 +4884,17 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>include_target</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
           <div class="doc-md-description">
-<p>If True, include target, whitelist, and blacklist in the dictionary</p>
+<p>If True, include seeds, target, and blacklist in the dictionary</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
 <b><code>full_config</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -4832,7 +4904,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code>sort_keys</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+              (<code><span title="bool">bool</span></code>, default:
                   <code>False</code>
 )
           –
@@ -4860,15 +4932,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">835</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">836</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">837</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">838</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">839</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">840</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">841</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">842</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">843</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">843</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">844</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">845</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">846</span>
@@ -4881,12 +4945,20 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">853</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">854</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">855</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">856</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_yaml</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">856</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">857</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">858</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">859</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">860</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">861</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">862</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">863</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">864</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_yaml</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return the preset in the form of a YAML string.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
-<span style="color: #A5D6FF">        include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary</span>
+<span style="color: #A5D6FF">        include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary</span>
 <span style="color: #A5D6FF">        full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.</span>
 <span style="color: #A5D6FF">        sort_keys (bool, optional): If True, sort YAML keys alphabetically</span>
 
@@ -4917,15 +4989,7 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <p>Validate module/flag exclusions/requirements, and CLI config options if applicable.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">902</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">903</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">904</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">905</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">906</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">907</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">908</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">909</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">910</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">910</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">911</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">912</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">913</span>
@@ -4941,7 +5005,15 @@ It also evaluates custom <code>conditions</code> as specified in the preset.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">923</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">924</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">925</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">926</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">validate</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">926</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">927</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">928</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">929</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">930</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">931</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">932</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">933</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">934</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">validate</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Validate module/flag exclusions/requirements, and CLI config options if applicable.</span>
 <span style="color: #A5D6FF">    """</span>

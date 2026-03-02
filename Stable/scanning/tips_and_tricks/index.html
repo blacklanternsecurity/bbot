@@ -11,7 +11,7 @@
 <link href="../output/" rel="prev"/>
 <link href="../advanced/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.2" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Tips and Tricks - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.l9zyw2qg.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.k9cg8em1.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -440,15 +440,6 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#ingest-bbot-data-into-siem-elastic-splunk">
-<span class="md-ellipsis">
-      
-        Ingest BBOT Data Into SIEM (Elastic, Splunk)
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
 <a class="md-nav__link" href="#custom-http-proxy">
 <span class="md-ellipsis">
       
@@ -476,10 +467,10 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#speed-up-scans-by-disabling-dns-resolution">
+<a class="md-nav__link" href="#speed-up-scans-with-fast-mode">
 <span class="md-ellipsis">
       
-        Speed Up Scans By Disabling DNS Resolution
+        Speed Up Scans with --fast-mode
       
     </span>
 </a>
@@ -1079,18 +1070,6 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </code></pre></div>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>skip_cdns.yml
 </code></pre></div>
-<h3 id="ingest-bbot-data-into-siem-elastic-splunk">Ingest BBOT Data Into SIEM (Elastic, Splunk)</h3>
-<p>If your goal is to run a BBOT scan and later feed its data into a SIEM such as Elastic, be sure to enable this option when scanning:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.json.siem_friendly<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
-</code></pre></div>
-<p>This ensures the <code>.data</code> event attribute is always the same type (a dictionary), by nesting it like so:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">{</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"type"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"data"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">{</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">"DNS_NAME"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"blacklanternsecurity.com"</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">}</span>
-<span style="color: #E6EDF3">}</span>
-</code></pre></div></p>
 <h3 id="custom-http-proxy">Custom HTTP Proxy</h3>
 <p>Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the <code>web.http_proxy</code> config option like so:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># enumerate subdomains, take web screenshots, proxy through Burp</span>
@@ -1107,14 +1086,33 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># display events up to scope distance 2 (default == 0)</span>
 bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>scope.report_distance<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">2</span>
 </code></pre></div></p>
-<h3 id="speed-up-scans-by-disabling-dns-resolution">Speed Up Scans By Disabling DNS Resolution</h3>
-<p>If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting <code>dns.disable</code> to <code>true</code>:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># completely disable DNS resolution</span>
-bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>wappalyzer<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>urls.txt<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.disable<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
+<h3 id="speed-up-scans-with-fast-mode">Speed Up Scans with <code>--fast-mode</code></h3>
+<p>If you have a ready list of hosts/urls and just want to scan them as fast as possible without any extra discovery, use <code>--fast-mode</code>. It's a CLI alias for <code>--preset fast</code>, which disables non-essential speculation and DNS resolution:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Scan only the provided targets as fast as possible - no extra discovery</span>
+
+<span style="color: #7EE787">exclude_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">excavate</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># only scan the exact targets specified</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">scope</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">strict</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># speed up dns resolution by doing A/AAAA only - not MX/NS/SRV/etc</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">dns</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">minimal</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># essential speculation only</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">speculate</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">essential_only</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
 </code></pre></div>
-<p>Note that the above setting <em>completely</em> disables DNS resolution, meaning even <code>A</code> and <code>AAAA</code> records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use <code>dns.minimal</code> instead:</p>
+<p>If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting <code>dns.disable</code> to <code>true</code>:</p>
+<p>If you don't care about DNS-based scope checks, you can go even further by completely disabling DNS resolution:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># completely disable DNS resolution</span>
+bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>urls.txt<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.disable<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
+</code></pre></div>
+<p>Note that the above setting <em>completely</em> disables DNS, meaning even <code>A</code> and <code>AAAA</code> records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use <code>dns.minimal</code> instead:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># only resolve A and AAAA records</span>
-bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>wappalyzer<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>urls.txt<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.minimal<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
+bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>urls.txt<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.minimal<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
 </code></pre></div>
 <h2 id="faq">FAQ</h2>
 <h3 id="what-is-url_unverified">What is <code>URL_UNVERIFIED</code>?</h3>
