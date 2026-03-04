@@ -4,6 +4,7 @@ import base64
 import random
 import asyncio
 import logging
+import contextlib
 import traceback
 from uuid import uuid4
 
@@ -195,6 +196,8 @@ class Interactsh:
 
         if self._poll_task is not None:
             self._poll_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._poll_task
 
         if "success" not in getattr(r, "text", ""):
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")
@@ -274,16 +277,28 @@ class Interactsh:
             return await self._poll_loop(callback)
 
     async def _poll_loop(self, callback):
+        consecutive_failures = 0
+        max_failures = 5
         while 1:
             if self.parent_helper.scan.stopping:
-                await asyncio.sleep(1)
-                continue
+                break
             data_list = []
             try:
                 data_list = await self.poll()
+                consecutive_failures = 0
             except InteractshError as e:
-                log.warning(e)
+                consecutive_failures += 1
+                if consecutive_failures == 1:
+                    log.warning(e)
+                elif consecutive_failures >= max_failures:
+                    log.error(f"Interactsh poll failed {max_failures} consecutive times, giving up: {e}")
+                    break
+                else:
+                    log.debug(f"Interactsh poll failure #{consecutive_failures}: {e}")
                 log.trace(traceback.format_exc())
+                backoff = min(self.poll_interval * (2 ** (consecutive_failures - 1)), 300)
+                await asyncio.sleep(backoff)
+                continue
             if not data_list:
                 await asyncio.sleep(self.poll_interval)
                 continue
