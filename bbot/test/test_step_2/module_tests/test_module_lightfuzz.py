@@ -1465,6 +1465,91 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
         assert cmdi_interacttsh_finding_emitted, "interactsh CMDi FINDING not emitted"
 
 
+# SSRF interactsh
+class Test_Lightfuzz_ssrf(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+
+    @staticmethod
+    def extract_subdomain_tag(data):
+        # Try both URL-encoded and non-encoded forms
+        for pattern in [
+            r"url=https?%3A%2F%2F(.+?)\.fakedomain\.fakeinteractsh\.com",
+            r"url=https?://(.+?)\.fakedomain\.fakeinteractsh\.com",
+        ]:
+            match = re.search(pattern, data)
+            if match:
+                return match.group(1)
+
+    config_overrides = {
+        "interactsh_disable": False,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["ssrf"],
+            }
+        },
+    }
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Enter URL...' name=url>
+                <button type=submit class=button>Fetch</button>
+            </form>
+        </section>
+        """
+
+        if "url=" in qs:
+            subdomain_tag = self.extract_subdomain_tag(request.full_path)
+
+            if subdomain_tag:
+                self.interactsh_mock_instance.mock_interaction(subdomain_tag)
+        return Response(parameter_block, status=200)
+
+    async def setup_before_prep(self, module_test):
+        self.interactsh_mock_instance = module_test.mock_interactsh("lightfuzz")
+
+        module_test.monkeypatch.setattr(
+            module_test.scan.helpers, "interactsh", lambda *args, **kwargs: self.interactsh_mock_instance
+        )
+
+    async def setup_after_prep(self, module_test):
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        ssrf_dns_finding_emitted = False
+        ssrf_http_finding_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [url]" in e.data["description"]:
+                    web_parameter_emitted = True
+
+            if e.type == "FINDING":
+                if (
+                    "Server-Side Request Forgery (OOB Interaction) Type: [GETPARAM] Parameter Name: [url]"
+                    in e.data["description"]
+                ):
+                    if "Interaction Protocol: [dns]" in e.data["description"]:
+                        ssrf_dns_finding_emitted = True
+                        assert e.data["confidence"] == "MODERATE", (
+                            f"DNS SSRF should be MODERATE, got {e.data['confidence']}"
+                        )
+                    elif "Interaction Protocol: [http]" in e.data["description"]:
+                        ssrf_http_finding_emitted = True
+                        assert e.data["confidence"] == "CONFIRMED", (
+                            f"HTTP SSRF should be CONFIRMED, got {e.data['confidence']}"
+                        )
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert ssrf_dns_finding_emitted, "interactsh SSRF DNS FINDING not emitted"
+        assert ssrf_http_finding_emitted, "interactsh SSRF HTTP FINDING not emitted"
+
+
 class Test_Lightfuzz_speculative(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
     modules_overrides = ["httpx", "excavate", "paramminer_getparams", "lightfuzz"]
