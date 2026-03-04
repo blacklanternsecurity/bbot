@@ -704,7 +704,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     class JWTExtractor(ExcavateRule):
         description = "Extracts JSON Web Tokens."
         yara_rules = {
-            "jwt": r'rule jwt { meta: emit_match = "True" description = "contains JSON Web Token (JWT)" strings: $jwt = /\beyJ[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*/ nocase condition: $jwt }',
+            "jwt": r'rule jwt { meta: emit_match = "True" description = "contains JSON Web Token (JWT)" confidence = "CONFIRMED" strings: $jwt = /\beyJ[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*/ nocase condition: $jwt }',
         }
 
     class ErrorExtractor(ExcavateRule):
@@ -781,7 +781,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     class FunctionalityExtractor(ExcavateRule):
         description = "Detects potentially exploitable functionality and attack surface in web applications."
         yara_rules = {
-            "File_Upload_Functionality": r'rule File_Upload_Functionality { meta: description = "contains file upload functionality" strings: $fileuploadfunc = /<input[^>]+type=["\']?file["\']?[^>]+>/ nocase condition: $fileuploadfunc }',
+            "File_Upload_Functionality": r'rule File_Upload_Functionality { meta: description = "contains file upload functionality" confidence = "CONFIRMED" strings: $fileuploadfunc = /<input[^>]+type=["\']?file["\']?[^>]+>/ nocase condition: $fileuploadfunc }',
             "Web_Service_WSDL": r'rule Web_Service_WSDL { meta: emit_match = "True" description = "contains a web service WSDL URL" strings: $wsdl = /https?:\/\/[^\s]*\.(wsdl)/ nocase condition: $wsdl }',
         }
 
@@ -1028,6 +1028,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
                     self.debug(f"Including Submodule {e.__name__}")
+                    if e.__name__ == "JWTExtractor" and "badsecrets" in self.scan.modules:
+                        self.debug(
+                            "JWTExtractor disabled because badsecrets module is enabled"
+                        )
+                        continue
                     if e.__name__ == "ParameterExtractor":
                         message = (
                             "Parameter Extraction disabled because no modules consume WEB_PARAMETER events"
