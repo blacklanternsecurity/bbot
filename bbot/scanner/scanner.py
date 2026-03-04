@@ -185,9 +185,15 @@ class Scanner:
         if self.name == "golden_gus":
             from base64 import b64decode as _d
 
-            _a = _d("ICAgICAgICAgICAgICBfX18KICAqd29vZiogIF9fL18gIGAuICAuLSIiIi0uCiAgICAgICAgICBcXyxgIHwgXC0nICAvICAgKWAtJykKICAgICAgICAgICAiIikgImAiICAgIFwgICgoImAiCiAgICAgICAgICBfX19ZICAsICAgIC4nNyAvfAogICAgICAgICAoXyxfX18vLi4uLWAgKF8vXy8=").decode()
+            _a = _d(
+                "ICAgICAgICAgICAgICBfX18KICAqd29vZiogIF9fL18gIGAuICAuLSIiIi0uCiAgICAgICAgICBcXyxgIHwgXC0nICAvICAgKWAtJykKICAgICAgICAgICAiIikgImAiICAgIFwgICgoImAiCiAgICAgICAgICBfX19ZICAsICAgIC4nNyAvfAogICAgICAgICAoXyxfX18vLi4uLWAgKF8vXy8="
+            ).decode()
             _m = _d("R3VzIGhhcyBibGVzc2VkIHlvdXIgc2Nhbi4=").decode()
-            log_to_stderr(f"\033[1;38;5;220m{_a}\033[0m\n          \033[1;38;5;118m{_m}\033[0m", level="HUGESUCCESS", logname=False)
+            log_to_stderr(
+                f"\033[1;38;5;220m{_a}\033[0m\n          \033[1;38;5;118m{_m}\033[0m",
+                level="HUGESUCCESS",
+                logname=False,
+            )
 
         # make sure the preset has a description
         if not self.preset.description:
