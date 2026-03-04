@@ -409,6 +409,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 if extracted_results:
                     for action, extracted_parameters in extracted_results:
                         extracted_parameters_dict = await self.convert_to_dict(extracted_parameters)
+                        if extracted_parameters_dict is None:
+                            continue
                         for parameter_name, original_value in extracted_parameters_dict.items():
                             yield (
                                 self.output_type,
