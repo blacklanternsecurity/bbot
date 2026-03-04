@@ -215,7 +215,9 @@ class Scanner:
         self.httpx_timeout = self.web_config.get("httpx_timeout", 5)
         self.http_retries = self.web_config.get("http_retries", 1)
         self.httpx_retries = self.web_config.get("httpx_retries", 1)
-        self.useragent = self.web_config.get("user_agent", "BBOT")
+        self.useragent = (
+            f"{self.web_config.get('user_agent', 'BBOT')} {self.web_config.get('user_agent_suffix') or ''}".strip()
+        )
         # custom HTTP headers warning
         self.custom_http_headers = self.web_config.get("http_headers", {})
         if self.custom_http_headers:
