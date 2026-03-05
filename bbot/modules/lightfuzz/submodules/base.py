@@ -27,7 +27,7 @@ class BaseLightfuzz:
         try:
             if base64.b64encode(base64.b64decode(s)).decode() == s:
                 return True
-        except (binascii.Error, UnicodeDecodeError):
+        except (binascii.Error, UnicodeDecodeError, ValueError):
             return False
         return False
 
