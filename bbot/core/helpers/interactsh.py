@@ -279,8 +279,10 @@ class Interactsh:
     async def _poll_loop(self, callback):
         consecutive_failures = 0
         max_failures = 5
+        log.debug(f"Starting interactsh poll loop (interval={self.poll_interval}s, server={self.server})")
         while 1:
             if self.parent_helper.scan.stopping:
+                log.debug("Stopping interactsh poll loop (scan is stopping)")
                 break
             data_list = []
             try:
@@ -297,13 +299,19 @@ class Interactsh:
                     log.debug(f"Interactsh poll failure #{consecutive_failures}: {e}")
                 log.trace(traceback.format_exc())
                 backoff = min(self.poll_interval * (2 ** (consecutive_failures - 1)), 300)
+                log.debug(f"Interactsh backing off for {backoff}s after failure #{consecutive_failures}")
                 await asyncio.sleep(backoff)
                 continue
             if not data_list:
+                log.debug(f"Interactsh poll returned no interactions, sleeping {self.poll_interval}s")
                 await asyncio.sleep(self.poll_interval)
                 continue
+            log.debug(f"Interactsh poll returned {len(data_list)} interaction(s)")
             for data in data_list:
                 if data:
+                    protocol = data.get("protocol", "unknown")
+                    full_id = data.get("full-id", "unknown")
+                    log.debug(f"Interactsh interaction: protocol={protocol}, full-id={full_id}")
                     await self.parent_helper.execute_sync_or_async(callback, data)
 
     def _decrypt(self, aes_key, data):
