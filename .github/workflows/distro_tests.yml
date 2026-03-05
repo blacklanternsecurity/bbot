@@ -24,8 +24,9 @@ jobs:
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kali" ] || [ "$ID" = "parrotsec" ]; then
               export DEBIAN_FRONTEND=noninteractive
               # Pin Parrot to MIT mirror to avoid stale third-party mirrors (e.g. mirror.clarkson.edu)
-              if [ "$ID" = "parrotsec" ]; then
-                rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources
+              # Note: parrotsec/security image reports ID=debian, so we detect via parrot.list
+              if [ -f /etc/apt/sources.list.d/parrot.list ]; then
+                rm -f /etc/apt/sources.list /etc/apt/sources.list.old /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources
                 echo "deb https://mirrors.mit.edu/parrot/ echo main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/parrot.list
                 echo "deb https://mirrors.mit.edu/parrot/ echo-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list.d/parrot.list
                 echo "deb https://mirrors.mit.edu/parrot/ echo-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list.d/parrot.list
