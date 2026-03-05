@@ -1,5 +1,6 @@
 import io
 import re
+import sys
 import uuid
 import json
 import base64
@@ -122,6 +123,8 @@ class BaseEvent:
     # Don't allow duplicates to occur within a parent chain
     # In other words, don't emit the event if the same one already exists in its discovery context
     _suppress_chain_dupes = False
+    # Shared compiled regex for discovery context formatting (class-level to avoid per-instance overhead)
+    _discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
 
     # using __slots__ dramatically reduces memory usage in large scans
     __slots__ = [
@@ -150,7 +153,6 @@ class BaseEvent:
         "_graph_important",
         "_resolved_hosts",
         "_discovery_context",
-        "_discovery_context_regex",
         "_stats_recorded",
         "_internal",
         "_dummy",
@@ -166,6 +168,8 @@ class BaseEvent:
         "num_redirects",
         # File-related attributes
         "_data_path",
+        # Web parameter attributes
+        "envelopes",
         # Public attributes
         "module",
         "scan",
@@ -226,7 +230,6 @@ class BaseEvent:
         self.dns_children = {}
         self.raw_dns_records = {}
         self._discovery_context = ""
-        self._discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
         self.web_spider_distance = 0
 
         # for creating one-off events without enforcing parent requirement
@@ -464,7 +467,7 @@ class BaseEvent:
             self.add_tag(tag)
 
     def add_tag(self, tag):
-        self._tags.add(tagify(tag))
+        self._tags.add(sys.intern(tagify(tag)))
 
     def add_tags(self, tags):
         for tag in set(tags):
@@ -472,7 +475,7 @@ class BaseEvent:
 
     def remove_tag(self, tag):
         with suppress(KeyError):
-            self._tags.remove(tagify(tag))
+            self._tags.remove(sys.intern(tagify(tag)))
 
     @property
     def always_emit(self):
@@ -1870,7 +1873,7 @@ def make_event(
         if not dummy:
             log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
 
-    event_type = str(event_type).strip().upper()
+    event_type = sys.intern(str(event_type).strip().upper())
 
     # Catch these common whoopsies
     if event_type in ("DNS_NAME", "IP_ADDRESS"):
