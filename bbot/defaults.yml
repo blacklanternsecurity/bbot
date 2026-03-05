@@ -86,6 +86,8 @@ web:
   http_proxy:
   # Web user-agent
   user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
+  # Suffix to append to user-agent (e.g. for tracking or identification)
+  user_agent_suffix:
   # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
   spider_distance: 0
   # Set the maximum directory depth for the web spider
