@@ -1331,6 +1331,60 @@ class Test_Lightfuzz_serial_errordifferential_falsepositive(Test_Lightfuzz_seria
         assert finding_count == 0, "Unexpected FINDING events reported"
 
 
+# Serialization Module (Error Resolution - Transient Baseline)
+# Simulates a server that returns 500 on the first request (baseline), then 200 for everything after.
+# The confirmation re-send of the control payload should catch this and suppress the finding.
+class Test_Lightfuzz_serial_errorresolution_transient_baseline(Test_Lightfuzz_serial_errorresolution):
+    request_count = 0
+
+    def request_handler(self, request):
+        post_params = request.form
+
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        self.request_count += 1
+        # First request (baseline) returns 500, all subsequent requests return 200
+        if self.request_count <= 1:
+            return Response(self.dotnet_serial_error, status=500)
+        else:
+            return Response("<html><body>OK</body></html>", status=200)
+
+    def check(self, module_test, events):
+        no_finding_emitted = True
+        for e in events:
+            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", ""):
+                no_finding_emitted = False
+        assert no_finding_emitted, "False positive Error Resolution finding was emitted despite transient baseline"
+
+
+# Serialization Module (Error Resolution - Multi-Language Family False Positive)
+# Simulates a server where ALL serialization payloads resolve the error (500->200),
+# spanning multiple language families. The multi-family check should discard them all.
+class Test_Lightfuzz_serial_errorresolution_multi_language(Test_Lightfuzz_serial_errorresolution):
+    def request_handler(self, request):
+        post_params = request.form
+
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        # __VIEWSTATE mismatch triggers the baseline path
+        if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
+            return Response(self.dotnet_serial_error, status=500)
+
+        # ALL payloads "resolve" the error - this is the false positive scenario
+        return Response("<html><body>OK</body></html>", status=200)
+
+    def check(self, module_test, events):
+        no_finding_emitted = True
+        for e in events:
+            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", ""):
+                no_finding_emitted = False
+        assert no_finding_emitted, (
+            "False positive Error Resolution finding was emitted despite multiple language families triggering"
+        )
+
+
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]

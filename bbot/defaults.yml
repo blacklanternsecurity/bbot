@@ -257,6 +257,7 @@ parameter_blacklist:
   - __SCROLLPOSITIONY
   - __SCROLLPOSITIONX
   - ASP.NET_SessionId
+  - .AspNetCore.Session
   - PHPSESSID
   - __cf_bm
   - f5_cspm
