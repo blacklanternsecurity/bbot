@@ -413,3 +413,31 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     urls = [e.data for e in events if e.type == "URL"]
     assert len(urls) == 1
     assert set(urls) == {"http://127.0.0.1:8888/"}
+
+
+def test_no_double_parsing():
+    """Regression test: when seeds are auto-populated from target, EventSeed parsing
+    should happen only once (via ScanTarget), not twice. BBOTTarget should pass
+    pre-parsed EventSeed objects to ScanSeeds instead of raw strings."""
+    from unittest.mock import patch
+    from bbot.scanner.target import BBOTTarget
+    from bbot.core.event.helpers import EventSeed as _real_EventSeed
+
+    targets = ["evilcorp.com", "1.2.3.4", "https://example.com", "10.0.0.0/24"]
+
+    call_count = 0
+    original_EventSeed = _real_EventSeed
+
+    def counting_EventSeed(input):
+        nonlocal call_count
+        call_count += 1
+        return original_EventSeed(input)
+
+    with patch("bbot.scanner.target.EventSeed", side_effect=counting_EventSeed):
+        BBOTTarget(target=targets)
+
+    # EventSeed should be called once per target (for ScanTarget), not twice
+    assert call_count == len(targets), (
+        f"EventSeed was called {call_count} times for {len(targets)} targets; "
+        f"expected {len(targets)} (seeds should reuse pre-parsed EventSeed objects)"
+    )

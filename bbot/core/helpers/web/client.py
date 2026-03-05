@@ -70,7 +70,9 @@ class BBOTAsyncClient(httpx.AsyncClient):
             cookies = {}
 
         # user agent
-        user_agent = self._web_config.get("user_agent", "BBOT")
+        user_agent = (
+            f"{self._web_config.get('user_agent', 'BBOT')} {self._web_config.get('user_agent_suffix') or ''}".strip()
+        )
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
         kwargs["headers"] = headers
