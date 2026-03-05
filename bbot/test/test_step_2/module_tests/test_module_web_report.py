@@ -9,7 +9,7 @@ class TestWebReport(ModuleTestBase):
     async def setup_before_prep(self, module_test):
         # trufflehog --> FINDING
         # dotnetnuke --> TECHNOLOGY
-        # badsecrets --> VULNERABILITY
+        # badsecrets --> FINDING
         respond_args = {"response_data": web_body}
         module_test.set_expect_requests(respond_args=respond_args)
 

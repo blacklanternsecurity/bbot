@@ -7,9 +7,8 @@ BBOT integrates with [Nuclei](https://github.com/projectdiscovery/nuclei), an op
 ![Nuclei Killchain](https://github.com/blacklanternsecurity/bbot/assets/24899338/7174c4ba-4a6e-4596-bb89-5a0c5f5abe74)
 
 
-* The BBOT Nuclei module ingests **[URL]** events and emits events of type **[VULNERABILITY]** or **[FINDING]**
-* Vulnerabilities will inherit their severity from the Nuclei templates
-* Nuclei templates of severity INFO will be emitted as **[FINDINGS]**
+* The BBOT Nuclei module ingests **[URL]** events and emits events of type **[FINDING]**
+* Findings will inherit their severity from the Nuclei templates
 
 ## Default Behavior
 
