@@ -76,7 +76,7 @@ class cmdi(BaseLightfuzz):
                 {
                     "name": "Possible Command Injection",
                     "severity": "CRITICAL",
-                    "confidence": "MODERATE",
+                    "confidence": "MEDIUM",
                     "description": f"POSSIBLE OS Command Injection. {self.metadata()} Detection Method: [echo canary] CMD Probe Delimeters: [{' '.join(positive_detections)}]",
                 }
             )

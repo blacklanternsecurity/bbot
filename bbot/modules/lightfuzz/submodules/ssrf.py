@@ -36,7 +36,7 @@ class ssrf(BaseLightfuzz):
                 "severity": "HIGH",
                 "confidence": "CONFIRMED",
                 "severity_dns": "HIGH",
-                "confidence_dns": "MODERATE",
+                "confidence_dns": "MEDIUM",
             }
 
             await self.standard_probe(

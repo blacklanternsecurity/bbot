@@ -346,7 +346,7 @@ class iis_shortnames(BaseModule):
                                         "host": str(event.host),
                                         "url": event.data,
                                         "description": f"Possible backup file (zip) in web root: {normalized_url}{url_hint}",
-                                        "confidence": "MODERATE",
+                                        "confidence": "MEDIUM",
                                         "severity": "MEDIUM",
                                     },
                                     "FINDING",
