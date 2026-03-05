@@ -262,6 +262,7 @@ parameter_blacklist:
 parameter_blacklist_prefixes:
   - TS01
   - BIGipServer
+  - f5avr
   - incap_
   - visid_incap_
   - AWSALB

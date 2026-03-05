@@ -1829,6 +1829,137 @@ class Test_Lightfuzz_PaddingOracleDetection_Noisy(Test_Lightfuzz_PaddingOracleDe
         )
 
 
+class Test_Lightfuzz_PaddingOracleDetection_NarrowCharset(ModuleTestBase):
+    """Parameters with values that use a narrow consecutive character set (e.g. only A-P)
+    round-trip as valid base64 but are not actual cryptographic data.
+    The narrow charset check should reject these, preventing false findings."""
+
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["crypto"],
+            }
+        },
+    }
+
+    # A-P only value: valid base64 round-trip, but narrow charset (span=15)
+    narrow_charset_value = "BPIDFOPFGNLIBNFGAEPBMIIKPHEFGOJKOMACMBJJLOPKFIGMKALJDBHCMAMHIKIMDOFDHIBAHEJBIIGMIDKANCMFGJAIEKLPCLFDMELEAGBILMHLAPFKNNBAMPPNDEEP"
+
+    def request_handler(self, request):
+        return Response("<html><body><p>Welcome</p></body></html>", status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
+
+        parent_event = module_test.scan.make_event(
+            "http://127.0.0.1:8888/",
+            "URL",
+            module_test.scan.root_event,
+            module="httpx",
+            tags=["status-200", "distance-0"],
+        )
+
+        data = {
+            "host": "127.0.0.1",
+            "type": "COOKIE",
+            "name": "custom_session_cookie",
+            "original_value": self.narrow_charset_value,
+            "url": "http://127.0.0.1:8888/",
+            "description": "Test narrow charset cookie",
+        }
+        seed_event = module_test.scan.make_event(data, "WEB_PARAMETER", parent_event, tags=["distance-0"])
+        await module_test.scan.ingress_module.incoming_event_queue.put(seed_event)
+
+    def check(self, module_test, events):
+        crypto_finding = False
+        padding_oracle_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                if "Cryptographic Parameter" in e.data["description"]:
+                    crypto_finding = True
+                if "Padding Oracle" in e.data["description"]:
+                    padding_oracle_finding = True
+
+        assert not crypto_finding, "Narrow-charset parameter should NOT be identified as cryptographic"
+        assert not padding_oracle_finding, "Narrow-charset parameter should NOT trigger padding oracle detection"
+
+
+class Test_Lightfuzz_PaddingOracleDetection_Jitter(Test_Lightfuzz_PaddingOracleDetection):
+    """Padding oracle negative test: the server produces inconsistent responses across rounds.
+    The first round may trigger detection, but the confirmation round should fail,
+    suppressing the jitter-based false positive."""
+
+    oracle_request_count = 0
+
+    def request_handler(self, request):
+        encrypted_value = quote(
+            "dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q+4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg=="
+        )
+        default_html_response = f"""
+        <html>
+            <body>
+                <form action="/decrypt" method="post">
+                    <input type="hidden" name="encrypted_data" value="{encrypted_value}" />
+                    <button type="submit">Decrypt</button>
+                </form>
+            </body>
+        </html>
+        """
+
+        if "/decrypt" in request.url and request.method == "POST":
+            if request.form and request.form["encrypted_data"]:
+                encrypted_data = request.form["encrypted_data"]
+
+                if "4GXVGZbo0DTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg" in encrypted_data:
+                    response_content = "DIFFERENT CRYPTOGRAPHIC ERROR"
+                elif encrypted_data.startswith("AAAAAAAAAAAAAAAA"):
+                    Test_Lightfuzz_PaddingOracleDetection_Jitter.oracle_request_count += 1
+                    # First 254 requests (round 1): produce oracle-like signal (1 differ)
+                    if Test_Lightfuzz_PaddingOracleDetection_Jitter.oracle_request_count <= 254:
+                        try:
+                            decoded = base64.b64decode(encrypted_data)
+                            if len(decoded) >= 32:
+                                varying_byte = decoded[31]
+                                if varying_byte == 100:
+                                    response_content = "Padding error detected"
+                                else:
+                                    response_content = "Decryption failed"
+                            else:
+                                response_content = "Decryption failed"
+                        except Exception:
+                            response_content = "Decryption failed"
+                    else:
+                        # Confirmation round: all responses identical (no oracle signal)
+                        response_content = "Decryption failed"
+                elif "AAAAAAA" in encrypted_data:
+                    response_content = "YET DIFFERENT CRYPTOGRAPHIC ERROR"
+                else:
+                    response_content = "Decryption failed"
+
+            return Response(response_content, status=200)
+        else:
+            return Response(default_html_response, status=200)
+
+    def check(self, module_test, events):
+        web_parameter_extracted = False
+        padding_oracle_detected = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
+                    web_parameter_extracted = True
+            if e.type == "FINDING":
+                if "Padding Oracle" in e.data["description"]:
+                    padding_oracle_detected = True
+
+        assert web_parameter_extracted, "Web parameter was not extracted"
+        assert not padding_oracle_detected, (
+            "Padding oracle should NOT be detected when confirmation round fails (jitter false positive)"
+        )
+
+
 class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "lightfuzz", "excavate", "paramminer_getparams"]
