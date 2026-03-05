@@ -292,7 +292,7 @@ class Scanner:
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
         # expand async seed types (e.g. ASN → IP ranges)
-        await self.preset.target.generate_children(self.helpers)
+        await self.preset.target.generate_children()
 
         # evaluate preset conditions (may abort the scan)
         if self.preset.conditions:
@@ -1213,12 +1213,8 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        if self.preset is not None:
-            j["target"] = self.preset.target.json
-            j["preset"] = self.preset.to_dict(redact_secrets=True)
-        else:
-            j["target"] = {}
-            j["preset"] = {}
+        j["target"] = self.preset.target.json
+        j["preset"] = self.preset.to_dict(redact_secrets=True)
         if self.start_time is not None:
             j["started_at"] = self.start_time.timestamp()
         if self.end_time is not None:

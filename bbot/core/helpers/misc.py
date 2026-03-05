@@ -837,7 +837,7 @@ def rand_string(length=10, digits=True, numeric_only=False):
     return "".join(random.choice(pool) for _ in range(length))
 
 
-def truncate_string(s: str, n: int) -> str:
+def truncate_string(s: str, n: int = 200) -> str:
     if not isinstance(s, str):
         raise ValueError(f"Expected string, got {type(s)}")
     if len(s) > n:

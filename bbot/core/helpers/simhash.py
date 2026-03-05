@@ -1,6 +1,8 @@
 import xxhash
 import re
 
+_non_word_re = re.compile(r"[^\w]+")
+
 
 class SimHashHelper:
     def __init__(self, bits=64):
@@ -57,7 +59,7 @@ class SimHashHelper:
         width = 3
         text = text.lower()
         # Remove non-word characters
-        text = re.sub(r"[^\w]+", "", text)
+        text = _non_word_re.sub("", text)
         # Create 3-character shingles
         return [text[i : i + width] for i in range(max(len(text) - width + 1, 1))]
 

@@ -384,33 +384,30 @@ async def test_asn_targets(bbot_scanner):
     target.seeds.add("ASN:15169")
     assert "ASN:15169" in target.seeds.inputs
 
-    # Test ASN target expansion with mocked ASN helper
-    class MockASNHelper:
-        async def asn_to_subnets(self, asn_number):
-            if asn_number == 15169:
-                return {
-                    "asn": 15169,
-                    "name": "GOOGLE",
-                    "description": "Google LLC",
-                    "country": "US",
-                    "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
-                }
-            return None
+    # Test ASN target expansion with mocked asndb
+    from unittest.mock import AsyncMock, MagicMock, patch
 
-    class MockHelpers:
-        def __init__(self):
-            self.asn = MockASNHelper()
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(
+        return_value={
+            "asn": 15169,
+            "asn_name": "GOOGLE",
+            "org": "Google LLC",
+            "country": "US",
+            "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
+        }
+    )
 
     # Test target expansion
     target = BBOTTarget(target=["ASN:15169"])
-    mock_helpers = MockHelpers()
 
     # Verify initial state
     initial_hosts = len(target.seeds.hosts)
     initial_seeds = len(target.seeds.event_seeds)
 
     # Generate children (expand ASN to IP ranges)
-    await target.generate_children(mock_helpers)
+    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
+        await target.generate_children()
 
     # After expansion, should have additional IP range seeds
     assert len(target.seeds.event_seeds) > initial_seeds
@@ -428,41 +425,30 @@ async def test_asn_targets(bbot_scanner):
 @pytest.mark.asyncio
 async def test_asn_targets_integration(bbot_scanner):
     """Test ASN targets with full scanner integration."""
-    from bbot.core.helpers.asn import ASNHelper
+    from unittest.mock import AsyncMock, MagicMock, patch
 
-    # Mock ASN data for testing
-    mock_asn_data = {
-        "asn": 15169,
-        "name": "GOOGLE",
-        "description": "Google LLC",
-        "country": "US",
-        "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
-    }
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(
+        return_value={
+            "asn": 15169,
+            "asn_name": "GOOGLE",
+            "org": "Google LLC",
+            "country": "US",
+            "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
+        }
+    )
 
     # Create scanner with ASN target
     scan = bbot_scanner("ASN:15169")
 
-    # Mock the ASN helper to return test data
-    async def mock_asn_to_subnets(self, asn_number):
-        if asn_number == 15169:
-            return mock_asn_data
-        return None
-
-    # Apply the mock
-    original_method = ASNHelper.asn_to_subnets
-    ASNHelper.asn_to_subnets = mock_asn_to_subnets
-
-    try:
+    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
         # Initialize scan to access preset and target
         await scan._prep()
 
         # Verify target was parsed correctly
         assert "ASN:15169" in scan.preset.target.seeds.inputs
 
-        # Run target expansion
-        await scan.preset.target.generate_children(scan.helpers)
-
-        # Verify expansion worked
+        # Verify expansion worked (generate_children is called during _prep)
         from ipaddress import ip_network
 
         assert ip_network("8.8.8.0/24") in scan.preset.target.seeds.hosts
@@ -472,10 +458,6 @@ async def test_asn_targets_integration(bbot_scanner):
         assert scan.in_scope("8.8.8.1")
         assert scan.in_scope("8.8.4.1")
         assert not scan.in_scope("1.1.1.1")
-
-    finally:
-        # Restore original method
-        ASNHelper.asn_to_subnets = original_method
 
 
 @pytest.mark.asyncio
@@ -503,19 +485,16 @@ async def test_asn_targets_edge_cases(bbot_scanner):
         assert event_seed.type == "ASN"
 
     # Test ASN with no subnets
-    class MockEmptyASNHelper:
-        async def asn_to_subnets(self, asn_number):
-            return None  # No subnets found
+    from unittest.mock import AsyncMock, MagicMock, patch
 
-    class MockEmptyHelpers:
-        def __init__(self):
-            self.asn = MockEmptyASNHelper()
+    mock_empty_client = MagicMock()
+    mock_empty_client.lookup_asn = AsyncMock(return_value=None)
 
     target = BBOTTarget(target=["ASN:99999"])  # Non-existent ASN
-    mock_helpers = MockEmptyHelpers()
 
     initial_seeds = len(target.seeds.event_seeds)
-    await target.generate_children(mock_helpers)
+    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_empty_client):
+        await target.generate_children()
 
     # Should not add any new seeds for empty ASN
     assert len(target.seeds.event_seeds) == initial_seeds
@@ -532,19 +511,18 @@ async def test_asn_targets_edge_cases(bbot_scanner):
 @pytest.mark.asyncio
 async def test_asn_blacklist_functionality(bbot_scanner):
     """Test ASN blacklisting: IP range target with ASN in blacklist should expand and block subnets."""
-    from bbot.core.helpers.asn import ASNHelper
+    from unittest.mock import AsyncMock, MagicMock, patch
     from ipaddress import ip_network
 
-    # Mock ASN 15169 to return 8.8.8.0/24 (within our target range)
-    async def mock_asn_to_subnets(self, asn_number):
-        if asn_number == 15169:
-            return {"asn": 15169, "subnets": ["8.8.8.0/24"]}
-        return None
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(
+        return_value={
+            "asn": 15169,
+            "subnets": ["8.8.8.0/24"],
+        }
+    )
 
-    original_method = ASNHelper.asn_to_subnets
-    ASNHelper.asn_to_subnets = mock_asn_to_subnets
-
-    try:
+    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
         # Target: 8.8.8.0/23 (includes 8.8.8.0/24 and 8.8.9.0/24)
         # Blacklist: ASN:15169 (should expand to 8.8.8.0/24 and block it)
         scan = bbot_scanner("8.8.8.0/23", blacklist=["ASN:15169"])
@@ -567,9 +545,6 @@ async def test_asn_blacklist_functionality(bbot_scanner):
         assert not scan.in_scope("8.8.7.1")
         assert not scan.in_scope("8.8.10.1")
 
-    finally:
-        ASNHelper.asn_to_subnets = original_method
-
 
 @pytest.mark.asyncio
 async def test_asn_len_overflow(bbot_scanner):
@@ -579,20 +554,15 @@ async def test_asn_len_overflow(bbot_scanner):
     for large ASNs (e.g. AS15169 with 1000+ subnets). The scanner log message
     must use len(event_seeds) instead.
     """
-    from bbot.core.helpers.asn import ASNHelper
+    from unittest.mock import AsyncMock, MagicMock, patch
 
     # Simulate a large ASN with many /16 subnets — total IPs would overflow an index
     many_subnets = [f"10.{i}.0.0/16" for i in range(200)]
 
-    async def mock_asn_to_subnets(self, asn_number):
-        if asn_number == 99999:
-            return {"asn": 99999, "subnets": many_subnets}
-        return None
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(return_value={"asn": 99999, "subnets": many_subnets})
 
-    original_method = ASNHelper.asn_to_subnets
-    ASNHelper.asn_to_subnets = mock_asn_to_subnets
-
-    try:
+    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
         scan = bbot_scanner("ASN:99999")
         # _prep() calls generate_children() and then does len(self.seeds.event_seeds)
         # Before the fix, this raised OverflowError from len() on the RadixTarget
@@ -600,25 +570,18 @@ async def test_asn_len_overflow(bbot_scanner):
 
         # Verify expansion worked
         assert len(scan.preset.target.seeds.event_seeds) > 200
-    finally:
-        ASNHelper.asn_to_subnets = original_method
 
 
 @pytest.mark.asyncio
 async def test_asn_event_json_serialization(bbot_scanner):
     """Regression test: ASN events must serialize and deserialize correctly."""
-    from bbot.core.helpers.asn import ASNHelper
+    from unittest.mock import AsyncMock, MagicMock, patch
     from bbot.core.event.base import event_from_json
 
-    async def mock_asn_to_subnets(self, asn_number):
-        if asn_number == 12345:
-            return {"asn": 12345, "subnets": ["192.0.2.0/24"]}
-        return None
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(return_value={"asn": 12345, "subnets": ["192.0.2.0/24"]})
 
-    original_method = ASNHelper.asn_to_subnets
-    ASNHelper.asn_to_subnets = mock_asn_to_subnets
-
-    try:
+    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
         scan = bbot_scanner("ASN:12345")
         await scan._prep()
 
@@ -635,8 +598,6 @@ async def test_asn_event_json_serialization(bbot_scanner):
         reconstructed = event_from_json(j)
         assert reconstructed.type == "ASN"
         assert reconstructed.data == {"asn": 12345}
-    finally:
-        ASNHelper.asn_to_subnets = original_method
 
 
 @pytest.mark.asyncio

@@ -290,18 +290,20 @@ class Preset(metaclass=BasePreset):
 
     @property
     def target(self):
+        if self._target is None:
+            raise ValueError("Cannot access target before preset is baked (use ._seeds instead)")
         return self._target
 
     @property
     def seeds(self):
         if self._target is None:
-            return None
+            raise ValueError("Cannot access target before preset is baked (use ._seeds instead)")
         return self.target.seeds
 
     @property
     def blacklist(self):
         if self._target is None:
-            return None
+            raise ValueError("Cannot access blacklist before preset is baked (use ._blacklist instead)")
         return self.target.blacklist
 
     @property

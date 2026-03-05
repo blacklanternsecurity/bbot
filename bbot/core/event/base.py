@@ -605,7 +605,7 @@ class BaseEvent:
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
                 event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate"):
+                    if t in ("affiliate",):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
@@ -1146,28 +1146,7 @@ class ASN(DictEvent):
 
     def _data_human(self):
         """Create a concise human-readable representation of ASN data."""
-        display_data = {"asn": str(self.data["asn"])}
-
-        # Try to get additional ASN data from the helper if available
-        if hasattr(self, "scan") and self.scan and hasattr(self.scan, "helpers"):
-            try:
-                asn_helper = self.scan.helpers.asn
-                cached_data = asn_helper._cache_lookup_asn(self.data["asn"])
-                if cached_data:
-                    display_data.update(
-                        {
-                            "name": cached_data.get("name", ""),
-                            "description": cached_data.get("description", ""),
-                            "country": cached_data.get("country", ""),
-                        }
-                    )
-                    subnets = cached_data.get("subnets", [])
-                    if subnets and isinstance(subnets, list):
-                        display_data["subnet_count"] = len(subnets)
-            except Exception:
-                pass
-
-        return json.dumps(display_data, sort_keys=True)
+        return json.dumps({"asn": self.data["asn"]}, sort_keys=True)
 
 
 class CODE_REPOSITORY(DictHostEvent):
