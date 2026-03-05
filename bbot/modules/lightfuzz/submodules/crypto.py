@@ -474,6 +474,8 @@ class crypto(BaseLightfuzz):
                 ):
                     # for each additional parameter, we send a probe and check if it causes the same change in the response as the original probe
                     for additional_param_name, additional_param_value in self.event.data["additional_params"].items():
+                        if additional_param_value is None:
+                            continue
                         try:
                             additional_param_probe = await self.compare_probe(
                                 http_compare,
