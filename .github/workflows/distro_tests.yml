@@ -23,6 +23,10 @@ jobs:
             . /etc/os-release
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kali" ] || [ "$ID" = "parrotsec" ]; then
               export DEBIAN_FRONTEND=noninteractive
+              # Use official Parrot mirror directly to avoid stale third-party mirrors
+              if [ "$ID" = "parrotsec" ]; then
+                echo "deb https://deb.parrot.sh/parrot echo main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/parrot.list
+              fi
               apt-get update
               apt-get -y install curl git bash build-essential docker.io libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
             elif [ "$ID" = "alpine" ]; then
