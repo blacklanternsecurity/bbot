@@ -37,7 +37,7 @@ Severity represents how bad the issue is *if it's real*. Levels, from worst to l
 | Severity | Meaning |
 |---|---|
 | **CRITICAL** | Full system compromise likely (e.g., command injection, SSTI) |
-| **HIGH** | Significant security impact (e.g., SQL injection, path traversal, unsafe deserialization) |
+| **HIGH** | Significant security impact (e.g., SQL injection, SSRF, path traversal, unsafe deserialization) |
 | **MEDIUM** | Moderate impact, often client-side (e.g., XSS, ESI) |
 | **LOW** | Minor or limited-scope issue |
 | **INFORMATIONAL** | Interesting observation, not directly exploitable (e.g., cryptographic parameter detected) |
@@ -48,9 +48,9 @@ Confidence represents how sure lightfuzz is that the finding is real, independen
 
 | Confidence | Indicator | Meaning | Example |
 |---|---|---|---|
-| **CONFIRMED** | 🟣 | Out-of-band proof of exploitation | Blind command injection via DNS interaction (Interactsh) |
+| **CONFIRMED** | 🟣 | Out-of-band proof of exploitation | Blind command injection or SSRF via HTTP interaction (Interactsh) |
 | **HIGH** | 🔴 | Deterministic detection that's hard to fake | SSTI math evaluation (`1337*1337=1787569`), padding oracle |
-| **MODERATE** | 🟠 | Context-aware detection, but not definitive | SQL error strings after quote injection, XSS tag survival in reflection |
+| **MEDIUM** | 🟠 | Context-aware detection, but not definitive | SQL error strings after quote injection, XSS tag survival in reflection |
 | **LOW** | 🟡 | Heuristic detection, requires manual verification | Blind SQLi timing (even with 3x confirmation), path traversal divergence, deserialization error changes |
 
 When reviewing lightfuzz output, consider both dimensions together. A `CRITICAL` severity / `CONFIRMED` confidence finding (like OOB command injection) is something to act on immediately. A `HIGH` severity / `LOW` confidence finding (like blind SQLi timing) is worth investigating but may be a false positive.
@@ -78,6 +78,8 @@ Lightfuzz is divided into numerous "submodules". These would typically be run al
    - Can find a variety of XSS types, across several different contexts (between-tags, attribute, Javascript-based)
 ### `esi` (Edge Side Includes)
    - Detects Edge Side Include processing
+### `ssrf` (Server-Side Request Forgery)
+   - Detects SSRF vulnerabilities via out-of-band DNS/HTTP interactions using Interactsh
 
 ## Submodule Details
 
@@ -85,7 +87,7 @@ Lightfuzz is divided into numerous "submodules". These would typically be run al
 
 Detects OS command injection via two techniques:
 
-**Echo Canary Detection** (CRITICAL severity, MODERATE confidence): Injects command delimiters (`;`, `&&`, `||`, `&`, `|`) combined with an `echo` command containing a random numeric canary. If the canary appears in the response *without* the word "echo" (ruling out simple reflection), injection is indicated. A false-positive probe (`AAAA`) is sent first — if the canary appears with that delimiter, the test aborts since the application is just reflecting input.
+**Echo Canary Detection** (CRITICAL severity, MEDIUM confidence): Injects command delimiters (`;`, `&&`, `||`, `&`, `|`) combined with an `echo` command containing a random numeric canary. If the canary appears in the response *without* the word "echo" (ruling out simple reflection), injection is indicated. A false-positive probe (`AAAA`) is sent first — if the canary appears with that delimiter, the test aborts since the application is just reflecting input.
 
 **Blind OOB via Interactsh** (CRITICAL severity, CONFIRMED confidence): Injects `nslookup` commands pointed at unique Interactsh subdomains. If a DNS interaction is received, command execution is confirmed out-of-band. This is the highest-confidence detection lightfuzz can produce. Requires Interactsh to be enabled (it is by default).
 
@@ -93,13 +95,13 @@ Detects OS command injection via two techniques:
 
 Detects SQL injection via two techniques:
 
-**Error-based Detection** (HIGH severity, MODERATE confidence): Injects a single quote (`'`) and compares the response against a list of known SQL error strings (e.g., "error in your SQL syntax", "Unterminated string literal"). Also performs a differential test: if a single quote changes the status code but two single quotes (`''`) produce a *different* status code, it suggests the quotes are being parsed as SQL syntax rather than just rejected.
+**Error-based Detection** (HIGH severity, MEDIUM confidence): Injects a single quote (`'`) and compares the response against a list of known SQL error strings (e.g., "error in your SQL syntax", "Unterminated string literal"). Also performs a differential test: if a single quote changes the status code but two single quotes (`''`) produce a *different* status code, it suggests the quotes are being parsed as SQL syntax rather than just rejected.
 
 **Blind Time-delay Detection** (HIGH severity, LOW confidence): Sends database-specific sleep payloads (PostgreSQL `pg_sleep`, MySQL `SLEEP`, Oracle `DBMS_LOCK.SLEEP`, MSSQL `WAITFOR DELAY`) with a 5-second delay. Measures response time against a baseline average of two normal requests. Requires 3 consecutive confirmations within an acceptable margin (1.5s) to report — even a single miss aborts the test for that payload. Despite the triple confirmation, timing-based detection is inherently noisy, hence the LOW confidence.
 
 ### `xss` — Cross-Site Scripting
 
-Detects reflected XSS across multiple injection contexts. All XSS findings are MEDIUM severity, MODERATE confidence.
+Detects reflected XSS across multiple injection contexts. All XSS findings are MEDIUM severity, MEDIUM confidence.
 
 **Step 1 — Reflection Check**: Sends a random 8-character alphanumeric string. If it doesn't appear in the response, the parameter doesn't reflect and XSS testing is skipped entirely. Parameters from `paramminer_getparams` without an `http-reflection` tag are also skipped.
 
@@ -131,7 +133,7 @@ Detects arbitrary file read / local file inclusion via two techniques:
 
 Each variant requires **4 confirmations** across 5 iterations (one failure tolerated after the first success). WAF responses containing "The requested URL was rejected" are filtered out. Despite the multiple confirmations, this remains LOW confidence because response divergence can have non-traversal explanations.
 
-**Absolute Path Detection** (HIGH severity, MODERATE confidence): Directly requests known file paths (`/etc/passwd`, `c:\windows\win.ini`) and checks for expected content strings (`daemon:x:`, `; for 16-bit app support`). Also tests null byte extension bypass (`%00.png`). Higher confidence because matching specific file content is much harder to explain away.
+**Absolute Path Detection** (HIGH severity, MEDIUM confidence): Directly requests known file paths (`/etc/passwd`, `c:\windows\win.ini`) and checks for expected content strings (`daemon:x:`, `; for 16-bit app support`). Also tests null byte extension bypass (`%00.png`). Higher confidence because matching specific file content is much harder to explain away.
 
 ### `ssti` — Server-Side Template Injection
 
@@ -181,6 +183,18 @@ Only runs on parameters whose existing values look potentially serialized (base6
 Detects ESI processing. ESI findings are MEDIUM severity, HIGH confidence.
 
 Sends the payload `AA<!--esi-->BB<!--esx-->CC`. If the server processes ESI tags, the `<!--esi-->` comment is removed (it's a valid ESI directive) while `<!--esx-->` is left alone (not a valid directive). The expected detection string is `AABB<!--esx-->CC`. This is a clean differential test — the only explanation for selective comment removal is active ESI processing.
+
+### `ssrf` — Server-Side Request Forgery
+
+Detects SSRF vulnerabilities via out-of-band interaction. SSRF findings are HIGH severity, with confidence depending on the interaction type (CONFIRMED for HTTP, MEDIUM for DNS-only).
+
+Injects URLs pointing to unique Interactsh subdomains as parameter values. Three URL variants are tested for each parameter:
+
+- `http://TAG.interactsh-domain` — explicit HTTP scheme
+- `https://TAG.interactsh-domain` — explicit HTTPS scheme
+- `TAG.interactsh-domain` — bare domain (for cases where the server prepends a scheme)
+
+If the server fetches the injected URL, the resulting DNS or HTTP interaction is detected out-of-band via Interactsh. HTTP interactions are CONFIRMED confidence (the server made a full HTTP request), while DNS-only interactions are MEDIUM confidence (DNS resolution occurred, but the server may not have completed the request). Requires Interactsh to be enabled (it is by default).
 
 ## Presets
 
