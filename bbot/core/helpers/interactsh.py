@@ -4,7 +4,6 @@ import base64
 import random
 import asyncio
 import logging
-import contextlib
 import traceback
 from uuid import uuid4
 
@@ -196,8 +195,10 @@ class Interactsh:
 
         if self._poll_task is not None:
             self._poll_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            try:
                 await self._poll_task
+            except (asyncio.CancelledError, Exception):
+                pass
 
         if "success" not in getattr(r, "text", ""):
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")

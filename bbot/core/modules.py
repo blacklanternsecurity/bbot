@@ -331,7 +331,8 @@ class ModuleLoader:
         config = {}
         options_desc = {}
         disable_auto_module_deps = False
-        python_code = open(module_file).read()
+        with open(module_file) as f:
+            python_code = f.read()
         # take a hash of the code so we can keep track of when it changes
         module_hash = sha1(python_code).hexdigest()
         parsed_code = ast.parse(python_code)
