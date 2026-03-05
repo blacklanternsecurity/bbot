@@ -78,6 +78,18 @@ class serial(BaseLightfuzz):
             return True
         return False
 
+    @staticmethod
+    def payload_language(payload_name):
+        """Extract the language family from a payload name (e.g. 'java_base64_string_error' -> 'java')."""
+        return payload_name.split("_")[0]
+
+    async def confirm_baseline(self, control_payload, cookies):
+        """Re-send the control payload to confirm the baseline error state is stable (not transient)."""
+        confirmation = await self.standard_probe(self.event.data["type"], cookies, control_payload)
+        if confirmation is None:
+            return None
+        return getattr(confirmation, "status_code", None)
+
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         control_payload_hex = self.CONTROL_PAYLOAD_HEX
@@ -111,13 +123,16 @@ class serial(BaseLightfuzz):
             self.debug(f"HttpCompareError encountered: {e}")
             return
 
+        # Map each payload set to its control payload for baseline confirmation
+        payload_sets = [
+            (base64_serialization_payloads, http_compare_base64, control_payload_base64),
+            (hex_serialization_payloads, http_compare_hex, control_payload_hex),
+            (php_raw_serialization_payloads, http_compare_php_raw, control_payload_php_raw),
+        ]
+
         # Proceed with payload probes
-        for payload_set, payload_baseline in [
-            (base64_serialization_payloads, http_compare_base64),
-            (hex_serialization_payloads, http_compare_hex),
-            (php_raw_serialization_payloads, http_compare_php_raw),
-        ]:
-            for type, payload in payload_set.items():
+        for payload_set, payload_baseline, control_payload in payload_sets:
+            for payload_type, payload in payload_set.items():
                 try:
                     matches_baseline, diff_reasons, reflection, response = await self.compare_probe(
                         payload_baseline, self.event.data["type"], payload, cookies
@@ -127,17 +142,17 @@ class serial(BaseLightfuzz):
                     continue
 
                 if matches_baseline:
-                    self.debug(f"Payload {type} matches baseline, skipping")
+                    self.debug(f"Payload {payload_type} matches baseline, skipping")
                     continue
 
-                self.debug(f"Probe result for {type}: {response}")
+                self.debug(f"Probe result for {payload_type}: {response}")
 
                 status_code = getattr(response, "status_code", 0)
                 if status_code == 0:
                     continue
 
                 if diff_reasons == ["header"]:
-                    self.debug(f"Only header diffs found for {type}, skipping")
+                    self.debug(f"Only header diffs found for {payload_type}, skipping")
                     continue
 
                 if status_code not in (200, 500):
@@ -145,7 +160,7 @@ class serial(BaseLightfuzz):
                     continue
 
                 # if the status code changed to 200, and the response doesn't match our general error exclusions, we have a finding
-                self.debug(f"Potential finding detected for {type}, needs confirmation")
+                self.debug(f"Potential finding detected for {payload_type}, needs confirmation")
                 if (
                     status_code == 200
                     and "code" in diff_reasons
@@ -153,6 +168,14 @@ class serial(BaseLightfuzz):
                         error in response.text for error in general_errors
                     )  # ensure the 200 is not actually an error
                 ):
+                    # Confirm the baseline error state is stable by re-sending the control payload.
+                    # If the control also returns 200 now, the original error was transient.
+                    confirmation_status = await self.confirm_baseline(control_payload, cookies)
+                    if confirmation_status == 200:
+                        self.debug(
+                            f"Baseline confirmation returned 200 for {payload_type}, original error was transient, skipping"
+                        )
+                        continue
 
                     def get_title(text):
                         soup = self.lightfuzz.helpers.beautifulsoup(text, "html.parser")
@@ -168,26 +191,44 @@ class serial(BaseLightfuzz):
                             "name": "Possible Unsafe Deserialization",
                             "severity": "HIGH",
                             "confidence": "LOW",
-                            "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Error Resolution (Baseline: [{payload_baseline.baseline.status_code}] {baseline_title} -> Probe: [{status_code}] {probe_title})] Serialization Payload: [{type}]",
+                            "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Error Resolution (Baseline: [{payload_baseline.baseline.status_code}] {baseline_title} -> Probe: [{status_code}] {probe_title})] Serialization Payload: [{payload_type}]",
+                            "_technique": "error_resolution",
+                            "_language": self.payload_language(payload_type),
                         }
                     )
                 # if the first case doesn't match, we check for a telltale error string like "java.io.optionaldataexception" in the response.
                 # but only if the response is a 500, or a 200 with a body diff
                 elif status_code == 500 or (status_code == 200 and diff_reasons == ["body"]):
-                    self.debug(f"500 status code or body match for {type}")
+                    self.debug(f"500 status code or body match for {payload_type}")
                     for serialization_error in serialization_errors:
                         # check for the error string, but also ensure the error string isn't just always present in the response
                         if (
                             serialization_error in response.text.lower()
                             and serialization_error not in payload_baseline.baseline.text.lower()
                         ):
-                            self.debug(f"Error string '{serialization_error}' found in response for {type}")
+                            self.debug(f"Error string '{serialization_error}' found in response for {payload_type}")
                             self.results.append(
                                 {
                                     "name": "Possible Unsafe Deserialization",
                                     "severity": "HIGH",
                                     "confidence": "LOW",
-                                    "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Differential Error Analysis] Error-String: [{serialization_error}] Payload: [{type}]",
+                                    "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Differential Error Analysis] Error-String: [{serialization_error}] Payload: [{payload_type}]",
                                 }
                             )
                             break
+
+        # Final safety net: if Error Resolution findings span multiple language families, discard them.
+        # A real deserialization vuln only deserializes one language's format.
+        error_resolution_results = [r for r in self.results if r.get("_technique") == "error_resolution"]
+        if error_resolution_results:
+            languages = set(r["_language"] for r in error_resolution_results)
+            if len(languages) > 1:
+                self.debug(
+                    f"Error Resolution findings span multiple language families ({languages}), discarding as false positives"
+                )
+                self.results = [r for r in self.results if r.get("_technique") != "error_resolution"]
+
+        # Clean up internal metadata keys before results are emitted
+        for r in self.results:
+            r.pop("_technique", None)
+            r.pop("_language", None)

@@ -188,6 +188,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
         test_name = name.replace("test_", "").replace("_", " ").title()
 
         current_stats = current_bench.get("stats", {})
+        current_extra = current_bench.get("extra_info", {})
         current_mean = current_stats.get("mean", 0)
         # For multi-item benchmarks, calculate correct ops/sec
         if "excavate" in name:
@@ -200,6 +201,10 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             current_ops = 100 / current_mean  # 100 items per test
         elif "make_event" in name and "large" in name:
             current_ops = 1000 / current_mean  # 1000 items per test
+        elif "event_memory" in name and "medium" in name:
+            current_ops = 10000 / current_mean  # 10K events per test
+        elif "event_memory" in name and "large" in name:
+            current_ops = 50000 / current_mean  # 50K events per test
         elif "ip" in name:
             current_ops = 1000 / current_mean  # 1000 IPs per test
         elif "bloom_filter" in name:
@@ -213,6 +218,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
         base_bench = base_lookup.get(name)
         if base_bench:
             base_stats = base_bench.get("stats", {})
+            base_extra = base_bench.get("extra_info", {})
             base_mean = base_stats.get("mean", 0)
             # For multi-item benchmarks, calculate correct ops/sec
             if "excavate" in name:
@@ -225,6 +231,10 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
                 base_ops = 100 / base_mean  # 100 items per test
             elif "make_event" in name and "large" in name:
                 base_ops = 1000 / base_mean  # 1000 items per test
+            elif "event_memory" in name and "medium" in name:
+                base_ops = 10000 / base_mean  # 10K events per test
+            elif "event_memory" in name and "large" in name:
+                base_ops = 50000 / base_mean  # 50K events per test
             elif "ip" in name:
                 base_ops = 1000 / base_mean  # 1000 IPs per test
             elif "bloom_filter" in name:
@@ -235,7 +245,17 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             else:
                 base_ops = 1 / base_mean  # Default: single operation
 
-            change_percent, emoji = calculate_change_percentage(base_mean, current_mean)
+            # Use per-event memory if available, otherwise use time
+            current_peb = current_extra.get("per_event_bytes")
+            base_peb = base_extra.get("per_event_bytes")
+            if current_peb is not None and base_peb is not None:
+                change_percent, emoji = calculate_change_percentage(base_peb, current_peb)
+                base_label = f"{base_peb:.0f} B/event"
+                current_label = f"{current_peb:.0f} B/event"
+            else:
+                change_percent, emoji = calculate_change_percentage(base_mean, current_mean)
+                base_label = format_time(base_mean)
+                current_label = format_time(current_mean)
 
             # Create visual change indicator
             if abs(change_percent) > 20:
@@ -245,11 +265,15 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             else:
                 change_bar = "⚪"
 
-            table += f"\n| **{test_name}** | `{format_time(base_mean)}` | `{format_time(current_mean)}` | **{change_percent:+.1f}%** {change_bar} | {emoji} |"
+            table += f"\n| **{test_name}** | `{base_label}` | `{current_label}` | **{change_percent:+.1f}%** {change_bar} | {emoji} |"
 
             # Track significant changes
             if abs(change_percent) > 10:
-                direction = "🐌 slower" if change_percent > 0 else "🚀 faster"
+                is_memory = current_extra.get("per_event_bytes") is not None
+                if is_memory:
+                    direction = "🐌 more memory" if change_percent > 0 else "🚀 less memory"
+                else:
+                    direction = "🐌 slower" if change_percent > 0 else "🚀 faster"
                 significant_changes.append(f"- **{test_name}**: {abs(change_percent):.1f}% {direction}")
                 if change_percent > 0:
                     regressions += 1
@@ -268,6 +292,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
                     "current_ops": current_ops,
                 }
             )
+
         else:
             table += f"\n| **{test_name}** | `-` | `{format_time(current_mean)}` | **New** 🆕 | 🆕 |"
             significant_changes.append(
