@@ -124,7 +124,7 @@ class Scan(BBOTBaseModel, table=True):
 
 class Target(BBOTBaseModel, table=True):
     name: str = "Default Target"
-    strict_dns_scope: bool = False
+    strict_scope: bool = False
     target: List = Field(default=[], sa_type=JSON)
     seeds: Optional[List] = Field(default=None, sa_type=JSON)
     blacklist: List = Field(default=[], sa_type=JSON)

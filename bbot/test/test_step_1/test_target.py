@@ -5,7 +5,7 @@ from ..bbot_fixtures import *  # noqa: F401
 async def test_target_basic(bbot_scanner):
     from radixtarget import RadixTarget
     from ipaddress import ip_address, ip_network
-    from bbot.scanner.target import BBOTTarget, ScanSeeds
+    from bbot.scanner.target import BBOTTarget, ScanSeeds, ScanTarget
 
     scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
     scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
@@ -30,14 +30,13 @@ async def test_target_basic(bbot_scanner):
     assert ip_network("1.2.3.4/24", strict=False) in target.seeds
     event = scan1.make_event("https://www.evilcorp.com:80", dummy=True)
     assert event in target.seeds
-    with pytest.raises(ValueError):
-        ["asdf"] in target.seeds
-    with pytest.raises(ValueError):
-        target.seeds.get(["asdf"])
+    assert ["asdf"] not in target.seeds
+    assert target.seeds.get(["asdf"]) is None
 
     assert not scan5.target.seeds
-    assert len(scan1.target.seeds) == 9
-    assert len(scan4.target.seeds) == 8
+    # radixtarget 4.x counts hosts/networks, not individual IPs
+    assert len(scan1.target.seeds) == 3  # api.publicapis.org, 8.8.8.8/30, 2001:4860:4860::8888/126
+    assert len(scan4.target.seeds) == 1  # 8.8.8.8/29
     assert "8.8.8.9" in scan1.target.seeds
     assert "8.8.8.12" not in scan1.target.seeds
     assert "8.8.8.8/31" in scan1.target.seeds
@@ -61,8 +60,8 @@ async def test_target_basic(bbot_scanner):
     assert scan4.target.seeds != scan1.target.seeds
 
     assert not scan5.target.target
-    assert len(scan1.target.target) == 9
-    assert len(scan4.target.target) == 8
+    assert len(scan1.target.target) == 3
+    assert len(scan4.target.target) == 1
     assert "8.8.8.9" in scan1.target.target
     assert "8.8.8.12" not in scan1.target.target
     assert "8.8.8.8/31" in scan1.target.target
@@ -115,7 +114,7 @@ async def test_target_basic(bbot_scanner):
     assert "com" not in target
     assert "evilcorp.com" in target
     assert "www.evilcorp.com" in target
-    strict_target = RadixTarget("evilcorp.com", strict_dns_scope=True)
+    strict_target = RadixTarget("evilcorp.com", strict_scope=True)
     assert "com" not in strict_target
     assert "evilcorp.com" in strict_target
     assert "www.evilcorp.com" not in strict_target
@@ -125,7 +124,7 @@ async def test_target_basic(bbot_scanner):
     assert "com" not in target
     assert "evilcorp.com" in target
     assert "www.evilcorp.com" in target
-    strict_target = RadixTarget(strict_dns_scope=True)
+    strict_target = RadixTarget(strict_scope=True)
     strict_target.add("evilcorp.com")
     assert "com" not in strict_target
     assert "evilcorp.com" in strict_target
@@ -169,8 +168,8 @@ async def test_target_basic(bbot_scanner):
     # test default target
     bbottarget = BBOTTarget(target=["http://1.2.3.4:8443", "bob@evilcorp.com"])
 
-    assert bbottarget.seeds.hosts == {ip_network("1.2.3.4"), "evilcorp.com"}
-    assert bbottarget.target.hosts == {ip_network("1.2.3.4"), "evilcorp.com"}
+    assert bbottarget.seeds.hosts == {"1.2.3.4/32", "evilcorp.com"}
+    assert bbottarget.target.hosts == {"1.2.3.4/32", "evilcorp.com"}
     assert {e.data for e in bbottarget.seeds.event_seeds} == {"http://1.2.3.4:8443/", "bob@evilcorp.com"}
     assert {e.data for e in bbottarget.target.event_seeds} == {"http://1.2.3.4:8443/", "bob@evilcorp.com"}
 
@@ -179,7 +178,7 @@ async def test_target_basic(bbot_scanner):
     bbottarget3 = BBOTTarget(seeds=["evilcorp.com"], target=["1.2.3.4/24"], blacklist=["1.2.3.4"])
     bbottarget5 = BBOTTarget(seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"])
     bbottarget6 = BBOTTarget(
-        seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"], strict_dns_scope=True
+        seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"], strict_scope=True
     )
     bbottarget8 = BBOTTarget(seeds=["1.2.3.0/24"], target=["evilcorp.com", "evilcorp.net"], blacklist=["1.2.3.4"])
     bbottarget9 = BBOTTarget(seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"])
@@ -210,7 +209,7 @@ async def test_target_basic(bbot_scanner):
     assert bbottarget1 != bbottarget2
     assert bbottarget2 != bbottarget1
 
-    # make sure strict_dns_scope is considered in hash
+    # make sure strict_scope is considered in hash
     assert bbottarget5 != bbottarget6
     assert bbottarget6 != bbottarget5
 
@@ -286,14 +285,14 @@ async def test_target_basic(bbot_scanner):
         "http://1.2.3.4/",
         "bob@asdf.evilcorp.net",
     }
-    assert set(bbottarget.seeds.hosts) == {ip_network("1.2.3.0/24"), "www.evilcorp.net", "fdsa.evilcorp.net"}
+    assert bbottarget.seeds.hosts == {"1.2.3.0/24", "www.evilcorp.net", "fdsa.evilcorp.net"}
     assert set(bbottarget.target.hosts) == {"evilcorp.com", "evilcorp.net"}
-    assert set(bbottarget.blacklist.hosts) == {ip_network("1.2.3.4/32"), ip_network("4.3.2.0/24"), "asdf.evilcorp.net"}
-    assert bbottarget.hash == b"\xb3iU\xa8#\x8aq\x84/\xc5\xf2;\x11\x11\x0c&\xea\x07\xd4Q"
-    assert bbottarget.scope_hash == b"f\xe1\x01c^3\xf5\xd24B\x87P\xa0Glq0p3J"
+    assert bbottarget.blacklist.hosts == {"1.2.3.4/32", "4.3.2.0/24", "asdf.evilcorp.net"}
+    assert bbottarget.hash == b'\xf8\x9bB\x99\x8c\xaa\xd6\xac_\xca3\x84\xbf\xd2\x06\x9f\xf3\x9d\xa1\xc7'
+    assert bbottarget.scope_hash == b'\xd4\x9ekZd\x9dT\x12fLl\xe6\x1a5\x82\xba\xa0\x01\x1f\xb7'
     assert bbottarget.seeds.hash == b"V\n\xf5\x1d\x1f=i\xbc\\\x15o\xc2p\xb2\x84\x97\xfeR\xde\xc1"
     assert bbottarget.target.hash == b"\x8e\xd0\xa76\x8em4c\x0e\x1c\xfdA\x9d*sv}\xeb\xc4\xc4"
-    assert bbottarget.blacklist.hash == b'\xf7\xaf\xa1\xda4"C:\x13\xf42\xc3,\xc3\xa9\x9f\x15\x15n\\'
+    assert bbottarget.blacklist.hash == b'\xf6@\xf3\xb2\xd3s\x15\xad=+\xab\x8fY`Gk\xf4\x00\x89\xcb'
 
     scan = bbot_scanner(
         "evilcorp.net",
@@ -310,22 +309,22 @@ async def test_target_basic(bbot_scanner):
     assert target_dict["seeds"] == ["1.2.3.0/24", "bob@fdsa.evilcorp.net", "http://www.evilcorp.net/"]
     assert target_dict["target"] == ["bob@www.evilcorp.com", "evilcorp.com", "evilcorp.net"]
     assert target_dict["blacklist"] == ["1.2.3.4", "4.3.2.0/24", "bob@asdf.evilcorp.net", "http://1.2.3.4/"]
-    assert target_dict["strict_dns_scope"] is False
-    assert target_dict["hash"] == "b36955a8238a71842fc5f23b11110c26ea07d451"
+    assert target_dict["strict_scope"] is False
+    assert target_dict["hash"] == "f89b42998caad6ac5fca3384bfd2069ff39da1c7"
     assert target_dict["seed_hash"] == "560af51d1f3d69bc5c156fc270b28497fe52dec1"
     assert target_dict["target_hash"] == "8ed0a7368e6d34630e1cfd419d2a73767debc4c4"
-    assert target_dict["blacklist_hash"] == "f7afa1da3422433a13f432c32cc3a99f15156e5c"
-    assert target_dict["scope_hash"] == "66e101635e33f5d234428750a0476c713070334a"
+    assert target_dict["blacklist_hash"] == "f640f3b2d37315ad3d2bab8f5960476bf40089cb"
+    assert target_dict["scope_hash"] == "d49e6b5a649d5412664c6ce61a3582baa0011fb7"
 
     # make sure child subnets/IPs don't get added to target/blacklist
     target = RadixTarget("1.2.3.4/24", "1.2.3.4/28", acl_mode=True)
-    assert set(target) == {ip_network("1.2.3.0/24")}
+    assert set(target) == {"1.2.3.0/24"}
     target = RadixTarget("1.2.3.4/28", "1.2.3.4/24", acl_mode=True)
-    assert set(target) == {ip_network("1.2.3.0/24")}
+    assert set(target) == {"1.2.3.0/24"}
     target = RadixTarget("1.2.3.4/28", "1.2.3.4", acl_mode=True)
-    assert set(target) == {ip_network("1.2.3.0/28")}
+    assert set(target) == {"1.2.3.0/28"}
     target = RadixTarget("1.2.3.4", "1.2.3.4/28", acl_mode=True)
-    assert set(target) == {ip_network("1.2.3.0/28")}
+    assert set(target) == {"1.2.3.0/28"}
 
     # same but for domains
     target = RadixTarget("evilcorp.com", "www.evilcorp.com", acl_mode=True)
@@ -333,9 +332,11 @@ async def test_target_basic(bbot_scanner):
     target = RadixTarget("www.evilcorp.com", "evilcorp.com", acl_mode=True)
     assert set(target) == {"evilcorp.com"}
 
-    # make sure strict_dns_scope doesn't mess us up
-    target = RadixTarget("evilcorp.co.uk", "www.evilcorp.co.uk", acl_mode=True, strict_dns_scope=True)
-    assert set(target.hosts) == {"evilcorp.co.uk", "www.evilcorp.co.uk"}
+    # make sure strict_scope doesn't mess us up
+    # radixtarget 4.x: strict_scope and acl_mode are mutually exclusive,
+    # so ACLTarget skips acl_mode when strict_scope is True
+    target = ScanTarget("evilcorp.co.uk", "www.evilcorp.co.uk", strict_scope=True)
+    assert target.hosts == {"evilcorp.co.uk", "www.evilcorp.co.uk"}
     assert "evilcorp.co.uk" in target
     assert "www.evilcorp.co.uk" in target
     assert "api.evilcorp.co.uk" not in target
@@ -414,12 +415,12 @@ async def test_asn_targets(bbot_scanner):
     assert len(target.seeds.hosts) > initial_hosts
 
     # Should contain the expanded IP ranges
-    assert ip_network("8.8.8.0/24") in target.seeds.hosts
-    assert ip_network("8.8.4.0/24") in target.seeds.hosts
+    assert "8.8.8.0/24" in target.seeds.hosts
+    assert "8.8.4.0/24" in target.seeds.hosts
 
     # Target scope should also include the expanded ranges
-    assert ip_network("8.8.8.0/24") in target.target.hosts
-    assert ip_network("8.8.4.0/24") in target.target.hosts
+    assert "8.8.8.0/24" in target.target.hosts
+    assert "8.8.4.0/24" in target.target.hosts
 
 
 @pytest.mark.asyncio
@@ -451,8 +452,8 @@ async def test_asn_targets_integration(bbot_scanner):
         # Verify expansion worked (generate_children is called during _prep)
         from ipaddress import ip_network
 
-        assert ip_network("8.8.8.0/24") in scan.preset.target.seeds.hosts
-        assert ip_network("8.8.4.0/24") in scan.preset.target.seeds.hosts
+        assert "8.8.8.0/24" in scan.preset.target.seeds.hosts
+        assert "8.8.4.0/24" in scan.preset.target.seeds.hosts
 
         # Test scope checking with expanded ranges
         assert scan.in_scope("8.8.8.1")
@@ -529,7 +530,7 @@ async def test_asn_blacklist_functionality(bbot_scanner):
         await scan._prep()
 
         # The ASN should have been expanded and the subnet should be in blacklist
-        assert ip_network("8.8.8.0/24") in scan.preset.target.blacklist.hosts
+        assert "8.8.8.0/24" in scan.preset.target.blacklist.hosts
 
         # 8.8.8.x should be blocked (ASN subnet in blacklist)
         assert not scan.in_scope("8.8.8.1")

@@ -485,7 +485,7 @@ class Preset(metaclass=BasePreset):
             seeds=list(self._seeds) if self._seeds else None,
             target=list(self._target_list),
             blacklist=self._blacklist,
-            strict_dns_scope=self.strict_scope,
+            strict_scope=self.strict_scope,
         )
 
         self._baked = True
