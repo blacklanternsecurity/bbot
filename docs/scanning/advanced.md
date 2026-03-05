@@ -32,12 +32,22 @@ if __name__ == "__main__":
 
 <!-- BBOT HELP OUTPUT -->
 ```text
-usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-p [PRESET ...]] [-c [CONFIG ...]] [-lp] [-m MODULE [MODULE ...]] [-l]
-               [-lmo] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d] [-S] [--force] [-y]
-               [--fast-mode] [--dry-run] [--current-preset] [--current-preset-full] [-mh MODULE] [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
-               [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [--version]
-               [--proxy HTTP_PROXY] [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]] [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]] [--custom-yara-rules CUSTOM_YARA_RULES] [--user-agent USER_AGENT]
-               [--user-agent-suffix SUFFIX]
+usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
+               [-b BLACKLIST [BLACKLIST ...]] [--strict-scope]
+               [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
+               [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]]
+               [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
+               [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d]
+               [-S] [--force] [-y] [--fast-mode] [--dry-run]
+               [--current-preset] [--current-preset-full] [-mh MODULE]
+               [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
+               [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
+               [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps]
+               [--version] [--proxy HTTP_PROXY]
+               [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
+               [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
+               [--custom-yara-rules CUSTOM_YARA_RULES]
+               [--user-agent USER_AGENT] [--user-agent-suffix SUFFIX]
 
 Bighuge BLS OSINT Tool
 
@@ -45,40 +55,41 @@ options:
   -h, --help            show this help message and exit
 
 Target:
-  -t, --targets TARGET [TARGET ...]
+  -t TARGET [TARGET ...], --targets TARGET [TARGET ...]
                         Target scope
-  -s, --seeds SEEDS [SEEDS ...]
+  -s SEEDS [SEEDS ...], --seeds SEEDS [SEEDS ...]
                         Define seeds to drive passive modules without being in scope (if not specified, defaults to same as targets)
-  -b, --blacklist BLACKLIST [BLACKLIST ...]
+  -b BLACKLIST [BLACKLIST ...], --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things
   --strict-scope        Don't consider subdomains of target to be in-scope - exact matches only
 
 Presets:
-  -p, --preset [PRESET ...]
+  -p [PRESET ...], --preset [PRESET ...]
                         Enable BBOT preset(s)
-  -c, --config [CONFIG ...]
+  -c [CONFIG ...], --config [CONFIG ...]
                         Custom config options in key=value format: e.g. 'modules.shodan.api_key=1234'
   -lp, --list-presets   List available presets.
 
 Modules:
-  -m, --modules MODULE [MODULE ...]
+  -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
                         Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wayback,wpscan
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
-  -em, --exclude-modules MODULE [MODULE ...]
+  -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
-  -f, --flags FLAG [FLAG ...]
+  -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
                         Enable modules by flag. Choices: active,affiliates,aggressive,baddns,cloud-enum,code-enum,deadly,download,email-enum,iis-shortnames,passive,portscan,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
   -lf, --list-flags     List available flags.
-  -rf, --require-flags FLAG [FLAG ...]
+  -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
-  -ef, --exclude-flags FLAG [FLAG ...]
+  -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. -ef aggressive)
   --allow-deadly        Enable the use of highly aggressive modules
 
 Scan:
-  -n, --name SCAN_NAME  Name of scan (default: random)
+  -n SCAN_NAME, --name SCAN_NAME
+                        Name of scan (default: random)
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
   -S, --silent          Be quiet
@@ -89,12 +100,13 @@ Scan:
   --current-preset      Show the current preset in YAML format
   --current-preset-full
                         Show the current preset in its full form, including defaults
-  -mh, --module-help MODULE
+  -mh MODULE, --module-help MODULE
                         Show help for a specific module
 
 Output:
-  -o, --output-dir DIR  Directory to output scan results
-  -om, --output-modules MODULE [MODULE ...]
+  -o DIR, --output-dir DIR
+                        Directory to output scan results
+  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
                         Output module(s). Choices: asset_inventory,csv,discord,elastic,emails,http,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,python,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,websocket,zeromq
   -lo, --list-output-modules
                         List available output modules
@@ -116,15 +128,15 @@ Module dependencies:
 Misc:
   --version             show BBOT version and exit
   --proxy HTTP_PROXY    Use this proxy for all HTTP requests
-  -H, --custom-headers CUSTOM_HEADERS [CUSTOM_HEADERS ...]
+  -H CUSTOM_HEADERS [CUSTOM_HEADERS ...], --custom-headers CUSTOM_HEADERS [CUSTOM_HEADERS ...]
                         List of custom headers as key value pairs (header=value).
-  -C, --custom-cookies CUSTOM_COOKIES [CUSTOM_COOKIES ...]
+  -C CUSTOM_COOKIES [CUSTOM_COOKIES ...], --custom-cookies CUSTOM_COOKIES [CUSTOM_COOKIES ...]
                         List of custom cookies as key value pairs (cookie=value).
-  --custom-yara-rules, -cy CUSTOM_YARA_RULES
+  --custom-yara-rules CUSTOM_YARA_RULES, -cy CUSTOM_YARA_RULES
                         Add custom yara rules to excavate
-  --user-agent, -ua USER_AGENT
+  --user-agent USER_AGENT, -ua USER_AGENT
                         Set the user-agent for all HTTP requests
-  --user-agent-suffix, -uas SUFFIX
+  --user-agent-suffix SUFFIX, -uas SUFFIX
                         Suffix to append to the user-agent
 
 EXAMPLES

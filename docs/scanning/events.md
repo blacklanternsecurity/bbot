@@ -145,6 +145,9 @@ Below is a full list of event types along with which modules produce/consume the
 
 All vulnerability discoveries, security-relevant observations, and other notable results in BBOT are emitted as **`FINDING`** events.
 
-* Findings are always assigned a **severity** (`INFO`, `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`) and a **confidence** (`UNKNOWN`, `LOW`, `MEDIUM`, `HIGH`, or `CONFIRMED`).
-* Findings can range anywhere from "slightly interesting behavior" to confirmed, actionable vulnerabilities.
-* Use severity and confidence together to prioritize results: a `HIGH` severity / `CONFIRMED` confidence finding is immediately actionable, while a `LOW` severity / `LOW` confidence finding may warrant further investigation.
+Each finding has a **severity** and a **confidence**:
+
+* **Severity** indicates impact: `INFO`, `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`
+* **Confidence** indicates how certain the finding is: `CONFIRMED`, `HIGH`, `MEDIUM`, `LOW`, or `UNKNOWN`
+
+Together, these let you quickly prioritize results -- e.g. a `CRITICAL` severity with `CONFIRMED` confidence is immediately actionable, while a `MEDIUM` severity with `LOW` confidence may need manual verification.
