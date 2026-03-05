@@ -215,7 +215,7 @@ class TestExcavateInScopeJavascript(TestExcavate):
 
         assert found_js_url_event, "Failed to find URL event for script.js"
         assert found_badsecrets_finding, "Failed to find BADSECRETs finding from script.js"
-        assert not found_excavate_jwt_finding, "Excavate JWT finding should be suppressed when badsecrets is enabled"
+        assert found_excavate_jwt_finding, "Excavate should still emit JWT findings even when badsecrets is enabled"
 
 
 class TestExcavateRedirect(TestExcavate):

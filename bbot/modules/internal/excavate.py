@@ -1031,11 +1031,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
                     self.debug(f"Including Submodule {e.__name__}")
-                    if e.__name__ == "JWTExtractor" and "badsecrets" in self.scan.modules:
-                        self.debug(
-                            "JWTExtractor disabled because badsecrets module is enabled"
-                        )
-                        continue
                     if e.__name__ == "ParameterExtractor":
                         message = (
                             "Parameter Extraction disabled because no modules consume WEB_PARAMETER events"
