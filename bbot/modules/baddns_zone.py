@@ -3,7 +3,7 @@ from .baddns import baddns as baddns_module
 
 class baddns_zone(baddns_module):
     watched_events = ["DNS_NAME"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["active", "safe", "subdomain-enum", "baddns", "cloud-enum"]
     meta = {
         "description": "Check hosts for DNS zone transfers and NSEC walks",

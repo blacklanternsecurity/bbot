@@ -15,7 +15,7 @@ class ModuleTestBase:
     targets = ["blacklanternsecurity.com"]
     scan_name = None
     blacklist = None
-    whitelist = None
+    seeds = None
     module_name = None
     config_overrides = {}
     modules_overrides = None
@@ -53,13 +53,15 @@ class ModuleTestBase:
                     elif module_type == "internal" and not module == "dnsresolve":
                         self.config = OmegaConf.merge(self.config, {module: True})
 
+            seeds = module_test_base.seeds or None
+
             self.scan = Scanner(
                 *module_test_base.targets,
                 modules=modules,
                 output_modules=output_modules,
                 scan_name=module_test_base._scan_name,
                 config=self.config,
-                whitelist=module_test_base.whitelist,
+                seeds=seeds,
                 blacklist=module_test_base.blacklist,
                 force_start=getattr(module_test_base, "force_start", False),
             )
@@ -158,3 +160,19 @@ class ModuleTestBase:
 
     async def setup_after_prep(self, module_test):
         pass
+
+    async def wait_for_port_open(self, port):
+        while not await self.is_port_open("localhost", port):
+            self.log.verbose(f"Waiting for port {port} to be open...")
+            await asyncio.sleep(0.5)
+        # allow an extra second for things to settle
+        await asyncio.sleep(1)
+
+    async def is_port_open(self, host, port):
+        try:
+            reader, writer = await asyncio.open_connection(host, port)
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except (ConnectionRefusedError, OSError):
+            return False

@@ -51,7 +51,14 @@ class newsletters(BaseModule):
                 result = self.find_type(soup)
                 if result:
                     description = "Found a Newsletter Submission Form that could be used for email bombing attacks"
-                    data = {"host": str(_event.host), "description": description, "url": _event.data["url"]}
+                    data = {
+                        "host": str(_event.host),
+                        "description": description,
+                        "url": _event.data["url"],
+                        "name": "Newsletter Submission Form",
+                        "severity": "INFORMATIONAL",
+                        "confidence": "LOW",
+                    }
                     await self.emit_event(
                         data,
                         "FINDING",

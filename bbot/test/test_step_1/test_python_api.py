@@ -3,7 +3,7 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_python_api():
-    from bbot import Scanner
+    from bbot.scanner import Scanner
 
     # make sure events are properly yielded
     scan1 = Scanner("127.0.0.1")
@@ -54,7 +54,8 @@ async def test_python_api():
     # custom target types
     custom_target_scan = Scanner("ORG:evilcorp")
     events = [e async for e in custom_target_scan.async_start()]
-    assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp" and "target" in e.tags])
+
+    assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp" and "seed" in e.tags])
 
     # presets
     scan6 = Scanner("evilcorp.com", presets=["subdomain-enum"])
@@ -81,6 +82,27 @@ def test_python_api_sync():
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
 
+def test_python_api_sync_no_pending_tasks():
+    """Test that no asyncio tasks remain pending after a sync scan completes.
+
+    Regression test for https://github.com/blacklanternsecurity/bbot/issues/2508
+    When using BBOT as a library (e.g. from Celery), orphaned asyncio tasks
+    would cause "Task was destroyed but it is pending!" warnings on shutdown.
+    """
+    import asyncio
+    from bbot.scanner import Scanner
+    from bbot.core.helpers.async_helpers import get_event_loop
+
+    scan = Scanner("127.0.0.1")
+    events = list(scan.start())
+    assert any(e.type == "IP_ADDRESS" and e.data == "127.0.0.1" for e in events)
+
+    # After the sync generator is exhausted, no tasks should remain pending
+    loop = get_event_loop()
+    pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
+    assert len(pending) == 0, f"Found {len(pending)} pending tasks after scan: {pending}"
+
+
 def test_python_api_validation():
     from bbot.scanner import Scanner, Preset
 
@@ -95,7 +117,7 @@ def test_python_api_validation():
     # invalid output module
     with pytest.raises(ValidationError) as error:
         Scanner(output_modules=["asdf"])
-    assert str(error.value) == 'Could not find output module "asdf". Did you mean "teams"?'
+    assert str(error.value) == 'Could not find output module "asdf". Did you mean "nats"?'
     # invalid excluded module
     with pytest.raises(ValidationError) as error:
         Scanner(exclude_modules=["asdf"])
@@ -119,7 +141,7 @@ def test_python_api_validation():
     # normal module as output module
     with pytest.raises(ValidationError) as error:
         Scanner(output_modules=["robots"])
-    assert str(error.value) == 'Could not find output module "robots". Did you mean "web_report"?'
+    assert str(error.value) == 'Could not find output module "robots". Did you mean "rabbitmq"?'
     # invalid preset type
     with pytest.raises(ValidationError) as error:
         Scanner(preset="asdf")

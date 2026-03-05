@@ -12,10 +12,10 @@ async def test_cli_scope(monkeypatch, capsys):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
-    # basic target without whitelist
+    # basic target (seeds and target are the same)
     monkeypatch.setattr(
         "sys.argv",
-        ["bbot", "-t", "one.one.one.one", "-c", "scope.report_distance=10", "dns.minimal=false", "--json"],
+        ["bbot", "-t", "one.one.one.one", "-c", "scope.report_distance=10", "dns.minimal=false", "--json", "-y"],
     )
     result = await cli._main()
     out, err = capsys.readouterr()
@@ -28,10 +28,7 @@ async def test_cli_scope(monkeypatch, capsys):
         [
             l
             for l in dns_events
-            if l["module"] == "TARGET"
-            and l["scope_distance"] == 0
-            and "in-scope" in l["tags"]
-            and "target" in l["tags"]
+            if l["module"] == "SEED" and l["scope_distance"] == 0 and "in-scope" in l["tags"] and "seed" in l["tags"]
         ]
     )
     ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.1.1.1"]
@@ -41,20 +38,21 @@ async def test_cli_scope(monkeypatch, capsys):
     assert ip_events
     assert all(l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in ip_events)
 
-    # with whitelist
+    # with target_list different from seeds (seeds are one.one.one.one, target is 192.168.0.1)
     monkeypatch.setattr(
         "sys.argv",
         [
             "bbot",
             "-t",
-            "one.one.one.one",
-            "-w",
             "192.168.0.1",
+            "-s",
+            "one.one.one.one",
             "-c",
             "scope.report_distance=10",
             "dns.minimal=false",
             "dns.search_distance=2",
             "--json",
+            "-y",
         ],
     )
     result = await cli._main()
@@ -66,17 +64,17 @@ async def test_cli_scope(monkeypatch, capsys):
     assert not any(l["scope_distance"] == 0 for l in lines)
     dns_events = [l for l in lines if l["type"] == "DNS_NAME" and l["data"] == "one.one.one.one"]
     assert dns_events
+    # When seeds are different from target, the seed DNS_NAME should be out-of-scope
+    # (distance-1) and tagged as a seed, but NOT tagged as a target (since it is not
+    # part of the target set that in_target() checks).
     assert all(l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in dns_events)
-    assert 1 == len(
-        [
-            l
-            for l in dns_events
-            if l["module"] == "TARGET"
-            and l["scope_distance"] == 1
-            and "distance-1" in l["tags"]
-            and "target" in l["tags"]
-        ]
-    )
+    target_seed_events = [
+        l
+        for l in dns_events
+        if l["module"] == "SEED" and l["scope_distance"] == 1 and "distance-1" in l["tags"] and "seed" in l["tags"]
+    ]
+    assert len(target_seed_events) == 1
+    assert all("target" not in l["tags"] for l in target_seed_events)
     ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.1.1.1"]
     assert ip_events
     assert all(l["scope_distance"] == 2 and "distance-2" in l["tags"] for l in ip_events)
@@ -123,9 +121,9 @@ async def test_cli_scan(monkeypatch):
     with open(output_filename) as f:
         lines = f.read().splitlines()
         for line in lines:
-            if "[IP_ADDRESS]        \t127.0.0.1\tTARGET" in line:
+            if "[IP_ADDRESS]        \t127.0.0.1\tSEED" in line:
                 ip_success = True
-            if "[DNS_NAME]          \twww.example.com\tTARGET" in line:
+            if "[DNS_NAME]          \twww.example.com\tSEED" in line:
                 dns_success = True
     assert ip_success and dns_success, "IP_ADDRESS and/or DNS_NAME are not present in output.txt"
 
@@ -158,11 +156,11 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     print(out)
     # parse YAML output
     preset = yaml.safe_load(out)
-    assert preset == {
-        "description": "depstest",
-        "scan_name": "depstest",
-        "config": {"deps": {"behavior": "retry_failed"}},
-    }
+    # description and scan_name should reflect the CLI name
+    assert preset["description"] == "depstest"
+    assert preset["scan_name"] == "depstest"
+    # deps behavior should be set to retry_failed, but allow other config keys to exist
+    assert preset.get("config", {}).get("deps") == {"behavior": "retry_failed"}
 
     # list modules
     monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
@@ -370,7 +368,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result is True
-    assert "[ORG_STUB]          	evilcorp	TARGET" in out
+    assert "[ORG_STUB]          	evilcorp\tSEED" in out
 
     # activate modules by flag
     caplog.clear()

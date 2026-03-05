@@ -76,7 +76,14 @@ class bucket_template(BaseModule):
         if self.supports_open_check:
             description, tags = await self._check_bucket_open(bucket_name, url)
             if description:
-                event_data = {"host": event.host, "url": url, "description": description}
+                event_data = {
+                    "host": event.host,
+                    "url": url,
+                    "description": description,
+                    "name": "Open Storage Bucket",
+                    "severity": "LOW",
+                    "confidence": "HIGH",
+                }
                 await self.emit_event(
                     event_data,
                     "FINDING",

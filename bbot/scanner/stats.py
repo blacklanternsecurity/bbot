@@ -4,6 +4,10 @@ from collections import deque
 
 log = logging.getLogger("bbot.scanner.stats")
 
+_VERIFIED_TO_UNVERIFIED = {
+    "URL": "URL_UNVERIFIED",
+}
+
 
 def _increment(d, k):
     try:
@@ -43,9 +47,26 @@ class ScanStats:
         self.events_emitted_by_type = {}
         self.speedometer = SpeedCounter(scan.status_frequency)
 
+    def _get_attribution_module(self, event):
+        """Return the module that should get credit for producing this event.
+
+        For verified event types (e.g. URL verified from URL_UNVERIFIED), credit
+        goes to the module that originally discovered the unverified form,
+        unless the discovering module doesn't declare the unverified type in its produced_events.
+        """
+        unverified_type = _VERIFIED_TO_UNVERIFIED.get(event.type)
+        if unverified_type is not None:
+            parent = getattr(event, "parent", None)
+            if parent is not None and getattr(parent, "type", None) == unverified_type:
+                parent_module = getattr(parent, "module", None)
+                if parent_module is not None and unverified_type in getattr(parent_module, "produced_events", []):
+                    return parent_module
+        return event.module
+
     def event_produced(self, event):
         _increment(self.events_emitted_by_type, event.type)
-        module_stat = self.get(event.module)
+        module = self._get_attribution_module(event)
+        module_stat = self.get(module)
         if module_stat is not None:
             module_stat.increment_produced(event)
 
@@ -72,7 +93,7 @@ class ScanStats:
         header = ["Module", "Produced", "Consumed"]
         table = []
         for mname, mstat in self.module_stats.items():
-            if mname == "TARGET" or mstat.module._stats_exclude:
+            if mname == "SEED" or mstat.module._stats_exclude:
                 continue
             table_row = []
             table_row.append(mname)

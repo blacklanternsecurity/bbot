@@ -32,7 +32,14 @@ class git(BaseModule):
                 if getattr(response, "status_code", 0) == 200 and "[core]" in text and not self.fp_regex.match(text):
                     description = f"Exposed .git config at {url}"
                     await self.emit_event(
-                        {"host": str(event.host), "url": url, "description": description},
+                        {
+                            "host": str(event.host),
+                            "url": url,
+                            "description": description,
+                            "name": "Exposed .git config",
+                            "severity": "MEDIUM",
+                            "confidence": "HIGH",
+                        },
                         "FINDING",
                         event,
                         context="{module} detected {event.type}: {description}",

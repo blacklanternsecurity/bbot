@@ -289,7 +289,7 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     async_correct_url = False
 
     scan1 = bbot_scanner("8.8.8.8")
-    scan1.status = "RUNNING"
+    await scan1._set_status("RUNNING")
 
     interactsh_client = scan1.helpers.interactsh(poll_interval=3)
     interactsh_client2 = scan1.helpers.interactsh(poll_interval=3)

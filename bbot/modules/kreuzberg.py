@@ -1,9 +1,10 @@
-from extractous import Extractor
+import pypdfium2
+from kreuzberg import extract_file
 
 from bbot.modules.base import BaseModule
 
 
-class extractous(BaseModule):
+class kreuzberg(BaseModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["RAW_TEXT"]
     flags = ["passive", "safe"]
@@ -65,7 +66,7 @@ class extractous(BaseModule):
         "extensions": "File extensions to parse",
     }
 
-    deps_pip = ["extractous~=0.3.0"]
+    deps_pip = ["kreuzberg~=4.3", "pypdfium2~=5.0"]
     scope_distance_modifier = 1
 
     async def setup(self):
@@ -82,11 +83,17 @@ class extractous(BaseModule):
 
     async def handle_event(self, event):
         file_path = event.data["path"]
-        content = await self.scan.helpers.run_in_executor_mp(extract_text, file_path)
-        if isinstance(content, tuple):
-            error, traceback = content
-            self.error(f"Error extracting text from {file_path}: {error}")
-            self.trace(traceback)
+        try:
+            if file_path.lower().endswith(".pdf"):
+                content = await self.helpers.run_in_executor_mp(self.extract_pdf, file_path)
+            else:
+                result = await extract_file(file_path)
+                content = result.content.strip()
+        except Exception as e:
+            import traceback
+
+            self.error(f"Error extracting text from {file_path}: {e}")
+            self.trace(traceback.format_exc())
             return
 
         if content:
@@ -98,27 +105,22 @@ class extractous(BaseModule):
             )
             await self.emit_event(raw_text_event)
 
+    @staticmethod
+    def extract_pdf(file_path):
+        """Extract text from PDF using pypdfium2 directly instead of kreuzberg.
 
-def extract_text(file_path):
-    """
-    extract_text Extracts plaintext from a document path using extractous.
-
-    :param file_path: The path of the file to extract text from.
-    :return: ASCII-encoded plaintext extracted from the document.
-    """
-
-    try:
-        extractor = Extractor()
-        reader, metadata = extractor.extract_file(str(file_path))
-
-        result = ""
-        buffer = reader.read(4096)
-        while len(buffer) > 0:
-            result += buffer.decode("utf-8", errors="ignore")
-            buffer = reader.read(4096)
-
-        return result.strip()
-    except Exception as e:
-        import traceback
-
-        return (str(e), traceback.format_exc())
+        kreuzberg's bundled pdfium extracts text spatially via get_text_bounded(), which
+        clips long unbroken strings (JWTs, base64, URLs) that extend beyond the page width.
+        pypdfium2's get_text_range() extracts by character index, returning complete text
+        regardless of spatial position.
+        """
+        document = pypdfium2.PdfDocument(file_path)
+        try:
+            pages = []
+            for page in document:
+                textpage = page.get_textpage()
+                text = textpage.get_text_range()
+                pages.append(text)
+            return " ".join("\n".join(pages).strip().split())
+        finally:
+            document.close()

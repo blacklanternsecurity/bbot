@@ -135,8 +135,16 @@ fragment TypeRef on __Type {
                 filename = self.output_dir / filename
                 with open(filename, "w") as f:
                     json.dump(response_json, f)
+                relative_path = str(filename.relative_to(self.scan.home))
                 await self.emit_event(
-                    {"url": url, "description": "GraphQL schema", "path": str(filename.relative_to(self.scan.home))},
+                    {
+                        "name": "GraphQL Schema",
+                        "url": url,
+                        "description": f"GraphQL Schema at {url}",
+                        "path": relative_path,
+                        "severity": "INFORMATIONAL",
+                        "confidence": "CONFIRMED",
+                    },
                     "FINDING",
                     event,
                     context=f"{{module}} found GraphQL schema at {url}",

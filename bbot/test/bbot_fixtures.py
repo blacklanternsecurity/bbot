@@ -55,6 +55,8 @@ def clean_default_config(monkeypatch):
     )
     with monkeypatch.context() as m:
         m.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
+        # Also clear CORE's custom_config to ensure Preset.copy() gets a clean core
+        m.setattr(CORE, "_custom_config", OmegaConf.create({}))
         yield
 
 
@@ -146,48 +148,93 @@ httpx_response = {
 
 @pytest.fixture
 def events(scan):
+    dummy_module = scan._make_dummy_module("dummy_module")
+
     class bbot_events:
-        localhost = scan.make_event("127.0.0.1", parent=scan.root_event)
-        ipv4 = scan.make_event("8.8.8.8", parent=scan.root_event)
-        netv4 = scan.make_event("8.8.8.8/30", parent=scan.root_event)
-        ipv6 = scan.make_event("2001:4860:4860::8888", parent=scan.root_event)
-        netv6 = scan.make_event("2001:4860:4860::8888/126", parent=scan.root_event)
-        domain = scan.make_event("publicAPIs.org", parent=scan.root_event)
-        subdomain = scan.make_event("api.publicAPIs.org", parent=scan.root_event)
-        email = scan.make_event("bob@evilcorp.co.uk", "EMAIL_ADDRESS", parent=scan.root_event)
-        open_port = scan.make_event("api.publicAPIs.org:443", parent=scan.root_event)
+        localhost = scan.make_event("127.0.0.1", parent=scan.root_event, module=dummy_module)
+        ipv4 = scan.make_event("8.8.8.8", parent=scan.root_event, module=dummy_module)
+        netv4 = scan.make_event("8.8.8.8/30", parent=scan.root_event, module=dummy_module)
+        ipv6 = scan.make_event("2001:4860:4860::8888", parent=scan.root_event, module=dummy_module)
+        netv6 = scan.make_event("2001:4860:4860::8888/126", parent=scan.root_event, module=dummy_module)
+        domain = scan.make_event("publicAPIs.org", parent=scan.root_event, module=dummy_module)
+        subdomain = scan.make_event("api.publicAPIs.org", parent=scan.root_event, module=dummy_module)
+        email = scan.make_event("bob@evilcorp.co.uk", "EMAIL_ADDRESS", parent=scan.root_event, module=dummy_module)
+        open_port = scan.make_event("api.publicAPIs.org:443", parent=scan.root_event, module=dummy_module)
         protocol = scan.make_event(
-            {"host": "api.publicAPIs.org", "port": 443, "protocol": "HTTP"}, "PROTOCOL", parent=scan.root_event
+            {"host": "api.publicAPIs.org", "port": 443, "protocol": "HTTP"},
+            "PROTOCOL",
+            parent=scan.root_event,
+            module=dummy_module,
         )
-        ipv4_open_port = scan.make_event("8.8.8.8:443", parent=scan.root_event)
-        ipv6_open_port = scan.make_event("[2001:4860:4860::8888]:443", "OPEN_TCP_PORT", parent=scan.root_event)
-        url_unverified = scan.make_event("https://api.publicAPIs.org:443/hellofriend", parent=scan.root_event)
-        ipv4_url_unverified = scan.make_event("https://8.8.8.8:443/hellofriend", parent=scan.root_event)
-        ipv6_url_unverified = scan.make_event("https://[2001:4860:4860::8888]:443/hellofriend", parent=scan.root_event)
+        ipv4_open_port = scan.make_event("8.8.8.8:443", parent=scan.root_event, module=dummy_module)
+        ipv6_open_port = scan.make_event(
+            "[2001:4860:4860::8888]:443", "OPEN_TCP_PORT", parent=scan.root_event, module=dummy_module
+        )
+        url_unverified = scan.make_event(
+            "https://api.publicAPIs.org:443/hellofriend", parent=scan.root_event, module=dummy_module
+        )
+        ipv4_url_unverified = scan.make_event(
+            "https://8.8.8.8:443/hellofriend", parent=scan.root_event, module=dummy_module
+        )
+        ipv6_url_unverified = scan.make_event(
+            "https://[2001:4860:4860::8888]:443/hellofriend", parent=scan.root_event, module=dummy_module
+        )
         url = scan.make_event(
-            "https://api.publicAPIs.org:443/hellofriend", "URL", tags=["status-200"], parent=scan.root_event
+            "https://api.publicAPIs.org:443/hellofriend",
+            "URL",
+            tags=["status-200"],
+            parent=scan.root_event,
+            module=dummy_module,
         )
         ipv4_url = scan.make_event(
-            "https://8.8.8.8:443/hellofriend", "URL", tags=["status-200"], parent=scan.root_event
+            "https://8.8.8.8:443/hellofriend", "URL", tags=["status-200"], parent=scan.root_event, module=dummy_module
         )
         ipv6_url = scan.make_event(
-            "https://[2001:4860:4860::8888]:443/hellofriend", "URL", tags=["status-200"], parent=scan.root_event
+            "https://[2001:4860:4860::8888]:443/hellofriend",
+            "URL",
+            tags=["status-200"],
+            parent=scan.root_event,
+            module=dummy_module,
+        )
+        url_hint = scan.make_event(
+            "https://api.publicAPIs.org:443/hello.ash", "URL_HINT", parent=url, module=dummy_module
         )
         url_hint = scan.make_event("https://api.publicAPIs.org:443/hello.ash", "URL_HINT", parent=url)
-        vulnerability = scan.make_event(
-            {"host": "evilcorp.com", "severity": "INFO", "description": "asdf"},
-            "VULNERABILITY",
+        finding = scan.make_event(
+            {
+                "host": "evilcorp.com",
+                "severity": "INFORMATIONAL",
+                "confidence": "HIGH",
+                "description": "asdf",
+                "name": "Test Finding",
+            },
+            "FINDING",
             parent=scan.root_event,
+            module=dummy_module,
         )
-        finding = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "FINDING", parent=scan.root_event)
-        vhost = scan.make_event({"host": "evilcorp.com", "vhost": "www.evilcorp.com"}, "VHOST", parent=scan.root_event)
-        http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
+        finding = scan.make_event(
+            {
+                "host": "evilcorp.com",
+                "description": "asdf",
+                "name": "Finding",
+                "severity": "INFORMATIONAL",
+                "confidence": "HIGH",
+            },
+            "FINDING",
+            parent=scan.root_event,
+            module=dummy_module,
+        )
+        vhost = scan.make_event(
+            {"host": "evilcorp.com", "vhost": "www.evilcorp.com"}, "VHOST", parent=scan.root_event, module=dummy_module
+        )
+        http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event, module=dummy_module)
         storage_bucket = scan.make_event(
             {"name": "storage", "url": "https://storage.blob.core.windows.net"},
             "STORAGE_BUCKET",
             parent=scan.root_event,
+            module=dummy_module,
         )
-        emoji = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", parent=scan.root_event)
+        emoji = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", parent=scan.root_event, module=dummy_module)
 
     bbot_events.all = [  # noqa: F841
         bbot_events.localhost,
@@ -209,7 +256,6 @@ def events(scan):
         bbot_events.ipv4_url,
         bbot_events.ipv6_url,
         bbot_events.url_hint,
-        bbot_events.vulnerability,
         bbot_events.finding,
         bbot_events.vhost,
         bbot_events.http_response,

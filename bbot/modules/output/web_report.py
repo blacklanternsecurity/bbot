@@ -4,7 +4,7 @@ import html
 
 
 class web_report(BaseOutputModule):
-    watched_events = ["URL", "TECHNOLOGY", "FINDING", "VULNERABILITY", "VHOST"]
+    watched_events = ["URL", "TECHNOLOGY", "FINDING", "VHOST"]
     meta = {
         "description": "Create a markdown report with web assets",
         "created_date": "2023-02-08",
@@ -89,7 +89,7 @@ class web_report(BaseOutputModule):
                     if e in dedupe:
                         continue
                     dedupe.append(e)
-                    self.markdown += f"\n* {e}\n"
+                    self.markdown += f"* {e}\n"
                 self.markdown += "\n"
 
         if self.file is not None:

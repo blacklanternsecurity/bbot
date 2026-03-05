@@ -79,13 +79,13 @@ class TestPortscan(ModuleTestBase):
         assert self.syn_runs >= 1
         assert self.ping_runs == 0
         assert 1 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com" and str(e.module) == "TARGET"]
+            [e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com" and str(e.module) == "SEED"]
         )
         assert 1 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com" and str(e.module) == "TARGET"]
+            [e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com" and str(e.module) == "SEED"]
         )
         assert 1 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.net" and str(e.module) == "TARGET"]
+            [e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.net" and str(e.module) == "SEED"]
         )
         assert 1 == len(
             [

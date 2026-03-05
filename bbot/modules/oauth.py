@@ -26,7 +26,7 @@ class OAUTH(BaseModule):
         return True
 
     async def filter_event(self, event):
-        if event.module == self or any(t in event.tags for t in ("target", "domain", "ms-auth-url")):
+        if event.module == self or any(t in event.tags for t in ("seed", "domain", "ms-auth-url")):
             return True
         elif self.try_all and event.scope_distance == 0:
             return True
@@ -62,9 +62,12 @@ class OAUTH(BaseModule):
             if token_endpoint:
                 finding_event = self.make_event(
                     {
+                        "name": "OpenID Connect Endpoint",
                         "description": f"OpenID Connect Endpoint (domain: {source_domain}) found at {url}",
                         "host": event.host,
                         "url": url,
+                        "severity": "INFORMATIONAL",
+                        "confidence": "HIGH",
                     },
                     "FINDING",
                     parent=event,
@@ -101,9 +104,12 @@ class OAUTH(BaseModule):
                 description = f"Potentially Sprayable OAUTH Endpoint (domain: {source_domain}) at {url}"
                 oauth_finding = self.make_event(
                     {
+                        "name": "Potentially Sprayable OAUTH Endpoint",
                         "description": description,
                         "host": event.host,
                         "url": url,
+                        "severity": "INFORMATIONAL",
+                        "confidence": "LOW",
                     },
                     "FINDING",
                     parent=event,

@@ -14,12 +14,20 @@ class TestHunt(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "FINDING"
-            and e.data["description"]
-            == "Found potentially interesting parameter. Name: [cipher] Parameter Type: [GETPARAM] Categories: [Insecure Cryptography] Original Value: [xor]"
-            for e in events
-        )
+        finding_event = None
+        for e in events:
+            if (
+                e.type == "FINDING"
+                and e.data["description"]
+                == "Found potentially interesting parameter. Name: [cipher] Parameter Type: [GETPARAM] Categories: [Insecure Cryptography] Original Value: [xor]"
+            ):
+                finding_event = e
+                break
+
+        assert finding_event is not None
+        # Hunt emits INFORMATIONAL severity and LOW confidence
+        assert finding_event.data["severity"] == "INFORMATIONAL"
+        assert finding_event.data["confidence"] == "LOW"
 
 
 class TestHunt_Multiple(TestHunt):

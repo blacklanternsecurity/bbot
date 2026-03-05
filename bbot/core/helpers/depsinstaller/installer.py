@@ -268,6 +268,24 @@ class DepsInstaller:
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
+        # Ensure pip is available in the environment
+        try:
+            check_pip_command = [sys.executable, "-m", "pip", "--version"]
+            await self.parent_helper.run(check_pip_command, check=True)
+        except CalledProcessError:
+            # pip is not available, try to install it with ensurepip
+            log.info("pip not found in virtual environment, attempting to install with ensurepip")
+            try:
+                ensurepip_command = [sys.executable, "-m", "ensurepip", "--upgrade"]
+                await self.parent_helper.run(ensurepip_command, check=True)
+                log.info("Successfully installed pip with ensurepip")
+            except CalledProcessError as err:
+                log.warning(
+                    f"Failed to install pip with ensurepip (return code {err.returncode}): {err.stderr}. "
+                    f"If using uv, create the virtual environment with 'uv venv --seed' or set UV_VENV_SEED=1"
+                )
+                return False
+
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
 
         # if no custom constraints are provided, use the constraints of the currently installed version of bbot
@@ -442,6 +460,23 @@ class DepsInstaller:
                 else:
                     log.warning("Incorrect password")
 
+    def _core_dep_satisfied(self, command):
+        """Check if a core dependency is satisfied.
+
+        For normal binary deps, check if the command exists on PATH.
+        For special entries like openssl_dev_headers, use a custom check.
+        """
+        if command == "openssl_dev_headers":
+            # check for openssl headers by looking for the pkg-config file or header
+            return any(
+                Path(p).exists()
+                for p in [
+                    "/usr/include/openssl/ssl.h",
+                    "/usr/local/include/openssl/ssl.h",
+                ]
+            ) or bool(self.parent_helper.which("openssl"))
+        return bool(self.parent_helper.which(command))
+
     async def install_core_deps(self):
         # skip if we've already successfully installed core deps for this definition
         core_deps_hash = str(mmh3.hash(orjson.dumps(self.CORE_DEPS, option=orjson.OPT_SORT_KEYS)))
@@ -453,18 +488,25 @@ class DepsInstaller:
         to_install = set()
         to_install_friendly = set()
         playbook = []
-        self._install_sudo_askpass()
-        # ensure tldextract data is cached
-        self.parent_helper.tldextract("evilcorp.co.uk")
-        # install any missing commands
+        # check which commands are missing
         for command, package_name_or_playbook in self.CORE_DEPS.items():
-            if not self.parent_helper.which(command):
-                to_install_friendly.add(command)
-                if isinstance(package_name_or_playbook, str):
-                    to_install.add(package_name_or_playbook)
-                else:
-                    playbook.extend(package_name_or_playbook)
-        # install ansible community.general collection
+            if self._core_dep_satisfied(command):
+                continue
+            to_install_friendly.add(command)
+            if isinstance(package_name_or_playbook, str):
+                to_install.add(package_name_or_playbook)
+            else:
+                playbook.extend(package_name_or_playbook)
+        # construct ansible playbook
+        if to_install:
+            playbook.append(
+                {
+                    "name": "Install Core BBOT Dependencies",
+                    "package": {"name": list(to_install), "state": "present"},
+                    "become": True,
+                }
+            )
+        # install ansible community.general collection if needed
         overall_success = True
         if not self.setup_status.get("ansible:community.general", False):
             log.info("Installing Ansible Community General Collection")
@@ -478,17 +520,12 @@ class DepsInstaller:
                     f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
                 )
                 overall_success = False
-        # construct ansible playbook
-        if to_install:
-            playbook.append(
-                {
-                    "name": "Install Core BBOT Dependencies",
-                    "package": {"name": list(to_install), "state": "present"},
-                    "become": True,
-                }
-            )
-        # run playbook
+        # only run ansible if there's actually something to install
         if playbook:
+            self._install_sudo_askpass()
+            # ensure tldextract data is cached
+            self.parent_helper.tldextract("evilcorp.co.uk")
+            # run playbook
             log.info(f"Installing core BBOT dependencies: {','.join(sorted(to_install_friendly))}")
             self.ensure_root()
             success, _ = self.ansible_run(tasks=playbook)

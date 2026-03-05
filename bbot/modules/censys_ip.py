@@ -33,9 +33,10 @@ class censys_ip(censys):
 
     async def setup(self):
         self.dns_names_limit = self.config.get("dns_names_limit", 100)
-        self.warning(
-            "This module may consume a lot of API queries. Unless you specifically want to query on each individual IP, we recommend using the censys_dns module instead."
-        )
+        if not self.config.get("in_scope_only", True):
+            self.warning(
+                "in_scope_only is disabled. This module queries each IP individually and may consume a lot of API credits!"
+            )
         return await super().setup()
 
     async def filter_event(self, event):
@@ -165,13 +166,13 @@ class censys_ip(censys):
         # Validate and emit as DNS_NAME
         try:
             validated = self.helpers.validators.validate_host(host)
+            if validated and validated not in seen:
+                seen.add(validated)
+                await self.emit_event(
+                    validated,
+                    "DNS_NAME",
+                    parent=event,
+                    context=f"{{module}} found {{event.data}} in {source} of {{event.parent.data}}",
+                )
         except ValueError as e:
             self.debug(f"Error validating host {host} in {source}: {e}")
-        if validated and validated not in seen:
-            seen.add(validated)
-            await self.emit_event(
-                validated,
-                "DNS_NAME",
-                parent=event,
-                context=f"{{module}} found {{event.data}} in {source} of {{event.parent.data}}",
-            )

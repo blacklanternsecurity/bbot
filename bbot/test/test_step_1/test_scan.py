@@ -19,42 +19,42 @@ async def test_scan(
         modules=["ipneighbor"],
     )
     await scan0.load_modules()
-    assert scan0.whitelisted("1.1.1.1")
-    assert scan0.whitelisted("1.1.1.0")
+    assert scan0.in_target("1.1.1.1")
+    assert scan0.in_target("1.1.1.0")
     assert scan0.blacklisted("1.1.1.15")
     assert not scan0.blacklisted("1.1.1.16")
     assert scan0.blacklisted("1.1.1.1/30")
     assert not scan0.blacklisted("1.1.1.1/27")
     assert not scan0.in_scope("1.1.1.1")
-    assert scan0.whitelisted("api.evilcorp.com")
-    assert scan0.whitelisted("www.evilcorp.com")
+    assert scan0.in_target("api.evilcorp.com")
+    assert scan0.in_target("www.evilcorp.com")
     assert not scan0.blacklisted("api.evilcorp.com")
     assert scan0.blacklisted("asdf.www.evilcorp.com")
     assert scan0.in_scope("test.api.evilcorp.com")
     assert not scan0.in_scope("test.www.evilcorp.com")
     assert not scan0.in_scope("www.evilcorp.co.uk")
     j = scan0.json
-    assert set(j["target"]["seeds"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
-    # we preserve the original whitelist inputs
-    assert set(j["target"]["whitelist"]) == {"1.1.1.0/32", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
-    # but in the background they are collapsed
-    assert scan0.target.whitelist.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
+    assert not "seeds" in j["target"], "seeds should not be in target json"
+    # Positional arguments become the target
+    assert set(j["target"]["target"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
+    # Seeds are backfilled from target when not explicitly set
+    assert scan0.target.target.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
     assert set(j["target"]["blacklist"]) == {"1.1.1.0/28", "www.evilcorp.com"}
     assert "ipneighbor" in j["preset"]["modules"]
 
-    scan1 = bbot_scanner("1.1.1.1", whitelist=["1.0.0.1"])
+    scan1 = bbot_scanner("1.0.0.1", seeds=["1.1.1.1"])
     assert not scan1.blacklisted("1.1.1.1")
     assert not scan1.blacklisted("1.0.0.1")
-    assert not scan1.whitelisted("1.1.1.1")
-    assert scan1.whitelisted("1.0.0.1")
+    assert not scan1.in_target("1.1.1.1")
+    assert scan1.in_target("1.0.0.1")
     assert scan1.in_scope("1.0.0.1")
     assert not scan1.in_scope("1.1.1.1")
 
     scan2 = bbot_scanner("1.1.1.1")
     assert not scan2.blacklisted("1.1.1.1")
     assert not scan2.blacklisted("1.0.0.1")
-    assert scan2.whitelisted("1.1.1.1")
-    assert not scan2.whitelisted("1.0.0.1")
+    assert scan2.in_target("1.1.1.1")
+    assert not scan2.in_target("1.0.0.1")
     assert scan2.in_scope("1.1.1.1")
     assert not scan2.in_scope("1.0.0.1")
 
@@ -86,6 +86,36 @@ async def test_scan(
 
     scan6 = bbot_scanner("a.foobar.io", "b.foobar.io", "c.foobar.io", "foobar.io")
     assert len(scan6.dns_strings) == 1
+
+
+def test_seeds_target_separation(bbot_scanner):
+    """
+    Test that when seeds are explicitly provided (via -s), they are properly separated from target.
+    """
+    # Simulate: bbot -t 192.168.1.0/24 -s seed1.example.com seed2.example.com
+    scan = bbot_scanner(
+        "192.168.1.0/24",
+        seeds=["seed1.example.com", "seed2.example.com"],
+    )
+
+    # Verify target and seeds are properly separated in JSON
+    j = scan.json
+    assert set(j["target"]["target"]) == {"192.168.1.0/24"}, "Target should only contain the IP range"
+    assert set(j["target"]["seeds"]) == {"seed1.example.com", "seed2.example.com"}, (
+        "Seeds should contain the DNS names, not the target"
+    )
+
+    # Verify target functionality
+    assert scan.in_target("192.168.1.1"), "IP in target range should be in target"
+    assert not scan.in_target("seed1.example.com"), "Seed DNS name should not be in target"
+    assert not scan.in_target("seed2.example.com"), "Seed DNS name should not be in target"
+
+    # Verify seeds are accessible
+    assert "seed1.example.com" in scan.target.seeds.inputs, "seed1.example.com should be in seeds"
+    assert "seed2.example.com" in scan.target.seeds.inputs, "seed2.example.com should be in seeds"
+    assert "192.168.1.0/24" not in scan.target.seeds.inputs, (
+        "Target should not be in seeds when seeds are explicitly provided"
+    )
 
 
 @pytest.mark.asyncio
@@ -177,6 +207,96 @@ async def test_speed_counter():
 
 
 @pytest.mark.asyncio
+async def test_stats_attribution():
+    from bbot.scanner.stats import ScanStats
+    from types import SimpleNamespace
+
+    def mock_module(name, produced_events=None):
+        return SimpleNamespace(name=name, _stats_exclude=False, produced_events=produced_events or [])
+
+    def mock_event(type, module, parent=None):
+        e = SimpleNamespace(type=type, module=module)
+        if parent is not None:
+            e.parent = parent
+        return e
+
+    mock_scan = SimpleNamespace(status_frequency=60)
+    stats = ScanStats(mock_scan)
+
+    httpx_mod = mock_module("httpx", ["URL", "HTTP_RESPONSE"])
+    excavate_mod = mock_module("excavate", ["URL_UNVERIFIED", "WEB_PARAMETER"])
+    ffuf_mod = mock_module("ffuf_shortnames", ["URL_UNVERIFIED"])
+    ffuf2_mod = mock_module("ffuf", ["URL_UNVERIFIED"])
+    speculate_mod = mock_module("speculate", ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"])
+    robots_mod = mock_module("robots", ["URL_UNVERIFIED"])
+
+    # 1) excavate discovers URL_UNVERIFIED from HTTP_RESPONSE, httpx verifies → excavate gets credit
+    for _ in range(5):
+        parent = mock_event("URL_UNVERIFIED", excavate_mod)
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 2) ffuf_shortnames discovers URL_UNVERIFIED, httpx verifies → ffuf_shortnames gets credit
+    for _ in range(3):
+        parent = mock_event("URL_UNVERIFIED", ffuf_mod)
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 3) ffuf discovers URL_UNVERIFIED, httpx verifies → ffuf gets credit
+    parent = mock_event("URL_UNVERIFIED", ffuf2_mod)
+    stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 4) speculate (internal module) creates URL_UNVERIFIED, httpx verifies → httpx keeps credit
+    for _ in range(4):
+        parent = mock_event("URL_UNVERIFIED", speculate_mod)
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 5) robots discovers URL_UNVERIFIED, httpx verifies → robots gets credit
+    for _ in range(2):
+        parent = mock_event("URL_UNVERIFIED", robots_mod)
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 6) httpx discovers URL directly from OPEN_TCP_PORT (no URL_UNVERIFIED parent) → httpx keeps credit
+    for _ in range(2):
+        parent = mock_event("OPEN_TCP_PORT", mock_module("portscan"))
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 7) non-URL event types are unaffected
+    stats.event_produced(mock_event("DNS_NAME", mock_module("CNAME")))
+    stats.event_produced(mock_event("STORAGE_BUCKET", mock_module("cloudcheck")))
+
+    # verify per-module produced counts
+    assert stats.module_stats["excavate"].produced == {"URL": 5}
+    assert stats.module_stats["ffuf_shortnames"].produced == {"URL": 3}
+    assert stats.module_stats["ffuf"].produced == {"URL": 1}
+    assert stats.module_stats["robots"].produced == {"URL": 2}
+    # httpx gets credit for speculate's 4 URLs + 2 from OPEN_TCP_PORT = 6
+    assert stats.module_stats["httpx"].produced == {"URL": 6}
+    assert "speculate" not in stats.module_stats
+    assert stats.module_stats["CNAME"].produced == {"DNS_NAME": 1}
+    assert stats.module_stats["cloudcheck"].produced == {"STORAGE_BUCKET": 1}
+
+    # verify the table output (sorted by produced_total descending)
+    table = stats.table()
+    header = table[0]
+    rows = table[1:]
+    assert header == ["Module", "Produced", "Consumed"]
+
+    # build a dict of module_name -> produced_str from the table
+    table_dict = {row[0]: row[1] for row in rows}
+    assert table_dict["httpx"] == "6 (6 URL)"
+    assert table_dict["excavate"] == "5 (5 URL)"
+    assert table_dict["ffuf_shortnames"] == "3 (3 URL)"
+    assert table_dict["robots"] == "2 (2 URL)"
+    assert table_dict["ffuf"] == "1 (1 URL)"
+    assert table_dict["CNAME"] == "1 (1 DNS_NAME)"
+    assert table_dict["cloudcheck"] == "1 (1 STORAGE_BUCKET)"
+    assert "speculate" not in table_dict
+
+    # verify sort order (highest produced first)
+    produced_totals = [stats.module_stats[row[0]].produced_total for row in rows]
+    assert produced_totals == sorted(produced_totals, reverse=True)
+
+
+@pytest.mark.asyncio
 async def test_python_output_matches_json(bbot_scanner):
     import json
 
@@ -194,7 +314,7 @@ async def test_python_output_matches_json(bbot_scanner):
     assert len(events) == 5
     scan_events = [e for e in events if e["type"] == "SCAN"]
     assert len(scan_events) == 2
-    assert all(isinstance(e["data"]["status"], str) for e in scan_events)
+    assert all(isinstance(e["data_json"]["status"], str) for e in scan_events)
     assert len([e for e in events if e["type"] == "DNS_NAME"]) == 1
     assert len([e for e in events if e["type"] == "ORG_STUB"]) == 1
     assert len([e for e in events if e["type"] == "IP_ADDRESS"]) == 1
@@ -220,10 +340,10 @@ async def test_huge_target_list(bbot_scanner, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_exclude_cdn(bbot_scanner, monkeypatch):
+async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
     # test that CDN exclusion works
 
-    from bbot import Preset
+    from bbot.scanner import Preset
 
     dns_mock = {
         "evilcorp.com": {"A": ["127.0.0.1"]},

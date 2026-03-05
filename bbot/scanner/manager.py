@@ -48,8 +48,8 @@ class ScanIngress(BaseInterceptModule):
             event_seeds = sorted(event_seeds, key=lambda e: (host_size_key(str(e.host)), e.data))
             # queue root scan event
             await self.queue_event(root_event, {})
-            target_module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
-            # queue each target in turn
+            target_module = self.scan._make_dummy_module(name="SEED", _type="SEED")
+            # queue each seed in turn
             for event_seed in event_seeds:
                 event = self.scan.make_event(
                     event_seed.data,
@@ -57,9 +57,12 @@ class ScanIngress(BaseInterceptModule):
                     parent=root_event,
                     module=target_module,
                     context=f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}",
-                    tags=["target"],
+                    tags=["seed"],
                 )
-                self.verbose(f"Target: {event}")
+                # If the seed is also in the target scope, add the target tag
+                if self.scan.in_target(event):
+                    event.add_tag("target")
+                self.verbose(f"Seed: {event}")
                 # don't fill up the queue with too many events
                 while self.incoming_event_queue.qsize() > 100:
                     await asyncio.sleep(0.2)
@@ -113,9 +116,9 @@ class ScanIngress(BaseInterceptModule):
 
         # Scope shepherding
         # here is where we make sure in-scope events are set to their proper scope distance
+
         if event.host:
-            event_whitelisted = self.scan.whitelisted(event)
-            if event_whitelisted:
+            if self.scan.in_target(event):
                 self.debug(f"Making {event} in-scope because its main host matches the scan target")
                 event.scope_distance = 0
 

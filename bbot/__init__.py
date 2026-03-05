@@ -1,6 +1,4 @@
-# version placeholder (replaced by poetry-dynamic-versioning)
-__version__ = "v0.0.0"
-
-from .scanner import Scanner, Preset
-
-__all__ = ["Scanner", "Preset"]
+try:
+    from bbot._version import __version__
+except ImportError:
+    __version__ = "0.0.0"

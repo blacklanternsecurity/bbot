@@ -8,7 +8,7 @@ import logging
 
 class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["active", "safe", "web-basic", "baddns", "cloud-enum", "subdomain-hijack"]
     meta = {
         "description": "Check hosts for domain/subdomain takeovers",
@@ -92,12 +92,14 @@ class baddns(BaseModule):
                         if confidence in ["CONFIRMED", "PROBABLE"]:
                             data = {
                                 "severity": "MEDIUM",
+                                "name": f"BadDNS {r_dict['signature']}",
+                                "confidence": "HIGH",
                                 "description": f"{r_dict['description']}. Confidence: [{confidence}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                                 "host": str(event.host),
                             }
                             await self.emit_event(
                                 data,
-                                "VULNERABILITY",
+                                "FINDING",
                                 event,
                                 tags=[f"baddns-{module_instance.name.lower()}"],
                                 context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {r_dict["description"]}',
@@ -106,8 +108,11 @@ class baddns(BaseModule):
                         elif confidence in ["UNLIKELY", "POSSIBLE"]:
                             if not self.only_high_confidence:
                                 data = {
+                                    "name": f"BadDNS {r_dict['signature']}",
                                     "description": f"{r_dict['description']} Confidence: [{confidence}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                                     "host": str(event.host),
+                                    "severity": "MEDIUM",
+                                    "confidence": "LOW",
                                 }
                                 await self.emit_event(
                                     data,

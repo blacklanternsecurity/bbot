@@ -22,6 +22,9 @@ class esi(BaseLightfuzz):
             self.results.append(
                 {
                     "type": "FINDING",
+                    "name": "Edge Side Include Processing",
+                    "severity": "MEDIUM",
+                    "confidence": "HIGH",
                     "description": f"Edge Side Include. Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]{self.conversion_note()}",
                 }
             )

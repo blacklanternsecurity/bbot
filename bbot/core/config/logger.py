@@ -2,6 +2,7 @@ import os
 import sys
 import atexit
 import logging
+import threading
 from copy import copy
 import multiprocessing
 import logging.handlers
@@ -93,7 +94,10 @@ class BBOTLogger:
 
         # Stop queue listener
         with suppress(Exception):
-            self.listener.stop()
+            stop_thread = threading.Thread(target=self.listener.stop)
+            stop_thread.daemon = True
+            stop_thread.start()
+            stop_thread.join()
 
     def setup_queue_handler(self, logging_queue=None, log_level=logging.DEBUG):
         if logging_queue is None:

@@ -444,8 +444,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     with pytest.raises(ValueError):
         helpers.validators.validate_url("!@#$")
     # severities
-    assert helpers.validators.validate_severity(" iNfo") == "INFO"
-    assert helpers.validators.soft_validate(" iNfo", "severity") is True
+    assert helpers.validators.validate_severity(" iNformational") == "INFORMATIONAL"
+    assert helpers.validators.soft_validate(" iNformational", "severity") is True
     assert helpers.validators.soft_validate("NOPE", "severity") is False
     with pytest.raises(ValueError):
         helpers.validators.validate_severity("NOPE")

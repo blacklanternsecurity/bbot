@@ -151,7 +151,7 @@ class Generic_XXE(BaseSubmodule):
 
 class generic_ssrf(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Check for generic SSRFs", "created_date": "2022-07-30", "author": "@liquidsec"}
     options = {
@@ -223,18 +223,19 @@ class generic_ssrf(BaseModule):
 
                 self.debug(f"Emitting event with description: {description}")  # Debug the final description
 
-                event_type = "VULNERABILITY" if protocol == "HTTP" else "FINDING"
+                confidence = "CONFIRMED" if protocol == "HTTP" else "MODERATE"
                 event_data = {
                     "host": str(matched_event.host),
                     "url": matched_event.data,
                     "description": description,
+                    "name": "Generic SSRF Detection",
+                    "confidence": confidence,
+                    "severity": matched_severity,
                 }
-                if protocol == "HTTP":
-                    event_data["severity"] = matched_severity
 
                 await self.emit_event(
                     event_data,
-                    event_type,
+                    "FINDING",
                     matched_event,
                     context=f"{{module}} scanned {matched_event.data} and detected {{event.type}}: {matched_technique}",
                 )

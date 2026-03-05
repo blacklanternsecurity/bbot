@@ -76,8 +76,8 @@ class Preset(metaclass=BasePreset):
         Based on the state of the preset, you can print a warning message, abort the scan, enable/disable modules, etc..
 
     Attributes:
-        target (Target): Target(s) of scan.
-        whitelist (Target): Scan whitelist (by default this is the same as `target`).
+        target (BBOTTarget): The scan target object containing seeds, target, and blacklist.
+            Use `target.target` to access what's in the target (what `in_target()` checks).
         blacklist (Target): Scan blacklist (this takes ultimate precedence).
         helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc.
         output_dir (pathlib.Path): Output directory for scan.
@@ -115,8 +115,8 @@ class Preset(metaclass=BasePreset):
 
     def __init__(
         self,
-        *targets,
-        whitelist=None,
+        *target,
+        seeds=None,
         blacklist=None,
         modules=None,
         output_modules=None,
@@ -142,8 +142,11 @@ class Preset(metaclass=BasePreset):
         Initializes the Preset class.
 
         Args:
-            *targets (str): Target(s) to scan. Types supported: hostnames, IPs, CIDRs, emails, open ports.
-            whitelist (list, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.
+            *target (str): Target(s) to scan. These ALWAYS become the target (what `in_target()` checks).
+                Types supported: hostnames, IPs, CIDRs, emails, open ports.
+                Note: Positional arguments always mean target, never seeds.
+            seeds (list, optional): Explicitly define seeds (initial events for passive modules).
+                If not specified, seeds will be backfilled from target when target is defined.
             blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
             modules (list[str], optional): List of scan modules to enable for the scan. Defaults to empty list.
             output_modules (list[str], optional): List of output modules to use. Defaults to csv, human, and json.
@@ -260,12 +263,17 @@ class Preset(metaclass=BasePreset):
         self._module_dirs = set()
         self.module_dirs = module_dirs
 
-        # target / whitelist / blacklist
+        # target / seeds / blacklist
         # these are temporary receptacles until they all get .baked() together
-        self._seeds = set(targets if targets else [])
-        self._whitelist = set(whitelist) if whitelist else whitelist
+        self._target_list = set(target or [])
         self._blacklist = set(blacklist if blacklist else [])
+        # seeds are special. Instead of initializing them as an empty set, we use "None"
+        # to signify they haven't been explicitly set.
+        # after all the merging is done, if seeds are still untouched by the user
+        # (i.e. they are still None), we'll know it's okay to copy them from the targets.
+        self._seeds = set(seeds) if seeds else None
 
+        # _target doesn't get set until .bake()
         self._target = None
 
         # we don't fill self.modules yet (that happens in .bake())
@@ -288,15 +296,9 @@ class Preset(metaclass=BasePreset):
 
     @property
     def seeds(self):
-        if self._seeds is None:
+        if self._target is None:
             raise ValueError("Cannot access target before preset is baked (use ._seeds instead)")
         return self.target.seeds
-
-    @property
-    def whitelist(self):
-        if self._target is None:
-            raise ValueError("Cannot access whitelist before preset is baked (use ._whitelist instead)")
-        return self.target.whitelist
 
     @property
     def blacklist(self):
@@ -364,13 +366,12 @@ class Preset(metaclass=BasePreset):
         self.flags.update(other.flags)
 
         # target / scope
-        self._seeds.update(other._seeds)
-        # leave whitelist as None until we encounter one
-        if other._whitelist is not None:
-            if self._whitelist is None:
-                self._whitelist = set(other._whitelist)
+        self._target_list.update(other._target_list)
+        if other._seeds is not None:
+            if self._seeds is None:
+                self._seeds = set(other._seeds)
             else:
-                self._whitelist.update(other._whitelist)
+                self._seeds.update(other._seeds)
         self._blacklist.update(other._blacklist)
 
         # module dirs
@@ -401,6 +402,8 @@ class Preset(metaclass=BasePreset):
     def bake(self, scan=None):
         """
         Return a "baked" copy of this preset, ready for use by a BBOT scan.
+
+        Presets can be merged and modified before baking, but once baked, they are immutable.
 
         Baking a preset finalizes it by populating `preset.modules` based on flags,
         performing final validations, and substituting environment variables in preloaded modules.
@@ -483,10 +486,10 @@ class Preset(metaclass=BasePreset):
         from bbot.scanner.target import BBOTTarget
 
         baked_preset._target = BBOTTarget(
-            *list(self._seeds),
-            whitelist=self._whitelist,
+            seeds=list(self._seeds) if self._seeds else None,
+            target=list(self._target_list),
             blacklist=self._blacklist,
-            strict_scope=self.strict_scope,
+            strict_dns_scope=self.strict_scope,
         )
 
         if scan is not None:
@@ -635,8 +638,8 @@ class Preset(metaclass=BasePreset):
     def blacklisted(self, host):
         return self.target.blacklisted(host)
 
-    def whitelisted(self, host):
-        return self.target.whitelisted(host)
+    def in_target(self, host):
+        return self.target.in_target(host)
 
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
@@ -655,9 +658,14 @@ class Preset(metaclass=BasePreset):
         Examples:
             >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
+        # Handle seeds and targets from dict
+        # for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.
+        target_vals = (preset_dict.get("target") or []) + (preset_dict.get("targets") or [])
+        targets = list(dict.fromkeys(target_vals))
+        seeds = preset_dict.get("seeds")
         new_preset = cls(
-            *preset_dict.get("target", []),
-            whitelist=preset_dict.get("whitelist"),
+            *targets,
+            seeds=seeds,
             blacklist=preset_dict.get("blacklist"),
             modules=preset_dict.get("modules"),
             output_modules=preset_dict.get("output_modules"),
@@ -757,7 +765,7 @@ class Preset(metaclass=BasePreset):
         Convert this preset into a Python dictionary.
 
         Args:
-            include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary
+            include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary
             full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.
 
         Returns:
@@ -786,15 +794,15 @@ class Preset(metaclass=BasePreset):
 
         # scope
         if include_target:
-            target = sorted(self.target.seeds.inputs)
-            whitelist = []
-            if self.target.whitelist is not None:
-                whitelist = sorted(self.target.whitelist.inputs)
+            target = sorted(self.target.target.inputs)
+            seeds = []
+            if self.target.seeds is not None:
+                seeds = sorted(self.target.seeds.inputs)
             blacklist = sorted(self.target.blacklist.inputs)
             if target:
                 preset_dict["target"] = target
-            if whitelist and whitelist != target:
-                preset_dict["whitelist"] = whitelist
+            if seeds and seeds != target:
+                preset_dict["seeds"] = seeds
             if blacklist:
                 preset_dict["blacklist"] = blacklist
 
@@ -824,7 +832,7 @@ class Preset(metaclass=BasePreset):
         if self.scan_name:
             preset_dict["scan_name"] = self.scan_name
         if self.scan_name and self.output_dir is not None:
-            preset_dict["output_dir"] = self.output_dir
+            preset_dict["output_dir"] = str(self.output_dir)
 
         # conditions
         if self.conditions:
@@ -837,7 +845,7 @@ class Preset(metaclass=BasePreset):
         Return the preset in the form of a YAML string.
 
         Args:
-            include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary
+            include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary
             full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.
             sort_keys (bool, optional): If True, sort YAML keys alphabetically
 

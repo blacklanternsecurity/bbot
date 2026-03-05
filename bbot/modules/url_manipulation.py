@@ -77,9 +77,16 @@ class url_manipulation(BaseModule):
                         if str(subject_response.status_code).startswith("2"):
                             if "body" in reasons:
                                 reported_signature = f"Modified URL: {sig[1]}"
-                                description = f"Url Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
+                                description = f"URL Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
                                 await self.emit_event(
-                                    {"description": description, "host": str(event.host), "url": event.data},
+                                    {
+                                        "description": description,
+                                        "host": str(event.host),
+                                        "url": event.data,
+                                        "name": "URL Manipulation",
+                                        "severity": "INFORMATIONAL",
+                                        "confidence": "LOW",
+                                    },
                                     "FINDING",
                                     parent=event,
                                     context=f"{{module}} probed {event.data} and identified {{event.type}}: {description}",

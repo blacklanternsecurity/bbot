@@ -26,7 +26,6 @@ class asset_inventory(CSV):
         "DNS_NAME",
         "URL",
         "FINDING",
-        "VULNERABILITY",
         "TECHNOLOGY",
         "IP_ADDRESS",
         "WAF",
@@ -316,12 +315,9 @@ class Asset:
         if event.type == "FINDING":
             location = event.data.get("url", event.data.get("host", ""))
             if location:
-                self.findings.add(f"{location}:{event.data['description']}")
-
-        if event.type == "VULNERABILITY":
-            location = event.data.get("url", event.data.get("host", ""))
-            if location:
-                self.findings.add(f"{location}:{event.data['description']}:{event.data['severity']}")
+                self.findings.add(
+                    f"{location}:{event.data['description']}:Severity: {event.data['severity']} Confidence: {event.data['confidence']}"
+                )
                 severity_int = severity_map.get(event.data.get("severity", "N/A"), 0)
                 if severity_int > self.risk_rating:
                     self.risk_rating = severity_int

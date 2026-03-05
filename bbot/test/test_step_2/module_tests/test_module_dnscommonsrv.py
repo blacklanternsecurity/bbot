@@ -2,8 +2,8 @@ from .base import ModuleTestBase
 
 
 class TestDNSCommonSRV(ModuleTestBase):
-    targets = ["media.www.test.api.blacklanternsecurity.com"]
-    whitelist = ["blacklanternsecurity.com"]
+    seeds = ["media.www.test.api.blacklanternsecurity.com"]
+    targets = ["blacklanternsecurity.com"]
     modules_overrides = ["dnscommonsrv", "speculate"]
     config_overrides = {"dns": {"minimal": False}}
 

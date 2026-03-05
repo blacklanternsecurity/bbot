@@ -38,7 +38,7 @@ zzzz 600 IN AAAA dead::beef
     def check(self, module_test, events):
         assert any(e.data == "zzzz.bad.dns" for e in events), "Zone transfer failed (1)"
         assert any(e.data == "asdf.bad.dns" for e in events), "Zone transfer failed (2)"
-        assert any(e.type == "VULNERABILITY" for e in events), "Failed to emit VULNERABILITY"
+        assert any(e.type == "FINDING" for e in events), "Failed to emit FINDING"
         assert any("baddns-zonetransfer" in e.tags for e in events), "Failed to add baddns tag"
 
 
@@ -58,5 +58,5 @@ class TestBaddns_zone_nsec(BaseTestBaddns_zone):
     def check(self, module_test, events):
         assert any(e.data == "zzzz.bad.dns" for e in events), "NSEC Walk Failed (1)"
         assert any(e.data == "xyz.bad.dns" for e in events), "NSEC Walk Failed (2)"
-        assert any(e.type == "VULNERABILITY" for e in events), "Failed to emit VULNERABILITY"
+        assert any(e.type == "FINDING" for e in events), "Failed to emit FINDING"
         assert any("baddns-nsec" in e.tags for e in events), "Failed to add baddns tag"

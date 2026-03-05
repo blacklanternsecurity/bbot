@@ -6,12 +6,12 @@ from bbot.errors import InteractshError
 
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["active", "aggressive", "web-thorough", "deadly"]
 
     options = {
         "force_common_headers": False,
-        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
+        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi", "ssrf"],
         "disable_post": False,
         "try_post_as_get": False,
         "try_get_as_post": False,
@@ -80,15 +80,24 @@ class lightfuzz(BaseModule):
                 details = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
                 if not details["event"]:
                     return
-                # currently, this is only used by the cmdi submodule. Later, when other modules use it, we will need to store description data in the interactsh_subdomain_tags dictionary
+                protocol = r.get("protocol", "dns").lower()
+                severity = details.get("severity", "HIGH")
+                confidence = details.get("confidence", "CONFIRMED")
+                # Allow submodules to specify alternative severity/confidence for DNS-only interactions
+                if protocol == "dns":
+                    severity = details.get("severity_dns", severity)
+                    confidence = details.get("confidence_dns", confidence)
+                description = f"{details['description']} Interaction Protocol: [{protocol}]"
                 await self.emit_event(
                     {
-                        "severity": "CRITICAL",
+                        "severity": severity,
+                        "confidence": confidence,
                         "host": str(details["event"].host),
                         "url": details["event"].data["url"],
-                        "description": f"OS Command Injection (OOB Interaction) Type: [{details['type']}] Parameter Name: [{details['name']}] Probe: [{details['probe']}]",
+                        "name": f"Lightfuzz - {details['name']}",
+                        "description": description,
                     },
-                    "VULNERABILITY",
+                    "FINDING",
                     details["event"],
                 )
             else:
@@ -112,7 +121,12 @@ class lightfuzz(BaseModule):
         await submodule_instance.fuzz()
         if len(submodule_instance.results) > 0:
             for r in submodule_instance.results:
-                event_data = {"host": str(event.host), "url": event.data["url"], "description": r["description"]}
+                event_data = {
+                    "host": str(event.host),
+                    "url": event.data["url"],
+                    "name": r["name"],
+                    "description": r["description"],
+                }
 
                 envelopes = getattr(event, "envelopes", None)
                 envelope_summary = getattr(envelopes, "summary", None)
@@ -120,11 +134,12 @@ class lightfuzz(BaseModule):
                     # Append the envelope summary to the description
                     event_data["description"] += f" Envelopes: [{envelope_summary}]"
 
-                if r["type"] == "VULNERABILITY":
-                    event_data["severity"] = r["severity"]
+                event_data["severity"] = r["severity"]
+                event_data["confidence"] = r["confidence"]
+                event_data["name"] = f"Lightfuzz - {r['name']}"
                 await self.emit_event(
                     event_data,
-                    r["type"],
+                    "FINDING",
                     event,
                 )
 
@@ -189,9 +204,15 @@ class lightfuzz(BaseModule):
 
     async def finish(self):
         if self.interactsh_instance:
+            self.debug("finish(): sleeping 5s before final interactsh poll")
             await self.helpers.sleep(5)
             try:
-                for r in await self.interactsh_instance.poll():
+                results = await self.interactsh_instance.poll()
+                self.debug(f"finish(): interactsh poll returned {len(results)} interaction(s)")
+                for r in results:
+                    protocol = r.get("protocol", "unknown")
+                    full_id = r.get("full-id", "unknown")
+                    self.debug(f"finish(): interactsh interaction: protocol={protocol}, full-id={full_id}")
                     await self.interactsh_callback(r)
             except InteractshError as e:
                 self.debug(f"Error in interact.sh: {e}")

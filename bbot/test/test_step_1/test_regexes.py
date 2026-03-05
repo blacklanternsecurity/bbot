@@ -351,7 +351,7 @@ def test_url_regexes():
 
 @pytest.mark.asyncio
 async def test_regex_helper():
-    from bbot import Scanner
+    from bbot.scanner import Scanner
 
     scan = Scanner("evilcorp.com", "evilcorp.org", "evilcorp.net", "evilcorp.co.uk")
 

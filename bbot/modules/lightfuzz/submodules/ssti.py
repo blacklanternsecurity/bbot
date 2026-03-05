@@ -32,7 +32,9 @@ class ssti(BaseLightfuzz):
             if r and ("1787569" in r.text or "1,787,569" in r.text):
                 self.results.append(
                     {
-                        "type": "FINDING",
+                        "name": "Possible Server-side Template Injection",
+                        "severity": "HIGH",
+                        "confidence": "HIGH",
                         "description": f"POSSIBLE Server-side Template Injection. {self.metadata()} Detection Method: [Integer Multiplication] Payload: [{probe_value}]",
                     }
                 )

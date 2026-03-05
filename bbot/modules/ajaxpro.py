@@ -10,7 +10,7 @@ class ajaxpro(BaseModule):
 
     ajaxpro_regex = re.compile(r'<script.+src="([\/a-zA-Z0-9\._]+,[a-zA-Z0-9\._]+\.ashx)"')
     watched_events = ["HTTP_RESPONSE", "URL"]
-    produced_events = ["VULNERABILITY", "FINDING"]
+    produced_events = ["FINDING", "TECHNOLOGY"]
     flags = ["active", "safe", "web-thorough"]
     meta = {
         "description": "Check for potentially vulnerable Ajaxpro instances",
@@ -40,7 +40,7 @@ class ajaxpro(BaseModule):
         if resp_body:
             match = await self.helpers.re.search(self.ajaxpro_regex, resp_body)
             if match:
-                ajaxpro_path = match.group(0)
+                ajaxpro_path = match.group(1)
                 await self.emit_technology(event, ajaxpro_path)
                 await self.confirm_exploitability(ajaxpro_path, event)
 
@@ -71,15 +71,21 @@ class ajaxpro(BaseModule):
 
         probe_response = await self.helpers.request(full_url, method="POST", headers=headers, json=payload)
         if probe_response:
-            if "AjaxPro.Services.ICartService" and "MissingMethodException" in probe_response.text:
+            if (
+                "AjaxPro.Services.ICartService" in probe_response.text
+                and "MissingMethodException" in probe_response.text
+            ):
                 await self.emit_event(
                     {
                         "host": str(event.host),
+                        "name": "Ajaxpro Deserialization RCE (CVE-2021-23758)",
+                        "cves": ["CVE-2021-23758"],
                         "severity": "CRITICAL",
+                        "confidence": "HIGH",
                         "url": event.data if event.type == "URL" else event.data["url"],
                         "description": f"Ajaxpro Deserialization RCE (CVE-2021-23758) Trigger: [{full_url}]",
                     },
-                    "VULNERABILITY",
+                    "FINDING",
                     event,
                     context=f"{self.meta['description']} discovered Ajaxpro instance ({event.type}) at {detection_url}",
                 )

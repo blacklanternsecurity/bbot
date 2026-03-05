@@ -15,7 +15,13 @@ class Stdout(BaseOutputModule):
         "in_scope_only": "Whether to only show in-scope events",
         "accept_dupes": "Whether to show duplicate events, default True",
     }
-    vuln_severity_map = {"LOW": "HUGEWARNING", "MEDIUM": "HUGEWARNING", "HIGH": "CRITICAL", "CRITICAL": "CRITICAL"}
+    vuln_severity_map = {
+        "INFORMATIONAL": "HUGEINFO",
+        "LOW": "HUGEWARNING",
+        "MEDIUM": "HUGEWARNING",
+        "HIGH": "CRITICAL",
+        "CRITICAL": "CRITICAL",
+    }
     format_choices = ["text", "json"]
 
     async def setup(self):
@@ -54,14 +60,14 @@ class Stdout(BaseOutputModule):
         else:
             event_str = self.human_event_str(event)
 
-        # log vulnerabilities in vivid colors
-        if event.type == "VULNERABILITY":
-            severity = event.data.get("severity", "INFO")
+        # log findings in vivid colors based on severity
+        if event.type == "FINDING":
+            severity = event.data.get("severity", "INFORMATIONAL")
             if severity in self.vuln_severity_map:
                 loglevel = self.vuln_severity_map[severity]
                 log_to_stderr(event_str, level=loglevel, logname=False)
-        elif event.type == "FINDING":
-            log_to_stderr(event_str, level="HUGEINFO", logname=False)
+            else:
+                log_to_stderr(event_str, level="HUGEINFO", logname=False)
 
         print(event_str)
 

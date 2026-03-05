@@ -102,24 +102,23 @@ config:
 bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
 ```
 
-By default, only `VULNERABILITY` and `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
+By default, only `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
 
 ```yaml title="discord_preset.yml"
 config:
   modules:
     discord:
       event_types:
-        - VULNERABILITY
         - FINDING
         - STORAGE_BUCKET
 ```
 
 ...or on the command line:
 ```bash
-bbot -t evilcorp.com -om discord -c modules.discord.event_types=["STORAGE_BUCKET","FINDING","VULNERABILITY"]
+bbot -t evilcorp.com -om discord -c modules.discord.event_types=["STORAGE_BUCKET","FINDING"]
 ```
 
-You can also filter on the severity of `VULNERABILITY` events by setting `min_severity`:
+You can also filter on the severity of `FINDING` events by setting `min_severity`:
 
 
 ```yaml title="discord_preset.yml"
@@ -155,15 +154,20 @@ config:
 
 ### Elasticsearch
 
-When outputting to Elastic, use the `http` output module with the following settings (replace `<your_index>` with your desired index, e.g. `bbot`):
+- Step 1: Spin up a quick Elasticsearch docker image
+
+```bash
+docker run -d -p 9200:9200 --name=bbot-elastic --v "$(pwd)/elastic_data:/usr/share/elasticsearch/data" -e ELASTIC_PASSWORD=bbotislife -m 1GB docker.elastic.co/elasticsearch/elasticsearch:8.16.0
+```
+
+- Step 2: Execute a scan with `elastic` output module
 
 ```bash
 # send scan results directly to elasticsearch
-bbot -t evilcorp.com -om http -c \
-  modules.http.url=http://localhost:8000/<your_index>/_doc \
-  modules.http.siem_friendly=true \
-  modules.http.username=elastic \
-  modules.http.password=changeme
+# note: you can replace "bbot" with your own index name
+bbot -t evilcorp.com -om elastic -c \
+  modules.elastic.url=https://localhost:9200/bbot/_doc \
+  modules.elastic.password=bbotislife
 ```
 
 Alternatively, via a preset:
@@ -171,11 +175,9 @@ Alternatively, via a preset:
 ```yaml title="elastic_preset.yml"
 config:
   modules:
-    http:
-      url: http://localhost:8000/<your_index>/_doc
-      siem_friendly: true
-      username: elastic
-      password: changeme
+    elastic:
+      url: http://localhost:9200/bbot/_doc
+      password: bbotislife
 ```
 
 ### Splunk

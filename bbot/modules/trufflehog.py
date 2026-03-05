@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 
 class trufflehog(BaseModule):
     watched_events = ["CODE_REPOSITORY", "FILESYSTEM", "HTTP_RESPONSE", "RAW_TEXT"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["passive", "safe", "code-enum"]
     meta = {
         "description": "TruffleHog is a tool for finding credentials",
@@ -123,14 +123,16 @@ class trufflehog(BaseModule):
             source_metadata,
         ) in self.execute_trufflehog(module, path):
             verified_str = "Verified" if verified else "Possible"
-            finding_type = "VULNERABILITY" if verified else "FINDING"
+            confidence = "CONFIRMED" if verified else "MODERATE"
             data = {
+                "name": f"TruffleHog - {detector_name}",
                 "description": f"{verified_str} Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",
             }
             if host:
                 data["host"] = host
-            if finding_type == "VULNERABILITY":
-                data["severity"] = "High"
+
+            data["severity"] = "HIGH"
+            data["confidence"] = confidence
             if description:
                 data["description"] += f" Description: [{description}]"
             data["description"] += f" Raw result: [{raw_result}]"
@@ -138,7 +140,7 @@ class trufflehog(BaseModule):
                 data["description"] += f" RawV2 result: [{rawv2_result}]"
             await self.emit_event(
                 data,
-                finding_type,
+                "FINDING",
                 event,
                 context=f'{{module}} searched {event.type} using "{module}" method and found {verified_str.lower()} secret ({{event.type}}): {raw_result}',
             )
