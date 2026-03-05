@@ -361,7 +361,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             return True
 
         for bl_param_prefix in self.parameter_blacklist_prefixes:
-            if lower_value.startswith(bl_param_prefix.lower()):
+            if lower_value.startswith(bl_param_prefix):
                 return True
 
         return False
@@ -402,6 +402,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             name = "GET jquery"
             discovery_regex = r"/\$.get\([^\)].+\)/ nocase"
             extraction_regex = re.compile(r"\$.get\([\'\"](.+)[\'\"].+(\{.+\})\)")
+            _json_key_regex = re.compile(r"(\w+):")
             output_type = "GETPARAM"
 
             async def extract(self):
@@ -423,7 +424,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             async def convert_to_dict(self, extracted_str):
                 extracted_str = extracted_str.replace("'", '"')
                 extracted_str = await self.excavate.helpers.re.sub(
-                    re.compile(r"(\w+):"), r'"\1":', extracted_str
+                    self._json_key_regex, r'"\1":', extracted_str
                 )  # Quote keys
 
                 try:
@@ -1045,7 +1046,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         self.add_yara_rule(rule_name, rule_content, excavateRule)
 
         self.parameter_blacklist = set(p.lower() for p in self.scan.config.get("parameter_blacklist", []))
-        self.parameter_blacklist_prefixes = set(self.scan.config.get("parameter_blacklist_prefixes", []))
+        self.parameter_blacklist_prefixes = set(
+            p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
+        )
 
         self.custom_yara_rules = str(self.config.get("custom_yara_rules", ""))
         if self.custom_yara_rules:
