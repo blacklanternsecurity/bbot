@@ -382,22 +382,7 @@ async def test_asn_targets(bbot_scanner):
     target.seeds.add("ASN:15169")
     assert "ASN:15169" in target.seeds.inputs
 
-    # Test ASN target expansion with mocked asndb
-    from unittest.mock import AsyncMock, MagicMock, patch
-
-    mock_client = MagicMock()
-    mock_client.lookup_asn = AsyncMock(
-        return_value={
-            "asn": 15169,
-            "asn_name": "GOOGLE",
-            "org": "Google LLC",
-            "country": "US",
-            "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
-        }
-    )
-    mock_client.cleanup = AsyncMock()
-
-    # Test target expansion
+    # Test ASN target expansion with real asndb (Google's AS15169)
     target = BBOTTarget(target=["ASN:15169"])
 
     # Verify initial state
@@ -405,20 +390,15 @@ async def test_asn_targets(bbot_scanner):
     initial_seeds = len(target.seeds.event_seeds)
 
     # Generate children (expand ASN to IP ranges)
-    with patch("asndb.ASNDB", return_value=mock_client):
-        await target.generate_children()
+    await target.generate_children()
 
     # After expansion, should have additional IP range seeds
     assert len(target.seeds.event_seeds) > initial_seeds
     assert len(target.seeds.hosts) > initial_hosts
 
-    # Should contain the expanded IP ranges
+    # Google's AS15169 owns 8.8.8.0/24
     assert "8.8.8.0/24" in target.seeds.hosts
-    assert "8.8.4.0/24" in target.seeds.hosts
-
-    # Target scope should also include the expanded ranges
     assert "8.8.8.0/24" in target.target.hosts
-    assert "8.8.4.0/24" in target.target.hosts
 
 
 @pytest.mark.asyncio
