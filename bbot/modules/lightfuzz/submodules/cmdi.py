@@ -89,9 +89,10 @@ class cmdi(BaseLightfuzz):
                 subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
                 self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
                     "event": self.event,
-                    "type": self.event.data["type"],
-                    "name": self.event.data["name"],
-                    "probe": p,
+                    "name": "OS Command Injection",
+                    "description": f"OS Command Injection (OOB Interaction) Type: [{self.event.data['type']}] Parameter Name: [{self.event.data['name']}] Probe: [{p}]",
+                    "severity": "CRITICAL",
+                    "confidence": "CONFIRMED",
                 }
                 # payload is an nslookup command that includes the interactsh domain prepended the previously generated subdomain tag
                 interactsh_probe = f"{p} nslookup {subdomain_tag}.{self.lightfuzz.interactsh_domain} {p}"
