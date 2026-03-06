@@ -288,11 +288,11 @@ async def test_target_basic(bbot_scanner):
     assert bbottarget.seeds.hosts == {"1.2.3.0/24", "www.evilcorp.net", "fdsa.evilcorp.net"}
     assert set(bbottarget.target.hosts) == {"evilcorp.com", "evilcorp.net"}
     assert bbottarget.blacklist.hosts == {"1.2.3.4/32", "4.3.2.0/24", "asdf.evilcorp.net"}
-    assert bbottarget.hash == b'\xf8\x9bB\x99\x8c\xaa\xd6\xac_\xca3\x84\xbf\xd2\x06\x9f\xf3\x9d\xa1\xc7'
-    assert bbottarget.scope_hash == b'\xd4\x9ekZd\x9dT\x12fLl\xe6\x1a5\x82\xba\xa0\x01\x1f\xb7'
+    assert bbottarget.hash == b"\xf8\x9bB\x99\x8c\xaa\xd6\xac_\xca3\x84\xbf\xd2\x06\x9f\xf3\x9d\xa1\xc7"
+    assert bbottarget.scope_hash == b"\xd4\x9ekZd\x9dT\x12fLl\xe6\x1a5\x82\xba\xa0\x01\x1f\xb7"
     assert bbottarget.seeds.hash == b"V\n\xf5\x1d\x1f=i\xbc\\\x15o\xc2p\xb2\x84\x97\xfeR\xde\xc1"
     assert bbottarget.target.hash == b"\x8e\xd0\xa76\x8em4c\x0e\x1c\xfdA\x9d*sv}\xeb\xc4\xc4"
-    assert bbottarget.blacklist.hash == b'\xf6@\xf3\xb2\xd3s\x15\xad=+\xab\x8fY`Gk\xf4\x00\x89\xcb'
+    assert bbottarget.blacklist.hash == b"\xf6@\xf3\xb2\xd3s\x15\xad=+\xab\x8fY`Gk\xf4\x00\x89\xcb"
 
     scan = bbot_scanner(
         "evilcorp.net",
