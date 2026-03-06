@@ -11,7 +11,7 @@ class lightfuzz(BaseModule):
 
     options = {
         "force_common_headers": False,
-        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
+        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi", "ssrf"],
         "disable_post": False,
         "try_post_as_get": False,
         "try_get_as_post": False,
@@ -80,15 +80,22 @@ class lightfuzz(BaseModule):
                 details = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
                 if not details["event"]:
                     return
-                # currently, this is only used by the cmdi submodule. Later, when other modules use it, we will need to store description data in the interactsh_subdomain_tags dictionary
+                protocol = r.get("protocol", "dns").lower()
+                severity = details.get("severity", "HIGH")
+                confidence = details.get("confidence", "CONFIRMED")
+                # Allow submodules to specify alternative severity/confidence for DNS-only interactions
+                if protocol == "dns":
+                    severity = details.get("severity_dns", severity)
+                    confidence = details.get("confidence_dns", confidence)
+                description = f"{details['description']} Interaction Protocol: [{protocol}]"
                 await self.emit_event(
                     {
-                        "severity": "CRITICAL",
-                        "confidence": "CONFIRMED",
+                        "severity": severity,
+                        "confidence": confidence,
                         "host": str(details["event"].host),
                         "url": details["event"].data["url"],
-                        "name": "Lightfuzz - OS Command Injection",
-                        "description": f"OS Command Injection (OOB Interaction) Type: [{details['type']}] Parameter Name: [{details['name']}] Probe: [{details['probe']}]",
+                        "name": f"Lightfuzz - {details['name']}",
+                        "description": description,
                     },
                     "FINDING",
                     details["event"],
@@ -197,9 +204,15 @@ class lightfuzz(BaseModule):
 
     async def finish(self):
         if self.interactsh_instance:
+            self.debug("finish(): sleeping 5s before final interactsh poll")
             await self.helpers.sleep(5)
             try:
-                for r in await self.interactsh_instance.poll():
+                results = await self.interactsh_instance.poll()
+                self.debug(f"finish(): interactsh poll returned {len(results)} interaction(s)")
+                for r in results:
+                    protocol = r.get("protocol", "unknown")
+                    full_id = r.get("full-id", "unknown")
+                    self.debug(f"finish(): interactsh interaction: protocol={protocol}, full-id={full_id}")
                     await self.interactsh_callback(r)
             except InteractshError as e:
                 self.debug(f"Error in interact.sh: {e}")

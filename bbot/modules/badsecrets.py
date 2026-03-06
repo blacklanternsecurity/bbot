@@ -82,6 +82,10 @@ class badsecrets(BaseModule):
                             context=f'{{module}}\'s "{r["detecting_module"]}" module found known {r["description"]["product"]} secret ({{event.type}}): "{r["secret"]}"',
                         )
                     elif r["type"] == "IdentifyOnly":
+                        # Excavate's JWTExtractor submodule already emits findings for JWT existence.
+                        # Only vulnerable (SecretFound) JWT results are worth emitting from badsecrets.
+                        if r["detecting_module"] == "Generic_JWT":
+                            continue
                         # There is little value to presenting a non-vulnerable asp.net viewstate, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
                         if r["detecting_module"] == "ASPNET_Viewstate":
                             technology = "microsoft asp.net"

@@ -236,7 +236,9 @@ class Scanner:
         self.httpx_timeout = web_config.get("httpx_timeout", 5)
         self.http_retries = web_config.get("http_retries", 1)
         self.httpx_retries = web_config.get("httpx_retries", 1)
-        self.useragent = web_config.get("user_agent", "BBOT")
+        self.useragent = (
+            f"{web_config.get('user_agent', 'BBOT')} {web_config.get('user_agent_suffix') or ''}".strip()
+        )
         # custom HTTP headers warning
         self.custom_http_headers = web_config.get("http_headers", {})
         if self.custom_http_headers:
@@ -270,6 +272,7 @@ class Scanner:
 
         self.init_events_task = None
         self.ticker_task = None
+        self._stop_task = None
         self.dispatcher_tasks = []
 
         self._stopping = False
@@ -463,10 +466,12 @@ class Scanner:
             yield scan_finish_event
             tasks = self._cancel_tasks()
             self.debug(f"Awaiting {len(tasks):,} tasks")
-            for task in tasks:
-                # self.debug(f"Awaiting {task}")
+            if tasks:
                 with contextlib.suppress(BaseException):
-                    await asyncio.wait_for(task, timeout=0.1)
+                    await asyncio.wait_for(
+                        asyncio.gather(*tasks, return_exceptions=True),
+                        timeout=2,
+                    )
             self.debug(f"Awaited {len(tasks):,} tasks")
             await self._report()
             await self._cleanup()
@@ -819,7 +824,7 @@ class Scanner:
             await self._set_status(SCAN_STATUS_ABORTED)
 
     def stop(self):
-        asyncio.create_task(self.async_stop())
+        self._stop_task = asyncio.create_task(self.async_stop())
 
     async def finish(self):
         """Finalizes the scan by invoking the `finished()` method on all active modules if new activity is detected.
@@ -890,6 +895,9 @@ class Scanner:
         # ticker
         if self.ticker_task:
             tasks.append(self.ticker_task)
+        # stop task
+        if self._stop_task:
+            tasks.append(self._stop_task)
 
         self.helpers.cancel_tasks_sync(tasks)
         # process pool
