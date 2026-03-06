@@ -1,5 +1,3 @@
-from ipaddress import ip_network
-
 from ..bbot_fixtures import *
 
 
@@ -38,7 +36,7 @@ async def test_scan(
     # Positional arguments become the target
     assert set(j["target"]["target"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
     # Seeds are backfilled from target when not explicitly set
-    assert scan0.target.target.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
+    assert scan0.target.target.hosts == {"1.1.1.0/31", "evilcorp.com"}
     assert set(j["target"]["blacklist"]) == {"1.1.1.0/28", "www.evilcorp.com"}
     assert "ipneighbor" in j["preset"]["modules"]
 
