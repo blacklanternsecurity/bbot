@@ -44,7 +44,7 @@ class host_header(BaseModule):
                 matched_event = match[0]
                 matched_technique = match[1]
                 protocol = r.get("protocol").upper()
-                confidence = "HIGH" if protocol == "HTTP" else "MODERATE"
+                confidence = "HIGH" if protocol == "HTTP" else "MEDIUM"
                 await self.emit_event(
                     {
                         "host": str(matched_event.host),
@@ -146,7 +146,7 @@ class host_header(BaseModule):
                     "url": url,
                     "description": description,
                     "name": "Duplicate Host Header Tolerated",
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "LOW",
                 },
                 "FINDING",
@@ -191,7 +191,7 @@ class host_header(BaseModule):
                     "url": url,
                     "description": description,
                     "name": "Possible Host Header Injection",
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "LOW",
                 },
                 "FINDING",

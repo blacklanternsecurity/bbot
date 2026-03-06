@@ -56,7 +56,7 @@ class newsletters(BaseModule):
                         "description": description,
                         "url": _event.data["url"],
                         "name": "Newsletter Submission Form",
-                        "severity": "INFORMATIONAL",
+                        "severity": "INFO",
                         "confidence": "LOW",
                     }
                     await self.emit_event(

@@ -7,9 +7,7 @@ class TestTeams(DiscordBase):
     modules_overrides = ["teams", "excavate", "badsecrets", "httpx"]
 
     webhook_url = "https://evilcorp.webhook.office.com/webhookb2/deadbeef@deadbeef/IncomingWebhook/deadbeef/deadbeef"
-    config_overrides = {
-        "modules": {"teams": {"webhook_url": webhook_url, "retries": 5, "min_severity": "INFORMATIONAL"}}
-    }
+    config_overrides = {"modules": {"teams": {"webhook_url": webhook_url, "retries": 5, "min_severity": "INFO"}}}
 
     async def setup_after_prep(self, module_test):
         self.custom_setup(module_test)

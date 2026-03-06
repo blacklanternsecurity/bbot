@@ -188,20 +188,11 @@ class BBOTArgs:
                 {"modules": {"excavate": {"custom_yara_rules": self.parsed.custom_yara_rules}}}
             )
 
-        # Check if both user_agent and user_agent_suffix are set. If so combine them and merge into the config
-        if self.parsed.user_agent and self.parsed.user_agent_suffix:
-            modified_user_agent = f"{self.parsed.user_agent} {self.parsed.user_agent_suffix}"
-            args_preset.core.merge_custom({"web": {"user_agent": modified_user_agent}})
-
-        # If only user_agent_suffix is set, retrieve the existing user_agent from the merged config and append the suffix
-        elif self.parsed.user_agent_suffix:
-            existing_user_agent = args_preset.core.config.get("web", {}).get("user_agent", "")
-            modified_user_agent = f"{existing_user_agent} {self.parsed.user_agent_suffix}"
-            args_preset.core.merge_custom({"web": {"user_agent": modified_user_agent}})
-
-        # If only user_agent is set, merge it directly
-        elif self.parsed.user_agent:
+        if self.parsed.user_agent:
             args_preset.core.merge_custom({"web": {"user_agent": self.parsed.user_agent}})
+
+        if self.parsed.user_agent_suffix:
+            args_preset.core.merge_custom({"web": {"user_agent_suffix": self.parsed.user_agent_suffix}})
 
         # CLI config options (dot-syntax)
         for config_arg in self.parsed.config:
@@ -398,7 +389,9 @@ class BBOTArgs:
         misc.add_argument("--custom-yara-rules", "-cy", help="Add custom yara rules to excavate")
 
         misc.add_argument("--user-agent", "-ua", help="Set the user-agent for all HTTP requests")
-        misc.add_argument("--user-agent-suffix", "-uas", help=argparse.SUPPRESS, metavar="SUFFIX", default=None)
+        misc.add_argument(
+            "--user-agent-suffix", "-uas", help="Suffix to append to the user-agent", metavar="SUFFIX", default=None
+        )
         return p
 
     def sanitize_args(self):

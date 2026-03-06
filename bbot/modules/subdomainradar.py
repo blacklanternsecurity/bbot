@@ -64,6 +64,8 @@ class SubdomainRadar(subdomain_enum_apikey):
 
         self.enum_tasks = {}
         self.poll_task = asyncio.create_task(self.task_poll_loop())
+        # Track poll_task so _cancel_tasks() picks it up during shutdown
+        self._tasks.append(self.poll_task)
 
         return True
 
