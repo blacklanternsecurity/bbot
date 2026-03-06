@@ -97,6 +97,13 @@ class wayback(subdomain_enum):
         self._archive_bloom = self.helpers.bloom_filter(32000000)
         return await super().setup()
 
+    def _incoming_dedup_hash(self, event):
+        # URL events are handled differently (parameter/archive cache eviction),
+        # so they should not be deduplicated by the subdomain_enum strategy
+        if event.type == "URL":
+            return hash(event.data), "url_event"
+        return super()._incoming_dedup_hash(event)
+
     async def handle_event(self, event):
         if event.type == "URL":
             await self._handle_url_event(event)
@@ -177,11 +184,14 @@ class wayback(subdomain_enum):
             archive_url = f"{self.base_url}/web/{raw_url}"
             url_metadata[archive_url] = (cleaned_url, raw_url)
 
-        gen = self.helpers.request_batch(
-            list(url_metadata), method="HEAD", timeout=self.http_timeout + 30, follow_redirects=True
-        )
-        async for archive_url, r in gen:
-            cleaned_url, raw_url = url_metadata[archive_url]
+        for archive_url, (cleaned_url, raw_url) in url_metadata.items():
+            try:
+                r = await self.helpers.request(
+                    archive_url, method="HEAD", timeout=self.http_timeout + 30, follow_redirects=True
+                )
+            except Exception as e:
+                self.debug(f"Interesting file HEAD check error for {raw_url}: {e}")
+                continue
 
             if not r or r.status_code != 200:
                 status = getattr(r, "status_code", "no response") if r else "no response"
@@ -211,7 +221,14 @@ class wayback(subdomain_enum):
             self.verbose(f"Interesting archived file confirmed: {raw_url}")
             parsed = urlparse(raw_url)
             await self.emit_event(
-                {"description": desc, "url": str(r.url), "host": str(parsed.hostname or "")},
+                {
+                    "description": desc,
+                    "severity": "LOW",
+                    "name": "Interesting Archived File",
+                    "confidence": "MEDIUM",
+                    "url": str(r.url),
+                    "host": str(parsed.hostname or ""),
+                },
                 "FINDING",
                 event,
                 tags=["from-wayback", "archived", "interesting-file"],
