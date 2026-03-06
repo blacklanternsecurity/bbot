@@ -129,7 +129,7 @@ def validate_host(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]
     raise ValidationError(f'Invalid hostname: "{host}"')
 
 
-FINDING_SEVERITY_LEVELS = ("INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL")
+FINDING_SEVERITY_LEVELS = ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL")
 
 
 @validator
@@ -140,7 +140,7 @@ def validate_severity(severity: str):
     return severity
 
 
-FINDING_CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED")
+FINDING_CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")
 
 
 @validator

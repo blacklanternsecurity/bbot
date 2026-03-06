@@ -1573,13 +1573,13 @@ class FINDING(ClosestHostEvent):
         "HIGH": "🟥",
         "MEDIUM": "🟧",
         "LOW": "🟨",
-        "INFORMATIONAL": "⬜",
+        "INFO": "⬜",
     }
 
     confidence_colors = {
         "CONFIRMED": "🟣",
         "HIGH": "🔴",
-        "MODERATE": "🟠",
+        "MEDIUM": "🟠",
         "LOW": "🟡",
         "UNKNOWN": "⚪",
     }
@@ -1597,6 +1597,7 @@ class FINDING(ClosestHostEvent):
         description: str
         confidence: str
         url: Optional[str] = None
+        full_url: Optional[str] = None
         path: Optional[str] = None
         cves: Optional[list[str]] = None
         _validate_url = field_validator("url")(validators.validate_url)

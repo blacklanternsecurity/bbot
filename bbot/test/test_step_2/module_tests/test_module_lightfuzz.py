@@ -1595,8 +1595,8 @@ class Test_Lightfuzz_ssrf(ModuleTestBase):
                 ):
                     if "Interaction Protocol: [dns]" in e.data["description"]:
                         ssrf_dns_finding_emitted = True
-                        assert e.data["confidence"] == "MODERATE", (
-                            f"DNS SSRF should be MODERATE, got {e.data['confidence']}"
+                        assert e.data["confidence"] == "MEDIUM", (
+                            f"DNS SSRF should be MEDIUM, got {e.data['confidence']}"
                         )
                     elif "Interaction Protocol: [http]" in e.data["description"]:
                         ssrf_http_finding_emitted = True

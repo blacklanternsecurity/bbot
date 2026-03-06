@@ -101,7 +101,7 @@ class badsecrets(BaseModule):
                                 "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'], 2000)}] Detecting Module: [{r['detecting_module']}]",
                                 "url": event.data["url"],
                                 "host": str(event.host),
-                                "severity": "INFORMATIONAL",
+                                "severity": "INFO",
                                 "confidence": "CONFIRMED",
                             }
                             await self.emit_event(

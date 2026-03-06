@@ -61,7 +61,7 @@ class baddns_direct(BaseModule):
                         "description": f"Possible [{r_dict['signature']}] via direct BadDNS analysis. Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                         "host": str(event.host),
                         "severity": "HIGH",
-                        "confidence": "MODERATE",
+                        "confidence": "MEDIUM",
                     }
 
                     await self.emit_event(

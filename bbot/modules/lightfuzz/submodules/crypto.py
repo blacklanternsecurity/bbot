@@ -369,7 +369,7 @@ class crypto(BaseLightfuzz):
                 self.results.append(
                     {
                         "name": "Possible Cryptographic Error",
-                        "severity": "INFORMATIONAL",
+                        "severity": "INFO",
                         "confidence": "LOW",
                         "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(unique_matches)}] Detection Technique(s): [{','.join(matching_techniques)}]",
                         "context": context,
@@ -465,7 +465,7 @@ class crypto(BaseLightfuzz):
             self.results.append(
                 {
                     "name": "Probable Cryptographic Parameter",
-                    "severity": "INFORMATIONAL",
+                    "severity": "INFO",
                     "confidence": "LOW",
                     "description": f"Probable Cryptographic Parameter. {self.metadata()} Detection Technique(s): [{', '.join(confirmed_techniques)}]",
                     "context": context,
@@ -523,7 +523,7 @@ class crypto(BaseLightfuzz):
                             self.results.append(
                                 {
                                     "name": "Possible Length Extension Attack",
-                                    "severity": "INFORMATIONAL",
+                                    "severity": "INFO",
                                     "confidence": "LOW",
                                     "description": f"Possible {self.event.data['type']} parameter with {hash_instance.name.upper()} Hash as value. {self.metadata()}, linked to additional parameter [{additional_param_name}]",
                                     "context": context,

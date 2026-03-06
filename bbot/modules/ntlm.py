@@ -121,7 +121,7 @@ class ntlm(BaseModule):
                         "url": url,
                         "description": f"NTLM AUTH: {ntlm_resp_decoded}",
                         "name": "NTLM Authentication",
-                        "severity": "INFORMATIONAL",
+                        "severity": "INFO",
                         "confidence": "HIGH",
                     },
                     "FINDING",
