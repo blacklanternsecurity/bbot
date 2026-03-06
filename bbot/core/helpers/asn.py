@@ -31,26 +31,26 @@ class ASNHelper:
             self._client = ASNDB()
         return self._client
 
-    def _normalize(self, raw):
+    def _normalize(self, response):
         """Convert asndb response dict to BBOT internal format."""
-        if raw is None or raw.get("asn", 0) == 0:
+        if response is None or response.get("asn", 0) == 0:
             return self.UNKNOWN_ASN
         return {
-            "asn": int(raw.get("asn", 0)),
-            "subnets": raw.get("subnets", []),
-            "name": raw.get("asn_name") or raw.get("name") or "",
-            "description": raw.get("org") or raw.get("description") or "",
-            "country": raw.get("country") or "",
+            "asn": int(response.get("asn", 0)),
+            "subnets": response.get("subnets", []),
+            "name": response.get("asn_name") or response.get("name") or "",
+            "description": response.get("org") or response.get("description") or "",
+            "country": response.get("country") or "",
         }
 
     async def ip_to_subnets(self, ip):
         """Return ASN info for an IP address."""
         try:
-            raw = await self.client.lookup_ip(str(ip))
+            response = await self.client.lookup_ip(str(ip), include_subnets=True)
         except Exception as e:
             log.warning(f"ASN lookup failed for IP {ip}: {e}")
             return self.UNKNOWN_ASN
-        return self._normalize(raw)
+        return self._normalize(response)
 
     async def asn_to_subnets(self, asn):
         """Return ASN info (including subnets) for an ASN number."""
@@ -61,11 +61,11 @@ class ASNHelper:
                 log.warning(f"Invalid ASN format: {asn}")
                 return self.UNKNOWN_ASN
         try:
-            raw = await self.client.lookup_asn(int(asn))
+            response = await self.client.lookup_asn(str(asn), include_subnets=True)
         except Exception as e:
             log.warning(f"ASN lookup failed for AS{asn}: {e}")
             return self.UNKNOWN_ASN
-        return self._normalize(raw)
+        return self._normalize(response)
 
     async def cleanup(self):
         """Clean up the asndb client."""

@@ -126,7 +126,7 @@ class portscan(BaseModule):
             with open(stats_file, "w") as stats_fh:
                 async for line in self.run_process_live(command, sudo=True, stderr=stats_fh):
                     for ip, port in self.parse_json_line(line):
-                        parent_events = correlator.search(ip)
+                        parent_events = correlator.search(str(ip))
                         # masscan gets the occasional junk result. this is harmless and
                         # seems to be a side effect of it having its own TCP stack
                         # see https://github.com/robertdavidgraham/masscan/issues/397
@@ -152,7 +152,7 @@ class portscan(BaseModule):
         """
         correlator = RadixTarget()
         targets = set()
-        for event in sorted(events, key=lambda e: host_size_key(e.host)):
+        for event in sorted(events, key=lambda e: host_size_key(str(e.host))):
             # skip events without host
             if not event.host:
                 continue
@@ -184,16 +184,17 @@ class portscan(BaseModule):
                             await self.emit_open_port(event.host, port, event)
 
                 # build a correlation from the IP back to its original parent event
-                events_set = correlator.search(ip)
+                ip_str = str(ip)
+                events_set = correlator.search(ip_str)
                 if events_set is None:
-                    correlator.insert(ip, {event})
+                    correlator.insert(ip_str, {event})
                 else:
                     events_set.add(event)
 
                 # has this IP already been scanned?
-                if not scanned_tracker.get(ip):
+                if not scanned_tracker.get(ip_str):
                     # if not, add it to targets!
-                    scanned_tracker.add(ip)
+                    scanned_tracker.add(ip_str)
                     targets.add(ip)
                 else:
                     self.debug(f"Skipping {ip} because it's already been scanned")

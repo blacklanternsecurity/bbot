@@ -147,7 +147,7 @@ class Scan(BBOTBaseModel):
 
 class Target(BBOTBaseModel):
     name: str = "Default Target"
-    strict_dns_scope: bool = False
+    strict_scope: bool = False
     target: List = []
     seeds: Optional[List] = None
     blacklist: List = []
