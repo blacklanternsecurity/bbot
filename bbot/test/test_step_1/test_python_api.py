@@ -90,8 +90,28 @@ async def test_python_api_sync(clean_default_config):
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
 
-@pytest.mark.asyncio
-async def test_python_api_validation():
+def test_python_api_sync_no_pending_tasks():
+    """Test that no asyncio tasks remain pending after a sync scan completes.
+
+    Regression test for https://github.com/blacklanternsecurity/bbot/issues/2508
+    When using BBOT as a library (e.g. from Celery), orphaned asyncio tasks
+    would cause "Task was destroyed but it is pending!" warnings on shutdown.
+    """
+    import asyncio
+    from bbot.scanner import Scanner
+    from bbot.core.helpers.async_helpers import get_event_loop
+
+    scan = Scanner("127.0.0.1")
+    events = list(scan.start())
+    assert any(e.type == "IP_ADDRESS" and e.data == "127.0.0.1" for e in events)
+
+    # After the sync generator is exhausted, no tasks should remain pending
+    loop = get_event_loop()
+    pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
+    assert len(pending) == 0, f"Found {len(pending)} pending tasks after scan: {pending}"
+
+
+def test_python_api_validation():
     from bbot.scanner import Scanner, Preset
 
     # invalid target

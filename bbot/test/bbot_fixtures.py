@@ -202,7 +202,7 @@ def events(scan):
         finding = scan.make_event(
             {
                 "host": "evilcorp.com",
-                "severity": "INFORMATIONAL",
+                "severity": "INFO",
                 "confidence": "HIGH",
                 "description": "asdf",
                 "name": "Test Finding",
@@ -216,7 +216,7 @@ def events(scan):
                 "host": "evilcorp.com",
                 "description": "asdf",
                 "name": "Finding",
-                "severity": "INFORMATIONAL",
+                "severity": "INFO",
                 "confidence": "HIGH",
             },
             "FINDING",

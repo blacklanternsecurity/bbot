@@ -152,7 +152,7 @@ class path(BaseLightfuzz):
                     {
                         "name": "Possible Path Traversal",
                         "severity": "HIGH",
-                        "confidence": "MODERATE",
+                        "confidence": "MEDIUM",
                         "description": f"POSSIBLE Path Traversal. {self.metadata()} Detection Method: [Absolute Path: {path}]",
                     }
                 )

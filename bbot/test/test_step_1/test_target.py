@@ -5,7 +5,7 @@ from ..bbot_fixtures import *  # noqa: F401
 async def test_target_basic(bbot_scanner):
     from radixtarget import RadixTarget
     from ipaddress import ip_address, ip_network
-    from bbot.scanner.target import BBOTTarget, ScanSeeds
+    from bbot.scanner.target import BBOTTarget, ScanSeeds, ScanTarget
 
     scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
     scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
@@ -30,14 +30,13 @@ async def test_target_basic(bbot_scanner):
     assert ip_network("1.2.3.4/24", strict=False) in target.seeds
     event = scan1.make_event("https://www.evilcorp.com:80", dummy=True)
     assert event in target.seeds
-    with pytest.raises(ValueError):
-        ["asdf"] in target.seeds
-    with pytest.raises(ValueError):
-        target.seeds.get(["asdf"])
+    assert ["asdf"] not in target.seeds
+    assert target.seeds.get(["asdf"]) is None
 
     assert not scan5.target.seeds
-    assert len(scan1.target.seeds) == 9
-    assert len(scan4.target.seeds) == 8
+    # radixtarget 4.x counts hosts/networks, not individual IPs
+    assert len(scan1.target.seeds) == 3  # api.publicapis.org, 8.8.8.8/30, 2001:4860:4860::8888/126
+    assert len(scan4.target.seeds) == 1  # 8.8.8.8/29
     assert "8.8.8.9" in scan1.target.seeds
     assert "8.8.8.12" not in scan1.target.seeds
     assert "8.8.8.8/31" in scan1.target.seeds
@@ -61,8 +60,8 @@ async def test_target_basic(bbot_scanner):
     assert scan4.target.seeds != scan1.target.seeds
 
     assert not scan5.target.target
-    assert len(scan1.target.target) == 9
-    assert len(scan4.target.target) == 8
+    assert len(scan1.target.target) == 3
+    assert len(scan4.target.target) == 1
     assert "8.8.8.9" in scan1.target.target
     assert "8.8.8.12" not in scan1.target.target
     assert "8.8.8.8/31" in scan1.target.target
@@ -115,7 +114,7 @@ async def test_target_basic(bbot_scanner):
     assert "com" not in target
     assert "evilcorp.com" in target
     assert "www.evilcorp.com" in target
-    strict_target = RadixTarget("evilcorp.com", strict_dns_scope=True)
+    strict_target = RadixTarget("evilcorp.com", strict_scope=True)
     assert "com" not in strict_target
     assert "evilcorp.com" in strict_target
     assert "www.evilcorp.com" not in strict_target
@@ -125,7 +124,7 @@ async def test_target_basic(bbot_scanner):
     assert "com" not in target
     assert "evilcorp.com" in target
     assert "www.evilcorp.com" in target
-    strict_target = RadixTarget(strict_dns_scope=True)
+    strict_target = RadixTarget(strict_scope=True)
     strict_target.add("evilcorp.com")
     assert "com" not in strict_target
     assert "evilcorp.com" in strict_target
@@ -151,9 +150,8 @@ async def test_target_basic(bbot_scanner):
     target2.seeds.add("1.2.3.4/24")
     target2.seeds.add("https://evilcorp.net:8080")
 
-    # make sure it's a sha1 hash
     assert isinstance(target1.hash, bytes)
-    assert len(target1.hash) == 20
+    assert len(target1.hash) == 24
 
     # hashes shouldn't match yet
     assert target1.hash != target2.hash
@@ -169,8 +167,8 @@ async def test_target_basic(bbot_scanner):
     # test default target
     bbottarget = BBOTTarget(target=["http://1.2.3.4:8443", "bob@evilcorp.com"])
 
-    assert bbottarget.seeds.hosts == {ip_network("1.2.3.4"), "evilcorp.com"}
-    assert bbottarget.target.hosts == {ip_network("1.2.3.4"), "evilcorp.com"}
+    assert bbottarget.seeds.hosts == {"1.2.3.4/32", "evilcorp.com"}
+    assert bbottarget.target.hosts == {"1.2.3.4/32", "evilcorp.com"}
     assert {e.data for e in bbottarget.seeds.event_seeds} == {"http://1.2.3.4:8443/", "bob@evilcorp.com"}
     assert {e.data for e in bbottarget.target.event_seeds} == {"http://1.2.3.4:8443/", "bob@evilcorp.com"}
 
@@ -179,14 +177,13 @@ async def test_target_basic(bbot_scanner):
     bbottarget3 = BBOTTarget(seeds=["evilcorp.com"], target=["1.2.3.4/24"], blacklist=["1.2.3.4"])
     bbottarget5 = BBOTTarget(seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"])
     bbottarget6 = BBOTTarget(
-        seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"], strict_dns_scope=True
+        seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"], strict_scope=True
     )
     bbottarget8 = BBOTTarget(seeds=["1.2.3.0/24"], target=["evilcorp.com", "evilcorp.net"], blacklist=["1.2.3.4"])
     bbottarget9 = BBOTTarget(seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"])
 
-    # make sure it's a sha1 hash
     assert isinstance(bbottarget1.hash, bytes)
-    assert len(bbottarget1.hash) == 20
+    assert len(bbottarget1.hash) == 24
 
     assert bbottarget1 == bbottarget2
     assert bbottarget2 == bbottarget1
@@ -210,7 +207,7 @@ async def test_target_basic(bbot_scanner):
     assert bbottarget1 != bbottarget2
     assert bbottarget2 != bbottarget1
 
-    # make sure strict_dns_scope is considered in hash
+    # make sure strict_scope is considered in hash
     assert bbottarget5 != bbottarget6
     assert bbottarget6 != bbottarget5
 
@@ -286,14 +283,14 @@ async def test_target_basic(bbot_scanner):
         "http://1.2.3.4/",
         "bob@asdf.evilcorp.net",
     }
-    assert set(bbottarget.seeds.hosts) == {ip_network("1.2.3.0/24"), "www.evilcorp.net", "fdsa.evilcorp.net"}
+    assert bbottarget.seeds.hosts == {"1.2.3.0/24", "www.evilcorp.net", "fdsa.evilcorp.net"}
     assert set(bbottarget.target.hosts) == {"evilcorp.com", "evilcorp.net"}
-    assert set(bbottarget.blacklist.hosts) == {ip_network("1.2.3.4/32"), ip_network("4.3.2.0/24"), "asdf.evilcorp.net"}
-    assert bbottarget.hash == b"\xb3iU\xa8#\x8aq\x84/\xc5\xf2;\x11\x11\x0c&\xea\x07\xd4Q"
-    assert bbottarget.scope_hash == b"f\xe1\x01c^3\xf5\xd24B\x87P\xa0Glq0p3J"
-    assert bbottarget.seeds.hash == b"V\n\xf5\x1d\x1f=i\xbc\\\x15o\xc2p\xb2\x84\x97\xfeR\xde\xc1"
-    assert bbottarget.target.hash == b"\x8e\xd0\xa76\x8em4c\x0e\x1c\xfdA\x9d*sv}\xeb\xc4\xc4"
-    assert bbottarget.blacklist.hash == b'\xf7\xaf\xa1\xda4"C:\x13\xf42\xc3,\xc3\xa9\x9f\x15\x15n\\'
+    assert bbottarget.blacklist.hosts == {"1.2.3.4/32", "4.3.2.0/24", "asdf.evilcorp.net"}
+    assert bbottarget.hash == b"W\x1ai\x9f\xd6\x13\x87\xdd\x9cNP\xcf\xca4[6F\xc0U\x13\xfbd\xd9\xf3"
+    assert bbottarget.scope_hash == b"\x9cNP\xcf\xca4[6F\xc0U\x13\xfbd\xd9\xf3"
+    assert bbottarget.seeds.hash == b"W\x1ai\x9f\xd6\x13\x87\xdd"
+    assert bbottarget.target.hash == b"\x9cNP\xcf\xca4[6"
+    assert bbottarget.blacklist.hash == b"F\xc0U\x13\xfbd\xd9\xf3"
 
     scan = bbot_scanner(
         "evilcorp.net",
@@ -310,22 +307,22 @@ async def test_target_basic(bbot_scanner):
     assert target_dict["seeds"] == ["1.2.3.0/24", "bob@fdsa.evilcorp.net", "http://www.evilcorp.net/"]
     assert target_dict["target"] == ["bob@www.evilcorp.com", "evilcorp.com", "evilcorp.net"]
     assert target_dict["blacklist"] == ["1.2.3.4", "4.3.2.0/24", "bob@asdf.evilcorp.net", "http://1.2.3.4/"]
-    assert target_dict["strict_dns_scope"] is False
-    assert target_dict["hash"] == "b36955a8238a71842fc5f23b11110c26ea07d451"
-    assert target_dict["seed_hash"] == "560af51d1f3d69bc5c156fc270b28497fe52dec1"
-    assert target_dict["target_hash"] == "8ed0a7368e6d34630e1cfd419d2a73767debc4c4"
-    assert target_dict["blacklist_hash"] == "f7afa1da3422433a13f432c32cc3a99f15156e5c"
-    assert target_dict["scope_hash"] == "66e101635e33f5d234428750a0476c713070334a"
+    assert target_dict["strict_scope"] is False
+    assert target_dict["hash"] == "571a699fd61387dd9c4e50cfca345b3646c05513fb64d9f3"
+    assert target_dict["seed_hash"] == "571a699fd61387dd"
+    assert target_dict["target_hash"] == "9c4e50cfca345b36"
+    assert target_dict["blacklist_hash"] == "46c05513fb64d9f3"
+    assert target_dict["scope_hash"] == "9c4e50cfca345b3646c05513fb64d9f3"
 
     # make sure child subnets/IPs don't get added to target/blacklist
     target = RadixTarget("1.2.3.4/24", "1.2.3.4/28", acl_mode=True)
-    assert set(target) == {ip_network("1.2.3.0/24")}
+    assert set(target) == {"1.2.3.0/24"}
     target = RadixTarget("1.2.3.4/28", "1.2.3.4/24", acl_mode=True)
-    assert set(target) == {ip_network("1.2.3.0/24")}
+    assert set(target) == {"1.2.3.0/24"}
     target = RadixTarget("1.2.3.4/28", "1.2.3.4", acl_mode=True)
-    assert set(target) == {ip_network("1.2.3.0/28")}
+    assert set(target) == {"1.2.3.0/28"}
     target = RadixTarget("1.2.3.4", "1.2.3.4/28", acl_mode=True)
-    assert set(target) == {ip_network("1.2.3.0/28")}
+    assert set(target) == {"1.2.3.0/28"}
 
     # same but for domains
     target = RadixTarget("evilcorp.com", "www.evilcorp.com", acl_mode=True)
@@ -333,9 +330,11 @@ async def test_target_basic(bbot_scanner):
     target = RadixTarget("www.evilcorp.com", "evilcorp.com", acl_mode=True)
     assert set(target) == {"evilcorp.com"}
 
-    # make sure strict_dns_scope doesn't mess us up
-    target = RadixTarget("evilcorp.co.uk", "www.evilcorp.co.uk", acl_mode=True, strict_dns_scope=True)
-    assert set(target.hosts) == {"evilcorp.co.uk", "www.evilcorp.co.uk"}
+    # make sure strict_scope doesn't mess us up
+    # radixtarget 4.x: strict_scope and acl_mode are mutually exclusive,
+    # so ACLTarget skips acl_mode when strict_scope is True
+    target = ScanTarget("evilcorp.co.uk", "www.evilcorp.co.uk", strict_scope=True)
+    assert target.hosts == {"evilcorp.co.uk", "www.evilcorp.co.uk"}
     assert "evilcorp.co.uk" in target
     assert "www.evilcorp.co.uk" in target
     assert "api.evilcorp.co.uk" not in target
@@ -357,7 +356,6 @@ async def test_asn_targets(bbot_scanner):
     """Test ASN target parsing, validation, and functionality."""
     from bbot.core.event.helpers import EventSeed
     from bbot.scanner.target import BBOTTarget
-    from ipaddress import ip_network
 
     # Test ASN target parsing with different formats
     for asn_format in ("ASN:15169", "AS:15169", "AS15169", "asn:15169", "as:15169", "as15169"):
@@ -384,98 +382,61 @@ async def test_asn_targets(bbot_scanner):
     target.seeds.add("ASN:15169")
     assert "ASN:15169" in target.seeds.inputs
 
-    # Test ASN target expansion with mocked ASN helper
-    class MockASNHelper:
-        async def asn_to_subnets(self, asn_number):
-            if asn_number == 15169:
-                return {
-                    "asn": 15169,
-                    "name": "GOOGLE",
-                    "description": "Google LLC",
-                    "country": "US",
-                    "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
-                }
-            return None
-
-    class MockHelpers:
-        def __init__(self):
-            self.asn = MockASNHelper()
-
-    # Test target expansion
+    # Test ASN target expansion with real asndb (Google's AS15169)
     target = BBOTTarget(target=["ASN:15169"])
-    mock_helpers = MockHelpers()
 
     # Verify initial state
     initial_hosts = len(target.seeds.hosts)
     initial_seeds = len(target.seeds.event_seeds)
 
     # Generate children (expand ASN to IP ranges)
-    await target.generate_children(mock_helpers)
+    await target.generate_children()
 
     # After expansion, should have additional IP range seeds
     assert len(target.seeds.event_seeds) > initial_seeds
     assert len(target.seeds.hosts) > initial_hosts
 
-    # Should contain the expanded IP ranges
-    assert ip_network("8.8.8.0/24") in target.seeds.hosts
-    assert ip_network("8.8.4.0/24") in target.seeds.hosts
-
-    # Target scope should also include the expanded ranges
-    assert ip_network("8.8.8.0/24") in target.target.hosts
-    assert ip_network("8.8.4.0/24") in target.target.hosts
+    # Google's AS15169 owns 8.8.8.0/24
+    assert "8.8.8.0/24" in target.seeds.hosts
+    assert "8.8.8.0/24" in target.target.hosts
 
 
 @pytest.mark.asyncio
 async def test_asn_targets_integration(bbot_scanner):
     """Test ASN targets with full scanner integration."""
-    from bbot.core.helpers.asn import ASNHelper
+    from unittest.mock import AsyncMock, MagicMock, patch
 
-    # Mock ASN data for testing
-    mock_asn_data = {
-        "asn": 15169,
-        "name": "GOOGLE",
-        "description": "Google LLC",
-        "country": "US",
-        "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
-    }
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(
+        return_value={
+            "asn": 15169,
+            "asn_name": "GOOGLE",
+            "org": "Google LLC",
+            "country": "US",
+            "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
+        }
+    )
+    mock_client.cleanup = AsyncMock()
 
     # Create scanner with ASN target
     scan = bbot_scanner("ASN:15169")
 
-    # Mock the ASN helper to return test data
-    async def mock_asn_to_subnets(self, asn_number):
-        if asn_number == 15169:
-            return mock_asn_data
-        return None
-
-    # Apply the mock
-    original_method = ASNHelper.asn_to_subnets
-    ASNHelper.asn_to_subnets = mock_asn_to_subnets
-
-    try:
+    with patch("asndb.ASNDB", return_value=mock_client):
         # Initialize scan to access preset and target
         await scan._prep()
 
         # Verify target was parsed correctly
         assert "ASN:15169" in scan.preset.target.seeds.inputs
 
-        # Run target expansion
-        await scan.preset.target.generate_children(scan.helpers)
+        # Verify expansion worked (generate_children is called during _prep)
 
-        # Verify expansion worked
-        from ipaddress import ip_network
-
-        assert ip_network("8.8.8.0/24") in scan.preset.target.seeds.hosts
-        assert ip_network("8.8.4.0/24") in scan.preset.target.seeds.hosts
+        assert "8.8.8.0/24" in scan.preset.target.seeds.hosts
+        assert "8.8.4.0/24" in scan.preset.target.seeds.hosts
 
         # Test scope checking with expanded ranges
         assert scan.in_scope("8.8.8.1")
         assert scan.in_scope("8.8.4.1")
         assert not scan.in_scope("1.1.1.1")
-
-    finally:
-        # Restore original method
-        ASNHelper.asn_to_subnets = original_method
 
 
 @pytest.mark.asyncio
@@ -503,19 +464,17 @@ async def test_asn_targets_edge_cases(bbot_scanner):
         assert event_seed.type == "ASN"
 
     # Test ASN with no subnets
-    class MockEmptyASNHelper:
-        async def asn_to_subnets(self, asn_number):
-            return None  # No subnets found
+    from unittest.mock import AsyncMock, MagicMock, patch
 
-    class MockEmptyHelpers:
-        def __init__(self):
-            self.asn = MockEmptyASNHelper()
+    mock_empty_client = MagicMock()
+    mock_empty_client.lookup_asn = AsyncMock(return_value=None)
+    mock_empty_client.cleanup = AsyncMock()
 
     target = BBOTTarget(target=["ASN:99999"])  # Non-existent ASN
-    mock_helpers = MockEmptyHelpers()
 
     initial_seeds = len(target.seeds.event_seeds)
-    await target.generate_children(mock_helpers)
+    with patch("asndb.ASNDB", return_value=mock_empty_client):
+        await target.generate_children()
 
     # Should not add any new seeds for empty ASN
     assert len(target.seeds.event_seeds) == initial_seeds
@@ -532,26 +491,25 @@ async def test_asn_targets_edge_cases(bbot_scanner):
 @pytest.mark.asyncio
 async def test_asn_blacklist_functionality(bbot_scanner):
     """Test ASN blacklisting: IP range target with ASN in blacklist should expand and block subnets."""
-    from bbot.core.helpers.asn import ASNHelper
-    from ipaddress import ip_network
+    from unittest.mock import AsyncMock, MagicMock, patch
 
-    # Mock ASN 15169 to return 8.8.8.0/24 (within our target range)
-    async def mock_asn_to_subnets(self, asn_number):
-        if asn_number == 15169:
-            return {"asn": 15169, "subnets": ["8.8.8.0/24"]}
-        return None
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(
+        return_value={
+            "asn": 15169,
+            "subnets": ["8.8.8.0/24"],
+        }
+    )
+    mock_client.cleanup = AsyncMock()
 
-    original_method = ASNHelper.asn_to_subnets
-    ASNHelper.asn_to_subnets = mock_asn_to_subnets
-
-    try:
+    with patch("asndb.ASNDB", return_value=mock_client):
         # Target: 8.8.8.0/23 (includes 8.8.8.0/24 and 8.8.9.0/24)
         # Blacklist: ASN:15169 (should expand to 8.8.8.0/24 and block it)
         scan = bbot_scanner("8.8.8.0/23", blacklist=["ASN:15169"])
         await scan._prep()
 
         # The ASN should have been expanded and the subnet should be in blacklist
-        assert ip_network("8.8.8.0/24") in scan.preset.target.blacklist.hosts
+        assert "8.8.8.0/24" in scan.preset.target.blacklist.hosts
 
         # 8.8.8.x should be blocked (ASN subnet in blacklist)
         assert not scan.in_scope("8.8.8.1")
@@ -567,9 +525,6 @@ async def test_asn_blacklist_functionality(bbot_scanner):
         assert not scan.in_scope("8.8.7.1")
         assert not scan.in_scope("8.8.10.1")
 
-    finally:
-        ASNHelper.asn_to_subnets = original_method
-
 
 @pytest.mark.asyncio
 async def test_asn_len_overflow(bbot_scanner):
@@ -579,20 +534,16 @@ async def test_asn_len_overflow(bbot_scanner):
     for large ASNs (e.g. AS15169 with 1000+ subnets). The scanner log message
     must use len(event_seeds) instead.
     """
-    from bbot.core.helpers.asn import ASNHelper
+    from unittest.mock import AsyncMock, MagicMock, patch
 
     # Simulate a large ASN with many /16 subnets — total IPs would overflow an index
     many_subnets = [f"10.{i}.0.0/16" for i in range(200)]
 
-    async def mock_asn_to_subnets(self, asn_number):
-        if asn_number == 99999:
-            return {"asn": 99999, "subnets": many_subnets}
-        return None
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(return_value={"asn": 99999, "subnets": many_subnets})
+    mock_client.cleanup = AsyncMock()
 
-    original_method = ASNHelper.asn_to_subnets
-    ASNHelper.asn_to_subnets = mock_asn_to_subnets
-
-    try:
+    with patch("asndb.ASNDB", return_value=mock_client):
         scan = bbot_scanner("ASN:99999")
         # _prep() calls generate_children() and then does len(self.seeds.event_seeds)
         # Before the fix, this raised OverflowError from len() on the RadixTarget
@@ -600,25 +551,19 @@ async def test_asn_len_overflow(bbot_scanner):
 
         # Verify expansion worked
         assert len(scan.preset.target.seeds.event_seeds) > 200
-    finally:
-        ASNHelper.asn_to_subnets = original_method
 
 
 @pytest.mark.asyncio
 async def test_asn_event_json_serialization(bbot_scanner):
     """Regression test: ASN events must serialize and deserialize correctly."""
-    from bbot.core.helpers.asn import ASNHelper
+    from unittest.mock import AsyncMock, MagicMock, patch
     from bbot.core.event.base import event_from_json
 
-    async def mock_asn_to_subnets(self, asn_number):
-        if asn_number == 12345:
-            return {"asn": 12345, "subnets": ["192.0.2.0/24"]}
-        return None
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(return_value={"asn": 12345, "subnets": ["192.0.2.0/24"]})
+    mock_client.cleanup = AsyncMock()
 
-    original_method = ASNHelper.asn_to_subnets
-    ASNHelper.asn_to_subnets = mock_asn_to_subnets
-
-    try:
+    with patch("asndb.ASNDB", return_value=mock_client):
         scan = bbot_scanner("ASN:12345")
         await scan._prep()
 
@@ -635,8 +580,6 @@ async def test_asn_event_json_serialization(bbot_scanner):
         reconstructed = event_from_json(j)
         assert reconstructed.type == "ASN"
         assert reconstructed.data == {"asn": 12345}
-    finally:
-        ASNHelper.asn_to_subnets = original_method
 
 
 @pytest.mark.asyncio

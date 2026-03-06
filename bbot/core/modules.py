@@ -331,7 +331,8 @@ class ModuleLoader:
         config = {}
         options_desc = {}
         disable_auto_module_deps = False
-        python_code = open(module_file).read()
+        with open(module_file) as f:
+            python_code = f.read()
         # take a hash of the code so we can keep track of when it changes
         module_hash = sha1(python_code).hexdigest()
         parsed_code = ast.parse(python_code)
@@ -476,10 +477,9 @@ class ModuleLoader:
             try:
                 module = self.load_module(module_name)
             except ModuleNotFoundError as e:
-                log.warning(
+                raise BBOTError(
                     f"Error loading module {module_name}: {e}. You may have leftover artifacts from an older version of BBOT. Try deleting/renaming your '~/.bbot' directory."
-                )
-                module = None
+                ) from e
             modules[module_name] = module
         return modules
 

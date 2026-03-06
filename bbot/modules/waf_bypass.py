@@ -1,4 +1,4 @@
-from radixtarget.tree.ip import IPRadixTree
+from radixtarget import RadixTarget
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.simhash import compute_simhash
 
@@ -233,9 +233,9 @@ class waf_bypass(BaseModule):
                             asn_data = await self.helpers.asn.ip_to_subnets(str(ip))
                             if asn_data:
                                 # Build a radix tree of the ASN subnets for the IP
-                                asn_subnets_tree = IPRadixTree()
+                                asn_subnets_tree = RadixTarget()
                                 for subnet in asn_data["subnets"]:
-                                    asn_subnets_tree.insert(subnet, data=True)
+                                    asn_subnets_tree.insert(subnet)
 
                                 # Generate a network based on the neighbor_cidr option
                                 neighbor_net = ipaddress.ip_network(f"{ip}/{self.neighbor_cidr}", strict=False)
@@ -250,7 +250,7 @@ class waf_bypass(BaseModule):
                                         continue
 
                                     # make sure we aren't crossing an ASN boundary with our neighbor exploration
-                                    if asn_subnets_tree.get_node(neighbor_ip_str):
+                                    if asn_subnets_tree.search(neighbor_ip_str):
                                         self.debug(
                                             f"Added Neighbor IP ({ip} -> {neighbor_ip_str}) as potential bypass IP derived from {domain}"
                                         )

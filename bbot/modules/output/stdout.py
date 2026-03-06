@@ -16,7 +16,7 @@ class Stdout(BaseOutputModule):
         "accept_dupes": "Whether to show duplicate events, default True",
     }
     vuln_severity_map = {
-        "INFORMATIONAL": "HUGEINFO",
+        "INFO": "HUGEINFO",
         "LOW": "HUGEWARNING",
         "MEDIUM": "HUGEWARNING",
         "HIGH": "CRITICAL",
@@ -63,7 +63,7 @@ class Stdout(BaseOutputModule):
 
         # log findings in vivid colors based on severity
         if event.type == "FINDING":
-            severity = event.data.get("severity", "INFORMATIONAL")
+            severity = event.data.get("severity", "INFO")
             if severity in self.vuln_severity_map:
                 loglevel = self.vuln_severity_map[severity]
                 log_to_stderr(event_str, level=loglevel, logname=False)

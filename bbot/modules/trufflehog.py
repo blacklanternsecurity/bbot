@@ -123,7 +123,7 @@ class trufflehog(BaseModule):
             source_metadata,
         ) in self.execute_trufflehog(module, path):
             verified_str = "Verified" if verified else "Possible"
-            confidence = "CONFIRMED" if verified else "MODERATE"
+            confidence = "CONFIRMED" if verified else "MEDIUM"
             data = {
                 "name": f"TruffleHog - {detector_name}",
                 "description": f"{verified_str} Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",

@@ -9,6 +9,7 @@ from bbot.modules.base import BaseModule
 
 
 class httpx(BaseModule):
+    httpx_tempdir_regex = re.compile(r"^httpx\d+$")
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active", "safe", "web-basic", "social-enum", "subdomain-enum", "cloud-enum"]
@@ -58,7 +59,6 @@ class httpx(BaseModule):
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.store_responses = self.config.get("store_responses", False)
         self.probe_all_ips = self.config.get("probe_all_ips", False)
-        self.httpx_tempdir_regex = re.compile(r"^httpx\d+$")
         return True
 
     async def filter_event(self, event):

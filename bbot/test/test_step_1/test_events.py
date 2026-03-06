@@ -338,7 +338,7 @@ async def test_events(events, helpers):
     test_vuln = scan.make_event(
         {
             "host": "EVILcorp.com",
-            "severity": "iNformational ",
+            "severity": "iNfo ",
             "confidence": "HIGH",
             "description": "asdf",
             "name": "Test Finding",
@@ -347,11 +347,11 @@ async def test_events(events, helpers):
         dummy=True,
     )
     assert test_vuln.data["host"] == "evilcorp.com"
-    assert test_vuln.data["severity"] == "INFORMATIONAL"
+    assert test_vuln.data["severity"] == "INFO"
     test_vuln2 = scan.make_event(
         {
             "host": "192.168.1.1",
-            "severity": "INFORMATIONAL",
+            "severity": "INFO",
             "confidence": "HIGH",
             "description": "asdf",
             "name": "Vulnerability",
@@ -359,14 +359,14 @@ async def test_events(events, helpers):
         "FINDING",
         dummy=True,
     )
-    assert json.loads(test_vuln2.data_human)["severity"] == "INFORMATIONAL"
+    assert json.loads(test_vuln2.data_human)["severity"] == "INFO"
     assert test_vuln2.host.is_private
     # must have severity
     with pytest.raises(ValidationError, match=".*validation error.*\nseverity\n.*Field required.*"):
         test_vuln = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "FINDING", dummy=True)
     with pytest.raises(ValidationError, match=".*host.*\n.*Invalid host.*"):
         test_vuln = scan.make_event(
-            {"host": "!@#$", "severity": "INFORMATIONAL", "confidence": "HIGH", "description": "asdf"},
+            {"host": "!@#$", "severity": "INFO", "confidence": "HIGH", "description": "asdf"},
             "FINDING",
             dummy=True,
         )
@@ -401,7 +401,7 @@ async def test_events(events, helpers):
     # test confidence colors and formatting
     from bbot.core.event.base import FINDING
 
-    expected_colors = {"CONFIRMED": "🟣", "HIGH": "🔴", "MODERATE": "🟠", "LOW": "🟡", "UNKNOWN": "⚪"}
+    expected_colors = {"CONFIRMED": "🟣", "HIGH": "🔴", "MEDIUM": "🟠", "LOW": "🟡", "UNKNOWN": "⚪"}
     assert FINDING.confidence_colors == expected_colors
 
     # test CONFIRMED gets bold formatting
@@ -428,7 +428,7 @@ async def test_events(events, helpers):
     # must have name
     with pytest.raises(ValidationError, match=".*name.*\n.*Field required.*"):
         test_vuln = scan.make_event(
-            {"host": "evilcorp.com", "severity": "INFORMATIONAL", "description": "asdf", "confidence": "HIGH"},
+            {"host": "evilcorp.com", "severity": "INFO", "description": "asdf", "confidence": "HIGH"},
             "FINDING",
             dummy=True,
         )
@@ -999,7 +999,7 @@ async def test_event_closest_host():
     assert not event3.host
     # finding automatically uses the host from the second event
     finding = scan.make_event(
-        {"description": "test", "severity": "LOW", "confidence": "MODERATE", "name": "Test Finding"},
+        {"description": "test", "severity": "LOW", "confidence": "MEDIUM", "name": "Test Finding"},
         "FINDING",
         parent=event3,
     )
@@ -1023,7 +1023,7 @@ async def test_event_closest_host():
     assert not event3.host
     with pytest.raises(ValueError):
         finding = scan.make_event(
-            {"description": "test", "severity": "LOW", "confidence": "MODERATE", "name": "Test Finding"},
+            {"description": "test", "severity": "LOW", "confidence": "MEDIUM", "name": "Test Finding"},
             "FINDING",
             parent=event3,
         )
@@ -1032,7 +1032,7 @@ async def test_event_closest_host():
             "path": "/tmp/asdf.txt",
             "description": "test",
             "severity": "LOW",
-            "confidence": "MODERATE",
+            "confidence": "MEDIUM",
             "name": "Test Finding",
         },
         "FINDING",
@@ -1044,7 +1044,7 @@ async def test_event_closest_host():
             "host": "evilcorp.com",
             "description": "test",
             "severity": "LOW",
-            "confidence": "MODERATE",
+            "confidence": "MEDIUM",
             "name": "Test Finding",
         },
         "FINDING",

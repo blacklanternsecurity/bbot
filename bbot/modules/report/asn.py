@@ -7,7 +7,7 @@ class asn(BaseReportModule):
     produced_events = ["ASN"]
     flags = ["passive", "subdomain-enum", "safe"]
     meta = {
-        "description": "Query ripe and bgpview.io for ASNs",
+        "description": "Query asndb for ASN information",
         "created_date": "2022-07-25",
         "author": "@TheTechromancer",
     }
@@ -35,36 +35,25 @@ class asn(BaseReportModule):
 
         asn_data = await self.helpers.asn.ip_to_subnets(host_str)
         if asn_data:
-            asn_record = asn_data
-            asn_number = asn_record.get("asn")
-            asn_description = asn_record.get("description", "")
-            asn_name = asn_record.get("name", "")
-            asn_country = asn_record.get("country", "")
-            subnets = asn_record.get("subnets", [])
+            asn_number = asn_data.get("asn", 0)
+            asn_description = asn_data.get("description", "")
+            asn_name = asn_data.get("name", "")
+            asn_country = asn_data.get("country", "")
+            subnets = asn_data.get("subnets", [])
 
             # Track ASN subnet counts for reporting (only once per ASN)
-            if asn_number and asn_number != "UNKNOWN" and asn_number != "0":
+            if asn_number and asn_number != 0:
                 if asn_number not in self.asn_counts:
-                    subnet_count = len(subnets)
-                    self.asn_counts[asn_number] = subnet_count
+                    self.asn_counts[asn_number] = len(subnets)
 
-            emails = asn_record.get("emails", [])
             # Don't emit ASN 0 - it's reserved and indicates unknown ASN data
-            if asn_number != "0":
-                asn_event = self.make_event(int(asn_number), "ASN", parent=event)
+            if asn_number != 0:
+                asn_event = self.make_event(asn_number, "ASN", parent=event)
                 if asn_event:
                     await self.emit_event(
                         asn_event,
                         context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_description}, {asn_country})",
                     )
-
-                    for email in emails:
-                        await self.emit_event(
-                            email,
-                            "EMAIL_ADDRESS",
-                            parent=asn_event,
-                            context=f"{{module}} retrieved details for AS{asn_number} and found {{event.type}}: {{event.data}}",
-                        )
 
     async def report(self):
         """Generate an ASN summary table based on locally tracked ASN counts."""
@@ -87,7 +76,7 @@ class asn(BaseReportModule):
             else:
                 asn_name = asn_description = asn_country = "unknown"
 
-            number = "AS" + asn_number if asn_number != "0" else asn_number
+            number = f"AS{asn_number}" if asn_number != 0 else str(asn_number)
             table.append(
                 [
                     number,

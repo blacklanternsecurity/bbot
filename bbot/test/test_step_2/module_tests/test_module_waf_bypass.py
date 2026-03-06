@@ -1,6 +1,5 @@
 from .base import ModuleTestBase
 from bbot.modules.base import BaseModule
-import json
 
 
 class TestWAFBypass(ModuleTestBase):
@@ -60,8 +59,6 @@ class TestWAFBypass(ModuleTestBase):
                     await self.emit_event(url_event)
 
     async def setup_after_prep(self, module_test):
-        from bbot.core.helpers.asn import ASNHelper
-
         await module_test.mock_dns(
             {
                 "protected.test": {"A": [self.PROTECTED_IP]},
@@ -75,15 +72,17 @@ class TestWAFBypass(ModuleTestBase):
         self.dummy_module = self.DummyModule(module_test.scan)
         module_test.scan.modules["dummy_module"] = self.dummy_module
 
-        module_test.monkeypatch.setattr(ASNHelper, "asndb_ip_url", "http://127.0.0.1:8888/v1/ip/")
+        # Mock ASN lookups via asndb
+        asn_helper = module_test.scan.helpers.asn
 
-        expect_args = {"method": "GET", "uri": "/v1/ip/127.0.0.2"}
-        respond_args = {
-            "response_data": json.dumps(self.api_response_direct),
-            "status": 200,
-            "content_type": "application/json",
-        }
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+        async def mock_lookup_ip(ip, include_subnets=False):
+            if str(ip) == self.DIRECT_IP or str(ip).startswith("127.0.0."):
+                return self.api_response_direct
+            elif str(ip) == self.PROTECTED_IP:
+                return self.api_response_cloudflare
+            return None
+
+        module_test.monkeypatch.setattr(asn_helper.client, "lookup_ip", mock_lookup_ip)
 
         expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "protected.test"}}
         respond_args = {"status": 200, "response_data": "HELLO THERE!"}

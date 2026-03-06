@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import suppress
-from radixtarget.helpers import host_size_key
+from radixtarget import host_size_key
 
 from bbot.modules.base import BaseInterceptModule
 

@@ -1,5 +1,3 @@
-from ipaddress import ip_network
-
 from ..bbot_fixtures import *
 
 
@@ -38,7 +36,7 @@ async def test_scan(
     # Positional arguments become the target
     assert set(j["target"]["target"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
     # Seeds are backfilled from target when not explicitly set
-    assert scan0.target.target.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
+    assert scan0.target.target.hosts == {"1.1.1.0/31", "evilcorp.com"}
     assert set(j["target"]["blacklist"]) == {"1.1.1.0/28", "www.evilcorp.com"}
     assert "ipneighbor" in j["preset"]["modules"]
 
@@ -208,6 +206,96 @@ async def test_speed_counter():
         await asyncio.sleep(0.2)
     # only 5 should show
     assert 4 <= counter.speed <= 5
+
+
+@pytest.mark.asyncio
+async def test_stats_attribution():
+    from bbot.scanner.stats import ScanStats
+    from types import SimpleNamespace
+
+    def mock_module(name, produced_events=None):
+        return SimpleNamespace(name=name, _stats_exclude=False, produced_events=produced_events or [])
+
+    def mock_event(type, module, parent=None):
+        e = SimpleNamespace(type=type, module=module)
+        if parent is not None:
+            e.parent = parent
+        return e
+
+    mock_scan = SimpleNamespace(status_frequency=60)
+    stats = ScanStats(mock_scan)
+
+    httpx_mod = mock_module("httpx", ["URL", "HTTP_RESPONSE"])
+    excavate_mod = mock_module("excavate", ["URL_UNVERIFIED", "WEB_PARAMETER"])
+    ffuf_mod = mock_module("ffuf_shortnames", ["URL_UNVERIFIED"])
+    ffuf2_mod = mock_module("ffuf", ["URL_UNVERIFIED"])
+    speculate_mod = mock_module("speculate", ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"])
+    robots_mod = mock_module("robots", ["URL_UNVERIFIED"])
+
+    # 1) excavate discovers URL_UNVERIFIED from HTTP_RESPONSE, httpx verifies → excavate gets credit
+    for _ in range(5):
+        parent = mock_event("URL_UNVERIFIED", excavate_mod)
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 2) ffuf_shortnames discovers URL_UNVERIFIED, httpx verifies → ffuf_shortnames gets credit
+    for _ in range(3):
+        parent = mock_event("URL_UNVERIFIED", ffuf_mod)
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 3) ffuf discovers URL_UNVERIFIED, httpx verifies → ffuf gets credit
+    parent = mock_event("URL_UNVERIFIED", ffuf2_mod)
+    stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 4) speculate (internal module) creates URL_UNVERIFIED, httpx verifies → httpx keeps credit
+    for _ in range(4):
+        parent = mock_event("URL_UNVERIFIED", speculate_mod)
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 5) robots discovers URL_UNVERIFIED, httpx verifies → robots gets credit
+    for _ in range(2):
+        parent = mock_event("URL_UNVERIFIED", robots_mod)
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 6) httpx discovers URL directly from OPEN_TCP_PORT (no URL_UNVERIFIED parent) → httpx keeps credit
+    for _ in range(2):
+        parent = mock_event("OPEN_TCP_PORT", mock_module("portscan"))
+        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+
+    # 7) non-URL event types are unaffected
+    stats.event_produced(mock_event("DNS_NAME", mock_module("CNAME")))
+    stats.event_produced(mock_event("STORAGE_BUCKET", mock_module("cloudcheck")))
+
+    # verify per-module produced counts
+    assert stats.module_stats["excavate"].produced == {"URL": 5}
+    assert stats.module_stats["ffuf_shortnames"].produced == {"URL": 3}
+    assert stats.module_stats["ffuf"].produced == {"URL": 1}
+    assert stats.module_stats["robots"].produced == {"URL": 2}
+    # httpx gets credit for speculate's 4 URLs + 2 from OPEN_TCP_PORT = 6
+    assert stats.module_stats["httpx"].produced == {"URL": 6}
+    assert "speculate" not in stats.module_stats
+    assert stats.module_stats["CNAME"].produced == {"DNS_NAME": 1}
+    assert stats.module_stats["cloudcheck"].produced == {"STORAGE_BUCKET": 1}
+
+    # verify the table output (sorted by produced_total descending)
+    table = stats.table()
+    header = table[0]
+    rows = table[1:]
+    assert header == ["Module", "Produced", "Consumed"]
+
+    # build a dict of module_name -> produced_str from the table
+    table_dict = {row[0]: row[1] for row in rows}
+    assert table_dict["httpx"] == "6 (6 URL)"
+    assert table_dict["excavate"] == "5 (5 URL)"
+    assert table_dict["ffuf_shortnames"] == "3 (3 URL)"
+    assert table_dict["robots"] == "2 (2 URL)"
+    assert table_dict["ffuf"] == "1 (1 URL)"
+    assert table_dict["CNAME"] == "1 (1 DNS_NAME)"
+    assert table_dict["cloudcheck"] == "1 (1 STORAGE_BUCKET)"
+    assert "speculate" not in table_dict
+
+    # verify sort order (highest produced first)
+    produced_totals = [stats.module_stats[row[0]].produced_total for row in rows]
+    assert produced_totals == sorted(produced_totals, reverse=True)
 
 
 @pytest.mark.asyncio

@@ -185,9 +185,15 @@ class Scanner:
         if self.name == "golden_gus":
             from base64 import b64decode as _d
 
-            _a = _d("ICAgICAgICAgICAgICBfX18KICAqd29vZiogIF9fL18gIGAuICAuLSIiIi0uCiAgICAgICAgICBcXyxgIHwgXC0nICAvICAgKWAtJykKICAgICAgICAgICAiIikgImAiICAgIFwgICgoImAiCiAgICAgICAgICBfX19ZICAsICAgIC4nNyAvfAogICAgICAgICAoXyxfX18vLi4uLWAgKF8vXy8=").decode()
+            _a = _d(
+                "ICAgICAgICAgICAgICBfX18KICAqd29vZiogIF9fL18gIGAuICAuLSIiIi0uCiAgICAgICAgICBcXyxgIHwgXC0nICAvICAgKWAtJykKICAgICAgICAgICAiIikgImAiICAgIFwgICgoImAiCiAgICAgICAgICBfX19ZICAsICAgIC4nNyAvfAogICAgICAgICAoXyxfX18vLi4uLWAgKF8vXy8="
+            ).decode()
             _m = _d("R3VzIGhhcyBibGVzc2VkIHlvdXIgc2Nhbi4=").decode()
-            log_to_stderr(f"\033[1;38;5;220m{_a}\033[0m\n          \033[1;38;5;118m{_m}\033[0m", level="HUGESUCCESS", logname=False)
+            log_to_stderr(
+                f"\033[1;38;5;220m{_a}\033[0m\n          \033[1;38;5;118m{_m}\033[0m",
+                level="HUGESUCCESS",
+                logname=False,
+            )
 
         # make sure the preset has a description
         if not self.preset.description:
@@ -230,7 +236,7 @@ class Scanner:
         self.httpx_timeout = web_config.get("httpx_timeout", 5)
         self.http_retries = web_config.get("http_retries", 1)
         self.httpx_retries = web_config.get("httpx_retries", 1)
-        self.useragent = web_config.get("user_agent", "BBOT")
+        self.useragent = f"{web_config.get('user_agent', 'BBOT')} {web_config.get('user_agent_suffix') or ''}".strip()
         # custom HTTP headers warning
         self.custom_http_headers = web_config.get("http_headers", {})
         if self.custom_http_headers:
@@ -264,6 +270,7 @@ class Scanner:
 
         self.init_events_task = None
         self.ticker_task = None
+        self._stop_task = None
         self.dispatcher_tasks = []
 
         self._stopping = False
@@ -286,7 +293,7 @@ class Scanner:
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
         # expand async seed types (e.g. ASN → IP ranges)
-        await self.preset.target.generate_children(self.helpers)
+        await self.preset.target.generate_children()
 
         # evaluate preset conditions (may abort the scan)
         if self.preset.conditions:
@@ -457,10 +464,12 @@ class Scanner:
             yield scan_finish_event
             tasks = self._cancel_tasks()
             self.debug(f"Awaiting {len(tasks):,} tasks")
-            for task in tasks:
-                # self.debug(f"Awaiting {task}")
+            if tasks:
                 with contextlib.suppress(BaseException):
-                    await asyncio.wait_for(task, timeout=0.1)
+                    await asyncio.wait_for(
+                        asyncio.gather(*tasks, return_exceptions=True),
+                        timeout=2,
+                    )
             self.debug(f"Awaited {len(tasks):,} tasks")
             await self._report()
             await self._cleanup()
@@ -822,7 +831,7 @@ class Scanner:
             await self._set_status(SCAN_STATUS_ABORTED)
 
     def stop(self):
-        asyncio.create_task(self.async_stop())
+        self._stop_task = asyncio.create_task(self.async_stop())
 
     async def finish(self):
         """Finalizes the scan by invoking the `finished()` method on all active modules if new activity is detected.
@@ -893,6 +902,9 @@ class Scanner:
         # ticker
         if self.ticker_task:
             tasks.append(self.ticker_task)
+        # stop task
+        if self._stop_task:
+            tasks.append(self._stop_task)
 
         self.helpers.cancel_tasks_sync(tasks)
         # process pool
@@ -1216,12 +1228,8 @@ class Scanner:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        if self.preset is not None:
-            j["target"] = self.preset.target.json
-            j["preset"] = self.preset.to_dict(redact_secrets=True)
-        else:
-            j["target"] = {}
-            j["preset"] = {}
+        j["target"] = self.preset.target.json
+        j["preset"] = self.preset.to_dict(redact_secrets=True)
         if self.start_time is not None:
             j["started_at"] = self.start_time.timestamp()
         if self.end_time is not None:
