@@ -126,7 +126,7 @@ class portscan(BaseModule):
             with open(stats_file, "w") as stats_fh:
                 async for line in self.run_process_live(command, sudo=True, stderr=stats_fh):
                     for ip, port in self.parse_json_line(line):
-                        parent_events = correlator.search(ip)
+                        parent_events = correlator.search(str(ip))
                         # masscan gets the occasional junk result. this is harmless and
                         # seems to be a side effect of it having its own TCP stack
                         # see https://github.com/robertdavidgraham/masscan/issues/397
