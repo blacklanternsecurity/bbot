@@ -398,6 +398,7 @@ async def test_asn_targets(bbot_scanner):
             "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
         }
     )
+    mock_client.cleanup = AsyncMock()
 
     # Test target expansion
     target = BBOTTarget(target=["ASN:15169"])
@@ -407,7 +408,7 @@ async def test_asn_targets(bbot_scanner):
     initial_seeds = len(target.seeds.event_seeds)
 
     # Generate children (expand ASN to IP ranges)
-    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
+    with patch("asndb.ASNDB", return_value=mock_client):
         await target.generate_children()
 
     # After expansion, should have additional IP range seeds
@@ -438,11 +439,12 @@ async def test_asn_targets_integration(bbot_scanner):
             "subnets": ["8.8.8.0/24", "8.8.4.0/24"],
         }
     )
+    mock_client.cleanup = AsyncMock()
 
     # Create scanner with ASN target
     scan = bbot_scanner("ASN:15169")
 
-    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
+    with patch("asndb.ASNDB", return_value=mock_client):
         # Initialize scan to access preset and target
         await scan._prep()
 
@@ -490,11 +492,12 @@ async def test_asn_targets_edge_cases(bbot_scanner):
 
     mock_empty_client = MagicMock()
     mock_empty_client.lookup_asn = AsyncMock(return_value=None)
+    mock_empty_client.cleanup = AsyncMock()
 
     target = BBOTTarget(target=["ASN:99999"])  # Non-existent ASN
 
     initial_seeds = len(target.seeds.event_seeds)
-    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_empty_client):
+    with patch("asndb.ASNDB", return_value=mock_empty_client):
         await target.generate_children()
 
     # Should not add any new seeds for empty ASN
@@ -522,8 +525,9 @@ async def test_asn_blacklist_functionality(bbot_scanner):
             "subnets": ["8.8.8.0/24"],
         }
     )
+    mock_client.cleanup = AsyncMock()
 
-    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
+    with patch("asndb.ASNDB", return_value=mock_client):
         # Target: 8.8.8.0/23 (includes 8.8.8.0/24 and 8.8.9.0/24)
         # Blacklist: ASN:15169 (should expand to 8.8.8.0/24 and block it)
         scan = bbot_scanner("8.8.8.0/23", blacklist=["ASN:15169"])
@@ -562,8 +566,9 @@ async def test_asn_len_overflow(bbot_scanner):
 
     mock_client = MagicMock()
     mock_client.lookup_asn = AsyncMock(return_value={"asn": 99999, "subnets": many_subnets})
+    mock_client.cleanup = AsyncMock()
 
-    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
+    with patch("asndb.ASNDB", return_value=mock_client):
         scan = bbot_scanner("ASN:99999")
         # _prep() calls generate_children() and then does len(self.seeds.event_seeds)
         # Before the fix, this raised OverflowError from len() on the RadixTarget
@@ -581,8 +586,9 @@ async def test_asn_event_json_serialization(bbot_scanner):
 
     mock_client = MagicMock()
     mock_client.lookup_asn = AsyncMock(return_value={"asn": 12345, "subnets": ["192.0.2.0/24"]})
+    mock_client.cleanup = AsyncMock()
 
-    with patch("bbot.core.event.helpers.ASNDB", return_value=mock_client):
+    with patch("asndb.ASNDB", return_value=mock_client):
         scan = bbot_scanner("ASN:12345")
         await scan._prep()
 

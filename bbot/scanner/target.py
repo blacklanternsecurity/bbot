@@ -142,13 +142,13 @@ class BaseTarget:
     def __contains__(self, other):
         if isinstance(other, BaseTarget):
             for h in other.hosts:
-                if self._rt.get(str(h)) is None:
+                if self.get(str(h)) is None:
                     return False
             return True
-        host_str = _host_str(other)
-        if host_str is None:
+        try:
+            return self.get(other) is not None
+        except (ValueError, TypeError):
             return False
-        return self._rt.get(host_str) is not None
 
     def __iter__(self):
         yield from self.event_seeds

@@ -21,9 +21,9 @@ class TestASNHelper(ModuleTestBase):
         from unittest.mock import AsyncMock
 
         asn_helper = module_test.scan.helpers.asn
-        asn_helper.client = AsyncMock()
-        asn_helper.client.lookup_ip = AsyncMock(return_value=self.asndb_response)
-        asn_helper.client.lookup_asn = AsyncMock(return_value=self.asndb_response)
+        asn_helper._client = AsyncMock()
+        asn_helper._client.lookup_ip = AsyncMock(return_value=self.asndb_response)
+        asn_helper._client.lookup_asn = AsyncMock(return_value=self.asndb_response)
 
     def check(self, module_test, events):
         asn_events = [e for e in events if e.type == "ASN"]
@@ -44,8 +44,8 @@ class TestASNUnknownHandling(ModuleTestBase):
         from bbot.core.helpers.asn import ASNHelper
 
         asn_helper = module_test.scan.helpers.asn
-        asn_helper.client = AsyncMock()
-        asn_helper.client.lookup_ip = AsyncMock(return_value=ASNHelper.UNKNOWN_ASN)
+        asn_helper._client = AsyncMock()
+        asn_helper._client.lookup_ip = AsyncMock(return_value=ASNHelper.UNKNOWN_ASN)
 
     def check(self, module_test, events):
         # When asndb returns unknown, NO ASN events should be emitted since ASN 0 is reserved

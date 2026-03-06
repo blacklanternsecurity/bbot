@@ -152,7 +152,7 @@ class portscan(BaseModule):
         """
         correlator = RadixTarget()
         targets = set()
-        for event in sorted(events, key=lambda e: host_size_key(e.host)):
+        for event in sorted(events, key=lambda e: host_size_key(str(e.host))):
             # skip events without host
             if not event.host:
                 continue
@@ -184,16 +184,17 @@ class portscan(BaseModule):
                             await self.emit_open_port(event.host, port, event)
 
                 # build a correlation from the IP back to its original parent event
-                events_set = correlator.search(ip)
+                ip_str = str(ip)
+                events_set = correlator.search(ip_str)
                 if events_set is None:
-                    correlator.insert(ip, {event})
+                    correlator.insert(ip_str, {event})
                 else:
                     events_set.add(event)
 
                 # has this IP already been scanned?
-                if not scanned_tracker.get(ip):
+                if not scanned_tracker.get(ip_str):
                     # if not, add it to targets!
-                    scanned_tracker.add(ip)
+                    scanned_tracker.add(ip_str)
                     targets.add(ip)
                 else:
                     self.debug(f"Skipping {ip} because it's already been scanned")

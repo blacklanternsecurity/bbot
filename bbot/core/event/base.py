@@ -795,8 +795,8 @@ class BaseEvent:
                 return True
             # hostnames and IPs
             radixtarget = RadixTarget()
-            radixtarget.insert(self.host)
-            return bool(radixtarget.search(other_event.host))
+            radixtarget.insert(str(self.host))
+            return bool(radixtarget.search(str(other_event.host)))
         return False
 
     def json(self, mode="json"):

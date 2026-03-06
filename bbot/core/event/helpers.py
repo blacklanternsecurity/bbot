@@ -292,16 +292,19 @@ class ASN(BaseEventSeed):
         from asndb import ASNDB
 
         client = ASNDB()
-        asn_data = await client.lookup_asn(int(self.data))
-        children = []
-        if asn_data:
-            subnets = asn_data.get("subnets")
-            if isinstance(subnets, str):
-                subnets = [subnets]
-            if subnets:
-                for cidr in subnets:
-                    children.append(cidr)
-        return children
+        try:
+            asn_data = await client.lookup_asn(str(self.data), include_subnets=True)
+            children = []
+            if asn_data:
+                subnets = asn_data.get("subnets")
+                if isinstance(subnets, str):
+                    subnets = [subnets]
+                if subnets:
+                    for cidr in subnets:
+                        children.append(cidr)
+            return children
+        finally:
+            await client.cleanup()
 
     @staticmethod
     def handle_match(match):
