@@ -358,7 +358,6 @@ async def test_asn_targets(bbot_scanner):
     """Test ASN target parsing, validation, and functionality."""
     from bbot.core.event.helpers import EventSeed
     from bbot.scanner.target import BBOTTarget
-    from ipaddress import ip_network
 
     # Test ASN target parsing with different formats
     for asn_format in ("ASN:15169", "AS:15169", "AS15169", "asn:15169", "as:15169", "as15169"):
@@ -452,7 +451,6 @@ async def test_asn_targets_integration(bbot_scanner):
         assert "ASN:15169" in scan.preset.target.seeds.inputs
 
         # Verify expansion worked (generate_children is called during _prep)
-        from ipaddress import ip_network
 
         assert "8.8.8.0/24" in scan.preset.target.seeds.hosts
         assert "8.8.4.0/24" in scan.preset.target.seeds.hosts
@@ -516,7 +514,6 @@ async def test_asn_targets_edge_cases(bbot_scanner):
 async def test_asn_blacklist_functionality(bbot_scanner):
     """Test ASN blacklisting: IP range target with ASN in blacklist should expand and block subnets."""
     from unittest.mock import AsyncMock, MagicMock, patch
-    from ipaddress import ip_network
 
     mock_client = MagicMock()
     mock_client.lookup_asn = AsyncMock(
