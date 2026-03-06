@@ -176,7 +176,7 @@ class nuclei(BaseModule):
                         "url": url,
                         "description": description_string,
                         "name": f"Nuclei Vuln - {name}",
-                        "severity": "INFORMATIONAL",
+                        "severity": "INFO",
                         "confidence": "HIGH",
                     },
                     "FINDING",

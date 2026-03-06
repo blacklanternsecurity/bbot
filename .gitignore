@@ -2,3 +2,4 @@ __pycache__/
 .coverage*
 /data/
 /neo4j/
+.DS_Store

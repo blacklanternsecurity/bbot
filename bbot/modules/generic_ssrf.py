@@ -223,7 +223,7 @@ class generic_ssrf(BaseModule):
 
                 self.debug(f"Emitting event with description: {description}")  # Debug the final description
 
-                confidence = "CONFIRMED" if protocol == "HTTP" else "MODERATE"
+                confidence = "CONFIRMED" if protocol == "HTTP" else "MEDIUM"
                 event_data = {
                     "host": str(matched_event.host),
                     "url": matched_event.data,
