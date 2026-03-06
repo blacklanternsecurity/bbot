@@ -1,8 +1,18 @@
 import logging
 import regex as re
-from hashlib import sha1
 from radixtarget import RadixTarget
 from radixtarget import host_size_key
+
+
+def _fnv1a_64(data_strings):
+    """FNV-1a 64-bit hash over sorted strings. Deterministic, pure Python."""
+    h = 0xCBF29CE484222325
+    for s in data_strings:
+        for b in s.encode():
+            h ^= b
+            h = (h * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return h
+
 
 from bbot.errors import *
 from bbot.core.event import is_event
@@ -69,12 +79,10 @@ class BaseTarget:
 
     @property
     def hash(self):
-        sha1_hash = sha1()
-        for host in sorted(str(h).encode() for h in self.hosts):
-            sha1_hash.update(host)
+        h = self._rt.hash
         if self.strict_scope:
-            sha1_hash.update(b"\x00")
-        return sha1_hash.digest()
+            h ^= 1
+        return h.to_bytes(8, "big", signed=True)
 
     def get(self, event, **kwargs):
         """Look up a host in the radix tree.
@@ -201,10 +209,8 @@ class ScanSeeds(BaseTarget):
     @property
     def hash(self):
         """Seeds get hashed by event data, not by hosts."""
-        sha1_hash = sha1()
-        for h in sorted(str(e.data).encode() for e in self.event_seeds):
-            sha1_hash.update(h)
-        return sha1_hash.digest()
+        h = _fnv1a_64(sorted(str(e.data) for e in self.event_seeds))
+        return h.to_bytes(8, "big")
 
 
 class ACLTarget(BaseTarget):
@@ -271,12 +277,8 @@ class ScanBlacklist(ACLTarget):
     @property
     def hash(self):
         """Blacklist hash includes both hosts and regex patterns."""
-        sha1_hash = sha1()
-        hosts = sorted(str(h).encode() for h in self.hosts)
-        regex_patterns = sorted(str(r.pattern).encode() for r in self.blacklist_regexes)
-        for h in list(hosts) + list(regex_patterns):
-            sha1_hash.update(h)
-        return sha1_hash.digest()
+        h = (self._rt.hash ^ _fnv1a_64(sorted(r.pattern for r in self.blacklist_regexes))) & 0xFFFFFFFFFFFFFFFF
+        return h.to_bytes(8, "big")
 
     def __len__(self):
         return len(self._rt) + len(self.blacklist_regexes)
@@ -329,17 +331,11 @@ class BBOTTarget:
 
     @property
     def hash(self):
-        sha1_hash = sha1()
-        for target_hash in [t.hash for t in (self.seeds, self.target, self.blacklist)]:
-            sha1_hash.update(target_hash)
-        return sha1_hash.digest()
+        return b"".join(t.hash for t in (self.seeds, self.target, self.blacklist))
 
     @property
     def scope_hash(self):
-        sha1_hash = sha1()
-        for target_hash in [t.hash for t in (self.target, self.blacklist)]:
-            sha1_hash.update(target_hash)
-        return sha1_hash.digest()
+        return b"".join(t.hash for t in (self.target, self.blacklist))
 
     def in_scope(self, host):
         """

@@ -150,9 +150,8 @@ async def test_target_basic(bbot_scanner):
     target2.seeds.add("1.2.3.4/24")
     target2.seeds.add("https://evilcorp.net:8080")
 
-    # make sure it's a sha1 hash
     assert isinstance(target1.hash, bytes)
-    assert len(target1.hash) == 20
+    assert len(target1.hash) == 24
 
     # hashes shouldn't match yet
     assert target1.hash != target2.hash
@@ -183,9 +182,8 @@ async def test_target_basic(bbot_scanner):
     bbottarget8 = BBOTTarget(seeds=["1.2.3.0/24"], target=["evilcorp.com", "evilcorp.net"], blacklist=["1.2.3.4"])
     bbottarget9 = BBOTTarget(seeds=["evilcorp.com", "evilcorp.net"], target=["1.2.3.0/24"], blacklist=["1.2.3.4"])
 
-    # make sure it's a sha1 hash
     assert isinstance(bbottarget1.hash, bytes)
-    assert len(bbottarget1.hash) == 20
+    assert len(bbottarget1.hash) == 24
 
     assert bbottarget1 == bbottarget2
     assert bbottarget2 == bbottarget1
@@ -288,11 +286,11 @@ async def test_target_basic(bbot_scanner):
     assert bbottarget.seeds.hosts == {"1.2.3.0/24", "www.evilcorp.net", "fdsa.evilcorp.net"}
     assert set(bbottarget.target.hosts) == {"evilcorp.com", "evilcorp.net"}
     assert bbottarget.blacklist.hosts == {"1.2.3.4/32", "4.3.2.0/24", "asdf.evilcorp.net"}
-    assert bbottarget.hash == b"\xf8\x9bB\x99\x8c\xaa\xd6\xac_\xca3\x84\xbf\xd2\x06\x9f\xf3\x9d\xa1\xc7"
-    assert bbottarget.scope_hash == b"\xd4\x9ekZd\x9dT\x12fLl\xe6\x1a5\x82\xba\xa0\x01\x1f\xb7"
-    assert bbottarget.seeds.hash == b"V\n\xf5\x1d\x1f=i\xbc\\\x15o\xc2p\xb2\x84\x97\xfeR\xde\xc1"
-    assert bbottarget.target.hash == b"\x8e\xd0\xa76\x8em4c\x0e\x1c\xfdA\x9d*sv}\xeb\xc4\xc4"
-    assert bbottarget.blacklist.hash == b"\xf6@\xf3\xb2\xd3s\x15\xad=+\xab\x8fY`Gk\xf4\x00\x89\xcb"
+    assert bbottarget.hash == b"W\x1ai\x9f\xd6\x13\x87\xdd\x9cNP\xcf\xca4[6F\xc0U\x13\xfbd\xd9\xf3"
+    assert bbottarget.scope_hash == b"\x9cNP\xcf\xca4[6F\xc0U\x13\xfbd\xd9\xf3"
+    assert bbottarget.seeds.hash == b"W\x1ai\x9f\xd6\x13\x87\xdd"
+    assert bbottarget.target.hash == b"\x9cNP\xcf\xca4[6"
+    assert bbottarget.blacklist.hash == b"F\xc0U\x13\xfbd\xd9\xf3"
 
     scan = bbot_scanner(
         "evilcorp.net",
@@ -310,11 +308,11 @@ async def test_target_basic(bbot_scanner):
     assert target_dict["target"] == ["bob@www.evilcorp.com", "evilcorp.com", "evilcorp.net"]
     assert target_dict["blacklist"] == ["1.2.3.4", "4.3.2.0/24", "bob@asdf.evilcorp.net", "http://1.2.3.4/"]
     assert target_dict["strict_scope"] is False
-    assert target_dict["hash"] == "f89b42998caad6ac5fca3384bfd2069ff39da1c7"
-    assert target_dict["seed_hash"] == "560af51d1f3d69bc5c156fc270b28497fe52dec1"
-    assert target_dict["target_hash"] == "8ed0a7368e6d34630e1cfd419d2a73767debc4c4"
-    assert target_dict["blacklist_hash"] == "f640f3b2d37315ad3d2bab8f5960476bf40089cb"
-    assert target_dict["scope_hash"] == "d49e6b5a649d5412664c6ce61a3582baa0011fb7"
+    assert target_dict["hash"] == "571a699fd61387dd9c4e50cfca345b3646c05513fb64d9f3"
+    assert target_dict["seed_hash"] == "571a699fd61387dd"
+    assert target_dict["target_hash"] == "9c4e50cfca345b36"
+    assert target_dict["blacklist_hash"] == "46c05513fb64d9f3"
+    assert target_dict["scope_hash"] == "9c4e50cfca345b3646c05513fb64d9f3"
 
     # make sure child subnets/IPs don't get added to target/blacklist
     target = RadixTarget("1.2.3.4/24", "1.2.3.4/28", acl_mode=True)
