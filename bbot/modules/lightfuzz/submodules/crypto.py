@@ -26,6 +26,12 @@ class crypto(BaseLightfuzz):
     * Padding Oracle Vulnerabilities:
        - Identifies the presence of cryptographic oracles that could be exploited to arbitrary decrypt or encrypt data for the parameter value.
 
+    * ECB Mode Detection:
+       - Passively detects ECB mode encryption by checking for repeated ciphertext blocks in parameter values (zero HTTP requests).
+
+    * CBC Bit-Flipping Detection:
+       - Actively tests whether mutating different byte positions in the penultimate ciphertext block produces distinguishable server responses,
+         indicating CBC mode without integrity protection (2 HTTP requests).
 
     """
 
@@ -174,7 +180,7 @@ class crypto(BaseLightfuzz):
         if action == "truncate":
             modified_data = data[:-1]  # Remove the last byte
         elif action == "mutate":
-            if not position:
+            if position is None:
                 position = len(data) // 2
             if position < 0 or position >= len(data):
                 raise ValueError("Position out of range")
@@ -184,7 +190,7 @@ class crypto(BaseLightfuzz):
         elif action == "extend":
             modified_data = data + (b"\x00" * extension_length)
         elif action == "flip":
-            if not position:
+            if position is None:
                 position = len(data) // 2
             if position < 0 or position >= len(data):
                 raise ValueError("Position out of range")
@@ -221,6 +227,90 @@ class crypto(BaseLightfuzz):
             if ciphertext_length % block_size == 0 and num_blocks >= 2:
                 possible_sizes.append(block_size)
         return possible_sizes
+
+    def detect_ecb(self, probe_value):
+        """
+        Passively detect ECB mode encryption by checking for repeated ciphertext blocks.
+        ECB encrypts each block independently, so identical plaintext blocks produce identical
+        ciphertext blocks. Zero HTTP requests required.
+        """
+        data, encoding = self.format_agnostic_decode(probe_value)
+        if encoding == "unknown":
+            return
+        for block_size in self.possible_block_sizes(len(data)):
+            blocks = [data[i : i + block_size] for i in range(0, len(data), block_size)]
+            if len(blocks) != len(set(blocks)):
+                context = f"Lightfuzz Cryptographic Probe Submodule detected ECB mode encryption in parameter: [{self.event.data['name']}]"
+                self.results.append(
+                    {
+                        "severity": "MEDIUM",
+                        "name": "ECB Mode Encryption Detected",
+                        "confidence": "MEDIUM",
+                        "description": f"ECB Mode Encryption Detected. Block size: [{block_size}] {self.metadata()}",
+                        "context": context,
+                    }
+                )
+                return  # Report first matching block size only
+
+    async def cbc_bitflip(self, probe_value, cookies):
+        """
+        Detect CBC bit-flipping vulnerability by mutating different byte positions in the
+        penultimate ciphertext block. In CBC mode, modifying byte N of block K affects byte N
+        of the decrypted block K+1. If the server produces distinguishable responses for
+        different mutation positions, it indicates CBC without integrity protection.
+        Cost: 2 HTTP requests.
+        """
+        data, encoding = self.format_agnostic_decode(probe_value)
+        if encoding == "unknown":
+            return
+        for block_size in self.possible_block_sizes(len(data)):
+            num_blocks = len(data) // block_size
+            if num_blocks < 2:
+                continue
+            penultimate_start = (num_blocks - 2) * block_size
+            # Mutate first byte of penultimate block
+            try:
+                probe_a = self.modify_string(probe_value, action="mutate", position=penultimate_start)
+            except ValueError:
+                continue
+            # Mutate middle byte of penultimate block
+            try:
+                probe_b = self.modify_string(
+                    probe_value, action="mutate", position=penultimate_start + block_size // 2
+                )
+            except ValueError:
+                continue
+            # Use probe_a as the baseline, compare probe_b against it
+            http_compare = self.compare_baseline(self.event.data["type"], probe_a, cookies)
+            try:
+                result = await self.compare_probe(http_compare, self.event.data["type"], probe_b, cookies)
+            except HttpCompareError as e:
+                self.verbose(f"Encountered HttpCompareError during CBC bit-flip test: {e}")
+                continue
+            if result[0] is False and "body" in result[1]:
+                # Strip reflected probe values to avoid false positives
+                stripped_baseline = http_compare.baseline.text
+                stripped_probe = result[3].text
+                for encoded_a, encoded_b in [
+                    (probe_a, probe_b),
+                    (probe_a.replace("+", " "), probe_b.replace("+", " ")),
+                    (quote(probe_a), quote(probe_b)),
+                ]:
+                    stripped_baseline = stripped_baseline.replace(encoded_a, "")
+                    stripped_probe = stripped_probe.replace(encoded_b, "")
+                if stripped_baseline == stripped_probe:
+                    continue
+                context = f"Lightfuzz Cryptographic Probe Submodule detected probable CBC bit-flipping in parameter: [{self.event.data['name']}]"
+                self.results.append(
+                    {
+                        "severity": "MEDIUM",
+                        "name": "CBC Bit-Flipping Detected",
+                        "confidence": "MEDIUM",
+                        "description": f"CBC Bit-Flipping Detected. Block size: [{block_size}] {self.metadata()}",
+                        "context": context,
+                    }
+                )
+                return  # Report first matching block size only
 
     async def padding_oracle_execute(self, original_data, encoding, block_size, cookies, possible_first_byte=True):
         """
@@ -428,6 +518,10 @@ class crypto(BaseLightfuzz):
             self.debug("Parameter value does not appear to be cryptographic, aborting tests")
             return
 
+        # ECB Mode Detection (passive, zero HTTP requests)
+        if possible_block_cipher:
+            self.detect_ecb(probe_value)
+
         # Cryptographic Response Divergence Test
 
         http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
@@ -487,6 +581,9 @@ class crypto(BaseLightfuzz):
                     "Attempting padding oracle exploit since it looks like a block cipher and we have confirmed crypto"
                 )
                 await self.padding_oracle(probe_value, cookies)
+
+                # CBC Bit-Flipping Test
+                await self.cbc_bitflip(probe_value, cookies)
 
             # Hash identification / Potential Length extension attack
             data, encoding = crypto.format_agnostic_decode(probe_value)

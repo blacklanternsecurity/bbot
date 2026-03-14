@@ -2338,6 +2338,284 @@ class Test_Lightfuzz_envelope_isolation_paddingoracle_reflecting(Test_Lightfuzz_
     }
 
 
+# ECB Mode Detection: ciphertext with repeated 16-byte blocks (A+B+A+B pattern)
+class Test_Lightfuzz_ECBDetection(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    # Two 16-byte blocks with non-overlapping byte values (high entropy), repeated A+B+A+B
+    _block_a = bytes(range(16)).hex()  # 000102...0f
+    _block_b = bytes(range(128, 144)).hex()  # 808182...8f
+    ecb_ciphertext_hex = _block_a + _block_b + _block_a + _block_b
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = f"""
+        <section>
+            <form action=/ method=GET>
+                <input type=text value='{self.ecb_ciphertext_hex}' name=token>
+                <button type=submit>Submit</button>
+            </form>
+        </section>
+        """
+        if "token=" in qs:
+            return Response("OK", status=200)
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        ecb_detected = False
+        for e in events:
+            if e.type == "FINDING":
+                if "ECB Mode Encryption Detected" in e.data["description"]:
+                    ecb_detected = True
+        assert ecb_detected, "ECB Mode Encryption FINDING not emitted"
+
+
+# ECB Negative: all unique blocks, should NOT detect ECB
+class Test_Lightfuzz_ECBDetection_Negative(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    # 4 unique 16-byte blocks with non-overlapping byte values (high entropy, no repeats)
+    unique_ciphertext_hex = (
+        bytes(range(0, 16)).hex()
+        + bytes(range(64, 80)).hex()
+        + bytes(range(128, 144)).hex()
+        + bytes(range(192, 208)).hex()
+    )
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = f"""
+        <section>
+            <form action=/ method=GET>
+                <input type=text value='{self.unique_ciphertext_hex}' name=token>
+                <button type=submit>Submit</button>
+            </form>
+        </section>
+        """
+        if "token=" in qs:
+            return Response("OK", status=200)
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        for e in events:
+            if e.type == "FINDING":
+                assert "ECB Mode Encryption Detected" not in e.data["description"], (
+                    "ECB falsely detected on unique blocks"
+                )
+
+
+# CBC Bit-Flipping Detection: server returns different responses for different byte-position mutations
+class Test_Lightfuzz_CBCBitflipDetection(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    # 3 blocks of 16 bytes = 48 bytes, base64-encoded
+    original_b64 = base64.b64encode(bytes(range(48))).decode()
+
+    def request_handler(self, request):
+        encrypted_value = quote(self.original_b64)
+        default_html = f"""
+        <html><body>
+            <form action="/process" method="post">
+                <input type="hidden" name="cipher" value="{encrypted_value}" />
+                <button type="submit">Process</button>
+            </form>
+        </body></html>
+        """
+        if "/process" in request.url and request.method == "POST":
+            if request.form and request.form.get("cipher"):
+                cipher_val = request.form["cipher"]
+                try:
+                    raw = base64.b64decode(cipher_val)
+                except Exception:
+                    return Response("Invalid input", status=200)
+                # Penultimate block starts at byte 16
+                # Check which byte in the penultimate block differs from original
+                original_raw = bytes(range(48))
+                if len(raw) == len(original_raw):
+                    penultimate_start = 16
+                    for i in range(penultimate_start, penultimate_start + 16):
+                        if raw[i] != original_raw[i]:
+                            # First byte (pos 16) vs middle byte (pos 24) produce different responses
+                            if i < penultimate_start + 8:
+                                return Response("Decryption result: type A", status=200)
+                            else:
+                                return Response("Decryption result: type B", status=200)
+                return Response("Decryption failed", status=200)
+            return Response("Decryption failed", status=200)
+        return Response(default_html, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        cbc_bitflip_detected = False
+        for e in events:
+            if e.type == "FINDING":
+                if "CBC Bit-Flipping Detected" in e.data["description"]:
+                    cbc_bitflip_detected = True
+        assert cbc_bitflip_detected, "CBC Bit-Flipping Detected FINDING not emitted"
+
+
+# CBC Bit-Flipping Negative: server returns identical response regardless of mutation position
+class Test_Lightfuzz_CBCBitflipDetection_Negative(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    original_b64 = base64.b64encode(bytes(range(48))).decode()
+
+    def request_handler(self, request):
+        encrypted_value = quote(self.original_b64)
+        default_html = f"""
+        <html><body>
+            <form action="/process" method="post">
+                <input type="hidden" name="cipher" value="{encrypted_value}" />
+                <button type="submit">Process</button>
+            </form>
+        </body></html>
+        """
+        if "/process" in request.url and request.method == "POST":
+            return Response("Decryption failed", status=200)
+        return Response(default_html, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        for e in events:
+            if e.type == "FINDING":
+                assert "CBC Bit-Flipping Detected" not in e.data["description"], (
+                    "CBC Bit-Flipping falsely detected on identical responses"
+                )
+
+
+# CBC Bit-Flipping without Padding Oracle: server never fails decryption (OPENSSL_ZERO_PADDING equivalent).
+# Every input produces a unique response derived from the submitted value — no padding validity leaked.
+# Padding oracle sends ~254 probes that all get unique responses → differ_count >> block_size → not detected.
+# CBC bit-flip probes still produce different responses → detected.
+class Test_Lightfuzz_CBCBitflipDetection_NoPaddingOracle(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    # 3 blocks of 16 bytes = 48 bytes, base64-encoded
+    original_b64 = base64.b64encode(bytes(range(48))).decode()
+
+    def request_handler(self, request):
+        encrypted_value = quote(self.original_b64)
+        default_html = f"""
+        <html><body>
+            <form action="/process" method="post">
+                <input type="hidden" name="cipher" value="{encrypted_value}" />
+                <button type="submit">Process</button>
+            </form>
+        </body></html>
+        """
+        if "/process" in request.url and request.method == "POST":
+            if request.form and request.form.get("cipher"):
+                cipher_val = request.form["cipher"]
+                # No error paths — always return content derived from input.
+                # Simulates OPENSSL_ZERO_PADDING: decryption never fails.
+                import hashlib
+
+                digest = hashlib.md5(cipher_val.encode()).hexdigest()
+                return Response(f"Session loaded: {digest}", status=200)
+            return Response("Session loaded: default", status=200)
+        return Response(default_html, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        cbc_bitflip_detected = False
+        padding_oracle_detected = False
+        for e in events:
+            if e.type == "FINDING":
+                if "CBC Bit-Flipping Detected" in e.data["description"]:
+                    cbc_bitflip_detected = True
+                if "Padding Oracle Vulnerability" in e.data["description"]:
+                    padding_oracle_detected = True
+        assert cbc_bitflip_detected, "CBC Bit-Flipping should be detected even without padding oracle"
+        assert not padding_oracle_detected, "Padding Oracle should NOT be detected when decryption never fails"
+
+
+# Envelope state isolation: ECB detection with all submodules enabled
+class Test_Lightfuzz_envelope_isolation_ecb(Test_Lightfuzz_ECBDetection):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
+            }
+        },
+    }
+
+
+# Envelope state isolation: CBC bit-flip detection with all submodules enabled
+class Test_Lightfuzz_envelope_isolation_cbc_bitflip(Test_Lightfuzz_CBCBitflipDetection):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
+            }
+        },
+    }
+
+
+# Envelope state isolation: CBC bit-flip without padding oracle, all submodules enabled
+class Test_Lightfuzz_envelope_isolation_cbc_bitflip_no_po(Test_Lightfuzz_CBCBitflipDetection_NoPaddingOracle):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
+            }
+        },
+    }
+
+
 # Test filter_event method with WAF tags
 class Test_Lightfuzz_filter_event(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
