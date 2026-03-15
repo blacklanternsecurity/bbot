@@ -1687,7 +1687,7 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
         """
         crypto_block = """
         <section class=blog-header>
-            <h1>Access Denied!</h1>
+            <h1>Padding is invalid</h1>
             <hr>
         </section>
         """

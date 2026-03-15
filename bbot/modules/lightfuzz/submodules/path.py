@@ -113,7 +113,10 @@ class path(BaseLightfuzz):
                         and doubledot_probe[0] is False
                         and doubledot_probe[3] is not None
                         and doubledot_probe[1] != ["header"]
-                        and "The requested URL was rejected" not in doubledot_probe[3].text
+                        and not any(
+                            waf_string in doubledot_probe[3].text
+                            for waf_string in self.lightfuzz.helpers.get_waf_strings()
+                        )
                     ):
                         confirmations += 1
                         self.verbose(f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations")

@@ -262,6 +262,16 @@ parameter_blacklist:
   - PHPSESSID
   - __cf_bm
   - f5_cspm
+  # CSRF / Anti-Forgery tokens
+  - authenticity_token
+  - csrfmiddlewaretoken
+  - __RequestVerificationToken
+  - antiforgerytoken
+  - __csrf_magic
+  - _wpnonce
+  # ASP.NET session/identity cookies
+  - .ASPXANONYMOUS
+  - .ASPXAUTH
 
 parameter_blacklist_prefixes:
   - TS01

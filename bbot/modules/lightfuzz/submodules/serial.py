@@ -1,5 +1,6 @@
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
+from bbot.core.helpers.misc import get_waf_strings
 
 
 class serial(BaseLightfuzz):
@@ -50,8 +51,7 @@ class serial(BaseLightfuzz):
     GENERAL_ERRORS = [
         "Internal Error",
         "Internal Server Error",
-        "The requested URL was rejected",
-    ]
+    ] + get_waf_strings()
 
     def is_possibly_serialized(self, value):
         # Use the is_base64 method from BaseLightfuzz via self

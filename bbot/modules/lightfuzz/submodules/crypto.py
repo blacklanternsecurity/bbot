@@ -69,7 +69,6 @@ class crypto(BaseLightfuzz):
         "key does not exist",
         "the parameter is incorrect",
         "cryptography exception",
-        "access denied",
         "unknown error",
         "invalid provider type",
         "no valid cert found",
