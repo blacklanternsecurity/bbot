@@ -431,10 +431,8 @@ class wayback(subdomain_enum):
         body = self._wayback_stale_ref_re.sub("", body)
         return body
 
-    # archive.org rate-limits aggressively; pace requests to avoid cascading ReadErrors
     _archive_per_request_retries = 3
     _archive_batch_retries = 1
-    _archive_delay = 0.5  # seconds between successful requests
     _archive_error_delay = 3  # initial backoff seconds after a failed request
     _archive_429_default_delay = 30  # default delay on 429 when no retry-after header
 
@@ -496,10 +494,23 @@ class wayback(subdomain_enum):
         """
         failed = []
         succeeded = 0
+        skipped = 0
         processed = processed_offset
 
         for archive_url, (raw_url, parent_event) in url_metadata.items():
             processed += 1
+
+            # HEAD pre-check: resolve redirects cheaply to check for duplicates
+            # before downloading the full response body
+            resolved_url = await self._resolve_archive_url(archive_url, raw_url)
+            if resolved_url is not None and resolved_url in self._archive_bloom:
+                self.verbose(f"Skipping duplicate archive response for {raw_url} (resolved URL: {resolved_url})")
+                skipped += 1
+                if processed % 50 == 0 or processed == total:
+                    self.verbose(
+                        f"Archive progress: {processed:,}/{total:,} ({succeeded:,} succeeded, {len(failed):,} failed, {skipped:,} skipped)"
+                    )
+                continue
 
             r = await self._fetch_single_archive_url(archive_url, raw_url)
 
@@ -514,13 +525,35 @@ class wayback(subdomain_enum):
 
             if processed % 50 == 0 or processed == total:
                 self.verbose(
-                    f"Archive progress: {processed:,}/{total:,} ({succeeded:,} succeeded, {len(failed):,} failed)"
+                    f"Archive progress: {processed:,}/{total:,} ({succeeded:,} succeeded, {len(failed):,} failed, {skipped:,} skipped)"
                 )
 
-            # pace requests to avoid triggering rate limits
-            await self.helpers.sleep(self._archive_delay)
-
         return failed, succeeded, processed
+
+    async def _resolve_archive_url(self, archive_url, raw_url):
+        """HEAD request to resolve the final URL after redirects, for bloom filter pre-check.
+
+        Returns the resolved URL string, or None if the HEAD request fails.
+        """
+        try:
+            r = await self.helpers.request(
+                archive_url, method="HEAD", timeout=self.http_timeout + 30, follow_redirects=True, raise_error=True
+            )
+        except Exception as e:
+            self.debug(f"HEAD pre-check failed for {raw_url}: {e}")
+            return None
+        if r.status_code == 429:
+            retry_after = r.headers.get("retry-after", "")
+            try:
+                delay = min(int(retry_after), 120)
+            except (ValueError, TypeError):
+                delay = self._archive_429_default_delay
+            self.verbose(f"Archive.org rate limit (429) during HEAD pre-check for {raw_url}, sleeping {delay}s")
+            await self.helpers.sleep(delay)
+            return None
+        if r.status_code == 200:
+            return str(r.url)
+        return None
 
     async def _fetch_single_archive_url(self, archive_url, raw_url):
         """Fetch a single archive URL with per-request retry, 429 handling, and backoff.
