@@ -11,8 +11,8 @@ class WebhookOutputModule(BaseOutputModule):
     accept_dupes = False
     message_size_limit = 2000
     content_key = "content"
-    severities = ["INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
-    confidences = ["UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED"]
+    severities = ["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    confidences = ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED"]
 
     # abort module after 10 failed requests (not including retries)
     _api_failure_abort_threshold = 10
@@ -54,7 +54,7 @@ class WebhookOutputModule(BaseOutputModule):
 
     async def filter_event(self, event):
         if event.type == "FINDING":
-            severity = event.data.get("severity", "INFORMATIONAL")
+            severity = event.data.get("severity", "INFO")
             if severity not in self.allowed_severities:
                 return False, f"{severity} is below min_severity threshold"
         return True
@@ -73,7 +73,7 @@ class WebhookOutputModule(BaseOutputModule):
 
     def get_colors(self, event):
         if event.type == "FINDING":
-            severity = event.data.get("severity", "INFORMATIONAL")
+            severity = event.data.get("severity", "INFO")
             confidence = event.data.get("confidence", "UNKNOWN")
             severity_color = event.severity_colors.get(severity, "⬜")
             confidence_color = event.confidence_colors.get(confidence, "⚪")
