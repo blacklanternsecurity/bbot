@@ -245,18 +245,28 @@ class TestTrajanJfrog(ModuleTestBase):
 
 
 class TestTrajanJenkins(ModuleTestBase):
-    targets = ["https://jenkins.blacklanternsecurity.com/job/deploy-pipeline"]
+    """Test Jenkins detection via TECHNOLOGY event on a non-jenkins hostname."""
+
+    targets = ["blacklanternsecurity.com"]
     modules_overrides = ["trajan"]
     config_overrides = {"modules": {"trajan": {"jenkins_token": "test-jenkins-token"}}}
 
     async def setup_after_prep(self, module_test):
+        # Inject a TECHNOLOGY event as if gowitness/shodan detected Jenkins
+        tech_event = module_test.scan.make_event(
+            {"technology": "jenkins", "url": "https://ci.blacklanternsecurity.com:8080/job/deploy-pipeline", "host": "ci.blacklanternsecurity.com"},
+            "TECHNOLOGY",
+            parent=module_test.scan.root_event,
+        )
+        await module_test.scan.ingress_module.queue_event(tech_event, {})
+
         async def mock_run(*command, **kwargs):
             cmd = command[0] if len(command) == 1 and isinstance(command[0], list) else list(command)
             if "trajan" in cmd:
                 assert "jenkins" in cmd
                 assert "--url" in cmd
                 url_idx = cmd.index("--url")
-                assert cmd[url_idx + 1] == "https://jenkins.blacklanternsecurity.com"
+                assert cmd[url_idx + 1] == "https://ci.blacklanternsecurity.com:8080"
                 assert "--repo" in cmd
                 repo_idx = cmd.index("--repo")
                 assert cmd[repo_idx + 1] == "deploy-pipeline"
@@ -274,3 +284,44 @@ class TestTrajanJenkins(ModuleTestBase):
         finding = findings[0]
         assert "jenkins_script_console" in finding.data["name"]
         assert finding.data["severity"] == "CRITICAL"
+
+
+class TestTrajanJfrogTechnology(ModuleTestBase):
+    """Test JFrog/Artifactory detection via TECHNOLOGY event on a non-jfrog hostname."""
+
+    targets = ["blacklanternsecurity.com"]
+    modules_overrides = ["trajan"]
+    config_overrides = {"modules": {"trajan": {"jfrog_token": "test-jfrog-token"}}}
+
+    async def setup_after_prep(self, module_test):
+        # Inject an "artifactory" TECHNOLOGY event on a self-hosted instance
+        tech_event = module_test.scan.make_event(
+            {"technology": "artifactory", "url": "https://artifacts.blacklanternsecurity.com/", "host": "artifacts.blacklanternsecurity.com"},
+            "TECHNOLOGY",
+            parent=module_test.scan.root_event,
+        )
+        await module_test.scan.ingress_module.queue_event(tech_event, {})
+
+        async def mock_run(*command, **kwargs):
+            cmd = command[0] if len(command) == 1 and isinstance(command[0], list) else list(command)
+            if "trajan" in cmd:
+                assert "jfrog" in cmd
+                assert "--url" in cmd
+                url_idx = cmd.index("--url")
+                assert cmd[url_idx + 1] == "https://artifacts.blacklanternsecurity.com"
+                assert "--secrets" in cmd
+                assert "--token" in cmd
+                token_idx = cmd.index("--token")
+                assert cmd[token_idx + 1] == "test-jfrog-token"
+                return CompletedProcess(cmd, 0, trajan_jfrog_output, "")
+            return CompletedProcess(cmd, 1, "", "")
+
+        module_test.monkeypatch.setattr(module_test.scan.helpers, "run", mock_run)
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        assert len(findings) == 2, f"Expected 2 FINDINGs (1 artifact + 1 build secret), got {len(findings)}"
+        artifact_findings = [e for e in findings if "Artifact Secret" in e.data["name"]]
+        assert len(artifact_findings) == 1
+        build_findings = [e for e in findings if "Build Secret" in e.data["name"]]
+        assert len(build_findings) == 1
