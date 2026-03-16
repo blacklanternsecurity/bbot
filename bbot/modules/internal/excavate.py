@@ -1250,26 +1250,36 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
                             # Try to extract parameters from the redirect URL
                             if self.parameter_extraction:
-                                for (
-                                    method,
-                                    parsed_url,
-                                    parameter_name,
-                                    original_value,
-                                    regex_name,
-                                    additional_params,
-                                ) in extract_params_location(header_value, event.parsed_url):
-                                    if self.in_bl(parameter_name) is False:
-                                        await self.emit_web_parameter(
-                                            host=parsed_url.hostname,
-                                            param_type="GETPARAM",
-                                            name=parameter_name,
-                                            original_value=original_value,
-                                            url=self.url_unparse("GETPARAM", parsed_url),
-                                            description=f"HTTP Extracted Parameter [{parameter_name}] (Location Header)",
-                                            additional_params=additional_params,
-                                            event=event,
-                                            context=f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it",
-                                        )
+                                # Don't extract parameters from out-of-scope redirects —
+                                # they would inherit in-scope status from the parent event
+                                # and cause lightfuzz to fuzz external endpoints
+                                redirect_parsed = urlparse(redirect_location)
+                                redirect_host = redirect_parsed.hostname
+                                if redirect_host and not self.scan.in_scope(redirect_host):
+                                    self.debug(
+                                        f"Skipping parameter extraction from out-of-scope redirect to {redirect_host}"
+                                    )
+                                else:
+                                    for (
+                                        method,
+                                        parsed_url,
+                                        parameter_name,
+                                        original_value,
+                                        regex_name,
+                                        additional_params,
+                                    ) in extract_params_location(header_value, event.parsed_url):
+                                        if self.in_bl(parameter_name) is False:
+                                            await self.emit_web_parameter(
+                                                host=parsed_url.hostname,
+                                                param_type="GETPARAM",
+                                                name=parameter_name,
+                                                original_value=original_value,
+                                                url=self.url_unparse("GETPARAM", parsed_url),
+                                                description=f"HTTP Extracted Parameter [{parameter_name}] (Location Header)",
+                                                additional_params=additional_params,
+                                                event=event,
+                                                context=f"Excavate parsed a location header for parameters and found [GETPARAM] Parameter Name: [{parameter_name}] and emitted a WEB_PARAMETER for it",
+                                            )
                         else:
                             self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
                     if header.lower() == "content-type":

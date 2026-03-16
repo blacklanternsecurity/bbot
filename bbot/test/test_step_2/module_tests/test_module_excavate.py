@@ -1570,3 +1570,37 @@ class TestExcavateIgnorePDF(ModuleTestBase):
             e for e in events if e.type == "FINDING" and "ftp://ftp.test.notreal" in e.data.get("description", "")
         ]
         assert len(ftp_findings) == 0, f"PDF body should not produce findings, but got: {ftp_findings}"
+
+
+class TestExcavateRedirectParameterScope(ModuleTestBase):
+    """Verify that parameter extraction is skipped for out-of-scope redirect targets.
+
+    When an in-scope HTTP response has a Location header pointing to an external
+    out-of-scope domain, the redirect URL's query parameters should NOT be emitted
+    as WEB_PARAMETER events, because they would inherit the in-scope parent's scope
+    distance and cause lightfuzz to fuzz external endpoints.
+    """
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["httpx", "excavate", "hunt"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "",
+            status=302,
+            headers={"Location": "https://login.microsoftonline.com/oauth2/authorize?state=abc123&client_id=test456"},
+        )
+
+    def check(self, module_test, events):
+        # The redirect URL itself should be emitted as URL_UNVERIFIED (that's correct behavior)
+        assert any(e.type == "URL_UNVERIFIED" and "login.microsoftonline.com" in e.data for e in events), (
+            "Redirect URL_UNVERIFIED should still be emitted"
+        )
+
+        # But NO WEB_PARAMETER events should be emitted for the out-of-scope redirect's parameters
+        redirect_params = [
+            e for e in events if e.type == "WEB_PARAMETER" and "login.microsoftonline.com" in e.data.get("url", "")
+        ]
+        assert len(redirect_params) == 0, (
+            f"Out-of-scope redirect parameters should not be extracted, but got: {redirect_params}"
+        )
