@@ -10,7 +10,7 @@ class trajan(BaseModule):
     flags = ["passive", "safe", "code-enum"]
     meta = {
         "description": "Scans GitHub, GitLab, Azure DevOps, Jenkins, and JFrog for misconfigurations using Praetorian's Trajan tool",
-        "author": "N7WERA",
+        "author": "@N7WERA",
     }
 
     # Configuration options
@@ -81,7 +81,6 @@ class trajan(BaseModule):
         self.jenkins_username = self.config.get("jenkins_username", "")
         self.jenkins_password = self.config.get("jenkins_password", "")
         self.jenkins_token = self.config.get("jenkins_token", "")
-        self._scanned = set()
         return True
 
     def detect_platform_from_url(self, hostname, domain):
@@ -94,6 +93,19 @@ class trajan(BaseModule):
         """Detect platform from a TECHNOLOGY event's technology name."""
         return self.technology_platforms.get(technology.lower())
 
+    def _get_platform(self, event):
+        """Detect the platform for an event, or None if not applicable."""
+        if event.type == "TECHNOLOGY":
+            tech = event.data.get("technology", "").lower()
+            return self.detect_platform_from_technology(tech)
+        hostname = str(event.host)
+        _, domain = self.helpers.split_domain(hostname)
+        return self.detect_platform_from_url(hostname, domain)
+
+    def _incoming_dedup_hash(self, event):
+        platform = self._get_platform(event)
+        return hash(f"{platform}:{event.host}"), f"already scanned {event.host} as {platform}"
+
     async def filter_event(self, event):
         if event.type == "TECHNOLOGY":
             tech = event.data.get("technology", "").lower()
@@ -101,6 +113,10 @@ class trajan(BaseModule):
                 return False, f"technology '{tech}' is not supported by trajan"
             if not event.data.get("url"):
                 return False, "TECHNOLOGY event has no URL"
+
+        platform = self._get_platform(event)
+        if platform is None:
+            return False, "could not determine platform from event"
         return True
 
     async def handle_event(self, event):
@@ -112,57 +128,22 @@ class trajan(BaseModule):
     async def handle_technology(self, event):
         tech = event.data.get("technology", "").lower()
         platform = self.detect_platform_from_technology(tech)
-        if not platform:
-            return
-
         url = event.data.get("url", "")
         parsed = urlparse(url)
         base_url = f"{parsed.scheme}://{parsed.netloc}"
         path_parts = [p for p in parsed.path.strip("/").split("/") if p]
-
-        # Deduplicate: don't scan the same base URL + platform twice
-        dedup_key = f"{platform}:{base_url}"
-        if dedup_key in self._scanned:
-            self.debug(f"Already scanned {base_url} as {platform}, skipping")
-            return
-        self._scanned.add(dedup_key)
 
         handler = getattr(self, f"handle_{platform}", None)
         if handler:
             await handler(event, parsed, base_url, path_parts)
 
     async def handle_url(self, event):
-        if event.type == "CODE_REPOSITORY":
-            repo_url = event.data.get("url", "")
-        elif event.type == "URL_UNVERIFIED":
-            repo_url = str(event.data)
-        else:
-            return
-
-        if not repo_url:
-            return
-
         parsed = getattr(event, "parsed_url", None)
-        if parsed is None:
-            return
         hostname = parsed.hostname
-        if not hostname:
-            return
-
         _, domain = self.helpers.split_domain(hostname)
+        platform = self.detect_platform_from_url(hostname, domain)
         base_url = f"{parsed.scheme}://{parsed.netloc}"
         path_parts = [p for p in parsed.path.strip("/").split("/") if p]
-
-        platform = self.detect_platform_from_url(hostname, domain)
-        if not platform:
-            return
-
-        # Deduplicate: don't scan the same base URL + platform twice
-        dedup_key = f"{platform}:{base_url}"
-        if dedup_key in self._scanned:
-            self.debug(f"Already scanned {base_url} as {platform}, skipping")
-            return
-        self._scanned.add(dedup_key)
 
         handler = getattr(self, f"handle_{platform}", None)
         if handler:
