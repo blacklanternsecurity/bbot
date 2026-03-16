@@ -1,5 +1,4 @@
 import json
-import re
 from bbot.modules.base import BaseModule
 
 class trajan(BaseModule):
@@ -7,8 +6,8 @@ class trajan(BaseModule):
     produced_events = ["FINDING"]
     flags = ["passive", "safe", "code-enum"]
     meta = {
-        "description": "Scans GitHub, GitLab, Azure DevOps, Jenkins, and JFrog for misconfigurations using Trajan",
-        "author": "N7WERA (Credit to Praetorian for trajan)",
+        "description": "Scans GitHub, GitLab, Azure DevOps, Jenkins, and JFrog for misconfigurations using Praetorian's Trajan tool",
+        "author": "N7WERA",
     }
 
     # Configuration options
@@ -76,115 +75,134 @@ class trajan(BaseModule):
         if not repo_url:
             return
 
+        parsed = getattr(event, "parsed_url", None)
+        if parsed is None:
+            return
+        hostname = parsed.hostname
+        if not hostname:
+            return
+
+        _, domain = self.helpers.split_domain(hostname)
+        path_parts = [p for p in parsed.path.strip("/").split("/") if p]
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+
         command = None
 
         # GitHub
-        if "github.com" in repo_url:
+        if domain == "github.com":
             if not self.github_token:
                 self.warning(f"Skipping {repo_url} - GitHub token required for Trajan")
                 return
-            match = re.search(r"github\.com/([^/]+)/([^/?#]+)", repo_url)
-            if match:
-                repo_path = f"{match.group(1)}/{match.group(2)}"
+            if len(path_parts) >= 2:
+                repo_path = f"{path_parts[0]}/{path_parts[1]}"
                 command = ["trajan", "github", "scan", "--repo", repo_path, "-o", "json"]
-                if self.github_token:
-                    command.extend(["--token", self.github_token])
+                command.extend(["--token", self.github_token])
                 self.verbose(f"Scanning GitHub {repo_path} with Trajan")
 
         # GitLab
-        elif "gitlab.com" in repo_url:
+        elif domain == "gitlab.com":
             if not self.gitlab_token:
                 self.warning(f"Skipping {repo_url} - GitLab token required for Trajan")
                 return
-            match = re.search(r"gitlab\.com/([^/]+)/([^/?#]+)", repo_url)
-            if match:
-                repo_path = f"{match.group(1)}/{match.group(2)}"
+            if len(path_parts) >= 2:
+                repo_path = f"{path_parts[0]}/{path_parts[1]}"
                 command = ["trajan", "gitlab", "scan", "--project", repo_path, "-o", "json"]
-                if self.gitlab_token:
-                    command.extend(["--token", self.gitlab_token])
+                command.extend(["--token", self.gitlab_token])
                 self.verbose(f"Scanning GitLab {repo_path} with Trajan")
 
         # Azure DevOps
-        elif "dev.azure.com" in repo_url:
+        elif domain == "azure.com" and hostname.startswith("dev."):
             if not self.ado_token:
                 self.warning(f"Skipping {repo_url} - Azure DevOps token required for Trajan")
                 return
             # e.g., https://dev.azure.com/org/project/_git/repo
-            match = re.search(r"dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/?#]+)", repo_url)
-            if match:
-                org = match.group(1)
-                project = match.group(2)
-                repo = match.group(3)
+            if len(path_parts) >= 4 and path_parts[2] == "_git":
+                org = path_parts[0]
+                project = path_parts[1]
+                repo = path_parts[3]
                 repo_path = f"{project}/{repo}"
                 command = ["trajan", "ado", "scan", "--org", org, "--repo", repo_path, "-o", "json"]
-                if self.ado_token:
-                    command.extend(["--token", self.ado_token])
+                command.extend(["--token", self.ado_token])
                 self.verbose(f"Scanning Azure DevOps {org}/{repo_path} with Trajan")
 
         # JFrog
-        elif "jfrog.io" in repo_url or "artifactory" in repo_url:
+        elif "jfrog" in domain or "artifactory" in hostname:
             if not self.jfrog_token:
                 self.warning(f"Skipping {repo_url} - JFrog token required for Trajan")
                 return
-            match = re.search(r"(https?://[^/]+)", repo_url)
-            if match:
-                base_url = match.group(1)
-                command = ["trajan", "jfrog", "scan", "--url", base_url, "--secrets", "-o", "json"]
-                if self.jfrog_token:
-                    command.extend(["--token", self.jfrog_token])
-                self.verbose(f"Scanning JFrog {base_url} with Trajan")
+            command = ["trajan", "jfrog", "scan", "--url", base_url, "--secrets", "-o", "json"]
+            command.extend(["--token", self.jfrog_token])
+            self.verbose(f"Scanning JFrog {base_url} with Trajan")
 
         # Jenkins
-        elif "jenkins" in repo_url:
+        elif "jenkins" in hostname:
             if not self.jenkins_token and not (self.jenkins_username and self.jenkins_password):
                 self.warning(f"Skipping {repo_url} - Jenkins token or username/password required for Trajan")
                 return
-            match = re.search(r"(https?://[^/]+)", repo_url)
-            if match:
-                base_url = match.group(1)
-                command = ["trajan", "jenkins", "scan", "--url", base_url, "-o", "json"]
-                
-                # Check if it's a specific job
-                job_match = re.search(r"/job/([^/]+)", repo_url)
-                if job_match:
-                    command.extend(["--repo", job_match.group(1)])
-
-                if self.jenkins_token:
-                    command.extend(["--token", self.jenkins_token])
-                if self.jenkins_username and self.jenkins_password:
-                    command.extend(["--username", self.jenkins_username, "--password", self.jenkins_password])
-
-                self.verbose(f"Scanning Jenkins {repo_url} with Trajan")
+            command = ["trajan", "jenkins", "scan", "--url", base_url, "-o", "json"]
+            # Check if it's a specific job
+            try:
+                job_idx = path_parts.index("job")
+                if job_idx + 1 < len(path_parts):
+                    command.extend(["--repo", path_parts[job_idx + 1]])
+            except ValueError:
+                pass
+            if self.jenkins_token:
+                command.extend(["--token", self.jenkins_token])
+            if self.jenkins_username and self.jenkins_password:
+                command.extend(["--username", self.jenkins_username, "--password", self.jenkins_password])
+            self.verbose(f"Scanning Jenkins {repo_url} with Trajan")
 
         if not command:
             return
 
-        # Execute and parse findings
+        # Execute and parse output
+        is_jfrog = "jfrog" in command
         process = await self.helpers.run(command)
         if not process or not process.stdout:
             return
 
         try:
             result = json.loads(process.stdout)
-            
-            findings = result.get("findings", [])
-            for finding_data in findings:
-                # Map Trajan's JSON output to BBOT's FINDING format
-                finding = {
-                    "name": f"Trajan - {finding_data.get('type', finding_data.get('title', 'Misconfiguration'))}",
-                    "description": finding_data.get("evidence", "No description provided."),
-                    "severity": finding_data.get("severity", "INFO").upper(),
-                    "confidence": "MODERATE",
-                    "host": event.host
-                }
-
-                # Append extra details to description if available
-                workflow = finding_data.get("workflow", "")
-                if workflow:
-                    finding["description"] += f" (Workflow: {workflow})"
-
-                await self.emit_event(finding, "FINDING", event)
-
         except json.JSONDecodeError:
-            # Log any non-JSON output (like progress bars or errors) to debug
             self.debug(f"Trajan JSONDecodeError. Raw stdout: {process.stdout}")
+            return
+
+        if is_jfrog:
+            await self.parse_jfrog_results(result, event)
+        else:
+            await self.parse_findings(result, event)
+
+    async def parse_findings(self, result, event):
+        for finding_data in result.get("findings", []):
+            finding = {
+                "name": f"Trajan - {finding_data.get('type', 'unknown')}",
+                "description": finding_data.get("evidence", "No description provided."),
+                "severity": finding_data.get("severity", "info").upper(),
+                "confidence": "MODERATE",
+                "host": event.host,
+            }
+            workflow = finding_data.get("workflow", "")
+            if workflow:
+                finding["description"] += f" (Workflow: {workflow})"
+            await self.emit_event(finding, "FINDING", event)
+
+    async def parse_jfrog_results(self, result, event):
+        for secret in result.get("artifactSecrets", []):
+            finding = {
+                "name": f"Trajan - JFrog Artifact Secret ({', '.join(secret.get('secretTypes', []))})",
+                "description": f"Secret found in artifact {secret.get('artifact', 'unknown')} at path {secret.get('path', 'unknown')}",
+                "severity": "HIGH",
+                "confidence": "CONFIRMED",
+                "host": event.host,
+            }
+            await self.emit_event(finding, "FINDING", event)
+        for secret in result.get("buildSecrets", []):
+            finding = {
+                "name": f"Trajan - JFrog Build Secret ({', '.join(secret.get('secretTypes', []))})",
+                "description": f"Secret found in build {secret.get('buildName', 'unknown')} #{secret.get('buildNumber', '?')} env var {secret.get('envVar', 'unknown')}",
+                "severity": "HIGH",
+                "confidence": "CONFIRMED",
+                "host": event.host,
+            }
+            await self.emit_event(finding, "FINDING", event)
