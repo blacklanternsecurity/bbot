@@ -254,7 +254,11 @@ class TestTrajanJenkins(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         # Inject a TECHNOLOGY event as if gowitness/shodan detected Jenkins
         tech_event = module_test.scan.make_event(
-            {"technology": "jenkins", "url": "https://ci.blacklanternsecurity.com:8080/job/deploy-pipeline", "host": "ci.blacklanternsecurity.com"},
+            {
+                "technology": "jenkins",
+                "url": "https://ci.blacklanternsecurity.com:8080/job/deploy-pipeline",
+                "host": "ci.blacklanternsecurity.com",
+            },
             "TECHNOLOGY",
             parent=module_test.scan.root_event,
         )
@@ -296,7 +300,11 @@ class TestTrajanJfrogTechnology(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         # Inject an "artifactory" TECHNOLOGY event on a self-hosted instance
         tech_event = module_test.scan.make_event(
-            {"technology": "artifactory", "url": "https://artifacts.blacklanternsecurity.com/", "host": "artifacts.blacklanternsecurity.com"},
+            {
+                "technology": "artifactory",
+                "url": "https://artifacts.blacklanternsecurity.com/",
+                "host": "artifacts.blacklanternsecurity.com",
+            },
             "TECHNOLOGY",
             parent=module_test.scan.root_event,
         )

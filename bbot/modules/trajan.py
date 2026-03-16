@@ -190,7 +190,18 @@ class trajan(BaseModule):
         if not self.jfrog_token:
             self.warning(f"Skipping {base_url} - JFrog token required for Trajan")
             return
-        command = ["trajan", "jfrog", "scan", "--url", base_url, "--secrets", "-o", "json", "--token", self.jfrog_token]
+        command = [
+            "trajan",
+            "jfrog",
+            "scan",
+            "--url",
+            base_url,
+            "--secrets",
+            "-o",
+            "json",
+            "--token",
+            self.jfrog_token,
+        ]
         self.verbose(f"Scanning JFrog {base_url} with Trajan")
         await self.execute_trajan(command, event, is_jfrog=True)
 
