@@ -11,7 +11,7 @@
 <link href="../module_howto/" rel="prev"/>
 <link href="../discord_bot/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
 <title>Unit Tests - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.wjv0j4h7.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.a7p7sc17.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -928,25 +928,25 @@
 <h2 id="running-tests-locally">Running tests locally</h2>
 <p>We have GitHub Actions that automatically run tests whenever you open a Pull Request. However, you can also run the tests locally with <code>pytest</code>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># lint with ruff</span>
-uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>ruff<span style="color: #6E7681"> </span>check
+poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>ruff<span style="color: #6E7681"> </span>check
 
 <span style="color: #8B949E; font-style: italic"># format code with ruff</span>
-uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>ruff<span style="color: #6E7681"> </span>format
+poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>ruff<span style="color: #6E7681"> </span>format
 
 <span style="color: #8B949E; font-style: italic"># run all tests with pytest (takes roughly 30 minutes)</span>
-uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest
+poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest
 </code></pre></div>
 <h3 id="running-specific-tests">Running specific tests</h3>
 <p>If you only want to run a single test, you can select it with <code>-k</code>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># run only the sslcert test</span>
-uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>-k<span style="color: #6E7681"> </span>test_module_sslcert
+poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>-k<span style="color: #6E7681"> </span>test_module_sslcert
 </code></pre></div>
 <p>You can also filter like this:
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># run all the module tests except for sslcert</span>
-uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>-k<span style="color: #6E7681"> </span><span style="color: #A5D6FF">"test_module_ and not test_module_sslcert"</span>
+poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>-k<span style="color: #6E7681"> </span><span style="color: #A5D6FF">"test_module_ and not test_module_sslcert"</span>
 </code></pre></div></p>
 <p>If you want to see the output of your module, you can enable <code>--log-cli-level</code>:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>--log-cli-level<span style="color: #FF7B72; font-weight: bold">=</span>DEBUG
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>--log-cli-level<span style="color: #FF7B72; font-weight: bold">=</span>DEBUG
 </code></pre></div></p>
 <h2 id="example-writing-a-module-test">Example: Writing a Module Test</h2>
 <p>To write a test for your module, create a new python file in <code>bbot/test/test_step_2/module_tests</code>. Your filename must be <code>test_module_&lt;module_name&gt;</code>:</p>

@@ -11,7 +11,7 @@
 <link href="../events/" rel="prev"/>
 <link href="../tips_and_tricks/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
 <title>Output - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.wjv0j4h7.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.a7p7sc17.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1212,26 +1212,22 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">password</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">P@ssw0rd</span>
 </code></pre></div>
 <h3 id="elasticsearch">Elasticsearch</h3>
-<ul>
-<li>Step 1: Spin up a quick Elasticsearch docker image</li>
-</ul>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>docker<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>-d<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span><span style="color: #A5D6FF">9200</span>:9200<span style="color: #6E7681"> </span>--name<span style="color: #FF7B72; font-weight: bold">=</span>bbot-elastic<span style="color: #6E7681"> </span>--v<span style="color: #6E7681"> </span><span style="color: #A5D6FF">"</span><span style="color: #FF7B72">$(</span><span style="color: #E6EDF3">pwd</span><span style="color: #FF7B72">)</span><span style="color: #A5D6FF">/elastic_data:/usr/share/elasticsearch/data"</span><span style="color: #6E7681"> </span>-e<span style="color: #6E7681"> </span><span style="color: #79C0FF">ELASTIC_PASSWORD</span><span style="color: #FF7B72; font-weight: bold">=</span>bbotislife<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>1GB<span style="color: #6E7681"> </span>docker.elastic.co/elasticsearch/elasticsearch:8.16.0
-</code></pre></div>
-<ul>
-<li>Step 2: Execute a scan with <code>elastic</code> output module</li>
-</ul>
+<p>When outputting to Elastic, use the <code>http</code> output module with the following settings (replace <code>&lt;your_index&gt;</code> with your desired index, e.g. <code>bbot</code>):</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># send scan results directly to elasticsearch</span>
-<span style="color: #8B949E; font-style: italic"># note: you can replace "bbot" with your own index name</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>elastic<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
-<span style="color: #6E7681">  </span>modules.elastic.url<span style="color: #FF7B72; font-weight: bold">=</span>https://localhost:9200/bbot/_doc<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
-<span style="color: #6E7681">  </span>modules.elastic.password<span style="color: #FF7B72; font-weight: bold">=</span>bbotislife
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
+<span style="color: #6E7681">  </span>modules.http.url<span style="color: #FF7B72; font-weight: bold">=</span>http://localhost:8000/&lt;your_index&gt;/_doc<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
+<span style="color: #6E7681">  </span>modules.http.siem_friendly<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
+<span style="color: #6E7681">  </span>modules.http.username<span style="color: #FF7B72; font-weight: bold">=</span>elastic<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
+<span style="color: #6E7681">  </span>modules.http.password<span style="color: #FF7B72; font-weight: bold">=</span>changeme
 </code></pre></div>
 <p>Alternatively, via a preset:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">elastic_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">elastic</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http://localhost:9200/bbot/_doc</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">password</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbotislife</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">http</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http://localhost:8000/&lt;your_index&gt;/_doc</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">siem_friendly</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">username</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">elastic</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">password</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">changeme</span>
 </code></pre></div>
 <h3 id="splunk">Splunk</h3>
 <p>The <code>splunk</code> output module sends <a href="../events/">events</a> in JSON format to a desired splunk instance via <a href="https://docs.splunk.com/Documentation/Splunk/9.2.0/Data/UsetheHTTPEventCollector">HEC</a>.</p>

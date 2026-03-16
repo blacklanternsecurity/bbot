@@ -11,7 +11,7 @@
 <link href="../" rel="prev"/>
 <link href="../architecture/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
 <title>Setting Up a Dev Environment - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.wjv0j4h7.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.a7p7sc17.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -589,10 +589,10 @@
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="#installation-uv">
+<a class="md-nav__link" href="#installation-poetry">
 <span class="md-ellipsis">
       
-        Installation (uv)
+        Installation (Poetry)
       
     </span>
 </a>
@@ -880,26 +880,26 @@
 <article class="md-content__inner md-typeset">
 <h1 id="setting-up-a-dev-environment">Setting Up a Dev Environment</h1>
 <p>The following will show you how to set up a fully functioning python environment for devving on BBOT.</p>
-<h2 id="installation-uv">Installation (uv)</h2>
-<p><a href="https://docs.astral.sh/uv/">uv</a> is the recommended method of installation if you want to dev on BBOT. To set up a dev environment with uv, you can follow these steps:</p>
+<h2 id="installation-poetry">Installation (Poetry)</h2>
+<p><a href="https://python-poetry.org/">Poetry</a> is the recommended method of installation if you want to dev on BBOT. To set up a dev environment with Poetry, you can follow these steps:</p>
 <ul>
 <li>Fork <a href="https://github.com/blacklanternsecurity/bbot">BBOT</a> on GitHub</li>
-<li>Clone your fork and set up a development environment with uv:</li>
+<li>Clone your fork and set up a development environment with Poetry:</li>
 </ul>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># clone your forked repo and cd into it</span>
 git<span style="color: #6E7681"> </span>clone<span style="color: #6E7681"> </span>git@github.com/&lt;username&gt;/bbot.git
 <span style="color: #E6EDF3">cd</span><span style="color: #6E7681"> </span>bbot
 
-<span style="color: #8B949E; font-style: italic"># install uv</span>
-curl<span style="color: #6E7681"> </span>-LsSf<span style="color: #6E7681"> </span>https://astral.sh/uv/install.sh<span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span><span style="color: #6E7681"> </span>sh
+<span style="color: #8B949E; font-style: italic"># install poetry</span>
+curl<span style="color: #6E7681"> </span>-sSL<span style="color: #6E7681"> </span>https://install.python-poetry.org<span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span><span style="color: #6E7681"> </span>python3<span style="color: #6E7681"> </span>-
 
 <span style="color: #8B949E; font-style: italic"># install pip dependencies</span>
-uv<span style="color: #6E7681"> </span>sync<span style="color: #6E7681"> </span>--group<span style="color: #6E7681"> </span>dev
+poetry<span style="color: #6E7681"> </span>install
 <span style="color: #8B949E; font-style: italic"># install pre-commit hooks, etc.</span>
-uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pre-commit<span style="color: #6E7681"> </span>install
+poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pre-commit<span style="color: #6E7681"> </span>install
 
 <span style="color: #8B949E; font-style: italic"># enter virtual environment</span>
-<span style="color: #E6EDF3">source</span><span style="color: #6E7681"> </span>.venv/bin/activate
+poetry<span style="color: #6E7681"> </span>shell
 
 bbot<span style="color: #6E7681"> </span>--help
 </code></pre></div>

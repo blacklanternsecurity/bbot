@@ -11,7 +11,7 @@
 <link href="../presets/" rel="prev"/>
 <link href="../target/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
 <title>Event - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.wjv0j4h7.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.a7p7sc17.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -855,17 +855,7 @@
 <h1 class="doc doc-heading" id="bbot.core.event.base.make_event">
 <span class="doc doc-object-name doc-function-name">make_event</span>
 </h1>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">make_event(</span>
-    <span style="color: #E6EDF3">data,</span>
-    <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">context</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-<span style="color: #E6EDF3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">make_event(data,</span> <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">context</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents first">
 <p>Creates and returns a new event object.</p>
@@ -875,7 +865,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code><span title="Union">Union</span>[<span title="str">str</span>, <span title="dict">dict</span>]</code>)
+              (<code><span title="Union">Union</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>]</code>)
           –
           <div class="doc-md-description">
 <p>The primary data for the event.</p>
@@ -883,7 +873,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </li>
 <li class="doc-section-item field-body">
 <b><code>event_type</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -903,7 +893,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </li>
 <li class="doc-section-item field-body">
 <b><code>context</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -913,7 +903,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </li>
 <li class="doc-section-item field-body">
 <b><code>module</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>None</code>
 )
           –
@@ -941,7 +931,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </li>
 <li class="doc-section-item field-body">
 <b><code>tags</code></b>
-              (<code><span title="Union">Union</span>[<span title="str">str</span>, <span title="List">List</span>[<span title="str">str</span>]]</code>, default:
+              (<code><span title="Union">Union</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <span title="List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -950,8 +940,18 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </div>
 </li>
 <li class="doc-section-item field-body">
+<b><code>confidence</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>, default:
+                  <code>100</code>
+)
+          –
+          <div class="doc-md-description">
+<p>Confidence level for the event, on a scale of 1-100. Defaults to 100.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
 <b><code>dummy</code></b>
-              (<code><span title="bool">bool</span></code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
                   <code>False</code>
 )
           –
@@ -1092,7 +1092,10 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1912</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1913</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1914</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1915</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1915</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1916</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1917</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1918</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">data,</span>
     <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -1100,6 +1103,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
     <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
 <span style="color: #E6EDF3">):</span>
@@ -1118,6 +1122,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 <span style="color: #A5D6FF">        scan (Scan, optional): BBOT Scan object associated with the event.</span>
 <span style="color: #A5D6FF">        scans (List[Scan], optional): Multiple BBOT Scan objects, primarily used for unserialization.</span>
 <span style="color: #A5D6FF">        tags (Union[str, List[str]], optional): Descriptive tags for the event, as a list or a single string.</span>
+<span style="color: #A5D6FF">        confidence (int, optional): Confidence level for the event, on a scale of 1-100. Defaults to 100.</span>
 <span style="color: #A5D6FF">        dummy (bool, optional): Disables data validations if set to True. Defaults to False.</span>
 <span style="color: #A5D6FF">        internal (Any, optional): Makes the event internal if set to True. Defaults to None.</span>
 
@@ -1191,6 +1196,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
         <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">module,</span>
         <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">scan,</span>
         <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">tags,</span>
+        <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">confidence,</span>
         <span style="color: #E6EDF3">_dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">dummy,</span>
         <span style="color: #E6EDF3">_internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">internal,</span>
     <span style="color: #E6EDF3">)</span>
@@ -1202,7 +1208,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 <h1 class="doc doc-heading" id="bbot.core.event.base.event_from_json">
 <span class="doc doc-object-name doc-function-name">event_from_json</span>
 </h1>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">event_from_json(j)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">event_from_json(j,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents first">
 <p>Creates an event object from a JSON dictionary.</p>
@@ -1247,10 +1253,7 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1918</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1919</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1920</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1921</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1921</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1922</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1923</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1924</span>
@@ -1304,10 +1307,7 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1972</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1973</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1974</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1975</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1976</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1977</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1978</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1975</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Creates an event object from a JSON dictionary.</span>
 
@@ -1334,15 +1334,14 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
         <span style="color: #E6EDF3">kwargs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span>
             <span style="color: #A5D6FF">"event_type"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">event_type,</span>
             <span style="color: #A5D6FF">"tags"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"tags"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[]),</span>
+            <span style="color: #A5D6FF">"confidence"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"confidence"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">),</span>
             <span style="color: #A5D6FF">"context"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"discovery_context"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">),</span>
             <span style="color: #A5D6FF">"dummy"</span><span style="color: #E6EDF3">:</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">}</span>
-        <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"data_json"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">json_pretty</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">dumps(j,</span> <span style="color: #E6EDF3">indent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">2</span><span style="color: #E6EDF3">)</span>
-            <span style="color: #FF7B72">raise</span> <span style="color: #F0883E; font-weight: bold">ValueError</span><span style="color: #E6EDF3">(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"data or data_json must be provided. JSON: {</span><span style="color: #E6EDF3">json_pretty</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">siem_friendly:</span>
+            <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">][event_type]</span>
+        <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">]</span>
         <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>
         <span style="color: #E6EDF3">event</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">make_event(</span><span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
         <span style="color: #E6EDF3">event_uuid</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"uuid"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
@@ -1351,12 +1350,7 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 
         <span style="color: #E6EDF3">resolved_hosts</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"resolved_hosts"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[])</span>
         <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_resolved_hosts</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(resolved_hosts)</span>
-
-        <span style="color: #8B949E; font-style: italic"># accept both isoformat and unix timestamp</span>
-        <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromtimestamp(j[</span><span style="color: #A5D6FF">"timestamp"</span><span style="color: #E6EDF3">],</span> <span style="color: #E6EDF3">ZoneInfo(</span><span style="color: #A5D6FF">"UTC"</span><span style="color: #E6EDF3">))</span>
-        <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromisoformat(j[</span><span style="color: #A5D6FF">"timestamp"</span><span style="color: #E6EDF3">])</span>
+        <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromisoformat(j[</span><span style="color: #A5D6FF">"timestamp"</span><span style="color: #E6EDF3">])</span>
         <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scope_distance</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"scope_distance"</span><span style="color: #E6EDF3">]</span>
         <span style="color: #E6EDF3">parent_id</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"parent"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">parent_id</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
@@ -1389,7 +1383,7 @@ top of the base class.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.type">type</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Specifies the type of the event, e.g., <code>IP_ADDRESS</code>, <code>DNS_NAME</code>.</p>
@@ -1397,7 +1391,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.id">id</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>An identifier for the event (event type + sha1 hash of data). NOT universally unique.</p>
@@ -1413,7 +1407,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data">data</span></code></b>
-              (<code><span title="str">str</span> or <span title="dict">dict</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
           –
           <div class="doc-md-description">
 <p>The main data for the event, e.g., a URL or IP address.</p>
@@ -1421,7 +1415,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data_graph">data_graph</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Representation of <code>self.data</code> for graph nodes (e.g. Neo4j).</p>
@@ -1429,7 +1423,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data_human">data_human</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Representation of <code>self.data</code> for human output.</p>
@@ -1437,7 +1431,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data_id">data_id</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Representation of <code>self.data</code> used to calculate the event's ID (and ultimately its hash, which is used for deduplication)</p>
@@ -1445,7 +1439,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.data_json">data_json</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Representation of <code>self.data</code> to be used in JSON serialization.</p>
@@ -1461,7 +1455,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.host_stem">host_stem</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>An abbreviated representation of hostname that removes the TLD, e.g. "www.evilcorp". Used by the word cloud.</p>
@@ -1469,7 +1463,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.port">port</span></code></b>
-              (<code><span title="int">int</span> or None</code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a> or None</code>)
           –
           <div class="doc-md-description">
 <p>The port associated with the event, if applicable, else None.</p>
@@ -1477,7 +1471,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.words">words</span></code></b>
-              (<code><span title="set">set</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#set">set</a></code>)
           –
           <div class="doc-md-description">
 <p>A list of relevant keywords extracted from the event. Used by the word cloud.</p>
@@ -1485,7 +1479,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.scope_distance">scope_distance</span></code></b>
-              (<code><span title="int">int</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>Indicates how many hops the event is from the main scope; 0 means in-scope.</p>
@@ -1493,7 +1487,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.web_spider_distance">web_spider_distance</span></code></b>
-              (<code><span title="int">int</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
           –
           <div class="doc-md-description">
 <p>The spider distance from the web root, specific to web crawling.</p>
@@ -1501,7 +1495,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.scan">scan</span></code></b>
-              (<code><span title="Scanner">Scanner</span></code>)
+              (<code><a class="autorefs autorefs-internal" href="../scanner/#bbot.scanner.Scanner" title='&lt;span class="doc doc-object-name doc-class-name"&gt;Scanner&lt;/span&gt; (&lt;code&gt;bbot.scanner.Scanner&lt;/code&gt;)'>Scanner</a></code>)
           –
           <div class="doc-md-description">
 <p>The scan object that generated the event.</p>
@@ -1509,7 +1503,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.timestamp">timestamp</span></code></b>
-              (<code><span title="datetime.datetime">datetime</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/datetime.html#datetime.datetime" title="&lt;code&gt;datetime.datetime&lt;/code&gt;">datetime</a></code>)
           –
           <div class="doc-md-description">
 <p>The time at which the data was discovered.</p>
@@ -1533,7 +1527,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.parent_id">parent_id</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The <code>id</code> attribute of the parent event.</p>
@@ -1541,7 +1535,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.parent_uuid">parent_uuid</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The <code>uuid</code> attribute of the parent event.</p>
@@ -1570,7 +1564,7 @@ top of the base class.</p>
   &lt;span class="doc doc-labels"&gt;
       &lt;small class="doc doc-label doc-label-property"&gt;&lt;code&gt;property&lt;/code&gt;&lt;/small&gt;
   &lt;/span&gt; (&lt;code&gt;bbot.core.event.base.BaseEvent.module_sequence&lt;/code&gt;)'>module_sequence</a></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>The sequence of modules that participated in the discovery.</p>
@@ -1595,7 +1589,9 @@ top of the base class.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  51</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  49</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  50</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  51</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  52</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  53</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  54</span>
@@ -2552,7 +2548,25 @@ top of the base class.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1005</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1006</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1007</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1008</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseEvent</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1008</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1009</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1010</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1011</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1012</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1013</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1014</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1015</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1016</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1017</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1018</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1019</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1020</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1021</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1022</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1023</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1024</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1025</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1026</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseEvent</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Represents a piece of data discovered during a BBOT scan.</span>
 
@@ -2612,8 +2626,7 @@ top of the base class.</p>
     <span style="color: #8B949E; font-style: italic"># Always emit this event type even if it's not in scope</span>
     <span style="color: #E6EDF3">_always_emit</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
     <span style="color: #8B949E; font-style: italic"># Always emit events with these tags even if they're not in scope</span>
-
-    <span style="color: #E6EDF3">_always_emit_tags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"affiliate"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"seed"</span><span style="color: #E6EDF3">]</span>
+    <span style="color: #E6EDF3">_always_emit_tags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"affiliate"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"target"</span><span style="color: #E6EDF3">]</span>
     <span style="color: #8B949E; font-style: italic"># Bypass scope checking and dns resolution, distribute immediately to modules</span>
     <span style="color: #8B949E; font-style: italic"># This is useful for "end-of-line" events like FINDING and VULNERABILITY</span>
     <span style="color: #E6EDF3">_quick_emit</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
@@ -2657,6 +2670,7 @@ top of the base class.</p>
         <span style="color: #A5D6FF">"_discovery_context_regex"</span><span style="color: #E6EDF3">,</span>
         <span style="color: #A5D6FF">"_stats_recorded"</span><span style="color: #E6EDF3">,</span>
         <span style="color: #A5D6FF">"_internal"</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #A5D6FF">"_confidence"</span><span style="color: #E6EDF3">,</span>
         <span style="color: #A5D6FF">"_dummy"</span><span style="color: #E6EDF3">,</span>
         <span style="color: #A5D6FF">"_module"</span><span style="color: #E6EDF3">,</span>
         <span style="color: #8B949E; font-style: italic"># DNS-related attributes</span>
@@ -2685,6 +2699,7 @@ top of the base class.</p>
         <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">timestamp</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">_dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
         <span style="color: #E6EDF3">_internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -2702,6 +2717,7 @@ top of the base class.</p>
 <span style="color: #A5D6FF">            module (str, optional): Module that discovered the event. Defaults to None.</span>
 <span style="color: #A5D6FF">            scan (Scan, optional): BBOT Scan object. Required unless _dummy is True. Defaults to None.</span>
 <span style="color: #A5D6FF">            tags (list of str, optional): Descriptive tags for the event. Defaults to None.</span>
+<span style="color: #A5D6FF">            confidence (int, optional): Confidence level for the event, on a scale of 1-100. Defaults to 100.</span>
 <span style="color: #A5D6FF">            timestamp (datetime, optional): Time of event discovery. Defaults to current UTC time.</span>
 <span style="color: #A5D6FF">            _dummy (bool, optional): If True, disables certain data validations. Defaults to False.</span>
 <span style="color: #A5D6FF">            _internal (Any, optional): If specified, makes the event internal. Defaults to None.</span>
@@ -2749,6 +2765,7 @@ top of the base class.</p>
             <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">AttributeError</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">utcnow()</span>
 
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">confidence</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(confidence)</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_internal</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
 
         <span style="color: #8B949E; font-style: italic"># self.scan holds the instantiated scan object (for helpers, etc.)</span>
@@ -2787,6 +2804,27 @@ top of the base class.</p>
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">data</span><span style="color: #E6EDF3">(self):</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_data</span>
+
+    <span style="color: #D2A8FF; font-weight: bold">@property</span>
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">confidence</span><span style="color: #E6EDF3">(self):</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_confidence</span>
+
+    <span style="color: #D2A8FF; font-weight: bold">@confidence</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">setter</span>
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">confidence</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">confidence):</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_confidence</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">min(</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">max(</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">int(confidence)))</span>
+
+    <span style="color: #D2A8FF; font-weight: bold">@property</span>
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">cumulative_confidence</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
+<span style="color: #A5D6FF">        Considers the confidence of parent events. This is useful for filtering out speculative/unreliable events.</span>
+
+<span style="color: #A5D6FF">        E.g. an event with a confidence of 50 whose parent is also 50 would have a cumulative confidence of 25.</span>
+
+<span style="color: #A5D6FF">        A confidence of 100 will reset the cumulative confidence to 100.</span>
+<span style="color: #A5D6FF">        """</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_confidence</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">100</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #E6EDF3">self:</span>
+            <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_confidence</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">int(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_confidence</span> <span style="color: #FF7B72; font-weight: bold">*</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cumulative_confidence</span> <span style="color: #FF7B72; font-weight: bold">/</span> <span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">)</span>
 
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">resolved_hosts</span><span style="color: #E6EDF3">(self):</span>
@@ -2883,8 +2921,6 @@ top of the base class.</p>
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">port</span><span style="color: #E6EDF3">(self):</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_port:</span>
-            <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_port</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">getattr(self,</span> <span style="color: #A5D6FF">"parsed_url"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parsed_url</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parsed_url</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">port</span>
@@ -2892,6 +2928,7 @@ top of the base class.</p>
                 <span style="color: #FF7B72">return</span> <span style="color: #A5D6FF">443</span>
             <span style="color: #FF7B72">elif</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parsed_url</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scheme</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"http"</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #FF7B72">return</span> <span style="color: #A5D6FF">80</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_port</span>
 
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">netloc</span><span style="color: #E6EDF3">(self):</span>
@@ -3101,9 +3138,6 @@ top of the base class.</p>
                     <span style="color: #E6EDF3">new_scope_distance</span> <span style="color: #FF7B72; font-weight: bold">+=</span> <span style="color: #A5D6FF">1</span>
             <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scope_distance</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">new_scope_distance</span>
             <span style="color: #8B949E; font-style: italic"># inherit certain tags</span>
-            <span style="color: #8B949E; font-style: italic"># inherit seed tag from DNS_NAME_UNRESOLVED -&gt; DNS_NAME only</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"seed"</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"DNS_NAME_UNRESOLVED"</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add_tag(</span><span style="color: #A5D6FF">"seed"</span><span style="color: #E6EDF3">)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">hosts_are_same:</span>
                 <span style="color: #8B949E; font-style: italic"># inherit web spider distance from parent</span>
                 <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_spider_distance</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">getattr(parent,</span> <span style="color: #A5D6FF">"web_spider_distance"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">)</span>
@@ -3303,7 +3337,7 @@ top of the base class.</p>
             <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">bool(radixtarget</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">search(other_event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host))</span>
         <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">False</span>
 
-    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">):</span>
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">        Serializes the event object to a JSON-compatible dictionary.</span>
 
@@ -3312,6 +3346,7 @@ top of the base class.</p>
 
 <span style="color: #A5D6FF">        Parameters:</span>
 <span style="color: #A5D6FF">            mode (str): Specifies the data serialization mode. Default is "json". Other options include "graph", "human", and "id".</span>
+<span style="color: #A5D6FF">            siem_friendly (bool): Whether to format the JSON in a way that's friendly to SIEM ingestion by Elastic, Splunk, etc. This ensures the value of "data" is always the same type (a dictionary).</span>
 
 <span style="color: #A5D6FF">        Returns:</span>
 <span style="color: #A5D6FF">            dict: JSON-serializable dictionary representation of the event object.</span>
@@ -3328,12 +3363,10 @@ top of the base class.</p>
             <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data_attr</span>
         <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
             <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">smart_decode(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data)</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">isinstance(data,</span> <span style="color: #E6EDF3">str):</span>
-            <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>
-        <span style="color: #FF7B72">elif</span> <span style="color: #E6EDF3">isinstance(data,</span> <span style="color: #E6EDF3">dict):</span>
-            <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data_json"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">siem_friendly:</span>
+            <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type:</span> <span style="color: #E6EDF3">data}</span>
         <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #FF7B72">raise</span> <span style="color: #F0883E; font-weight: bold">ValueError</span><span style="color: #E6EDF3">(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Invalid data type: {</span><span style="color: #E6EDF3">type(data)</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+            <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>
         <span style="color: #8B949E; font-style: italic"># host, dns children</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host:</span>
             <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"host"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">str(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host)</span>
@@ -3351,7 +3384,7 @@ top of the base class.</p>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan:</span>
             <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"scan"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">id</span>
         <span style="color: #8B949E; font-style: italic"># timestamp</span>
-        <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"timestamp"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">utc_datetime_validator(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp)</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp()</span>
+        <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"timestamp"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">isoformat()</span>
         <span style="color: #8B949E; font-style: italic"># parent event</span>
         <span style="color: #E6EDF3">parent_id</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_id</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">parent_id:</span>
@@ -3360,7 +3393,8 @@ top of the base class.</p>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">parent_uuid:</span>
             <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"parent_uuid"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">parent_uuid</span>
         <span style="color: #8B949E; font-style: italic"># tags</span>
-        <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update({</span><span style="color: #A5D6FF">"tags"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags)})</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags:</span>
+            <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update({</span><span style="color: #A5D6FF">"tags"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">list(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags)})</span>
         <span style="color: #8B949E; font-style: italic"># parent module</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module:</span>
             <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update({</span><span style="color: #A5D6FF">"module"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">str(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module)})</span>
@@ -3565,18 +3599,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 <h2 class="doc doc-heading" id="bbot.core.event.base.BaseEvent.__init__">
 <span class="doc doc-object-name doc-function-name">__init__</span>
 </h2>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
-    <span style="color: #E6EDF3">data,</span>
-    <span style="color: #E6EDF3">event_type,</span>
-    <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">context</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">timestamp</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">_dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">_internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
-<span style="color: #E6EDF3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(data,</span> <span style="color: #E6EDF3">event_type,</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">context</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">timestamp</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Initializes an Event object with the given parameters.</p>
@@ -3586,7 +3609,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 <ul>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.data">data</span></code></b>
-              (<code>(<span title="str">str</span>, <span title="dict">dict</span>)</code>)
+              (<code>(<a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a>)</code>)
           –
           <div class="doc-md-description">
 <p>The primary data for the event.</p>
@@ -3594,7 +3617,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.event_type">event_type</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Type of the event, e.g., 'IP_ADDRESS'.</p>
@@ -3610,7 +3633,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.module">module</span></code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>)
           –
           <div class="doc-md-description">
 <p>Module that discovered the event. Defaults to None.</p>
@@ -3633,8 +3656,16 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </div>
 </li>
 <li class="doc-section-item field-body">
+<b><code><span title="bbot.core.event.base.BaseEvent.__init__.confidence">confidence</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+<p>Confidence level for the event, on a scale of 1-100. Defaults to 100.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.timestamp">timestamp</span></code></b>
-              (<code><span title="datetime">datetime</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/datetime.html#module-datetime">datetime</a></code>)
           –
           <div class="doc-md-description">
 <p>Time of event discovery. Defaults to current UTC time.</p>
@@ -3642,7 +3673,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__._dummy">_dummy</span></code></b>
-              (<code><span title="bool">bool</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>)
           –
           <div class="doc-md-description">
 <p>If True, disables certain data validations. Defaults to False.</p>
@@ -3669,7 +3700,9 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">175</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">173</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">174</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">175</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">176</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">177</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">178</span>
@@ -3775,7 +3808,8 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">278</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">279</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">280</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">281</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">281</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">282</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">self,</span>
     <span style="color: #E6EDF3">data,</span>
     <span style="color: #E6EDF3">event_type,</span>
@@ -3784,6 +3818,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
     <span style="color: #E6EDF3">module</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">tags</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">confidence</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">timestamp</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">_dummy</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">_internal</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -3801,6 +3836,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 <span style="color: #A5D6FF">        module (str, optional): Module that discovered the event. Defaults to None.</span>
 <span style="color: #A5D6FF">        scan (Scan, optional): BBOT Scan object. Required unless _dummy is True. Defaults to None.</span>
 <span style="color: #A5D6FF">        tags (list of str, optional): Descriptive tags for the event. Defaults to None.</span>
+<span style="color: #A5D6FF">        confidence (int, optional): Confidence level for the event, on a scale of 1-100. Defaults to 100.</span>
 <span style="color: #A5D6FF">        timestamp (datetime, optional): Time of event discovery. Defaults to current UTC time.</span>
 <span style="color: #A5D6FF">        _dummy (bool, optional): If True, disables certain data validations. Defaults to False.</span>
 <span style="color: #A5D6FF">        _internal (Any, optional): If specified, makes the event internal. Defaults to None.</span>
@@ -3848,6 +3884,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
         <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">AttributeError</span><span style="color: #E6EDF3">:</span>
             <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">datetime</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">utcnow()</span>
 
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">confidence</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(confidence)</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_internal</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
 
     <span style="color: #8B949E; font-style: italic"># self.scan holds the instantiated scan object (for helpers, etc.)</span>
@@ -3890,7 +3927,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 <h2 class="doc doc-heading" id="bbot.core.event.base.BaseEvent.json">
 <span class="doc doc-object-name doc-function-name">json</span>
 </h2>
-<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">json(mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">'json'</span><span style="color: #E6EDF3">)</span>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">json(mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">'json'</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
 <p>Serializes the event object to a JSON-compatible dictionary.</p>
@@ -3900,12 +3937,22 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <ul>
 <li class="doc-section-item field-body">
 <b><code>mode</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#str">str</a></code>, default:
                   <code>'json'</code>
 )
           –
           <div class="doc-md-description">
 <p>Specifies the data serialization mode. Default is "json". Other options include "graph", "human", and "id".</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code>siem_friendly</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/functions.html#bool">bool</a></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+<p>Whether to format the JSON in a way that's friendly to SIEM ingestion by Elastic, Splunk, etc. This ensures the value of "data" is always the same type (a dictionary).</p>
 </div>
 </li>
 </ul>
@@ -3920,25 +3967,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">802</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">803</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">804</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">805</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">806</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">807</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">808</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">809</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">810</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">811</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">812</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">813</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">814</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">815</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">816</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">817</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">818</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">819</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">820</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">820</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">821</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">822</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">823</span>
@@ -4004,7 +4033,25 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">883</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">884</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">885</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">886</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">886</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">887</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">888</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">889</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">890</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">891</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">892</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">893</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">894</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">895</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">896</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">897</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">898</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">899</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">900</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">901</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">902</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">903</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">904</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">siem_friendly</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Serializes the event object to a JSON-compatible dictionary.</span>
 
@@ -4013,6 +4060,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 
 <span style="color: #A5D6FF">    Parameters:</span>
 <span style="color: #A5D6FF">        mode (str): Specifies the data serialization mode. Default is "json". Other options include "graph", "human", and "id".</span>
+<span style="color: #A5D6FF">        siem_friendly (bool): Whether to format the JSON in a way that's friendly to SIEM ingestion by Elastic, Splunk, etc. This ensures the value of "data" is always the same type (a dictionary).</span>
 
 <span style="color: #A5D6FF">    Returns:</span>
 <span style="color: #A5D6FF">        dict: JSON-serializable dictionary representation of the event object.</span>
@@ -4029,12 +4077,10 @@ Additional specific attributes can be serialized based on the mode specified.</p
         <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data_attr</span>
     <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
         <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">smart_decode(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data)</span>
-    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">isinstance(data,</span> <span style="color: #E6EDF3">str):</span>
-        <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>
-    <span style="color: #FF7B72">elif</span> <span style="color: #E6EDF3">isinstance(data,</span> <span style="color: #E6EDF3">dict):</span>
-        <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data_json"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">siem_friendly:</span>
+        <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type:</span> <span style="color: #E6EDF3">data}</span>
     <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #FF7B72">raise</span> <span style="color: #F0883E; font-weight: bold">ValueError</span><span style="color: #E6EDF3">(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Invalid data type: {</span><span style="color: #E6EDF3">type(data)</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"data"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">data</span>
     <span style="color: #8B949E; font-style: italic"># host, dns children</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host:</span>
         <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"host"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">str(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host)</span>
@@ -4052,7 +4098,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan:</span>
         <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"scan"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">id</span>
     <span style="color: #8B949E; font-style: italic"># timestamp</span>
-    <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"timestamp"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">utc_datetime_validator(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp)</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp()</span>
+    <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"timestamp"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timestamp</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">isoformat()</span>
     <span style="color: #8B949E; font-style: italic"># parent event</span>
     <span style="color: #E6EDF3">parent_id</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_id</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">parent_id:</span>
@@ -4061,7 +4107,8 @@ Additional specific attributes can be serialized based on the mode specified.</p
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">parent_uuid:</span>
         <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"parent_uuid"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">parent_uuid</span>
     <span style="color: #8B949E; font-style: italic"># tags</span>
-    <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update({</span><span style="color: #A5D6FF">"tags"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">sorted(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags)})</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags:</span>
+        <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update({</span><span style="color: #A5D6FF">"tags"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">list(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags)})</span>
     <span style="color: #8B949E; font-style: italic"># parent module</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module:</span>
         <span style="color: #E6EDF3">j</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update({</span><span style="color: #A5D6FF">"module"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">str(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module)})</span>
@@ -4109,7 +4156,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <ul>
 <li class="doc-section-item field-body">
 <b><code>j</code></b>
-              (<code><span title="dict">dict</span></code>)
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3.11/library/stdtypes.html#dict">dict</a></code>)
           –
           <div class="doc-md-description">
 <p>The JSON-compatible dictionary containing event data.</p>
@@ -4127,20 +4174,20 @@ Additional specific attributes can be serialized based on the mode specified.</p
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">888</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">889</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">890</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">891</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">892</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">893</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">894</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">895</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">896</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">897</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">898</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">899</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">900</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">901</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">906</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">907</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">908</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">909</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">910</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">911</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">912</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">913</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">914</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">915</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">916</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">917</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">918</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">919</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_json</span><span style="color: #E6EDF3">(j):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convenience shortcut to create an Event object from a JSON-compatible dictionary.</span>
