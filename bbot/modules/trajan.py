@@ -10,6 +10,7 @@ class trajan(BaseModule):
     flags = ["passive", "safe", "code-enum"]
     meta = {
         "description": "Scans GitHub, GitLab, Azure DevOps, Jenkins, and JFrog for misconfigurations using Praetorian's Trajan tool",
+        "created_date": "2026-04-11",
         "author": "@N7WERA",
     }
 
