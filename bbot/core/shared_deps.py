@@ -211,6 +211,11 @@ DEP_MASSCAN = [
         "name": "Install portscan",
         "copy": {"src": "#{BBOT_TEMP}/portscan/bin/portscan", "dest": "#{BBOT_TOOLS}/portscan", "mode": "u+x,g+x,o+x"},
     },
+    {
+        "name": "Make portscan binary immutable",
+        "command": "chattr +i #{BBOT_TOOLS}/portscan",
+        "become": True,
+    },
 ]
 
 DEP_JAVA = [
