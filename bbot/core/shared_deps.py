@@ -196,6 +196,7 @@ DEP_MASSCAN = [
             "dest": "#{BBOT_TEMP}/portscan",
             "single_branch": True,
             "version": "master",
+            "force": True,
         },
     },
     {
