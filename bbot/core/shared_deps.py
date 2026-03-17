@@ -173,6 +173,7 @@ DEP_CHROMIUM = [
     },
 ]
 
+# NOTE: we use filename 'portscan' instead of 'masscan' because binaries named 'masscan' are big no-no on cloud infra
 DEP_MASSCAN = [
     {
         "name": "install os deps (Debian)",
@@ -192,22 +193,22 @@ DEP_MASSCAN = [
         "name": "Download masscan source code",
         "git": {
             "repo": "https://github.com/robertdavidgraham/masscan.git",
-            "dest": "#{BBOT_TEMP}/masscan",
+            "dest": "#{BBOT_TEMP}/portscan",
             "single_branch": True,
             "version": "master",
         },
     },
     {
-        "name": "Build masscan",
-        "command": {
-            "chdir": "#{BBOT_TEMP}/masscan",
-            "cmd": "make -j",
-            "creates": "#{BBOT_TEMP}/masscan/bin/masscan",
+        "name": "Build portscan",
+        "shell": {
+            "chdir": "#{BBOT_TEMP}/portscan",
+            "cmd": "sed -i 's/bin\\/masscan/bin\\/portscan/g' Makefile && make -j",
+            "creates": "#{BBOT_TEMP}/portscan/bin/portscan",
         },
     },
     {
-        "name": "Install masscan",
-        "copy": {"src": "#{BBOT_TEMP}/masscan/bin/masscan", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
+        "name": "Install portscan",
+        "copy": {"src": "#{BBOT_TEMP}/portscan/bin/portscan", "dest": "#{BBOT_TOOLS}/portscan", "mode": "u+x,g+x,o+x"},
     },
 ]
 

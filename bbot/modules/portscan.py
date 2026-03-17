@@ -267,7 +267,7 @@ class portscan(BaseModule):
         if wait is None:
             wait = self.wait
         command = (
-            "masscan",
+            "portscan",
             "--excludefile",
             str(self.exclude_file),
             "--rate",
