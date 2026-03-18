@@ -272,6 +272,14 @@ parameter_blacklist:
   # ASP.NET session/identity cookies
   - .ASPXANONYMOUS
   - .ASPXAUTH
+  # PKCE (Proof Key for Code Exchange)
+  - code_verifier
+  - code_challenge
+  # Akamai Bot Manager
+  - _abck
+  - bm_sz
+  - bm_sv
+  - ak_bmsc
 
 parameter_blacklist_prefixes:
   - TS01

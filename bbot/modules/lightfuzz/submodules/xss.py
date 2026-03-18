@@ -84,21 +84,62 @@ class xss(BaseLightfuzz):
         # If we have no matches, the target string is most likely not within quotes
         return "outside"
 
+    def _verify_match_context(self, html, match, context):
+        """Verify the match appears in the correct HTML context, not just anywhere in the response.
+        When the same parameter is reflected in multiple contexts with different encoding,
+        a match found in the wrong context can cause false positives."""
+        if "Tag Attribute" in context:
+            # Verify match is inside a tag (between < and >), not in text content
+            pos = html.find(match)
+            while pos != -1:
+                preceding = html[:pos]
+                last_open = preceding.rfind("<")
+                last_close = preceding.rfind(">")
+                if last_open > last_close:
+                    return True
+                pos = html.find(match, pos + 1)
+            return False
+        elif "Between Tags" in context:
+            pos = html.find(match)
+            while pos != -1:
+                preceding = html[:pos]
+                last_open = preceding.rfind("<")
+                last_close = preceding.rfind(">")
+                if last_close > last_open:
+                    return True
+                pos = html.find(match, pos + 1)
+            return False
+        elif "In Javascript" in context:
+            in_js_regex = re.compile(
+                rf"<script\b[^>]*>[^<]*(?:<(?!\/script>)[^<]*)*{re.escape(match)}"
+                rf"[^<]*(?:<(?!\/script>)[^<]*)*<\/script>"
+            )
+            return bool(in_js_regex.search(html))
+        return True
+
     async def check_probe(self, cookies, probe, match, context):
         # Send the defined probe and look for the expected match value in the response
         probe_result = await self.standard_probe(self.event.data["type"], cookies, probe)
-        if probe_result and match in probe_result.text:
-            self.results.append(
-                {
-                    "name": "Possible Reflected XSS",
-                    "severity": "MEDIUM",
-                    "confidence": "MEDIUM",
-                    "type": "FINDING",
-                    "description": f"Possible Reflected XSS. Parameter: [{self.event.data['name']}] Context: [{context}] Parameter Type: [{self.event.data['type']}]{self.conversion_note()}",
-                }
+        if not probe_result or match not in probe_result.text:
+            return False
+
+        if not self._verify_match_context(probe_result.text, match, context):
+            self.debug(
+                f"Probe match found in response but not in the expected context [{context}]. "
+                f"Likely reflected in a different context with different encoding. Suppressing."
             )
-            return True
-        return False
+            return False
+
+        self.results.append(
+            {
+                "name": "Possible Reflected XSS",
+                "severity": "MEDIUM",
+                "confidence": "MEDIUM",
+                "type": "FINDING",
+                "description": f"Possible Reflected XSS. Parameter: [{self.event.data['name']}] Context: [{context}] Parameter Type: [{self.event.data['type']}]{self.conversion_note()}",
+            }
+        )
+        return True
 
     async def fuzz(self):
         lightfuzz_event = self.event.parent

@@ -262,6 +262,9 @@ class crypto(BaseLightfuzz):
         data, encoding = self.format_agnostic_decode(probe_value)
         if encoding == "unknown":
             return
+        # Stability pre-check: verify the endpoint returns consistent responses
+        if not await self._check_endpoint_stability(probe_value, encoding, cookies):
+            return
         for block_size in self.possible_block_sizes(len(data)):
             num_blocks = len(data) // block_size
             if num_blocks < 2:
@@ -389,11 +392,41 @@ class crypto(BaseLightfuzz):
             return None
         return False
 
+    async def _check_endpoint_stability(self, probe_value, encoding, cookies):
+        """Send the same probe value multiple times and verify the endpoint returns consistent responses.
+        Returns True if stable, False if responses vary for identical inputs (jitter)."""
+        data, _ = self.format_agnostic_decode(probe_value)
+        if encoding == "unknown":
+            return True
+        # Build a fixed probe to test stability
+        stability_value = self.format_agnostic_encode(b"\x00" * 16 + data[-16:], encoding)
+        stability_hashes = []
+        for _ in range(3):
+            r = await self.standard_probe(self.event.data["type"], cookies, stability_value)
+            if r:
+                body = r.text
+                for encoded in [stability_value, stability_value.replace("+", " "), quote(stability_value)]:
+                    body = body.replace(encoded, "")
+                stability_hashes.append(hash(body))
+        if len(set(stability_hashes)) > 1:
+            self.debug(
+                f"Endpoint produces unstable responses for identical inputs "
+                f"({len(set(stability_hashes))}/{len(stability_hashes)} unique), "
+                f"skipping differential analysis"
+            )
+            return False
+        return True
+
     async def padding_oracle(self, probe_value, cookies):
         data, encoding = self.format_agnostic_decode(probe_value)
         possible_block_sizes = self.possible_block_sizes(
             len(data)
         )  # determine possible block sizes for the ciphertext
+
+        # Stability pre-check: verify the endpoint returns consistent responses
+        # for identical inputs before attempting differential analysis
+        if not await self._check_endpoint_stability(probe_value, encoding, cookies):
+            return
 
         for block_size in possible_block_sizes:
             padding_oracle_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)

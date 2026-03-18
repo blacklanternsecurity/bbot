@@ -2853,3 +2853,164 @@ class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
         assert sqli_postparam_converted_finding_emitted, (
             "SQLi POSTPARAM (converted from GETPARAM) FINDING not emitted (try_get_as_post failed)"
         )
+
+
+# Padding Oracle Jitter Stability Pre-Check
+class Test_Lightfuzz_PaddingOracleDetection_JitterStability(Test_Lightfuzz_PaddingOracleDetection):
+    """Padding oracle negative test: the endpoint produces different response bodies for identical inputs
+    (e.g. ADFS with embedded timestamps/nonces). The stability pre-check should detect this and skip."""
+
+    jitter_counter = 0
+
+    def request_handler(self, request):
+        encrypted_value = quote(
+            "dplyorsu8VUriMW/8DqVDU6kRwL/FDk3Q+4GXVGZbo0CTh9YX1YvzZZJrYe4cHxvAICyliYtp1im4fWoOa54Zg=="
+        )
+        default_html_response = f"""
+        <html>
+            <body>
+                <form action="/decrypt" method="post">
+                    <input type="hidden" name="encrypted_data" value="{encrypted_value}" />
+                    <button type="submit">Decrypt</button>
+                </form>
+            </body>
+        </html>
+        """
+
+        if "/decrypt" in request.url and request.method == "POST":
+            # Every response is unique, simulating ADFS-style dynamic content
+            Test_Lightfuzz_PaddingOracleDetection_JitterStability.jitter_counter += 1
+            response_content = f"Error correlation_id={Test_Lightfuzz_PaddingOracleDetection_JitterStability.jitter_counter} nonce=abc{Test_Lightfuzz_PaddingOracleDetection_JitterStability.jitter_counter}"
+            return Response(response_content, status=200)
+        else:
+            return Response(default_html_response, status=200)
+
+    def check(self, module_test, events):
+        web_parameter_extracted = False
+        padding_oracle_detected = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [encrypted_data] (POST Form" in e.data["description"]:
+                    web_parameter_extracted = True
+            if e.type == "FINDING":
+                if "Padding Oracle" in e.data["description"]:
+                    padding_oracle_detected = True
+
+        assert web_parameter_extracted, "Web parameter was not extracted"
+        assert not padding_oracle_detected, (
+            "Padding oracle should NOT be detected when endpoint has jittery responses (stability pre-check should abort)"
+        )
+
+
+# XSS Multi-Context Reflection False Positive
+class Test_Lightfuzz_xss_multicontext(Test_Lightfuzz_xss):
+    """XSS negative test: parameter reflected in multiple contexts with different encoding.
+    Quote survives in text content but is encoded in tag attribute. Should NOT report Tag Attribute XSS."""
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+
+        parameter_block = """
+        <html>
+            <form action="/" method="GET">
+                <input type="text" name="path" value="default">
+                <button type="submit">Submit</button>
+            </form>
+        </html>
+        """
+        if "path=" in qs:
+            value = qs.split("path=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Tag attribute context: quotes are URL-encoded (safe)
+            attr_value = decoded.replace('"', "%22")
+            # Text content: raw reflection (quotes survive but harmless here)
+            text_value = decoded
+            # JS context: everything URL-encoded (safe)
+            js_value = value
+
+            html = f"""
+<html>
+<form action="/page?path={attr_value}" method="GET">
+    <input type="text" name="path">
+</form>
+<h1>{text_value}</h1>
+<script>if('{js_value}') {{ }}</script>
+</html>
+            """
+            return Response(html, status=200)
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        tag_attribute_xss_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [path]" in e.data["description"]:
+                    web_parameter_emitted = True
+            if e.type == "FINDING":
+                if "Possible Reflected XSS" in e.data["description"] and "Tag Attribute" in e.data["description"]:
+                    tag_attribute_xss_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert not tag_attribute_xss_emitted, (
+            "Tag Attribute XSS should NOT be reported when the quote only survives in text content, not in tag attributes"
+        )
+
+
+# SQLi WAF False Positive (Akamai-style 403)
+class Test_Lightfuzz_sqli_waf(Test_Lightfuzz_sqli):
+    """SQLi negative test: endpoint returns 403 with WAF signature when single quote is sent.
+    Should NOT report SQL injection."""
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search the blog...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+
+            if value.endswith("'") and not value.endswith("''"):
+                # WAF blocks the request with a known WAF string
+                waf_response = """
+                <html>
+                <head><title>Access Denied</title></head>
+                <body>
+                <h1>Access Denied</h1>
+                <p>The requested URL was rejected. Please consult with your administrator.</p>
+                </body>
+                </html>
+                """
+                return Response(waf_response, status=403)
+            return Response(parameter_block, status=200)
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        sqli_finding_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [search]" in e.data["description"]:
+                    web_parameter_emitted = True
+            if e.type == "FINDING":
+                if "Possible SQL Injection" in e.data["description"] and "Code Change" in e.data["description"]:
+                    sqli_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert not sqli_finding_emitted, (
+            "SQLi should NOT be reported when single quote probe triggers a WAF 403 response"
+        )

@@ -1,5 +1,6 @@
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
+from bbot.core.helpers.misc import get_waf_strings
 
 import statistics
 
@@ -119,14 +120,32 @@ class sqli(BaseLightfuzz):
                     if "code" in single_quote[1] and (
                         single_quote[3].status_code != double_single_quote[3].status_code
                     ):
-                        self.results.append(
-                            {
-                                "name": "Possible SQL Injection",
-                                "severity": "HIGH",
-                                "confidence": "MEDIUM",
-                                "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({http_compare.baseline.status_code}->{single_quote[3].status_code}->{double_single_quote[3].status_code})]",
-                            }
-                        )
+                        # Check if the status code change is due to a WAF, not SQL injection
+                        if single_quote[3].status_code == 403:
+                            waf_detected = any(ws in single_quote[3].text for ws in get_waf_strings())
+                            if waf_detected:
+                                self.debug(
+                                    "Single quote probe returned 403 with WAF signature, "
+                                    "suppressing SQL injection finding"
+                                )
+                            else:
+                                self.results.append(
+                                    {
+                                        "name": "Possible SQL Injection",
+                                        "severity": "HIGH",
+                                        "confidence": "MEDIUM",
+                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({http_compare.baseline.status_code}->{single_quote[3].status_code}->{double_single_quote[3].status_code})]",
+                                    }
+                                )
+                        else:
+                            self.results.append(
+                                {
+                                    "name": "Possible SQL Injection",
+                                    "severity": "HIGH",
+                                    "confidence": "MEDIUM",
+                                    "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({http_compare.baseline.status_code}->{single_quote[3].status_code}->{double_single_quote[3].status_code})]",
+                                }
+                            )
             else:
                 self.debug("Failed to get responses for both single_quote and double_single_quote")
         except HttpCompareError as e:
