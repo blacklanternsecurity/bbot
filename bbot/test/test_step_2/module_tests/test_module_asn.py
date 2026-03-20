@@ -2,28 +2,12 @@ from .base import ModuleTestBase
 
 
 class TestASNHelper(ModuleTestBase):
-    """Simple test for ASN module using mocked asndb library."""
+    """Test ASN module with real asndb lookup against Google's 8.8.8.8 (AS15169)."""
 
     targets = ["8.8.8.8"]
     module_name = "asn"
-    modules_overrides = ["asn"]
-    config_overrides = {"scope": {"report_distance": 2}}
-
-    asndb_response = {
-        "asn": 15169,
-        "subnets": ["8.8.8.0/24"],
-        "asn_name": "GOOGLE",
-        "org": "Google LLC",
-        "country": "US",
-    }
-
-    async def setup_after_prep(self, module_test):
-        from unittest.mock import AsyncMock
-
-        asn_helper = module_test.scan.helpers.asn
-        asn_helper._client = AsyncMock()
-        asn_helper._client.lookup_ip = AsyncMock(return_value=self.asndb_response)
-        asn_helper._client.lookup_asn = AsyncMock(return_value=self.asndb_response)
+    modules_overrides = ["asn", "speculate"]
+    config_overrides = {"scope": {"report_distance": 2}, "speculate": True}
 
     def check(self, module_test, events):
         asn_events = [e for e in events if e.type == "ASN"]
