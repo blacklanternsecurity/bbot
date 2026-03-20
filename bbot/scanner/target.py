@@ -401,10 +401,9 @@ class BBOTTarget:
         Generate children for the target, for seed types that expand into other seed types.
         E.g. ASN targets are expanded into their constituent IP ranges.
         """
-        # Check if this target had a custom target scope (target different from the default seed hosts)
-        # Compare inputs (strings) to inputs (strings) to avoid type mismatches
-        # between string inputs and host objects (IP networks, etc.)
-        had_custom_target = set(self.target.inputs) != set(self.seeds.inputs)
+        # If the user explicitly set a narrower target scope than their seeds
+        # (e.g. `-t evilcorp.com -s AS1234`), don't widen the target with expanded seeds
+        has_explicit_scope = set(self.target.inputs) != set(self.seeds.inputs)
 
         # Expand seeds first
         for event_seed in list(self.seeds.event_seeds):
@@ -418,10 +417,9 @@ class BBOTTarget:
             for child in children:
                 self.blacklist.add(child)
 
-        # After expanding seeds, update the target to include any new hosts from seed expansion
-        # This ensures that expanded targets (like IP ranges from ASN) are considered in-scope
-        # BUT only if no custom target was provided - don't override user's custom target
-        if not had_custom_target:
+        # Widen target scope to include expanded seed hosts (e.g. IP ranges from ASN),
+        # but only when seeds and target were originally the same
+        if not has_explicit_scope:
             expanded_seed_hosts = set(self.seeds.hosts)
             for host in expanded_seed_hosts:
                 if host not in self.target:

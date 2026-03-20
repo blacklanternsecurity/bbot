@@ -2599,7 +2599,7 @@ def parse_port_string(port_string):
 
 async def as_completed(
     coroutines: Iterable[Awaitable],
-    max_concurrent: Optional[int] = None,
+    max_concurrent: Optional[int] = 20,
 ):
     """
     Yield completed coroutines as they finish with optional concurrency limiting.
