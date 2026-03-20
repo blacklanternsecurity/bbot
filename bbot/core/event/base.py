@@ -798,8 +798,8 @@ class BaseEvent:
                 return True
             # hostnames and IPs
             radixtarget = RadixTarget()
-            radixtarget.insert(self.host)
-            return bool(radixtarget.search(other_event.host))
+            radixtarget.insert(str(self.host))
+            return bool(radixtarget.search(str(other_event.host)))
         return False
 
     def json(self, mode="json"):
@@ -1131,6 +1131,25 @@ class DictPathEvent(DictEvent):
 class ASN(DictEvent):
     _always_emit = True
     _quick_emit = True
+
+    def sanitize_data(self, data):
+        # accept bare int (from make_event(12345, "ASN")) or dict (from JSON round-trip)
+        if isinstance(data, int):
+            data = {"asn": data}
+        if not isinstance(data, dict) or "asn" not in data:
+            raise ValidationError(f"Invalid ASN data (expected dict with 'asn' key): {data}")
+        data["asn"] = int(data["asn"])
+        return data
+
+    def _data_id(self):
+        return str(self.data["asn"])
+
+    def _pretty_string(self):
+        return str(self.data["asn"])
+
+    def _data_human(self):
+        """Create a concise human-readable representation of ASN data."""
+        return json.dumps({"asn": self.data["asn"]}, sort_keys=True)
 
 
 class CODE_REPOSITORY(DictHostEvent):
@@ -1619,18 +1638,6 @@ class TECHNOLOGY(DictHostEvent):
 
     def _pretty_string(self):
         return self.data["technology"]
-
-
-class VHOST(DictHostEvent):
-    class _data_validator(BaseModel):
-        host: str
-        vhost: str
-        url: Optional[str] = None
-        _validate_url = field_validator("url")(validators.validate_url)
-        _validate_host = field_validator("host")(validators.validate_host)
-
-    def _pretty_string(self):
-        return self.data["vhost"]
 
 
 class PROTOCOL(DictHostEvent):

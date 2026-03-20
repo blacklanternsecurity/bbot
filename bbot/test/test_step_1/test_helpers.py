@@ -590,7 +590,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     await scan._cleanup()
 
     scan1 = bbot_scanner(modules="ipneighbor")
-    await scan1.load_modules()
+    await scan1._prep()
     assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
 
     await scan1._cleanup()
@@ -661,6 +661,7 @@ async def test_word_cloud(helpers, bbot_scanner):
 
     # saving and loading
     scan1 = bbot_scanner("127.0.0.1")
+    await scan1._prep()
     word_cloud = scan1.helpers.word_cloud
     word_cloud.add_word("lantern")
     word_cloud.add_word("black")
@@ -975,3 +976,161 @@ async def test_rm_temp_dir_at_exit(helpers):
 
     # temp dir should be removed
     assert not temp_dir.exists()
+
+
+def test_simhash_similarity(helpers):
+    """Test SimHash helper with increasingly different HTML pages."""
+
+    # Base HTML page
+    base_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Example Page</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Welcome to Example Corp</h1>
+        <div class="content">
+            <p>This is the main content of our website.</p>
+            <p>We provide excellent services to our customers.</p>
+            <ul>
+                <li>Service A</li>
+                <li>Service B</li>
+                <li>Service C</li>
+            </ul>
+        </div>
+        <footer>Copyright 2024 Example Corp</footer>
+    </body>
+    </html>
+    """
+
+    # Slightly different - changed one word
+    slightly_different = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Example Page</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Welcome to Example Corp</h1>
+        <div class="content">
+            <p>This is the main content of our website.</p>
+            <p>We provide amazing services to our customers.</p>
+            <ul>
+                <li>Service A</li>
+                <li>Service B</li>
+                <li>Service C</li>
+            </ul>
+        </div>
+        <footer>Copyright 2024 Example Corp</footer>
+    </body>
+    </html>
+    """
+
+    # Moderately different - changed content section
+    moderately_different = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Example Page</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Welcome to Example Corp</h1>
+        <div class="content">
+            <p>This page contains different information.</p>
+            <p>Our products are innovative and cutting-edge.</p>
+            <ul>
+                <li>Product X</li>
+                <li>Product Y</li>
+                <li>Product Z</li>
+            </ul>
+        </div>
+        <footer>Copyright 2024 Example Corp</footer>
+    </body>
+    </html>
+    """
+
+    # Very different - completely different content
+    very_different = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>News Portal</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Latest News</h1>
+        <div class="articles">
+            <article>
+                <h2>Breaking News Today</h2>
+                <p>Important events are happening around the world.</p>
+            </article>
+            <article>
+                <h2>Sports Update</h2>
+                <p>Local team wins championship game.</p>
+            </article>
+        </div>
+        <footer>News Corp 2024</footer>
+    </body>
+    </html>
+    """
+
+    # Completely different - different structure and content
+    completely_different = """
+    <xml version="1.0">
+    <data>
+        <configuration>
+            <setting name="timeout">300</setting>
+            <setting name="retries">5</setting>
+        </configuration>
+        <results>
+            <item id="1">Result A</item>
+            <item id="2">Result B</item>
+        </results>
+    </data>
+    """
+
+    # Test SimHash similarity
+    simhash = helpers.simhash
+
+    # Calculate hashes
+    base_hash = simhash.hash(base_html)
+    slightly_hash = simhash.hash(slightly_different)
+    moderately_hash = simhash.hash(moderately_different)
+    very_hash = simhash.hash(very_different)
+    completely_hash = simhash.hash(completely_different)
+
+    # Calculate similarities
+    identical_similarity = simhash.similarity(base_hash, base_hash)
+    slight_similarity = simhash.similarity(base_hash, slightly_hash)
+    moderate_similarity = simhash.similarity(base_hash, moderately_hash)
+    very_similarity = simhash.similarity(base_hash, very_hash)
+    complete_similarity = simhash.similarity(base_hash, completely_hash)
+
+    print(f"Identical: {identical_similarity:.3f}")
+    print(f"Slightly different: {slight_similarity:.3f}")
+    print(f"Moderately different: {moderate_similarity:.3f}")
+    print(f"Very different: {very_similarity:.3f}")
+    print(f"Completely different: {complete_similarity:.3f}")
+
+    # Verify expected similarity ordering
+    assert identical_similarity == 1.0, "Identical content should have similarity of 1.0"
+    assert slight_similarity > moderate_similarity, (
+        "Slightly different should be more similar than moderately different"
+    )
+    assert moderate_similarity > very_similarity, "Moderately different should be more similar than very different"
+    assert very_similarity > complete_similarity, "Very different should be more similar than completely different"
+
+    # Verify reasonable similarity ranges based on actual SimHash behavior
+    # With 64-bit hashes and 3-character shingles, we get good differentiation
+    assert slight_similarity > 0.90, "Slightly different content should be highly similar (>0.90)"
+    assert moderate_similarity > 0.70, "Moderately different content should be quite similar (>0.70)"
+    assert very_similarity > 0.50, "Very different content should have medium similarity (>0.50)"
+    assert complete_similarity > 0.30, "Completely different content should have low similarity (>0.30)"
+    assert complete_similarity < 0.50, "Completely different content should be clearly different (<0.50)"
+
+    # Most importantly, verify the ordering is correct
+    assert identical_similarity > slight_similarity > moderate_similarity > very_similarity > complete_similarity

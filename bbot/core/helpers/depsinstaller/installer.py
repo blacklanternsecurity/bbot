@@ -444,8 +444,10 @@ class DepsInstaller:
         with self.ensure_root_lock:
             # first check if the environment variable is set
             _sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
-            if _sudo_password is not None or os.geteuid() == 0 or can_sudo_without_password():
-                # if we're already root or we can sudo without a password, there's no need to prompt
+            if _sudo_password is not None:
+                self._sudo_password = _sudo_password
+                return
+            if os.geteuid() == 0 or can_sudo_without_password():
                 return
 
             if message:
@@ -453,7 +455,11 @@ class DepsInstaller:
             while not self._sudo_password:
                 # sleep for a split second to flush previous log messages
                 sleep(0.1)
-                _sudo_password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+                try:
+                    _sudo_password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+                except OSError:
+                    log.warning("Unable to read sudo password (no TTY). Set BBOT_SUDO_PASS env var.")
+                    return
                 if self.parent_helper.verify_sudo_password(_sudo_password):
                     log.success("Authentication successful")
                     self._sudo_password = _sudo_password

@@ -3,7 +3,7 @@ from bbot.modules.base import BaseModule
 
 class shodan_enterprise(BaseModule):
     watched_events = ["IP_ADDRESS"]
-    produced_events = ["OPEN_TCP_PORT", "TECHNOLOGY", "OPEN_UDP_PORT", "ASN", "FINDING"]
+    produced_events = ["OPEN_TCP_PORT", "TECHNOLOGY", "OPEN_UDP_PORT", "FINDING"]
     flags = ["passive", "safe"]
     meta = {
         "created_date": "2026-01-27",
@@ -16,7 +16,7 @@ class shodan_enterprise(BaseModule):
         "api_key": "Shodan API Key",
         "in_scope_only": "Only query in-scope IPs. If False, will query up to distance 1.",
     }
-    scope_distance_modifier = 1
+    in_scope_only = True
 
     base_url = "https://api.shodan.io"
 
@@ -25,16 +25,11 @@ class shodan_enterprise(BaseModule):
         if not self.api_key:
             return None, "No API key specified"
         if not self.config.get("in_scope_only", True):
+            self.in_scope_only = False
+            self.scope_distance_modifier = 1
             self.warning(
                 "in_scope_only is disabled. This module queries each IP individually and may consume a lot of API credits!"
             )
-        return True
-
-    async def filter_event(self, event):
-        in_scope_only = self.config.get("in_scope_only", True)
-        max_scope_distance = 0 if in_scope_only else (self.scan.scope_search_distance + 1)
-        if event.scope_distance > max_scope_distance:
-            return False, "event is not in scope"
         return True
 
     async def handle_event(self, event):
@@ -56,23 +51,6 @@ class shodan_enterprise(BaseModule):
         except Exception as e:
             self.warning(f"Failed to parse Shodan API response for {ip}: {e}")
             return
-
-        # ASN Extraction
-        asn_raw = host.get("asn", "")
-        if asn_raw:
-            asn = {
-                "asn": asn_raw[2:] if asn_raw.startswith("AS") else asn_raw,
-                "name": host.get("org", ""),
-                "description": host.get("isp", ""),
-                "country": host.get("country_code", ""),
-            }
-            await self.emit_event(
-                asn,
-                "ASN",
-                parent=event,
-                tags=host.get("tags") or [],
-                context=f"{{module}} queried Shodan API for {ip} and found ASN",
-            )
 
         if "data" not in host:
             self.warning(f"No Shodan data about {ip}")

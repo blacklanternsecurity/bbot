@@ -616,7 +616,7 @@ def test_cli_module_validation(monkeypatch, caplog):
     assert 'Did you mean "subdomain-enum"?' in caplog.text
 
 
-def test_cli_presets(monkeypatch, capsys, caplog):
+def test_cli_presets(monkeypatch, capsys, caplog, clean_default_config):
     import yaml
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
