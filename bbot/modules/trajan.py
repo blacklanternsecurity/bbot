@@ -230,7 +230,7 @@ class trajan(BaseModule):
         await self.execute_trajan(command, event)
 
     async def execute_trajan(self, command, event, is_jfrog=False):
-        process = await self.helpers.run_process(command)
+        process = await self.run_process(command)
         if not process or not process.stdout:
             return
 
