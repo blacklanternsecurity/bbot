@@ -82,6 +82,10 @@ class trajan(BaseModule):
         self.jenkins_username = self.config.get("jenkins_username", "")
         self.jenkins_password = self.config.get("jenkins_password", "")
         self.jenkins_token = self.config.get("jenkins_token", "")
+        if self.jenkins_token or (self.jenkins_username and self.jenkins_password):
+            self.warning(
+                "Jenkins credentials are configured. These will be sent to ANY in-scope server detected as Jenkins!"
+            )
         return True
 
     def detect_platform_from_url(self, hostname, domain):
@@ -226,7 +230,7 @@ class trajan(BaseModule):
         await self.execute_trajan(command, event)
 
     async def execute_trajan(self, command, event, is_jfrog=False):
-        process = await self.helpers.run(command)
+        process = await self.helpers.run_process(command)
         if not process or not process.stdout:
             return
 
