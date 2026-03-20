@@ -24,6 +24,8 @@ class TestShodan_DNS(ModuleTestBase):
                 ],
             },
         )
+
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {

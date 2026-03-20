@@ -1,5 +1,3 @@
-from ipaddress import ip_network
-
 from ..bbot_fixtures import *
 
 
@@ -18,7 +16,7 @@ async def test_scan(
         blacklist=["1.1.1.1/28", "www.evilcorp.com"],
         modules=["ipneighbor"],
     )
-    await scan0.load_modules()
+    await scan0._prep()
     assert scan0.in_target("1.1.1.1")
     assert scan0.in_target("1.1.1.0")
     assert scan0.blacklisted("1.1.1.15")
@@ -38,7 +36,7 @@ async def test_scan(
     # Positional arguments become the target
     assert set(j["target"]["target"]) == {"1.1.1.0", "1.1.1.0/31", "evilcorp.com", "test.evilcorp.com"}
     # Seeds are backfilled from target when not explicitly set
-    assert scan0.target.target.hosts == {ip_network("1.1.1.0/31"), "evilcorp.com"}
+    assert scan0.target.target.hosts == {"1.1.1.0/31", "evilcorp.com"}
     assert set(j["target"]["blacklist"]) == {"1.1.1.0/28", "www.evilcorp.com"}
     assert "ipneighbor" in j["preset"]["modules"]
 
@@ -51,6 +49,7 @@ async def test_scan(
     assert not scan1.in_scope("1.1.1.1")
 
     scan2 = bbot_scanner("1.1.1.1")
+    await scan2._prep()
     assert not scan2.blacklisted("1.1.1.1")
     assert not scan2.blacklisted("1.0.0.1")
     assert scan2.in_target("1.1.1.1")
@@ -65,6 +64,7 @@ async def test_scan(
 
     # make sure DNS resolution works
     scan4 = bbot_scanner("1.1.1.1", config={"dns": {"minimal": False}})
+    await scan4._prep()
     await scan4.helpers.dns._mock_dns(dns_table)
     events = []
     async for event in scan4.async_start():
@@ -74,6 +74,7 @@ async def test_scan(
 
     # make sure it doesn't work when you turn it off
     scan5 = bbot_scanner("1.1.1.1", config={"dns": {"minimal": True}})
+    await scan5._prep()
     await scan5.helpers.dns._mock_dns(dns_table)
     events = []
     async for event in scan5.async_start():
@@ -85,6 +86,7 @@ async def test_scan(
         await scan._cleanup()
 
     scan6 = bbot_scanner("a.foobar.io", "b.foobar.io", "c.foobar.io", "foobar.io")
+    await scan6._prep()
     assert len(scan6.dns_strings) == 1
 
 
@@ -304,6 +306,7 @@ async def test_python_output_matches_json(bbot_scanner):
         "blacklanternsecurity.com",
         config={"speculate": True, "dns": {"minimal": False}, "scope": {"report_distance": 10}},
     )
+    await scan._prep()
     await scan.helpers.dns._mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.1"]}})
     events = [e.json() async for e in scan.async_start()]
     output_json = scan.home / "output.json"
@@ -352,6 +355,7 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
 
     # first, run a scan with no CDN exclusion
     scan = bbot_scanner("evilcorp.com")
+    await scan._prep()
     await scan.helpers._mock_dns(dns_mock)
 
     from bbot.modules.base import BaseModule
@@ -368,7 +372,6 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
                 await self.emit_event("www.evilcorp.com:8080", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
 
     dummy = DummyModule(scan=scan)
-    await scan._prep()
     scan.modules["dummy"] = dummy
     events = [e async for e in scan.async_start() if e.type in ("DNS_NAME", "OPEN_TCP_PORT")]
     assert set(e.data for e in events) == {
@@ -384,11 +387,12 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
     # then run a scan with --exclude-cdn enabled
     preset = Preset("evilcorp.com")
     preset.parse_args()
-    assert preset.bake().to_yaml() == "modules:\n- portfilter\n"
+    baked_preset = preset.bake()
+    assert baked_preset.to_yaml() == "modules:\n- portfilter\n"
     scan = bbot_scanner("evilcorp.com", preset=preset)
+    await scan._prep()
     await scan.helpers._mock_dns(dns_mock)
     dummy = DummyModule(scan=scan)
-    await scan._prep()
     scan.modules["dummy"] = dummy
     events = [e async for e in scan.async_start() if e.type in ("DNS_NAME", "OPEN_TCP_PORT")]
     assert set(e.data for e in events) == {
@@ -401,5 +405,6 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
 
 async def test_scan_name(bbot_scanner):
     scan = bbot_scanner("evilcorp.com", name="test_scan_name")
+    await scan._prep()
     assert scan.name == "test_scan_name"
     assert scan.preset.scan_name == "test_scan_name"

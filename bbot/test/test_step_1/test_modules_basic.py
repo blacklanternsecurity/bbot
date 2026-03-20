@@ -13,9 +13,8 @@ async def test_modules_basic_checks(events, httpx_mock):
     from bbot.scanner import Scanner
 
     scan = Scanner(config={"omit_event_types": ["URL_UNVERIFIED"]})
+    await scan._prep()
     assert "URL_UNVERIFIED" in scan.omitted_event_types
-
-    await scan.load_modules()
 
     # output module specific event filtering tests
     base_output_module_1 = BaseOutputModule(scan)
@@ -268,6 +267,8 @@ async def test_modules_basic_perhostonly(bbot_scanner):
         force_start=True,
     )
 
+    await scan._prep()
+
     scan.modules["mod_normal"] = mod_normal(scan)
     scan.modules["mod_host_only"] = mod_host_only(scan)
     scan.modules["mod_hostport_only"] = mod_hostport_only(scan)
@@ -338,7 +339,7 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
         force_start=True,
     )
 
-    await per_domain_scan.load_modules()
+    await per_domain_scan._prep()
     await per_domain_scan.setup_modules()
     await per_domain_scan._set_status("RUNNING")
 
@@ -428,6 +429,9 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         output_modules=["python"],
         force_start=True,
     )
+
+    await scan._prep()
+
     await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"A": ["127.0.254.1"]},
@@ -503,6 +507,8 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     assert speculate_stats.consumed == {"URL": 1, "DNS_NAME": 3, "URL_UNVERIFIED": 1, "IP_ADDRESS": 3}
     assert speculate_stats.consumed_total == 8
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_module_loading(bbot_scanner):
@@ -512,7 +518,7 @@ async def test_module_loading(bbot_scanner):
         config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
-    await scan2.load_modules()
+    await scan2._prep()
     await scan2._set_status("RUNNING")
 
     # attributes, descriptions, etc.

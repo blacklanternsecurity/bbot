@@ -67,7 +67,7 @@ def test_core():
     assert "test456" in core_copy.config["test123"]
 
 
-def test_preset_yaml(clean_default_config):
+async def test_preset_yaml(clean_default_config):
     import yaml
 
     preset1 = Preset(
@@ -168,9 +168,11 @@ exclude_flags:
     preset_file.unlink()
 
 
-def test_preset_scope():
+@pytest.mark.asyncio
+async def test_preset_scope(clean_default_config):
     # test target merging
     scan = Scanner("1.2.3.4", preset=Preset.from_dict({"target": ["evilcorp.com"]}))
+    await scan._prep()
     assert {str(h) for h in scan.preset.target.seeds.hosts} == {"1.2.3.4/32", "evilcorp.com"}
     assert {e.data for e in scan.target.seeds} == {"1.2.3.4", "evilcorp.com"}
     assert {str(h) for h in scan.target.target.hosts} == {"1.2.3.4/32", "evilcorp.com"}
@@ -401,6 +403,7 @@ def test_preset_scope():
 @pytest.mark.asyncio
 async def test_preset_logging():
     scan = Scanner()
+    await scan._prep()
 
     # test individual verbosity levels
     original_log_level = CORE.logger.log_level
@@ -499,7 +502,7 @@ async def test_preset_logging():
         await scan._cleanup()
 
 
-def test_preset_module_resolution(clean_default_config):
+async def test_preset_module_resolution(clean_default_config):
     preset = Preset().bake()
     sslcert_preloaded = preset.preloaded_module("sslcert")
     wayback_preloaded = preset.preloaded_module("wayback")
@@ -573,8 +576,7 @@ def test_preset_module_resolution(clean_default_config):
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + module exclusions
-    preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
-    baked_preset = preset.bake()
+    baked_preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
     assert baked_preset.modules == {
         "wayback",
         "cloudcheck",
@@ -800,6 +802,7 @@ modules:
     # should fail
     with pytest.raises(ValidationError):
         scan = Scanner(preset=preset)
+        await scan._prep()
 
     preset = Preset.from_yaml_string(
         f"""
@@ -950,6 +953,7 @@ conditions:
     assert preset.conditions
 
     scan = Scanner(preset=preset)
+    await scan._prep()
     assert scan.preset.conditions
 
     await scan._cleanup()
@@ -958,10 +962,11 @@ conditions:
     preset.merge(preset2)
 
     with pytest.raises(PresetAbortError):
-        Scanner(preset=preset)
+        scan = Scanner(preset=preset)
+        await scan._prep()
 
 
-def test_preset_module_disablement(clean_default_config):
+async def test_preset_module_disablement(clean_default_config):
     # internal module disablement
     preset = Preset().bake()
     assert "speculate" in preset.internal_modules
@@ -985,7 +990,7 @@ def test_preset_module_disablement(clean_default_config):
     assert set(preset.output_modules) == {"json"}
 
 
-def test_preset_override():
+async def test_preset_override(clean_default_config):
     # tests to make sure a preset's config settings override others it includes
     preset_1_yaml = """
 name: override1
@@ -1067,7 +1072,7 @@ config:
     assert set(preset.scan_modules) == {"httpx", "c99", "robots", "virustotal", "securitytrails"}
 
 
-def test_preset_require_exclude():
+async def test_preset_require_exclude(clean_default_config):
     def get_module_flags(p):
         for m in p.scan_modules:
             preloaded = p.preloaded_module(m)
@@ -1177,7 +1182,7 @@ scan_name: bbot_test
 
 
 # regression test for https://github.com/blacklanternsecurity/bbot/issues/2337
-def test_preset_serialization():
+async def test_preset_serialization(clean_default_config):
     preset = Preset("192.168.1.1")
     preset = preset.bake()
 

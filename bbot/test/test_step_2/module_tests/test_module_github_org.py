@@ -5,11 +5,12 @@ class TestGithub_Org(ModuleTestBase):
     config_overrides = {"modules": {"github_org": {"api_key": "asdf"}}}
     modules_overrides = ["github_org", "speculate"]
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {"blacklanternsecurity.com": {"A": ["127.0.0.99"]}, "github.com": {"A": ["127.0.0.99"]}}
         )
 
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
         )

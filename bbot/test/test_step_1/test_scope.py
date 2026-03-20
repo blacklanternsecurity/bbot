@@ -5,6 +5,7 @@ from ..test_step_2.module_tests.base import ModuleTestBase
 class TestScopeBaseline(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx"]
+    config_overrides = {"omit_event_types": []}
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
@@ -80,11 +81,12 @@ class TestScopeCidrWithSeeds(ModuleTestBase):
     targets = ["192.168.1.0/24"]
     modules_overrides = ["dnsresolve"]
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         # Mock DNS so that:
         # - inscope.example.com resolves to 192.168.1.10 (inside the /24)
         # - outscope.example.com resolves to 10.0.0.1 (outside the /24)
-        # We do this before prep to ensure DNS mocking is ready before any resolution happens
+        # This must be in setup_after_prep because the base fixture applies a default
+        # mock_dns after prep which replaces any earlier mocks.
         await module_test.mock_dns(
             {
                 "inscope.example.com": {"A": ["192.168.1.10"]},

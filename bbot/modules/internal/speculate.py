@@ -32,9 +32,9 @@ class speculate(BaseInternalModule):
         "author": "@liquidsec",
     }
 
-    options = {"max_hosts": 65536, "ports": "80,443", "essential_only": False}
+    options = {"ip_range_max_hosts": 65536, "ports": "80,443", "essential_only": False}
     options_desc = {
-        "max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events",
+        "ip_range_max_hosts": "Max number of hosts an IP_RANGE can contain to allow conversion into IP_ADDRESS events",
         "ports": "The set of ports to speculate on",
         "essential_only": "Only enable essential speculate features (no extra discovery)",
     }
@@ -64,16 +64,6 @@ class speculate(BaseInternalModule):
 
         if not self.portscanner_enabled:
             self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")
-
-        target_len = len(self.scan.target.seeds)
-        if target_len > self.config.get("max_hosts", 65536):
-            if not self.portscanner_enabled:
-                self.hugewarning(
-                    f"Selected target ({target_len:,} hosts) is too large, skipping IP_RANGE --> IP_ADDRESS speculation"
-                )
-                self.hugewarning('Enabling the "portscan" module is highly recommended')
-            self.range_to_ip = False
-
         return True
 
     async def handle_event(self, event):
@@ -86,8 +76,17 @@ class speculate(BaseInternalModule):
         speculate_open_ports = self.emit_open_ports and event_in_scope_distance
 
         # generate individual IP addresses from IP range
-        if event.type == "IP_RANGE" and self.range_to_ip:
+        if event.type == "IP_RANGE":
             net = ipaddress.ip_network(event.data)
+            num_ips = net.num_addresses
+            ip_range_max_hosts = self.config.get("ip_range_max_hosts", 65536)
+
+            if num_ips > ip_range_max_hosts:
+                self.warning(
+                    f"IP range {event.data} contains {num_ips:,} addresses, which exceeds ip_range_max_hosts limit of {ip_range_max_hosts:,}. Skipping IP_ADDRESS speculation."
+                )
+                return
+
             ips = list(net)
             random.shuffle(ips)
             for ip in ips:
