@@ -1491,3 +1491,31 @@ class TestExcavateURL_InvalidPort(TestExcavate):
     def check(self, module_test, events):
         # Verify we got the hostname
         assert any(e.data == "asdffoo.test.notreal" for e in events)
+
+
+class TestExcavateIgnorePDF(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["excavate", "httpx"]
+
+    # body content that would normally produce findings if processed
+    pdf_body_with_urls = "https://pdf-extracted.test.notreal/some/path ftp://ftp.test.notreal"
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            {"uri": "/"},
+            {"response_data": self.pdf_body_with_urls, "headers": {"Content-Type": "application/pdf"}},
+        )
+
+    def check(self, module_test, events):
+        # excavate should skip PDF responses entirely, so no URLs or findings should be extracted from the body
+        url_unverified_events = [
+            e for e in events if e.type == "URL_UNVERIFIED" and "pdf-extracted.test.notreal" in e.data
+        ]
+        assert len(url_unverified_events) == 0, (
+            f"PDF body should not be processed by excavate, but got: {url_unverified_events}"
+        )
+
+        ftp_findings = [
+            e for e in events if e.type == "FINDING" and "ftp://ftp.test.notreal" in e.data.get("description", "")
+        ]
+        assert len(ftp_findings) == 0, f"PDF body should not produce findings, but got: {ftp_findings}"

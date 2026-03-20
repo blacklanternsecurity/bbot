@@ -3,12 +3,12 @@ from .base import ModuleTestBase
 
 class TestWebReport(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "wappalyzer", "badsecrets", "web_report", "trufflehog"]
+    modules_overrides = ["httpx", "dotnetnuke", "badsecrets", "web_report", "trufflehog"]
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
 
     async def setup_before_prep(self, module_test):
         # trufflehog --> FINDING
-        # wappalyzer --> TECHNOLOGY
+        # dotnetnuke --> TECHNOLOGY
         # badsecrets --> VULNERABILITY
         respond_args = {"response_data": web_body}
         module_test.set_expect_requests(respond_args=respond_args)
@@ -26,12 +26,13 @@ class TestWebReport(ModuleTestBase):
         )
         assert """Possible Secret Found. Detector Type: [PrivateKey]""" in report_content
         assert "<h3>TECHNOLOGY</h3>" in report_content
-        assert "<p>flask</p>" in report_content
+        assert "<li>DotNetNuke</li>" in report_content
 
 
 web_body = """
 <html>
 <body>
+<!-- by DotNetNuke Corporation -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@700&family=Open+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">

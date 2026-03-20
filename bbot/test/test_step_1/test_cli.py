@@ -384,8 +384,8 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     assert result is True
 
-    # unresolved dependency
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "wappalyzer"])
+    # python dependency
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "baddns"])
     result = await cli._main()
     assert result is True
 

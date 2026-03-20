@@ -125,8 +125,8 @@ exclude_modules:
   - rapiddns
 
 modules:
+  - baddns
   - robots
-  - wappalyzer
 
 output_modules:
   - csv
@@ -479,16 +479,16 @@ def test_preset_module_resolution(clean_default_config):
     preset = Preset().bake()
     sslcert_preloaded = preset.preloaded_module("sslcert")
     wayback_preloaded = preset.preloaded_module("wayback")
-    wappalyzer_preloaded = preset.preloaded_module("wappalyzer")
+    dotnetnuke_preloaded = preset.preloaded_module("dotnetnuke")
     sslcert_flags = sslcert_preloaded.get("flags", [])
     wayback_flags = wayback_preloaded.get("flags", [])
-    wappalyzer_flags = wappalyzer_preloaded.get("flags", [])
+    dotnetnuke_flags = dotnetnuke_preloaded.get("flags", [])
     assert "active" in sslcert_flags
     assert "passive" in wayback_flags
-    assert "active" in wappalyzer_flags
+    assert "active" in dotnetnuke_flags
     assert "subdomain-enum" in sslcert_flags
     assert "subdomain-enum" in wayback_flags
-    assert "httpx" in wappalyzer_preloaded["deps"]["modules"]
+    assert "httpx" in dotnetnuke_preloaded["deps"]["modules"]
 
     # make sure we have the expected defaults
     assert not preset.scan_modules
@@ -504,8 +504,8 @@ def test_preset_module_resolution(clean_default_config):
     assert preset.modules == set(preset.output_modules).union(set(preset.internal_modules))
 
     # make sure dependency resolution works as expected
-    preset = Preset(modules=["wappalyzer"]).bake()
-    assert set(preset.scan_modules) == {"wappalyzer", "httpx"}
+    preset = Preset(modules=["dotnetnuke"]).bake()
+    assert set(preset.scan_modules) == {"dotnetnuke", "httpx"}
 
     # make sure flags work as expected
     preset = Preset(flags=["subdomain-enum"]).bake()
@@ -537,19 +537,19 @@ def test_preset_module_resolution(clean_default_config):
     assert "wayback" in preset.scan_modules
 
     # normal module enableement
-    preset = Preset(modules=["sslcert", "wappalyzer", "wayback"]).bake()
-    assert set(preset.scan_modules) == {"sslcert", "wappalyzer", "wayback", "httpx"}
+    preset = Preset(modules=["sslcert", "dotnetnuke", "wayback"]).bake()
+    assert set(preset.scan_modules) == {"sslcert", "dotnetnuke", "wayback", "httpx"}
 
     # modules + flag exclusions
-    preset = Preset(exclude_flags=["active"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    preset = Preset(exclude_flags=["active"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + flag requirements
-    preset = Preset(require_flags=["passive"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    preset = Preset(require_flags=["passive"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + module exclusions
-    preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
     baked_preset = preset.bake()
     assert baked_preset.modules == {
         "wayback",
@@ -564,7 +564,7 @@ def test_preset_module_resolution(clean_default_config):
         "txt",
         "httpx",
         "csv",
-        "wappalyzer",
+        "dotnetnuke",
     }
 
 
@@ -633,14 +633,14 @@ class TestModule4(BaseModule):
     assert preset.module_loader.preload_cache_file.is_file()
 
     # at this point, core modules should be loaded, but not custom ones
-    assert "wappalyzer" in preset.module_loader.preloaded()
+    assert "baddns" in preset.module_loader.preloaded()
     assert "testmodule1" not in preset.module_loader.preloaded()
 
     import pickle
 
     with open(preset.module_loader.preload_cache_file, "rb") as f:
         preloaded = pickle.load(f)
-    assert "wappalyzer" in preloaded
+    assert "baddns" in preloaded
     assert "testmodule1" not in preloaded
 
     # add custom module dir
@@ -651,7 +651,7 @@ class TestModule4(BaseModule):
     assert custom_internal_module_dir in preset.module_dirs
 
     # now our custom modules should be loaded
-    assert "wappalyzer" in preset.module_loader.preloaded()
+    assert "baddns" in preset.module_loader.preloaded()
     assert "testmodule1" in preset.module_loader.preloaded()
     assert "testmodule2" in preset.module_loader.preloaded()
     assert "testmodule3" in preset.module_loader.preloaded()
@@ -660,7 +660,7 @@ class TestModule4(BaseModule):
     preset.module_loader.save_preload_cache()
     with open(preset.module_loader.preload_cache_file, "rb") as f:
         preloaded = pickle.load(f)
-    assert "wappalyzer" in preloaded
+    assert "baddns" in preloaded
     assert "testmodule1" in preloaded
     assert "testmodule2" in preloaded
     assert "testmodule3" in preloaded
@@ -668,7 +668,7 @@ class TestModule4(BaseModule):
 
     # since module loader is shared across all presets, a new preset should now also have our custom modules
     preset2 = Preset()
-    assert "wappalyzer" in preset2.module_loader.preloaded()
+    assert "baddns" in preset2.module_loader.preloaded()
     assert "testmodule1" in preset2.module_loader.preloaded()
     assert "testmodule2" in preset2.module_loader.preloaded()
     assert "testmodule3" in preset2.module_loader.preloaded()

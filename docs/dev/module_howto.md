@@ -4,7 +4,7 @@ Here we'll go over a basic example of writing a custom BBOT module.
 
 ## Create the python file
 
-1. Create a new `.py` file in `bbot/modules` (or in a [custom module directory](#custom-module-directory))
+1. Create a new `.py` file in `bbot/modules` (or in a [custom module directory](#load-modules-from-custom-locations))
 1. At the top of the file, import `BaseModule`
 1. Declare a class that inherits from `BaseModule`
    - the class must have the same name as your file (case-insensitive)
