@@ -45,9 +45,7 @@ class baddns_direct(baddns_module):
                     confidence = r_dict["confidence"]
 
                     if not self._meets_threshold(severity, confidence):
-                        self.debug(
-                            f"Skipping result below threshold (severity={severity}, confidence={confidence})"
-                        )
+                        self.debug(f"Skipping result below threshold (severity={severity}, confidence={confidence})")
                         continue
 
                     data = {
