@@ -2691,24 +2691,6 @@ def get_waf_strings():
     return [
         "The requested URL was rejected",
         "This content has been blocked",
-    ]
-
-
-def get_waf_strings():
-    """
-    Returns a list of common WAF (Web Application Firewall) detection strings.
-
-    Returns:
-        list: List of WAF detection strings
-
-    Examples:
-        >>> waf_strings = get_waf_strings()
-        >>> "The requested URL was rejected" in waf_strings
-        True
-    """
-    return [
-        "The requested URL was rejected",
-        "This content has been blocked",
         "You don't have permission to access ",
         "The URL you requested has been blocked",
         "Request unsuccessful. Incapsula incident",
