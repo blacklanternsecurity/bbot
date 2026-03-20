@@ -111,7 +111,7 @@ def test_python_api_sync_no_pending_tasks():
     assert len(pending) == 0, f"Found {len(pending)} pending tasks after scan: {pending}"
 
 
-def test_python_api_validation():
+async def test_python_api_validation():
     from bbot.scanner import Scanner, Preset
 
     # invalid target
