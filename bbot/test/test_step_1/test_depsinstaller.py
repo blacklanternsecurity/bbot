@@ -6,6 +6,7 @@ async def test_depsinstaller(monkeypatch, bbot_scanner):
     scan = bbot_scanner(
         "127.0.0.1",
     )
+    await scan._prep()
 
     # test shell
     test_file = Path("/tmp/test_file")

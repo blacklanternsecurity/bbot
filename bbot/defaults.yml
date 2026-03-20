@@ -24,7 +24,7 @@ folder_blobs: false
 
 scope:
   # strict scope means only exact DNS names are considered in-scope
-  # their subdomains are not included unless explicitly whitelisted
+  # their subdomains are not included unless explicitly added to the target
   strict: false
   # Filter by scope distance which events are displayed in the output
   # 0 == show only in-scope events (affiliates are always shown)
@@ -37,7 +37,7 @@ scope:
 ### DNS ###
 
 dns:
-  # Completely disable DNS resolution (careful if you have IP whitelists/blacklists, consider using minimal=true instead)
+  # Completely disable DNS resolution (careful if you have IP targets/blacklists, consider using minimal=true instead)
   disable: false
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false

@@ -102,12 +102,12 @@ class ModuleTestBase:
         module_test = self.ModuleTest(
             self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
         )
-        self.log.debug("Mocking DNS")
-        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
         self.log.debug("Executing setup_before_prep()")
         await self.setup_before_prep(module_test)
         self.log.debug("Executing scan._prep()")
         await module_test.scan._prep()
+        self.log.debug("Mocking DNS")
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
         self.log.debug("Executing setup_after_prep()")
         await self.setup_after_prep(module_test)
         self.log.debug("Starting scan")

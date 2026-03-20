@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestPortfilter_disabled(ModuleTestBase):
     modules_overrides = []
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         from bbot.modules.base import BaseModule
 
         class DummyModule(BaseModule):

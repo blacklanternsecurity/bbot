@@ -10,7 +10,7 @@ class portfilter(BaseInterceptModule):
         "author": "@TheTechromancer",
     }
     options = {
-        "cdn_tags": "cdn-",
+        "cdn_tags": "cdn-,waf-",
         "allowed_cdn_ports": "80,443",
     }
     options_desc = {

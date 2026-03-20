@@ -18,6 +18,7 @@ from bbot.core.helpers.names_generator import random_name
 from bbot.core.config.logger import GzipRotatingFileHandler
 from bbot.core.multiprocess import SHARED_INTERPRETER_STATE
 from bbot.core.helpers.async_helpers import async_to_sync_gen
+from bbot.logger import log_to_stderr
 from bbot.errors import BBOTError, ScanError, ValidationError
 from bbot.constants import (
     get_scan_status_code,
@@ -128,6 +129,7 @@ class Scanner:
         self._success = False
         self._scan_finish_status_message = None
         self._marked_finished = False
+        self._modules_loaded = False
 
         if scan_id is not None:
             self.id = str(scan_id)
@@ -151,6 +153,15 @@ class Scanner:
 
         self.preset = base_preset.bake(self)
 
+        self._prepped = False
+        self._finished_init = False
+        self._new_activity = False
+        self._cleanedup = False
+        self._omitted_event_types = None
+        self.modules = OrderedDict({})
+        self.dummy_modules = {}
+        self._status_code = SCAN_STATUS_NOT_STARTED
+
         # scan name
         if self.preset.scan_name is None:
             tries = 0
@@ -170,6 +181,20 @@ class Scanner:
             scan_name = str(self.preset.scan_name)
         self.name = scan_name.replace("/", "_")
 
+        # :)
+        if self.name == "golden_gus":
+            from base64 import b64decode as _d
+
+            _a = _d(
+                "ICAgICAgICAgICAgICBfX18KICAqd29vZiogIF9fL18gIGAuICAuLSIiIi0uCiAgICAgICAgICBcXyxgIHwgXC0nICAvICAgKWAtJykKICAgICAgICAgICAiIikgImAiICAgIFwgICgoImAiCiAgICAgICAgICBfX19ZICAsICAgIC4nNyAvfAogICAgICAgICAoXyxfX18vLi4uLWAgKF8vXy8="
+            ).decode()
+            _m = _d("R3VzIGhhcyBibGVzc2VkIHlvdXIgc2Nhbi4=").decode()
+            log_to_stderr(
+                f"\033[1;38;5;220m{_a}\033[0m\n          \033[1;38;5;118m{_m}\033[0m",
+                level="HUGESUCCESS",
+                logname=False,
+            )
+
         # make sure the preset has a description
         if not self.preset.description:
             self.preset.description = self.name
@@ -184,12 +209,8 @@ class Scanner:
 
         # scan temp dir
         self.temp_dir = self.home / "temp"
-        self.helpers.mkdir(self.temp_dir)
 
-        self.modules = OrderedDict({})
-        self._modules_loaded = False
-        self.dummy_modules = {}
-
+        # dispatcher
         if dispatcher is None:
             from .dispatcher import Dispatcher
 
@@ -204,28 +225,26 @@ class Scanner:
         self.scope_report_distance = int(self.scope_config.get("report_distance", 1))
 
         # web config
-        self.web_config = self.config.get("web", {})
-        self.web_spider_distance = self.web_config.get("spider_distance", 0)
-        self.web_spider_depth = self.web_config.get("spider_depth", 1)
-        self.web_spider_links_per_page = self.web_config.get("spider_links_per_page", 20)
-        max_redirects = self.web_config.get("http_max_redirects", 5)
+        web_config = self.config.get("web", {})
+        self.web_spider_distance = web_config.get("spider_distance", 0)
+        self.web_spider_depth = web_config.get("spider_depth", 1)
+        self.web_spider_links_per_page = web_config.get("spider_links_per_page", 20)
+        max_redirects = web_config.get("http_max_redirects", 5)
         self.web_max_redirects = max(max_redirects, self.web_spider_distance)
-        self.http_proxy = self.web_config.get("http_proxy", "")
-        self.http_timeout = self.web_config.get("http_timeout", 10)
-        self.httpx_timeout = self.web_config.get("httpx_timeout", 5)
-        self.http_retries = self.web_config.get("http_retries", 1)
-        self.httpx_retries = self.web_config.get("httpx_retries", 1)
-        self.useragent = (
-            f"{self.web_config.get('user_agent', 'BBOT')} {self.web_config.get('user_agent_suffix') or ''}".strip()
-        )
+        self.http_proxy = web_config.get("http_proxy", "")
+        self.http_timeout = web_config.get("http_timeout", 10)
+        self.httpx_timeout = web_config.get("httpx_timeout", 5)
+        self.http_retries = web_config.get("http_retries", 1)
+        self.httpx_retries = web_config.get("httpx_retries", 1)
+        self.useragent = f"{web_config.get('user_agent', 'BBOT')} {web_config.get('user_agent_suffix') or ''}".strip()
         # custom HTTP headers warning
-        self.custom_http_headers = self.web_config.get("http_headers", {})
+        self.custom_http_headers = web_config.get("http_headers", {})
         if self.custom_http_headers:
             self.warning(
                 "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
             )
         # custom HTTP cookies warning
-        self.custom_http_cookies = self.web_config.get("http_cookies", {})
+        self.custom_http_cookies = web_config.get("http_cookies", {})
         if self.custom_http_cookies:
             self.warning(
                 "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by httpx."
@@ -249,12 +268,6 @@ class Scanner:
 
         self.stats = ScanStats(self)
 
-        self._prepped = False
-        self._finished_init = False
-        self._new_activity = False
-        self._cleanedup = False
-        self._omitted_event_types = None
-
         self.init_events_task = None
         self.ticker_task = None
         self._stop_task = None
@@ -271,27 +284,47 @@ class Scanner:
         self.__log_handlers = None
         self._log_handler_backup = []
 
-    async def _prep(self):
-        """
-        Creates the scan's output folder, loads its modules, and calls their .setup() methods.
-        """
-
         # update the master PID
         SHARED_INTERPRETER_STATE.update_scan_pid()
 
+    async def _prep(self):
+        """
+        Expands async seed types (e.g. ASN → IP ranges), evaluates preset conditions,
+        creates the scan's output folder, loads its modules, and calls their .setup() methods.
+        """
+        # expand async seed types (e.g. ASN → IP ranges)
+        await self.preset.target.generate_children()
+
+        # evaluate preset conditions (may abort the scan)
+        if self.preset.conditions:
+            from .preset.conditions import ConditionEvaluator
+
+            evaluator = ConditionEvaluator(self.preset)
+            evaluator.evaluate()
+
         self.helpers.mkdir(self.home)
+        self.helpers.mkdir(self.temp_dir)
+
+        if not self._modules_loaded:
+            self.modules = OrderedDict({})
+            self.dummy_modules = {}
+
         if not self._prepped:
+            # clear modules for fresh start
+            self.modules.clear()
+            self.dummy_modules.clear()
+
             # save scan preset
             with open(self.home / "preset.yml", "w") as f:
                 f.write(self.preset.to_yaml())
 
             # log scan overview
-            start_msg = f"Scan seeded with {len(self.seeds):,} seed(s)"
+            start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} seed(s)"
             details = []
             if self.target.target:
-                details.append(f"{len(self.target.target):,} in target")
+                details.append(f"{len(self.target.target.event_seeds):,} in target")
             if self.blacklist:
-                details.append(f"{len(self.blacklist):,} in blacklist")
+                details.append(f"{len(self.blacklist.event_seeds):,} in blacklist")
             if details:
                 start_msg += f" ({', '.join(details)})"
             self.hugeinfo(start_msg)
@@ -329,6 +362,7 @@ class Scanner:
             success_msg = f"Setup succeeded for {len(self.modules) - 2:,}/{total_modules - 2:,} modules."
 
             self.success(success_msg)
+            self._modules_loaded = True
             self._prepped = True
 
     def start(self):
@@ -345,10 +379,11 @@ class Scanner:
 
     async def async_start(self):
         self.start_time = datetime.now(ZoneInfo("UTC"))
-        self.root_event.data["started_at"] = self.start_time.timestamp()
-        await self._set_status(SCAN_STATUS_STARTING)
         try:
-            await self._prep()
+            if not self._prepped:
+                await self._prep()
+            await self._set_status(SCAN_STATUS_STARTING)
+            self.root_event.data["started_at"] = self.start_time.isoformat()
 
             self._start_log_handlers()
             self.trace(f"Ran BBOT {__version__} at {self.start_time}, command: {' '.join(sys.argv)}")
@@ -571,6 +606,7 @@ class Scanner:
         if not self._modules_loaded:
             if not self.preset.modules:
                 self.warning("No modules to load")
+                self._modules_loaded = True
                 return
 
             if not self.preset.scan_modules:
@@ -910,9 +946,15 @@ class Scanner:
             # clean up web engine
             if self.helpers._web is not None:
                 await self.helpers.web.shutdown()
-            with contextlib.suppress(Exception):
-                self.home.rmdir()
-            self.helpers.rm_rf(self.temp_dir, ignore_errors=True)
+            # In some test paths, `_prep()` is never called, so `home` and
+            # `temp_dir` may not exist. Treat those as best-effort cleanups.
+            home = getattr(self, "home", None)
+            if home is not None:
+                with contextlib.suppress(Exception):
+                    home.rmdir()
+            temp_dir = getattr(self, "temp_dir", None)
+            if temp_dir is not None:
+                self.helpers.rm_rf(temp_dir, ignore_errors=True)
             self.helpers.clean_old_scans()
 
     def in_scope(self, *args, **kwargs):
@@ -931,6 +973,10 @@ class Scanner:
     @property
     def config(self):
         return self.preset.core.config
+
+    @property
+    def web_config(self):
+        return self.config.get("web", {})
 
     @property
     def target(self):

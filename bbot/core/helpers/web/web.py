@@ -56,10 +56,7 @@ class WebHelper(EngineClient):
         self.target = self.preset.target
         self.ssl_verify = self.config.get("ssl_verify", False)
         engine_debug = self.config.get("engine", {}).get("debug", False)
-        super().__init__(
-            server_kwargs={"config": self.config, "target": self.parent_helper.preset.target},
-            debug=engine_debug,
-        )
+        super().__init__(server_kwargs={"config": self.config, "target": self.target}, debug=engine_debug)
 
     def AsyncClient(self, *args, **kwargs):
         # cache by retries to prevent unwanted accumulation of clients
