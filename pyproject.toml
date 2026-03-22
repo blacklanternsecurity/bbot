@@ -75,7 +75,7 @@ uvicorn = ">=0.32,<0.40"
 fastapi = ">=0.115.5,<0.129.0"
 pytest-httpx = ">=0.35"
 pytest-benchmark = ">=4,<6"
-ruff = "0.15.4"
+ruff = "0.15.7"
 pymdown-extensions = "^10.20.1"
 griffe = "^1"
 
