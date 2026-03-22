@@ -74,3 +74,9 @@ class ASNHelper:
                 await self._client.cleanup()
             except Exception:
                 pass
+            self._client = None
+            # Reset the asndb global singleton so the next ASNDB() call
+            # creates a fresh client instead of returning the closed one
+            import asndb.asndb
+
+            asndb.asndb.asndb_client = None
