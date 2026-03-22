@@ -229,7 +229,7 @@ class generic_ssrf(BaseModule):
                     "name": matched_technique,
                     "description": description,
                     "severity": matched_severity if protocol == "HTTP" else "LOW",
-                    "confidence": "CONFIRMED" if protocol == "HTTP" else "MODERATE",
+                    "confidence": "CONFIRMED" if protocol == "HTTP" else "MEDIUM",
                 }
 
                 await self.emit_event(
