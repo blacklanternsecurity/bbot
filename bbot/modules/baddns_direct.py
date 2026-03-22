@@ -13,7 +13,7 @@ class baddns_direct(baddns_module):
     options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MODERATE"}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
-        "min_severity": "Minimum severity to emit (INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL)",
+        "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
         "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)",
     }
     module_threads = 8

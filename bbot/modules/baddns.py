@@ -4,7 +4,7 @@ from .base import BaseModule
 
 import logging
 
-SEVERITY_LEVELS = ("INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL")
+SEVERITY_LEVELS = ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL")
 CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED")
 
 SUBMODULE_MAX_SEVERITY = {
@@ -13,9 +13,9 @@ SUBMODULE_MAX_SEVERITY = {
     "MX": "MEDIUM",
     "TXT": "LOW",
     "references": "MEDIUM",
-    "NSEC": "INFORMATIONAL",
-    "zonetransfer": "INFORMATIONAL",
-    "DMARC": "INFORMATIONAL",
+    "NSEC": "INFO",
+    "zonetransfer": "INFO",
+    "DMARC": "INFO",
     "SPF": "MEDIUM",
     "MTA-STS": "HIGH",
     "WILDCARD": "HIGH",
@@ -48,7 +48,7 @@ class baddns(BaseModule):
     options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MODERATE", "enabled_submodules": []}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
-        "min_severity": "Minimum severity to emit (INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL)",
+        "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
         "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)",
         "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
     }
@@ -130,11 +130,25 @@ class baddns(BaseModule):
             self.warning(f"Task for {module_instance} raised an error: {e}")
             return module_instance, None
 
+    def _new_http_client(self, *args, **kwargs):
+        """Create a non-cached HTTP client for baddns submodules.
+
+        baddns submodules close their HTTP clients during cleanup, so we can't
+        use the caching ``web.AsyncClient`` factory — that would let one
+        submodule close a client that another submodule is still using.
+
+        TODO: revisit this when we switch to blasthttp — the caching/lifecycle
+        model will be different and this workaround may no longer be needed.
+        """
+        from bbot.core.helpers.web.client import BBOTAsyncClient
+
+        return BBOTAsyncClient.from_config(self.scan.config, self.scan.target, *args, persist_cookies=False, **kwargs)
+
     async def handle_event(self, event):
         coroutines = []
         for ModuleClass in self.select_modules():
             kwargs = {
-                "http_client_class": self.scan.helpers.web.AsyncClient,
+                "http_client_class": self._new_http_client,
                 "dns_client": self.scan.helpers.dns.resolver,
                 "custom_nameservers": self.custom_nameservers,
                 "signatures": self.signatures,
