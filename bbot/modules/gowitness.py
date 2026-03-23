@@ -236,9 +236,7 @@ class gowitness(BaseModule):
             raw_parent_url = self.screenshots_taken[parent_id]
             parent_event = event_dict.get(self._url_key(self.helpers.urlparse(raw_parent_url)))
             if parent_event is None:
-                self.warning(
-                    f"Could not correlate technology to parent event for URL: {raw_parent_url}"
-                )
+                self.warning(f"Could not correlate technology to parent event for URL: {raw_parent_url}")
                 continue
             technology = row["value"]
             parent_url = self.helpers.clean_url(raw_parent_url).geturl()
