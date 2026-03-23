@@ -155,12 +155,16 @@ class gowitness(BaseModule):
     async def handle_batch(self, *events):
         self.prep()
         event_dict = {}
+        stdin_urls = []
         for e in events:
-            key = e.data
+            url = e.data
             if e.type == "SOCIAL":
-                key = e.data["url"]
-            event_dict[key] = e
-        stdin = "\n".join(list(event_dict))
+                url = e.data["url"]
+            stdin_urls.append(url)
+            # Normalize the key so it matches clean_url() lookups from the gowitness DB
+            normalized = self.helpers.clean_url(url).geturl()
+            event_dict[normalized] = e
+        stdin = "\n".join(stdin_urls)
 
         try:
             async for line in self.run_process_live(self.command, input=stdin, idle_timeout=self.idle_timeout):
