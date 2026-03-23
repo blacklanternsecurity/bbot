@@ -17,7 +17,7 @@ class badsecrets(BaseModule):
     options_desc = {
         "custom_secrets": "Include custom secrets loaded from a local file",
     }
-    deps_pip = ["badsecrets~=0.13.47"]
+    deps_pip = ["badsecrets~=1.0.0"]
 
     async def setup(self):
         self.custom_secrets = None
@@ -86,8 +86,8 @@ class badsecrets(BaseModule):
                         # Only vulnerable (SecretFound) JWT results are worth emitting from badsecrets.
                         if r["detecting_module"] == "Generic_JWT":
                             continue
-                        # There is little value to presenting a non-vulnerable asp.net viewstate, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
-                        if r["detecting_module"] == "ASPNET_Viewstate":
+                        # There is little value to presenting a non-vulnerable asp.net viewstate/resource, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
+                        if r["detecting_module"] in ("ASPNET_Viewstate", "ASPNET_Resource"):
                             technology = "microsoft asp.net"
                             await self.emit_event(
                                 {"technology": technology, "url": event.data["url"], "host": str(event.host)},
