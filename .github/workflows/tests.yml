@@ -35,6 +35,8 @@ jobs:
           uv run ruff check
           uv run ruff format --check
       - name: Run tests
+        env:
+          BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
         run: |
           uv run pytest -vv --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Debug Logs
