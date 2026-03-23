@@ -181,7 +181,10 @@ class gowitness(BaseModule):
             # NOTE: this prevents long filenames from causing problems in BBOT, but gowitness will still fail to save it.
             filename = self.helpers.truncate_filename(filename)
             webscreenshot_data = {"path": str(filename), "url": final_url}
-            parent_event = event_dict[url]
+            parent_event = event_dict.get(url)
+            if parent_event is None:
+                self.warning(f"Could not correlate screenshot to parent event for URL: {screenshot['url']}")
+                continue
             await self.emit_event(
                 webscreenshot_data,
                 "WEBSCREENSHOT",
