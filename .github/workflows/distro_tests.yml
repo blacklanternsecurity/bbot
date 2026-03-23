@@ -65,9 +65,12 @@ jobs:
         run: echo "OS_NAME=${{ matrix.os }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
       - name: Run tests
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          export PATH="$HOME/.pyenv/bin:$PATH"
-          export PATH="$HOME/.pyenv/shims:$PATH"
+          # Preserve pyenv/pipx paths installed under the GitHub-set HOME
+          export PATH="/github/home/.local/bin:$PATH"
+          export PATH="/github/home/.pyenv/bin:$PATH"
+          export PATH="/github/home/.pyenv/shims:$PATH"
+          # Fix HOME to match euid (root) so rustup/cargo don't refuse to build
+          export HOME="$(getent passwd $(whoami) | cut -d: -f6)"
           export BBOT_DISTRO_TESTS=true
           uv python pin 3.11
           uv sync --group dev
