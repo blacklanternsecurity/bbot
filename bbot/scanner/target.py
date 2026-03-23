@@ -167,22 +167,6 @@ class BaseTarget:
     def __bool__(self):
         return bool(len(self._rt)) or bool(self.event_seeds)
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        # RadixTarget contains a Rust PyRadixTarget which cannot be pickled
-        del state["_rt"]
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        acl_mode = isinstance(self, ACLTarget) and not self.strict_scope
-        self._rt = RadixTarget(strict_scope=self.strict_scope, acl_mode=acl_mode)
-        for event_seed in sorted(
-            self.event_seeds, key=lambda e: (0, 0) if not e.host else host_size_key(str(e.host))
-        ):
-            if event_seed.host is not None:
-                self._rt.insert(str(event_seed.host), data=event_seed)
-
     def __eq__(self, other):
         return self.hash == getattr(other, "hash", None)
 
