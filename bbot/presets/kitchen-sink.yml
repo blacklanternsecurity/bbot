@@ -11,8 +11,3 @@ include:
   - dirbust-light
   - web-screenshots
   - baddns-heavy
-
-config:
-  modules:
-    baddns:
-      enable_references: True

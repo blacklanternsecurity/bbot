@@ -165,6 +165,25 @@ wheels = [
 ]
 
 [[package]]
+name = "baddns"
+version = "2.0.452"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cloudcheck" },
+    { name = "colorama" },
+    { name = "dnspython" },
+    { name = "httpx" },
+    { name = "python-dateutil" },
+    { name = "python-whois" },
+    { name = "pyyaml" },
+    { name = "tldextract" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/77/32/1d82b8781bd9285fabb4a03f342bfc8e27f219665af5dd184fc97bf9694a/baddns-2.0.452.tar.gz", hash = "sha256:193e3ff866986ddb626ec563991c3ea760985ca74f7ed59c0f3770c9f5543d9d", size = 61143, upload-time = "2026-03-20T18:39:14.505Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/cb/7ed49be7f8802adfcb57710548ed28239d899eaf5db7a49e57df8600385f/baddns-2.0.452-py3-none-any.whl", hash = "sha256:54e38e2b661de981f95454abea8b17a6bb3d1d5ff1e046738c319cfd7cfc018d", size = 117120, upload-time = "2026-03-20T18:39:13.376Z" },
+]
+
+[[package]]
 name = "bbot"
 source = { editable = "." }
 dependencies = [
@@ -207,6 +226,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "baddns" },
     { name = "fastapi" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -275,6 +295,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "baddns", specifier = "~=2.0.0" },
     { name = "fastapi", specifier = ">=0.115.5,<0.129.0" },
     { name = "pre-commit", specifier = ">=3.4,<5.0" },
     { name = "pytest", specifier = ">=8.3.1,<9" },
@@ -2136,6 +2157,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
+]
+
+[[package]]
+name = "python-whois"
+version = "0.9.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f1/0c/537914eca91ee5ff281309a5ca71da23c0c975cd6658668a44d3fdcf1cc4/python_whois-0.9.6.tar.gz", hash = "sha256:2e6de7b6d70e305a85f4859cd17781ee3f0da3a02a8e94f23cb4cdcd2e400bfa", size = 125107, upload-time = "2025-10-07T04:36:14.913Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/53/d0ceb3ae30da8e8ec2d9af11050178f3b4114d5aa6a7f7074199db3c806f/python_whois-0.9.6-py3-none-any.whl", hash = "sha256:153261941a4d238b1278a4ca9b5b5e0590ed3b4d0c534ba111c4434d5d339410", size = 116976, upload-time = "2025-10-07T04:36:12.328Z" },
 ]
 
 [[package]]

@@ -1,11 +1,7 @@
-from baddns.base import get_all_modules
-from baddns.lib.loader import load_signatures
-from .base import BaseModule
-
-import logging
+from .baddns import baddns as baddns_module
 
 
-class baddns_direct(BaseModule):
+class baddns_direct(baddns_module):
     watched_events = ["URL", "STORAGE_BUCKET"]
     produced_events = ["FINDING"]
     flags = ["active", "subdomain-enum", "baddns", "cloud-enum"]
@@ -14,30 +10,19 @@ class baddns_direct(BaseModule):
         "created_date": "2024-01-29",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": []}
+    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MODERATE"}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
+        "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
+        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)",
     }
     module_threads = 8
-    deps_pip = ["baddns~=1.12.294"]
+    deps_pip = ["baddns~=2.0.0"]
 
     scope_distance_modifier = 1
 
-    async def setup(self):
-        self.preset.core.logger.include_logger(logging.getLogger("baddns"))
-        self.custom_nameservers = self.config.get("custom_nameservers", []) or None
-        if self.custom_nameservers:
-            self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
-        self.only_high_confidence = self.config.get("only_high_confidence", False)
-        self.signatures = load_signatures()
-        return True
-
-    def select_modules(self):
-        selected_modules = []
-        for m in get_all_modules():
-            if m.name in ["CNAME"]:
-                selected_modules.append(m)
-        return selected_modules
+    def set_modules(self):
+        self.enabled_submodules = ["CNAME"]
 
     async def handle_event(self, event):
         CNAME_direct_module = self.select_modules()[0]
@@ -56,12 +41,19 @@ class baddns_direct(BaseModule):
                 for r in results:
                     r_dict = r.to_dict()
 
+                    severity = r_dict["severity"]
+                    confidence = r_dict["confidence"]
+
+                    if not self._meets_threshold(severity, confidence):
+                        self.debug(f"Skipping result below threshold (severity={severity}, confidence={confidence})")
+                        continue
+
                     data = {
                         "name": f"BadDNS {r_dict['signature']}",
                         "description": f"Possible [{r_dict['signature']}] via direct BadDNS analysis. Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                         "host": str(event.host),
-                        "severity": "HIGH",
-                        "confidence": "MEDIUM",
+                        "severity": severity,
+                        "confidence": confidence,
                     }
 
                     await self.emit_event(

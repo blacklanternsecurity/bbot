@@ -112,12 +112,11 @@ flags:
   - subdomain-enum
 
 exclude_flags:
-  - aggressive
+  - noisy
   - slow
 
 require_flags:
   - passive
-  - safe
 
 exclude_modules:
   - certspotter

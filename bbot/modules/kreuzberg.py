@@ -66,7 +66,7 @@ class kreuzberg(BaseModule):
         "extensions": "File extensions to parse",
     }
 
-    deps_pip = ["kreuzberg~=4.3", "pypdfium2~=5.0"]
+    deps_pip = ["kreuzberg>=4.3,<4.5", "pypdfium2~=5.0"]
     scope_distance_modifier = 1
 
     async def setup(self):

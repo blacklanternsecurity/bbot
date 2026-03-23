@@ -221,11 +221,6 @@ include:
   - web-screenshots
   - baddns-heavy
 
-config:
-  modules:
-    baddns:
-      enable_references: True
-
 ```
 
 </details>
