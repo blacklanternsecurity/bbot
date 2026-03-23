@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class aspnet_bin_exposure(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["active", "web-heavy"]
     meta = {
         "description": "Check for ASP.NET Security Feature Bypasses (CVE-2023-36899 and CVE-2023-36560)",
         "created_date": "2025-01-28",

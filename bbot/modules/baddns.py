@@ -8,7 +8,7 @@ import logging
 class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-basic", "baddns", "cloud-enum", "subdomain-hijack"]
+    flags = ["active", "web", "baddns", "cloud-enum", "subdomain-hijack"]
     meta = {
         "description": "Check hosts for domain/subdomain takeovers",
         "created_date": "2024-01-18",

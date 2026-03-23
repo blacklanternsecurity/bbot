@@ -18,7 +18,7 @@ config:
 conditions:
   - |
     {% if config.web.spider_distance == 0 and config.modules.nuclei.directory_only == False %}
-      {{ warn("The 'nuclei-intense' preset turns the 'directory_only' limitation off on the nuclei module. To make the best use of this, you may want to enable spidering with 'spider' or 'spider-intense' preset.") }}
+      {{ warn("The 'nuclei-heavy' preset turns the 'directory_only' limitation off on the nuclei module. To make the best use of this, you may want to enable spidering with 'spider' or 'spider-heavy' preset.") }}
     {% endif %}
 
 

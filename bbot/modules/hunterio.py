@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 class hunterio(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL_UNVERIFIED"]
-    flags = ["passive", "email-enum", "subdomain-enum", "safe"]
+    flags = ["passive", "email-enum", "subdomain-enum"]
     meta = {
         "description": "Query hunter.io for emails",
         "created_date": "2022-04-25",

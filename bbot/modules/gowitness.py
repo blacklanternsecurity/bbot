@@ -13,7 +13,7 @@ from bbot.modules.base import BaseModule
 class gowitness(BaseModule):
     watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-screenshots"]
+    flags = ["active", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
     options = {
         "version": "3.0.5",
@@ -194,7 +194,7 @@ class gowitness(BaseModule):
         for url, row in new_network_logs.items():
             ip = row["remote_ip"]
             status_code = row["status_code"]
-            tags = [f"status-{status_code}", f"ip-{ip}", "spider-danger"]
+            tags = [f"status-{status_code}", "spider-danger"]
 
             _id = row["result_id"]
             parent_url = self.helpers.clean_url(self.screenshots_taken[_id]).geturl()
@@ -203,13 +203,16 @@ class gowitness(BaseModule):
                 self.warning(f"Could not correlate network log to parent event for URL: {self.screenshots_taken[_id]}")
                 continue
             if url and url.startswith("http"):
-                await self.emit_event(
+                url_event = self.make_event(
                     url,
                     "URL_UNVERIFIED",
                     parent=parent_event,
                     tags=tags,
                     context=f"{{module}} visited {{event.type}}: {url}",
                 )
+                if url_event and ip:
+                    url_event._resolved_hosts.add(ip)
+                await self.emit_event(url_event)
 
         # emit technologies
         new_technologies = await self.get_new_technologies()

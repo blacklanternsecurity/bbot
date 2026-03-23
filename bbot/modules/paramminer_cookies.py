@@ -8,7 +8,7 @@ class paramminer_cookies(paramminer_headers):
 
     watched_events = ["HTTP_RESPONSE", "WEB_PARAMETER"]
     produced_events = ["WEB_PARAMETER"]
-    flags = ["active", "aggressive", "slow", "web-paramminer"]
+    flags = ["active", "noisy", "slow", "web-paramminer"]
     meta = {
         "description": "Smart brute-force to check for common HTTP cookie parameters",
         "created_date": "2022-06-27",

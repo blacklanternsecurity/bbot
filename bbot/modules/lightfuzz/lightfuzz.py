@@ -7,7 +7,7 @@ from bbot.errors import InteractshError
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough", "deadly"]
+    flags = ["active", "noisy", "web-heavy", "invasive"]
 
     options = {
         "force_common_headers": False,

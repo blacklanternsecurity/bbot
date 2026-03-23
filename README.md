@@ -144,16 +144,16 @@ output_modules:
 
 ```bash
 # run a light web scan against www.evilcorp.com
-bbot -t www.evilcorp.com -p web-basic
+bbot -t www.evilcorp.com -p web
 
 # run a heavy web scan against www.evilcorp.com
-bbot -t www.evilcorp.com -p web-thorough
+bbot -t www.evilcorp.com -p web-heavy
 ```
 
-<!-- BBOT WEB-BASIC PRESET EXPANDABLE -->
+<!-- BBOT WEB PRESET EXPANDABLE -->
 
 <details>
-<summary><b><code>web-basic.yml</code></b></summary>
+<summary><b><code>web.yml</code></b></summary>
 
 ```yaml
 description: Quick web scan
@@ -162,43 +162,43 @@ include:
   - iis-shortnames
 
 flags:
-  - web-basic
+  - web
 
 ```
 
 </details>
 
-<!-- END BBOT WEB-BASIC PRESET EXPANDABLE -->
+<!-- END BBOT WEB PRESET EXPANDABLE -->
 
-<!-- BBOT WEB-THOROUGH PRESET EXPANDABLE -->
+<!-- BBOT WEB-HEAVY PRESET EXPANDABLE -->
 
 <details>
-<summary><b><code>web-thorough.yml</code></b></summary>
+<summary><b><code>web-heavy.yml</code></b></summary>
 
 ```yaml
 description: Aggressive web scan
 
 include:
-  # include the web-basic preset
-  - web-basic
+  # include the web preset
+  - web
 
 flags:
-  - web-thorough
+  - web-heavy
 
 ```
 
 </details>
 
-<!-- END BBOT WEB-THOROUGH PRESET EXPANDABLE -->
+<!-- END BBOT WEB-HEAVY PRESET EXPANDABLE -->
 
 ### 5) Everything Everywhere All at Once
 
 ```bash
 # everything everywhere all at once
-bbot -t evilcorp.com -p kitchen-sink --allow-deadly
+bbot -t evilcorp.com -p kitchen-sink
 
 # roughly equivalent to:
-bbot -t evilcorp.com -p subdomain-enum cloud-enum code-enum email-enum spider web-basic paramminer dirbust-light web-screenshots --allow-deadly
+bbot -t evilcorp.com -p subdomain-enum cloud-enum code-enum email-enum spider web paramminer dirbust-light web-screenshots
 ```
 
 <!-- BBOT KITCHEN-SINK PRESET EXPANDABLE -->
@@ -215,11 +215,11 @@ include:
   - code-enum
   - email-enum
   - spider
-  - web-basic
+  - web
   - paramminer
   - dirbust-light
   - web-screenshots
-  - baddns-intense
+  - baddns-heavy
 
 config:
   modules:

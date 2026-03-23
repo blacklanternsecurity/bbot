@@ -6,11 +6,11 @@ include:
   - code-enum
   - email-enum
   - spider
-  - web-basic
+  - web
   - paramminer
   - dirbust-light
   - web-screenshots
-  - baddns-intense
+  - baddns-heavy
 
 config:
   modules:

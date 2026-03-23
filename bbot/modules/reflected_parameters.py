@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class reflected_parameters(BaseModule):
     watched_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["active", "web-heavy"]
     meta = {
         "description": "Highlight parameters that reflect their contents in response body",
         "author": "@liquidsec",

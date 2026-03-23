@@ -11,7 +11,7 @@ class ajaxpro(BaseModule):
     ajaxpro_regex = re.compile(r'<script.+src="([\/a-zA-Z0-9\._]+,[a-zA-Z0-9\._]+\.ashx)"')
     watched_events = ["HTTP_RESPONSE", "URL"]
     produced_events = ["FINDING", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["active", "web-heavy"]
     meta = {
         "description": "Check for potentially vulnerable Ajaxpro instances",
         "created_date": "2024-01-18",

@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class git(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING", "CODE_REPOSITORY"]
-    flags = ["active", "safe", "web-basic", "code-enum"]
+    flags = ["active", "web", "code-enum"]
     meta = {
         "description": "Check for exposed .git repositories",
         "created_date": "2023-05-30",

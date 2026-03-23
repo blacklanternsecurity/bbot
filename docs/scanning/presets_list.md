@@ -1,12 +1,12 @@
 Below is a list of every default BBOT preset, including its YAML.
 
 <!-- BBOT PRESET YAML -->
-## **baddns-intense**
+## **baddns-heavy**
 
 Run all baddns modules and submodules.
 
-??? note "`baddns-intense.yml`"
-    ```yaml title="~/.bbot/presets/baddns-intense.yml"
+??? note "`baddns-heavy.yml`"
+    ```yaml title="~/.bbot/presets/baddns-heavy.yml"
     description: Run all baddns modules and submodules.
     
     
@@ -23,7 +23,7 @@ Run all baddns modules and submodules.
 
 
 
-Modules: [4]("`baddns_direct`, `baddns_zone`, `baddns`, `httpx`")
+Modules: [0]("")
 
 ## **cloud-enum**
 
@@ -42,7 +42,7 @@ Enumerate cloud resources such as storage buckets, etc.
 
 
 
-Modules: [57]("`anubisdb`, `asn`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `baddns`, `bevigil`, `bucket_amazon`, `bucket_digitalocean`, `bucket_file_enum`, `bucket_firebase`, `bucket_google`, `bucket_microsoft`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `crt_db`, `crt`, `digitorus`, `dnsbimi`, `dnsbrute_mutations`, `dnsbrute`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman_download`, `postman`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`")
+Modules: [0]("")
 
 ## **code-enum**
 
@@ -58,7 +58,7 @@ Enumerate Git repositories, Docker images, etc.
 
 
 
-Modules: [20]("`apkpure`, `code_repository`, `docker_pull`, `dockerhub`, `git_clone`, `git`, `gitdumper`, `github_codesearch`, `github_org`, `github_usersearch`, `github_workflows`, `gitlab_com`, `gitlab_onprem`, `google_playstore`, `httpx`, `jadx`, `postman_download`, `postman`, `social`, `trufflehog`")
+Modules: [0]("")
 
 ## **dirbust-heavy**
 
@@ -109,7 +109,7 @@ Recursive web directory brute-force (aggressive)
 
 Category: web
 
-Modules: [5]("`ffuf_shortnames`, `ffuf`, `httpx`, `iis_shortnames`, `wayback`")
+Modules: [0]("")
 
 ## **dirbust-light**
 
@@ -134,7 +134,7 @@ Basic web directory brute-force (surface-level directories only)
 
 Category: web
 
-Modules: [4]("`ffuf_shortnames`, `ffuf`, `httpx`, `iis_shortnames`")
+Modules: [0]("")
 
 ## **dotnet-audit**
 
@@ -172,7 +172,7 @@ Comprehensive scan for all IIS/.NET specific modules and module settings
 
 Category: web
 
-Modules: [9]("`ajaxpro`, `aspnet_bin_exposure`, `badsecrets`, `dotnetnuke`, `ffuf_shortnames`, `ffuf`, `httpx`, `iis_shortnames`, `telerik`")
+Modules: [0]("")
 
 ## **email-enum**
 
@@ -191,7 +191,7 @@ Enumerate email addresses from APIs, web crawling, etc.
 
 
 
-Modules: [8]("`dehashed`, `dnscaa`, `dnstlsrpt`, `emailformat`, `hunterio`, `pgp`, `skymem`, `sslcert`")
+Modules: [0]("")
 
 ## **fast**
 
@@ -241,7 +241,7 @@ Recursively enumerate IIS shortnames
 
 Category: web
 
-Modules: [3]("`ffuf_shortnames`, `httpx`, `iis_shortnames`")
+Modules: [0]("")
 
 ## **kitchen-sink**
 
@@ -257,11 +257,11 @@ Everything everywhere all at once
       - code-enum
       - email-enum
       - spider
-      - web-basic
+      - web
       - paramminer
       - dirbust-light
       - web-screenshots
-      - baddns-intense
+      - baddns-heavy
     
     config:
       modules:
@@ -271,18 +271,45 @@ Everything everywhere all at once
 
 
 
-Modules: [89]("`anubisdb`, `apkpure`, `asn`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `baddns`, `badsecrets`, `bevigil`, `bucket_amazon`, `bucket_digitalocean`, `bucket_file_enum`, `bucket_firebase`, `bucket_google`, `bucket_microsoft`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `code_repository`, `crt_db`, `crt`, `dehashed`, `digitorus`, `dnsbimi`, `dnsbrute_mutations`, `dnsbrute`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `docker_pull`, `dockerhub`, `emailformat`, `ffuf_shortnames`, `ffuf`, `filedownload`, `fullhunt`, `git_clone`, `git`, `gitdumper`, `github_codesearch`, `github_org`, `github_usersearch`, `github_workflows`, `gitlab_com`, `gitlab_onprem`, `google_playstore`, `gowitness`, `graphql_introspection`, `hackertarget`, `httpx`, `hunt`, `hunterio`, `iis_shortnames`, `ipneighbor`, `jadx`, `leakix`, `myssl`, `ntlm`, `oauth`, `otx`, `paramminer_cookies`, `paramminer_getparams`, `paramminer_headers`, `passivetotal`, `pgp`, `postman_download`, `postman`, `rapiddns`, `reflected_parameters`, `robots`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `skymem`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `trufflehog`, `urlscan`, `virustotal`, `wayback`")
+Modules: [0]("")
+
+## **lightfuzz**
+
+Discover web parameters and fuzz them for vulnerabilities. Uses all lightfuzz submodules. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.
+
+??? note "`lightfuzz.yml`"
+    ```yaml title="~/.bbot/presets/web/lightfuzz.yml"
+    description: Discover web parameters and fuzz them for vulnerabilities. Uses all lightfuzz submodules. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.
+    
+    include:
+      - lightfuzz-light
+    
+    modules:
+      - badsecrets
+      - hunt
+      - reflected_parameters
+      
+    config:
+      modules:
+        lightfuzz:
+          enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi,ssrf]
+          try_post_as_get: True
+    ```
+
+Category: web
+
+Modules: [0]("")
 
 ## **lightfuzz-heavy**
 
-Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.
+Discover web parameters and fuzz them for vulnerabilities, with more aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.
 
 ??? note "`lightfuzz-heavy.yml`"
     ```yaml title="~/.bbot/presets/web/lightfuzz-heavy.yml"
-    description: Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.
+    description: Discover web parameters and fuzz them for vulnerabilities, with more aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.
     
     include:
-      - lightfuzz-medium
+      - lightfuzz
     
     flags:
       - web-paramminer
@@ -301,7 +328,7 @@ Discover web parameters and lightly fuzz them for vulnerabilities, with more int
 
 Category: web
 
-Modules: [10]("`badsecrets`, `httpx`, `hunt`, `lightfuzz`, `paramminer_cookies`, `paramminer_getparams`, `paramminer_headers`, `portfilter`, `reflected_parameters`, `robots`")
+Modules: [0]("")
 
 ## **lightfuzz-light**
 
@@ -328,48 +355,21 @@ Discover web parameters and lightly fuzz them for common vulnerabilities (path t
     conditions:
     - |
       {% if config.web.spider_distance == 0 %}
-        {{ warn("Lightfuzz works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+        {{ warn("Lightfuzz works much better with spider enabled! Consider adding 'spider' or 'spider-heavy' preset.") }}
       {% endif %}
     ```
 
 Category: web
 
-Modules: [3]("`httpx`, `lightfuzz`, `portfilter`")
+Modules: [0]("")
 
-## **lightfuzz-medium**
+## **lightfuzz-max**
 
-Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz submodules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.
+Discover web parameters and fuzz them for vulnerabilities, with the most aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually.
 
-??? note "`lightfuzz-medium.yml`"
-    ```yaml title="~/.bbot/presets/web/lightfuzz-medium.yml"
-    description: Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz submodules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.
-    
-    include:
-      - lightfuzz-light
-    
-    modules:
-      - badsecrets
-      - hunt
-      - reflected_parameters
-      
-    config:
-      modules:
-        lightfuzz:
-          enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi,ssrf]
-          try_post_as_get: True
-    ```
-
-Category: web
-
-Modules: [6]("`badsecrets`, `httpx`, `hunt`, `lightfuzz`, `portfilter`, `reflected_parameters`")
-
-## **lightfuzz-superheavy**
-
-Discover web parameters and lightly fuzz them for vulnerabilities, with the most intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz submodules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually.
-
-??? note "`lightfuzz-superheavy.yml`"
-    ```yaml title="~/.bbot/presets/web/lightfuzz-superheavy.yml"
-    description: Discover web parameters and lightly fuzz them for vulnerabilities, with the most intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz submodules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually.
+??? note "`lightfuzz-max.yml`"
+    ```yaml title="~/.bbot/presets/web/lightfuzz-max.yml"
+    description: Discover web parameters and fuzz them for vulnerabilities, with the most aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually.
     
     include:
       - lightfuzz-heavy
@@ -387,7 +387,7 @@ Discover web parameters and lightly fuzz them for vulnerabilities, with the most
 
 Category: web
 
-Modules: [10]("`badsecrets`, `httpx`, `hunt`, `lightfuzz`, `paramminer_cookies`, `paramminer_getparams`, `paramminer_headers`, `portfilter`, `reflected_parameters`, `robots`")
+Modules: [0]("")
 
 ## **lightfuzz-xss**
 
@@ -415,13 +415,13 @@ Discover web parameters and lightly fuzz them, limited to just GET-based XSS vul
     conditions:
       - |
         {% if config.web.spider_distance == 0 %}
-          {{ warn("The lightfuzz-xss preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+          {{ warn("The lightfuzz-xss preset works much better with spider enabled! Consider adding 'spider' or 'spider-heavy' preset.") }}
         {% endif %}
     ```
 
 Category: web
 
-Modules: [5]("`httpx`, `lightfuzz`, `paramminer_getparams`, `portfilter`, `reflected_parameters`")
+Modules: [0]("")
 
 ## **nuclei**
 
@@ -467,7 +467,7 @@ Run nuclei scans against all discovered targets
 
 Category: nuclei
 
-Modules: [3]("`httpx`, `nuclei`, `portfilter`")
+Modules: [0]("")
 
 ## **nuclei-budget**
 
@@ -498,14 +498,14 @@ Run nuclei scans against all discovered targets, using budget mode to look for l
 
 Category: nuclei
 
-Modules: [3]("`httpx`, `nuclei`, `portfilter`")
+Modules: [0]("")
 
-## **nuclei-intense**
+## **nuclei-heavy**
 
 Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.
 
-??? note "`nuclei-intense.yml`"
-    ```yaml title="~/.bbot/presets/nuclei/nuclei-intense.yml"
+??? note "`nuclei-heavy.yml`"
+    ```yaml title="~/.bbot/presets/nuclei/nuclei-heavy.yml"
     description: Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.
     
     modules:
@@ -526,7 +526,7 @@ Run nuclei scans against all discovered targets, allowing for spidering, against
     conditions:
       - |
         {% if config.web.spider_distance == 0 and config.modules.nuclei.directory_only == False %}
-          {{ warn("The 'nuclei-intense' preset turns the 'directory_only' limitation off on the nuclei module. To make the best use of this, you may want to enable spidering with 'spider' or 'spider-intense' preset.") }}
+          {{ warn("The 'nuclei-heavy' preset turns the 'directory_only' limitation off on the nuclei module. To make the best use of this, you may want to enable spidering with 'spider' or 'spider-heavy' preset.") }}
         {% endif %}
     
     
@@ -538,7 +538,7 @@ Run nuclei scans against all discovered targets, allowing for spidering, against
 
 Category: nuclei
 
-Modules: [6]("`httpx`, `nuclei`, `portfilter`, `robots`, `urlscan`, `wayback`")
+Modules: [0]("")
 
 ## **nuclei-technology**
 
@@ -573,7 +573,7 @@ Run nuclei scans against all discovered targets, running templates which match d
 
 Category: nuclei
 
-Modules: [3]("`httpx`, `nuclei`, `portfilter`")
+Modules: [0]("")
 
 ## **paramminer**
 
@@ -594,13 +594,13 @@ Discover new web parameters via brute-force, and analyze them with additional mo
     conditions:
       - |
         {% if config.web.spider_distance == 0 %}
-          {{ warn("The paramminer preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+          {{ warn("The paramminer preset works much better with spider enabled! Consider adding 'spider' or 'spider-heavy' preset.") }}
         {% endif %}
     ```
 
 Category: web
 
-Modules: [6]("`httpx`, `hunt`, `paramminer_cookies`, `paramminer_getparams`, `paramminer_headers`, `reflected_parameters`")
+Modules: [0]("")
 
 ## **spider**
 
@@ -629,14 +629,14 @@ Recursive web spider
 
 
 
-Modules: [1]("`httpx`")
+Modules: [0]("")
 
-## **spider-intense**
+## **spider-heavy**
 
 Recursive web spider with more aggressive settings
 
-??? note "`spider-intense.yml`"
-    ```yaml title="~/.bbot/presets/spider-intense.yml"
+??? note "`spider-heavy.yml`"
+    ```yaml title="~/.bbot/presets/spider-heavy.yml"
     description: Recursive web spider with more aggressive settings
     
     include:
@@ -654,7 +654,7 @@ Recursive web spider with more aggressive settings
 
 
 
-Modules: [1]("`httpx`")
+Modules: [0]("")
 
 ## **subdomain-enum**
 
@@ -688,7 +688,7 @@ Enumerate subdomains via APIs, brute-force
 
 
 
-Modules: [50]("`anubisdb`, `asn`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `bevigil`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `crt_db`, `crt`, `digitorus`, `dnsbimi`, `dnsbrute_mutations`, `dnsbrute`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman_download`, `postman`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`")
+Modules: [0]("")
 
 ## **tech-detect**
 
@@ -710,26 +710,46 @@ Detect technologies via Nuclei, and FingerprintX
 
 
 
-Modules: [3]("`fingerprintx`, `httpx`, `nuclei`")
+Modules: [0]("")
 
-## **web-basic**
+## **web**
 
 Quick web scan
 
-??? note "`web-basic.yml`"
-    ```yaml title="~/.bbot/presets/web-basic.yml"
+??? note "`web.yml`"
+    ```yaml title="~/.bbot/presets/web.yml"
     description: Quick web scan
     
     include:
       - iis-shortnames
     
     flags:
-      - web-basic
+      - web
     ```
 
 
 
-Modules: [17]("`baddns`, `badsecrets`, `bucket_amazon`, `bucket_firebase`, `bucket_google`, `bucket_microsoft`, `ffuf_shortnames`, `filedownload`, `git`, `graphql_introspection`, `httpx`, `iis_shortnames`, `ntlm`, `oauth`, `robots`, `securitytxt`, `sslcert`")
+Modules: [0]("")
+
+## **web-heavy**
+
+Aggressive web scan
+
+??? note "`web-heavy.yml`"
+    ```yaml title="~/.bbot/presets/web-heavy.yml"
+    description: Aggressive web scan
+    
+    include:
+      # include the web preset
+      - web
+    
+    flags:
+      - web-heavy
+    ```
+
+
+
+Modules: [0]("")
 
 ## **web-screenshots**
 
@@ -755,27 +775,7 @@ Take screenshots of webpages
 
 
 
-Modules: [3]("`gowitness`, `httpx`, `social`")
-
-## **web-thorough**
-
-Aggressive web scan
-
-??? note "`web-thorough.yml`"
-    ```yaml title="~/.bbot/presets/web-thorough.yml"
-    description: Aggressive web scan
-    
-    include:
-      # include the web-basic preset
-      - web-basic
-    
-    flags:
-      - web-thorough
-    ```
-
-
-
-Modules: [31]("`ajaxpro`, `aspnet_bin_exposure`, `baddns`, `badsecrets`, `bucket_amazon`, `bucket_digitalocean`, `bucket_firebase`, `bucket_google`, `bucket_microsoft`, `bypass403`, `dotnetnuke`, `ffuf_shortnames`, `filedownload`, `generic_ssrf`, `git`, `graphql_introspection`, `host_header`, `httpx`, `hunt`, `iis_shortnames`, `lightfuzz`, `ntlm`, `oauth`, `reflected_parameters`, `retirejs`, `robots`, `securitytxt`, `smuggler`, `sslcert`, `telerik`, `url_manipulation`")
+Modules: [0]("")
 <!-- END BBOT PRESET YAML -->
 
 ## Table of Default Presets
@@ -783,33 +783,33 @@ Modules: [31]("`ajaxpro`, `aspnet_bin_exposure`, `baddns`, `badsecrets`, `bucket
 Here is a the same data, but in a table:
 
 <!-- BBOT PRESETS -->
-| Preset               | Category   | Description                                                                                                                                                                                                                                                                                                                            | # Modules   | Modules                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-|----------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| baddns-intense       |            | Run all baddns modules and submodules.                                                                                                                                                                                                                                                                                                 | 4           | baddns, baddns_direct, baddns_zone, httpx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| cloud-enum           |            | Enumerate cloud resources such as storage buckets, etc.                                                                                                                                                                                                                                                                                | 57          | anubisdb, asn, azure_tenant, baddns, baddns_direct, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| code-enum            |            | Enumerate Git repositories, Docker images, etc.                                                                                                                                                                                                                                                                                        | 20          | apkpure, code_repository, docker_pull, dockerhub, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, httpx, jadx, postman, postman_download, social, trufflehog                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| dirbust-heavy        | web        | Recursive web directory brute-force (aggressive)                                                                                                                                                                                                                                                                                       | 5           | ffuf, ffuf_shortnames, httpx, iis_shortnames, wayback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| dirbust-light        | web        | Basic web directory brute-force (surface-level directories only)                                                                                                                                                                                                                                                                       | 4           | ffuf, ffuf_shortnames, httpx, iis_shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| dotnet-audit         | web        | Comprehensive scan for all IIS/.NET specific modules and module settings                                                                                                                                                                                                                                                               | 9           | ajaxpro, aspnet_bin_exposure, badsecrets, dotnetnuke, ffuf, ffuf_shortnames, httpx, iis_shortnames, telerik                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| email-enum           |            | Enumerate email addresses from APIs, web crawling, etc.                                                                                                                                                                                                                                                                                | 8           | dehashed, dnscaa, dnstlsrpt, emailformat, hunterio, pgp, skymem, sslcert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| fast                 |            | Scan only the provided targets as fast as possible - no extra discovery                                                                                                                                                                                                                                                                | 0           |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| iis-shortnames       | web        | Recursively enumerate IIS shortnames                                                                                                                                                                                                                                                                                                   | 3           | ffuf_shortnames, httpx, iis_shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| kitchen-sink         |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                      | 89          | anubisdb, apkpure, asn, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bevigil, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, code_repository, crt, crt_db, dehashed, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, docker_pull, dockerhub, emailformat, ffuf, ffuf_shortnames, filedownload, fullhunt, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, gowitness, graphql_introspection, hackertarget, httpx, hunt, hunterio, iis_shortnames, ipneighbor, jadx, leakix, myssl, ntlm, oauth, otx, paramminer_cookies, paramminer_getparams, paramminer_headers, passivetotal, pgp, postman, postman_download, rapiddns, reflected_parameters, robots, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, skymem, social, sslcert, subdomaincenter, subdomainradar, trickest, trufflehog, urlscan, virustotal, wayback |
-| lightfuzz-heavy      | web        | Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.                                              | 10          | badsecrets, httpx, hunt, lightfuzz, paramminer_cookies, paramminer_getparams, paramminer_headers, portfilter, reflected_parameters, robots                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| lightfuzz-light      | web        | Discover web parameters and lightly fuzz them for common vulnerabilities (path traversal, SQLi, XSS), with minimal extra modules. Safest to run alongside larger scans.                                                                                                                                                                | 3           | httpx, lightfuzz, portfilter                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| lightfuzz-medium     | web        | Discover web parameters and lightly fuzz them for vulnerabilities. Uses all lightfuzz submodules, without some of the more intense discovery techniques. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs. | 6           | badsecrets, httpx, hunt, lightfuzz, portfilter, reflected_parameters                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| lightfuzz-superheavy | web        | Discover web parameters and lightly fuzz them for vulnerabilities, with the most intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz submodules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually.                        | 10          | badsecrets, httpx, hunt, lightfuzz, paramminer_cookies, paramminer_getparams, paramminer_headers, portfilter, reflected_parameters, robots                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| lightfuzz-xss        | web        | Discover web parameters and lightly fuzz them, limited to just GET-based XSS vulnerabilities. Avoids running against confirmed WAFs. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz submodule.                                                                                               | 5           | httpx, lightfuzz, paramminer_getparams, portfilter, reflected_parameters                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| nuclei               | nuclei     | Run nuclei scans against all discovered targets                                                                                                                                                                                                                                                                                        | 3           | httpx, nuclei, portfilter                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| nuclei-budget        | nuclei     | Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests                                                                                                                                                                                               | 3           | httpx, nuclei, portfilter                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| nuclei-intense       | nuclei     | Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.                                                                                                                                                                                                      | 6           | httpx, nuclei, portfilter, robots, urlscan, wayback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| nuclei-technology    | nuclei     | Run nuclei scans against all discovered targets, running templates which match discovered technologies                                                                                                                                                                                                                                 | 3           | httpx, nuclei, portfilter                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| paramminer           | web        | Discover new web parameters via brute-force, and analyze them with additional modules                                                                                                                                                                                                                                                  | 6           | httpx, hunt, paramminer_cookies, paramminer_getparams, paramminer_headers, reflected_parameters                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| spider               |            | Recursive web spider                                                                                                                                                                                                                                                                                                                   | 1           | httpx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| spider-intense       |            | Recursive web spider with more aggressive settings                                                                                                                                                                                                                                                                                     | 1           | httpx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| subdomain-enum       |            | Enumerate subdomains via APIs, brute-force                                                                                                                                                                                                                                                                                             | 50          | anubisdb, asn, azure_tenant, baddns_direct, baddns_zone, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| tech-detect          |            | Detect technologies via Nuclei, and FingerprintX                                                                                                                                                                                                                                                                                       | 3           | fingerprintx, httpx, nuclei                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| web-basic            |            | Quick web scan                                                                                                                                                                                                                                                                                                                         | 17          | baddns, badsecrets, bucket_amazon, bucket_firebase, bucket_google, bucket_microsoft, ffuf_shortnames, filedownload, git, graphql_introspection, httpx, iis_shortnames, ntlm, oauth, robots, securitytxt, sslcert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| web-screenshots      |            | Take screenshots of webpages                                                                                                                                                                                                                                                                                                           | 3           | gowitness, httpx, social                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| web-thorough         |            | Aggressive web scan                                                                                                                                                                                                                                                                                                                    | 31          | ajaxpro, aspnet_bin_exposure, baddns, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bypass403, dotnetnuke, ffuf_shortnames, filedownload, generic_ssrf, git, graphql_introspection, host_header, httpx, hunt, iis_shortnames, lightfuzz, ntlm, oauth, reflected_parameters, retirejs, robots, securitytxt, smuggler, sslcert, telerik, url_manipulation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Preset            | Category   | Description                                                                                                                                                                                                                                                                       | # Modules   | Modules                                                                                     |
+|-------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------|
+| baddns-heavy      |            | Run all baddns modules and submodules.                                                                                                                                                                                                                                            | 3           | baddns, baddns_direct, baddns_zone                                                          |
+| cloud-enum        |            | Enumerate cloud resources such as storage buckets, etc.                                                                                                                                                                                                                           | 0           |                                                                                             |
+| code-enum         |            | Enumerate Git repositories, Docker images, etc.                                                                                                                                                                                                                                   | 0           |                                                                                             |
+| dirbust-heavy     | web        | Recursive web directory brute-force (aggressive)                                                                                                                                                                                                                                  | 3           | ffuf, httpx, wayback                                                                        |
+| dirbust-light     | web        | Basic web directory brute-force (surface-level directories only)                                                                                                                                                                                                                  | 1           | ffuf                                                                                        |
+| dotnet-audit      | web        | Comprehensive scan for all IIS/.NET specific modules and module settings                                                                                                                                                                                                          | 8           | ajaxpro, aspnet_bin_exposure, badsecrets, dotnetnuke, ffuf, ffuf_shortnames, httpx, telerik |
+| email-enum        |            | Enumerate email addresses from APIs, web crawling, etc.                                                                                                                                                                                                                           | 0           |                                                                                             |
+| fast              |            | Scan only the provided targets as fast as possible - no extra discovery                                                                                                                                                                                                           | 0           |                                                                                             |
+| iis-shortnames    | web        | Recursively enumerate IIS shortnames                                                                                                                                                                                                                                              | 0           |                                                                                             |
+| kitchen-sink      |            | Everything everywhere all at once                                                                                                                                                                                                                                                 | 7           | baddns, baddns_direct, baddns_zone, ffuf, httpx, hunt, reflected_parameters                 |
+| lightfuzz         | web        | Discover web parameters and fuzz them for vulnerabilities. Uses all lightfuzz submodules. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.           | 6           | badsecrets, httpx, hunt, lightfuzz, portfilter, reflected_parameters                        |
+| lightfuzz-heavy   | web        | Discover web parameters and fuzz them for vulnerabilities, with more aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.                       | 7           | badsecrets, httpx, hunt, lightfuzz, portfilter, reflected_parameters, robots                |
+| lightfuzz-light   | web        | Discover web parameters and lightly fuzz them for common vulnerabilities (path traversal, SQLi, XSS), with minimal extra modules. Safest to run alongside larger scans.                                                                                                           | 3           | httpx, lightfuzz, portfilter                                                                |
+| lightfuzz-max     | web        | Discover web parameters and fuzz them for vulnerabilities, with the most aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually. | 7           | badsecrets, httpx, hunt, lightfuzz, portfilter, reflected_parameters, robots                |
+| lightfuzz-xss     | web        | Discover web parameters and lightly fuzz them, limited to just GET-based XSS vulnerabilities. Avoids running against confirmed WAFs. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz submodule.                                          | 5           | httpx, lightfuzz, paramminer_getparams, portfilter, reflected_parameters                    |
+| nuclei            | nuclei     | Run nuclei scans against all discovered targets                                                                                                                                                                                                                                   | 3           | httpx, nuclei, portfilter                                                                   |
+| nuclei-budget     | nuclei     | Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests                                                                                                                                          | 3           | httpx, nuclei, portfilter                                                                   |
+| nuclei-heavy      | nuclei     | Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.                                                                                                                                                 | 6           | httpx, nuclei, portfilter, robots, urlscan, wayback                                         |
+| nuclei-technology | nuclei     | Run nuclei scans against all discovered targets, running templates which match discovered technologies                                                                                                                                                                            | 3           | httpx, nuclei, portfilter                                                                   |
+| paramminer        | web        | Discover new web parameters via brute-force, and analyze them with additional modules                                                                                                                                                                                             | 3           | httpx, hunt, reflected_parameters                                                           |
+| spider            |            | Recursive web spider                                                                                                                                                                                                                                                              | 1           | httpx                                                                                       |
+| spider-heavy      |            | Recursive web spider with more aggressive settings                                                                                                                                                                                                                                | 1           | httpx                                                                                       |
+| subdomain-enum    |            | Enumerate subdomains via APIs, brute-force                                                                                                                                                                                                                                        | 0           |                                                                                             |
+| tech-detect       |            | Detect technologies via Nuclei, and FingerprintX                                                                                                                                                                                                                                  | 2           | fingerprintx, nuclei                                                                        |
+| web               |            | Quick web scan                                                                                                                                                                                                                                                                    | 0           |                                                                                             |
+| web-heavy         |            | Aggressive web scan                                                                                                                                                                                                                                                               | 0           |                                                                                             |
+| web-screenshots   |            | Take screenshots of webpages                                                                                                                                                                                                                                                      | 0           |                                                                                             |
 <!-- END BBOT PRESETS -->

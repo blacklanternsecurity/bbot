@@ -22,10 +22,6 @@ Significant work has gone into minimizing false positives. However, due to the n
 
 If you see a false positive that you feel is occurring too often or could easily be prevented, please open a GitHub issue and we will take a look!
 
-### Deadly module
-
-Lightfuzz currently has the `deadly` flag. This is applied to the most aggressive modules to enforce an additional check, requiring explicit acknowledgement of the risk using the `--allow-deadly` command line flag.
-
 ## Findings, Severity, and Confidence
 
 All lightfuzz output is emitted as `FINDING` events. Each finding has two key attributes: **severity** and **confidence**.
@@ -209,19 +205,19 @@ If you don't want to dive into those details, here are the built-in preset optio
 
 Minimal preset that checks for only the most common findings (path traversal, SQLi, XSS). Enables a select few submodules and is safest for larger scans. POST requests are disabled.
 
-### `-p lightfuzz-medium`
+### `-p lightfuzz`
 
 The default starting point. Enables all lightfuzz submodules and includes necessary config options, plus companion modules (`badsecrets`, `hunt`, `reflected_parameters`). **POST request fuzzing is disabled** — this is the most common concern for less aggressive scanning, especially on internal networks.
 
 ### `-p lightfuzz-heavy`
 
-Everything in `lightfuzz-medium`, plus:
+Everything in `lightfuzz`, plus:
 
 * **Param Miner** modules enabled for brute-force parameter discovery
 * POST parameter fuzzing enabled
 * Slightly increased spider settings
 
-### `-p lightfuzz-superheavy`
+### `-p lightfuzz-max`
 
 Everything in `lightfuzz-heavy`, plus:
 
@@ -239,10 +235,10 @@ A focused preset for XSS hunting. Enables only the `xss` submodule with `parammi
 
 We *strongly* recommend running Lightfuzz with the spider enabled, as this will dramatically increase the number of parameters discovered. If you don't, you will see a warning reminding you.
 
-Enable the spider by adding either the `spider` or `spider-intense` preset:
+Enable the spider by adding either the `spider` or `spider-heavy` preset:
 
 ```
-bbot -p lightfuzz-medium spider -t targets.txt --allow-deadly
+bbot -p lightfuzz spider -t targets.txt
 ```
 
 ## Usage
@@ -250,7 +246,7 @@ bbot -p lightfuzz-medium spider -t targets.txt --allow-deadly
 With presets in mind, usage is simple:
 
 ```
-bbot -p lightfuzz-medium spider -t targets.txt --allow-deadly
+bbot -p lightfuzz spider -t targets.txt
 ```
 
 All output from Lightfuzz will be `FINDING` events, each with a severity and confidence level. Focus your triage on confidence first — CONFIRMED and HIGH confidence findings are the most actionable, while LOW confidence findings should be treated as leads requiring manual verification.
@@ -261,12 +257,12 @@ If you want a specific submodule, you can make your own preset adjusting the `mo
 
 Just XSS:
 ```
-bbot -p lightfuzz-medium -t targets.txt -c modules.lightfuzz.enabled_submodules=[xss] --allow-deadly
+bbot -p lightfuzz -t targets.txt -c modules.lightfuzz.enabled_submodules=[xss]
 ```
 
 XSS and SQLi:
 ```
-bbot -p lightfuzz-medium -t targets.txt -c modules.lightfuzz.enabled_submodules=[xss,sqli] --allow-deadly
+bbot -p lightfuzz -t targets.txt -c modules.lightfuzz.enabled_submodules=[xss,sqli]
 ```
 
 ## HTTP Method Switching
@@ -282,5 +278,5 @@ This is useful because web frameworks often accept parameters from multiple sour
 
 Enable via config:
 ```
-bbot -p lightfuzz-medium -t targets.txt -c modules.lightfuzz.try_post_as_get=true modules.lightfuzz.try_get_as_post=true --allow-deadly
+bbot -p lightfuzz -t targets.txt -c modules.lightfuzz.try_post_as_get=true modules.lightfuzz.try_get_as_post=true
 ```

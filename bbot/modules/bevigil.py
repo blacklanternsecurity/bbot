@@ -8,7 +8,7 @@ class bevigil(subdomain_enum_apikey):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "URL_UNVERIFIED"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["subdomain-enum", "passive"]
     meta = {
         "description": "Retrieve OSINT data from mobile applications using BeVigil",
         "created_date": "2022-10-26",

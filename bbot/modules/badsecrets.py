@@ -7,7 +7,7 @@ from badsecrets.base import carve_all_modules
 class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["active", "web"]
     meta = {
         "description": "Library for detecting known or weak secrets across many web frameworks",
         "created_date": "2022-11-19",

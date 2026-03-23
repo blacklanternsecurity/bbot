@@ -18,7 +18,7 @@ import re
 class newsletters(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe"]
+    flags = ["active"]
     meta = {
         "description": "Searches for Newsletter Submission Entry Fields on Websites",
         "created_date": "2024-02-02",

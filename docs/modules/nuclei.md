@@ -13,7 +13,7 @@ BBOT integrates with [Nuclei](https://github.com/projectdiscovery/nuclei), an op
 ## Default Behavior
 
 * By default, only "directory URLs" (URLs ending in a slash) will be scanned, but ALL templates will be used (**BE CAREFUL!**)
-* Because it's so aggressive, Nuclei is considered a **deadly** module. This means you need to use the flag **--allow-deadly** to turn it on.
+* Because it's aggressive and potentially destructive, Nuclei is tagged as both **noisy** and **invasive**. BBOT will warn you before starting the scan, but no special flag is needed to enable it.
 
 ## Specifying custom templates
 
@@ -51,7 +51,7 @@ The Nuclei module has many configuration options:
 | modules.nuclei.silent         | bool   | Don't display nuclei's banner or status messages                                                                                                                                                                                                                                                                               | False     |
 | modules.nuclei.tags           | str    | execute a subset of templates that contain the provided tags                                                                                                                                                                                                                                                                   |           |
 | modules.nuclei.templates      | str    | template or template directory paths to include in the scan                                                                                                                                                                                                                                                                    |           |
-| modules.nuclei.version        | str    | nuclei version                                                                                                                                                                                                                                                                                                                 | 3.7.0     |
+| modules.nuclei.version        | str    | nuclei version                                                                                                                                                                                                                                                                                                                 | 3.7.1     |
 <!-- END BBOT MODULE OPTIONS NUCLEI -->
 
 Most of these you probably will **NOT** want to change. In particular, we advise against changing the version of Nuclei, as it's possible the latest version won't work right with BBOT.
@@ -103,20 +103,20 @@ The **ratelimit** and **concurrency** settings default to the same defaults that
 
 ```bash
 # Scan a SINGLE target with a basic port scan and web modules
-bbot -f web-basic -m portscan nuclei --allow-deadly -t app.evilcorp.com
+bbot -f web -m portscan nuclei -t app.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets
-bbot -f web-basic -m portscan nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f web -m portscan nuclei -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets while performing subdomain enumeration
-bbot -f subdomain-enum web-basic -m portscan nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f subdomain-enum web -m portscan nuclei -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets on a BUDGET
-bbot -f subdomain-enum web-basic -m portscan nuclei --allow-deadly -c modules.nuclei.mode=budget -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f subdomain-enum web -m portscan nuclei -c modules.nuclei.mode=budget -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```

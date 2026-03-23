@@ -10,7 +10,7 @@ from bbot.modules.base import BaseModule
 
 
 class portscan(BaseModule):
-    flags = ["active", "portscan", "safe"]
+    flags = ["active", "portscan"]
     watched_events = ["IP_ADDRESS", "IP_RANGE", "DNS_NAME"]
     produced_events = ["OPEN_TCP_PORT"]
     meta = {

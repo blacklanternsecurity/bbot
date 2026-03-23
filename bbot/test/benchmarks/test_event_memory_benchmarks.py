@@ -29,7 +29,7 @@ class TestEventMemoryBenchmarks:
             "cdn",
             "open-port",
             "status-200",
-            "http-title-example",
+            "web",
             "dir",
             "endpoint",
         ]

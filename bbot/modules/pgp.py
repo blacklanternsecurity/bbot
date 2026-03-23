@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class pgp(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
-    flags = ["passive", "email-enum", "safe"]
+    flags = ["passive", "email-enum"]
     meta = {
         "description": "Query common PGP servers for email addresses",
         "created_date": "2022-08-10",

@@ -8,7 +8,7 @@ import logging
 class baddns_direct(BaseModule):
     watched_events = ["URL", "STORAGE_BUCKET"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "subdomain-enum", "baddns", "cloud-enum"]
+    flags = ["active", "subdomain-enum", "baddns", "cloud-enum"]
     meta = {
         "description": "Check for unusual subdomain / service takeover edge cases that require direct detection",
         "created_date": "2024-01-29",

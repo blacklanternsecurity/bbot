@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 class host_header(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "noisy", "web-heavy"]
     meta = {
         "description": "Try common HTTP Host header spoofing techniques",
         "created_date": "2022-07-27",

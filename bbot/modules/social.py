@@ -10,7 +10,7 @@ class social(BaseModule):
         "created_date": "2023-03-28",
         "author": "@TheTechromancer",
     }
-    flags = ["passive", "safe", "social-enum"]
+    flags = ["passive", "social-enum"]
 
     # platform name : (regex, case_sensitive)
     social_media_platforms = {

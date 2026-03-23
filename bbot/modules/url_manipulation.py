@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 class url_manipulation(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "noisy", "web-heavy"]
     meta = {
         "description": "Attempt to identify URL parsing/routing based vulnerabilities",
         "created_date": "2022-09-27",

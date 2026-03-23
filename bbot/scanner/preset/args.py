@@ -41,7 +41,7 @@ class BBOTArgs:
         (
             "Subdomains + basic web scan",
             "A basic web scan includes robots.txt, storage buckets, IIS shortnames, and other non-intrusive web modules",
-            "bbot -t evilcorp.com -p subdomain-enum web-basic",
+            "bbot -t evilcorp.com -p subdomain-enum web",
         ),
         (
             "Web spider",
@@ -290,10 +290,9 @@ class BBOTArgs:
             "--exclude-flags",
             nargs="+",
             default=[],
-            help="Disable modules with these flags. (e.g. -ef aggressive)",
+            help="Disable modules with these flags. (e.g. -ef noisy)",
             metavar="FLAG",
         )
-        modules.add_argument("--allow-deadly", action="store_true", help="Enable the use of highly aggressive modules")
 
         scan = p.add_argument_group(title="Scan")
         scan.add_argument("-n", "--name", help="Name of scan (default: random)", metavar="SCAN_NAME")

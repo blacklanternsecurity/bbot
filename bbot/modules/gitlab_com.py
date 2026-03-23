@@ -6,7 +6,7 @@ class gitlab_com(GitLabBaseModule):
     produced_events = [
         "CODE_REPOSITORY",
     ]
-    flags = ["active", "safe", "code-enum"]
+    flags = ["active", "code-enum"]
     meta = {
         "description": "Enumerate GitLab SaaS (gitlab.com/org) for projects and groups",
         "created_date": "2024-03-11",

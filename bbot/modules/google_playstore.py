@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class google_playstore(BaseModule):
     watched_events = ["ORG_STUB", "CODE_REPOSITORY"]
     produced_events = ["MOBILE_APP"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["passive", "code-enum"]
     meta = {
         "description": "Search for android applications on play.google.com",
         "created_date": "2024-10-08",

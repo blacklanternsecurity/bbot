@@ -251,8 +251,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result is None
-    assert "| safe " in out
-    assert "| Non-intrusive, safe to run " in out
+    assert "| noisy " in out
     assert "| active " in out
     assert "| passive " in out
 
@@ -266,11 +265,11 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert "| passive " not in out
 
     # list multiple flags
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "safe", "--list-flags"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "noisy", "--list-flags"])
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result is None
-    assert "| safe " in out
+    assert "| noisy " in out
     assert "| active " in out
     assert "| passive " not in out
 
@@ -402,18 +401,10 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     assert result is True
 
-    # deadly modules
-    caplog.clear()
-    assert not caplog.text
+    # invasive modules should run without a gate (just warnings)
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei"])
     result = await cli._main()
-    assert result is False, "-m nuclei ran without --allow-deadly"
-    assert "Please specify --allow-deadly to continue" in caplog.text
-
-    # --allow-deadly
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei", "--allow-deadly"])
-    result = await cli._main()
-    assert result is True, "-m nuclei failed to run with --allow-deadly"
+    assert result is True, "-m nuclei should run without any special flags"
 
     # install all deps
     monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])

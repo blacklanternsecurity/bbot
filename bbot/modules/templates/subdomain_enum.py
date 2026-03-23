@@ -9,7 +9,7 @@ class subdomain_enum(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["subdomain-enum", "passive"]
     meta = {"description": "Query an API for subdomains"}
 
     base_url = "https://api.example.com"
@@ -198,7 +198,7 @@ class subdomain_enum_apikey(subdomain_enum):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["subdomain-enum", "passive"]
     meta = {"description": "Query API for subdomains", "auth_required": True}
     options = {"api_key": ""}
     options_desc = {"api_key": "API key"}

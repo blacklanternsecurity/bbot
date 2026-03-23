@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class azure_tenant(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "AZURE_TENANT", "FINDING", "URL_UNVERIFIED"]
-    flags = ["affiliates", "subdomain-enum", "cloud-enum", "passive", "safe"]
+    flags = ["affiliates", "subdomain-enum", "cloud-enum", "passive"]
     meta = {
         "description": "Query Azure for tenant information using multiple enumeration methods",
         "created_date": "2024-07-04",

@@ -99,7 +99,8 @@ class BaseEvent:
             "timestamp": 1688526222.723366,
             "resolved_hosts": ["185.199.108.153"],
             "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
-            "tags": ["in-scope", "distance-0", "dir", "ip-185-199-108-153", "status-301", "http-title-301-moved-permanently"],
+            "tags": ["in-scope", "distance-0", "dir", "status-301"],
+            "http_title": "301 Moved Permanently",
             "module": "httpx",
             "module_sequence": "httpx"
         }
@@ -844,6 +845,10 @@ class BaseEvent:
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:
             j["web_spider_distance"] = web_spider_distance
+        # http title
+        http_title = getattr(self, "http_title", "")
+        if http_title:
+            j["http_title"] = http_title
         # scope distance
         j["scope_distance"] = self.scope_distance
         # scan
@@ -1263,7 +1268,10 @@ class OPEN_UDP_PORT(OPEN_TCP_PORT):
 class URL_UNVERIFIED(BaseEvent):
     _status_code_regex = re.compile(r"^status-(\d{1,3})$")
 
+    __slots__ = ["_http_title"]
+
     def __init__(self, *args, **kwargs):
+        self._http_title = ""
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
@@ -1366,6 +1374,14 @@ class URL_UNVERIFIED(BaseEvent):
                 return int(match.groups()[0])
         return 0
 
+    @property
+    def http_title(self):
+        return self._http_title
+
+    @http_title.setter
+    def http_title(self, value):
+        self._http_title = value
+
 
 class URL(URL_UNVERIFIED):
     def __init__(self, *args, **kwargs):
@@ -1375,11 +1391,6 @@ class URL(URL_UNVERIFIED):
             raise ValidationError(
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
-
-    @property
-    def resolved_hosts(self):
-        # TODO: remove this when we rip out httpx
-        return {".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")}
 
     @property
     def pretty_string(self):
@@ -1970,6 +1981,13 @@ def event_from_json(j):
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
+
+        http_title = j.get("http_title", "")
+        if http_title:
+            try:
+                event.http_title = http_title
+            except AttributeError:
+                pass
 
         # accept both isoformat and unix timestamp
         try:

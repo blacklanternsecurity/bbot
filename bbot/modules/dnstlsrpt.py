@@ -34,7 +34,7 @@ csul = re.compile(_csul)
 class dnstlsrpt(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "URL_UNVERIFIED", "RAW_DNS_RECORD"]
-    flags = ["subdomain-enum", "cloud-enum", "email-enum", "passive", "safe"]
+    flags = ["subdomain-enum", "cloud-enum", "email-enum", "passive"]
     meta = {
         "description": "Check for TLS-RPT records",
         "author": "@colin-stubbs",

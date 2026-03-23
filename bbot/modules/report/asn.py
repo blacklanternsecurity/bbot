@@ -5,7 +5,7 @@ from bbot.core.helpers.asn import ASNHelper
 class asn(BaseReportModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["ASN"]
-    flags = ["passive", "subdomain-enum", "safe"]
+    flags = ["passive", "subdomain-enum"]
     meta = {
         "description": "Query asndb for ASN information",
         "created_date": "2022-07-25",

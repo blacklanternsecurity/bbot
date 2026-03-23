@@ -179,11 +179,8 @@ async def test_modules_basic_checks(events, httpx_mock):
             assert ("active" in flags and "passive" not in flags) or ("active" not in flags and "passive" in flags), (
                 f'module "{module_name}" must have either "active" or "passive" flag'
             )
-            assert ("safe" in flags and "aggressive" not in flags) or (
-                "safe" not in flags and "aggressive" in flags
-            ), f'module "{module_name}" must have either "safe" or "aggressive" flag'
-            assert not ("web-basic" in flags and "web-thorough" in flags), (
-                f'module "{module_name}" should have either "web-basic" or "web-thorough" flags, not both'
+            assert not ("web" in flags and "web-heavy" in flags), (
+                f'module "{module_name}" should have either "web" or "web-heavy" flags, not both'
             )
         meta = preloaded.get("meta", {})
         # make sure every module has a description

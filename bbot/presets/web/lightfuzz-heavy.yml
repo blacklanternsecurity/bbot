@@ -1,7 +1,7 @@
-description: Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.
+description: Discover web parameters and fuzz them for vulnerabilities, with more aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.
 
 include:
-  - lightfuzz-medium
+  - lightfuzz
 
 flags:
   - web-paramminer

@@ -168,16 +168,6 @@ async def _main():
             sys.exit(0)
             return
 
-        # deadly modules (no scan required yet)
-        deadly_modules = [
-            m for m in baked_preset.scan_modules if "deadly" in baked_preset.preloaded_module(m).get("flags", [])
-        ]
-        if deadly_modules and not options.allow_deadly:
-            log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
-            log.hugewarning("Deadly modules are highly intrusive")
-            log.hugewarning("Please specify --allow-deadly to continue")
-            return False
-
         try:
             scan = Scanner(preset=baked_preset)
         except (PresetAbortError, ValidationError) as e:
@@ -240,6 +230,24 @@ async def _main():
                                 scan.hugewarning(
                                     f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
                                 )
+
+                # warn about noisy/invasive modules
+                noisy_modules = []
+                invasive_modules = []
+                for m in scan.preset.scan_modules:
+                    flags = scan.preset.preloaded_module(m).get("flags", [])
+                    if "noisy" in flags:
+                        noisy_modules.append(m)
+                    if "invasive" in flags:
+                        invasive_modules.append(m)
+                if noisy_modules:
+                    log.hugewarning(
+                        f"NOISY modules enabled: {','.join(noisy_modules)}. These generate a lot of traffic. To exclude, use -ef noisy"
+                    )
+                if invasive_modules:
+                    log.hugewarning(
+                        f"INVASIVE modules enabled: {','.join(invasive_modules)}. These may be intrusive or destructive. To exclude, use -ef invasive"
+                    )
 
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")

@@ -5,7 +5,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class github_usersearch(github, subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["SOCIAL", "EMAIL_ADDRESS"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["passive", "code-enum"]
     meta = {
         "description": "Query Github's API for users with emails matching in scope domains that may not be discoverable by listing members of the organization.",
         "created_date": "2025-05-10",

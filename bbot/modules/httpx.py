@@ -12,7 +12,7 @@ class httpx(BaseModule):
     httpx_tempdir_regex = re.compile(r"^httpx\d+$")
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
-    flags = ["active", "safe", "web-basic", "social-enum", "subdomain-enum", "cloud-enum"]
+    flags = ["active", "web", "social-enum", "subdomain-enum", "cloud-enum"]
     meta = {
         "description": "Visit webpages. Many other modules rely on httpx",
         "created_date": "2022-07-08",
@@ -185,13 +185,6 @@ class httpx(BaseModule):
 
             # main URL
             tags = [f"status-{status_code}"]
-            httpx_ip = j.get("host", "")
-            if httpx_ip:
-                tags.append(f"ip-{httpx_ip}")
-            # grab title
-            title = self.helpers.tagify(j.get("title", ""), maxlen=30)
-            if title:
-                tags.append(f"http-title-{title}")
 
             url_context = "{module} visited {event.parent.data} and got status code {event.http_status}"
             if parent_event.type == "OPEN_TCP_PORT":
@@ -205,6 +198,12 @@ class httpx(BaseModule):
                 context=url_context,
             )
             if url_event:
+                httpx_ip = j.get("host", "")
+                if httpx_ip:
+                    url_event._resolved_hosts.add(httpx_ip)
+                title = j.get("title", "")
+                if title:
+                    url_event.http_title = title
                 if url_event != parent_event:
                     await self.emit_event(url_event)
                 # HTTP response

@@ -6,7 +6,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class credshed(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME", "EMAIL_ADDRESS"]
-    flags = ["passive", "safe"]
+    flags = ["passive"]
     meta = {
         "description": "Send queries to your own credshed server to check for known credentials of your targets",
         "created_date": "2023-10-12",
