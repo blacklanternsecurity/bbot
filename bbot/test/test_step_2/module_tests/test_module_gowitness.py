@@ -134,3 +134,65 @@ class TestGoWitnessLongFilename(TestGowitness):
         filename = Path(webscreenshot.data["path"])
         # sadly this file doesn't exist because gowitness doesn't truncate properly
         assert not filename.exists()
+
+
+class TestGowitness_ResolveParent(ModuleTestBase):
+    """
+    Test the _resolve_parent tiered lookup logic that correlates gowitness
+    DB URLs back to input events. Validates both exact match and loose
+    (hostname+path) fallback without needing gowitness/Chrome to run.
+    """
+
+    targets = ["127.0.0.1:8888"]
+    modules_overrides = ["gowitness", "httpx"]
+
+    import shutil
+
+    home_dir = Path("/tmp/.bbot_gowitness_resolve_test")
+    shutil.rmtree(home_dir, ignore_errors=True)
+    config_overrides = {
+        "force_deps": True,
+        "home": str(home_dir),
+        "omit_event_types": [],
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            respond_args={"response_data": "<html><head><title>Test</title></head><body>Test</body></html>"},
+        )
+
+    def check(self, module_test, events):
+        gw = module_test.scan.modules["gowitness"]
+
+        # Simulate events with different schemes/ports
+        class FakeEvent:
+            def __init__(self, url):
+                self.data = url
+                self.type = "URL"
+
+        event_http = FakeEvent("http://example.com/")
+        event_https = FakeEvent("https://example.com/")
+        event_8080 = FakeEvent("http://example.com:8080/path")
+
+        # Build dicts as handle_batch would
+        gw._event_dict = {}
+        gw._event_dict_loose = {}
+        for e in [event_http, event_https, event_8080]:
+            gw._event_dict[e.data] = e
+            loose_key = gw._url_key(gw.helpers.urlparse(e.data))
+            gw._event_dict_loose.setdefault(loose_key, e)
+
+        # Exact match works
+        assert gw._resolve_parent("http://example.com/") is event_http
+        assert gw._resolve_parent("https://example.com/") is event_https
+        assert gw._resolve_parent("http://example.com:8080/path") is event_8080
+
+        # Loose fallback: gowitness records http://host:443/ for https://host/
+        # Loose key "example.com/" maps to event_http (first via setdefault)
+        assert gw._resolve_parent("http://example.com:443/") is event_http
+
+        # Different path resolves via loose fallback
+        assert gw._resolve_parent("https://example.com:9999/path") is event_8080
+
+        # Unknown URL returns None
+        assert gw._resolve_parent("http://unknown.com/") is None
