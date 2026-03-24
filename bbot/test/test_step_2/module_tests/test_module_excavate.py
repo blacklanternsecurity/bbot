@@ -64,7 +64,7 @@ class TestExcavate(ModuleTestBase):
         module_test.scan.modules["dummy_module"] = DummyModule(module_test.scan)
 
     def check(self, module_test, events):
-        event_data = [e.data for e in events]
+        event_data = [e.pretty_string for e in events]
         assert "https://www1.test.notreal/" in event_data
         assert "https://www2.test.notreal/" in event_data
         assert "https://www3.test.notreal/" in event_data
@@ -83,7 +83,7 @@ class TestExcavate(ModuleTestBase):
         assert "http://127.0.0.1:8888/link_relative.js" not in event_data
         assert "http://127.0.0.1:8888/a_relative.txt" in event_data
         assert "http://127.0.0.1:8888/link_relative.txt" in event_data
-        dummy_module_event_data = [e.data for e in module_test.scan.modules["dummy_module"].events_seen]
+        dummy_module_event_data = [e.pretty_string for e in module_test.scan.modules["dummy_module"].events_seen]
         assert "http://127.0.0.1:8888/a_relative.js" in dummy_module_event_data
         assert "http://127.0.0.1:8888/link_relative.js" in dummy_module_event_data
         assert "http://127.0.0.1:8888/a_relative.txt" in dummy_module_event_data
@@ -382,7 +382,9 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
         url_unverified_events = [e for e in events if e.type == "URL_UNVERIFIED"]
         # base URL + 25 links = 26
         assert len(url_unverified_events) == 26
-        url_data = [e.data for e in url_unverified_events if "spider-max" not in e.tags and "spider-danger" in e.tags]
+        url_data = [
+            e.pretty_string for e in url_unverified_events if "spider-max" not in e.tags and "spider-danger" in e.tags
+        ]
         assert len(url_data) >= 10 and len(url_data) <= 12
         url_events = [e for e in events if e.type == "URL"]
         assert len(url_events) == 11
@@ -1450,7 +1452,7 @@ startxref
             for e in finding_events
         ), f"Failed to emit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
-        url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
+        url_events = [e.pretty_string for e in events if e.type == "URL_UNVERIFIED"]
         assert "https://www.test.notreal/about" in url_events, (
             f"URL extracted from kreuzberg text is incorrect, got {url_events}"
         )
@@ -1525,7 +1527,7 @@ class TestExcavateBadURLs(ModuleTestBase):
         assert "Error sanitizing event data" not in debug_log_content
 
         url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
-        assert sorted([e.data for e in url_events]) == sorted(["https://ssl/", "http://127.0.0.1:8888/"])
+        assert sorted([e.pretty_string for e in url_events]) == sorted(["https://ssl/", "http://127.0.0.1:8888/"])
 
 
 class TestExcavateURL_InvalidPort(TestExcavate):

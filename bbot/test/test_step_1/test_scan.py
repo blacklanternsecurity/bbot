@@ -69,7 +69,7 @@ async def test_scan(
     events = []
     async for event in scan4.async_start():
         events.append(event)
-    event_data = [e.data for e in events]
+    event_data = [e.pretty_string for e in events]
     assert "one.one.one.one" in event_data
 
     # make sure it doesn't work when you turn it off
@@ -79,7 +79,7 @@ async def test_scan(
     events = []
     async for event in scan5.async_start():
         events.append(event)
-    event_data = [e.data for e in events]
+    event_data = [e.pretty_string for e in events]
     assert "one.one.one.one" not in event_data
 
     for scan in (scan0, scan1, scan2, scan4, scan5):
