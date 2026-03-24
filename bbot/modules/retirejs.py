@@ -188,7 +188,7 @@ class retirejs(BaseModule):
                                     "severity": severity,
                                     "confidence": "HIGH",
                                     "component": component,
-                                    "url": event.parent.data["url"],
+                                    "url": event.parent.parsed_url.geturl(),
                                 }
                                 await self.emit_event(
                                     data,
