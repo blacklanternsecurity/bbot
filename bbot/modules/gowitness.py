@@ -16,7 +16,7 @@ class gowitness(BaseModule):
     flags = ["active", "safe", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
     options = {
-        "version": "3.0.5",
+        "version": "3.1.1",
         "threads": 0,
         "timeout": 10,
         "resolution_x": 1440,
