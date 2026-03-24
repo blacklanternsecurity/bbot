@@ -166,7 +166,7 @@ class subdomain_enum(BaseModule):
         is_wildcard = await self._is_wildcard(query)
         # check if cloud
         is_cloud = False
-        if any(t.startswith("cloud-") for t in event.tags):
+        if "cloud" in event.tags:
             is_cloud = True
         # reject if it's a cloud resource and not in our target (unless it's a seed event)
         if is_cloud and not self.scan.in_target(event) and "seed" not in event.tags:

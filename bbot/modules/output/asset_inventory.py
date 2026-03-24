@@ -335,9 +335,10 @@ class Asset:
                 if update_http_status or not self.http_title:
                     self.http_title = title
 
-        for tag in event.tags:
-            if tag.startswith("cdn-") or tag.startswith("cloud-"):
-                self.provider = tag
+        for host_meta in event.host_metadata.values():
+            providers = host_meta.get("cloud_providers", {})
+            if providers:
+                self.provider = ", ".join(providers.keys())
                 break
 
     @property

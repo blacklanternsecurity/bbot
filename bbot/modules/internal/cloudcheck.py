@@ -44,19 +44,24 @@ class CloudCheck(BaseInterceptModule):
                 continue
             for provider in cloudcheck_results:
                 provider_name = provider["name"].lower()
-                tags = provider.get("tags", [])
-                for tag in tags:
-                    event.add_tag(tag)
-                    event.add_tag(f"{tag}-{provider_name}")
-                    if host_is_ip:
-                        event.add_tag(f"{provider_name}-ip")
-                    else:
-                        # if the original hostname is a cloud domain, tag it as such
-                        if i == 0:
-                            event.add_tag(f"{provider_name}-domain")
-                        # any children are tagged as CNAMEs
-                        else:
-                            event.add_tag(f"{provider_name}-cname")
+                provider_types = provider.get("tags", [])
+                for provider_type in provider_types:
+                    event.add_tag(provider_type)
+                event.add_tag(provider_name)
+                # determine how the match was triggered
+                if host_is_ip:
+                    match_type = "ip"
+                elif i == 0:
+                    match_type = "domain"
+                else:
+                    match_type = "cname"
+                # structured details in host_metadata
+                host_meta = event.host_metadata.setdefault(host, {})
+                cloud_providers = host_meta.setdefault("cloud_providers", {})
+                cloud_providers[provider_name] = {
+                    "types": sorted(set(provider_types)),
+                    "match": match_type,
+                }
 
         # we only generate storage buckets off of in-scope or distance-1 events
         if event.scope_distance >= self.max_scope_distance:

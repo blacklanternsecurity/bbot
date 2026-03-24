@@ -28,8 +28,7 @@ class bucket_file_enum(BaseModule):
         return True
 
     async def handle_event(self, event):
-        cloud_tags = (t for t in event.tags if t.startswith("cloud-"))
-        if any(t.endswith("-amazon") or t.endswith("-digitalocean") for t in cloud_tags):
+        if "amazon" in event.tags or "digitalocean" in event.tags:
             await self.handle_aws(event)
 
     async def handle_aws(self, event):
