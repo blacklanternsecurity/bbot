@@ -132,6 +132,8 @@ return Handlebars;
         for finding in retirejs_findings:
             assert "description" in finding.data, "Finding should have description"
             assert "url" in finding.data, "Finding should have url"
+            # url field should point to the page that loaded the JS, not the JS file itself
+            assert finding.data["url"] == "http://127.0.0.1:8888/", "url should be the parent page URL"
             assert finding.parent.type == "URL_UNVERIFIED", "Parent should be URL_UNVERIFIED"
 
 
