@@ -503,8 +503,7 @@ async def test_events(events, helpers):
     assert scan.make_event("ドメイン.テスト:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
     assert scan.make_event("http://ドメイン.テスト:80", dummy=True).url == "http://xn--eckwd4c7c.xn--zckzah/"
     assert (
-        scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).url
-        == "http://xn--eckwd4c7c.xn--zckzah/テスト"
+        scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).url == "http://xn--eckwd4c7c.xn--zckzah/テスト"
     )
     # thai
     assert (
