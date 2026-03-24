@@ -1286,13 +1286,12 @@ class OPEN_UDP_PORT(OPEN_TCP_PORT):
     pass
 
 
-class URL_UNVERIFIED(BaseEvent):
+class URL_UNVERIFIED(DictHostEvent):
     _status_code_regex = re.compile(r"^status-(\d{1,3})$")
 
     __slots__ = [
         "_http_title",
         "web_spider_distance",
-        "parsed_url",
         "url_extension",
         "num_redirects",
     ]
@@ -1303,12 +1302,18 @@ class URL_UNVERIFIED(BaseEvent):
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
+    def _data_load(self, data):
+        # accept a bare URL string and wrap it into a dict
+        if isinstance(data, str):
+            return {"url": data}
+        return data
+
     def _data_id(self):
-        data = super()._data_id()
+        url = self.url
 
         # remove the querystring for URL/URL_UNVERIFIED events, because we will conditionally add it back in (based on settings)
         if self.__class__.__name__.startswith("URL") and self.scan is not None:
-            prefix = data.split("?")[0]
+            prefix = url.split("?")[0]
 
             # consider spider-danger tag when deduping
             if "spider-danger" in self.tags:
@@ -1324,11 +1329,13 @@ class URL_UNVERIFIED(BaseEvent):
                     cleaned_query = "&".join(
                         f"{key}={','.join(sorted(values))}" for key, values in sorted(query_dict.items())
                     )
-                data = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
-        return data
+                url = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
+        return url
 
     def sanitize_data(self, data):
-        self.parsed_url = self.validators.validate_url_parsed(data)
+        url = data.get("url", "")
+        self.parsed_url = self.validators.validate_url_parsed(url)
+        data["url"] = self.parsed_url.geturl()
 
         # special handling of URL extensions
         if self.parsed_url is not None:
@@ -1346,8 +1353,11 @@ class URL_UNVERIFIED(BaseEvent):
         else:
             self.add_tag("endpoint")
 
-        data = self.parsed_url.geturl()
         return data
+
+    @property
+    def pretty_string(self):
+        return self.url
 
     def add_tag(self, tag):
         self_url = getattr(self, "parsed_url", "")
@@ -1420,12 +1430,8 @@ class URL(URL_UNVERIFIED):
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
 
-    @property
-    def pretty_string(self):
-        return self.data
 
-
-class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
+class STORAGE_BUCKET(URL_UNVERIFIED):
     _always_emit = True
     _suppress_chain_dupes = True
 
@@ -1526,7 +1532,7 @@ class EMAIL_ADDRESS(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
+class HTTP_RESPONSE(URL_UNVERIFIED):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # count number of consecutive redirects
