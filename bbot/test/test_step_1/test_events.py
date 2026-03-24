@@ -118,18 +118,18 @@ async def test_events(events, helpers):
     assert events.emoji not in events.ipv6_url_unverified
     assert events.url_unverified not in events.emoji
 
-    # URL normalization tests – compare against normalized event.data / .with_port().geturl()
-    assert scan.make_event("https://evilcorp.com:443", dummy=True).data == "https://evilcorp.com/"
-    assert scan.make_event("http://evilcorp.com:80", dummy=True).data == "http://evilcorp.com/"
+    # URL normalization tests – compare against normalized event.url / .with_port().geturl()
+    assert scan.make_event("https://evilcorp.com:443", dummy=True).url == "https://evilcorp.com/"
+    assert scan.make_event("http://evilcorp.com:80", dummy=True).url == "http://evilcorp.com/"
     assert "http://evilcorp.com:80/asdf.js" in scan.make_event("http://evilcorp.com/asdf.js", dummy=True)
     assert "http://evilcorp.com/asdf.js" in scan.make_event("http://evilcorp.com:80/asdf.js", dummy=True)
-    assert scan.make_event("https://evilcorp.com", dummy=True).data == "https://evilcorp.com/"
-    assert scan.make_event("http://evilcorp.com", dummy=True).data == "http://evilcorp.com/"
-    assert scan.make_event("https://evilcorp.com:80", dummy=True).data == "https://evilcorp.com:80/"
-    assert scan.make_event("http://evilcorp.com:443", dummy=True).data == "http://evilcorp.com:443/"
+    assert scan.make_event("https://evilcorp.com", dummy=True).url == "https://evilcorp.com/"
+    assert scan.make_event("http://evilcorp.com", dummy=True).url == "http://evilcorp.com/"
+    assert scan.make_event("https://evilcorp.com:80", dummy=True).url == "https://evilcorp.com:80/"
+    assert scan.make_event("http://evilcorp.com:443", dummy=True).url == "http://evilcorp.com:443/"
     assert scan.make_event("https://evilcorp.com", dummy=True).with_port().geturl() == "https://evilcorp.com:443/"
     assert scan.make_event("https://evilcorp.com:666", dummy=True).with_port().geturl() == "https://evilcorp.com:666/"
-    assert scan.make_event("https://evilcorp.com.:666", dummy=True).data == "https://evilcorp.com:666/"
+    assert scan.make_event("https://evilcorp.com.:666", dummy=True).url == "https://evilcorp.com:666/"
     assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
     url_event = scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"])
@@ -491,9 +491,9 @@ async def test_events(events, helpers):
     assert scan.make_event("bob@xn--eckwd4c7c.xn--zckzah", dummy=True).data == "bob@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("テスト@xn--eckwd4c7c.xn--zckzah", dummy=True).data == "テスト@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
-    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/"
+    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).url == "http://xn--eckwd4c7c.xn--zckzah/"
     assert (
-        scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80/テスト", dummy=True).data
+        scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80/テスト", dummy=True).url
         == "http://xn--eckwd4c7c.xn--zckzah/テスト"
     )
 
@@ -501,9 +501,9 @@ async def test_events(events, helpers):
     assert scan.make_event("bob@ドメイン.テスト", dummy=True).data == "bob@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("テスト@ドメイン.テスト", dummy=True).data == "テスト@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("ドメイン.テスト:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
-    assert scan.make_event("http://ドメイン.テスト:80", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/"
+    assert scan.make_event("http://ドメイン.テスト:80", dummy=True).url == "http://xn--eckwd4c7c.xn--zckzah/"
     assert (
-        scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).data
+        scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).url
         == "http://xn--eckwd4c7c.xn--zckzah/テスト"
     )
     # thai
@@ -523,11 +523,11 @@ async def test_events(events, helpers):
         == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
     )
     assert (
-        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).data
+        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).url
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
     )
     assert (
-        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80/ทดสอบ", dummy=True).data
+        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80/ทดสอบ", dummy=True).url
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 
@@ -536,10 +536,10 @@ async def test_events(events, helpers):
     assert scan.make_event("ทดสอบ@เราเที่ยวด้วยกัน.com", dummy=True).data == "ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
     assert scan.make_event("เราเที่ยวด้วยกัน.com:80", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
     assert (
-        scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).data == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
+        scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).url == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
     )
     assert (
-        scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).data
+        scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).url
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 

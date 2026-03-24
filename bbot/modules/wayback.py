@@ -34,7 +34,7 @@ class wayback(subdomain_enum):
                 event_type,
                 event,
                 abort_if=self.abort_if,
-                context=f'{{module}} queried archive.org for "{query}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} queried archive.org for "{query}" and found {{event.type}}: {{event.pretty_string}}',
             )
 
     async def query(self, query):

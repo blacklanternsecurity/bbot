@@ -49,5 +49,5 @@ class robots(BaseModule):
                             "URL_UNVERIFIED",
                             parent=event,
                             tags=["spider-danger"],
-                            context=f"{{module}} found robots.txt at {url} and extracted {{event.type}}: {{event.data}}",
+                            context=f"{{module}} found robots.txt at {url} and extracted {{event.type}}: {{event.pretty_string}}",
                         )

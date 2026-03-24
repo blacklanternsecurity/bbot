@@ -126,7 +126,7 @@ class SubdomainRadar(subdomain_enum_apikey):
                         "DNS_NAME",
                         event,
                         abort_if=self.abort_if,
-                        context=f'{{module}} searched SubDomainRadar.io API for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} searched SubDomainRadar.io API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
             return True
         return False

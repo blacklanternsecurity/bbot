@@ -114,7 +114,7 @@ class BaseModule:
     # whether to retry on 429s when first pinging the API at scan start
     _ping_retry_on_http_429 = False
 
-    default_discovery_context = "{module} discovered {event.type}: {event.data}"
+    default_discovery_context = "{module} discovered {event.type}: {event.pretty_string}"
 
     _preserve_graph = False
     _stats_exclude = False

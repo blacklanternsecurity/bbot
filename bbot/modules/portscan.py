@@ -221,7 +221,7 @@ class portscan(BaseModule):
             event_data,
             event_type,
             parent=parent_event,
-            context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.data}}",
+            context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.pretty_string}}",
         )
 
         await self.emit_event(event)

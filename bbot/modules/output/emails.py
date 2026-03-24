@@ -27,7 +27,7 @@ class Emails(TXT):
     async def handle_event(self, event):
         if self.file is not None:
             self.emails_written += 1
-            self.file.write(f"{event.data}\n")
+            self.file.write(f"{event.pretty_string}\n")
             self.file.flush()
 
     async def report(self):

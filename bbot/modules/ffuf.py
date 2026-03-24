@@ -83,7 +83,7 @@ class ffuf(BaseModule):
                 "URL_UNVERIFIED",
                 parent=event,
                 tags=[f"status-{r['status']}"],
-                context=f"{{module}} brute-forced {event.url} and found {{event.type}}: {{event.data}}",
+                context=f"{{module}} brute-forced {event.url} and found {{event.type}}: {{event.pretty_string}}",
             )
 
     async def filter_event(self, event):

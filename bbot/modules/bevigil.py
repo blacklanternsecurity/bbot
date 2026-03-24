@@ -38,7 +38,7 @@ class bevigil(subdomain_enum_apikey):
                     subdomain,
                     "DNS_NAME",
                     parent=event,
-                    context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.data}}',
+                    context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.pretty_string}}',
                 )
 
         if self.urls:
@@ -49,7 +49,7 @@ class bevigil(subdomain_enum_apikey):
                         parsed_url.geturl(),
                         "URL_UNVERIFIED",
                         parent=event,
-                        context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.data}}',
+                        context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.pretty_string}}',
                     )
 
     async def request_subdomains(self, query):

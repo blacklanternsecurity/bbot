@@ -63,7 +63,7 @@ class subdomain_enum(BaseModule):
                             "DNS_NAME",
                             event,
                             abort_if=self.abort_if,
-                            context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
+                            context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                         )
 
     async def handle_event_paginated(self, event):
@@ -81,7 +81,7 @@ class subdomain_enum(BaseModule):
                         "DNS_NAME",
                         event,
                         abort_if=self.abort_if,
-                        context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
 
     async def request_url(self, query):

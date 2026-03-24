@@ -171,7 +171,9 @@ class DNSResolve(BaseInterceptModule):
                             break
                     wildcard_data = f"_wildcard.{wildcard_parent}"
                     if wildcard_data != event.data:
-                        self.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
+                        self.debug(
+                            f'Wildcard detected, changing event.data "{event.pretty_string}" --> "{wildcard_data}"'
+                        )
                         event.data = wildcard_data
                         return True
         return False

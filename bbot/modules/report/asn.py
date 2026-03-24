@@ -52,7 +52,7 @@ class asn(BaseReportModule):
                 if asn_event:
                     await self.emit_event(
                         asn_event,
-                        context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_description}, {asn_country})",
+                        context=f"{{module}} looked up {event.pretty_string} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_description}, {asn_country})",
                     )
 
     async def report(self):

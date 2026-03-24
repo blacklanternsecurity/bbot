@@ -33,7 +33,7 @@ class viewdns(BaseModule):
                 "DNS_NAME",
                 parent=event,
                 tags=["affiliate"],
-                context=f'{{module}} searched viewdns.info for "{query}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} searched viewdns.info for "{query}" and found {{event.type}}: {{event.pretty_string}}',
             )
 
     async def query(self, query):

@@ -433,7 +433,7 @@ class azure_tenant(BaseModule):
                         "DNS_NAME",
                         parent=event,
                         tags=["affiliate", "azure-tenant"],
-                        context=f'{{module}} queried azmap.dev for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} queried azmap.dev for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
 
     async def emit_findings(self, event, domain, tenant_data):

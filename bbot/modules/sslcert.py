@@ -90,10 +90,10 @@ class sslcert(BaseModule):
                                 await self.emit_event(
                                     ssl_event,
                                     tags=tags,
-                                    context=f"{{module}} parsed SSL certificate at {event.data} and found {{event.type}}: {{event.data}}",
+                                    context=f"{{module}} parsed SSL certificate at {event.pretty_string} and found {{event.type}}: {{event.pretty_string}}",
                                 )
                         except ValidationError as e:
-                            self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
+                            self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.pretty_string}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")
 
     def on_success_callback(self, event):

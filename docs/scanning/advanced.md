@@ -84,7 +84,7 @@ Modules:
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
-                        Disable modules with these flags. (e.g. -ef noisy)
+                        Disable modules with these flags. (e.g. -ef loud)
 
 Scan:
   -n SCAN_NAME, --name SCAN_NAME

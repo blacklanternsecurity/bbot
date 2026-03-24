@@ -127,7 +127,7 @@ class censys_ip(censys):
                     uri,
                     "URL_UNVERIFIED",
                     parent=event,
-                    context="{module} found {event.data} in HTTP service of {event.parent.data}",
+                    context="{module} found {event.pretty_string} in HTTP service of {event.parent.data}",
                 )
 
             # Extract TLS certificate data
@@ -172,7 +172,7 @@ class censys_ip(censys):
                     validated,
                     "DNS_NAME",
                     parent=event,
-                    context=f"{{module}} found {{event.data}} in {source} of {{event.parent.data}}",
+                    context=f"{{module}} found {{event.pretty_string}} in {source} of {{event.parent.data}}",
                 )
         except ValueError as e:
             self.debug(f"Error validating host {host} in {source}: {e}")

@@ -33,7 +33,7 @@ class github_usersearch(github, subdomain_enum):
                     email,
                     "EMAIL_ADDRESS",
                     parent=event,
-                    context=f"{{module}} found an {{event.type}} on the github profile {user_url}: {{event.data}}",
+                    context=f"{{module}} found an {{event.type}} on the github profile {user_url}: {{event.pretty_string}}",
                 )
 
     async def query_users(self, query):

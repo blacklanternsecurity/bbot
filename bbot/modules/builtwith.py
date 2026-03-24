@@ -39,7 +39,7 @@ class builtwith(subdomain_enum_apikey):
                         s,
                         "DNS_NAME",
                         parent=event,
-                        context=f'{{module}} queried the BuiltWith API for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} queried the BuiltWith API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
         # redirects
         if self.config.get("redirects", True):
@@ -53,7 +53,7 @@ class builtwith(subdomain_enum_apikey):
                             "DNS_NAME",
                             parent=event,
                             tags=["affiliate"],
-                            context=f'{{module}} queried the BuiltWith redirect API for "{query}" and found redirect to {{event.type}}: {{event.data}}',
+                            context=f'{{module}} queried the BuiltWith redirect API for "{query}" and found redirect to {{event.type}}: {{event.pretty_string}}',
                         )
 
     async def request_domains(self, query):

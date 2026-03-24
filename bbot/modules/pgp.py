@@ -30,7 +30,7 @@ class pgp(subdomain_enum):
                     "EMAIL_ADDRESS",
                     event,
                     abort_if=self.abort_if,
-                    context=f'{{module}} queried PGP keyserver {keyserver} for "{query}" and found {{event.type}}: {{event.data}}',
+                    context=f'{{module}} queried PGP keyserver {keyserver} for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                 )
 
     async def query(self, query):

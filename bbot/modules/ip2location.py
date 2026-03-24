@@ -51,7 +51,7 @@ class IP2Location(BaseModule):
             else:
                 self.verbose(f"No response from {url}")
         except Exception:
-            self.verbose(f"Error retrieving results for {event.data}", trace=True)
+            self.verbose(f"Error retrieving results for {event.pretty_string}", trace=True)
             return
 
         geo_data = {k: v for k, v in geo_data.items() if v is not None}
@@ -70,5 +70,5 @@ class IP2Location(BaseModule):
                 geo_data,
                 "GEOLOCATION",
                 event,
-                context=f'{{module}} queried IP2Location API for "{event.data}" and found {{event.type}}: {description}',
+                context=f'{{module}} queried IP2Location API for "{event.pretty_string}" and found {{event.type}}: {description}',
             )

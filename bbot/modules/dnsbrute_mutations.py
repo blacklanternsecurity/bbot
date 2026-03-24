@@ -139,7 +139,7 @@ class dnsbrute_mutations(BaseModule):
                                 parent=parent_event,
                                 tags=[f"mutation-{mutation_run}"],
                                 abort_if=self.abort_if,
-                                context=f'{{module}} found a mutated subdomain of "{parent_event.host}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.data}}',
+                                context=f'{{module}} found a mutated subdomain of "{parent_event.host}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.pretty_string}}',
                             )
                         if results:
                             continue

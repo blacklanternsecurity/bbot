@@ -209,6 +209,6 @@ class baddns(BaseModule):
                                     "DNS_NAME",
                                     event,
                                     tags=[f"baddns-{module_instance.name.lower()}"],
-                                    context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.data}}',
+                                    context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.pretty_string}}',
                                 )
             await module_instance.cleanup()

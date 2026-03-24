@@ -48,7 +48,7 @@ class OAUTH(BaseModule):
         if event.type == "URL_UNVERIFIED":
             url = event.data
         else:
-            url = f"https://{event.data}"
+            url = f"https://{event.pretty_string}"
 
         oauth_tasks = []
         if self.try_all or any(t in event.tags for t in ("oauth-token-endpoint",)):
@@ -95,7 +95,7 @@ class OAUTH(BaseModule):
                         event_type,
                         parent=event,
                         tags=["affiliate"],
-                        context=f'{{module}} analyzed OpenID configuration for "{source_domain}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} analyzed OpenID configuration for "{source_domain}" and found {{event.type}}: {{event.pretty_string}}',
                     )
 
         for oauth_task in oauth_tasks:

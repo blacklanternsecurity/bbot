@@ -39,5 +39,5 @@ class ipneighbor(BaseModule):
                     if ip_event:
                         await self.emit_event(
                             ip_event,
-                            context="{module} produced {event.type}: {event.data}",
+                            context="{module} produced {event.type}: {event.pretty_string}",
                         )

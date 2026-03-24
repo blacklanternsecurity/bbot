@@ -91,7 +91,7 @@ class shodan_idb(BaseModule):
 
         r = await self.api_request(url)
         if r is None:
-            self.debug(f"No response for {event.data}")
+            self.debug(f"No response for {event.pretty_string}")
             return
         try:
             data = r.json()
@@ -115,7 +115,7 @@ class shodan_idb(BaseModule):
         """Handles emitting events from returned JSON"""
         data: dict  # has keys: cpes, hostnames, ip, ports, tags, vulns
         ip = str(ip)
-        query_host = ip if event.data == ip else f"{event.data} ({ip})"
+        query_host = ip if event.data == ip else f"{event.pretty_string} ({ip})"
         # ip is a string, ports is a list of ports, the rest is a list of strings
         for hostname in data.get("hostnames", []):
             if hostname != event.data:
@@ -123,21 +123,21 @@ class shodan_idb(BaseModule):
                     hostname,
                     "DNS_NAME",
                     parent=event,
-                    context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
+                    context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
                 )
         for cpe in data.get("cpes", []):
             await self.emit_event(
                 {"technology": cpe, "host": str(event.host)},
                 "TECHNOLOGY",
                 parent=event,
-                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
             )
         for port in data.get("ports", []):
             await self.emit_event(
                 self.helpers.make_netloc(event.data, port),
                 "OPEN_TCP_PORT",
                 parent=event,
-                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
             )
         vulns = data.get("vulns", [])
         if vulns:

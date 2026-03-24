@@ -51,7 +51,7 @@ class bucket_file_enum(BaseModule):
                         "URL_UNVERIFIED",
                         parent=event,
                         tags="filedownload",
-                        context=f"{{module}} enumerate files in bucket and discovered {extension_upper} file at {{event.type}}: {{event.data}}",
+                        context=f"{{module}} enumerate files in bucket and discovered {extension_upper} file at {{event.type}}: {{event.pretty_string}}",
                     )
                     urls_emitted += 1
                     if urls_emitted >= self.file_limit:

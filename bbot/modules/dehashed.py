@@ -60,7 +60,7 @@ class dehashed(subdomain_enum):
                     if email_event is not None:
                         await self.emit_event(
                             email_event,
-                            context=f'{{module}} searched API for "{query}" and found {{event.type}}: {{event.data}}',
+                            context=f'{{module}} searched API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                         )
                         for user in users:
                             await self.emit_event(
@@ -68,7 +68,7 @@ class dehashed(subdomain_enum):
                                 "USERNAME",
                                 parent=email_event,
                                 tags=tags,
-                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                             )
                         for pw in pws:
                             await self.emit_event(
@@ -76,7 +76,7 @@ class dehashed(subdomain_enum):
                                 "PASSWORD",
                                 parent=email_event,
                                 tags=tags,
-                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                             )
                         for h_pw in h_pws:
                             await self.emit_event(
@@ -84,7 +84,7 @@ class dehashed(subdomain_enum):
                                 "HASHED_PASSWORD",
                                 parent=email_event,
                                 tags=tags,
-                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                             )
 
     async def query(self, domain):

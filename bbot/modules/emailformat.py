@@ -43,5 +43,5 @@ class emailformat(BaseModule):
                     email,
                     "EMAIL_ADDRESS",
                     parent=event,
-                    context=f'{{module}} searched email-format.com for "{query}" and found {{event.type}}: {{event.data}}',
+                    context=f'{{module}} searched email-format.com for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                 )

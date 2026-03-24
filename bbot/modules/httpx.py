@@ -188,7 +188,7 @@ class httpx(BaseModule):
 
             url_context = "{module} visited {event.parent.data} and got status code {event.http_status}"
             if parent_event.type == "OPEN_TCP_PORT":
-                url_context += " at {event.data}"
+                url_context += " at {event.pretty_string}"
 
             url_event = self.make_event(
                 url,

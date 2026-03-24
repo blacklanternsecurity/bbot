@@ -32,5 +32,5 @@ class dnscommonsrv(subdomain_enum):
                 hostname,
                 "DNS_NAME",
                 parent=event,
-                context=f'{{module}} tried {self.num_srvs:,} common SRV records against "{query}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} tried {self.num_srvs:,} common SRV records against "{query}" and found {{event.type}}: {{event.pretty_string}}',
             )

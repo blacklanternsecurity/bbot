@@ -43,7 +43,7 @@ class dockerhub(BaseModule):
                     {"platform": "docker", "url": site_url, "profile_name": p},
                     "SOCIAL",
                     parent=event,
-                    context=f"{{module}} tried {event.type} {event.data} and found docker profile ({{event.type}}) at {p}",
+                    context=f"{{module}} tried {event.type} {event.pretty_string} and found docker profile ({{event.type}}) at {p}",
                 )
 
     async def handle_social(self, event):

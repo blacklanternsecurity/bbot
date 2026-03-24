@@ -67,7 +67,7 @@ class bucket_template(BaseModule):
                 "STORAGE_BUCKET",
                 parent=event,
                 tags=tags,
-                context=f"{{module}} tried {num_buckets:,} bucket variations of {event.data} and found {{event.type}} at {url}",
+                context=f"{{module}} tried {num_buckets:,} bucket variations of {event.pretty_string} and found {{event.type}} at {url}",
             )
 
     async def handle_storage_bucket(self, event):
