@@ -165,24 +165,38 @@ class gowitness(BaseModule):
         path = parsed_url.path or "/"
         return f"{hostname}{path}"
 
+    def _resolve_parent(self, db_url):
+        """Match a URL from the gowitness DB back to the original input event.
+
+        Tries exact match first, then falls back to a scheme-and-port-agnostic
+        lookup for cases where gowitness transforms the stored URL (e.g. after
+        a redirect from http to https).
+        """
+        parent = self._event_dict.get(db_url)
+        if parent is None:
+            parent = self._event_dict_loose.get(self._url_key(self.helpers.urlparse(db_url)))
+        return parent
+
     async def handle_batch(self, *events):
         self.prep()
-        event_dict = {}
+        self._event_dict = {}
+        self._event_dict_loose = {}
         stdin_urls = []
         for e in events:
             url = e.data
             if e.type == "SOCIAL":
                 url = e.data["url"]
             stdin_urls.append(url)
-            key = self._url_key(self.helpers.urlparse(url))
-            event_dict[key] = e
+            self._event_dict[url] = e
+            loose_key = self._url_key(self.helpers.urlparse(url))
+            self._event_dict_loose.setdefault(loose_key, e)
         stdin = "\n".join(stdin_urls)
 
         try:
             async for line in self.run_process_live(self.command, input=stdin, idle_timeout=self.idle_timeout):
                 self.debug(line)
         except asyncio.exceptions.TimeoutError:
-            urls_str = ",".join(event_dict)
+            urls_str = ",".join(self._event_dict)
             self.warning(f"Gowitness timed out while visiting the following URLs: {urls_str}", trace=False)
             return
 
@@ -196,7 +210,7 @@ class gowitness(BaseModule):
             # NOTE: this prevents long filenames from causing problems in BBOT, but gowitness will still fail to save it.
             filename = self.helpers.truncate_filename(filename)
             webscreenshot_data = {"path": str(filename), "url": final_url}
-            parent_event = event_dict.get(self._url_key(self.helpers.urlparse(raw_url)))
+            parent_event = self._resolve_parent(raw_url)
             if parent_event is None:
                 self.warning(f"Could not correlate screenshot to parent event for URL: {raw_url}")
                 continue
@@ -216,7 +230,7 @@ class gowitness(BaseModule):
 
             _id = row["result_id"]
             raw_parent_url = self.screenshots_taken[_id]
-            parent_event = event_dict.get(self._url_key(self.helpers.urlparse(raw_parent_url)))
+            parent_event = self._resolve_parent(raw_parent_url)
             if parent_event is None:
                 self.warning(f"Could not correlate network log to parent event for URL: {raw_parent_url}")
                 continue
@@ -234,7 +248,7 @@ class gowitness(BaseModule):
         for row in new_technologies.values():
             parent_id = row["result_id"]
             raw_parent_url = self.screenshots_taken[parent_id]
-            parent_event = event_dict.get(self._url_key(self.helpers.urlparse(raw_parent_url)))
+            parent_event = self._resolve_parent(raw_parent_url)
             if parent_event is None:
                 self.warning(f"Could not correlate technology to parent event for URL: {raw_parent_url}")
                 continue
