@@ -171,6 +171,8 @@ class BaseEvent:
         "_data_path",
         # Web parameter attributes
         "envelopes",
+        # Cross-module communication
+        "source_domain",
         # Public attributes
         "module",
         "scan",
