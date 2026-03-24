@@ -1,4 +1,4 @@
-description: Discover web parameters and fuzz them for vulnerabilities, with the most aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, adds paramminer modules for parameter discovery, and tests each unique parameter-value instance individually.
+description: "Maximum fuzzing: everything in lightfuzz-heavy, plus WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time."
 
 include:
   - lightfuzz-heavy

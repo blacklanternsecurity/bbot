@@ -1,4 +1,4 @@
-description: Discover web parameters and fuzz them for vulnerabilities, with more aggressive discovery techniques, including POST parameters. Uses all lightfuzz submodules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.
+description: "Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs."
 
 include:
   - lightfuzz

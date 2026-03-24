@@ -203,33 +203,60 @@ If you don't want to dive into those details, here are the built-in preset optio
 
 ### `-p lightfuzz-light`
 
-Minimal preset that checks for only the most common findings (path traversal, SQLi, XSS). Enables a select few submodules and is safest for larger scans. POST requests are disabled.
+The most minimal option. Best for running alongside larger scans with minimal overhead.
+
+| Setting | Value |
+|---|---|
+| **Submodules** | `path`, `sqli`, `xss` only |
+| **Companion modules** | None |
+| **POST fuzzing** | Disabled |
+| **WAF avoidance** | On |
 
 ### `-p lightfuzz`
 
-The default starting point. Enables all lightfuzz submodules and includes necessary config options, plus companion modules (`badsecrets`, `hunt`, `reflected_parameters`). **POST request fuzzing is disabled** — this is the most common concern for less aggressive scanning, especially on internal networks.
+The default starting point. If you're not sure which to use, start here.
+
+| Setting | Value |
+|---|---|
+| **Submodules** | All 9 (`cmdi`, `crypto`, `path`, `serial`, `sqli`, `ssti`, `xss`, `esi`, `ssrf`) |
+| **Companion modules** | `badsecrets`, `hunt`, `reflected_parameters` |
+| **POST fuzzing** | Disabled, but `try_post_as_get` is on (POST params retested as GET) |
+| **WAF avoidance** | On |
 
 ### `-p lightfuzz-heavy`
 
 Everything in `lightfuzz`, plus:
 
-* **Param Miner** modules enabled for brute-force parameter discovery
-* POST parameter fuzzing enabled
-* Slightly increased spider settings
+| Added setting | Value |
+|---|---|
+| **Param Miner** | `paramminer_headers`, `paramminer_getparams`, `paramminer_cookies` — brute-force discovery of hidden parameters |
+| **POST fuzzing** | Enabled |
+| **`try_get_as_post`** | On — GET params are also retested as POST |
+| **`robots.txt`** | Parsed for additional URL discovery |
 
 ### `-p lightfuzz-max`
 
 Everything in `lightfuzz-heavy`, plus:
 
-* Query string collapsing turned OFF — each unique parameter-value instance is fuzzed individually instead of being deduplicated
-* Force common headers enabled — fuzz common header parameters (e.g., `X-Forwarded-For`) even if they weren't discovered
-* Speculate GET parameters from JSON/XML response bodies
+| Added setting | Value |
+|---|---|
+| **WAF avoidance** | Off — WAF-protected targets are fuzzed |
+| **Query string collapsing** | Off — each unique parameter-value pair is fuzzed individually instead of deduplicating by parameter name |
+| **Force common headers** | On — headers like `X-Forwarded-For` are fuzzed even if not observed on the target |
+| **Speculate params** | On — potential parameters are extracted from JSON/XML response bodies |
 
-These settings add significant scan time and aren't typically desired for routine scanning.
+These settings significantly increase scan time and traffic. Not recommended for routine scanning.
 
 ### `-p lightfuzz-xss`
 
-A focused preset for XSS hunting. Enables only the `xss` submodule with `paramminer_getparams` for parameter discovery. POST requests are disabled, and query string collapsing is off. This is an example of how to build a preset targeting specific submodules.
+A focused preset for XSS hunting only. Demonstrates how to build a single-submodule preset.
+
+| Setting | Value |
+|---|---|
+| **Submodules** | `xss` only |
+| **Companion modules** | `paramminer_getparams`, `reflected_parameters` |
+| **POST fuzzing** | Disabled |
+| **Query string collapsing** | Off |
 
 ### Spider Preset
 

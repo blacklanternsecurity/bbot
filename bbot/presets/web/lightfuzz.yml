@@ -1,4 +1,4 @@
-description: Discover web parameters and fuzz them for vulnerabilities. Uses all lightfuzz submodules. Does not send POST requests. This is the default lightfuzz preset; if you're not sure which one to use, this is a good starting point. Avoids running against confirmed WAFs.
+description: "Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs."
 
 include:
   - lightfuzz-light
