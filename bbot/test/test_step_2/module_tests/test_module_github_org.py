@@ -417,7 +417,7 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
                 e
                 for e in events
                 if e.type == "URL_UNVERIFIED"
-                and e.data == "https://github.com/blacklanternsecurity"
+                and e.url == "https://github.com/blacklanternsecurity"
                 and e.scope_distance == 1
             ]
         )

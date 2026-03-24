@@ -19,7 +19,7 @@ class TestSpeculate_Subdirectories(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/subdir1/" for e in events)
+        assert any(e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/subdir1/" for e in events)
 
 
 class TestSpeculate_OpenPorts(ModuleTestBase):

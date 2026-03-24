@@ -365,11 +365,11 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
 
         async def handle_event(self, event):
             if event.type == "DNS_NAME" and event.data == "evilcorp.com":
-                await self.emit_event("www.evilcorp.com", "DNS_NAME", parent=event, tags=["cdn-cloudflare"])
+                await self.emit_event("www.evilcorp.com", "DNS_NAME", parent=event, tags=["cloudflare"])
             if event.type == "DNS_NAME" and event.data == "www.evilcorp.com":
-                await self.emit_event("www.evilcorp.com:80", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
-                await self.emit_event("www.evilcorp.com:443", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
-                await self.emit_event("www.evilcorp.com:8080", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
+                await self.emit_event("www.evilcorp.com:80", "OPEN_TCP_PORT", parent=event, tags=["cloudflare"])
+                await self.emit_event("www.evilcorp.com:443", "OPEN_TCP_PORT", parent=event, tags=["cloudflare"])
+                await self.emit_event("www.evilcorp.com:8080", "OPEN_TCP_PORT", parent=event, tags=["cloudflare"])
 
     dummy = DummyModule(scan=scan)
     scan.modules["dummy"] = dummy

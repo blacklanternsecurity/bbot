@@ -96,7 +96,7 @@ class TestIIS_Shortnames(ModuleTestBase):
         for e in events:
             if e.type == "FINDING" and "iis-magic-url" not in e.tags:
                 magicurl_findingEmitted = True
-            if e.type == "URL_HINT" and e.data == "http://127.0.0.1:8888/BLSHAX~1":
+            if e.type == "URL_HINT" and e.url == "http://127.0.0.1:8888/BLSHAX~1":
                 url_hintEmitted = True
             if e.type == "FINDING" and "Possible backup file (zip) in web root" in e.data["description"]:
                 zip_findingEmitted = True

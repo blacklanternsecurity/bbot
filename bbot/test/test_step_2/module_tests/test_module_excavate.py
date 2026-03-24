@@ -107,7 +107,7 @@ class TestExcavate(ModuleTestBase):
 
         assert any(
             e.type == "URL_UNVERIFIED"
-            and e.data == "http://127.0.0.1:8888/relative.html"
+            and e.url == "http://127.0.0.1:8888/relative.html"
             and "spider-max" not in e.tags
             and "endpoint" in e.tags
             and "extension-html" in e.tags
@@ -117,12 +117,12 @@ class TestExcavate(ModuleTestBase):
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/2/depth2.html" and "spider-max" in e.tags
+            e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/2/depth2.html" and "spider-max" in e.tags
             for e in events
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/distance2.html" and "spider-max" in e.tags
+            e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/distance2.html" and "spider-max" in e.tags
             for e in events
         )
 
@@ -168,17 +168,17 @@ class TestExcavate2(TestExcavate):
         for e in events:
             if e.type == "URL_UNVERIFIED":
                 # these cases represent the desired behavior for parsing relative links
-                if e.data == "http://127.0.0.1:8888/rootrelative.html":
+                if e.url == "http://127.0.0.1:8888/rootrelative.html":
                     root_relative_detection = True
-                if e.data == "http://127.0.0.1:8888/subdir/pagerelative1.html":
+                if e.url == "http://127.0.0.1:8888/subdir/pagerelative1.html":
                     page_relative_detection_1 = True
-                if e.data == "http://127.0.0.1:8888/subdir/pagerelative2.html":
+                if e.url == "http://127.0.0.1:8888/subdir/pagerelative2.html":
                     page_relative_detection_2 = True
 
                 # these cases indicates that excavate parsed the relative links incorrectly
-                if e.data == "http://127.0.0.1:8888/pagerelative.html":
+                if e.url == "http://127.0.0.1:8888/pagerelative.html":
                     root_page_confusion_1 = True
-                if e.data == "http://127.0.0.1:8888/subdir/rootrelative.html":
+                if e.url == "http://127.0.0.1:8888/subdir/rootrelative.html":
                     root_page_confusion_2 = True
 
         assert root_relative_detection, "Failed to properly excavate root-relative URL"
@@ -202,7 +202,7 @@ class TestExcavateInScopeJavascript(TestExcavate):
 
     def check(self, module_test, events):
         found_js_url_event = bool(
-            [e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/script.js"]
+            [e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/script.js"]
         )
         found_excavate_jwt_finding = bool(
             [
@@ -243,10 +243,10 @@ class TestExcavateRedirect(TestExcavate):
             [
                 e
                 for e in events
-                if e.type == "URL_UNVERIFIED" and e.data == "https://www.test.notreal/yep" and e.scope_distance == 1
+                if e.type == "URL_UNVERIFIED" and e.url == "https://www.test.notreal/yep" and e.scope_distance == 1
             ]
         )
-        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/relative/owa/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/relative/owa/"])
         assert 1 == len(
             [
                 e
@@ -307,7 +307,7 @@ class TestExcavateQuerystringRemoveTrue(TestExcavate):
     def check(self, module_test, events):
         assert len([e for e in events if e.type == "URL_UNVERIFIED"]) == 2
         assert (
-            len([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/endpoint"]) == 1
+            len([e for e in events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/endpoint"]) == 1
         )
 
 
@@ -320,7 +320,7 @@ class TestExcavateQuerystringRemoveFalse(TestExcavateQuerystringRemoveTrue):
                 [
                     e
                     for e in events
-                    if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")
+                    if e.type == "URL_UNVERIFIED" and e.url.startswith("http://127.0.0.1:8888/endpoint?")
                 ]
             )
             == 1
@@ -336,7 +336,7 @@ class TestExcavateQuerystringCollapseFalse(TestExcavateQuerystringRemoveTrue):
                 [
                     e
                     for e in events
-                    if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")
+                    if e.type == "URL_UNVERIFIED" and e.url.startswith("http://127.0.0.1:8888/endpoint?")
                 ]
             )
             == 10
@@ -408,7 +408,7 @@ class TestExcavateURL(TestExcavate):
 
     def check(self, module_test, events):
         assert any(e.data == "asdffoo.test.notreal" for e in events)
-        assert any(e.data == "https://asdffoo.test.notreal/some/path" for e in events)
+        assert any(e.url == "https://asdffoo.test.notreal/some/path" for e in events)
 
 
 class TestExcavateURL_IP(TestExcavate):
@@ -419,7 +419,7 @@ class TestExcavateURL_IP(TestExcavate):
 
     def check(self, module_test, events):
         assert any(e.data == "127.0.0.2" for e in events)
-        assert any(e.data == "https://127.0.0.2/some/path" for e in events)
+        assert any(e.url == "https://127.0.0.2/some/path" for e in events)
 
 
 class TestExcavateSerializationNegative(TestExcavate):
@@ -1170,7 +1170,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
-                if e.data == "http://127.0.0.1:8888/spider":
+                if e.url == "http://127.0.0.1:8888/spider":
                     if str(e.module) == "excavate" and "spider-danger" in e.tags and "spider-max" in e.tags:
                         found_url_unverified_spider_max = True
                     if (
@@ -1179,7 +1179,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
                         and "spider-max" not in e.tags
                     ):
                         found_url_unverified_dummy = True
-            if e.type == "URL" and e.data == "http://127.0.0.1:8888/spider":
+            if e.type == "URL" and e.url == "http://127.0.0.1:8888/spider":
                 found_url_event = True
 
         assert found_url_unverified_spider_max, "Excavate failed to find /spider link"

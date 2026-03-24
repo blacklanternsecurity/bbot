@@ -17,14 +17,14 @@ class TestPortfilter_disabled(ModuleTestBase):
                         "www.blacklanternsecurity.com:443",
                         "OPEN_TCP_PORT",
                         parent=event,
-                        tags=["cdn-ip", "cdn-amazon"],
+                        tags=["cdn", "amazon"],
                     )
                     # when portfilter is enabled, this should be filtered out
                     await self.emit_event(
                         "www.blacklanternsecurity.com:8080",
                         "OPEN_TCP_PORT",
                         parent=event,
-                        tags=["cdn-ip", "cdn-amazon"],
+                        tags=["cdn", "amazon"],
                     )
                     await self.emit_event("www.blacklanternsecurity.com:21", "OPEN_TCP_PORT", parent=event)
 

@@ -298,7 +298,7 @@ class TestAzure_Tenant_FederatedAuth(AzureTenantTestBase):
 
         # URL_UNVERIFIED also gets cleaned (query string removed)
         assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "https://authfs.example.com/adfs/ls/" and "ms-auth-url" in e.tags
+            e.type == "URL_UNVERIFIED" and e.url == "https://authfs.example.com/adfs/ls/" and "ms-auth-url" in e.tags
             for e in events
         ), "Should emit URL_UNVERIFIED for federation URL"
 

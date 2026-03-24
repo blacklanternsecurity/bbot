@@ -32,22 +32,26 @@ class TestCloudCheck(ModuleTestBase):
 
         for event in (ip_event, other_event2):
             await module.handle_event(ip_event)
-            assert "cloud-google" in ip_event.tags
-            assert "google-ip" in ip_event.tags
+            assert "google" in ip_event.tags
+            assert "cloud" in ip_event.tags
+            # check host_metadata has structured info
+            assert "8.8.8.8" in ip_event.host_metadata
+            assert "google" in ip_event.host_metadata["8.8.8.8"]["cloud_providers"]
+            assert ip_event.host_metadata["8.8.8.8"]["cloud_providers"]["google"]["match"] == "ip"
 
         for event in (aws_event1, aws_event2, aws_event4, other_event3):
             await module.handle_event(event)
-            assert "cloud-amazon" in event.tags, f"{event} was not properly cloud-tagged"
+            assert "amazon" in event.tags, f"{event} was not properly cloud-tagged"
+            assert "cloud" in event.tags, f"{event} was not properly cloud-tagged"
 
-        assert "amazon-domain" in aws_event1.tags
-        assert "amazon-cname" in other_event3.tags
+        # check match types in host_metadata
+        assert aws_event1.host_metadata["amazonaws.com"]["cloud_providers"]["amazon"]["match"] == "domain"
+        assert other_event3.host_metadata["asdf.amazonaws.com"]["cloud_providers"]["amazon"]["match"] == "cname"
 
         for event in (aws_event3, other_event1):
             await module.handle_event(event)
-            assert "cloud-amazon" not in event.tags, f"{event} was improperly cloud-tagged"
-            assert not any(t for t in event.tags if t.startswith("cloud-") or t.startswith("cdn-")), (
-                f"{event} was improperly cloud-tagged"
-            )
+            assert "amazon" not in event.tags, f"{event} was improperly cloud-tagged"
+            assert "cloud" not in event.tags, f"{event} was improperly cloud-tagged"
 
         google_event1 = scan.make_event("asdf.googleapis.com", parent=scan.root_event)
         google_event2 = scan.make_event("asdf.google", parent=scan.root_event)
@@ -56,7 +60,8 @@ class TestCloudCheck(ModuleTestBase):
 
         for event in (google_event1, google_event2, google_event3):
             await module.handle_event(event)
-            assert "cloud-google" in event.tags, f"{event} was not properly cloud-tagged"
+            assert "google" in event.tags, f"{event} was not properly cloud-tagged"
+            assert "cloud" in event.tags, f"{event} was not properly cloud-tagged"
 
         await scan._cleanup()
 
@@ -69,8 +74,6 @@ class TestCloudCheck(ModuleTestBase):
                 if e.type == "STORAGE_BUCKET"
                 and e.data["name"] == "asdf"
                 and str(e.module) == "cloudcheck"
-                and "cloud-amazon" in e.tags
-                and "amazon-domain" in e.tags
                 and e.scope_distance == 1
             ]
         )
@@ -81,8 +84,6 @@ class TestCloudCheck(ModuleTestBase):
                 if e.type == "STORAGE_BUCKET"
                 and e.data["name"] == "asdf2"
                 and str(e.module) == "cloudcheck"
-                and "cloud-google" in e.tags
-                and "google-domain" in e.tags
                 and e.scope_distance == 0
             ]
         )
