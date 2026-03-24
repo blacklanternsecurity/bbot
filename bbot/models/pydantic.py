@@ -92,6 +92,7 @@ class Event(BBOTBaseModel):
     parent: Annotated[str, "indexed"]
     parent_uuid: Annotated[str, "indexed"]
     tags: List = []
+    host_metadata: Optional[dict] = None
     module: Annotated[Optional[str], "indexed"] = None
     module_sequence: Optional[str] = None
     discovery_context: str = ""

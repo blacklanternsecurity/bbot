@@ -98,6 +98,7 @@ class Event(BBOTBaseModel, table=True):
     inserted_at: float = Field(default_factory=utc_now_timestamp)
     parent: str = Field(index=True)
     tags: List = Field(default=[], sa_type=JSON)
+    host_metadata: dict = Field(default={}, sa_type=JSON)
     module: str = Field(index=True)
     module_sequence: str
     discovery_context: str = ""

@@ -162,15 +162,8 @@ class BaseEvent:
         "dns_children",
         "raw_dns_records",
         "dns_resolve_distance",
-        # Web-related attributes
-        "web_spider_distance",
-        "parsed_url",
-        "url_extension",
-        "num_redirects",
-        # File-related attributes
-        "_data_path",
-        # Web parameter attributes
-        "envelopes",
+        # Host metadata (cloud providers, ASN, whois, etc.)
+        "_host_metadata",
         # Cross-module communication
         "source_domain",
         # Public attributes
@@ -233,7 +226,6 @@ class BaseEvent:
         self.dns_children = {}
         self.raw_dns_records = {}
         self._discovery_context = ""
-        self.web_spider_distance = 0
 
         # for creating one-off events without enforcing parent requirement
         self._dummy = _dummy
@@ -306,6 +298,18 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self._data = data
+
+    @property
+    def host_metadata(self):
+        try:
+            return self._host_metadata
+        except AttributeError:
+            self._host_metadata = {}
+            return self._host_metadata
+
+    @host_metadata.setter
+    def host_metadata(self, value):
+        self._host_metadata = value
 
     @property
     def internal(self):
@@ -885,6 +889,10 @@ class BaseEvent:
         j["discovery_path"] = self.discovery_path
         j["parent_chain"] = self.parent_chain
 
+        # host metadata (cloud providers, ASN, etc.)
+        host_metadata = getattr(self, "host_metadata", None)
+        if host_metadata:
+            j["host_metadata"] = host_metadata
         # parameter envelopes
         parameter_envelopes = getattr(self, "envelopes", None)
         if parameter_envelopes is not None:
@@ -1105,7 +1113,11 @@ class ClosestHostEvent(DictHostEvent):
             raise ValueError(f"No host was found in event parents: {self.get_parents()}. Host must be specified!")
 
 
-class DictPathEvent(DictEvent):
+class DictPathEvent(DictHostEvent):
+    __slots__ = [
+        "_data_path",
+    ]
+
     def sanitize_data(self, data):
         data = super().sanitize_data(data)
         new_data = dict(data)
@@ -1277,10 +1289,17 @@ class OPEN_UDP_PORT(OPEN_TCP_PORT):
 class URL_UNVERIFIED(BaseEvent):
     _status_code_regex = re.compile(r"^status-(\d{1,3})$")
 
-    __slots__ = ["_http_title"]
+    __slots__ = [
+        "_http_title",
+        "web_spider_distance",
+        "parsed_url",
+        "url_extension",
+        "num_redirects",
+    ]
 
     def __init__(self, *args, **kwargs):
         self._http_title = ""
+        self.web_spider_distance = 0
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
@@ -1429,6 +1448,10 @@ class URL_HINT(URL_UNVERIFIED):
 
 
 class WEB_PARAMETER(DictHostEvent):
+    __slots__ = [
+        "envelopes",
+    ]
+
     @property
     def children(self):
         # if we have any subparams, raise a new WEB_PARAMETER for each one
@@ -1709,7 +1732,7 @@ class SOCIAL(DictHostEvent):
     _scope_distance_increment_same_host = True
 
 
-class WEBSCREENSHOT(DictPathEvent, DictHostEvent):
+class WEBSCREENSHOT(DictPathEvent):
     _always_emit = True
     _quick_emit = True
 
