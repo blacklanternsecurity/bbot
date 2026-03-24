@@ -127,7 +127,7 @@ class TestExcavate(ModuleTestBase):
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED" and "miscellaneous.html" in e.data and "x50-uart-driver" not in e.data
+            e.type == "URL_UNVERIFIED" and "miscellaneous.html" in e.url and "x50-uart-driver" not in e.url
             for e in events
         )
 
@@ -1560,7 +1560,7 @@ class TestExcavateIgnorePDF(ModuleTestBase):
     def check(self, module_test, events):
         # excavate should skip PDF responses entirely, so no URLs or findings should be extracted from the body
         url_unverified_events = [
-            e for e in events if e.type == "URL_UNVERIFIED" and "pdf-extracted.test.notreal" in e.data
+            e for e in events if e.type == "URL_UNVERIFIED" and "pdf-extracted.test.notreal" in e.url
         ]
         assert len(url_unverified_events) == 0, (
             f"PDF body should not be processed by excavate, but got: {url_unverified_events}"

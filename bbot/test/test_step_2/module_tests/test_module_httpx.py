@@ -124,8 +124,8 @@ class TestHTTPX_URLBlacklist(ModuleTestBase):
         assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/"])
         assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/test.aspx"])
         assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/test.txt"])
-        assert not any(e for e in events if "URL" in e.type and ".svg" in e.data)
-        assert not any(e for e in events if "URL" in e.type and ".woff" in e.data)
+        assert not any(e for e in events if "URL" in e.type and ".svg" in e.url)
+        assert not any(e for e in events if "URL" in e.type and ".woff" in e.url)
 
 
 class TestHTTPX_querystring_removed(ModuleTestBase):
