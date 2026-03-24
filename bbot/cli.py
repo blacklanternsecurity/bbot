@@ -231,18 +231,18 @@ async def _main():
                                     f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
                                 )
 
-                # warn about noisy/invasive modules
-                noisy_modules = []
+                # warn about loud/invasive modules
+                loud_modules = []
                 invasive_modules = []
                 for m in scan.preset.scan_modules:
                     flags = scan.preset.preloaded_module(m).get("flags", [])
-                    if "noisy" in flags:
-                        noisy_modules.append(m)
+                    if "loud" in flags:
+                        loud_modules.append(m)
                     if "invasive" in flags:
                         invasive_modules.append(m)
-                if noisy_modules:
+                if loud_modules:
                     log.hugewarning(
-                        f"NOISY modules enabled: {','.join(noisy_modules)}. These generate a lot of traffic. To exclude, use -ef noisy"
+                        f"LOUD modules enabled: {','.join(loud_modules)}. These generate a lot of traffic. To exclude, use -ef loud"
                     )
                 if invasive_modules:
                     log.hugewarning(

@@ -10,7 +10,7 @@ Here we'll go over a basic example of writing a custom BBOT module.
    - the class must have the same name as your file (case-insensitive)
 1. Define in `watched_events` what type of data your module will consume
 1. Define in `produced_events` what type of data your module will produce
-1. Define (via `flags`) whether your module is `active` or `passive`, and optionally whether it's `noisy` or `invasive`
+1. Define (via `flags`) whether your module is `active` or `passive`, and optionally whether it's `loud` or `invasive`
 1. **Put your main logic in `.handle_event()`**
 
 Here is an example of a simple module that performs whois lookups:

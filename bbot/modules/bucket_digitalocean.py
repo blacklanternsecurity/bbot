@@ -4,7 +4,7 @@ from bbot.modules.templates.bucket import bucket_template
 class bucket_digitalocean(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "slow", "cloud-enum", "web-heavy"]
+    flags = ["safe", "active", "slow", "cloud-enum", "web-heavy"]
     meta = {
         "description": "Check for DigitalOcean spaces related to target",
         "created_date": "2022-11-08",

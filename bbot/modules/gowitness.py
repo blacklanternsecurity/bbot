@@ -13,7 +13,7 @@ from bbot.modules.base import BaseModule
 class gowitness(BaseModule):
     watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
-    flags = ["active", "web-screenshots"]
+    flags = ["safe", "active", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
     options = {
         "version": "3.0.5",

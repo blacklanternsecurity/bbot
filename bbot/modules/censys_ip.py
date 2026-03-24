@@ -16,7 +16,7 @@ class censys_ip(censys):
         "TECHNOLOGY",
         "PROTOCOL",
     ]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Query the Censys API for hosts by IP address",
         "created_date": "2026-01-26",

@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 class nuclei(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING", "TECHNOLOGY"]
-    flags = ["active", "noisy", "invasive"]
+    flags = ["active", "loud", "invasive"]
     meta = {
         "description": "Fast and customisable vulnerability scanner",
         "created_date": "2022-03-12",

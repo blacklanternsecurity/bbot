@@ -9,7 +9,7 @@ class censys_dns(censys):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query the Censys API for subdomains",
         "created_date": "2022-08-04",

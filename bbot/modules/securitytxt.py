@@ -58,7 +58,7 @@ securitytxt_regex = re.compile(_securitytxt_regex, re.I | re.M)
 class securitytxt(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "URL_UNVERIFIED"]
-    flags = ["subdomain-enum", "cloud-enum", "active", "web"]
+    flags = ["safe", "subdomain-enum", "cloud-enum", "active", "web"]
     meta = {
         "description": "Check for security.txt content",
         "author": "@colin-stubbs",

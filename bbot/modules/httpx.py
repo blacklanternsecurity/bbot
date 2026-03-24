@@ -12,7 +12,7 @@ class httpx(BaseModule):
     httpx_tempdir_regex = re.compile(r"^httpx\d+$")
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
-    flags = ["active", "web", "social-enum", "subdomain-enum", "cloud-enum"]
+    flags = ["safe", "active", "web", "social-enum", "subdomain-enum", "cloud-enum"]
     meta = {
         "description": "Visit webpages. Many other modules rely on httpx",
         "created_date": "2022-07-08",

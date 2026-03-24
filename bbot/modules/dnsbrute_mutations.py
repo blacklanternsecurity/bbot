@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 
 
 class dnsbrute_mutations(BaseModule):
-    flags = ["subdomain-enum", "active", "noisy", "slow"]
+    flags = ["subdomain-enum", "active", "loud", "slow"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {

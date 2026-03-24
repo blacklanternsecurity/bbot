@@ -2,7 +2,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
 class dnsbrute(subdomain_enum):
-    flags = ["subdomain-enum", "active", "noisy"]
+    flags = ["subdomain-enum", "active", "loud"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {

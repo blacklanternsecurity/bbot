@@ -275,11 +275,12 @@ produced_events = ["OPEN_TCP_PORT"]
 ```
 
 ##### `flags` (list)
-Tags that describe the module's behavior. Must include at least one activity flag (`passive` or `active`). Optionally, `noisy` (lots of traffic) or `invasive` (intrusive/destructive) can be added.
+Tags that describe the module's behavior. Must include at least one activity flag (`passive` or `active`). Must also include `safe`, `loud`, or `invasive` (or a combination of `loud` and `invasive`).
 
 Common flags:
 - `passive` / `active` - whether the module touches the target directly
-- `noisy` - generates a large amount of network traffic
+- `safe` - non-intrusive and non-destructive
+- `loud` - generates a large amount of network traffic
 - `invasive` - intrusive or potentially destructive
 - `subdomain-enum` - participates in subdomain enumeration
 - `web` - basic web scanning

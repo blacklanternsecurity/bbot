@@ -41,7 +41,7 @@ class shodan_idb(BaseModule):
 
     watched_events = ["IP_ADDRESS", "DNS_NAME"]
     produced_events = ["TECHNOLOGY", "FINDING", "OPEN_TCP_PORT", "DNS_NAME"]
-    flags = ["passive", "portscan", "subdomain-enum"]
+    flags = ["safe", "passive", "portscan", "subdomain-enum"]
     meta = {
         "description": "Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities",
         "created_date": "2023-12-22",

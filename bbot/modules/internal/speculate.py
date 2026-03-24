@@ -25,7 +25,7 @@ class speculate(BaseInternalModule):
         "USERNAME",
     ]
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Derive certain event types from others by common sense",
         "created_date": "2022-05-03",

@@ -6,7 +6,7 @@ from bbot.modules.internal.base import BaseModule
 class jadx(BaseModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "Decompile APKs and XAPKs using JADX",
         "created_date": "2024-11-04",

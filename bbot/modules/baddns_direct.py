@@ -4,7 +4,7 @@ from .baddns import baddns as baddns_module
 class baddns_direct(baddns_module):
     watched_events = ["URL", "STORAGE_BUCKET"]
     produced_events = ["FINDING"]
-    flags = ["active", "subdomain-enum", "baddns", "cloud-enum"]
+    flags = ["safe", "active", "subdomain-enum", "baddns", "cloud-enum"]
     meta = {
         "description": "Check for unusual subdomain / service takeover edge cases that require direct detection",
         "created_date": "2024-01-29",

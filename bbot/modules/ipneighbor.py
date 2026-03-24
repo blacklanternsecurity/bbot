@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class ipneighbor(BaseModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["IP_ADDRESS"]
-    flags = ["passive", "subdomain-enum", "noisy"]
+    flags = ["passive", "subdomain-enum", "loud"]
     meta = {
         "description": "Look beside IPs in their surrounding subnet",
         "created_date": "2022-06-08",

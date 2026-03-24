@@ -8,7 +8,7 @@ class IP2Location(BaseModule):
 
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Query IP2location.io's API for geolocation information. ",
         "created_date": "2023-09-12",

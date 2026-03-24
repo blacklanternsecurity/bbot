@@ -19,7 +19,7 @@ class dotnetnuke(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "TECHNOLOGY"]
-    flags = ["active", "noisy", "invasive", "web-heavy"]
+    flags = ["active", "loud", "invasive", "web-heavy"]
     meta = {
         "description": "Scan for critical DotNetNuke (DNN) vulnerabilities",
         "created_date": "2023-11-21",

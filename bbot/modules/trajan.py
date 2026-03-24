@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 class trajan(BaseModule):
     watched_events = ["CODE_REPOSITORY", "URL_UNVERIFIED", "TECHNOLOGY"]
     produced_events = ["FINDING"]
-    flags = ["passive", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "Scans GitHub, GitLab, Azure DevOps, Jenkins, and JFrog for misconfigurations using Praetorian's Trajan tool",
         "created_date": "2026-04-11",

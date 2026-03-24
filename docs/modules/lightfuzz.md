@@ -93,7 +93,7 @@ Detects SQL injection via two techniques:
 
 **Error-based Detection** (HIGH severity, MEDIUM confidence): Injects a single quote (`'`) and compares the response against a list of known SQL error strings (e.g., "error in your SQL syntax", "Unterminated string literal"). Also performs a differential test: if a single quote changes the status code but two single quotes (`''`) produce a *different* status code, it suggests the quotes are being parsed as SQL syntax rather than just rejected.
 
-**Blind Time-delay Detection** (HIGH severity, LOW confidence): Sends database-specific sleep payloads (PostgreSQL `pg_sleep`, MySQL `SLEEP`, Oracle `DBMS_LOCK.SLEEP`, MSSQL `WAITFOR DELAY`) with a 5-second delay. Measures response time against a baseline average of two normal requests. Requires 3 consecutive confirmations within an acceptable margin (1.5s) to report — even a single miss aborts the test for that payload. Despite the triple confirmation, timing-based detection is inherently noisy, hence the LOW confidence.
+**Blind Time-delay Detection** (HIGH severity, LOW confidence): Sends database-specific sleep payloads (PostgreSQL `pg_sleep`, MySQL `SLEEP`, Oracle `DBMS_LOCK.SLEEP`, MSSQL `WAITFOR DELAY`) with a 5-second delay. Measures response time against a baseline average of two normal requests. Requires 3 consecutive confirmations within an acceptable margin (1.5s) to report — even a single miss aborts the test for that payload. Despite the triple confirmation, timing-based detection is inherently loud, hence the LOW confidence.
 
 ### `xss` — Cross-Site Scripting
 

@@ -68,7 +68,7 @@ class ntlm(BaseModule):
 
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING", "DNS_NAME"]
-    flags = ["active", "web"]
+    flags = ["safe", "active", "web"]
     meta = {
         "description": "Watch for HTTP endpoints that support NTLM authentication",
         "created_date": "2022-07-25",

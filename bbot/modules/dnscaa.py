@@ -41,7 +41,7 @@ caa_extensions_kvp_regex = re.compile(_caa_extensions_kvp_regex)
 class dnscaa(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "URL_UNVERIFIED"]
-    flags = ["subdomain-enum", "email-enum", "passive"]
+    flags = ["safe", "subdomain-enum", "email-enum", "passive"]
     meta = {"description": "Check for CAA records", "author": "@colin-stubbs", "created_date": "2024-05-26"}
     options = {
         "in_scope_only": True,

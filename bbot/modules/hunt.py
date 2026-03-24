@@ -282,7 +282,7 @@ hunt_param_dict = {
 class hunt(BaseModule):
     watched_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
-    flags = ["active", "web-heavy"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Watch for commonly-exploitable HTTP parameters",
         "author": "@liquidsec",

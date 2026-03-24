@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 class gitdumper(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "slow", "code-enum", "download"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Download a leaked .git folder recursively or by fuzzing common names",
         "created_date": "2025-02-11",

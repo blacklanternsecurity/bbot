@@ -16,7 +16,7 @@ class bucket_file_enum(BaseModule):
         "created_date": "2023-11-14",
         "author": "@TheTechromancer",
     }
-    flags = ["passive", "cloud-enum"]
+    flags = ["safe", "passive", "cloud-enum"]
     options = {
         "file_limit": 50,
     }

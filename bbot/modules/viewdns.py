@@ -10,7 +10,7 @@ class viewdns(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "passive"]
+    flags = ["safe", "affiliates", "passive"]
     meta = {
         "description": "Query viewdns.info's reverse whois for related domains",
         "created_date": "2022-07-04",

@@ -13,7 +13,7 @@ BBOT integrates with [Nuclei](https://github.com/projectdiscovery/nuclei), an op
 ## Default Behavior
 
 * By default, only "directory URLs" (URLs ending in a slash) will be scanned, but ALL templates will be used (**BE CAREFUL!**)
-* Because it's aggressive and potentially destructive, Nuclei is tagged as both **noisy** and **invasive**. BBOT will warn you before starting the scan, but no special flag is needed to enable it.
+* Because it's aggressive and potentially destructive, Nuclei is tagged as both **loud** and **invasive**. BBOT will warn you before starting the scan, but no special flag is needed to enable it.
 
 ## Specifying custom templates
 

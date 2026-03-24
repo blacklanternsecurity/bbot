@@ -10,7 +10,7 @@ class code_repository(BaseModule):
         "created_date": "2024-05-15",
         "author": "@domwhewell-sage",
     }
-    flags = ["passive", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
 
     # platform name : (regex, case_sensitive)
     code_repositories = {

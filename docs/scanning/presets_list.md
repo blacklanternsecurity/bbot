@@ -1,6 +1,29 @@
 Below is a list of every default BBOT preset, including its YAML.
 
 <!-- BBOT PRESET YAML -->
+## **baddns**
+
+Check for subdomain takeovers and other DNS issues.
+
+??? note "`baddns.yml`"
+    ```yaml title="~/.bbot/presets/baddns.yml"
+    description: Check for subdomain takeovers and other DNS issues.
+    
+    modules:
+      - baddns
+    
+    config:
+      modules:
+        baddns:
+          enabled_submodules: [CNAME, MX, TXT]
+          min_severity: LOW
+          min_confidence: MODERATE
+    ```
+
+
+
+Modules: [0]("")
+
 ## **baddns-heavy**
 
 Run all baddns modules and submodules.
@@ -9,16 +32,25 @@ Run all baddns modules and submodules.
     ```yaml title="~/.bbot/presets/baddns-heavy.yml"
     description: Run all baddns modules and submodules.
     
+    include:
+      - baddns
     
     modules:
-      - baddns
       - baddns_zone
       - baddns_direct
     
     config:
       modules:
         baddns:
-          enabled_submodules: [CNAME,references,MX,NS,TXT]
+          enabled_submodules: [CNAME, NS, MX, TXT, references, DMARC, SPF, MTA-STS, WILDCARD]
+          min_severity: INFORMATIONAL
+          min_confidence: UNKNOWN
+        baddns_zone:
+          min_severity: INFORMATIONAL
+          min_confidence: UNKNOWN
+        baddns_direct:
+          min_severity: INFORMATIONAL
+          min_confidence: UNKNOWN
     ```
 
 
@@ -262,11 +294,6 @@ Everything everywhere all at once
       - dirbust-light
       - web-screenshots
       - baddns-heavy
-    
-    config:
-      modules:
-        baddns:
-          enable_references: True
     ```
 
 
@@ -785,6 +812,7 @@ Here is a the same data, but in a table:
 <!-- BBOT PRESETS -->
 | Preset            | Category   | Description                                                                                                                                                                                                                                                                       | # Modules   | Modules                                                                                     |
 |-------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------|
+| baddns            |            | Check for subdomain takeovers and other DNS issues.                                                                                                                                                                                                                               | 1           | baddns                                                                                      |
 | baddns-heavy      |            | Run all baddns modules and submodules.                                                                                                                                                                                                                                            | 3           | baddns, baddns_direct, baddns_zone                                                          |
 | cloud-enum        |            | Enumerate cloud resources such as storage buckets, etc.                                                                                                                                                                                                                           | 0           |                                                                                             |
 | code-enum         |            | Enumerate Git repositories, Docker images, etc.                                                                                                                                                                                                                                   | 0           |                                                                                             |

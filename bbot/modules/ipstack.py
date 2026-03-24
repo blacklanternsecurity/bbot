@@ -9,7 +9,7 @@ class Ipstack(BaseModule):
 
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Query IPStack's GeoIP API",
         "created_date": "2022-11-26",

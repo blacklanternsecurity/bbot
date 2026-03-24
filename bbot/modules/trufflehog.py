@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class trufflehog(BaseModule):
     watched_events = ["CODE_REPOSITORY", "FILESYSTEM", "HTTP_RESPONSE", "RAW_TEXT"]
     produced_events = ["FINDING"]
-    flags = ["passive", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "TruffleHog is a tool for finding credentials",
         "created_date": "2024-03-12",

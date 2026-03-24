@@ -6,7 +6,7 @@ from .base import BaseModule
 class OAUTH(BaseModule):
     watched_events = ["DNS_NAME", "URL_UNVERIFIED"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "subdomain-enum", "cloud-enum", "web", "active"]
+    flags = ["safe", "affiliates", "subdomain-enum", "cloud-enum", "web", "active"]
     meta = {
         "description": "Enumerate OAUTH and OpenID Connect services",
         "created_date": "2023-07-12",

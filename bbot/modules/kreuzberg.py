@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 class kreuzberg(BaseModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["RAW_TEXT"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Module to extract data from files",
         "created_date": "2024-06-03",

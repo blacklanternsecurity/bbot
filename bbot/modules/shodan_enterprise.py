@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class shodan_enterprise(BaseModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["OPEN_TCP_PORT", "TECHNOLOGY", "OPEN_UDP_PORT", "FINDING"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "created_date": "2026-01-27",
         "author": "@Control-Punk-Delete",

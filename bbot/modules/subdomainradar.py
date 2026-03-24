@@ -7,7 +7,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 class SubdomainRadar(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query the Subdomain API for subdomains",
         "created_date": "2022-07-08",

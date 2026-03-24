@@ -251,7 +251,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result is None
-    assert "| noisy " in out
+    assert "| loud " in out
     assert "| active " in out
     assert "| passive " in out
 
@@ -265,11 +265,11 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert "| passive " not in out
 
     # list multiple flags
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "noisy", "--list-flags"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "loud", "--list-flags"])
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result is None
-    assert "| noisy " in out
+    assert "| loud " in out
     assert "| active " in out
     assert "| passive " not in out
 

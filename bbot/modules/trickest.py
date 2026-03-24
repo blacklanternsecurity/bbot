@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 class Trickest(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "subdomain-enum", "passive"]
+    flags = ["safe", "affiliates", "subdomain-enum", "passive"]
     meta = {
         "description": "Query Trickest's API for subdomains",
         "author": "@amiremami",

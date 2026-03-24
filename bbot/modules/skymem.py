@@ -6,7 +6,7 @@ from .emailformat import emailformat
 class skymem(emailformat):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
-    flags = ["passive", "email-enum"]
+    flags = ["safe", "passive", "email-enum"]
     meta = {
         "description": "Query skymem.info for email addresses",
         "created_date": "2022-07-11",

@@ -46,7 +46,7 @@ bimi_regex = re.compile(_bimi_regex, re.I)
 class dnsbimi(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED", "RAW_DNS_RECORD"]
-    flags = ["subdomain-enum", "cloud-enum", "passive"]
+    flags = ["safe", "subdomain-enum", "cloud-enum", "passive"]
     meta = {
         "description": "Check DNS_NAME's for BIMI records to find image and certificate hosting URL's",
         "author": "@colin-stubbs",

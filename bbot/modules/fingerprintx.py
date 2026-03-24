@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class fingerprintx(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["PROTOCOL"]
-    flags = ["active", "service-enum", "slow"]
+    flags = ["safe", "active", "service-enum", "slow"]
     meta = {
         "description": "Fingerprint exposed services like RDP, SSH, MySQL, etc.",
         "created_date": "2023-01-30",

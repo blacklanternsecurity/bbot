@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 
 class Emails(TXT):
     watched_events = ["EMAIL_ADDRESS"]
-    flags = ["email-enum"]
+    flags = ["safe", "email-enum"]
     meta = {
         "description": "Output any email addresses found belonging to the target domain",
         "created_date": "2023-12-23",

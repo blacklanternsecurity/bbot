@@ -112,7 +112,7 @@ flags:
   - subdomain-enum
 
 exclude_flags:
-  - noisy
+  - loud
   - slow
 
 require_flags:
@@ -150,7 +150,7 @@ flags:
   - subdomain-enum
 
 exclude_flags:
-  - noisy
+  - loud
   - slow
 """
     with open(preset_file, "w") as f:
@@ -158,7 +158,7 @@ exclude_flags:
 
     preset = Preset.from_yaml_file(preset_file)
     assert "subdomain-enum" in preset.flags
-    assert "noisy" in preset.exclude_flags
+    assert "loud" in preset.exclude_flags
     assert "slow" in preset.exclude_flags
     from bbot.scanner.preset.preset import _preset_cache
 
@@ -1085,13 +1085,13 @@ async def test_preset_require_exclude(clean_default_config):
     assert "subdomain-enum" in dnsbrute_flags
     assert "active" in dnsbrute_flags
     assert "passive" not in dnsbrute_flags
-    assert "noisy" in dnsbrute_flags
+    assert "loud" in dnsbrute_flags
     assert "dnsbrute" in [x[0] for x in module_flags]
     assert "certspotter" in [x[0] for x in module_flags]
     assert "c99" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
-    assert any("noisy" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, one required flag
     preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
@@ -1120,25 +1120,25 @@ async def test_preset_require_exclude(clean_default_config):
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
 
-    # enable by flag, multiple required flags (exclude noisy active modules)
-    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"], exclude_flags=["noisy"]).bake()
+    # enable by flag, multiple required flags (exclude loud active modules)
+    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"], exclude_flags=["loud"]).bake()
     assert len(preset.modules) > 20
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
-    assert all("active" not in flags and "noisy" not in flags for module, flags in module_flags)
+    assert all("active" not in flags and "loud" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
-    assert not any("noisy" in flags for module, flags in module_flags)
+    assert not any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded flags
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["noisy", "active"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["loud", "active"]).bake()
     assert len(preset.modules) > 20
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
-    assert all("active" not in flags and "noisy" not in flags for module, flags in module_flags)
+    assert all("active" not in flags and "loud" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
-    assert not any("noisy" in flags for module, flags in module_flags)
+    assert not any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded modules
     preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute", "c99"]).bake()

@@ -15,7 +15,7 @@ class wafw00f(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["WAF"]
-    flags = ["active", "noisy"]
+    flags = ["active", "loud"]
     meta = {
         "description": "Web Application Firewall Fingerprinting Tool",
         "created_date": "2023-02-15",

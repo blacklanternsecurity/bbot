@@ -290,7 +290,7 @@ class BBOTArgs:
             "--exclude-flags",
             nargs="+",
             default=[],
-            help="Disable modules with these flags. (e.g. -ef noisy)",
+            help="Disable modules with these flags. (e.g. -ef loud)",
             metavar="FLAG",
         )
 

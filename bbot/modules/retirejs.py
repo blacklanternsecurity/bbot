@@ -21,7 +21,7 @@ class RetireJSSeverity(IntEnum):
 class retirejs(BaseModule):
     watched_events = ["URL_UNVERIFIED"]
     produced_events = ["FINDING"]
-    flags = ["active", "web-heavy"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Detect vulnerable/out-of-date JavaScript libraries",
         "created_date": "2025-08-19",

@@ -76,7 +76,7 @@ for hp_key in header_payloads.keys():
 class bypass403(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "noisy", "web-heavy"]
+    flags = ["active", "loud", "web-heavy"]
     meta = {"description": "Check 403 pages for common bypasses", "created_date": "2022-07-05", "author": "@liquidsec"}
     in_scope_only = True
 
