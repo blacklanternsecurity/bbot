@@ -76,8 +76,8 @@ class baddns_direct(baddns_module):
                     f"Rejecting {event.host} due to not being in scope (scope distance: {event.scope_distance})"
                 )
                 return False
-            if not ("cloudflare" in event.tags and "cdn" in event.tags):
-                self.debug(f"Rejecting {event.host} due to not being behind CloudFlare")
+            if "cloudflare" not in event.tags:
+                self.debug(f"Rejecting {event.host} due to not being behind Cloudflare")
                 return False
             if "status-200" in event.tags or "status-301" in event.tags:
                 self.debug(f"Rejecting {event.host} due to lack of non-standard status code")
