@@ -71,7 +71,7 @@ class bucket_template(BaseModule):
             )
 
     async def handle_storage_bucket(self, event):
-        url = event.data["url"]
+        url = event.url
         bucket_name = event.data["name"]
         if self.supports_open_check:
             description, tags = await self._check_bucket_open(bucket_name, url)

@@ -190,7 +190,7 @@ class telerik(BaseModule):
             else:
                 return hash(f"{event.type}{event.netloc}")
         else:  # HTTP_RESPONSE
-            return hash(f"{event.type}{event.data['url']}")
+            return hash(f"{event.type}{event.url}")
 
     async def handle_event(self, event):
         if event.type == "URL":
@@ -380,7 +380,7 @@ class telerik(BaseModule):
 
         elif event.type == "HTTP_RESPONSE":
             resp_body = event.data.get("body", None)
-            url = event.data["url"]
+            url = event.url
             if resp_body:
                 if '":{"SerializedParameters":"' in resp_body:
                     await self.emit_event(

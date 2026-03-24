@@ -30,7 +30,7 @@ class google_playstore(BaseModule):
             await self.handle_org_stub(event)
 
     async def handle_url(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         app_id = repo_url.split("id=")[1].split("&")[0]
         await self.emit_event(
             {"id": app_id, "url": repo_url},

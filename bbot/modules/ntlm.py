@@ -86,10 +86,7 @@ class ntlm(BaseModule):
 
     async def handle_event(self, event):
         found_hash = hash(f"{event.host}:{event.port}")
-        if event.type == "URL":
-            url = event.data
-        else:
-            url = event.data["url"]
+        url = event.url
         if found_hash in self.found:
             return
 

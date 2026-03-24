@@ -132,7 +132,7 @@ class paramminer_headers(BaseModule):
         return results
 
     async def process_results(self, event, results):
-        url = event.data.get("url")
+        url = event.url
         for result, reasons, reflection in results:
             paramtype = self.compare_mode.upper()
             if paramtype == "HEADER":
@@ -173,7 +173,7 @@ class paramminer_headers(BaseModule):
                     self.extracted_words_master.add(parameter_name)
 
         elif event.type == "HTTP_RESPONSE":
-            url = event.data.get("url")
+            url = event.url
             try:
                 compare_helper = self.helpers.http_compare(url)
             except HttpCompareError as e:
@@ -264,7 +264,7 @@ class paramminer_headers(BaseModule):
 
     async def filter_event(self, event):
         # Filter out static endpoints
-        if event.data.get("url").endswith(tuple(f".{ext}" for ext in self.config.get("url_extension_static", []))):
+        if event.url.endswith(tuple(f".{ext}" for ext in self.config.get("url_extension_static", []))):
             return False
 
         # We don't need to look at WEB_PARAMETERS that we produced

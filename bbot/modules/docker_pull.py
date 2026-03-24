@@ -49,7 +49,7 @@ class docker_pull(BaseModule):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         repo_path = await self.download_docker_repo(repo_url)
         if repo_path:
             self.verbose(f"Downloaded docker repository {repo_url} to {repo_path}")

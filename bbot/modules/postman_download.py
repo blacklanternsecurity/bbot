@@ -36,7 +36,7 @@ class postman_download(postman):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         workspace_id = await self.get_workspace_id(repo_url)
         if workspace_id:
             self.verbose(f"Found workspace ID {workspace_id} for {repo_url}")

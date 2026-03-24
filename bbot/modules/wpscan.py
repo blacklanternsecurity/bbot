@@ -292,7 +292,7 @@ class wpscan(BaseModule):
         return " ".join(string)
 
     def get_base_url(self, event):
-        base_url = event.data.get("url", "")
+        base_url = event.url
         if not base_url:
             base_url = f"https://{event.host}"
         return self.helpers.urlparse(base_url)._replace(path="/").geturl()

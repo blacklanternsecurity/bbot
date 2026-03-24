@@ -54,7 +54,7 @@ class newsletters(BaseModule):
                     data = {
                         "host": str(_event.host),
                         "description": description,
-                        "url": _event.data["url"],
+                        "url": _event.url,
                         "name": "Newsletter Submission Form",
                         "severity": "INFO",
                         "confidence": "LOW",

@@ -368,6 +368,13 @@ class BaseEvent:
         return self._host_original
 
     @property
+    def url(self):
+        parsed_url = getattr(self, "parsed_url", None)
+        if parsed_url is not None:
+            return parsed_url.geturl()
+        return ""
+
+    @property
     def host_filterable(self):
         """
         A string version of the event that's used for regex-based blacklisting.
@@ -1443,6 +1450,7 @@ class WEB_PARAMETER(DictHostEvent):
         return children
 
     def sanitize_data(self, data):
+        data = super().sanitize_data(data)
         original_value = data.get("original_value", None)
         if original_value is not None:
             try:

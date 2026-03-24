@@ -34,7 +34,7 @@ class git_clone(github):
         return True
 
     async def handle_event(self, event):
-        repository_url = event.data.get("url")
+        repository_url = event.url
         repository_path = await self.clone_git_repository(repository_url)
         if repository_path:
             self.verbose(f"Cloned {repository_url} to {repository_path}")

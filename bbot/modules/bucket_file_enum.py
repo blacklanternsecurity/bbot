@@ -33,7 +33,7 @@ class bucket_file_enum(BaseModule):
             await self.handle_aws(event)
 
     async def handle_aws(self, event):
-        url = event.data["url"]
+        url = event.url
         urls_emitted = 0
         response = await self.helpers.request(url)
         status_code = getattr(response, "status_code", 0)

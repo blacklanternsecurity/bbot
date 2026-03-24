@@ -114,7 +114,7 @@ class gitdumper(BaseModule):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         self.info(f"Processing leaked .git directory at {repo_url}")
         repo_folder = self.output_dir / self.helpers.tagify(repo_url)
         self.helpers.mkdir(repo_folder)

@@ -158,7 +158,7 @@ class gowitness(BaseModule):
         for e in events:
             key = e.data
             if e.type == "SOCIAL":
-                key = e.data["url"]
+                key = e.url
             event_dict[key] = e
         stdin = "\n".join(list(event_dict))
 

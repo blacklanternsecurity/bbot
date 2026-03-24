@@ -131,9 +131,7 @@ class filedownload(BaseModule):
         return True
 
     def hash_event(self, event):
-        if event.type == "HTTP_RESPONSE":
-            return hash(event.data["url"])
-        return hash(event.data)
+        return hash(event.url or event.data)
 
     async def handle_event(self, event):
         if event.type == "URL_UNVERIFIED":
@@ -146,7 +144,7 @@ class filedownload(BaseModule):
             headers = event.data.get("header", {})
             content_type = headers.get("content_type", "")
             if content_type:
-                url = event.data["url"]
+                url = event.url
                 await self.download_file(url, content_type=content_type, source_event=event)
 
     async def download_file(self, url, content_type=None, source_event=None):

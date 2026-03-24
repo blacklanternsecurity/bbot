@@ -1125,7 +1125,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 param_type="SPECULATIVE",
                                 name=parameter_name,
                                 original_value=original_value,
-                                url=str(event.data["url"]),
+                                url=event.url,
                                 description=f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]",
                                 additional_params={},
                                 event=event,
@@ -1280,7 +1280,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             # which extracts readable text and feeds it back to excavate as a RAW_TEXT event (handled separately below).
             # TODO: remove this in favor of a proper categorization system for text vs non-text (i.e. to-be-extracted) content
             if content_type and "application/pdf" in content_type.lower():
-                self.debug(f"Skipping PDF response: {event.data.get('url', 'unknown')}")
+                self.debug(f"Skipping PDF response: {event.url or 'unknown'}")
                 return
 
             await self.search(

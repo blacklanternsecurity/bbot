@@ -313,7 +313,7 @@ class Asset:
             self.ports.add(str(event.port))
 
         if event.type == "FINDING":
-            location = event.data.get("url", event.data.get("host", ""))
+            location = event.url or event.data.get("host", "")
             if location:
                 self.findings.add(
                     f"{location}:{event.data['description']}:Severity: {event.data['severity']} Confidence: {event.data['confidence']}"

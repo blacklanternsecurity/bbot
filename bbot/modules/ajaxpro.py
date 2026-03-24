@@ -45,7 +45,7 @@ class ajaxpro(BaseModule):
                 await self.confirm_exploitability(ajaxpro_path, event)
 
     async def emit_technology(self, event, detection_url):
-        url = event.data if event.type == "URL" else event.data["url"]
+        url = event.url
         await self.emit_event(
             {
                 "host": str(event.host),
@@ -82,7 +82,7 @@ class ajaxpro(BaseModule):
                         "cves": ["CVE-2021-23758"],
                         "severity": "CRITICAL",
                         "confidence": "HIGH",
-                        "url": event.data if event.type == "URL" else event.data["url"],
+                        "url": event.url,
                         "description": f"Ajaxpro Deserialization RCE (CVE-2021-23758) Trigger: [{full_url}]",
                     },
                     "FINDING",

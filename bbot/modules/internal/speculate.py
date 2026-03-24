@@ -157,10 +157,7 @@ class speculate(BaseInternalModule):
         event_has_url = isinstance(event.data, dict) and "url" in event.data
         event_tags = ["httpx-safe"] if event.type in ("CODE_REPOSITORY", "SOCIAL") else []
         if event_is_url or event_has_url:
-            if event_is_url:
-                url = event.data
-            else:
-                url = event.data["url"]
+            url = event.url
             # only emit the url if it's not already in the event's history
             if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_parents()):
                 await self.emit_event(
