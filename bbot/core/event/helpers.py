@@ -122,6 +122,12 @@ class BaseEventSeed(metaclass=EventSeedRegistry):
     def type(self):
         return self.__class__.__name__
 
+    @property
+    def url(self):
+        if self.type == "URL_UNVERIFIED":
+            return self.data
+        return ""
+
     @cached_property
     def _hash(self):
         return hash(self.input)

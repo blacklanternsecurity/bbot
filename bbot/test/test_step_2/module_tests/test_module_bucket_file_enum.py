@@ -39,7 +39,7 @@ trailer <</Root 1 0 R>>"""
 
     def check(self, module_test, events):
         files = list((self.download_dir / "filedownload").glob("*.pdf"))
-        assert any(e.type == "URL_UNVERIFIED" and e.data.endswith("test.pdf") for e in events)
-        assert not any(e.type == "URL_UNVERIFIED" and e.data.endswith("test.css") for e in events)
+        assert any(e.type == "URL_UNVERIFIED" and e.url.endswith("test.pdf") for e in events)
+        assert not any(e.type == "URL_UNVERIFIED" and e.url.endswith("test.css") for e in events)
         assert any(f.name.endswith("test.pdf") for f in files), "Failed to download PDF file from open bucket"
         assert not any(f.name.endswith("test.css") for f in files), "Unwanted CSS file was downloaded"

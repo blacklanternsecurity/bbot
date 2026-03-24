@@ -76,7 +76,7 @@ Gnl54dJHT+EhlfY=
             [
                 e
                 for e in events
-                if e.type == "URL_UNVERIFIED" and e.data == self.github_file_url and e.scope_distance == 2
+                if e.type == "URL_UNVERIFIED" and e.url == self.github_file_url and e.scope_distance == 2
             ]
         ), "Failed to emit URL_UNVERIFIED"
         assert 1 == len(
@@ -90,7 +90,7 @@ Gnl54dJHT+EhlfY=
             ]
         ), "Failed to emit CODE_REPOSITORY"
         assert 1 == len(
-            [e for e in events if e.type == "URL" and e.data == self.github_file_url and e.scope_distance == 2]
+            [e for e in events if e.type == "URL" and e.url == self.github_file_url and e.scope_distance == 2]
         ), "Failed to visit URL"
         assert 1 == len(
             [
