@@ -69,7 +69,7 @@ class ffuf(BaseModule):
             return
         else:
             # if we think its a directory, normalize it.
-            fixed_url = event.data.rstrip("/") + "/"
+            fixed_url = event.url.rstrip("/") + "/"
 
         exts = ["", "/"]
         if self.extensions:
@@ -83,12 +83,12 @@ class ffuf(BaseModule):
                 "URL_UNVERIFIED",
                 parent=event,
                 tags=[f"status-{r['status']}"],
-                context=f"{{module}} brute-forced {event.data} and found {{event.type}}: {{event.data}}",
+                context=f"{{module}} brute-forced {event.url} and found {{event.type}}: {{event.data}}",
             )
 
     async def filter_event(self, event):
         if "endpoint" in event.tags:
-            self.debug(f"rejecting URL [{event.data}] because we don't ffuf endpoints")
+            self.debug(f"rejecting URL [{event.url}] because we don't ffuf endpoints")
             return False
         return True
 

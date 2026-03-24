@@ -26,10 +26,10 @@ class ajaxpro(BaseModule):
 
     async def check_url_event(self, event):
         for stem in ["ajax", "ajaxpro"]:
-            probe_url = f"{event.data}{stem}/whatever.ashx"
+            probe_url = f"{event.url}{stem}/whatever.ashx"
             probe = await self.helpers.request(probe_url)
             if probe and probe.status_code == 200:
-                confirm_url = f"{event.data}a/whatever.ashx"
+                confirm_url = f"{event.url}a/whatever.ashx"
                 confirm_probe = await self.helpers.request(confirm_url)
                 if confirm_probe and confirm_probe.status_code != 200:
                     await self.emit_technology(event, probe_url)

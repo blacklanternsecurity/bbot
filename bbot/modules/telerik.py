@@ -186,7 +186,7 @@ class telerik(BaseModule):
     def _incoming_dedup_hash(self, event):
         if event.type == "URL":
             if self.config.get("include_subdirs") is True:
-                return hash(f"{event.type}{self.normalize_url(event.data)}")
+                return hash(f"{event.type}{self.normalize_url(event.url)}")
             else:
                 return hash(f"{event.type}{event.netloc}")
         else:  # HTTP_RESPONSE
@@ -195,7 +195,7 @@ class telerik(BaseModule):
     async def handle_event(self, event):
         if event.type == "URL":
             if self.config.get("include_subdirs"):
-                base_url = self.normalize_url(event.data)  # Use the entire URL including subdirectories
+                base_url = self.normalize_url(event.url)  # Use the entire URL including subdirectories
 
             else:
                 base_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"  # path will be omitted
@@ -226,7 +226,7 @@ class telerik(BaseModule):
                     verbose_errors = False
                     # send probe
                     probe_response = await self.helpers.request(
-                        f"{event.data}{webresource}", method="POST", files=probe_data
+                        f"{event.url}{webresource}", method="POST", files=probe_data
                     )
 
                     if probe_response:

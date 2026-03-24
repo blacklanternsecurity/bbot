@@ -86,7 +86,7 @@ class bypass403(BaseModule):
 
         for sig in signatures:
             if error_count > 3:
-                self.warning(f"Received too many errors for URL {event.data} aborting bypass403")
+                self.warning(f"Received too many errors for URL {event.url} aborting bypass403")
                 return None
 
             sig = self.format_signature(sig, event)
@@ -127,7 +127,7 @@ class bypass403(BaseModule):
 
     async def handle_event(self, event):
         try:
-            compare_helper = self.helpers.http_compare(event.data, allow_redirects=True)
+            compare_helper = self.helpers.http_compare(event.url, allow_redirects=True)
         except HttpCompareError as e:
             self.debug(e)
             return
@@ -142,13 +142,13 @@ class bypass403(BaseModule):
                     "name": "Possible 403 Bypass",
                     "description": f"403 Bypass MULTIPLE SIGNATURES (exceeded threshold {str(collapse_threshold)})",
                     "host": str(event.host),
-                    "url": event.data,
+                    "url": event.url,
                     "severity": "INFO",
                     "confidence": "LOW",
                 },
                 "FINDING",
                 parent=event,
-                context=f"{{module}} discovered multiple potential 403 bypasses ({{event.type}}) for {event.data}",
+                context=f"{{module}} discovered multiple potential 403 bypasses ({{event.type}}) for {event.url}",
             )
         else:
             for description in results:
@@ -157,13 +157,13 @@ class bypass403(BaseModule):
                         "name": "Possible 403 Bypass",
                         "description": description,
                         "host": str(event.host),
-                        "url": event.data,
+                        "url": event.url,
                         "severity": "MEDIUM",
                         "confidence": "LOW",
                     },
                     "FINDING",
                     parent=event,
-                    context=f"{{module}} discovered potential 403 bypass ({{event.type}}) for {event.data}",
+                    context=f"{{module}} discovered potential 403 bypass ({{event.type}}) for {event.url}",
                 )
 
     # When a WAF-check helper is available in the future, we will convert to HTTP_RESPONSE and check for the WAF string here.

@@ -45,17 +45,17 @@ class url_manipulation(BaseModule):
     async def handle_event(self, event):
         try:
             compare_helper = self.helpers.http_compare(
-                event.data, allow_redirects=self.allow_redirects, include_cache_buster=False
+                event.url, allow_redirects=self.allow_redirects, include_cache_buster=False
             )
         except HttpCompareError as e:
             self.debug(e)
             return
 
         try:
-            if not await compare_helper.canary_check(event.data, mode="getparam"):
+            if not await compare_helper.canary_check(event.url, mode="getparam"):
                 raise HttpCompareError()
         except HttpCompareError:
-            self.verbose(f'Aborting "{event.data}" due to failed canary check')
+            self.verbose(f'Aborting "{event.url}" due to failed canary check')
             return
 
         for sig in self.signatures:
@@ -65,7 +65,7 @@ class url_manipulation(BaseModule):
                     sig[1], method=sig[0], allow_redirects=self.allow_redirects
                 )
             except HttpCompareError as e:
-                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
+                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.url}]")
 
             if subject_response:
                 subject_content = "".join([str(x) for x in subject_response.headers])
@@ -82,14 +82,14 @@ class url_manipulation(BaseModule):
                                     {
                                         "description": description,
                                         "host": str(event.host),
-                                        "url": event.data,
+                                        "url": event.url,
                                         "name": "URL Manipulation",
                                         "severity": "INFO",
                                         "confidence": "LOW",
                                     },
                                     "FINDING",
                                     parent=event,
-                                    context=f"{{module}} probed {event.data} and identified {{event.type}}: {description}",
+                                    context=f"{{module}} probed {event.url} and identified {{event.type}}: {description}",
                                 )
                         else:
                             self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")

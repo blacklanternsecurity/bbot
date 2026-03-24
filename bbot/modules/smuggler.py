@@ -31,7 +31,7 @@ class smuggler(BaseModule):
             "--no-color",
             "-q",
             "-u",
-            event.data,
+            event.url,
         ]
         async for line in self.run_process_live(command):
             for f in line.split("\r"):
@@ -42,7 +42,7 @@ class smuggler(BaseModule):
                     await self.emit_event(
                         {
                             "host": str(event.host),
-                            "url": event.data,
+                            "url": event.url,
                             "description": description,
                             "name": "Possible HTTP Smuggling",
                             "severity": "MEDIUM",
@@ -50,5 +50,5 @@ class smuggler(BaseModule):
                         },
                         "FINDING",
                         parent=event,
-                        context=f"{{module}} scanned {event.data} and found HTTP smuggling ({{event.type}}): {text}",
+                        context=f"{{module}} scanned {event.url} and found HTTP smuggling ({{event.type}}): {text}",
                     )

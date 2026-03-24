@@ -133,7 +133,7 @@ class retirejs(BaseModule):
         return True
 
     async def handle_event(self, event):
-        js_file = await self.helpers.request(event.data)
+        js_file = await self.helpers.request(event.url)
         if js_file:
             js_file_body = js_file.text
             if js_file_body:
@@ -168,7 +168,7 @@ class retirejs(BaseModule):
                                     f"Vulnerable JavaScript library detected: {component} v{version}",
                                     f"Severity: {severity.upper()}",
                                     f"Summary: {summary}",
-                                    f"JavaScript URL: {event.data}",
+                                    f"JavaScript URL: {event.url}",
                                 ]
                                 if cves:
                                     description_parts.append(f"CVE(s): {', '.join(cves)}")

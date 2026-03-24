@@ -219,7 +219,7 @@ class iis_shortnames(BaseModule):
         class safety_counter_obj:
             counter = 0
 
-        normalized_url = self.normalize_url(event.data)
+        normalized_url = self.normalize_url(event.url)
         self.scanned_tracker.add(normalized_url)
 
         detections = await self.detect(normalized_url)
@@ -344,7 +344,7 @@ class iis_shortnames(BaseModule):
                                     {
                                         "name": "Possible backup file (zip) in web root",
                                         "host": str(event.host),
-                                        "url": event.data,
+                                        "url": event.url,
                                         "description": f"Possible backup file (zip) in web root: {normalized_url}{url_hint}",
                                         "confidence": "MEDIUM",
                                         "severity": "MEDIUM",
@@ -369,7 +369,7 @@ class iis_shortnames(BaseModule):
 
     async def filter_event(self, event):
         if "dir" in event.tags:
-            if self.normalize_url(event.data) not in self.scanned_tracker:
+            if self.normalize_url(event.url) not in self.scanned_tracker:
                 return True
             return False
         return False

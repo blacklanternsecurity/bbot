@@ -61,7 +61,7 @@ class WebhookOutputModule(BaseOutputModule):
 
     def format_message_str(self, event):
         event_tags = ",".join(event.tags)
-        return f"`[{event.type}]`\t**`{event.data}`**\ttags:{event_tags}"
+        return f"`[{event.type}]`\t**`{event.pretty_string}`**\ttags:{event_tags}"
 
     def format_message_other(self, event):
         event_yaml = yaml.dump(event.data)

@@ -135,11 +135,11 @@ class filedownload(BaseModule):
 
     async def handle_event(self, event):
         if event.type == "URL_UNVERIFIED":
-            url_lower = event.data.lower()
+            url_lower = event.url.lower()
             extension_matches = any(url_lower.endswith(f".{e}") for e in self.extensions)
             filedownload_requested = "filedownload" in event.tags
             if extension_matches or filedownload_requested:
-                await self.download_file(event.data, source_event=event)
+                await self.download_file(event.url, source_event=event)
         elif event.type == "HTTP_RESPONSE":
             headers = event.data.get("header", {})
             content_type = headers.get("content_type", "")

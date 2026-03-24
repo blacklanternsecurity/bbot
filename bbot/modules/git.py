@@ -18,7 +18,7 @@ class git(BaseModule):
     fp_regex = re.compile(r"<html|<body", re.I)
 
     async def handle_event(self, event):
-        base_url = event.data.rstrip("/")
+        base_url = event.url.rstrip("/")
         urls = {
             # look for git config in both
             self.helpers.urljoin(base_url, ".git/config"),

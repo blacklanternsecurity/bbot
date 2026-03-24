@@ -196,7 +196,7 @@ class paramminer_headers(BaseModule):
             try:
                 results = await self.do_mining(self.wl, url, batch_size, compare_helper)
             except HttpCompareError as e:
-                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
+                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.url}]")
             await self.process_results(event, results)
 
     async def count_test(self, url):
