@@ -143,7 +143,7 @@ class speculate(BaseInternalModule):
 
         # speculate sub-directory URLS from URLS
         if event.type == "URL":
-            url_parents = self.helpers.url_parents(event.data)
+            url_parents = self.helpers.url_parents(event.url)
             for up in url_parents:
                 url_event = self.make_event(f"{up}/", "URL_UNVERIFIED", parent=event)
                 if url_event is not None:
