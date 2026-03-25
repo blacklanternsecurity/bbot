@@ -90,7 +90,6 @@ class Event(BBOTBaseModel, table=True):
     reverse_host: Optional[str] = Field(default="", exclude=True, index=True)
     resolved_hosts: List = Field(default=[], sa_type=JSON)
     dns_children: dict = Field(default={}, sa_type=JSON)
-    http_title: Optional[str] = None
     web_spider_distance: Optional[int] = None
     scope_distance: int = Field(default=10, index=True)
     scan: str = Field(index=True)

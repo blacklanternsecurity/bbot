@@ -858,10 +858,6 @@ class BaseEvent:
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:
             j["web_spider_distance"] = web_spider_distance
-        # http title
-        http_title = getattr(self, "http_title", "")
-        if http_title:
-            j["http_title"] = http_title
         # scope distance
         j["scope_distance"] = self.scope_distance
         # scan
@@ -1290,14 +1286,12 @@ class URL_UNVERIFIED(DictHostEvent):
     _status_code_regex = re.compile(r"^status-(\d{1,3})$")
 
     __slots__ = [
-        "_http_title",
         "web_spider_distance",
         "url_extension",
         "num_redirects",
     ]
 
     def __init__(self, *args, **kwargs):
-        self._http_title = ""
         self.web_spider_distance = 0
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
@@ -1406,6 +1400,9 @@ class URL_UNVERIFIED(DictHostEvent):
 
     @property
     def http_status(self):
+        status_code = self.data.get("status_code", 0)
+        if status_code:
+            return int(status_code)
         for t in self.tags:
             match = self._status_code_regex.match(t)
             if match:
@@ -1414,11 +1411,11 @@ class URL_UNVERIFIED(DictHostEvent):
 
     @property
     def http_title(self):
-        return self._http_title
+        return self.data.get("http_title", "")
 
     @http_title.setter
     def http_title(self, value):
-        self._http_title = value
+        self.data["http_title"] = value
 
 
 class URL(URL_UNVERIFIED):

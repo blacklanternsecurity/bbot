@@ -186,7 +186,7 @@ class httpx(BaseModule):
             # main URL
             tags = [f"status-{status_code}"]
 
-            url_context = "{module} visited {event.parent.data} and got status code {event.http_status}"
+            url_context = "{module} visited {event.parent.pretty_string} and got status code {event.http_status}"
             if parent_event.type == "OPEN_TCP_PORT":
                 url_context += " at {event.pretty_string}"
 
@@ -201,6 +201,7 @@ class httpx(BaseModule):
                 httpx_ip = j.get("host", "")
                 if httpx_ip:
                     url_event._resolved_hosts.add(httpx_ip)
+                url_event.data["status_code"] = status_code
                 title = j.get("title", "")
                 if title:
                     url_event.http_title = title

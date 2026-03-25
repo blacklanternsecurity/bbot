@@ -83,7 +83,6 @@ class Event(BBOTBaseModel):
     netloc: Optional[str] = None
     resolved_hosts: Optional[List] = None
     dns_children: Optional[dict] = None
-    http_title: Optional[str] = None
     web_spider_distance: Optional[int] = None
     scope_distance: int = 10
     scan: Annotated[str, "indexed"]
