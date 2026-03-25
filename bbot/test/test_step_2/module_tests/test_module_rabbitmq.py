@@ -66,6 +66,7 @@ class TestRabbitMQ(ModuleTestBase):
             # Clean up: Close the RabbitMQ connection
             await connection.close()
             # Stop RabbitMQ container
-            await asyncio.create_subprocess_exec(
+            process = await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-rabbitmq", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
+            await process.communicate()

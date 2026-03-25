@@ -84,9 +84,11 @@ class TestKafka(ModuleTestBase):
             if hasattr(self, "consumer") and not self.consumer._closed:
                 await self.consumer.stop()
             # Stop Kafka and Zookeeper containers
-            await asyncio.create_subprocess_exec(
+            p1 = await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-kafka", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
-            await asyncio.create_subprocess_exec(
+            await p1.communicate()
+            p2 = await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-zookeeper", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
+            await p2.communicate()

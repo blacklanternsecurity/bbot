@@ -1,4 +1,3 @@
-import time
 import httpx
 import asyncio
 
@@ -49,7 +48,7 @@ class TestElastic(ModuleTestBase):
                     break
                 except Exception as e:
                     self.log.verbose(f"Connection failed: {e}. Retrying...")
-                    time.sleep(0.5)
+                    await asyncio.sleep(0.5)
 
             # Ensure the index is empty
             await client.delete("https://localhost:9200/bbot_test_events", auth=("elastic", "bbotislife"))
@@ -118,6 +117,7 @@ class TestElastic(ModuleTestBase):
                     params={"ignore": "400,404"},
                 )
                 self.log.verbose("Deleted documents from index")
-            await asyncio.create_subprocess_exec(
+            process = await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-elastic", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
+            await process.communicate()
