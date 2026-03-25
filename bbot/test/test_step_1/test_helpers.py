@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import ipaddress
-from concurrent.futures import ProcessPoolExecutor
 
 from ..bbot_fixtures import *
 
@@ -997,29 +996,13 @@ async def test_run_in_executor_mp(helpers):
     result = await helpers.run_in_executor_mp(_cpu_work, 100_000)
     assert result == sum(range(100_000))
 
-    # a hanging task should raise TimeoutError
+    # a hanging task should raise TimeoutError and auto-replace the pool
     with pytest.raises(asyncio.TimeoutError):
         await helpers.run_in_executor_mp(_hang_forever, _timeout=2)
 
-    # pool should still work after a timeout
+    # pool should still work after a timeout (was replaced by _reset_process_pool)
     result = await helpers.run_in_executor_mp(_cpu_work, 50_000, _timeout=30)
     assert result == sum(range(50_000))
-
-    # kill the stuck worker so it doesn't prevent pytest from exiting
-    pool = helpers.process_pool
-    for proc in list(pool._processes.values()):
-        if proc.is_alive():
-            proc.terminate()
-            proc.join(timeout=5)
-    pool.shutdown(wait=False, cancel_futures=True)
-    # replace the pool so subsequent tests aren't affected
-    import sys
-    import multiprocessing as mp
-
-    pool_kwargs = {"max_workers": max(1, mp.cpu_count() - 1)}
-    if sys.version_info >= (3, 11):
-        pool_kwargs["max_tasks_per_child"] = 25
-    helpers.process_pool = ProcessPoolExecutor(**pool_kwargs)
 
 
 def test_simhash_similarity(helpers):
