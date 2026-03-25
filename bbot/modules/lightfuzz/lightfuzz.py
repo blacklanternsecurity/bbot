@@ -156,7 +156,7 @@ class lightfuzz(BaseModule):
                     "type": "HEADER",
                     "name": h,
                     "original_value": None,
-                    "url": event.data,
+                    "url": event.url,
                     "description": description,
                 }
                 await self.emit_event(data, "WEB_PARAMETER", event)

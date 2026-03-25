@@ -1147,7 +1147,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
 
         async def handle_event(self, event):
             await self.helpers.sleep(0.5)
-            self.events_seen.append(event.data)
+            self.events_seen.append(event.url)
             new_event = self.scan.make_event(event.data, "URL_UNVERIFIED", self.scan.root_event)
             if new_event is not None:
                 await self.emit_event(new_event)

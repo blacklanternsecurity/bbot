@@ -33,7 +33,7 @@ class TestRobots(ModuleTestBase):
                 if e.url == "http://127.0.0.1:8888/sitemap.txt":
                     sitemap_bool = True
 
-                if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.data):
+                if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.url):
                     wildcard_bool = True
 
         assert allow_bool

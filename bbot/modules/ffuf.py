@@ -59,7 +59,7 @@ class ffuf(BaseModule):
         return True
 
     async def handle_event(self, event):
-        if self.helpers.url_depth(event.data) > self.config.get("max_depth"):
+        if self.helpers.url_depth(event.url) > self.config.get("max_depth"):
             self.debug("Exceeded max depth, aborting event")
             return
 
