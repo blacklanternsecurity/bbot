@@ -1213,3 +1213,62 @@ async def test_event_hashing():
     assert finding2.data_hash == finding3.data_hash
     assert hash(finding1) != hash(finding2)
     assert hash(finding2) == hash(finding3)
+
+
+@pytest.mark.asyncio
+async def test_host_metadata():
+    scan = Scanner("example.com")
+    await scan._prep()
+
+    # host_metadata should be lazy-initialized as empty dict
+    dns_event = scan.make_event("example.com", "DNS_NAME", parent=scan.root_event)
+    assert dns_event.host_metadata == {}
+
+    # set host_metadata
+    dns_event.host_metadata = {
+        "example.com": {
+            "cloud_providers": {
+                "cloudflare": {"types": ["waf"], "match": "domain"},
+            }
+        },
+        "104.18.26.217": {
+            "cloud_providers": {
+                "cloudflare": {"types": ["waf"], "match": "ip"},
+                "amazon": {"types": ["cloud"], "match": "ip"},
+            }
+        },
+    }
+
+    # verify access
+    assert "cloudflare" in dns_event.host_metadata["example.com"]["cloud_providers"]
+    assert dns_event.host_metadata["104.18.26.217"]["cloud_providers"]["amazon"]["match"] == "ip"
+
+    # verify JSON serialization
+    j = dns_event.json()
+    assert "host_metadata" in j
+    assert j["host_metadata"]["example.com"]["cloud_providers"]["cloudflare"]["types"] == ["waf"]
+    assert j["host_metadata"]["104.18.26.217"]["cloud_providers"]["amazon"]["match"] == "ip"
+
+    # verify host_metadata is NOT serialized when empty
+    dns_event2 = scan.make_event("test.example.com", "DNS_NAME", parent=scan.root_event)
+    j2 = dns_event2.json()
+    assert "host_metadata" not in j2
+
+    # URL events also have host_metadata
+    url_event = scan.make_event("https://example.com/", "URL_UNVERIFIED", parent=scan.root_event)
+    assert url_event.host_metadata == {}
+    url_event.host_metadata["example.com"] = {"cloud_providers": {"google": {"types": ["cloud"], "match": "domain"}}}
+    j3 = url_event.json()
+    assert j3["host_metadata"]["example.com"]["cloud_providers"]["google"]["types"] == ["cloud"]
+
+    # URL event data dict should contain url, and optionally http_title/status_code
+    assert url_event.data["url"] == "https://example.com/"
+    url_event.http_title = "Example Domain"
+    url_event.data["status_code"] = 200
+    assert url_event.data["http_title"] == "Example Domain"
+    assert url_event.http_status == 200
+    j4 = url_event.json()
+    assert j4["data_json"]["http_title"] == "Example Domain"
+    assert j4["data_json"]["status_code"] == 200
+
+    await scan._cleanup()
