@@ -1385,6 +1385,38 @@ class Test_Lightfuzz_serial_errorresolution_multi_language(Test_Lightfuzz_serial
         )
 
 
+class Test_Lightfuzz_serial_errorresolution_nonstandard_status(Test_Lightfuzz_serial_errorresolution):
+    """A baseline with a non-standard status code (>511, e.g. GlobalProtect's 512)
+    should not produce an Error Resolution finding even if the probe returns 200."""
+
+    def request_handler(self, request):
+        dotnet_serial_error_resolved = (
+            "<html><body>Deserialization successful! Object type: System.String</body></html>"
+        )
+        post_params = request.form
+
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        else:
+            if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
+                # Non-standard status code (like GlobalProtect's 512)
+                return Response(self.dotnet_serial_error, status=512)
+            if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
+                return Response(dotnet_serial_error_resolved, status=200)
+            else:
+                return Response(self.dotnet_serial_error, status=512)
+
+    def check(self, module_test, events):
+        no_finding_emitted = True
+        for e in events:
+            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", ""):
+                no_finding_emitted = False
+        assert no_finding_emitted, (
+            "False positive Error Resolution finding was emitted for non-standard baseline status code (>511)"
+        )
+
+
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]

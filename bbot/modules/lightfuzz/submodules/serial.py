@@ -161,6 +161,17 @@ class serial(BaseLightfuzz):
 
                 # if the status code changed to 200, and the response doesn't match our general error exclusions, we have a finding
                 self.debug(f"Potential finding detected for {payload_type}, needs confirmation")
+
+                baseline_status = payload_baseline.baseline.status_code
+                # Skip Error Resolution if baseline uses a non-standard HTTP status code (>511).
+                # Non-standard codes (e.g. 512 from GlobalProtect) are application-specific
+                # and don't reliably indicate an error state that deserialization could "resolve".
+                if baseline_status > 511:
+                    self.debug(
+                        f"Baseline status {baseline_status} is non-standard (>511), skipping Error Resolution for {payload_type}"
+                    )
+                    continue
+
                 if (
                     status_code == 200
                     and "code" in diff_reasons
