@@ -87,3 +87,17 @@ class TestCloudCheck(ModuleTestBase):
                 and e.scope_distance == 0
             ]
         )
+
+        # verify host_metadata is populated by cloudcheck on real scan events
+        url_events = [e for e in events if e.type == "URL"]
+        for url_event in url_events:
+            if url_event.host_metadata:
+                # check structure: {host: {cloud_providers: {name: {types: [...], match: "..."}}}}
+                for host, meta in url_event.host_metadata.items():
+                    assert "cloud_providers" in meta, f"host_metadata for {host} missing cloud_providers"
+                    for provider_name, provider_info in meta["cloud_providers"].items():
+                        assert "types" in provider_info, f"cloud_providers[{provider_name}] missing types"
+                        assert "match" in provider_info, f"cloud_providers[{provider_name}] missing match"
+                        assert provider_info["match"] in ("ip", "domain", "cname"), (
+                            f"unexpected match type: {provider_info['match']}"
+                        )
