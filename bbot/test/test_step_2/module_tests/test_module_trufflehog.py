@@ -1157,6 +1157,7 @@ class TestTrufflehog(ModuleTestBase):
                     "https://github.com/blacklanternsecurity", f"file://{temp_path}"
                 )
                 event.data = data
+                event.parsed_url = module_test.scan.helpers.urlparse(data["url"])
             return await old_handle_event(event)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "handle_event", new_handle_event)

@@ -213,10 +213,10 @@ class ffuf_shortnames(ffuf):
 
         host = f"{event.parent.parsed_url.scheme}://{event.parent.parsed_url.netloc}/"
         if host not in self.per_host_collection.keys():
-            self.per_host_collection[host] = [(filename_hint, event.parent.data)]
+            self.per_host_collection[host] = [(filename_hint, event.parent.url)]
 
         else:
-            self.per_host_collection[host].append((filename_hint, event.parent.data))
+            self.per_host_collection[host].append((filename_hint, event.parent.url))
 
         self.shortname_to_event[filename_hint] = event
 
