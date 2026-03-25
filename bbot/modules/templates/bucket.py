@@ -42,7 +42,7 @@ class bucket_template(BaseModule):
         return True
 
     def filter_bucket(self, event):
-        if not any(t.endswith(f"-{self.cloudcheck_provider_name.lower()}") for t in event.tags):
+        if self.cloudcheck_provider_name.lower() not in event.tags:
             return False, "bucket belongs to a different cloud provider"
         return True, ""
 
