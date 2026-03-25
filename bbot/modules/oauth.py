@@ -33,7 +33,7 @@ class OAUTH(BaseModule):
         return False
 
     async def handle_event(self, event):
-        _, domain = self.helpers.split_domain(event.data)
+        _, domain = self.helpers.split_domain(str(event.host))
         source_domain = getattr(event, "source_domain", domain)
         if not self.scan.in_scope(source_domain):
             return
@@ -46,9 +46,9 @@ class OAUTH(BaseModule):
                 oidc_tasks.append(self.helpers.create_task(self.getoidc(f"https://login.windows.net/{domain}")))
 
         if event.type == "URL_UNVERIFIED":
-            url = event.data
+            url = event.url
         else:
-            url = f"https://{event.pretty_string}"
+            url = f"https://{event.data}"
 
         oauth_tasks = []
         if self.try_all or any(t in event.tags for t in ("oauth-token-endpoint",)):
@@ -88,7 +88,7 @@ class OAUTH(BaseModule):
                         context=f'{{module}} identified OpenID Connect Endpoint for "{source_domain}" at {{event.type}}: {url}',
                     )
             for result in oidc_results:
-                if result not in (domain, event.data):
+                if result not in (domain, str(event.host)):
                     event_type = "URL_UNVERIFIED" if self.helpers.is_url(result) else "DNS_NAME"
                     await self.emit_event(
                         result,
