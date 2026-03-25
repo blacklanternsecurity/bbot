@@ -1076,7 +1076,7 @@ class DictHostEvent(DictEvent):
             return make_ip_type(self.data["host"])
         else:
             parsed = getattr(self, "parsed_url", None)
-            if parsed is not None:
+            if parsed is not None and parsed.hostname:
                 return make_ip_type(parsed.hostname)
 
 
