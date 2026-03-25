@@ -36,7 +36,7 @@ class social(BaseModule):
 
     async def handle_event(self, event):
         for platform, (regex, case_sensitive) in self.compiled_regexes.items():
-            for match in regex.finditer(event.data):
+            for match in regex.finditer(event.url):
                 url = match.group()
                 profile_name = match.groups()[0]
                 if not case_sensitive:

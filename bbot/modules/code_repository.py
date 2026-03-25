@@ -39,7 +39,7 @@ class code_repository(BaseModule):
             if not isinstance(regexes, list):
                 regexes = [regexes]
             for regex, case_sensitive in regexes:
-                for match in regex.finditer(event.data):
+                for match in regex.finditer(event.url):
                     url = match.group()
                     if not case_sensitive:
                         url = url.lower()
