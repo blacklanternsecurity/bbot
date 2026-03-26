@@ -78,7 +78,7 @@ async def test_preset_yaml(clean_default_config):
         output_modules=["json"],
         exclude_modules=["ipneighbor"],
         flags=["subdomain-enum"],
-        require_flags=["subdomain-enum"],
+        require_flags=["safe"],
         exclude_flags=["slow"],
         verbose=False,
         debug=False,
@@ -117,6 +117,7 @@ exclude_flags:
 
 require_flags:
   - passive
+  - safe
 
 exclude_modules:
   - certspotter
@@ -1086,11 +1087,13 @@ async def test_preset_require_exclude(clean_default_config):
     assert "active" in dnsbrute_flags
     assert "passive" not in dnsbrute_flags
     assert "loud" in dnsbrute_flags
+    assert "safe" not in dnsbrute_flags
     assert "dnsbrute" in [x[0] for x in module_flags]
     assert "certspotter" in [x[0] for x in module_flags]
     assert "c99" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
     assert any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, one required flag
@@ -1101,6 +1104,8 @@ async def test_preset_require_exclude(clean_default_config):
     assert "httpx" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded flag
     preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
@@ -1110,6 +1115,8 @@ async def test_preset_require_exclude(clean_default_config):
     assert "httpx" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded module
     preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute"]).bake()
@@ -1119,13 +1126,15 @@ async def test_preset_require_exclude(clean_default_config):
     assert "httpx" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
-    # enable by flag, multiple required flags (exclude loud active modules)
-    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"], exclude_flags=["loud"]).bake()
+    # enable by flag, multiple required flags
+    preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"]).bake()
     assert len(preset.modules) > 20
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
-    assert all("passive" in flags for module, flags in module_flags)
+    assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
     assert all("active" not in flags and "loud" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert not any("loud" in flags for module, flags in module_flags)
@@ -1135,7 +1144,7 @@ async def test_preset_require_exclude(clean_default_config):
     assert len(preset.modules) > 20
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
-    assert all("passive" in flags for module, flags in module_flags)
+    assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
     assert all("active" not in flags and "loud" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert not any("loud" in flags for module, flags in module_flags)
@@ -1149,6 +1158,8 @@ async def test_preset_require_exclude(clean_default_config):
     assert "c99" not in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
 
 @pytest.mark.asyncio
