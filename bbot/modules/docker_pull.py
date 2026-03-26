@@ -8,7 +8,7 @@ from bbot.modules.base import BaseModule
 class docker_pull(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow", "code-enum", "download"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Download images from a docker repository",
         "created_date": "2024-03-24",
@@ -49,7 +49,7 @@ class docker_pull(BaseModule):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         repo_path = await self.download_docker_repo(repo_url)
         if repo_path:
             self.verbose(f"Downloaded docker repository {repo_url} to {repo_path}")

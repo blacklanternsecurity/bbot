@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class trufflehog(BaseModule):
     watched_events = ["CODE_REPOSITORY", "FILESYSTEM", "HTTP_RESPONSE", "RAW_TEXT"]
     produced_events = ["FINDING"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "TruffleHog is a tool for finding credentials",
         "created_date": "2024-03-12",
@@ -75,7 +75,7 @@ class trufflehog(BaseModule):
             if self.deleted_forks:
                 if "git" not in event.tags:
                     return False, "Module only accepts git CODE_REPOSITORY events"
-                if "github" not in event.data["url"]:
+                if "github" not in event.url:
                     return False, "Module only accepts github CODE_REPOSITORY events"
             else:
                 return False, "Deleted forks is not enabled"
@@ -90,7 +90,7 @@ class trufflehog(BaseModule):
             description = event.data.get("description", "")
 
         if event.type == "CODE_REPOSITORY":
-            path = event.data["url"]
+            path = event.url
             module = "github-experimental"
         elif event.type == "FILESYSTEM":
             path = event.data["path"]

@@ -292,9 +292,8 @@ class ModuleLoader:
                 ],
                 "flags": [
                     "active",
-                    "safe",
-                    "web-basic",
-                    "web-thorough"
+                    "web",
+                    "web-heavy"
                 ],
                 "meta": {
                     "description": "Extract technologies from web responses"
@@ -557,12 +556,11 @@ class ModuleLoader:
 
         Examples:
             >>> print(modules_table(["portscan"]))
-            +----------+--------+-----------------+------------------------------+-------------------------------+----------------------+-------------------+
-            | Module   | Type   | Needs API Key   | Description                  | Flags                         | Consumed Events      | Produced Events   |
-            +==========+========+=================+==============================+===============================+======================+===================+
-            | portscan | scan   | No              | Execute port scans           | active, aggressive, portscan, | DNS_NAME, IP_ADDRESS | OPEN_TCP_PORT     |
-            |          |        |                 |                              | web-thorough                  |                      |                   |
-            +----------+--------+-----------------+------------------------------+-------------------------------+----------------------+-------------------+
+            +----------+--------+-----------------+------------------------------+------------------+----------------------+-------------------+
+            | Module   | Type   | Needs API Key   | Description                  | Flags            | Consumed Events      | Produced Events   |
+            +==========+========+=================+==============================+==================+======================+===================+
+            | portscan | scan   | No              | Execute port scans           | active, portscan | DNS_NAME, IP_ADDRESS | OPEN_TCP_PORT     |
+            +----------+--------+-----------------+------------------------------+------------------+----------------------+-------------------+
         """
 
         table = []

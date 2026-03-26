@@ -163,13 +163,13 @@ class TestCensys_IP(ModuleTestBase):
         )
 
         # Check URL_UNVERIFIED events
-        assert any(e.type == "URL_UNVERIFIED" and e.data == "http://1.2.3.4/" for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and e.url == "http://1.2.3.4/" for e in events), (
             "Failed to detect HTTP URL"
         )
-        assert any(e.type == "URL_UNVERIFIED" and e.data == "https://1.2.3.4/" for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and e.url == "https://1.2.3.4/" for e in events), (
             "Failed to detect HTTPS URL"
         )
-        assert any(e.type == "URL_UNVERIFIED" and e.data == "https://1.2.3.4:8443/admin" for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and e.url == "https://1.2.3.4:8443/admin" for e in events), (
             "Failed to detect HTTPS URL on port 8443"
         )
 

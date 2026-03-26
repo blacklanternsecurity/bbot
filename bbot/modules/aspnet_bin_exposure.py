@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class aspnet_bin_exposure(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Check for ASP.NET Security Feature Bypasses (CVE-2023-36899 and CVE-2023-36560)",
         "created_date": "2025-01-28",
@@ -25,10 +25,10 @@ class aspnet_bin_exposure(BaseModule):
         return str(url.rstrip("/") + "/").lower()
 
     def _incoming_dedup_hash(self, event):
-        return hash(self.normalize_url(event.data))
+        return hash(self.normalize_url(event.url))
 
     async def handle_event(self, event):
-        normalized_url = self.normalize_url(event.data)
+        normalized_url = self.normalize_url(event.url)
         for test_dll in self.test_dlls:
             for technique in ["b/(S(X))in/###DLL_PLACEHOLDER###/(S(X))/", "(S(X))/b/(S(X))in/###DLL_PLACEHOLDER###"]:
                 test_url = f"{normalized_url}{technique.replace('###DLL_PLACEHOLDER###', test_dll)}"

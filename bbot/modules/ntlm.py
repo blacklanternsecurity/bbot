@@ -68,7 +68,7 @@ class ntlm(BaseModule):
 
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING", "DNS_NAME"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["safe", "active", "web"]
     meta = {
         "description": "Watch for HTTP endpoints that support NTLM authentication",
         "created_date": "2022-07-25",
@@ -86,10 +86,7 @@ class ntlm(BaseModule):
 
     async def handle_event(self, event):
         found_hash = hash(f"{event.host}:{event.port}")
-        if event.type == "URL":
-            url = event.data
-        else:
-            url = event.data["url"]
+        url = event.url
         if found_hash in self.found:
             return
 

@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class reflected_parameters(BaseModule):
     watched_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Highlight parameters that reflect their contents in response body",
         "author": "@liquidsec",
@@ -12,7 +12,7 @@ class reflected_parameters(BaseModule):
     }
 
     async def handle_event(self, event):
-        url = event.data.get("url")
+        url = event.url
         reflection_detected = await self.detect_reflection(event, url)
 
         if reflection_detected:
@@ -58,7 +58,7 @@ class reflected_parameters(BaseModule):
 
     async def send_probe_with_canary(self, event, parameter_name, parameter_value, canary_value, cookies, timeout=10):
         method = "GET"
-        url = event.data["url"]
+        url = event.url
         headers = {}
         data = None
         json_data = None

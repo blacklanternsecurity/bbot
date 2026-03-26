@@ -13,7 +13,7 @@ from bbot.modules.base import BaseModule
 class gowitness(BaseModule):
     watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-screenshots"]
+    flags = ["safe", "active", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
     options = {
         "version": "3.1.1",
@@ -183,9 +183,9 @@ class gowitness(BaseModule):
         self._event_dict_loose = {}
         stdin_urls = []
         for e in events:
-            url = e.data
+            url = e.url or e.data
             if e.type == "SOCIAL":
-                url = e.data["url"]
+                url = e.url
             stdin_urls.append(url)
             self._event_dict[url] = e
             loose_key = self._url_key(self.helpers.urlparse(url))
@@ -226,7 +226,7 @@ class gowitness(BaseModule):
         for url, row in new_network_logs.items():
             ip = row["remote_ip"]
             status_code = row["status_code"]
-            tags = [f"status-{status_code}", f"ip-{ip}", "spider-danger"]
+            tags = [f"status-{status_code}", "spider-danger"]
 
             _id = row["result_id"]
             raw_parent_url = self.screenshots_taken[_id]
@@ -235,13 +235,16 @@ class gowitness(BaseModule):
                 self.warning(f"Could not correlate network log to parent event for URL: {raw_parent_url}")
                 continue
             if url and url.startswith("http"):
-                await self.emit_event(
+                url_event = self.make_event(
                     url,
                     "URL_UNVERIFIED",
                     parent=parent_event,
                     tags=tags,
                     context=f"{{module}} visited {{event.type}}: {url}",
                 )
+                if url_event and ip:
+                    url_event._resolved_hosts.add(ip)
+                await self.emit_event(url_event)
 
         # emit technologies
         new_technologies = await self.get_new_technologies()

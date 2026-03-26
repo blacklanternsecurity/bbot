@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 class medusa(BaseModule):
     watched_events = ["PROTOCOL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "deadly"]
+    flags = ["active", "loud", "invasive"]
     per_host_only = True
     meta = {
         "description": "Medusa SNMP bruteforcing with v1, v2c and R/W check.",

@@ -118,18 +118,18 @@ async def test_events(events, helpers):
     assert events.emoji not in events.ipv6_url_unverified
     assert events.url_unverified not in events.emoji
 
-    # URL normalization tests – compare against normalized event.data / .with_port().geturl()
-    assert scan.make_event("https://evilcorp.com:443", dummy=True).data == "https://evilcorp.com/"
-    assert scan.make_event("http://evilcorp.com:80", dummy=True).data == "http://evilcorp.com/"
+    # URL normalization tests – compare against normalized event.url / .with_port().geturl()
+    assert scan.make_event("https://evilcorp.com:443", dummy=True).url == "https://evilcorp.com/"
+    assert scan.make_event("http://evilcorp.com:80", dummy=True).url == "http://evilcorp.com/"
     assert "http://evilcorp.com:80/asdf.js" in scan.make_event("http://evilcorp.com/asdf.js", dummy=True)
     assert "http://evilcorp.com/asdf.js" in scan.make_event("http://evilcorp.com:80/asdf.js", dummy=True)
-    assert scan.make_event("https://evilcorp.com", dummy=True).data == "https://evilcorp.com/"
-    assert scan.make_event("http://evilcorp.com", dummy=True).data == "http://evilcorp.com/"
-    assert scan.make_event("https://evilcorp.com:80", dummy=True).data == "https://evilcorp.com:80/"
-    assert scan.make_event("http://evilcorp.com:443", dummy=True).data == "http://evilcorp.com:443/"
+    assert scan.make_event("https://evilcorp.com", dummy=True).url == "https://evilcorp.com/"
+    assert scan.make_event("http://evilcorp.com", dummy=True).url == "http://evilcorp.com/"
+    assert scan.make_event("https://evilcorp.com:80", dummy=True).url == "https://evilcorp.com:80/"
+    assert scan.make_event("http://evilcorp.com:443", dummy=True).url == "http://evilcorp.com:443/"
     assert scan.make_event("https://evilcorp.com", dummy=True).with_port().geturl() == "https://evilcorp.com:443/"
     assert scan.make_event("https://evilcorp.com:666", dummy=True).with_port().geturl() == "https://evilcorp.com:666/"
-    assert scan.make_event("https://evilcorp.com.:666", dummy=True).data == "https://evilcorp.com:666/"
+    assert scan.make_event("https://evilcorp.com.:666", dummy=True).url == "https://evilcorp.com:666/"
     assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
     url_event = scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"])
@@ -491,9 +491,9 @@ async def test_events(events, helpers):
     assert scan.make_event("bob@xn--eckwd4c7c.xn--zckzah", dummy=True).data == "bob@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("テスト@xn--eckwd4c7c.xn--zckzah", dummy=True).data == "テスト@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
-    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/"
+    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).url == "http://xn--eckwd4c7c.xn--zckzah/"
     assert (
-        scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80/テスト", dummy=True).data
+        scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80/テスト", dummy=True).url
         == "http://xn--eckwd4c7c.xn--zckzah/テスト"
     )
 
@@ -501,10 +501,9 @@ async def test_events(events, helpers):
     assert scan.make_event("bob@ドメイン.テスト", dummy=True).data == "bob@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("テスト@ドメイン.テスト", dummy=True).data == "テスト@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("ドメイン.テスト:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
-    assert scan.make_event("http://ドメイン.テスト:80", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/"
+    assert scan.make_event("http://ドメイン.テスト:80", dummy=True).url == "http://xn--eckwd4c7c.xn--zckzah/"
     assert (
-        scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).data
-        == "http://xn--eckwd4c7c.xn--zckzah/テスト"
+        scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).url == "http://xn--eckwd4c7c.xn--zckzah/テスト"
     )
     # thai
     assert (
@@ -523,11 +522,11 @@ async def test_events(events, helpers):
         == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
     )
     assert (
-        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).data
+        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).url
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
     )
     assert (
-        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80/ทดสอบ", dummy=True).data
+        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80/ทดสอบ", dummy=True).url
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 
@@ -536,10 +535,10 @@ async def test_events(events, helpers):
     assert scan.make_event("ทดสอบ@เราเที่ยวด้วยกัน.com", dummy=True).data == "ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
     assert scan.make_event("เราเที่ยวด้วยกัน.com:80", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
     assert (
-        scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).data == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
+        scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).url == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
     )
     assert (
-        scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).data
+        scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).url
         == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 
@@ -1214,3 +1213,62 @@ async def test_event_hashing():
     assert finding2.data_hash == finding3.data_hash
     assert hash(finding1) != hash(finding2)
     assert hash(finding2) == hash(finding3)
+
+
+@pytest.mark.asyncio
+async def test_host_metadata():
+    scan = Scanner("example.com")
+    await scan._prep()
+
+    # host_metadata should be lazy-initialized as empty dict
+    dns_event = scan.make_event("example.com", "DNS_NAME", parent=scan.root_event)
+    assert dns_event.host_metadata == {}
+
+    # set host_metadata
+    dns_event.host_metadata = {
+        "example.com": {
+            "cloud_providers": {
+                "cloudflare": {"types": ["waf"], "match": "domain"},
+            }
+        },
+        "104.18.26.217": {
+            "cloud_providers": {
+                "cloudflare": {"types": ["waf"], "match": "ip"},
+                "amazon": {"types": ["cloud"], "match": "ip"},
+            }
+        },
+    }
+
+    # verify access
+    assert "cloudflare" in dns_event.host_metadata["example.com"]["cloud_providers"]
+    assert dns_event.host_metadata["104.18.26.217"]["cloud_providers"]["amazon"]["match"] == "ip"
+
+    # verify JSON serialization
+    j = dns_event.json()
+    assert "host_metadata" in j
+    assert j["host_metadata"]["example.com"]["cloud_providers"]["cloudflare"]["types"] == ["waf"]
+    assert j["host_metadata"]["104.18.26.217"]["cloud_providers"]["amazon"]["match"] == "ip"
+
+    # verify host_metadata is NOT serialized when empty
+    dns_event2 = scan.make_event("test.example.com", "DNS_NAME", parent=scan.root_event)
+    j2 = dns_event2.json()
+    assert "host_metadata" not in j2
+
+    # URL events also have host_metadata
+    url_event = scan.make_event("https://example.com/", "URL_UNVERIFIED", parent=scan.root_event)
+    assert url_event.host_metadata == {}
+    url_event.host_metadata["example.com"] = {"cloud_providers": {"google": {"types": ["cloud"], "match": "domain"}}}
+    j3 = url_event.json()
+    assert j3["host_metadata"]["example.com"]["cloud_providers"]["google"]["types"] == ["cloud"]
+
+    # URL event data dict should contain url, and optionally http_title/status_code
+    assert url_event.data["url"] == "https://example.com/"
+    url_event.http_title = "Example Domain"
+    url_event.data["status_code"] = 200
+    assert url_event.data["http_title"] == "Example Domain"
+    assert url_event.http_status == 200
+    j4 = url_event.json()
+    assert j4["data_json"]["http_title"] == "Example Domain"
+    assert j4["data_json"]["status_code"] == 200
+
+    await scan._cleanup()

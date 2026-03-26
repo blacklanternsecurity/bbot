@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class azure_tenant(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "AZURE_TENANT", "FINDING", "URL_UNVERIFIED"]
-    flags = ["affiliates", "subdomain-enum", "cloud-enum", "passive", "safe"]
+    flags = ["safe", "affiliates", "subdomain-enum", "cloud-enum", "passive"]
     meta = {
         "description": "Query Azure for tenant information using multiple enumeration methods",
         "created_date": "2024-07-04",
@@ -433,7 +433,7 @@ class azure_tenant(BaseModule):
                         "DNS_NAME",
                         parent=event,
                         tags=["affiliate", "azure-tenant"],
-                        context=f'{{module}} queried azmap.dev for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} queried azmap.dev for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
 
     async def emit_findings(self, event, domain, tenant_data):
@@ -525,7 +525,6 @@ class azure_tenant(BaseModule):
                 tags=["affiliate", "ms-auth-url"],
             )
             if fed_url_event:
-                fed_url_event.source_domain = domain
                 await self.emit_event(fed_url_event)
 
     def _derive_cloud_type(self, openid_data):

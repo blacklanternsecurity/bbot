@@ -21,7 +21,7 @@ class telerik(BaseModule):
 
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "loud", "invasive", "web-heavy"]
     meta = {
         "description": "Scan for critical Telerik vulnerabilities",
         "created_date": "2022-04-10",
@@ -186,16 +186,16 @@ class telerik(BaseModule):
     def _incoming_dedup_hash(self, event):
         if event.type == "URL":
             if self.config.get("include_subdirs") is True:
-                return hash(f"{event.type}{self.normalize_url(event.data)}")
+                return hash(f"{event.type}{self.normalize_url(event.url)}")
             else:
                 return hash(f"{event.type}{event.netloc}")
         else:  # HTTP_RESPONSE
-            return hash(f"{event.type}{event.data['url']}")
+            return hash(f"{event.type}{event.url}")
 
     async def handle_event(self, event):
         if event.type == "URL":
             if self.config.get("include_subdirs"):
-                base_url = self.normalize_url(event.data)  # Use the entire URL including subdirectories
+                base_url = self.normalize_url(event.url)  # Use the entire URL including subdirectories
 
             else:
                 base_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"  # path will be omitted
@@ -226,7 +226,7 @@ class telerik(BaseModule):
                     verbose_errors = False
                     # send probe
                     probe_response = await self.helpers.request(
-                        f"{event.data}{webresource}", method="POST", files=probe_data
+                        f"{event.url}{webresource}", method="POST", files=probe_data
                     )
 
                     if probe_response:
@@ -380,7 +380,7 @@ class telerik(BaseModule):
 
         elif event.type == "HTTP_RESPONSE":
             resp_body = event.data.get("body", None)
-            url = event.data["url"]
+            url = event.url
             if resp_body:
                 if '":{"SerializedParameters":"' in resp_body:
                     await self.emit_event(

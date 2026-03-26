@@ -10,7 +10,7 @@ Here we'll go over a basic example of writing a custom BBOT module.
    - the class must have the same name as your file (case-insensitive)
 1. Define in `watched_events` what type of data your module will consume
 1. Define in `produced_events` what type of data your module will produce
-1. Define (via `flags`) whether your module is `active` or `passive`, and whether it's `safe` or `aggressive`
+1. Define (via `flags`) whether your module is `active` or `passive`, and optionally whether it's `loud` or `invasive`
 1. **Put your main logic in `.handle_event()`**
 
 Here is an example of a simple module that performs whois lookups:
@@ -21,7 +21,7 @@ from bbot.modules.base import BaseModule
 class whois(BaseModule):
     watched_events = ["DNS_NAME"] # watch for DNS_NAME events
     produced_events = ["WHOIS"] # we produce WHOIS events
-    flags = ["passive", "safe"]
+    flags = ["passive"]
     meta = {"description": "Query WhoisXMLAPI for WHOIS data"}
     options = {"api_key": ""} # module config options
     options_desc = {"api_key": "WhoisXMLAPI Key"}

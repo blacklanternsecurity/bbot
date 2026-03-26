@@ -39,6 +39,7 @@ class TestGowitness(ModuleTestBase):
         async def new_emit_event(event, **kwargs):
             if event.data["url"] == "https://github.com/blacklanternsecurity":
                 event.data["url"] = event.data["url"].replace("https://github.com", "http://127.0.0.1:8888")
+                event.parsed_url = module_test.scan.helpers.urlparse(event.data["url"])
             await old_emit_event(event, **kwargs)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["social"], "emit_event", new_emit_event)
@@ -55,11 +56,9 @@ class TestGowitness(ModuleTestBase):
         assert len(screenshots) == 1, (
             f"{len(screenshots):,} .jpeg files found at {screenshots_path}, should have been 1"
         )
-        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
-        assert 1 == len(
-            [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "https://fonts.googleapis.com/"]
-        )
-        assert 0 == len([e for e in events if e.type == "URL" and e.data == "https://fonts.googleapis.com/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/"])
+        assert 1 == len([e for e in events if e.type == "URL_UNVERIFIED" and e.url == "https://fonts.googleapis.com/"])
+        assert 0 == len([e for e in events if e.type == "URL" and e.url == "https://fonts.googleapis.com/"])
         assert 1 == len(
             [e for e in events if e.type == "SOCIAL" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"]
         )

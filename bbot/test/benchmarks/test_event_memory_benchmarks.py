@@ -25,11 +25,11 @@ class TestEventMemoryBenchmarks:
             "a-record",
             "aaaa-record",
             "private-ip",
-            "cloud-azure",
+            "microsoft",
             "cdn",
             "open-port",
             "status-200",
-            "http-title-example",
+            "web",
             "dir",
             "endpoint",
         ]

@@ -282,7 +282,7 @@ hunt_param_dict = {
 class hunt(BaseModule):
     watched_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Watch for commonly-exploitable HTTP parameters",
         "author": "@liquidsec",
@@ -319,7 +319,6 @@ class hunt(BaseModule):
                 "severity": "INFO",
                 "confidence": "LOW",
             }
-            url = event.data.get("url", "")
-            if url:
-                data["url"] = url
+            if event.url:
+                data["url"] = event.url
             await self.emit_event(data, "FINDING", event)

@@ -60,6 +60,7 @@ class TestNats(ModuleTestBase):
                     await self.nc.drain()
                 await self.nc.close()
             # Stop NATS server container
-            await asyncio.create_subprocess_exec(
+            process = await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-nats", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
+            await process.communicate()

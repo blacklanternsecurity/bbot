@@ -191,7 +191,7 @@ from bbot.modules.base import BaseModule
 class my_module(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
-    flags = ["passive", "safe", "email-enum"]
+    flags = ["passive", "email-enum"]
     meta = {
         "description": "Query example.com for email addresses",
         "created_date": "2025-01-01",
@@ -275,21 +275,23 @@ produced_events = ["OPEN_TCP_PORT"]
 ```
 
 ##### `flags` (list)
-Tags that describe the module's behavior. Must include at least one safety flag (`safe` or `aggressive`) and one activity flag (`passive` or `active`).
+Tags that describe the module's behavior. Must include at least one activity flag (`passive` or `active`). Must also include `safe`, `loud`, or `invasive` (or a combination of `loud` and `invasive`).
 
 Common flags:
 - `passive` / `active` - whether the module touches the target directly
-- `safe` / `aggressive` - risk level
+- `safe` - non-intrusive and non-destructive
+- `loud` - generates a large amount of network traffic
+- `invasive` - intrusive or potentially destructive
 - `subdomain-enum` - participates in subdomain enumeration
-- `web-basic` - basic web scanning
+- `web` - basic web scanning
 - `email-enum` - email discovery
 
 ```python
 # crt.py - queries a third-party API, never touches the target
-flags = ["subdomain-enum", "passive", "safe"]
+flags = ["subdomain-enum", "passive"]
 
 # sslcert.py - connects directly to target ports
-flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic"]
+flags = ["affiliates", "subdomain-enum", "email-enum", "active", "web"]
 ```
 
 ##### `meta` (dict)
@@ -797,7 +799,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
 class crt(subdomain_enum):
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {

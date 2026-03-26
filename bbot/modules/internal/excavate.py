@@ -328,7 +328,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
     produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Passively extract juicy tidbits from scan data",
         "created_date": "2022-06-27",
@@ -1125,7 +1125,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 param_type="SPECULATIVE",
                                 name=parameter_name,
                                 original_value=original_value,
-                                url=str(event.data["url"]),
+                                url=event.url,
                                 description=f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]",
                                 additional_params={},
                                 event=event,
@@ -1245,7 +1245,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                         reported_location_header = True
                                         await self.emit_event(
                                             url_event,
-                                            context=f'excavate looked in "Location" header and found {url_event.type}: {url_event.data}',
+                                            context=f'excavate looked in "Location" header and found {url_event.type}: {url_event.url}',
                                         )
 
                             # Try to extract parameters from the redirect URL
@@ -1280,7 +1280,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             # which extracts readable text and feeds it back to excavate as a RAW_TEXT event (handled separately below).
             # TODO: remove this in favor of a proper categorization system for text vs non-text (i.e. to-be-extracted) content
             if content_type and "application/pdf" in content_type.lower():
-                self.debug(f"Skipping PDF response: {event.data.get('url', 'unknown')}")
+                self.debug(f"Skipping PDF response: {event.url or 'unknown'}")
                 return
 
             await self.search(

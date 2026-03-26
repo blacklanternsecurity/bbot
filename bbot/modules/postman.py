@@ -4,7 +4,7 @@ from bbot.modules.templates.postman import postman
 class postman(postman):
     watched_events = ["ORG_STUB", "SOCIAL"]
     produced_events = ["CODE_REPOSITORY"]
-    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
+    flags = ["safe", "passive", "subdomain-enum", "code-enum"]
     meta = {
         "description": "Query Postman's API for related workspaces, collections, requests and download them",
         "created_date": "2024-09-07",

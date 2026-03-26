@@ -21,7 +21,7 @@ class RetireJSSeverity(IntEnum):
 class retirejs(BaseModule):
     watched_events = ["URL_UNVERIFIED"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Detect vulnerable/out-of-date JavaScript libraries",
         "created_date": "2025-08-19",
@@ -133,7 +133,7 @@ class retirejs(BaseModule):
         return True
 
     async def handle_event(self, event):
-        js_file = await self.helpers.request(event.data)
+        js_file = await self.helpers.request(event.url)
         if js_file:
             js_file_body = js_file.text
             if js_file_body:
@@ -168,7 +168,7 @@ class retirejs(BaseModule):
                                     f"Vulnerable JavaScript library detected: {component} v{version}",
                                     f"Severity: {severity.upper()}",
                                     f"Summary: {summary}",
-                                    f"JavaScript URL: {event.data}",
+                                    f"JavaScript URL: {event.url}",
                                 ]
                                 if cves:
                                     description_parts.append(f"CVE(s): {', '.join(cves)}")
@@ -188,7 +188,7 @@ class retirejs(BaseModule):
                                     "severity": severity,
                                     "confidence": "HIGH",
                                     "component": component,
-                                    "url": event.parent.parsed_url.geturl(),
+                                    "url": event.parent.url,
                                 }
                                 await self.emit_event(
                                     data,

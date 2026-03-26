@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 
 
 class dnsbrute_mutations(BaseModule):
-    flags = ["subdomain-enum", "active", "aggressive", "slow"]
+    flags = ["subdomain-enum", "active", "loud", "slow"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
@@ -139,7 +139,7 @@ class dnsbrute_mutations(BaseModule):
                                 parent=parent_event,
                                 tags=[f"mutation-{mutation_run}"],
                                 abort_if=self.abort_if,
-                                context=f'{{module}} found a mutated subdomain of "{parent_event.host}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.data}}',
+                                context=f'{{module}} found a mutated subdomain of "{parent_event.host}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.pretty_string}}',
                             )
                         if results:
                             continue

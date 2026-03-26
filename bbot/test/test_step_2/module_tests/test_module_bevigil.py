@@ -25,7 +25,7 @@ class TestBeVigil(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
-        assert any(e.data == "https://asdf.blacklanternsecurity.com/" for e in events), "Failed to detect url"
+        assert any(e.url == "https://asdf.blacklanternsecurity.com/" for e in events), "Failed to detect url"
 
 
 class TestBeVigilMultiKey(TestBeVigil):

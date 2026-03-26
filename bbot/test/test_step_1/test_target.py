@@ -629,7 +629,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     await scan._prep()
     assert {r.pattern for r in scan.target.blacklist.blacklist_regexes} == {r"/.*(sign|log)[_-]?out"}
     events = [e async for e in scan.async_start()]
-    urls = [e.data for e in events if e.type == "URL"]
+    urls = [e.url for e in events if e.type == "URL"]
     assert len(urls) == 2
     assert set(urls) == {"http://127.0.0.1:8888/", "http://127.0.0.1:8888/asdfevil333asdf"}
 
@@ -649,7 +649,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
         r"/.*(sign|log)[_-]?out",
     }
     events = [e async for e in scan.async_start()]
-    urls = [e.data for e in events if e.type == "URL"]
+    urls = [e.url for e in events if e.type == "URL"]
     assert len(urls) == 1
     assert set(urls) == {"http://127.0.0.1:8888/"}
 

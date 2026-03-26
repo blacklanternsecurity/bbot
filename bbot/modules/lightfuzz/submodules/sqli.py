@@ -175,7 +175,7 @@ class sqli(BaseLightfuzz):
                     ):  # decide if the delay is within the detection threshold and constitutes a successful sleep execution
                         confirmations += 1
                         self.debug(
-                            f"{self.event.data['url']}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
+                            f"{self.event.url}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
                         )
                     else:
                         break

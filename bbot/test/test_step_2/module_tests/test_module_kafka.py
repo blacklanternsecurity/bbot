@@ -59,6 +59,7 @@ class TestKafka(ModuleTestBase):
             "bbot_events",
             bootstrap_servers="localhost:9092",
             group_id="test_group",
+            auto_offset_reset="earliest",
         )
         await self.consumer.start()
 
@@ -66,13 +67,17 @@ class TestKafka(ModuleTestBase):
             events_json = [e.json() for e in events]
             events_json.sort(key=lambda x: x["timestamp"])
 
-            # Collect events from Kafka
+            # Collect events from Kafka with a timeout to prevent CI hangs
             kafka_events = []
-            async for msg in self.consumer:
-                event_data = json.loads(msg.value.decode("utf-8"))
-                kafka_events.append(event_data)
-                if len(kafka_events) >= len(events_json):
-                    break
+
+            async def _consume():
+                async for msg in self.consumer:
+                    event_data = json.loads(msg.value.decode("utf-8"))
+                    kafka_events.append(event_data)
+                    if len(kafka_events) >= len(events_json):
+                        break
+
+            await asyncio.wait_for(_consume(), timeout=30)
 
             kafka_events.sort(key=lambda x: x["timestamp"])
 
@@ -84,9 +89,11 @@ class TestKafka(ModuleTestBase):
             if hasattr(self, "consumer") and not self.consumer._closed:
                 await self.consumer.stop()
             # Stop Kafka and Zookeeper containers
-            await asyncio.create_subprocess_exec(
+            p1 = await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-kafka", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
-            await asyncio.create_subprocess_exec(
+            await p1.communicate()
+            p2 = await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-zookeeper", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
+            await p2.communicate()

@@ -14,7 +14,7 @@ class filedownload(BaseModule):
 
     watched_events = ["URL_UNVERIFIED", "HTTP_RESPONSE"]
     produced_events = ["FILESYSTEM"]
-    flags = ["active", "safe", "web-basic", "download"]
+    flags = ["safe", "active", "web", "download"]
     meta = {
         "description": "Download common filetypes such as PDF, DOCX, PPTX, etc.",
         "created_date": "2023-10-11",
@@ -131,22 +131,20 @@ class filedownload(BaseModule):
         return True
 
     def hash_event(self, event):
-        if event.type == "HTTP_RESPONSE":
-            return hash(event.data["url"])
-        return hash(event.data)
+        return hash(event.url or event.data)
 
     async def handle_event(self, event):
         if event.type == "URL_UNVERIFIED":
-            url_lower = event.data.lower()
+            url_lower = event.url.lower()
             extension_matches = any(url_lower.endswith(f".{e}") for e in self.extensions)
             filedownload_requested = "filedownload" in event.tags
             if extension_matches or filedownload_requested:
-                await self.download_file(event.data, source_event=event)
+                await self.download_file(event.url, source_event=event)
         elif event.type == "HTTP_RESPONSE":
             headers = event.data.get("header", {})
             content_type = headers.get("content_type", "")
             if content_type:
-                url = event.data["url"]
+                url = event.url
                 await self.download_file(url, content_type=content_type, source_event=event)
 
     async def download_file(self, url, content_type=None, source_event=None):

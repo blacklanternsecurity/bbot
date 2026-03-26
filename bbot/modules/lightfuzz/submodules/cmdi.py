@@ -64,7 +64,7 @@ class cmdi(BaseLightfuzz):
                         self.debug(f"canary [{canary}] found in response when sending probe [{p}]")
                         if p == "AAAA":  # Handle detection false positive probe
                             self.warning(
-                                f"False Postive Probe appears to have been triggered for {self.event.data['url']}, aborting remaining detection"
+                                f"False Postive Probe appears to have been triggered for {self.event.url}, aborting remaining detection"
                             )
                             return
                         positive_detections.append(p)  # Add detected probes to positive detections
@@ -83,7 +83,7 @@ class cmdi(BaseLightfuzz):
 
         # Blind OS Command Injection
         if self.lightfuzz.interactsh_instance:
-            self.lightfuzz.event_dict[self.event.data["url"]] = self.event  # Store the event associated with the URL
+            self.lightfuzz.event_dict[self.event.url] = self.event  # Store the event associated with the URL
             for p in cmdi_probe_strings:
                 # generate a random subdomain tag and associate it with the event, type, name, and probe
                 subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)

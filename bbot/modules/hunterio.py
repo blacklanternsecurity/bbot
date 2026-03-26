@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 class hunterio(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL_UNVERIFIED"]
-    flags = ["passive", "email-enum", "subdomain-enum", "safe"]
+    flags = ["safe", "passive", "email-enum", "subdomain-enum"]
     meta = {
         "description": "Query hunter.io for emails",
         "created_date": "2022-04-25",
@@ -28,7 +28,7 @@ class hunterio(subdomain_enum_apikey):
                 if email_event:
                     await self.emit_event(
                         email_event,
-                        context=f'{{module}} queried Hunter.IO API for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} queried Hunter.IO API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
                     for source in sources:
                         domain = source.get("domain", "")
@@ -37,7 +37,7 @@ class hunterio(subdomain_enum_apikey):
                                 domain,
                                 "DNS_NAME",
                                 email_event,
-                                context=f"{{module}} originally found {email} at {{event.type}}: {{event.data}}",
+                                context=f"{{module}} originally found {email} at {{event.type}}: {{event.pretty_string}}",
                             )
                         url = source.get("uri", "")
                         if url:
@@ -45,7 +45,7 @@ class hunterio(subdomain_enum_apikey):
                                 url,
                                 "URL_UNVERIFIED",
                                 email_event,
-                                context=f"{{module}} originally found {email} at {{event.type}}: {{event.data}}",
+                                context=f"{{module}} originally found {email} at {{event.type}}: {{event.pretty_string}}",
                             )
 
     async def query(self, query):

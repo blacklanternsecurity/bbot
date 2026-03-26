@@ -114,6 +114,15 @@ class ModuleTestBase:
         await self._execute_scan(module_test)
         self.log.debug(f"Finished {module_test.name} module test")
         yield module_test
+        # Cancel any orphaned async tasks left by the test (e.g. pymongo, aio_pika background threads).
+        # These persist on the session-scoped event loop and can block subsequent test fixtures.
+        current_task = asyncio.current_task()
+        tasks = [t for t in asyncio.all_tasks() if t != current_task and not t.done()]
+        if tasks:
+            self.log.debug(f"Cancelling {len(tasks)} orphaned tasks after {self.name}")
+            for t in tasks:
+                t.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _execute_scan(self, module_test):
         """Execute the scan and collect events. Can be overridden by benchmark classes."""

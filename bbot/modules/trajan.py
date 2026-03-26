@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 class trajan(BaseModule):
     watched_events = ["CODE_REPOSITORY", "URL_UNVERIFIED", "TECHNOLOGY"]
     produced_events = ["FINDING"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "Scans GitHub, GitLab, Azure DevOps, Jenkins, and JFrog for misconfigurations using Praetorian's Trajan tool",
         "created_date": "2026-04-11",
@@ -116,7 +116,7 @@ class trajan(BaseModule):
             tech = event.data.get("technology", "").lower()
             if tech not in self.technology_platforms:
                 return False, f"technology '{tech}' is not supported by trajan"
-            if not event.data.get("url"):
+            if not event.url:
                 return False, "TECHNOLOGY event has no URL"
 
         platform = self._get_platform(event)
@@ -133,7 +133,7 @@ class trajan(BaseModule):
     async def handle_technology(self, event):
         tech = event.data.get("technology", "").lower()
         platform = self.detect_platform_from_technology(tech)
-        url = event.data.get("url", "")
+        url = event.url
         parsed = urlparse(url)
         base_url = f"{parsed.scheme}://{parsed.netloc}"
         path_parts = [p for p in parsed.path.strip("/").split("/") if p]

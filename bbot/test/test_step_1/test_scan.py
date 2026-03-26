@@ -69,7 +69,7 @@ async def test_scan(
     events = []
     async for event in scan4.async_start():
         events.append(event)
-    event_data = [e.data for e in events]
+    event_data = [e.pretty_string for e in events]
     assert "one.one.one.one" in event_data
 
     # make sure it doesn't work when you turn it off
@@ -79,7 +79,7 @@ async def test_scan(
     events = []
     async for event in scan5.async_start():
         events.append(event)
-    event_data = [e.data for e in events]
+    event_data = [e.pretty_string for e in events]
     assert "one.one.one.one" not in event_data
 
     for scan in (scan0, scan1, scan2, scan4, scan5):
@@ -365,11 +365,15 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
 
         async def handle_event(self, event):
             if event.type == "DNS_NAME" and event.data == "evilcorp.com":
-                await self.emit_event("www.evilcorp.com", "DNS_NAME", parent=event, tags=["cdn-cloudflare"])
+                await self.emit_event("www.evilcorp.com", "DNS_NAME", parent=event, tags=["cloudflare", "cdn"])
             if event.type == "DNS_NAME" and event.data == "www.evilcorp.com":
-                await self.emit_event("www.evilcorp.com:80", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
-                await self.emit_event("www.evilcorp.com:443", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
-                await self.emit_event("www.evilcorp.com:8080", "OPEN_TCP_PORT", parent=event, tags=["cdn-cloudflare"])
+                await self.emit_event("www.evilcorp.com:80", "OPEN_TCP_PORT", parent=event, tags=["cloudflare", "cdn"])
+                await self.emit_event(
+                    "www.evilcorp.com:443", "OPEN_TCP_PORT", parent=event, tags=["cloudflare", "cdn"]
+                )
+                await self.emit_event(
+                    "www.evilcorp.com:8080", "OPEN_TCP_PORT", parent=event, tags=["cloudflare", "cdn"]
+                )
 
     dummy = DummyModule(scan=scan)
     scan.modules["dummy"] = dummy

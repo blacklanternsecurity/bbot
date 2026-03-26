@@ -18,7 +18,7 @@ import re
 class newsletters(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe"]
+    flags = ["safe", "active"]
     meta = {
         "description": "Searches for Newsletter Submission Entry Fields on Websites",
         "created_date": "2024-02-02",
@@ -54,7 +54,7 @@ class newsletters(BaseModule):
                     data = {
                         "host": str(_event.host),
                         "description": description,
-                        "url": _event.data["url"],
+                        "url": _event.url,
                         "name": "Newsletter Submission Form",
                         "severity": "INFO",
                         "confidence": "LOW",
