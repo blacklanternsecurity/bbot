@@ -4,7 +4,7 @@ from bbot.modules.templates.shodan import shodan
 class shodan_dns(shodan):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query Shodan for subdomains",
         "created_date": "2022-07-03",

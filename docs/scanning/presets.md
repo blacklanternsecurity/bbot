@@ -61,7 +61,7 @@ target:
 include:
   # include these default presets
   - subdomain-enum
-  - web-basic
+  - web
 
 modules:
   # enable nuclei in addition to the other modules

@@ -5,7 +5,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class dnscommonsrv(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "active", "safe"]
+    flags = ["safe", "subdomain-enum", "active"]
     meta = {"description": "Check for common SRV records", "created_date": "2022-05-15", "author": "@TheTechromancer"}
     dedup_strategy = "lowest_parent"
     deps_common = ["massdns"]
@@ -32,5 +32,5 @@ class dnscommonsrv(subdomain_enum):
                 hostname,
                 "DNS_NAME",
                 parent=event,
-                context=f'{{module}} tried {self.num_srvs:,} common SRV records against "{query}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} tried {self.num_srvs:,} common SRV records against "{query}" and found {{event.type}}: {{event.pretty_string}}',
             )

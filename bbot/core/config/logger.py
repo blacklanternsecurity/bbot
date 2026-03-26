@@ -2,7 +2,6 @@ import os
 import sys
 import atexit
 import logging
-import threading
 from copy import copy
 import multiprocessing
 import logging.handlers
@@ -79,6 +78,11 @@ class BBOTLogger:
         self.log_level = logging.INFO
 
     def cleanup_logging(self):
+        # Stop queue listener first (drains queue and stops monitor thread)
+        if self.listener is not None:
+            with suppress(Exception):
+                self.listener.stop()
+
         # Close the queue handler
         with suppress(Exception):
             self.queue_handler.close()
@@ -91,13 +95,6 @@ class BBOTLogger:
                         logger.removeHandler(handler)
                     with suppress(Exception):
                         handler.close()
-
-        # Stop queue listener
-        with suppress(Exception):
-            stop_thread = threading.Thread(target=self.listener.stop)
-            stop_thread.daemon = True
-            stop_thread.start()
-            stop_thread.join()
 
     def setup_queue_handler(self, logging_queue=None, log_level=logging.DEBUG):
         if logging_queue is None:

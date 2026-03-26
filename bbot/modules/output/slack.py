@@ -21,7 +21,7 @@ class Slack(WebhookOutputModule):
 
     def format_message_str(self, event):
         event_tags = ",".join(sorted(event.tags))
-        return f"`[{event.type}]`\t*`{event.data}`*\t`{event_tags}`"
+        return f"`[{event.type}]`\t*`{event.pretty_string}`*\t`{event_tags}`"
 
     def format_message_other(self, event):
         event_yaml = yaml.dump(event.data)

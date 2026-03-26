@@ -9,7 +9,7 @@ import base64
 class ffuf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["aggressive", "active", "deadly"]
+    flags = ["loud", "active"]
     meta = {"description": "A fast web fuzzer written in Go", "created_date": "2022-04-10", "author": "@liquidsec"}
 
     options = {
@@ -59,7 +59,7 @@ class ffuf(BaseModule):
         return True
 
     async def handle_event(self, event):
-        if self.helpers.url_depth(event.data) > self.config.get("max_depth"):
+        if self.helpers.url_depth(event.url) > self.config.get("max_depth"):
             self.debug("Exceeded max depth, aborting event")
             return
 
@@ -69,7 +69,7 @@ class ffuf(BaseModule):
             return
         else:
             # if we think its a directory, normalize it.
-            fixed_url = event.data.rstrip("/") + "/"
+            fixed_url = event.url.rstrip("/") + "/"
 
         exts = ["", "/"]
         if self.extensions:
@@ -83,12 +83,12 @@ class ffuf(BaseModule):
                 "URL_UNVERIFIED",
                 parent=event,
                 tags=[f"status-{r['status']}"],
-                context=f"{{module}} brute-forced {event.data} and found {{event.type}}: {{event.data}}",
+                context=f"{{module}} brute-forced {event.url} and found {{event.type}}: {{event.pretty_string}}",
             )
 
     async def filter_event(self, event):
         if "endpoint" in event.tags:
-            self.debug(f"rejecting URL [{event.data}] because we don't ffuf endpoints")
+            self.debug(f"rejecting URL [{event.url}] because we don't ffuf endpoints")
             return False
         return True
 

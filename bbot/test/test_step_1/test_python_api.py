@@ -135,19 +135,16 @@ async def test_python_api_validation():
     assert str(error.value) == 'Could not find module "asdf". Did you mean "asn"?'
     # invalid flag
     with pytest.raises(ValidationError) as error:
-        scan = Scanner(flags=["asdf"])
-        await scan._prep()
-    assert str(error.value) == 'Could not find flag "asdf". Did you mean "safe"?'
+        Scanner(flags=["activ"])
+    assert str(error.value) == 'Could not find flag "activ". Did you mean "active"?'
     # invalid required flag
     with pytest.raises(ValidationError) as error:
-        scan = Scanner(require_flags=["asdf"])
-        await scan._prep()
-    assert str(error.value) == 'Could not find flag "asdf". Did you mean "safe"?'
+        Scanner(require_flags=["activ"])
+    assert str(error.value) == 'Could not find flag "activ". Did you mean "active"?'
     # invalid excluded flag
     with pytest.raises(ValidationError) as error:
-        scan = Scanner(exclude_flags=["asdf"])
-        await scan._prep()
-    assert str(error.value) == 'Could not find flag "asdf". Did you mean "safe"?'
+        Scanner(exclude_flags=["activ"])
+    assert str(error.value) == 'Could not find flag "activ". Did you mean "active"?'
     # output module as normal module
     with pytest.raises(ValidationError) as error:
         scan = Scanner(modules=["json"])

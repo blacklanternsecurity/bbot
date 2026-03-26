@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 from pymongo import AsyncMongoClient
 
 from bbot.models.pydantic import Event, Scan, Target
@@ -90,3 +92,7 @@ class Mongo(BaseOutputModule):
                 await self.targets_collection.replace_one({"hash": target.hash}, target.model_dump())
             else:
                 await self.targets_collection.insert_one(target.model_dump())
+
+    async def cleanup(self):
+        with suppress(Exception):
+            await self.db_client.aclose()

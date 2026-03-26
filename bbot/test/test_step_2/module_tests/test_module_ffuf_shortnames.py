@@ -200,21 +200,21 @@ class TestFFUFShortnames(ModuleTestBase):
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
-                if e.data == "http://127.0.0.1:8888/administrator.aspx":
+                if e.url == "http://127.0.0.1:8888/administrator.aspx":
                     basic_detection = True
-                if e.data == "http://127.0.0.1:8888/directory/":
+                if e.url == "http://127.0.0.1:8888/directory/":
                     directory_detection = True
-                if e.data == "http://127.0.0.1:8888/adm_portal.aspx":
+                if e.url == "http://127.0.0.1:8888/adm_portal.aspx":
                     prefix_detection = True
-                if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
+                if e.url == "http://127.0.0.1:8888/abcconsole.aspx":
                     delimiter_detection = True
-                if e.data == "http://127.0.0.1:8888/adm_directory/":
+                if e.url == "http://127.0.0.1:8888/adm_directory/":
                     directory_delimiter_detection = True
-                if e.data == "http://127.0.0.1:8888/xyzdirectory/":
+                if e.url == "http://127.0.0.1:8888/xyzdirectory/":
                     prefix_delimiter_detection = True
-                if e.data == "http://127.0.0.1:8888/short.pl":
+                if e.url == "http://127.0.0.1:8888/short.pl":
                     short_extensions_detection = True
-                if e.data == "http://127.0.0.1:8888/newproxy.aspx":
+                if e.url == "http://127.0.0.1:8888/newproxy.aspx":
                     subword_detection = True
 
         assert basic_detection

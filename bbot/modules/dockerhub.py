@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class dockerhub(BaseModule):
     watched_events = ["SOCIAL", "ORG_STUB"]
     produced_events = ["SOCIAL", "CODE_REPOSITORY", "URL_UNVERIFIED"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "Search for docker repositories of discovered orgs/usernames",
         "created_date": "2024-03-12",
@@ -43,7 +43,7 @@ class dockerhub(BaseModule):
                     {"platform": "docker", "url": site_url, "profile_name": p},
                     "SOCIAL",
                     parent=event,
-                    context=f"{{module}} tried {event.type} {event.data} and found docker profile ({{event.type}}) at {p}",
+                    context=f"{{module}} tried {event.type} {event.pretty_string} and found docker profile ({{event.type}}) at {p}",
                 )
 
     async def handle_social(self, event):

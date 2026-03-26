@@ -57,7 +57,7 @@ class web_report(BaseOutputModule):
                 + f" ({event.module})---> "
                 + f"[{event.type}]:{html.escape(event.pretty_string)}"
             )
-            self.web_assets[host]["URL"].append(f"**{html.escape(event.data)}**: {parent_chain_text}")
+            self.web_assets[host]["URL"].append(f"**{html.escape(event.pretty_string)}**: {parent_chain_text}")
 
         else:
             current_parent = event.parent

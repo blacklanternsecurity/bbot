@@ -11,7 +11,7 @@ class ajaxpro(BaseModule):
     ajaxpro_regex = re.compile(r'<script.+src="([\/a-zA-Z0-9\._]+,[a-zA-Z0-9\._]+\.ashx)"')
     watched_events = ["HTTP_RESPONSE", "URL"]
     produced_events = ["FINDING", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Check for potentially vulnerable Ajaxpro instances",
         "created_date": "2024-01-18",
@@ -26,10 +26,10 @@ class ajaxpro(BaseModule):
 
     async def check_url_event(self, event):
         for stem in ["ajax", "ajaxpro"]:
-            probe_url = f"{event.data}{stem}/whatever.ashx"
+            probe_url = f"{event.url}{stem}/whatever.ashx"
             probe = await self.helpers.request(probe_url)
             if probe and probe.status_code == 200:
-                confirm_url = f"{event.data}a/whatever.ashx"
+                confirm_url = f"{event.url}a/whatever.ashx"
                 confirm_probe = await self.helpers.request(confirm_url)
                 if confirm_probe and confirm_probe.status_code != 200:
                     await self.emit_technology(event, probe_url)
@@ -45,7 +45,7 @@ class ajaxpro(BaseModule):
                 await self.confirm_exploitability(ajaxpro_path, event)
 
     async def emit_technology(self, event, detection_url):
-        url = event.data if event.type == "URL" else event.data["url"]
+        url = event.url
         await self.emit_event(
             {
                 "host": str(event.host),
@@ -82,7 +82,7 @@ class ajaxpro(BaseModule):
                         "cves": ["CVE-2021-23758"],
                         "severity": "CRITICAL",
                         "confidence": "HIGH",
-                        "url": event.data if event.type == "URL" else event.data["url"],
+                        "url": event.url,
                         "description": f"Ajaxpro Deserialization RCE (CVE-2021-23758) Trigger: [{full_url}]",
                     },
                     "FINDING",

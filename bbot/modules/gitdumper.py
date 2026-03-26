@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 class gitdumper(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow", "code-enum", "download"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Download a leaked .git folder recursively or by fuzzing common names",
         "created_date": "2025-02-11",
@@ -114,7 +114,7 @@ class gitdumper(BaseModule):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         self.info(f"Processing leaked .git directory at {repo_url}")
         repo_folder = self.output_dir / self.helpers.tagify(repo_url)
         self.helpers.mkdir(repo_folder)

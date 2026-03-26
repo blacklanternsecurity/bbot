@@ -5,7 +5,7 @@ from bbot.core.helpers.asn import ASNHelper
 class asn(BaseReportModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["ASN"]
-    flags = ["passive", "subdomain-enum", "safe"]
+    flags = ["safe", "passive", "subdomain-enum"]
     meta = {
         "description": "Query asndb for ASN information",
         "created_date": "2022-07-25",
@@ -52,7 +52,7 @@ class asn(BaseReportModule):
                 if asn_event:
                     await self.emit_event(
                         asn_event,
-                        context=f"{{module}} looked up {event.data} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_description}, {asn_country})",
+                        context=f"{{module}} looked up {event.pretty_string} and got {{event.type}}: AS{asn_number} ({asn_name}, {asn_description}, {asn_country})",
                     )
 
     async def report(self):

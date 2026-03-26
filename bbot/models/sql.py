@@ -90,13 +90,14 @@ class Event(BBOTBaseModel, table=True):
     reverse_host: Optional[str] = Field(default="", exclude=True, index=True)
     resolved_hosts: List = Field(default=[], sa_type=JSON)
     dns_children: dict = Field(default={}, sa_type=JSON)
-    web_spider_distance: int = 10
+    web_spider_distance: Optional[int] = None
     scope_distance: int = Field(default=10, index=True)
     scan: str = Field(index=True)
     timestamp: float = Field(index=True)
     inserted_at: float = Field(default_factory=utc_now_timestamp)
     parent: str = Field(index=True)
     tags: List = Field(default=[], sa_type=JSON)
+    host_metadata: dict = Field(default={}, sa_type=JSON)
     module: str = Field(index=True)
     module_sequence: str
     discovery_context: str = ""

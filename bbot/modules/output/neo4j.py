@@ -92,7 +92,7 @@ class neo4j(BaseOutputModule):
                 src_id = all_ids[parent.id]
                 dst_id = all_ids[event.id]
             except KeyError as e:
-                self.error(f'Error "{e}" correlating {parent.id}:{parent.data} --> {event.id}:{event.data}')
+                self.error(f'Error "{e}" correlating {parent.id}:{parent.data} --> {event.id}:{event.pretty_string}')
                 continue
             rel_ids.append((src_id, module, timestamp, dst_id))
 

@@ -37,10 +37,10 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
                [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]]
                [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
-               [-ef FLAG [FLAG ...]] [--allow-deadly] [-n SCAN_NAME] [-v] [-d]
-               [-S] [--force] [-y] [--fast-mode] [--dry-run]
-               [--current-preset] [--current-preset-full] [-mh MODULE]
-               [-o DIR] [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
+               [-ef FLAG [FLAG ...]] [-n SCAN_NAME] [-v] [-d] [-S] [--force]
+               [-y] [--fast-mode] [--dry-run] [--current-preset]
+               [--current-preset-full] [-mh MODULE] [-o DIR]
+               [-om MODULE [MODULE ...]] [-lo] [--json] [--brief]
                [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
                [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps]
                [--install-all-deps] [--version] [--proxy HTTP_PROXY]
@@ -72,20 +72,19 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,wpscan
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,digitorus,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virustotal,wafw00f,wayback,wpscan
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,affiliates,aggressive,baddns,cloud-enum,code-enum,deadly,download,email-enum,iis-shortnames,passive,portscan,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
+                        Enable modules by flag. Choices: active,affiliates,baddns,cloud-enum,code-enum,download,email-enum,iis-shortnames,invasive,loud,passive,portscan,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web,web-heavy,web-paramminer,web-screenshots
   -lf, --list-flags     List available flags.
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
-                        Disable modules with these flags. (e.g. -ef aggressive)
-  --allow-deadly        Enable the use of highly aggressive modules
+                        Disable modules with these flags. (e.g. -ef loud)
 
 Scan:
   -n SCAN_NAME, --name SCAN_NAME
@@ -151,7 +150,7 @@ EXAMPLES
         bbot -t evilcorp.com -p subdomain-enum -m portscan gowitness -n my_scan -o .
 
     Subdomains + basic web scan:
-        bbot -t evilcorp.com -p subdomain-enum web-basic
+        bbot -t evilcorp.com -p subdomain-enum web
 
     Web spider:
         bbot -t www.evilcorp.com -p spider -c web.spider_distance=2 web.spider_depth=2

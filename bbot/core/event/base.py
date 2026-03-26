@@ -99,7 +99,8 @@ class BaseEvent:
             "timestamp": 1688526222.723366,
             "resolved_hosts": ["185.199.108.153"],
             "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
-            "tags": ["in-scope", "distance-0", "dir", "ip-185-199-108-153", "status-301", "http-title-301-moved-permanently"],
+            "tags": ["in-scope", "distance-0", "dir", "status-301"],
+            "http_title": "301 Moved Permanently",
             "module": "httpx",
             "module_sequence": "httpx"
         }
@@ -161,15 +162,8 @@ class BaseEvent:
         "dns_children",
         "raw_dns_records",
         "dns_resolve_distance",
-        # Web-related attributes
-        "web_spider_distance",
-        "parsed_url",
-        "url_extension",
-        "num_redirects",
-        # File-related attributes
-        "_data_path",
-        # Web parameter attributes
-        "envelopes",
+        # Host metadata (cloud providers, ASN, whois, etc.)
+        "_host_metadata",
         # Public attributes
         "module",
         "scan",
@@ -230,7 +224,6 @@ class BaseEvent:
         self.dns_children = {}
         self.raw_dns_records = {}
         self._discovery_context = ""
-        self.web_spider_distance = 0
 
         # for creating one-off events without enforcing parent requirement
         self._dummy = _dummy
@@ -305,6 +298,18 @@ class BaseEvent:
         self._data = data
 
     @property
+    def host_metadata(self):
+        try:
+            return self._host_metadata
+        except AttributeError:
+            self._host_metadata = {}
+            return self._host_metadata
+
+    @host_metadata.setter
+    def host_metadata(self, value):
+        self._host_metadata = value
+
+    @property
     def internal(self):
         return self._internal
 
@@ -363,6 +368,13 @@ class BaseEvent:
         if self._host_original is None:
             return self.host
         return self._host_original
+
+    @property
+    def url(self):
+        parsed_url = getattr(self, "parsed_url", None)
+        if parsed_url is not None:
+            return parsed_url.geturl()
+        return ""
 
     @property
     def host_filterable(self):
@@ -871,6 +883,10 @@ class BaseEvent:
         j["discovery_path"] = self.discovery_path
         j["parent_chain"] = self.parent_chain
 
+        # host metadata (cloud providers, ASN, etc.)
+        host_metadata = getattr(self, "host_metadata", None)
+        if host_metadata:
+            j["host_metadata"] = host_metadata
         # parameter envelopes
         parameter_envelopes = getattr(self, "envelopes", None)
         if parameter_envelopes is not None:
@@ -1058,7 +1074,7 @@ class DictHostEvent(DictEvent):
             return make_ip_type(self.data["host"])
         else:
             parsed = getattr(self, "parsed_url", None)
-            if parsed is not None:
+            if parsed is not None and parsed.hostname:
                 return make_ip_type(parsed.hostname)
 
 
@@ -1091,7 +1107,11 @@ class ClosestHostEvent(DictHostEvent):
             raise ValueError(f"No host was found in event parents: {self.get_parents()}. Host must be specified!")
 
 
-class DictPathEvent(DictEvent):
+class DictPathEvent(DictHostEvent):
+    __slots__ = [
+        "_data_path",
+    ]
+
     def sanitize_data(self, data):
         data = super().sanitize_data(data)
         new_data = dict(data)
@@ -1260,19 +1280,32 @@ class OPEN_UDP_PORT(OPEN_TCP_PORT):
     pass
 
 
-class URL_UNVERIFIED(BaseEvent):
+class URL_UNVERIFIED(DictHostEvent):
     _status_code_regex = re.compile(r"^status-(\d{1,3})$")
 
+    __slots__ = [
+        "web_spider_distance",
+        "url_extension",
+        "num_redirects",
+    ]
+
     def __init__(self, *args, **kwargs):
+        self.web_spider_distance = 0
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
+    def _data_load(self, data):
+        # accept a bare URL string and wrap it into a dict
+        if isinstance(data, str):
+            return {"url": data}
+        return data
+
     def _data_id(self):
-        data = super()._data_id()
+        url = self.url
 
         # remove the querystring for URL/URL_UNVERIFIED events, because we will conditionally add it back in (based on settings)
         if self.__class__.__name__.startswith("URL") and self.scan is not None:
-            prefix = data.split("?")[0]
+            prefix = url.split("?")[0]
 
             # consider spider-danger tag when deduping
             if "spider-danger" in self.tags:
@@ -1288,11 +1321,13 @@ class URL_UNVERIFIED(BaseEvent):
                     cleaned_query = "&".join(
                         f"{key}={','.join(sorted(values))}" for key, values in sorted(query_dict.items())
                     )
-                data = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
-        return data
+                url = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
+        return url
 
     def sanitize_data(self, data):
-        self.parsed_url = self.validators.validate_url_parsed(data)
+        url = data.get("url", "")
+        self.parsed_url = self.validators.validate_url_parsed(url)
+        data["url"] = self.parsed_url.geturl()
 
         # special handling of URL extensions
         if self.parsed_url is not None:
@@ -1310,8 +1345,11 @@ class URL_UNVERIFIED(BaseEvent):
         else:
             self.add_tag("endpoint")
 
-        data = self.parsed_url.geturl()
         return data
+
+    @property
+    def pretty_string(self):
+        return self.url
 
     def add_tag(self, tag):
         self_url = getattr(self, "parsed_url", "")
@@ -1360,11 +1398,22 @@ class URL_UNVERIFIED(BaseEvent):
 
     @property
     def http_status(self):
+        status_code = self.data.get("status_code", 0)
+        if status_code:
+            return int(status_code)
         for t in self.tags:
             match = self._status_code_regex.match(t)
             if match:
                 return int(match.groups()[0])
         return 0
+
+    @property
+    def http_title(self):
+        return self.data.get("http_title", "")
+
+    @http_title.setter
+    def http_title(self, value):
+        self.data["http_title"] = value
 
 
 class URL(URL_UNVERIFIED):
@@ -1376,17 +1425,8 @@ class URL(URL_UNVERIFIED):
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
 
-    @property
-    def resolved_hosts(self):
-        # TODO: remove this when we rip out httpx
-        return {".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")}
 
-    @property
-    def pretty_string(self):
-        return self.data
-
-
-class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
+class STORAGE_BUCKET(URL_UNVERIFIED):
     _always_emit = True
     _suppress_chain_dupes = True
 
@@ -1409,6 +1449,10 @@ class URL_HINT(URL_UNVERIFIED):
 
 
 class WEB_PARAMETER(DictHostEvent):
+    __slots__ = [
+        "envelopes",
+    ]
+
     @property
     def children(self):
         # if we have any subparams, raise a new WEB_PARAMETER for each one
@@ -1430,6 +1474,7 @@ class WEB_PARAMETER(DictHostEvent):
         return children
 
     def sanitize_data(self, data):
+        data = super().sanitize_data(data)
         original_value = data.get("original_value", None)
         if original_value is not None:
             try:
@@ -1482,7 +1527,7 @@ class EMAIL_ADDRESS(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
+class HTTP_RESPONSE(URL_UNVERIFIED):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # count number of consecutive redirects
@@ -1688,7 +1733,7 @@ class SOCIAL(DictHostEvent):
     _scope_distance_increment_same_host = True
 
 
-class WEBSCREENSHOT(DictPathEvent, DictHostEvent):
+class WEBSCREENSHOT(DictPathEvent):
     _always_emit = True
     _quick_emit = True
 
@@ -1970,6 +2015,13 @@ def event_from_json(j):
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
+
+        http_title = j.get("http_title", "")
+        if http_title:
+            try:
+                event.http_title = http_title
+            except AttributeError:
+                pass
 
         # accept both isoformat and unix timestamp
         try:

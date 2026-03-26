@@ -83,7 +83,7 @@ class Event(BBOTBaseModel):
     netloc: Optional[str] = None
     resolved_hosts: Optional[List] = None
     dns_children: Optional[dict] = None
-    web_spider_distance: int = 10
+    web_spider_distance: Optional[int] = None
     scope_distance: int = 10
     scan: Annotated[str, "indexed"]
     timestamp: Annotated[float, "indexed"]
@@ -91,6 +91,7 @@ class Event(BBOTBaseModel):
     parent: Annotated[str, "indexed"]
     parent_uuid: Annotated[str, "indexed"]
     tags: List = []
+    host_metadata: Optional[dict] = None
     module: Annotated[Optional[str], "indexed"] = None
     module_sequence: Optional[str] = None
     discovery_context: str = ""

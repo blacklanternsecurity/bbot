@@ -25,7 +25,7 @@ class speculate(BaseInternalModule):
         "USERNAME",
     ]
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Derive certain event types from others by common sense",
         "created_date": "2022-05-03",
@@ -41,7 +41,7 @@ class speculate(BaseInternalModule):
     scope_distance_modifier = 1
     _priority = 4
 
-    default_discovery_context = "speculated {event.type}: {event.data}"
+    default_discovery_context = "speculated {event.type}: {event.pretty_string}"
 
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
@@ -83,7 +83,7 @@ class speculate(BaseInternalModule):
 
             if num_ips > ip_range_max_hosts:
                 self.warning(
-                    f"IP range {event.data} contains {num_ips:,} addresses, which exceeds ip_range_max_hosts limit of {ip_range_max_hosts:,}. Skipping IP_ADDRESS speculation."
+                    f"IP range {event.pretty_string} contains {num_ips:,} addresses, which exceeds ip_range_max_hosts limit of {ip_range_max_hosts:,}. Skipping IP_ADDRESS speculation."
                 )
                 return
 
@@ -113,7 +113,7 @@ class speculate(BaseInternalModule):
                         "OPEN_TCP_PORT",
                         parent=event,
                         internal=True,
-                        context="speculated {event.type}: {event.data}",
+                        context="speculated {event.type}: {event.pretty_string}",
                     )
 
         ### END ESSENTIAL SPECULATION ###
@@ -125,7 +125,7 @@ class speculate(BaseInternalModule):
             parent = self.helpers.parent_domain(event.host_original)
             if parent != event.data:
                 await self.emit_event(
-                    parent, "DNS_NAME", parent=event, context="speculated parent {event.type}: {event.data}"
+                    parent, "DNS_NAME", parent=event, context="speculated parent {event.type}: {event.pretty_string}"
                 )
 
         # URL --> OPEN_TCP_PORT
@@ -138,37 +138,36 @@ class speculate(BaseInternalModule):
                     "OPEN_TCP_PORT",
                     parent=event,
                     internal=not event_is_url,  # if the URL is verified, the port is definitely open
-                    context=f"speculated {{event.type}} from {event.type}: {{event.data}}",
+                    context=f"speculated {{event.type}} from {event.type}: {{event.pretty_string}}",
                 )
 
         # speculate sub-directory URLS from URLS
         if event.type == "URL":
-            url_parents = self.helpers.url_parents(event.data)
+            url_parents = self.helpers.url_parents(event.url)
             for up in url_parents:
                 url_event = self.make_event(f"{up}/", "URL_UNVERIFIED", parent=event)
                 if url_event is not None:
                     # inherit web spider distance from parent (don't increment)
                     parent_web_spider_distance = getattr(event, "web_spider_distance", 0)
                     url_event.web_spider_distance = parent_web_spider_distance
-                    await self.emit_event(url_event, context="speculated web sub-directory {event.type}: {event.data}")
+                    await self.emit_event(
+                        url_event, context="speculated web sub-directory {event.type}: {event.pretty_string}"
+                    )
 
         # speculate URL_UNVERIFIED from URL or any event with "url" attribute
         event_is_url = event.type == "URL"
-        event_has_url = isinstance(event.data, dict) and "url" in event.data
+        event_has_url = not event.type.startswith("URL") and isinstance(event.data, dict) and "url" in event.data
         event_tags = ["httpx-safe"] if event.type in ("CODE_REPOSITORY", "SOCIAL") else []
         if event_is_url or event_has_url:
-            if event_is_url:
-                url = event.data
-            else:
-                url = event.data["url"]
+            url = event.url
             # only emit the url if it's not already in the event's history
-            if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_parents()):
+            if not any(e.type == "URL_UNVERIFIED" and e.url == url for e in event.get_parents()):
                 await self.emit_event(
                     url,
                     "URL_UNVERIFIED",
                     tags=event_tags,
                     parent=event,
-                    context="speculated {event.type}: {event.data}",
+                    context="speculated {event.type}: {event.pretty_string}",
                 )
 
         # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
@@ -195,7 +194,7 @@ class speculate(BaseInternalModule):
                 self.org_stubs_seen.add(stub_hash)
                 stub_event = self.make_event(stub, "ORG_STUB", parent=event)
                 if stub_event:
-                    await self.emit_event(stub_event, context="speculated {event.type}: {event.data}")
+                    await self.emit_event(stub_event, context="speculated {event.type}: {event.pretty_string}")
 
         # USERNAME --> EMAIL
         if event.type == "USERNAME":
@@ -203,4 +202,4 @@ class speculate(BaseInternalModule):
             if validators.soft_validate(email, "email"):
                 email_event = self.make_event(email, "EMAIL_ADDRESS", parent=event, tags=["affiliate"])
                 if email_event:
-                    await self.emit_event(email_event, context="detected {event.type}: {event.data}")
+                    await self.emit_event(email_event, context="detected {event.type}: {event.pretty_string}")

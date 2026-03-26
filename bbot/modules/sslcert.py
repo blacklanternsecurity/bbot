@@ -11,7 +11,7 @@ from bbot.core.helpers.web.ssl_context import ssl_context_noverify
 class sslcert(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS"]
-    flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic"]
+    flags = ["safe", "affiliates", "subdomain-enum", "email-enum", "active", "web"]
     meta = {
         "description": "Visit open ports and retrieve SSL certificates",
         "created_date": "2022-03-30",
@@ -90,10 +90,10 @@ class sslcert(BaseModule):
                                 await self.emit_event(
                                     ssl_event,
                                     tags=tags,
-                                    context=f"{{module}} parsed SSL certificate at {event.data} and found {{event.type}}: {{event.data}}",
+                                    context=f"{{module}} parsed SSL certificate at {event.pretty_string} and found {{event.type}}: {{event.pretty_string}}",
                                 )
                         except ValidationError as e:
-                            self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
+                            self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.pretty_string}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")
 
     def on_success_callback(self, event):

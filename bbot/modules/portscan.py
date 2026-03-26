@@ -10,7 +10,7 @@ from bbot.modules.base import BaseModule
 
 
 class portscan(BaseModule):
-    flags = ["active", "portscan", "safe"]
+    flags = ["loud", "active", "portscan"]
     watched_events = ["IP_ADDRESS", "IP_RANGE", "DNS_NAME"]
     produced_events = ["OPEN_TCP_PORT"]
     meta = {
@@ -221,7 +221,7 @@ class portscan(BaseModule):
             event_data,
             event_type,
             parent=parent_event,
-            context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.data}}",
+            context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.pretty_string}}",
         )
 
         await self.emit_event(event)

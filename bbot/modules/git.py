@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class git(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING", "CODE_REPOSITORY"]
-    flags = ["active", "safe", "web-basic", "code-enum"]
+    flags = ["safe", "active", "web", "code-enum"]
     meta = {
         "description": "Check for exposed .git repositories",
         "created_date": "2023-05-30",
@@ -18,7 +18,7 @@ class git(BaseModule):
     fp_regex = re.compile(r"<html|<body", re.I)
 
     async def handle_event(self, event):
-        base_url = event.data.rstrip("/")
+        base_url = event.url.rstrip("/")
         urls = {
             # look for git config in both
             self.helpers.urljoin(base_url, ".git/config"),

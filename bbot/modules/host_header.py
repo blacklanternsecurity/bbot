@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 class host_header(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "loud", "web-heavy"]
     meta = {
         "description": "Try common HTTP Host header spoofing techniques",
         "created_date": "2022-07-27",
@@ -48,7 +48,7 @@ class host_header(BaseModule):
                 await self.emit_event(
                     {
                         "host": str(matched_event.host),
-                        "url": matched_event.data["url"],
+                        "url": matched_event.url,
                         "name": "Host Header Spoofing",
                         "description": f"Spoofed Host header ({matched_technique}) [{protocol}] interaction",
                         "severity": "MEDIUM",
@@ -83,7 +83,7 @@ class host_header(BaseModule):
 
     async def handle_event(self, event):
         # get any set-cookie responses from the response and add them to the request
-        url = event.data["url"]
+        url = event.url
 
         added_cookies = {}
 
@@ -150,7 +150,7 @@ class host_header(BaseModule):
                 },
                 "FINDING",
                 event,
-                context=f"{{module}} scanned {event.data['url']} and identified {{event.type}}: {description}",
+                context=f"{{module}} scanned {event.url} and identified {{event.type}}: {description}",
             )
 
         # host header overrides

@@ -23,8 +23,8 @@ class TestFFUF(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "URL_UNVERIFIED" and "admin" in e.data for e in events)
-        assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.data for e in events)
+        assert any(e.type == "URL_UNVERIFIED" and "admin" in e.url for e in events)
+        assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.url for e in events)
 
 
 class TestFFUF2(TestFFUF):
@@ -41,8 +41,8 @@ class TestFFUF2(TestFFUF):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "URL_UNVERIFIED" and "console" in e.data for e in events)
-        assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.data for e in events)
+        assert any(e.type == "URL_UNVERIFIED" and "console" in e.url for e in events)
+        assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.url for e in events)
 
 
 class TestFFUF_ignorecase(TestFFUF):
@@ -65,8 +65,8 @@ class TestFFUF_ignorecase(TestFFUF):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "URL_UNVERIFIED" and "admin" in e.data for e in events)
-        assert not any(e.type == "URL_UNVERIFIED" and "Admin" in e.data for e in events)
+        assert any(e.type == "URL_UNVERIFIED" and "admin" in e.url for e in events)
+        assert not any(e.type == "URL_UNVERIFIED" and "Admin" in e.url for e in events)
 
 
 class TestFFUFHeaders(TestFFUF):
@@ -86,5 +86,5 @@ class TestFFUFHeaders(TestFFUF):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "URL_UNVERIFIED" and "console" in e.data for e in events)
-        assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.data for e in events)
+        assert any(e.type == "URL_UNVERIFIED" and "console" in e.url for e in events)
+        assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.url for e in events)

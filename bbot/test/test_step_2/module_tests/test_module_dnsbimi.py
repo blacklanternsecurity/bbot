@@ -78,7 +78,7 @@ class TestDnsbimi(ModuleTestBase):
 
         # This should not be filtered by a default BBOT configuration
         assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "https://bimi.test.localdomain/certificate.pem" for e in events
+            e.type == "URL_UNVERIFIED" and e.url == "https://bimi.test.localdomain/certificate.pem" for e in events
         ), "Failed to emit URL_UNVERIFIED"
 
         # These should be filtered simply due to distance

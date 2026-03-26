@@ -7,7 +7,7 @@ from bbot.core.helpers.libmagic import get_magic_info, get_compression
 class unarchive(BaseInternalModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Extract different types of files into folders on the filesystem",
         "created_date": "2024-12-08",

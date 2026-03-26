@@ -20,7 +20,7 @@ class BaseModule:
 
         meta (Dict): Metadata about the module, such as whether authentication is required and a description.
 
-        flags (List): Flags indicating the type of module (must have at least "safe" or "aggressive" and "passive" or "active").
+        flags (List): Flags indicating the type of module (must have at least "passive" or "active").
 
         deps_modules (List): Other BBOT modules this module depends on. Empty list by default.
 
@@ -114,7 +114,7 @@ class BaseModule:
     # whether to retry on 429s when first pinging the API at scan start
     _ping_retry_on_http_429 = False
 
-    default_discovery_context = "{module} discovered {event.type}: {event.data}"
+    default_discovery_context = "{module} discovered {event.type}: {event.pretty_string}"
 
     _preserve_graph = False
     _stats_exclude = False

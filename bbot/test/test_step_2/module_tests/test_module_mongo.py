@@ -1,4 +1,3 @@
-import time
 import asyncio
 
 from .base import ModuleTestBase
@@ -49,14 +48,14 @@ class TestMongo(ModuleTestBase):
                 break  # Exit the loop if connection is successful
             except Exception as e:
                 print(f"Connection failed: {e}. Retrying...")
-                time.sleep(0.5)
+                await asyncio.sleep(0.5)
 
         # Check that there are no events in the collection
         count = await events_collection.count_documents({})
         assert count == 0, "There are existing events in the database"
 
         # Close the MongoDB connection
-        client.close()
+        await client.aclose()
 
     async def check(self, module_test, events):
         try:
@@ -146,7 +145,8 @@ class TestMongo(ModuleTestBase):
             # Clean up: Delete all documents in the collection
             await events_collection.delete_many({})
             # Close the MongoDB connection
-            client.close()
-            await asyncio.create_subprocess_exec(
+            await client.aclose()
+            process = await asyncio.create_subprocess_exec(
                 "docker", "stop", "bbot-test-mongo", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
+            await process.communicate()

@@ -4,7 +4,7 @@ from .baddns import baddns as baddns_module
 class baddns_direct(baddns_module):
     watched_events = ["URL", "STORAGE_BUCKET"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "subdomain-enum", "baddns", "cloud-enum"]
+    flags = ["safe", "active", "subdomain-enum", "baddns", "cloud-enum"]
     meta = {
         "description": "Check for unusual subdomain / service takeover edge cases that require direct detection",
         "created_date": "2024-01-29",
@@ -76,8 +76,8 @@ class baddns_direct(baddns_module):
                     f"Rejecting {event.host} due to not being in scope (scope distance: {event.scope_distance})"
                 )
                 return False
-            if "cdn-cloudflare" not in event.tags:
-                self.debug(f"Rejecting {event.host} due to not being behind CloudFlare")
+            if "cloudflare" not in event.tags:
+                self.debug(f"Rejecting {event.host} due to not being behind Cloudflare")
                 return False
             if "status-200" in event.tags or "status-301" in event.tags:
                 self.debug(f"Rejecting {event.host} due to lack of non-standard status code")

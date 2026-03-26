@@ -39,7 +39,7 @@ SUBMODULE_MAX_CONFIDENCE = {
 class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-basic", "baddns", "cloud-enum", "subdomain-hijack"]
+    flags = ["safe", "active", "web", "baddns", "cloud-enum", "subdomain-hijack"]
     meta = {
         "description": "Check hosts for domain/subdomain takeovers",
         "created_date": "2024-01-18",
@@ -209,6 +209,6 @@ class baddns(BaseModule):
                                     "DNS_NAME",
                                     event,
                                     tags=[f"baddns-{module_instance.name.lower()}"],
-                                    context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.data}}',
+                                    context=f'{{module}}\'s "{r_dict["module"]}" module found {{event.type}}: {{event.pretty_string}}',
                                 )
             await module_instance.cleanup()

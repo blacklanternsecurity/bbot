@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class ipneighbor(BaseModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["IP_ADDRESS"]
-    flags = ["passive", "subdomain-enum", "aggressive"]
+    flags = ["passive", "subdomain-enum", "loud"]
     meta = {
         "description": "Look beside IPs in their surrounding subnet",
         "created_date": "2022-06-08",
@@ -39,5 +39,5 @@ class ipneighbor(BaseModule):
                     if ip_event:
                         await self.emit_event(
                             ip_event,
-                            context="{module} produced {event.type}: {event.data}",
+                            context="{module} produced {event.type}: {event.pretty_string}",
                         )

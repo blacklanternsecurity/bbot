@@ -26,7 +26,7 @@ class TestBaddns_direct_cloudflare(BaseTestBaddns):
                 self.events_seen.append(event.data)
                 url = "http://bad.dns:8888/"
                 url_event = self.scan.make_event(
-                    url, "URL", parent=self.scan.root_event, tags=["cdn-cloudflare", "in-scope", "status-401"]
+                    url, "URL", parent=self.scan.root_event, tags=["cloudflare", "in-scope", "status-401"]
                 )
                 if url_event is not None:
                     await self.emit_event(url_event)

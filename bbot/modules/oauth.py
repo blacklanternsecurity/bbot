@@ -6,7 +6,7 @@ from .base import BaseModule
 class OAUTH(BaseModule):
     watched_events = ["DNS_NAME", "URL_UNVERIFIED"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "active", "safe"]
+    flags = ["safe", "affiliates", "subdomain-enum", "cloud-enum", "web", "active"]
     meta = {
         "description": "Enumerate OAUTH and OpenID Connect services",
         "created_date": "2023-07-12",
@@ -32,9 +32,23 @@ class OAUTH(BaseModule):
             return True
         return False
 
+    def _get_source_domain(self, event):
+        """Walk the parent chain to find the nearest in-scope domain."""
+        seen = set()
+        current = event
+        while current is not None and id(current) not in seen:
+            seen.add(id(current))
+            if current.host:
+                _, domain = self.helpers.split_domain(str(current.host))
+                if self.scan.in_scope(domain):
+                    return domain
+            current = current.parent
+        _, domain = self.helpers.split_domain(str(event.host))
+        return domain
+
     async def handle_event(self, event):
-        _, domain = self.helpers.split_domain(event.data)
-        source_domain = getattr(event, "source_domain", domain)
+        _, domain = self.helpers.split_domain(str(event.host))
+        source_domain = self._get_source_domain(event)
         if not self.scan.in_scope(source_domain):
             return
 
@@ -46,7 +60,7 @@ class OAUTH(BaseModule):
                 oidc_tasks.append(self.helpers.create_task(self.getoidc(f"https://login.windows.net/{domain}")))
 
         if event.type == "URL_UNVERIFIED":
-            url = event.data
+            url = event.url
         else:
             url = f"https://{event.data}"
 
@@ -73,7 +87,6 @@ class OAUTH(BaseModule):
                     parent=event,
                 )
                 if finding_event:
-                    finding_event.source_domain = source_domain
                     await self.emit_event(
                         finding_event,
                         context=f'{{module}} identified {{event.type}}: OpenID Connect Endpoint for "{source_domain}" at {url}',
@@ -82,20 +95,19 @@ class OAUTH(BaseModule):
                     token_endpoint, "URL_UNVERIFIED", parent=event, tags=["affiliate", "oauth-token-endpoint"]
                 )
                 if url_event:
-                    url_event.source_domain = source_domain
                     await self.emit_event(
                         url_event,
                         context=f'{{module}} identified OpenID Connect Endpoint for "{source_domain}" at {{event.type}}: {url}',
                     )
             for result in oidc_results:
-                if result not in (domain, event.data):
+                if result not in (domain, str(event.host)):
                     event_type = "URL_UNVERIFIED" if self.helpers.is_url(result) else "DNS_NAME"
                     await self.emit_event(
                         result,
                         event_type,
                         parent=event,
                         tags=["affiliate"],
-                        context=f'{{module}} analyzed OpenID configuration for "{source_domain}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} analyzed OpenID configuration for "{source_domain}" and found {{event.type}}: {{event.pretty_string}}',
                     )
 
         for oauth_task in oauth_tasks:
@@ -115,7 +127,6 @@ class OAUTH(BaseModule):
                     parent=event,
                 )
                 if oauth_finding:
-                    oauth_finding.source_domain = source_domain
                     await self.emit_event(
                         oauth_finding,
                         context=f"{{module}} identified {{event.type}}: {description}",

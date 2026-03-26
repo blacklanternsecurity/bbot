@@ -1,4 +1,4 @@
-description: Discover web parameters and lightly fuzz them for common vulnerabilities (path traversal, SQLi, XSS), with minimal extra modules. Safest to run alongside larger scans.
+description: "Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead."
 
 modules:
   - httpx

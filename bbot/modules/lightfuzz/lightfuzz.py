@@ -7,7 +7,7 @@ from bbot.errors import InteractshError
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough", "deadly"]
+    flags = ["active", "loud", "web-heavy", "invasive"]
 
     options = {
         "force_common_headers": False,
@@ -93,7 +93,7 @@ class lightfuzz(BaseModule):
                         "severity": severity,
                         "confidence": confidence,
                         "host": str(details["event"].host),
-                        "url": details["event"].data["url"],
+                        "url": details["event"].url,
                         "name": f"Lightfuzz - {details['name']}",
                         "description": description,
                     },
@@ -109,7 +109,7 @@ class lightfuzz(BaseModule):
             (
                 "lightfuzz",
                 str(event.host),
-                event.data["url"],
+                event.url,
                 event.data["description"],
                 event.data.get("type", ""),
                 event.data.get("name", ""),
@@ -123,7 +123,7 @@ class lightfuzz(BaseModule):
             for r in submodule_instance.results:
                 event_data = {
                     "host": str(event.host),
-                    "url": event.data["url"],
+                    "url": event.url,
                     "name": r["name"],
                     "description": r["description"],
                 }
@@ -156,14 +156,14 @@ class lightfuzz(BaseModule):
                     "type": "HEADER",
                     "name": h,
                     "original_value": None,
-                    "url": event.data,
+                    "url": event.url,
                     "description": description,
                 }
                 await self.emit_event(data, "WEB_PARAMETER", event)
 
         elif event.type == "WEB_PARAMETER":
             # check connectivity to url
-            connectivity_test = await self.helpers.request(event.data["url"], timeout=10)
+            connectivity_test = await self.helpers.request(event.url, timeout=10)
 
             if connectivity_test:
                 original_type = event.data["type"]
@@ -190,7 +190,7 @@ class lightfuzz(BaseModule):
                         self.debug(f"Starting {submodule_name} fuzz() (try_get_as_post)")
                         await self.run_submodule(submodule, event)
             else:
-                self.debug(f"WEB_PARAMETER URL {event.data['url']} failed connectivity test, aborting")
+                self.debug(f"WEB_PARAMETER URL {event.url} failed connectivity test, aborting")
 
     async def cleanup(self):
         if self.interactsh_instance:

@@ -7,7 +7,7 @@ from badsecrets.base import carve_all_modules
 class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["safe", "active", "web"]
     meta = {
         "description": "Library for detecting known or weak secrets across many web frameworks",
         "created_date": "2022-11-19",
@@ -58,7 +58,7 @@ class badsecrets(BaseModule):
                     body=resp_body,
                     headers=resp_headers,
                     cookies=resp_cookies,
-                    url=event.data.get("url", None),
+                    url=event.url or None,
                     custom_resource=self.custom_secrets,
                 )
             except Exception as e:
@@ -71,7 +71,7 @@ class badsecrets(BaseModule):
                             "severity": r["description"]["severity"],
                             "name": "BadSecrets - Known Secret",
                             "description": f"Known Secret Found. Secret Type: [{r['description']['secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'], 2000)}] Detecting Module: [{r['detecting_module']}] Details: [{r['details']}]",
-                            "url": event.data["url"],
+                            "url": event.url,
                             "host": str(event.host),
                             "confidence": "CONFIRMED",
                         }
@@ -90,7 +90,7 @@ class badsecrets(BaseModule):
                         if r["detecting_module"] in ("ASPNET_Viewstate", "ASPNET_Resource"):
                             technology = "microsoft asp.net"
                             await self.emit_event(
-                                {"technology": technology, "url": event.data["url"], "host": str(event.host)},
+                                {"technology": technology, "url": event.url, "host": str(event.host)},
                                 "TECHNOLOGY",
                                 event,
                                 context=f"{{module}} identified {{event.type}}: {technology}",
@@ -99,7 +99,7 @@ class badsecrets(BaseModule):
                             data = {
                                 "name": "BadSecrets - Cryptographic Product",
                                 "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'], 2000)}] Detecting Module: [{r['detecting_module']}]",
-                                "url": event.data["url"],
+                                "url": event.url,
                                 "host": str(event.host),
                                 "severity": "INFO",
                                 "confidence": "CONFIRMED",

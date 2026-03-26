@@ -4,4 +4,4 @@ include:
   - iis-shortnames
 
 flags:
-  - web-basic
+  - web

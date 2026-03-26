@@ -185,7 +185,8 @@ class asset_inventory(CSV):
                                 asset.host, "DNS_NAME", parent=self.scan.root_event, raise_error=True
                             )
                             await self.emit_event(
-                                host_event, context="{module} emitted previous result: {event.type}: {event.data}"
+                                host_event,
+                                context="{module} emitted previous result: {event.type}: {event.pretty_string}",
                             )
                             for port in asset.ports:
                                 netloc = self.helpers.make_netloc(asset.host, port)
@@ -193,7 +194,7 @@ class asset_inventory(CSV):
                                 if open_port_event:
                                     await self.emit_event(
                                         open_port_event,
-                                        context="{module} emitted previous result: {event.type}: {event.data}",
+                                        context="{module} emitted previous result: {event.type}: {event.pretty_string}",
                                     )
                         else:
                             for ip in asset.ip_addresses:
@@ -201,7 +202,8 @@ class asset_inventory(CSV):
                                     ip, "IP_ADDRESS", parent=self.scan.root_event, raise_error=True
                                 )
                                 await self.emit_event(
-                                    ip_event, context="{module} emitted previous result: {event.type}: {event.data}"
+                                    ip_event,
+                                    context="{module} emitted previous result: {event.type}: {event.pretty_string}",
                                 )
                                 for port in asset.ports:
                                     netloc = self.helpers.make_netloc(ip, port)
@@ -209,7 +211,7 @@ class asset_inventory(CSV):
                                     if open_port_event:
                                         await self.emit_event(
                                             open_port_event,
-                                            context="{module} emitted previous result: {event.type}: {event.data}",
+                                            context="{module} emitted previous result: {event.type}: {event.pretty_string}",
                                         )
             else:
                 self.warning(
@@ -313,7 +315,7 @@ class Asset:
             self.ports.add(str(event.port))
 
         if event.type == "FINDING":
-            location = event.data.get("url", event.data.get("host", ""))
+            location = event.url or event.data.get("host", "")
             if location:
                 self.findings.add(
                     f"{location}:{event.data['description']}:Severity: {event.data['severity']} Confidence: {event.data['confidence']}"
@@ -335,9 +337,10 @@ class Asset:
                 if update_http_status or not self.http_title:
                     self.http_title = title
 
-        for tag in event.tags:
-            if tag.startswith("cdn-") or tag.startswith("cloud-"):
-                self.provider = tag
+        for host_meta in event.host_metadata.values():
+            providers = host_meta.get("cloud_providers", {})
+            if providers:
+                self.provider = ", ".join(providers.keys())
                 break
 
     @property
