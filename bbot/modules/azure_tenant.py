@@ -525,7 +525,6 @@ class azure_tenant(BaseModule):
                 tags=["affiliate", "ms-auth-url"],
             )
             if fed_url_event:
-                fed_url_event.source_domain = domain
                 await self.emit_event(fed_url_event)
 
     def _derive_cloud_type(self, openid_data):

@@ -32,9 +32,23 @@ class OAUTH(BaseModule):
             return True
         return False
 
+    def _get_source_domain(self, event):
+        """Walk the parent chain to find the nearest in-scope domain."""
+        seen = set()
+        current = event
+        while current is not None and id(current) not in seen:
+            seen.add(id(current))
+            if current.host:
+                _, domain = self.helpers.split_domain(str(current.host))
+                if self.scan.in_scope(domain):
+                    return domain
+            current = current.parent
+        _, domain = self.helpers.split_domain(str(event.host))
+        return domain
+
     async def handle_event(self, event):
         _, domain = self.helpers.split_domain(str(event.host))
-        source_domain = getattr(event, "source_domain", domain)
+        source_domain = self._get_source_domain(event)
         if not self.scan.in_scope(source_domain):
             return
 
@@ -73,7 +87,6 @@ class OAUTH(BaseModule):
                     parent=event,
                 )
                 if finding_event:
-                    finding_event.source_domain = source_domain
                     await self.emit_event(
                         finding_event,
                         context=f'{{module}} identified {{event.type}}: OpenID Connect Endpoint for "{source_domain}" at {url}',
@@ -82,7 +95,6 @@ class OAUTH(BaseModule):
                     token_endpoint, "URL_UNVERIFIED", parent=event, tags=["affiliate", "oauth-token-endpoint"]
                 )
                 if url_event:
-                    url_event.source_domain = source_domain
                     await self.emit_event(
                         url_event,
                         context=f'{{module}} identified OpenID Connect Endpoint for "{source_domain}" at {{event.type}}: {url}',
@@ -115,7 +127,6 @@ class OAUTH(BaseModule):
                     parent=event,
                 )
                 if oauth_finding:
-                    oauth_finding.source_domain = source_domain
                     await self.emit_event(
                         oauth_finding,
                         context=f"{{module}} identified {{event.type}}: {description}",

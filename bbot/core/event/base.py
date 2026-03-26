@@ -164,8 +164,6 @@ class BaseEvent:
         "dns_resolve_distance",
         # Host metadata (cloud providers, ASN, whois, etc.)
         "_host_metadata",
-        # Cross-module communication
-        "source_domain",
         # Public attributes
         "module",
         "scan",
