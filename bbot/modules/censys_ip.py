@@ -166,7 +166,7 @@ class censys_ip(censys):
         try:
             validated = self.helpers.validators.validate_host(host)
         except ValueError as e:
-            self.debug(f"Error validating host {host} in {source}: {e}")
+            return self.debug(f"Error validating host {host} in {source}: {e}")
         if validated and validated not in seen:
             seen.add(validated)
             await self.emit_event(
