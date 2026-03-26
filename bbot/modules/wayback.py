@@ -101,8 +101,14 @@ class wayback(subdomain_enum):
         # URL events are handled differently (parameter/archive cache eviction),
         # so they should not be deduplicated by the subdomain_enum strategy
         if event.type == "URL":
-            return hash(event.data), "url_event"
+            return hash(event.url), "url_event"
         return super()._incoming_dedup_hash(event)
+
+    async def filter_event(self, event):
+        # URL events are handled separately and don't need subdomain_enum's wildcard/cloud filtering
+        if event.type == "URL":
+            return True
+        return await super().filter_event(event)
 
     async def handle_event(self, event):
         if event.type == "URL":
@@ -148,11 +154,11 @@ class wayback(subdomain_enum):
                     break
             # only 2xx counts as live — 3xx (e.g. http→https 301 to a 404) doesn't confirm the page exists
             if 200 <= status_code < 300:
-                cleaned = clean_url(event.data).geturl()
+                cleaned = clean_url(event.url).geturl()
                 if self._archive_cache.pop(cleaned, None) is not None:
                     self.verbose(f"URL is live (status {status_code}), removed from archive cache: {cleaned}")
 
-        cached = self._parameter_cache.pop(clean_url(event.data).geturl(), None)
+        cached = self._parameter_cache.pop(clean_url(event.url).geturl(), None)
         if cached is not None:
             flat_params, base_url = cached
             for param_name, original_value in flat_params.items():

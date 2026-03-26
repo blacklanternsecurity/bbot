@@ -83,12 +83,12 @@ Basic URL discovery mode. Includes `subdomain-enum` and enables `urls: True`. Go
 bbot -p wayback -t evilcorp.com
 ```
 
-### `-p wayback-intense`
+### `-p wayback-heavy`
 
 Full-featured mode with URL discovery, parameter extraction, and archive retrieval. Also includes `badsecrets` to scan archived content for exposed secrets.
 
 ```bash
-bbot -p wayback-intense -t evilcorp.com
+bbot -p wayback-heavy -t evilcorp.com
 ```
 
 ### Integration with other presets
@@ -117,7 +117,7 @@ bbot -p wayback -t evilcorp.com
 
 ```bash
 # Full wayback integration with archived content and parameter extraction
-bbot -p wayback-intense -t evilcorp.com
+bbot -p wayback-heavy -t evilcorp.com
 ```
 
 ```bash

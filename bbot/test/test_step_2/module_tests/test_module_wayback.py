@@ -37,7 +37,7 @@ class TestWaybackParameters(ModuleTestBase):
         module_test.set_expect_requests(expect_args={"uri": "/page"}, respond_args={"response_data": "alive"})
 
     def check(self, module_test, events):
-        assert any(e.type == "URL_UNVERIFIED" and "127.0.0.1" in e.data and "/page" in e.data for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and "127.0.0.1" in e.url and "/page" in e.url for e in events), (
             "Failed to emit URL_UNVERIFIED"
         )
         assert any(
@@ -119,7 +119,7 @@ class TestWaybackArchive(ModuleTestBase):
 
     def check(self, module_test, events):
         # the dead URL (port 1) should NOT be verified as live
-        assert not any(e.type == "URL" and "deadpage" in e.data for e in events)
+        assert not any(e.type == "URL" and "deadpage" in e.url for e in events)
         # badsecrets should have found the vulnerability in the archived viewstate
         assert any(e.type == "VULNERABILITY" and "Known Secret Found." in e.data["description"] for e in events), (
             "Failed to detect badsecrets vulnerability from archived content"
@@ -158,12 +158,12 @@ class TestWaybackHttpHttpsDedup(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        url_unverified = [e for e in events if e.type == "URL_UNVERIFIED" and "/page" in e.data]
+        url_unverified = [e for e in events if e.type == "URL_UNVERIFIED" and "/page" in e.url]
         # should have only one, the https version
         assert len(url_unverified) == 1, (
-            f"Expected 1 URL_UNVERIFIED, got {len(url_unverified)}: {[e.data for e in url_unverified]}"
+            f"Expected 1 URL_UNVERIFIED, got {len(url_unverified)}: {[e.url for e in url_unverified]}"
         )
-        assert url_unverified[0].data.startswith("https://"), f"Expected https URL, got: {url_unverified[0].data}"
+        assert url_unverified[0].url.startswith("https://"), f"Expected https URL, got: {url_unverified[0].url}"
 
 
 class TestWaybackHttpOnlyKept(ModuleTestBase):
@@ -184,10 +184,10 @@ class TestWaybackHttpOnlyKept(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        url_unverified = [e for e in events if e.type == "URL_UNVERIFIED" and "/old-http-only" in e.data]
+        url_unverified = [e for e in events if e.type == "URL_UNVERIFIED" and "/old-http-only" in e.url]
         assert len(url_unverified) == 1, f"Expected 1 URL_UNVERIFIED, got {len(url_unverified)}"
-        assert url_unverified[0].data.startswith("http://"), (
-            f"Expected http URL when no https exists, got: {url_unverified[0].data}"
+        assert url_unverified[0].url.startswith("http://"), (
+            f"Expected http URL when no https exists, got: {url_unverified[0].url}"
         )
 
 
@@ -211,11 +211,11 @@ class TestWaybackCdnCgiBlacklist(ModuleTestBase):
 
     def check(self, module_test, events):
         # cdn-cgi URL should be filtered
-        assert not any(e.type == "URL_UNVERIFIED" and "cdn-cgi" in e.data for e in events), (
+        assert not any(e.type == "URL_UNVERIFIED" and "cdn-cgi" in e.url for e in events), (
             "cdn-cgi URL should have been filtered"
         )
         # real page should still be emitted
-        assert any(e.type == "URL_UNVERIFIED" and "real-page" in e.data for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and "real-page" in e.url for e in events), (
             "Non-cdn-cgi URL should have been emitted"
         )
 
@@ -544,11 +544,11 @@ class TestWaybackGarbageUrlFilter(ModuleTestBase):
 
     def check(self, module_test, events):
         # garbage URL should be filtered
-        assert not any(e.type == "URL_UNVERIFIED" and "get-materials" in e.data for e in events), (
+        assert not any(e.type == "URL_UNVERIFIED" and "get-materials" in e.url for e in events), (
             "Crawler-trap URL with repeating path segments should have been filtered"
         )
         # real page should still be emitted
-        assert any(e.type == "URL_UNVERIFIED" and "real-page" in e.data for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and "real-page" in e.url for e in events), (
             "Non-garbage URL should have been emitted"
         )
 
@@ -575,11 +575,11 @@ class TestWaybackGarbageUrlLength(ModuleTestBase):
 
     def check(self, module_test, events):
         # long URL should be filtered
-        assert not any(e.type == "URL_UNVERIFIED" and "aaaa" in e.data for e in events), (
+        assert not any(e.type == "URL_UNVERIFIED" and "aaaa" in e.url for e in events), (
             "Excessively long URL should have been filtered"
         )
         # normal page should still be emitted
-        assert any(e.type == "URL_UNVERIFIED" and "normal-page" in e.data for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and "normal-page" in e.url for e in events), (
             "Normal-length URL should have been emitted"
         )
 
