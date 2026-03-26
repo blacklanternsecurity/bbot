@@ -79,7 +79,7 @@ class censys_ip(censys):
         for service in result.get("services", []):
             port = service.get("port")
             transport = service.get("transport_protocol", "TCP").upper()
-
+            labels = service.get("labels", [])
             # Emit OPEN_TCP_PORT or OPEN_UDP_PORT for services with a port
             # QUIC uses UDP as transport, so treat it as UDP
             if port and (port, transport) not in seen:
@@ -114,6 +114,7 @@ class censys_ip(censys):
                         "PROTOCOL",
                         parent=event,
                         context="{module} found {event.type}: {event.data[protocol]} on {event.parent.data}",
+                        tags=labels,
                     )
 
             # Extract URLs from HTTP services
@@ -152,6 +153,7 @@ class censys_ip(censys):
                         "TECHNOLOGY",
                         parent=event,
                         context="{module} found {event.type}: {event.data[technology]} on {event.parent.data}",
+                        tags=labels,
                     )
 
         # Extract dns.names (limit to configured max)
@@ -166,7 +168,8 @@ class censys_ip(censys):
         try:
             validated = self.helpers.validators.validate_host(host)
         except ValueError as e:
-            return self.debug(f"Error validating host {host} in {source}: {e}")
+            self.debug(f"Error validating host {host} in {source}: {e}")
+            return
         if validated and validated not in seen:
             seen.add(validated)
             await self.emit_event(
