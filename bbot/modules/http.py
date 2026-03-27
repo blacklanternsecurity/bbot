@@ -10,7 +10,7 @@ from bbot.modules.base import BaseModule
 class http(BaseModule):
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
-    flags = ["active", "safe", "web-basic", "social-enum", "subdomain-enum", "cloud-enum"]
+    flags = ["active", "safe", "web", "social-enum", "subdomain-enum", "cloud-enum"]
     meta = {
         "description": "Visit webpages using blasthttp (native Rust HTTP engine)",
         "created_date": "2026-03-08",

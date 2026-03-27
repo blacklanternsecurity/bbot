@@ -9,7 +9,7 @@ from bbot.modules.base import BaseModule
 class web_brute(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["aggressive", "active", "deadly"]
+    flags = ["active", "loud"]
     meta = {
         "description": "A fast web fuzzer powered by blasthttp",
         "created_date": "2022-04-10",
