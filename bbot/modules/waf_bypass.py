@@ -114,9 +114,7 @@ class waf_bypass(BaseModule):
                 "simhash": simhash,
                 "http_code": response.status_code,
             }
-            self.debug(
-                f"Stored simhash of response from {url} (content length: {len(response.text)})"
-            )
+            self.debug(f"Stored simhash of response from {url} (content length: {len(response.text)})")
 
     async def get_url_content(self, url, ip=None):
         """Helper function to fetch content from a URL, optionally through specific IP"""
