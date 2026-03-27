@@ -1,6 +1,5 @@
 import json
 import asyncio
-from contextlib import suppress
 
 from .base import ModuleTestBase
 
