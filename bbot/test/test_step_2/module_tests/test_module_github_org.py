@@ -2,7 +2,9 @@ from .base import ModuleTestBase
 
 
 class TestGithub_Org(ModuleTestBase):
-    config_overrides = {"modules": {"github_org": {"api_key": "asdf"}, "github": {"api_key": "asdf"}, "git_clone": {"api_key": ""}}}
+    config_overrides = {
+        "modules": {"github_org": {"api_key": "asdf"}, "github": {"api_key": "asdf"}, "git_clone": {"api_key": ""}}
+    }
     modules_overrides = ["github_org", "speculate"]
 
     async def setup_before_prep(self, module_test):

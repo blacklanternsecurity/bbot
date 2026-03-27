@@ -204,6 +204,7 @@ class TestSubDomainRadar(ModuleTestBase):
                 "time_to_finish": 41,
             },
         )
+
     def check(self, module_test, events):
         assert any(e.data == "www.blacklanternsecurity.com" for e in events), "Failed to detect subdomain #1"
         assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain #2"
