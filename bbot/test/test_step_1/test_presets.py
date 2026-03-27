@@ -1195,3 +1195,54 @@ async def test_preset_serialization(clean_default_config):
     assert preset_dict_round_tripped == preset_dict
     assert preset_dict["target"] == ["192.168.1.1"]
     assert "seeds" not in preset_dict
+
+
+def test_preset_file_targets(tmp_path):
+    """Test that file paths in preset target/seeds/blacklist are expanded."""
+    # create target files
+    targets_file = tmp_path / "targets.txt"
+    targets_file.write_text("evilcorp.com\n1.2.3.4\n")
+
+    seeds_file = tmp_path / "seeds.txt"
+    seeds_file.write_text("seed1.evilcorp.com\nseed2.evilcorp.com\n")
+
+    blacklist_file = tmp_path / "blacklist.txt"
+    blacklist_file.write_text("internal.evilcorp.com\n10.0.0.0/8\n")
+
+    # test relative paths resolved from preset file directory
+    preset_file = tmp_path / "my_preset.yml"
+    preset_file.write_text("target:\n  - targets.txt\nseeds:\n  - seeds.txt\nblacklist:\n  - blacklist.txt\n")
+    preset = Preset.from_yaml_file(str(preset_file))
+    target_inputs = set(preset._target_list)
+    assert "evilcorp.com" in target_inputs
+    assert "1.2.3.4" in target_inputs
+    assert "targets.txt" not in target_inputs
+    seed_inputs = set(preset._seeds)
+    assert "seed1.evilcorp.com" in seed_inputs
+    assert "seed2.evilcorp.com" in seed_inputs
+    blacklist_inputs = set(preset._blacklist)
+    assert "internal.evilcorp.com" in blacklist_inputs
+    assert "10.0.0.0/8" in blacklist_inputs
+
+    # test absolute paths
+    preset_file2 = tmp_path / "my_preset2.yml"
+    preset_file2.write_text(f"target:\n  - {targets_file}\n")
+    preset2 = Preset.from_yaml_file(str(preset_file2))
+    target_inputs2 = set(preset2._target_list)
+    assert "evilcorp.com" in target_inputs2
+    assert "1.2.3.4" in target_inputs2
+
+    # test mixed: file paths + literal targets
+    preset_file3 = tmp_path / "my_preset3.yml"
+    preset_file3.write_text("target:\n  - targets.txt\n  - extra.evilcorp.com\n")
+    preset3 = Preset.from_yaml_file(str(preset_file3))
+    target_inputs3 = set(preset3._target_list)
+    assert "evilcorp.com" in target_inputs3
+    assert "1.2.3.4" in target_inputs3
+    assert "extra.evilcorp.com" in target_inputs3
+
+    # test that non-file strings are kept as-is
+    preset4 = Preset.from_dict({"target": ["not_a_file.txt", "192.168.1.1"]})
+    target_inputs4 = set(preset4._target_list)
+    assert "not_a_file.txt" in target_inputs4
+    assert "192.168.1.1" in target_inputs4
