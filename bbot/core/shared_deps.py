@@ -1,15 +1,3 @@
-DEP_FFUF = [
-    {
-        "name": "Download ffuf",
-        "unarchive": {
-            "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_DEPS_FFUF_VERSION}/ffuf_#{BBOT_DEPS_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH_GOLANG}.tar.gz",
-            "include": "ffuf",
-            "dest": "#{BBOT_TOOLS}",
-            "remote_src": True,
-        },
-    }
-]
-
 DEP_DOCKER = [
     {
         "name": "Check if Docker is already installed",
@@ -173,31 +161,6 @@ DEP_CHROMIUM = [
     },
 ]
 
-DEP_CURL = [
-    {
-        "name": "Download static curl binary (v8.11.0)",
-        "get_url": {
-            "url": "https://github.com/moparisthebest/static-curl/releases/download/v8.11.0/curl-amd64",
-            "dest": "#{BBOT_TOOLS}/curl",
-            "mode": "0755",
-            "force": True,
-        },
-    },
-    {
-        "name": "Ensure curl binary is executable",
-        "file": {
-            "path": "#{BBOT_TOOLS}/curl",
-            "mode": "0755",
-        },
-    },
-    {
-        "name": "Verify curl binary works",
-        "command": "#{BBOT_TOOLS}/curl --version",
-        "register": "curl_version_output",
-        "changed_when": False,
-    },
-]
-
 DEP_MASSCAN = [
     {
         "name": "install os deps (Debian)",
@@ -269,7 +232,7 @@ DEP_JAVA = [
     },
 ]
 
-# shared module dependencies -- ffuf, massdns, chromium, etc.
+# shared module dependencies -- massdns, chromium, etc.
 SHARED_DEPS = {}
 for var, val in list(locals().items()):
     if var.startswith("DEP_") and isinstance(val, list):

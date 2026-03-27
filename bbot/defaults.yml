@@ -132,8 +132,6 @@ engine:
 
 # Tool dependencies
 deps:
-  ffuf:
-    version: "2.1.0"
   # How to handle installation of module dependencies
   # Choices are:
   #  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
