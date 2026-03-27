@@ -262,7 +262,12 @@ class http(BaseModule):
             url = response.url
 
             # Build JSON dict for HTTP_RESPONSE event
-            j = self._response_to_json(result.url, response)
+            # The "input" field represents the original scan target (host:port),
+            # not the full URL. Other modules and output consumers use this to
+            # correlate responses back to the target that produced them.
+            input_parsed = urlparse(result.url)
+            url_input = input_parsed.netloc or result.url
+            j = self._response_to_json(url_input, response)
 
             # discard 404s from unverified URLs
             path = j.get("path", "/")
