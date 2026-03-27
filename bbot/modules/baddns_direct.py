@@ -27,7 +27,6 @@ class baddns_direct(baddns_module):
     async def handle_event(self, event):
         CNAME_direct_module = self.select_modules()[0]
         kwargs = {
-            "http_client_class": self.scan.helpers.web.AsyncClient,
             "dns_client": self.scan.helpers.dns.resolver,
             "custom_nameservers": self.custom_nameservers,
             "signatures": self.signatures,

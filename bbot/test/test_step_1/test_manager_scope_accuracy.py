@@ -321,10 +321,10 @@ async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbo
         assert 1 == len([e for e in _graph_output_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.77" and e.internal is True and e.scope_distance == 3])
         assert 1 == len([e for e in _graph_output_events if e.type == "FINDING" and e.data["host"] == "127.0.0.77" and e.internal is False and e.scope_distance == 3])
 
-    # httpx/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 0
+    # http/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 0
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.1/31",
-        modules=["httpx"],
+        modules=["http"],
         _config={
             "dns": {"minimal": False, "search_distance": 2},
             "scope": {"report_distance": 1, "search_distance": 0},
@@ -389,16 +389,16 @@ async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbo
         assert 1 == len([e for e in _graph_output_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.77" and e.internal is False and e.scope_distance == 1])
         assert 0 == len([e for e in _graph_output_events if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.77:8888"])
 
-    # httpx/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 0, in_scope_only = False
+    # http/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 0, in_scope_only = False
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.1/31",
-        modules=["httpx"],
+        modules=["http"],
         _config={
             "dns": {"minimal": False, "search_distance": 2},
             "scope": {"search_distance": 0, "report_distance": 1},
             "excavate": True,
             "speculate": True,
-            "modules": {"httpx": {"in_scope_only": False}, "speculate": {"ports": "8888"}},
+            "modules": {"http": {"in_scope_only": False}, "speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
         },
     )
@@ -406,8 +406,8 @@ async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbo
     assert len(events) == 8
     # 2024-08-01
     # Removed OPEN_TCP_PORT("127.0.0.77:8888")
-    # before, this event was speculated off the URL_UNVERIFIED, and that's what was used by httpx to generate the URL. it was graph-important.
-    # now for whatever reason, httpx is visiting the url directly and the open port isn't being used
+    # before, this event was speculated off the URL_UNVERIFIED, and that's what was used by http module to generate the URL. it was graph-important.
+    # now for whatever reason, http module is visiting the url directly and the open port isn't being used
     # I don't know what changed exactly, but it doesn't matter, either way is equally valid and bbot is meant to be flexible this way.
     assert 1 == len([e for e in events if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal is False and e.scope_distance == 0])
     assert 0 == len([e for e in events if e.type == "IP_ADDRESS" and e.data == "127.0.0.0"])
@@ -477,16 +477,16 @@ async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbo
         assert 0 == len([e for e in _graph_output_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.88"])
         assert 0 == len([e for e in _graph_output_events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.88:8888/"])
 
-    # httpx/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 1
+    # http/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 1
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.1/31",
-        modules=["httpx"],
+        modules=["http"],
         _config={
             "dns": {"minimal": False, "search_distance": 2},
             "scope": {"report_distance": 1, "search_distance": 1},
             "excavate": True,
             "speculate": True,
-            "modules": {"httpx": {"in_scope_only": False}, "speculate": {"ports": "8888"}},
+            "modules": {"http": {"in_scope_only": False}, "speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
         },
     )
@@ -572,7 +572,7 @@ async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbo
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.111/31", "127.0.0.222", "127.0.0.33",
         seeds=["127.0.0.111/31"],
-        modules=["httpx"],
+        modules=["http"],
         output_modules=["python"],
         _config={
             "dns": {"minimal": False, "search_distance": 2},
@@ -815,7 +815,7 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog):
     scan = bbot_scanner(
         "127.0.0.0/29", "test.notreal",
         seeds=["http://127.0.0.1:8888"],
-        modules=["httpx"],
+        modules=["http"],
         config={"excavate": True, "dns": {"minimal": False, "search_distance": 1}, "scope": {"report_distance": 0}},
         blacklist=["127.0.0.64/29"],
     )
@@ -872,7 +872,7 @@ async def test_scope_accuracy_with_special_urls(bbot_scanner, bbot_httpserver):
     bbot_httpserver.expect_request(uri="/v2/users/spacex").respond_with_data(response_data="")
     bbot_httpserver.expect_request(uri="/u/spacex").respond_with_data(response_data="<a href='http://127.0.0.1:8888/asdf.js'/>")
 
-    scan = bbot_scanner("ORG:spacex", modules=["httpx", "social", "dockerhub"], config={"speculate": True, "excavate": True})
+    scan = bbot_scanner("ORG:spacex", modules=["http", "social", "dockerhub"], config={"speculate": True, "excavate": True})
 
     await scan._prep()
     scan.modules["dockerhub"].site_url = "http://127.0.0.1:8888"

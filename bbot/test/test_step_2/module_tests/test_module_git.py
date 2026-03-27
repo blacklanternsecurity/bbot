@@ -8,7 +8,7 @@ class TestGit(ModuleTestBase):
         "http://127.0.0.1:8888/test2",
     ]
 
-    modules_overrides = ["git", "httpx"]
+    modules_overrides = ["git", "http"]
 
     git_config = """[core]
     repositoryformatversion = 0

@@ -135,11 +135,11 @@ class TestSitedossier(ModuleTestBase):
                 "ffff.evilcorp.com": {"A": ["127.0.0.1"]},
             }
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://www.sitedossier.com/parentdomain/evilcorp.com",
             text=page1,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://www.sitedossier.com/parentdomain/evilcorp.com/101",
             text=page2,
         )

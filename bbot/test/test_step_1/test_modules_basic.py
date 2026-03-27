@@ -9,7 +9,7 @@ from bbot.modules.internal.base import BaseInternalModule
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_checks(events, httpx_mock):
+async def test_modules_basic_checks(events, blasthttp_mock):
     from bbot.scanner import Scanner
 
     scan = Scanner(config={"omit_event_types": ["URL_UNVERIFIED"]})
@@ -406,7 +406,7 @@ async def test_modules_basic_setup_deps(bbot_scanner):
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_stats(helpers, events, bbot_scanner, blasthttp_mock, monkeypatch):
     from bbot.modules.base import BaseModule
 
     class dummy(BaseModule):

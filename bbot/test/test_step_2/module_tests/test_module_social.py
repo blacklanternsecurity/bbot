@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestSocial(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "social"]
+    modules_overrides = ["http", "excavate", "social"]
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}

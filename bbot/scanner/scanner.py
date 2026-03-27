@@ -41,11 +41,11 @@ class Scanner:
 
     Examples:
         Create scan with multiple targets:
-        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["portscan", "sslcert", "httpx"])
+        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["portscan", "sslcert", "http"])
 
         Create scan with custom config:
         >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"portscan": {"top_ports": 2000}}}
-        >>> my_scan = Scanner("www.evilcorp.com", modules=["portscan", "httpx"], config=config)
+        >>> my_scan = Scanner("www.evilcorp.com", modules=["portscan", "http"], config=config)
 
         Start the scan, iterating over events as they're discovered (synchronous):
         >>> for event in my_scan.start():
@@ -233,21 +233,21 @@ class Scanner:
         self.web_max_redirects = max(max_redirects, self.web_spider_distance)
         self.http_proxy = web_config.get("http_proxy", "")
         self.http_timeout = web_config.get("http_timeout", 10)
-        self.httpx_timeout = web_config.get("httpx_timeout", 5)
+        self.blasthttp_timeout = web_config.get("blasthttp_timeout", 5)
         self.http_retries = web_config.get("http_retries", 1)
-        self.httpx_retries = web_config.get("httpx_retries", 1)
+        self.blasthttp_retries = web_config.get("blasthttp_retries", 1)
         self.useragent = f"{web_config.get('user_agent', 'BBOT')} {web_config.get('user_agent_suffix') or ''}".strip()
         # custom HTTP headers warning
         self.custom_http_headers = web_config.get("http_headers", {})
         if self.custom_http_headers:
             self.warning(
-                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
+                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by blasthttp."
             )
         # custom HTTP cookies warning
         self.custom_http_cookies = web_config.get("http_cookies", {})
         if self.custom_http_cookies:
             self.warning(
-                "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by httpx."
+                "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by blasthttp."
             )
 
         # url file extensions
@@ -604,6 +604,15 @@ class Scanner:
             After all modules are loaded, they are sorted by `_priority` and stored in the `modules` dictionary.
         """
         if not self._modules_loaded:
+            # If the preset hasn't been baked yet but modules have been
+            # manually attached (e.g. in tests), skip the automatic loading
+            # pipeline and operate only on the existing modules.
+            if self.preset is None:
+                if not self.modules:
+                    self.warning("No modules to load")
+                self._modules_loaded = True
+                return
+
             if not self.preset.modules:
                 self.warning("No modules to load")
                 self._modules_loaded = True
@@ -943,9 +952,6 @@ class Scanner:
             # clean up dns engine
             if self.helpers._dns is not None:
                 await self.helpers.dns.shutdown()
-            # clean up web engine
-            if self.helpers._web is not None:
-                await self.helpers.web.shutdown()
             # In some test paths, `_prep()` is never called, so `home` and
             # `temp_dir` may not exist. Treat those as best-effort cleanups.
             home = getattr(self, "home", None)

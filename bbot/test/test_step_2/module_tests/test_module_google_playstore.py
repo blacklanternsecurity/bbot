@@ -6,7 +6,7 @@ class TestGoogle_Playstore(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.99"]}})
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://play.google.com/store/search?q=blacklanternsecurity&c=apps",
             text="""<!DOCTYPE html>
             <html>
@@ -19,7 +19,7 @@ class TestGoogle_Playstore(ModuleTestBase):
             </body>
             </html>""",
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://play.google.com/store/apps/details?id=com.bbot.test",
             text="""<!DOCTYPE html>
             <html>
@@ -33,7 +33,7 @@ class TestGoogle_Playstore(ModuleTestBase):
             </body>
             </html>""",
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://play.google.com/store/apps/details?id=com.bbot.other",
             text="""<!DOCTYPE html>
             <html>

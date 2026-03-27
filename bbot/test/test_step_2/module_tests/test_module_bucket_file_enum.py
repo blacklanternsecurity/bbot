@@ -4,7 +4,7 @@ from bbot.test.bbot_fixtures import bbot_test_dir
 
 class TestBucket_File_Enum(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["bucket_file_enum", "filedownload", "httpx", "excavate", "cloudcheck"]
+    modules_overrides = ["bucket_file_enum", "filedownload", "http", "excavate", "cloudcheck"]
 
     download_dir = bbot_test_dir / "test_bucket_file_enum"
     config_overrides = {
@@ -23,16 +23,16 @@ trailer <</Root 1 0 R>>"""
 
     async def setup_before_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(f'<a href="{self.open_bucket_url}"/>')
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url=self.open_bucket_url,
             text=self.open_bucket_body,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url=f"{self.open_bucket_url}test.pdf",
             text=self.pdf_data,
             headers={"Content-Type": "application/pdf"},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url=f"{self.open_bucket_url}test.css",
             text="",
         )

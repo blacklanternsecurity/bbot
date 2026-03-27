@@ -14,7 +14,7 @@ from .test_module_paramminer_headers import helper
 # Path Traversal single dot tolerance
 class Test_Lightfuzz_path_singledot(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -122,7 +122,7 @@ lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
 # SSTI Integer Multiplcation
 class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -173,7 +173,7 @@ class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
 # Between Tags XSS Detection
 class Test_Lightfuzz_xss(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -642,7 +642,7 @@ class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
 # SQLI Single Quote/Two Single Quote (getparam)
 class Test_Lightfuzz_sqli(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -713,7 +713,7 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
 # SQLI Single Quote/Two Single Quote (postparam)
 class Test_Lightfuzz_sqli_post(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -822,7 +822,7 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
             "http://127.0.0.1:8888/",
             "URL",
             module_test.scan.root_event,
-            module="httpx",
+            module="http",
             tags=["status-200", "distance-0"],
         )
 
@@ -890,7 +890,7 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
             "http://127.0.0.1:8888/",
             "URL",
             module_test.scan.root_event,
-            module="httpx",
+            module="http",
             tags=["status-200", "distance-0"],
         )
 
@@ -1002,7 +1002,7 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
 # Serialization Module (Error Resolution)
 class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -1388,7 +1388,7 @@ class Test_Lightfuzz_serial_errorresolution_multi_language(Test_Lightfuzz_serial
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -1527,7 +1527,7 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
 # SSRF interactsh
 class Test_Lightfuzz_ssrf(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
 
     @staticmethod
     def extract_subdomain_tag(data):
@@ -1611,7 +1611,7 @@ class Test_Lightfuzz_ssrf(ModuleTestBase):
 
 class Test_Lightfuzz_speculative(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -1666,7 +1666,7 @@ class Test_Lightfuzz_speculative(ModuleTestBase):
 
 class Test_Lightfuzz_crypto_error(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -1723,7 +1723,7 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
 
 class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -1767,7 +1767,7 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
 
 class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -1979,7 +1979,7 @@ class Test_Lightfuzz_PaddingOracleDetection_NarrowCharset(ModuleTestBase):
     The narrow charset check should reject these, preventing false findings."""
 
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2002,7 +2002,7 @@ class Test_Lightfuzz_PaddingOracleDetection_NarrowCharset(ModuleTestBase):
             "http://127.0.0.1:8888/",
             "URL",
             module_test.scan.root_event,
-            module="httpx",
+            module="http",
             tags=["status-200", "distance-0"],
         )
 
@@ -2106,7 +2106,7 @@ class Test_Lightfuzz_PaddingOracleDetection_Jitter(Test_Lightfuzz_PaddingOracleD
 
 class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate", "paramminer_getparams"]
+    modules_overrides = ["http", "lightfuzz", "excavate", "paramminer_getparams"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2234,7 +2234,7 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
 
 class Test_Lightfuzz_esi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2341,7 +2341,7 @@ class Test_Lightfuzz_envelope_isolation_paddingoracle_reflecting(Test_Lightfuzz_
 # Test filter_event method with WAF tags
 class Test_Lightfuzz_filter_event(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz"]
+    modules_overrides = ["http", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2358,7 +2358,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
             "http://127.0.0.1:8888/",
             "URL",
             module_test.scan.root_event,
-            module="httpx",
+            module="http",
             tags=["status-200", "distance-0", "waf"],
         )
 
@@ -2381,7 +2381,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
             "http://127.0.0.1:8888/",
             "URL",
             module_test.scan.root_event,
-            module="httpx",
+            module="http",
             tags=["status-200", "distance-0"],
         )
 
@@ -2427,7 +2427,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
 # try_post_as_get: fuzz POST parameters as GET parameters
 class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2508,7 +2508,7 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
 # try_get_as_post: fuzz GET parameters as POST parameters
 class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "lightfuzz", "excavate"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {

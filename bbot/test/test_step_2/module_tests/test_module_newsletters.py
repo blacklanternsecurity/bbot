@@ -7,7 +7,7 @@ class TestNewsletters(ModuleTestBase):
     found_tgt = "http://127.0.0.1:8888/found"
     missing_tgt = "http://127.0.0.1:8888/missing"
     targets = [found_tgt, missing_tgt]
-    modules_overrides = ["speculate", "httpx", "newsletters"]
+    modules_overrides = ["speculate", "http", "newsletters"]
 
     html_with_newsletter = """
     <input aria-required="true"

@@ -8,7 +8,7 @@ This feature can be utilized with the command line option `--custom-yara-rules` 
 Example:
 
 ```
-bbot -m httpx --custom-yara-rules=test.yara -t http://example.com/
+bbot -m http --custom-yara-rules=test.yara -t http://example.com/
 ```
 
 Where `test.yara` is a file on the filesystem. The file can contain multiple YARA rules, separated by lines.
@@ -155,7 +155,7 @@ Confidence and Severity levels will be assigned to the FINDING event produced if
 When run against the Black Lantern Security homepage with the following BBOT command:
 
 ```
-bbot -m httpx --custom-yara-rules=substack.yara -t http://www.blacklanternsecurity.com/
+bbot -m http --custom-yara-rules=substack.yara -t http://www.blacklanternsecurity.com/
 
 ```
 

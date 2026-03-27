@@ -168,19 +168,16 @@ class BaseTarget:
         return bool(len(self._rt)) or bool(self.event_seeds)
 
     def __getstate__(self):
+        """Serialize for pickling — RadixTarget (PyO3) can't be pickled directly."""
         return {
-            "event_seeds": self.event_seeds,
+            "inputs": [str(e.input) for e in self.event_seeds],
             "strict_scope": self.strict_scope,
-            "acl_mode": self._rt._acl_mode,
+            "acl_mode": getattr(self._rt, "_acl_mode", False),
         }
 
     def __setstate__(self, state):
-        self.strict_scope = state["strict_scope"]
-        self._rt = RadixTarget(strict_scope=state["strict_scope"], acl_mode=state["acl_mode"])
-        self.event_seeds = set()
-        for event_seed in state["event_seeds"]:
-            self.event_seeds.add(event_seed)
-            self._add(event_seed.host, data=event_seed)
+        """Reconstruct from pickled state."""
+        self.__init__(*state["inputs"], strict_scope=state["strict_scope"], acl_mode=state.get("acl_mode", False))
 
     def __eq__(self, other):
         return self.hash == getattr(other, "hash", None)

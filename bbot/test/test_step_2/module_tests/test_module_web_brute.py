@@ -1,17 +1,18 @@
 from .base import ModuleTestBase, tempwordlist
 
 
-class TestFFUF(ModuleTestBase):
+class TestWebBrute(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
+    module_name = "web_brute"
     test_wordlist = ["11111111", "admin", "junkword1", "zzzjunkword2"]
     config_overrides = {
         "modules": {
-            "ffuf": {
+            "web_brute": {
                 "wordlist": tempwordlist(test_wordlist),
             }
         }
     }
-    modules_overrides = ["ffuf", "httpx"]
+    modules_overrides = ["web_brute", "http"]
 
     async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/admin"}
@@ -27,9 +28,9 @@ class TestFFUF(ModuleTestBase):
         assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.url for e in events)
 
 
-class TestFFUF2(TestFFUF):
+class TestWebBrute2(TestWebBrute):
     test_wordlist = ["11111111", "console", "junkword1", "zzzjunkword2"]
-    config_overrides = {"modules": {"ffuf": {"wordlist": tempwordlist(test_wordlist), "extensions": "php"}}}
+    config_overrides = {"modules": {"web_brute": {"wordlist": tempwordlist(test_wordlist), "extensions": "php"}}}
 
     async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/console.php"}
@@ -45,10 +46,10 @@ class TestFFUF2(TestFFUF):
         assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.url for e in events)
 
 
-class TestFFUF_ignorecase(TestFFUF):
+class TestWebBrute_ignorecase(TestWebBrute):
     test_wordlist = ["11111111", "Admin", "admin", "zzzjunkword2"]
     config_overrides = {
-        "modules": {"ffuf": {"wordlist": tempwordlist(test_wordlist), "extensions": "php", "ignore_case": True}}
+        "modules": {"web_brute": {"wordlist": tempwordlist(test_wordlist), "extensions": "php", "ignore_case": True}}
     }
 
     async def setup_before_prep(self, module_test):
@@ -69,10 +70,10 @@ class TestFFUF_ignorecase(TestFFUF):
         assert not any(e.type == "URL_UNVERIFIED" and "Admin" in e.url for e in events)
 
 
-class TestFFUFHeaders(TestFFUF):
+class TestWebBruteHeaders(TestWebBrute):
     test_wordlist = ["11111111", "console", "junkword1", "zzzjunkword2"]
     config_overrides = {
-        "modules": {"ffuf": {"wordlist": tempwordlist(test_wordlist), "extensions": "php"}},
+        "modules": {"web_brute": {"wordlist": tempwordlist(test_wordlist), "extensions": "php"}},
         "web": {"http_headers": {"test": "test2"}},
     }
 

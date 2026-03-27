@@ -86,12 +86,14 @@ class ConfigAwareHelper:
         self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
 
         self._cloud = None
+        self._blasthttp_client = None
 
         self.re = RegexHelper(self)
         self.yara = YaraHelper(self)
         self.simhash = SimHashHelper()
         self._dns = None
         self._web = None
+        self._asn = None
         self._cloudcheck = None
         self._asn = None
         self.config_aware_validators = self.validators.Validators(self)
@@ -116,6 +118,17 @@ class ConfigAwareHelper:
         if self._asn is None:
             self._asn = ASNHelper(self)
         return self._asn
+
+    @property
+    def blasthttp(self):
+        if self._blasthttp_client is None:
+            import blasthttp as _blasthttp
+
+            self._blasthttp_client = _blasthttp.BlastHTTP()
+            rate_limit = self.web_config.get("http_rate_limit", 0)
+            if rate_limit:
+                self._blasthttp_client.set_rate_limit(rate_limit)
+        return self._blasthttp_client
 
     @property
     def cloudcheck(self):

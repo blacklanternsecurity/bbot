@@ -130,25 +130,10 @@ class baddns(BaseModule):
             self.warning(f"Task for {module_instance} raised an error: {e}")
             return module_instance, None
 
-    def _new_http_client(self, *args, **kwargs):
-        """Create a non-cached HTTP client for baddns submodules.
-
-        baddns submodules close their HTTP clients during cleanup, so we can't
-        use the caching ``web.AsyncClient`` factory — that would let one
-        submodule close a client that another submodule is still using.
-
-        TODO: revisit this when we switch to blasthttp — the caching/lifecycle
-        model will be different and this workaround may no longer be needed.
-        """
-        from bbot.core.helpers.web.client import BBOTAsyncClient
-
-        return BBOTAsyncClient.from_config(self.scan.config, self.scan.target, *args, persist_cookies=False, **kwargs)
-
     async def handle_event(self, event):
         coroutines = []
         for ModuleClass in self.select_modules():
             kwargs = {
-                "http_client_class": self._new_http_client,
                 "dns_client": self.scan.helpers.dns.resolver,
                 "custom_nameservers": self.custom_nameservers,
                 "signatures": self.signatures,

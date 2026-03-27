@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestNTLM(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "ntlm"]
+    modules_overrides = ["http", "ntlm"]
     config_overrides = {"modules": {"ntlm": {"try_all": True}}}
 
     async def setup_after_prep(self, module_test):

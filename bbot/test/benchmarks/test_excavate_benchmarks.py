@@ -99,7 +99,7 @@ class TestExcavateDirectBenchmarks:
     async def _run_excavate_single_thread(self, text_segments):
         """Run excavate processing in single thread"""
         # Create scanner and initialize excavate
-        scan = Scanner("example.com", modules=["httpx"], config={"excavate": True})
+        scan = Scanner("example.com", modules=["http"], config={"excavate": True})
         await scan._prep()
         excavate_module = scan.modules.get("excavate")
 
@@ -140,7 +140,7 @@ class TestExcavateDirectBenchmarks:
     async def _run_excavate_parallel_tasks(self, text_segments):
         """Run excavate processing with parallel asyncio tasks"""
         # Create scanner and initialize excavate
-        scan = Scanner("example.com", modules=["httpx"], config={"excavate": True})
+        scan = Scanner("example.com", modules=["http"], config={"excavate": True})
         await scan._prep()
         excavate_module = scan.modules.get("excavate")
 

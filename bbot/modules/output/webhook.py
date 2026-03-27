@@ -4,10 +4,10 @@ from bbot.models.pydantic import Event
 from bbot.modules.output.base import BaseOutputModule
 
 
-class HTTP(BaseOutputModule):
+class webhook(BaseOutputModule):
     watched_events = ["*"]
     meta = {
-        "description": "Send every event to a custom URL via a web request",
+        "description": "Send every event to a custom URL via a webhook",
         "created_date": "2022-04-13",
         "author": "@TheTechromancer",
     }

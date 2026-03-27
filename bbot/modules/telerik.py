@@ -417,7 +417,7 @@ class telerik(BaseModule):
     async def test_detector(self, baseurl, detector):
         result = None
         url = self.create_url(baseurl, detector)
-        result = await self.helpers.request(url, timeout=self.scan.httpx_timeout)
+        result = await self.helpers.request(url, timeout=self.scan.http_timeout)
         return result, detector
 
     async def filter_event(self, event):

@@ -963,7 +963,7 @@ async def test_parameter_validation(helpers):
 async def test_rm_temp_dir_at_exit(helpers):
     from bbot.scanner import Scanner
 
-    scan = Scanner("127.0.0.1", modules=["httpx"])
+    scan = Scanner("127.0.0.1", modules=["http"])
     await scan._prep()
 
     temp_dir = scan.home / "temp"

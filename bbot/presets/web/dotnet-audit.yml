@@ -5,7 +5,7 @@ include:
   - iis-shortnames
 
 modules:
-  - httpx
+  - http
   - badsecrets
   - ffuf_shortnames
   - ffuf

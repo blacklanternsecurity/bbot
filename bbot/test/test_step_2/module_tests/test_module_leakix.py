@@ -5,12 +5,12 @@ class TestLeakIX(ModuleTestBase):
     config_overrides = {"modules": {"leakix": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://leakix.net/host/1.1.1.1",
             match_headers={"api-key": "asdf"},
             json={"title": "Not Found", "description": "Host not found"},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://leakix.net/api/subdomains/blacklanternsecurity.com",
             match_headers={"api-key": "asdf"},
             json=[
@@ -30,11 +30,11 @@ class TestLeakIX_NoAPIKey(ModuleTestBase):
     modules_overrides = ["leakix"]
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://leakix.net/host/1.1.1.1",
             json={"title": "Not Found", "description": "Host not found"},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://leakix.net/api/subdomains/blacklanternsecurity.com",
             json=[
                 {

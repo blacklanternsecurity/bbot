@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestWebReport(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "dotnetnuke", "badsecrets", "web_report", "trufflehog"]
+    modules_overrides = ["http", "dotnetnuke", "badsecrets", "web_report", "trufflehog"]
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
 
     async def setup_before_prep(self, module_test):

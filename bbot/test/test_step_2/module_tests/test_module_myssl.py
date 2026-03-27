@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestMySSL(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.module.abort_if = lambda e: False
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://myssl.com/api/v1/discover_sub_domain?domain=blacklanternsecurity.com",
             json={
                 "code": 0,

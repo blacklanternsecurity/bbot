@@ -19,7 +19,7 @@ class portfilter(BaseInterceptModule):
     }
 
     _priority = 4
-    # we consume URLs but we don't want to automatically enable httpx
+    # we consume URLs but we don't want to automatically enable blasthttp
     _disable_auto_module_deps = True
 
     async def setup(self):

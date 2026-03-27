@@ -101,8 +101,8 @@ class BaseEvent:
             "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
             "tags": ["in-scope", "distance-0", "dir", "status-301"],
             "http_title": "301 Moved Permanently",
-            "module": "httpx",
-            "module_sequence": "httpx"
+            "module": "http",
+            "module_sequence": "http"
         }
         ```
     """

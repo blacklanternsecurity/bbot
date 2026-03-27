@@ -1661,7 +1661,7 @@ def rm_rf(f, ignore_errors=False):
         f (str or Path): The directory path to delete.
 
     Examples:
-        >>> rm_rf("/tmp/httpx98323849")
+        >>> rm_rf("/tmp/bbot98323849")
     """
     import shutil
 

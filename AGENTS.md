@@ -146,6 +146,7 @@ Key helpers:
 | Helper | What it does |
 |--------|-------------|
 | `self.helpers.request(url)` | Make an HTTP request (with retries, SSL handling, etc.) |
+| `self.helpers.blasthttp` | Shared blasthttp client (rate-limited via `web.http_rate_limit` config) |
 | `self.helpers.resolve(host)` | DNS resolution |
 | `self.helpers.is_ip(s)` | Check if string is an IP |
 | `self.helpers.is_dns_name(s)` | Check if string is a hostname |
@@ -219,7 +220,7 @@ from .base import ModuleTestBase
 
 class TestMyModule(ModuleTestBase):
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.example.com/lookup?domain=blacklanternsecurity.com",
             json={"emails": ["info@blacklanternsecurity.com"]},
         )
@@ -370,7 +371,7 @@ Whether to process seed events (the initial targets provided to the scan).
 Whether to accept "special" URLs (e.g. JavaScript files) that are not normally distributed to web modules.
 
 ```python
-# httpx.py - needs to process all URLs including special ones
+# http.py - needs to process all URLs including special ones
 accept_url_special = True
 ```
 
@@ -535,7 +536,7 @@ _preserve_graph = True
 Exclude this module from scan statistics. Used by output and report modules.
 
 ##### `_disable_auto_module_deps` (bool) -- default: `False`
-Prevent BBOT from automatically enabling dependency modules. For example, if your module watches `URL` events, BBOT normally auto-enables `httpx`. Set this to `True` to prevent that.
+Prevent BBOT from automatically enabling dependency modules. For example, if your module watches `URL` events, BBOT normally auto-enables `http`. Set this to `True` to prevent that.
 
 ---
 
@@ -875,7 +876,7 @@ class TestMyModule(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
 
     # Optional: override which modules are enabled
-    modules_overrides = ["httpx", "my_module"]
+    modules_overrides = ["http", "my_module"]
 
     # Optional: override config
     config_overrides = {"modules": {"my_module": {"some_option": True}}}
@@ -887,7 +888,7 @@ class TestMyModule(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         """Called AFTER the scan is prepared. Modify modules, add mocks here."""
         # Mock an HTTP response
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.example.com/lookup?domain=blacklanternsecurity.com",
             json={"results": ["sub.blacklanternsecurity.com"]},
         )
@@ -920,7 +921,7 @@ The test lifecycle runs:
 
 ### Test Utilities
 
-- **`module_test.httpx_mock`** - mock HTTP responses (from pytest-httpx)
+- **`module_test.blasthttp_mock`** - mock HTTP responses 
 - **`module_test.httpserver`** - real HTTP server on port 8888
 - **`module_test.httpserver_ssl`** - real HTTPS server on port 9999
 - **`module_test.mock_dns(data)`** - mock DNS responses
@@ -933,7 +934,7 @@ Real example -- `test_module_robots.py`:
 ```python
 class TestRobots(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "robots"]
+    modules_overrides = ["http", "robots"]
     config_overrides = {"modules": {"robots": {"include_sitemap": True}}}
 
     async def setup_after_prep(self, module_test):

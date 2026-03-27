@@ -225,41 +225,41 @@ async def test_stats_attribution():
     mock_scan = SimpleNamespace(status_frequency=60)
     stats = ScanStats(mock_scan)
 
-    httpx_mod = mock_module("httpx", ["URL", "HTTP_RESPONSE"])
+    http_mod = mock_module("http", ["URL", "HTTP_RESPONSE"])
     excavate_mod = mock_module("excavate", ["URL_UNVERIFIED", "WEB_PARAMETER"])
     ffuf_mod = mock_module("ffuf_shortnames", ["URL_UNVERIFIED"])
     ffuf2_mod = mock_module("ffuf", ["URL_UNVERIFIED"])
     speculate_mod = mock_module("speculate", ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"])
     robots_mod = mock_module("robots", ["URL_UNVERIFIED"])
 
-    # 1) excavate discovers URL_UNVERIFIED from HTTP_RESPONSE, httpx verifies → excavate gets credit
+    # 1) excavate discovers URL_UNVERIFIED from HTTP_RESPONSE, http verifies → excavate gets credit
     for _ in range(5):
         parent = mock_event("URL_UNVERIFIED", excavate_mod)
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 2) ffuf_shortnames discovers URL_UNVERIFIED, httpx verifies → ffuf_shortnames gets credit
+    # 2) ffuf_shortnames discovers URL_UNVERIFIED, http verifies → ffuf_shortnames gets credit
     for _ in range(3):
         parent = mock_event("URL_UNVERIFIED", ffuf_mod)
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 3) ffuf discovers URL_UNVERIFIED, httpx verifies → ffuf gets credit
+    # 3) ffuf discovers URL_UNVERIFIED, http verifies → ffuf gets credit
     parent = mock_event("URL_UNVERIFIED", ffuf2_mod)
-    stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+    stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 4) speculate (internal module) creates URL_UNVERIFIED, httpx verifies → httpx keeps credit
+    # 4) speculate (internal module) creates URL_UNVERIFIED, http verifies → http keeps credit
     for _ in range(4):
         parent = mock_event("URL_UNVERIFIED", speculate_mod)
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 5) robots discovers URL_UNVERIFIED, httpx verifies → robots gets credit
+    # 5) robots discovers URL_UNVERIFIED, http verifies → robots gets credit
     for _ in range(2):
         parent = mock_event("URL_UNVERIFIED", robots_mod)
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 6) httpx discovers URL directly from OPEN_TCP_PORT (no URL_UNVERIFIED parent) → httpx keeps credit
+    # 6) http discovers URL directly from OPEN_TCP_PORT (no URL_UNVERIFIED parent) → http keeps credit
     for _ in range(2):
         parent = mock_event("OPEN_TCP_PORT", mock_module("portscan"))
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
     # 7) non-URL event types are unaffected
     stats.event_produced(mock_event("DNS_NAME", mock_module("CNAME")))
@@ -270,8 +270,8 @@ async def test_stats_attribution():
     assert stats.module_stats["ffuf_shortnames"].produced == {"URL": 3}
     assert stats.module_stats["ffuf"].produced == {"URL": 1}
     assert stats.module_stats["robots"].produced == {"URL": 2}
-    # httpx gets credit for speculate's 4 URLs + 2 from OPEN_TCP_PORT = 6
-    assert stats.module_stats["httpx"].produced == {"URL": 6}
+    # http gets credit for speculate's 4 URLs + 2 from OPEN_TCP_PORT = 6
+    assert stats.module_stats["http"].produced == {"URL": 6}
     assert "speculate" not in stats.module_stats
     assert stats.module_stats["CNAME"].produced == {"DNS_NAME": 1}
     assert stats.module_stats["cloudcheck"].produced == {"STORAGE_BUCKET": 1}
@@ -284,7 +284,7 @@ async def test_stats_attribution():
 
     # build a dict of module_name -> produced_str from the table
     table_dict = {row[0]: row[1] for row in rows}
-    assert table_dict["httpx"] == "6 (6 URL)"
+    assert table_dict["http"] == "6 (6 URL)"
     assert table_dict["excavate"] == "5 (5 URL)"
     assert table_dict["ffuf_shortnames"] == "3 (3 URL)"
     assert table_dict["robots"] == "2 (2 URL)"

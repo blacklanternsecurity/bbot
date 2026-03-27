@@ -148,7 +148,7 @@ class HttpCompare:
             for x in list(ddiff[k]):
                 try:
                     header_value = str(x).split("'")[1]
-                except KeyError:
+                except (KeyError, IndexError):
                     continue
                 differing_headers.append(header_value)
         return differing_headers

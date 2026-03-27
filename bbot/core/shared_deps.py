@@ -173,6 +173,31 @@ DEP_CHROMIUM = [
     },
 ]
 
+DEP_CURL = [
+    {
+        "name": "Download static curl binary (v8.11.0)",
+        "get_url": {
+            "url": "https://github.com/moparisthebest/static-curl/releases/download/v8.11.0/curl-amd64",
+            "dest": "#{BBOT_TOOLS}/curl",
+            "mode": "0755",
+            "force": True,
+        },
+    },
+    {
+        "name": "Ensure curl binary is executable",
+        "file": {
+            "path": "#{BBOT_TOOLS}/curl",
+            "mode": "0755",
+        },
+    },
+    {
+        "name": "Verify curl binary works",
+        "command": "#{BBOT_TOOLS}/curl --version",
+        "register": "curl_version_output",
+        "changed_when": False,
+    },
+]
+
 DEP_MASSCAN = [
     {
         "name": "install os deps (Debian)",
