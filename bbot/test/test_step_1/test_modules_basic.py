@@ -162,8 +162,7 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     assert "subdomain-enum" in all_preloaded["dnsbrute"]["flags"]
     assert "wordlist" in all_preloaded["dnsbrute"]["config"]
     assert type(all_preloaded["dnsbrute"]["config"]["max_depth"]) == int
-    assert all_preloaded["sslcert"]["deps"]["pip"]
-    assert all_preloaded["sslcert"]["deps"]["apt"]
+    assert all_preloaded["baddns"]["deps"]["pip"]
     assert all_preloaded["dnsbrute"]["deps"]["common"]
     assert all_preloaded["gowitness"]["deps"]["ansible"]
 

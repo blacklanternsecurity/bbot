@@ -1,12 +1,10 @@
 """
-Response wrapper that makes blasthttp responses into a standard interface.
+Response wrapper that gives blasthttp responses a standard Python interface.
 
-This allows BBOT modules to use blasthttp transparently — they see the same
-.status_code, .text, .content, .headers, .json(), .raise_for_status() interface
-that BBOT modules expect.
-
-The wrapper stores only plain Python types so it pickles cleanly through the
-ZMQ IPC layer.
+BBOT modules see .status_code, .text, .content, .headers, .json(),
+.raise_for_status() — the same interface they've always used. The wrapper
+copies data out of the blasthttp PyO3 object into plain Python types so
+nothing holds a reference to the Rust-side response after construction.
 """
 
 import json as _json
@@ -105,8 +103,8 @@ class BlasthttpResponse:
     Wraps data extracted from a blasthttp Response into a standard
     interface so BBOT modules work without changes.
 
-    All fields are plain Python types (str, bytes, int, dict) — no references to
-    blasthttp PyO3 objects — so the object pickles cleanly through ZMQ.
+    All fields are plain Python types (str, bytes, int, dict) — no references
+    to blasthttp PyO3 objects are retained after construction.
     """
 
     __slots__ = (
