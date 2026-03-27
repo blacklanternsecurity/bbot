@@ -1593,7 +1593,7 @@ class TestExcavateRedirectParameterScope(ModuleTestBase):
 
     def check(self, module_test, events):
         # The redirect URL itself should be emitted as URL_UNVERIFIED (that's correct behavior)
-        assert any(e.type == "URL_UNVERIFIED" and "login.microsoftonline.com" in e.data for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and "login.microsoftonline.com" in e.url for e in events), (
             "Redirect URL_UNVERIFIED should still be emitted"
         )
 
