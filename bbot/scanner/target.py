@@ -415,7 +415,7 @@ class BBOTTarget:
     def __eq__(self, other):
         return self.hash == other.hash
 
-    async def generate_children(self):
+    async def generate_children(self, ssl_verify=False):
         """
         Generate children for the target, for seed types that expand into other seed types.
         E.g. ASN targets are expanded into their constituent IP ranges.
@@ -426,13 +426,13 @@ class BBOTTarget:
 
         # Expand seeds first
         for event_seed in list(self.seeds.event_seeds):
-            children = await event_seed._generate_children()
+            children = await event_seed._generate_children(ssl_verify=ssl_verify)
             for child in children:
                 self.seeds.add(child)
 
         # Also expand blacklist event seeds (like ASN targets)
         for event_seed in list(self.blacklist.event_seeds):
-            children = await event_seed._generate_children()
+            children = await event_seed._generate_children(ssl_verify=ssl_verify)
             for child in children:
                 self.blacklist.add(child)
 
