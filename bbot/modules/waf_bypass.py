@@ -18,7 +18,7 @@ class waf_bypass(BaseModule):
     """
 
     watched_events = ["URL"]
-    produced_events = ["VULNERABILITY"]
+    produced_events = ["FINDING"]
     options = {
         "similarity_threshold": 0.90,
         "search_ip_neighbors": True,
@@ -30,7 +30,7 @@ class waf_bypass(BaseModule):
         "search_ip_neighbors": "Also check IP neighbors of the target domain",
         "neighbor_cidr": "CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true",
     }
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["active", "safe", "web-heavy"]
     meta = {
         "description": "Detects potential WAF bypasses",
         "author": "@liquidsec",
@@ -62,7 +62,7 @@ class waf_bypass(BaseModule):
 
     async def handle_event(self, event):
         domain = str(event.host)
-        url = str(event.data)
+        url = event.url
 
         # Store the IPs that each domain (that came from a URL event) resolves to. We have to resolve ourself, since normal BBOT DNS resolution doesn't keep ALL the IPs
         domain_dns_response = await self.helpers.dns.resolve(domain)
@@ -296,9 +296,11 @@ class waf_bypass(BaseModule):
                 await self.emit_event(
                     {
                         "severity": "MEDIUM",
+                        "confidence": "CONFIRMED",
+                        "name": "WAF Bypass",
                         "url": matching_url,
                         "description": f"WAF Bypass Confirmed - Direct IPs: {ip_list_str} for {matching_url}. Similarity {sim_key:.2%}",
                     },
-                    "VULNERABILITY",
+                    "FINDING",
                     data["event"],
                 )

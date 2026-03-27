@@ -120,8 +120,8 @@ class TestWAFBypass(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        waf_bypass_events = [e for e in events if e.type == "VULNERABILITY"]
-        assert waf_bypass_events, "No VULNERABILITY event produced"
+        waf_bypass_events = [e for e in events if e.type == "FINDING"]
+        assert waf_bypass_events, "No FINDING event produced"
 
         correct_description = [
             e

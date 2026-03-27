@@ -85,7 +85,7 @@ class Generic_SSRF(BaseSubmodule):
     severity = "HIGH"
 
     def set_base_url(self, event):
-        return event.data
+        return event.url
 
     def create_paths(self):
         test_paths = []
@@ -104,10 +104,10 @@ class Generic_SSRF_POST(BaseSubmodule):
     severity = "HIGH"
 
     def set_base_url(self, event):
-        return event.data
+        return event.url
 
     async def test(self, event):
-        test_url = f"{event.data}"
+        test_url = event.url
 
         post_data = {}
         for param in ssrf_params:
@@ -154,7 +154,7 @@ class Generic_XXE(BaseSubmodule):
 class generic_ssrf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "invasive", "web-heavy"]
     meta = {"description": "Check for generic SSRFs", "created_date": "2022-07-30", "author": "@liquidsec"}
     options = {
         "skip_dns_interaction": False,
@@ -225,7 +225,7 @@ class generic_ssrf(BaseModule):
 
                 event_data = {
                     "host": str(matched_event.host),
-                    "url": matched_event.data,
+                    "url": matched_event.url,
                     "name": matched_technique,
                     "description": description,
                     "severity": matched_severity if protocol == "HTTP" else "LOW",
@@ -236,7 +236,7 @@ class generic_ssrf(BaseModule):
                     event_data,
                     "FINDING",
                     matched_event,
-                    context=f"{{module}} scanned {matched_event.data} and detected {{event.type}}: {matched_technique}",
+                    context=f"{{module}} scanned {matched_event.url} and detected {{event.type}}: {matched_technique}",
                 )
             else:
                 # this is likely caused by something trying to resolve the base domain first and can be ignored

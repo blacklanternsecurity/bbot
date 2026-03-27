@@ -10,7 +10,7 @@ from bbot.core.helpers.simhash import compute_simhash
 class virtualhost(BaseModule):
     watched_events = ["URL"]
     produced_events = ["VIRTUAL_HOST", "DNS_NAME", "HTTP_RESPONSE"]
-    flags = ["active", "aggressive", "slow", "deadly"]
+    flags = ["active", "loud", "slow"]
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
 
     def _format_headers(self, headers):
