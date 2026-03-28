@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import multiprocessing as mp
 from functools import partial
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from . import misc
 from .asn import ASNHelper
@@ -208,6 +208,10 @@ class ConfigAwareHelper:
         """
         if self._loop is None:
             self._loop = get_event_loop()
+            # increase default thread pool size to prevent executor starvation
+            # during heavy scans where YARA, regex, DNS, and HTTP all compete for threads
+            thread_pool_size = max(32, (os.cpu_count() or 1) * 4)
+            self._loop.set_default_executor(ThreadPoolExecutor(max_workers=thread_pool_size))
         return self._loop
 
     def run_in_executor(self, callback, *args, **kwargs):
