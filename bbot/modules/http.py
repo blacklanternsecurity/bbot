@@ -277,13 +277,6 @@ class http(BaseModule):
 
             # main URL
             tags = [f"status-{status_code}"]
-            response_ip = j.get("host", "")
-            if response_ip:
-                tags.append(f"ip-{response_ip}")
-            # grab title
-            title = self.helpers.tagify(j.get("title", ""), maxlen=30)
-            if title:
-                tags.append(f"http-title-{title}")
 
             url_context = "{module} visited {event.parent.data} and got status code {event.http_status}"
             if parent_event.type == "OPEN_TCP_PORT":
@@ -297,6 +290,12 @@ class http(BaseModule):
                 context=url_context,
             )
             if url_event:
+                response_ip = j.get("host", "")
+                if response_ip:
+                    url_event._resolved_hosts.add(response_ip)
+                title = j.get("title", "")
+                if title:
+                    url_event.http_title = title
                 if url_event != parent_event:
                     await self.emit_event(url_event)
                 # HTTP response
