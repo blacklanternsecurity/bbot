@@ -269,8 +269,11 @@ class ScanBlacklist(ACLTarget):
         # first, check event's host against blacklist
         try:
             event_seed = self._make_event_seed(host, raise_error=raise_error)
-            host = event_seed.host
-            to_match = event_seed.data
+            if event_seed is None:
+                to_match = str(host)
+            else:
+                host = event_seed.host
+                to_match = event_seed.data
         except ValidationError:
             to_match = str(host)
         event_result = super().get(host)
