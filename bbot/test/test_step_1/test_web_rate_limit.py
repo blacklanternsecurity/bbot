@@ -58,3 +58,33 @@ async def test_web_no_rate_limit(bbot_scanner, bbot_httpserver):
     assert elapsed < 2.0, f"Requests unexpectedly slow without rate limiting: {elapsed:.2f}s"
 
     await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_batch_rate_limit_min_wins(bbot_scanner):
+    """When both a global and per-call rate limit are set, the more restrictive one should win.
+
+    This tests blasthttp's min(global, per_call) behavior for request_batch.
+    """
+    import blasthttp
+    import time
+
+    # Set a lenient global rate (100 rps) on the client
+    client = blasthttp.BlastHTTP()
+    client.set_rate_limit(100.0)
+
+    # Build 5 dummy configs (they'll fail to connect, but we only care about dispatch timing)
+    configs = [blasthttp.BatchConfig(f"http://127.0.0.1:1/{i}", timeout=1, retries=0) for i in range(5)]
+
+    # Call with a more restrictive per-call rate (10 rps)
+    # If min() works, dispatch should be paced at 10 rps (~400ms for 5 requests)
+    # If global wins, dispatch would be at 100 rps (~40ms for 5 requests)
+    start = time.monotonic()
+    client.request_batch(configs, concurrency=50, rate_limit=10.0)
+    elapsed = time.monotonic() - start
+
+    # 5 requests at 10 rps = 4 intervals × 100ms = ~400ms minimum
+    assert elapsed >= 0.3, (
+        f"Per-call rate limit (10 rps) should win over global (100 rps), "
+        f"but batch completed in {elapsed:.3f}s (expected >= 0.3s)"
+    )
