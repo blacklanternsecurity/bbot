@@ -33,7 +33,10 @@ def get_current_branch() -> str:
 
 
 def checkout_branch(branch: str, repo_path: Path = None):
-    """Checkout a git branch, cleaning up generated files first."""
+    """Checkout a git branch, cleaning up generated and modified files first."""
+    # Reset modified tracked files (e.g. uv.lock changed by `uv sync`)
+    print("Resetting modified tracked files before checkout")
+    run_command(["git", "checkout", "--", "."], cwd=repo_path)
     # Remove untracked files before checkout. Without this, files generated
     # by one branch's toolchain (e.g. uv.lock from `uv run` on a Poetry
     # branch) block checkout to a branch that tracks those same files.
