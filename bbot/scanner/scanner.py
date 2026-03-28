@@ -870,13 +870,13 @@ class Scanner:
         """
         self.debug("Draining queues")
         for module in self.modules.values():
-            with contextlib.suppress(asyncio.queues.QueueEmpty):
-                while 1:
-                    if module.incoming_event_queue not in (None, False):
+            if module.incoming_event_queue not in (None, False):
+                with contextlib.suppress(asyncio.queues.QueueEmpty):
+                    while 1:
                         module.incoming_event_queue.get_nowait()
-            with contextlib.suppress(asyncio.queues.QueueEmpty):
-                while 1:
-                    if module.outgoing_event_queue not in (None, False):
+            if module.outgoing_event_queue not in (None, False):
+                with contextlib.suppress(asyncio.queues.QueueEmpty):
+                    while 1:
                         module.outgoing_event_queue.get_nowait()
         self.debug("Finished draining queues")
 
