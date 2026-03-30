@@ -211,21 +211,21 @@ class ConfigAwareHelper:
             # increase default thread pool size to prevent executor starvation
             # during heavy scans where YARA, regex, DNS, and HTTP all compete for threads
             thread_pool_size = max(32, (os.cpu_count() or 1) * 4)
-            self._loop.set_default_executor(ThreadPoolExecutor(max_workers=thread_pool_size))
-            # separate pool for CPU-bound work (YARA, regex) so it never queues behind I/O
+            self._io_executor = ThreadPoolExecutor(max_workers=thread_pool_size)
             self._cpu_executor = ThreadPoolExecutor(max_workers=max(8, os.cpu_count() or 4))
+            self._loop.set_default_executor(self._io_executor)
         return self._loop
 
-    def run_in_executor(self, callback, *args, **kwargs):
+    def run_in_executor_io(self, callback, *args, **kwargs):
         """
         Run a synchronous task in the event loop's default thread pool executor
 
         Examples:
             Execute callback:
-            >>> result = await self.helpers.run_in_executor(callback_fn, arg1, arg2)
+            >>> result = await self.helpers.run_in_executor_io(callback_fn, arg1, arg2)
         """
         callback = partial(callback, **kwargs)
-        return self.loop.run_in_executor(None, callback, *args)
+        return self.loop.run_in_executor(self._io_executor, callback, *args)
 
     def run_in_executor_cpu(self, callback, *args, **kwargs):
         """
@@ -241,7 +241,7 @@ class ConfigAwareHelper:
 
     def run_in_executor_mp(self, callback, *args, **kwargs):
         """
-        Same as run_in_executor() except with a process pool executor
+        Same as run_in_executor_io() except with a process pool executor
         Use only in cases where callback is CPU-bound
 
         Examples:

@@ -776,6 +776,10 @@ class Scanner:
                     f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds)"
                 )
 
+            io_backlog = self.helpers._io_executor._work_queue.qsize()
+            cpu_backlog = self.helpers._cpu_executor._work_queue.qsize()
+            self.info(f"{self.name}: Thread pool backlog: I/O: {io_backlog:,}, CPU: {cpu_backlog:,}")
+
             if detailed or self.log_level <= logging.DEBUG:
                 # status debugging
                 scan_active_status = []

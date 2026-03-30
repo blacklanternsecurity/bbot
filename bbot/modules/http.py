@@ -213,7 +213,7 @@ class http(BaseModule):
             configs.append(config)
 
         # Run batch in executor to avoid blocking the event loop
-        results = await self.helpers.run_in_executor(self.client.request_batch, configs, self.threads)
+        results = await self.helpers.run_in_executor_io(self.client.request_batch, configs, self.threads)
 
         # Index results by URL for the dedup check
         results_by_url = {r.url: r for r in results}
