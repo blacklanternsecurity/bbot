@@ -306,21 +306,27 @@ class TestWaybackArchiveHuntFinding(ModuleTestBase):
             assert "web.archive.org" not in finding_url, (
                 f"Hunt FINDING url should NOT contain web.archive.org, got: {finding_url}"
             )
-            # archive_url should propagate from HTTP_RESPONSE → WEB_PARAMETER → FINDING
-            assert "archive_url" in finding.data, (
-                f"Hunt FINDING should have archive_url for provenance, got: {finding.data}"
+            # from-wayback tag should propagate; archive_url is reachable via parent traversal
+            assert "from-wayback" in finding.tags, (
+                f"Hunt FINDING should have from-wayback tag, got tags: {finding.tags}"
             )
-            assert "web.archive.org" in finding.data["archive_url"], (
-                f"Hunt FINDING archive_url should be archive.org URL, got: {finding.data['archive_url']}"
+            assert finding.archive_url is not None, (
+                "Hunt FINDING should be able to reach archive_url via parent traversal"
+            )
+            assert "web.archive.org" in finding.archive_url, (
+                f"Hunt FINDING archive_url should be archive.org URL, got: {finding.archive_url}"
             )
 
-        # WEB_PARAMETERs from archived content should also have archive_url
+        # WEB_PARAMETERs from archived content should have from-wayback tag and reachable archive_url
         archived_params = [
             e for e in events if e.type == "WEB_PARAMETER" and "redirect" in e.data.get("name", "").lower()
         ]
         for param in archived_params:
-            assert "archive_url" in param.data, (
-                f"WEB_PARAMETER from archived content should have archive_url, got: {param.data}"
+            assert "from-wayback" in param.tags, (
+                f"WEB_PARAMETER from archived content should have from-wayback tag, got tags: {param.tags}"
+            )
+            assert param.archive_url is not None, (
+                "WEB_PARAMETER from archived content should reach archive_url via parent traversal"
             )
 
         # web.archive.org should never appear as a DNS_NAME

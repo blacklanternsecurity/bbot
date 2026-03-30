@@ -650,6 +650,26 @@ class BaseEvent:
         return self._parent_uuid
 
     @property
+    def archive_url(self):
+        """Traverse the parent chain to find the nearest archive_url.
+
+        The 'from-wayback' tag signals that this event descends from archived content.
+        The actual archive URL is stored only in the data dict of the originating
+        wayback HTTP_RESPONSE; this property walks upward to find it.
+        """
+        if "from-wayback" not in self.tags:
+            return None
+        event = self
+        while event is not None:
+            if isinstance(event.data, dict) and "archive_url" in event.data:
+                return event.data["archive_url"]
+            parent = getattr(event, "parent", None)
+            if parent is None or parent is event:
+                break
+            event = parent
+        return None
+
+    @property
     def validators(self):
         """
         Depending on whether the scan attribute is accessible, return either a config-aware or non-config-aware validator
@@ -1069,19 +1089,6 @@ class DictEvent(BaseEvent):
 
 
 class DictHostEvent(DictEvent):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # inherit archive_url from parent for provenance tracking (e.g. wayback archived content)
-        if isinstance(self.data, dict) and "archive_url" not in self.data:
-            parent = self.parent
-            if (
-                parent is not None
-                and parent is not self
-                and isinstance(parent.data, dict)
-                and "archive_url" in parent.data
-            ):
-                self.data["archive_url"] = parent.data["archive_url"]
-
     def _host(self):
         if isinstance(self.data, dict) and "host" in self.data:
             return make_ip_type(self.data["host"])
