@@ -44,7 +44,7 @@ class dnsbrute_mutations(BaseModule):
 
     async def get_parent_event(self, subdomain):
         start = time.time()
-        parent_host = await self.helpers.run_in_executor(self.helpers.closest_match, subdomain, self.parent_events)
+        parent_host = await self.helpers.run_in_executor_cpu(self.helpers.closest_match, subdomain, self.parent_events)
         elapsed = time.time() - start
         self.trace(f"{subdomain}: got closest match among {len(self.parent_events):,} parent events in {elapsed:.2f}s")
         return self.parent_events[parent_host]

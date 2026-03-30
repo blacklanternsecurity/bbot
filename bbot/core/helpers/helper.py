@@ -212,6 +212,8 @@ class ConfigAwareHelper:
             # during heavy scans where YARA, regex, DNS, and HTTP all compete for threads
             thread_pool_size = max(32, (os.cpu_count() or 1) * 4)
             self._loop.set_default_executor(ThreadPoolExecutor(max_workers=thread_pool_size))
+            # separate pool for CPU-bound work (YARA, regex) so it never queues behind I/O
+            self._cpu_executor = ThreadPoolExecutor(max_workers=max(8, os.cpu_count() or 4))
         return self._loop
 
     def run_in_executor(self, callback, *args, **kwargs):
@@ -224,6 +226,18 @@ class ConfigAwareHelper:
         """
         callback = partial(callback, **kwargs)
         return self.loop.run_in_executor(None, callback, *args)
+
+    def run_in_executor_cpu(self, callback, *args, **kwargs):
+        """
+        Run short CPU-bound work that releases the GIL in a dedicated thread pool,
+        separate from I/O so it never queues behind long-running network calls.
+
+        Examples:
+            Execute callback:
+            >>> result = await self.helpers.run_in_executor_cpu(callback_fn, arg1, arg2)
+        """
+        callback = partial(callback, **kwargs)
+        return self.loop.run_in_executor(self._cpu_executor, callback, *args)
 
     def run_in_executor_mp(self, callback, *args, **kwargs):
         """

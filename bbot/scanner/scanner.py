@@ -1193,7 +1193,7 @@ class Scanner:
             if self.dns_yara_rules_uncompiled is not None:
                 import yara
 
-                self._dns_yara_rules = await self.helpers.run_in_executor(
+                self._dns_yara_rules = await self.helpers.run_in_executor_cpu(
                     yara.compile, source="\n".join(self.dns_yara_rules_uncompiled.values())
                 )
         return self._dns_yara_rules
@@ -1209,7 +1209,7 @@ class Scanner:
         matches = set()
         dns_yara_rules = await self.dns_yara_rules()
         if dns_yara_rules is not None:
-            for match in await self.helpers.run_in_executor(dns_yara_rules.match, data=s):
+            for match in await self.helpers.run_in_executor_cpu(dns_yara_rules.match, data=s):
                 for string in match.strings:
                     for instance in string.instances:
                         matches.add(str(instance))

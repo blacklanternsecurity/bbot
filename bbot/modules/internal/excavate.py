@@ -1145,7 +1145,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         for label, data_instance in data_items:
             # Your existing processing code
-            for result in await self.helpers.run_in_executor(self.yara_rules.match, data=f"{data_instance}"):
+            for result in await self.helpers.run_in_executor_cpu(self.yara_rules.match, data=f"{data_instance}"):
                 rule_name = result.rule
 
                 # Skip specific operations for 'parameter_extraction' rule on decoded_data
