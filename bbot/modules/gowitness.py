@@ -1,4 +1,5 @@
 import os
+import sys
 import asyncio
 import aiosqlite
 import multiprocessing
@@ -243,7 +244,7 @@ class gowitness(BaseModule):
                     context=f"{{module}} visited {{event.type}}: {url}",
                 )
                 if url_event and ip:
-                    url_event._resolved_hosts.add(ip)
+                    url_event._resolved_hosts.add(sys.intern(ip))
                 await self.emit_event(url_event)
 
         # emit technologies
