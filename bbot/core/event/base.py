@@ -710,6 +710,9 @@ class BaseEvent:
 
         The event object stays alive (for parent-chain references, etc.)
         but large fields like HTTP response bodies and raw headers are removed.
+
+        So basically, the parent becomes dead inside for the sake of the children.
+        Just like real life.
         """
         if isinstance(self._data, dict):
             self._data.pop("body", None)
