@@ -125,6 +125,13 @@ class BBOTEnviron:
             environ.pop("HTTP_PROXY", None)
             environ.pop("HTTPS_PROXY", None)
 
+        # handle proxy exclusions (NO_PROXY)
+        http_proxy_exclude = self.preset.config.get("web", {}).get("http_proxy_exclude", [])
+        if http_proxy_exclude:
+            environ["NO_PROXY"] = ",".join(str(x) for x in http_proxy_exclude)
+        else:
+            environ.pop("NO_PROXY", None)
+
         # ssl verification
         import urllib3
 

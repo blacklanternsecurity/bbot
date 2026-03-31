@@ -232,6 +232,7 @@ class Scanner:
         max_redirects = web_config.get("http_max_redirects", 5)
         self.web_max_redirects = max(max_redirects, self.web_spider_distance)
         self.http_proxy = web_config.get("http_proxy", "")
+        self.http_proxy_exclude = web_config.get("http_proxy_exclude", [])
         self.http_timeout = web_config.get("http_timeout", 10)
         self.httpx_timeout = web_config.get("httpx_timeout", 5)
         self.http_retries = web_config.get("http_retries", 1)

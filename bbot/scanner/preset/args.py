@@ -177,6 +177,9 @@ class BBOTArgs:
         if self.parsed.proxy:
             args_preset.core.merge_custom({"web": {"http_proxy": self.parsed.proxy}})
 
+        if self.parsed.no_proxy:
+            args_preset.core.merge_custom({"web": {"http_proxy_exclude": self.parsed.no_proxy}})
+
         if self.parsed.custom_headers:
             args_preset.core.merge_custom({"web": {"http_headers": self.parsed.custom_headers}})
 
@@ -372,6 +375,13 @@ class BBOTArgs:
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
         misc.add_argument("--proxy", help="Use this proxy for all HTTP requests", metavar="HTTP_PROXY")
+        misc.add_argument(
+            "--no-proxy",
+            nargs="+",
+            default=[],
+            help="Exclude these hosts from proxy (e.g. localhost *.internal.corp 10.0.0.0/8)",
+            metavar="HOST",
+        )
         misc.add_argument(
             "-H",
             "--custom-headers",

@@ -84,6 +84,9 @@ dns:
 web:
   # HTTP proxy
   http_proxy:
+  # Hosts/CIDRs to exclude from HTTP proxy (NO_PROXY equivalent)
+  # Examples: ["localhost", "*.internal.corp", "10.0.0.0/8", "elastic.mycompany.com"]
+  http_proxy_exclude: []
   # Web user-agent
   user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
   # Suffix to append to user-agent (e.g. for tracking or identification)

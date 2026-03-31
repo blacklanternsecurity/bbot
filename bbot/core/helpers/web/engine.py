@@ -4,8 +4,10 @@ import httpx
 import asyncio
 import logging
 import traceback
+from urllib.parse import urlparse
 from socksio.exceptions import SOCKSError
 from contextlib import asynccontextmanager
+from radixtarget import RadixTarget
 
 from bbot.core.engine import EngineServer
 from bbot.core.helpers.misc import bytes_to_human, human_to_bytes, get_exception_chain, truncate_string
@@ -36,6 +38,32 @@ class HTTPEngine(EngineServer):
         self.web_clients = {}
         self.web_client = self.AsyncClient(persist_cookies=False)
 
+        # proxy exclusion support
+        self.has_proxy = bool(self.web_config.get("http_proxy", ""))
+        proxy_exclusions = self.web_config.get("http_proxy_exclude", [])
+        self.noproxy_web_clients = {}
+        self.proxy_bypass_all = False
+        if self.has_proxy and proxy_exclusions:
+            normalized = []
+            for pattern in proxy_exclusions:
+                pattern = str(pattern).strip()
+                if pattern == "*":
+                    self.proxy_bypass_all = True
+                    break
+                # normalize NO_PROXY conventions for radixtarget
+                # ".example.com" and "*.example.com" both mean "example.com + subdomains"
+                if pattern.startswith("*."):
+                    pattern = pattern[2:]
+                elif pattern.startswith("."):
+                    pattern = pattern[1:]
+                if pattern:
+                    normalized.append(pattern)
+            self.proxy_exclusion_target = RadixTarget(*normalized) if normalized else RadixTarget()
+            self.noproxy_web_client = self._AsyncClient_noproxy(persist_cookies=False)
+        else:
+            self.proxy_exclusion_target = RadixTarget()
+            self.noproxy_web_client = None
+
     def AsyncClient(self, *args, **kwargs):
         # cache by retries to prevent unwanted accumulation of clients
         # (they are not garbage-collected)
@@ -49,12 +77,44 @@ class HTTPEngine(EngineServer):
             self.web_clients[client.retries] = client
             return client
 
+    def _AsyncClient_noproxy(self, *args, **kwargs):
+        """Create/cache a BBOTAsyncClient with proxy disabled, for excluded hosts."""
+        retries = kwargs.get("retries", 1)
+        try:
+            return self.noproxy_web_clients[retries]
+        except KeyError:
+            from .client import BBOTAsyncClient
+
+            noproxy_config = dict(self.config)
+            noproxy_web = dict(noproxy_config.get("web", {}))
+            noproxy_web["http_proxy"] = None
+            noproxy_config["web"] = noproxy_web
+            client = BBOTAsyncClient.from_config(noproxy_config, self.target, *args, **kwargs)
+            self.noproxy_web_clients[client.retries] = client
+            return client
+
+    def _get_client_for_url(self, url, client=None):
+        """Return the appropriate client based on proxy exclusion rules.
+
+        If no explicit client is provided and the URL matches an exclusion pattern,
+        returns the no-proxy client. Otherwise returns the given client or default.
+        """
+        if client is not None:
+            return client
+        if self.noproxy_web_client is not None and url:
+            if self.proxy_bypass_all:
+                return self.noproxy_web_client
+            hostname = urlparse(str(url)).hostname
+            if hostname and self.proxy_exclusion_target.get(hostname):
+                return self.noproxy_web_client
+        return self.web_client
+
     async def request(self, *args, **kwargs):
         raise_error = kwargs.pop("raise_error", False)
         # TODO: use this
         cache_for = kwargs.pop("cache_for", None)  # noqa
 
-        client = kwargs.get("client", self.web_client)
+        explicit_client = kwargs.pop("client", None)
 
         # allow vs follow, httpx why??
         allow_redirects = kwargs.pop("allow_redirects", None)
@@ -79,6 +139,8 @@ class HTTPEngine(EngineServer):
 
         if client_kwargs:
             client = self.AsyncClient(**client_kwargs)
+        else:
+            client = self._get_client_for_url(url, explicit_client)
 
         try:
             async with self._acatch(url, raise_error):
@@ -144,7 +206,8 @@ class HTTPEngine(EngineServer):
             chunk_size = 8192
             chunks = []
 
-            async with self._acatch(url, raise_error=True), self.web_client.stream(url=url, **kwargs) as response:
+            stream_client = self._get_client_for_url(url)
+            async with self._acatch(url, raise_error=True), stream_client.stream(url=url, **kwargs) as response:
                 agen = response.aiter_bytes(chunk_size=chunk_size)
                 async for chunk in agen:
                     _chunk_size = len(chunk)

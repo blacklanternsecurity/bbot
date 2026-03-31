@@ -426,6 +426,70 @@ async def test_http_proxy(bbot_scanner, bbot_httpserver, proxy_server):
 
 
 @pytest.mark.asyncio
+async def test_http_proxy_exclude(bbot_scanner, bbot_httpserver, proxy_server):
+    """Verify that requests to excluded hosts bypass the proxy."""
+    endpoint = "/test_http_proxy_exclude"
+    url = bbot_httpserver.url_for(endpoint)
+    bbot_httpserver.expect_request(uri=endpoint).respond_with_data("proxy_exclude_works")
+
+    proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
+    # Exclude 127.0.0.1 from proxy
+    scan = bbot_scanner(
+        "127.0.0.1",
+        config={
+            "web": {
+                "http_proxy": proxy_address,
+                "http_proxy_exclude": ["127.0.0.1"],
+            }
+        },
+    )
+
+    await scan._prep()
+
+    proxy_server.RequestHandlerClass.urls.clear()
+    r = await scan.helpers.request(url)
+
+    # Request should NOT go through proxy
+    assert len(proxy_server.RequestHandlerClass.urls) == 0, "Request should have bypassed proxy but went through it"
+    assert r.status_code == 200 and r.text == "proxy_exclude_works"
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_http_proxy_exclude_passthrough(bbot_scanner, bbot_httpserver, proxy_server):
+    """Verify that non-excluded hosts still go through the proxy."""
+    endpoint = "/test_proxy_passthrough"
+    url = bbot_httpserver.url_for(endpoint)
+    bbot_httpserver.expect_request(uri=endpoint).respond_with_data("passthrough_works")
+
+    proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
+    # Exclude a different host, not the one we're requesting
+    scan = bbot_scanner(
+        "127.0.0.1",
+        config={
+            "web": {
+                "http_proxy": proxy_address,
+                "http_proxy_exclude": ["10.0.0.0/8"],
+            }
+        },
+    )
+
+    await scan._prep()
+
+    proxy_server.RequestHandlerClass.urls.clear()
+    r = await scan.helpers.request(url)
+
+    # Request SHOULD go through proxy (127.0.0.1 not in exclusion list)
+    assert len(proxy_server.RequestHandlerClass.urls) == 1, (
+        f"Request to {url} should have gone through proxy but didn't"
+    )
+    assert r.status_code == 200 and r.text == "passthrough_works"
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
     endpoint = "/test_http_ssl"
     url = bbot_httpserver_ssl.url_for(endpoint)
