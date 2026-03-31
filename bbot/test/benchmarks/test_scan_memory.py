@@ -4,6 +4,11 @@ Memory benchmarks for BBOT scan patterns.
 Runs real scans against a local HTTP server and measures peak traced
 memory via tracemalloc. The key metric is `total_memory_mb` in extra_info,
 which the benchmark report script picks up and displays as MB.
+
+Scanner construction is done outside the tracemalloc window because it
+pulls in presets, module loading, and other heavy one-time setup that can
+exceed 400 MB in a pytest process -- far more than the actual scan -- and
+would set the tracemalloc peak before a single event is created.
 """
 
 import gc
@@ -54,47 +59,56 @@ def _start_server():
     return server, port
 
 
-def _measure_peak(coro_func):
-    """Run an async scan under tracemalloc and return peak memory in MB."""
+def _measure_peak(scan_factory, run_scan):
+    """Build the scanner untraced, then measure only scan execution memory."""
+    # Phase 1: build the scanner (untraced)
+    scan, cleanup = scan_factory()
+
+    # Phase 2: trace only the scan execution
     gc.collect()
     if tracemalloc.is_tracing():
         tracemalloc.stop()
     tracemalloc.start()
-    asyncio.run(coro_func())
-    _, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
+    try:
+        asyncio.run(run_scan(scan))
+    finally:
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        if cleanup:
+            cleanup()
     return round(peak / 1024 / 1024, 2)
 
 
 # ---------------------------------------------------------------------------
-# 1) Web crawl — httpx visits many pages, excavate processes bodies
+# 1) Web crawl -- httpx visits many pages, excavate processes bodies
 # ---------------------------------------------------------------------------
 
 
-async def _web_crawl_scan():
+def _web_crawl_factory():
     server, port = _start_server()
-    try:
-        scan = Scanner(
-            f"http://127.0.0.1:{port}/",
-            modules=["httpx"],
-            output_modules=["python"],
-            config={
-                "dns": {"disable": True},
-                "scope": {"search_distance": 0},
-                "web": {"spider_distance": 10, "spider_depth": 10, "spider_links_per_page": NUM_PAGES},
-                "speculate": True,
-                "excavate": True,
-                "aggregate": False,
-                "cloudcheck": False,
-                "modules": {"httpx": {"batch_size": 25}},
-            },
-            force_start=True,
-        )
-        events = []
-        async for event in scan.async_start():
-            events.append(event)
-    finally:
-        server.shutdown()
+    scan = Scanner(
+        f"http://127.0.0.1:{port}/",
+        modules=["httpx"],
+        output_modules=["python"],
+        config={
+            "dns": {"disable": True},
+            "scope": {"search_distance": 0},
+            "web": {"spider_distance": 10, "spider_depth": 10, "spider_links_per_page": NUM_PAGES},
+            "speculate": True,
+            "excavate": True,
+            "aggregate": False,
+            "cloudcheck": False,
+            "modules": {"httpx": {"batch_size": 25}},
+        },
+        force_start=True,
+    )
+    return scan, server.shutdown
+
+
+async def _web_crawl_run(scan):
+    events = []
+    async for event in scan.async_start():
+        events.append(event)
 
 
 class TestWebCrawlMemory:
@@ -102,20 +116,20 @@ class TestWebCrawlMemory:
 
     @pytest.mark.benchmark(group="memory_scan_patterns")
     def test_web_crawl(self, benchmark):
-        peak_mb = _measure_peak(_web_crawl_scan)
+        peak_mb = _measure_peak(_web_crawl_factory, _web_crawl_run)
         benchmark.extra_info["total_memory_mb"] = peak_mb
         benchmark.extra_info["num_pages"] = NUM_PAGES
         benchmark.pedantic(lambda: None, iterations=1, rounds=1, warmup_rounds=0)
 
 
 # ---------------------------------------------------------------------------
-# 2) Subdomain enum — many DNS_NAME events, no heavy bodies
+# 2) Subdomain enum -- many DNS_NAME events, no heavy bodies
 # ---------------------------------------------------------------------------
 
 SUBDOMAIN_ENUM_COUNT = 5000
 
 
-async def _subdomain_enum_scan():
+def _subdomain_enum_factory():
     scan = Scanner(
         "blacklanternsecurity.com",
         modules=[],
@@ -131,6 +145,10 @@ async def _subdomain_enum_scan():
         },
         force_start=True,
     )
+    return scan, None
+
+
+async def _subdomain_enum_run(scan):
     events = []
     injected = False
 
@@ -156,7 +174,7 @@ class TestSubdomainEnumMemory:
 
     @pytest.mark.benchmark(group="memory_scan_patterns")
     def test_subdomain_enum(self, benchmark):
-        peak_mb = _measure_peak(_subdomain_enum_scan)
+        peak_mb = _measure_peak(_subdomain_enum_factory, _subdomain_enum_run)
         benchmark.extra_info["total_memory_mb"] = peak_mb
         benchmark.extra_info["num_subdomains"] = SUBDOMAIN_ENUM_COUNT
         benchmark.pedantic(lambda: None, iterations=1, rounds=1, warmup_rounds=0)

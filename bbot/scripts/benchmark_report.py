@@ -180,6 +180,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
 |--------------|---------|------------|-----------|-----------|"""
 
     significant_changes = []
+    new_tests = []
     performance_summary = []
 
     for current_bench in current_benchmarks:
@@ -304,9 +305,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
 
         else:
             table += f"\n| **{test_name}** | `-` | `{format_time(current_mean)}` | **New** 🆕 | 🆕 |"
-            significant_changes.append(
-                f"- **{test_name}**: New test 🆕 ({format_time(current_mean)}, {format_ops(current_ops)})"
-            )
+            new_tests.append(f"- **{test_name}**: {format_time(current_mean)}, {format_ops(current_ops)}")
 
     table += "\n\n</details>\n\n"
 
@@ -330,6 +329,13 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
         table += "### 🔍 Significant Changes (>10%)\n\n"
         for change in significant_changes:
             table += f"{change}\n"
+        table += "\n"
+
+    # Add new tests section
+    if new_tests:
+        table += "### 🆕 New Tests\n\n"
+        for new_test in new_tests:
+            table += f"{new_test}\n"
         table += "\n"
 
     return table
