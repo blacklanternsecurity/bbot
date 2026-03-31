@@ -871,7 +871,6 @@ async def test_dns_helpers(bbot_scanner):
 
 def test_dnsbrute_canary_check():
     """Test that the DNS brute-force canary detection correctly identifies false positives."""
-    from bbot.core.helpers.dns.brute import DNSBrute
 
     # Simulate what brute.py does with canaries
     # The canary list is built from gen_random_subdomains and must be usable
