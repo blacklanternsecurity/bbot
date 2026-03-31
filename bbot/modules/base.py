@@ -494,6 +494,9 @@ class BaseModule:
                     await self.run_task(self.handle_batch(*events), context, n=len(events))
                 except asyncio.CancelledError:
                     self.debug(f"{context} was cancelled")
+                finally:
+                    for event in events:
+                        event._release()
                 self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
@@ -663,11 +666,14 @@ class BaseModule:
                 if acceptable:
                     if event.type == "FINISHED":
                         finish = True
+                        event._release()
                     else:
                         events.append(event)
                         self.scan.stats.event_consumed(event, self)
-                elif reason:
-                    self.debug(f"Not accepting {event} because {reason}")
+                else:
+                    event._release()
+                    if reason:
+                        self.debug(f"Not accepting {event} because {reason}")
             except asyncio.queues.QueueEmpty:
                 break
         return events, finish
@@ -761,28 +767,31 @@ class BaseModule:
                         except asyncio.queues.QueueEmpty:
                             continue
                         self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                        async with self._task_counter.count(f"event_postcheck({event})"):
-                            acceptable, reason = await self._event_postcheck(event)
-                        if acceptable:
-                            if event.type == "FINISHED":
-                                context = f"{self.name}.finish()"
-                                try:
-                                    await self.run_task(self.finish(), context)
-                                except asyncio.CancelledError:
-                                    self.debug(f"{context} was cancelled")
-                                    continue
+                        try:
+                            async with self._task_counter.count(f"event_postcheck({event})"):
+                                acceptable, reason = await self._event_postcheck(event)
+                            if acceptable:
+                                if event.type == "FINISHED":
+                                    context = f"{self.name}.finish()"
+                                    try:
+                                        await self.run_task(self.finish(), context)
+                                    except asyncio.CancelledError:
+                                        self.debug(f"{context} was cancelled")
+                                        continue
+                                else:
+                                    context = f"{self.name}.handle_event({event})"
+                                    self.scan.stats.event_consumed(event, self)
+                                    self.debug(f"Handling {event}")
+                                    try:
+                                        await self.run_task(self.handle_event(event), context)
+                                    except asyncio.CancelledError:
+                                        self.debug(f"{context} was cancelled")
+                                        continue
+                                    self.debug(f"Finished handling {event}")
                             else:
-                                context = f"{self.name}.handle_event({event})"
-                                self.scan.stats.event_consumed(event, self)
-                                self.debug(f"Handling {event}")
-                                try:
-                                    await self.run_task(self.handle_event(event), context)
-                                except asyncio.CancelledError:
-                                    self.debug(f"{context} was cancelled")
-                                    continue
-                                self.debug(f"Finished handling {event}")
-                        else:
-                            self.debug(f"Not accepting {event} because {reason}")
+                                self.debug(f"Not accepting {event} because {reason}")
+                        finally:
+                            event._release()
         except asyncio.CancelledError:
             # this trace was used for debugging leaked CancelledErrors from inside httpx
             # self.log.trace("Worker cancelled")
@@ -1022,6 +1031,7 @@ class BaseModule:
                 self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
+                event._module_consumers += 1
                 async with self.event_received:
                     self.event_received.notify()
                 if event.type != "FINISHED":
