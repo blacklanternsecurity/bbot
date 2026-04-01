@@ -1,15 +1,17 @@
 """
 Scan throughput benchmark — measures end-to-end HTTP probing performance.
 
-Runs a real BBOT scan with the blasthttp module against a local httpserver,
-measuring how many HTTP_RESPONSE events are produced per second through the
-full scan pipeline (event routing, ZMQ IPC, module framework, Rust HTTP engine).
+Runs a real BBOT scan against a local httpserver, measuring how many
+HTTP_RESPONSE events are produced per second through the full scan pipeline.
+
+Automatically detects the available HTTP scan module (httpx or http/blasthttp).
 
 Run with:
     pytest bbot/test/benchmarks/test_scan_throughput_benchmarks.py -v --benchmark-only
 """
 
 import asyncio
+import importlib.util
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -17,6 +19,10 @@ import pytest
 
 
 BENCH_PORT = 18899
+
+# On 3.0: scan module is "httpx", output module is "http"
+# On blasthttp branch: scan module is "http", output module is "webhook"
+HTTP_MODULE = "httpx" if importlib.util.find_spec("bbot.modules.httpx") else "http"
 
 
 class _BenchHandler(BaseHTTPRequestHandler):
@@ -58,7 +64,7 @@ def _run_scan(num_urls):
         "omit_event_types": [],
     }
 
-    scan = Scanner(*targets, modules=["http"], config=config)
+    scan = Scanner(*targets, modules=[HTTP_MODULE], config=config)
     event_counts = {}
 
     async def _inner():
@@ -70,7 +76,7 @@ def _run_scan(num_urls):
 
 
 class TestScanThroughputBenchmarks:
-    """Benchmark full scan pipeline throughput with blasthttp."""
+    """Benchmark full scan pipeline throughput."""
 
     def test_scan_throughput_100(self, benchmark):
         """100 target URLs through the full scan pipeline."""

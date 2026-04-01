@@ -28,7 +28,8 @@ class ASNHelper:
         if self._client is None:
             from asndb import ASNDB
 
-            self._client = ASNDB()
+            ssl_verify = self.parent_helper.web_config.get("ssl_verify", False)
+            self._client = ASNDB(verify=ssl_verify)
         return self._client
 
     def _normalize(self, response):

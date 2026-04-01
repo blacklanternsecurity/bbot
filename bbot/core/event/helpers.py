@@ -112,7 +112,7 @@ class BaseEventSeed(metaclass=EventSeedRegistry):
         """
         return data, None, None
 
-    async def _generate_children(self):
+    async def _generate_children(self, ssl_verify=False):
         return []
 
     def _override_input(self, input):
@@ -294,10 +294,10 @@ class ASN(BaseEventSeed):
     # ASNs are essentially just a superset of IP_RANGES.
     # This method resolves the ASN to a list of IP_RANGES using the ASN API, and then adds the cidr string as a child event seed.
     # These will later be automatically resolved to an IP_RANGE event seed and added to the target.
-    async def _generate_children(self):
+    async def _generate_children(self, ssl_verify=False):
         from asndb import ASNDB
 
-        client = ASNDB()
+        client = ASNDB(verify=ssl_verify)
         asn_data = await client.lookup_asn(str(self.data), include_subnets=True)
         children = []
         if asn_data:
