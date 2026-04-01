@@ -23,61 +23,55 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: blacklanternsecurity
 
-      - name: Check org membership
-        id: membership
+      - name: Check all committers against org and allowlist
+        id: cla-check
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            AUTHOR="${{ github.event.pull_request.user.login }}"
+            PR_NUM="${{ github.event.pull_request.number }}"
           else
             PR_NUM="${{ github.event.issue.number }}"
-            AUTHOR=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUM" --jq '.user.login' 2>/dev/null)
           fi
-          if [ -n "$AUTHOR" ] && gh api "orgs/blacklanternsecurity/members/$AUTHOR" > /dev/null 2>&1; then
-            echo "is_member=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_member=false" >> "$GITHUB_OUTPUT"
-          fi
+          BOT_ALLOWLIST="dependabot[bot] github-actions[bot] renovate[bot]"
+          COMMITTERS=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUM/commits" --paginate --jq '.[].author.login' | sort -u)
+          ALL_EXEMPT=true
+          for LOGIN in $COMMITTERS; do
+            [ -z "$LOGIN" ] && continue
+            # check bot allowlist
+            EXEMPT=false
+            for BOT in $BOT_ALLOWLIST; do
+              if [ "$LOGIN" = "$BOT" ]; then
+                EXEMPT=true
+                break
+              fi
+            done
+            # check org membership
+            if [ "$EXEMPT" = "false" ]; then
+              if gh api "orgs/blacklanternsecurity/members/$LOGIN" > /dev/null 2>&1; then
+                EXEMPT=true
+              fi
+            fi
+            if [ "$EXEMPT" = "false" ]; then
+              ALL_EXEMPT=false
+              break
+            fi
+          done
+          echo "all_exempt=$ALL_EXEMPT" >> "$GITHUB_OUTPUT"
 
-      - name: Skip CLA for org members
-        if: steps.membership.outputs.is_member == 'true' && github.event_name == 'pull_request_target'
+      - name: Skip CLA when all committers are exempt
+        if: steps.cla-check.outputs.all_exempt == 'true' && github.event_name == 'pull_request_target'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh api --method POST "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
             -f state=success \
             -f context="CLAAssistant" \
-            -f description="CLA check skipped — author is an org member"
-
-      - name: Check if author is a bot
-        id: bot-check
-        if: github.event_name == 'pull_request_target'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          AUTHOR="${{ github.event.pull_request.user.login }}"
-          AUTHOR_TYPE=$(gh api "users/${AUTHOR}" --jq '.type' 2>/dev/null || echo "Unknown")
-          if [ "$AUTHOR_TYPE" = "Bot" ]; then
-            echo "is_bot=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_bot=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Skip CLA for bots
-        if: steps.bot-check.outputs.is_bot == 'true' && github.event_name == 'pull_request_target'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api --method POST "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
-            -f state=success \
-            -f context="CLAAssistant" \
-            -f description="CLA check skipped — author is a bot"
+            -f description="CLA check skipped — all committers are org members or bots"
 
       - name: "CLA Assistant"
         if: |
-          (steps.membership.outputs.is_member != 'true') &&
-          (steps.bot-check.outputs.is_bot != 'true') &&
+          (steps.cla-check.outputs.all_exempt != 'true') &&
           ((github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') || github.event_name == 'pull_request_target')
         uses: contributor-assistant/github-action@v2.6.1
         env:
