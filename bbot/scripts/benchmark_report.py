@@ -180,6 +180,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
 |--------------|---------|------------|-----------|-----------|"""
 
     significant_changes = []
+    new_tests = []
     performance_summary = []
 
     for current_bench in current_benchmarks:
@@ -245,10 +246,16 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             else:
                 base_ops = 1 / base_mean  # Default: single operation
 
-            # Use per-event memory if available, otherwise use time
+            # Use memory metrics if available, otherwise use time
+            current_mb = current_extra.get("total_memory_mb")
+            base_mb = base_extra.get("total_memory_mb")
             current_peb = current_extra.get("per_event_bytes")
             base_peb = base_extra.get("per_event_bytes")
-            if current_peb is not None and base_peb is not None:
+            if current_mb is not None and base_mb is not None and current_peb is None:
+                change_percent, emoji = calculate_change_percentage(base_mb, current_mb)
+                base_label = f"{base_mb:.1f} MB"
+                current_label = f"{current_mb:.1f} MB"
+            elif current_peb is not None and base_peb is not None:
                 change_percent, emoji = calculate_change_percentage(base_peb, current_peb)
                 base_label = f"{base_peb:.0f} B/event"
                 current_label = f"{current_peb:.0f} B/event"
@@ -269,7 +276,10 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
 
             # Track significant changes
             if abs(change_percent) > 10:
-                is_memory = current_extra.get("per_event_bytes") is not None
+                is_memory = (
+                    current_extra.get("per_event_bytes") is not None
+                    or current_extra.get("total_memory_mb") is not None
+                )
                 if is_memory:
                     direction = "🐌 more memory" if change_percent > 0 else "🚀 less memory"
                 else:
@@ -295,9 +305,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
 
         else:
             table += f"\n| **{test_name}** | `-` | `{format_time(current_mean)}` | **New** 🆕 | 🆕 |"
-            significant_changes.append(
-                f"- **{test_name}**: New test 🆕 ({format_time(current_mean)}, {format_ops(current_ops)})"
-            )
+            new_tests.append(f"- **{test_name}**: {format_time(current_mean)}, {format_ops(current_ops)}")
 
     table += "\n\n</details>\n\n"
 
@@ -321,6 +329,13 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
         table += "### 🔍 Significant Changes (>10%)\n\n"
         for change in significant_changes:
             table += f"{change}\n"
+        table += "\n"
+
+    # Add new tests section
+    if new_tests:
+        table += "### 🆕 New Tests\n\n"
+        for new_test in new_tests:
+            table += f"{new_test}\n"
         table += "\n"
 
     return table

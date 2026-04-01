@@ -1,3 +1,4 @@
+import sys
 import ipaddress
 from contextlib import suppress
 
@@ -231,7 +232,7 @@ class DNSResolve(BaseInterceptModule):
         for rdtype in ("A", "AAAA", "CNAME"):
             hosts = dns_children.get(rdtype, [])
             # update resolved hosts
-            event.resolved_hosts.update(hosts)
+            event.resolved_hosts.update(sys.intern(h) for h in hosts)
             for host in hosts:
                 # having a CNAME to an in-scope host doesn't make you in-scope
                 if rdtype != "CNAME":
@@ -258,6 +259,7 @@ class DNSResolve(BaseInterceptModule):
         queries = [(event_host, rdtype) for rdtype in types]
         dns_errors = {}
         async for (query, rdtype), (answers, errors) in self.helpers.dns.resolve_raw_batch(queries):
+            rdtype = sys.intern(rdtype)
             # errors
             try:
                 dns_errors[rdtype].update(errors)
@@ -272,6 +274,8 @@ class DNSResolve(BaseInterceptModule):
                     event.raw_dns_records[rdtype] = {answer}
                 # hosts
                 for _rdtype, host in extract_targets(answer):
+                    _rdtype = sys.intern(_rdtype)
+                    host = sys.intern(host)
                     try:
                         event.dns_children[_rdtype].add(host)
                     except KeyError:

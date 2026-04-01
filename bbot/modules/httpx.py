@@ -1,4 +1,5 @@
 import re
+import sys
 import orjson
 import tempfile
 import subprocess
@@ -200,7 +201,7 @@ class httpx(BaseModule):
             if url_event:
                 httpx_ip = j.get("host", "")
                 if httpx_ip:
-                    url_event._resolved_hosts.add(httpx_ip)
+                    url_event._resolved_hosts.add(sys.intern(httpx_ip))
                 url_event.data["status_code"] = status_code
                 title = j.get("title", "")
                 if title:
