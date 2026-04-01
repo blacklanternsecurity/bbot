@@ -72,7 +72,7 @@ class DNSEngine(EngineServer):
             self.wildcard_ignore = []
         self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
         self.wildcard_tests = self.dns_config.get("wildcard_tests", 5)
-        self._wildcard_cache = {}
+        self._wildcard_cache = LRUCache(maxsize=10000)
         # since wildcard detection takes some time, This is to prevent multiple
         # modules from kicking off wildcard detection for the same domain at the same time
         self._wildcard_lock = NamedLock()
@@ -81,10 +81,10 @@ class DNSEngine(EngineServer):
         self._last_dns_success = None
         self._last_connectivity_warning = time.time()
         # keeps track of warnings issued for wildcard detection to prevent duplicate warnings
-        self._dns_warnings = set()
-        self._errors = {}
+        self._dns_warnings = LRUCache(maxsize=10000)
+        self._errors = LRUCache(maxsize=10000)
         self._debug = self.dns_config.get("debug", False)
-        self._dns_cache = LRUCache(maxsize=10000)
+        self._dns_cache = LRUCache(maxsize=100000)
 
     async def resolve(self, query, **kwargs):
         """Resolve DNS names and IP addresses to their corresponding results.
@@ -221,7 +221,7 @@ class DNSEngine(EngineServer):
                                 self.log.verbose(
                                     f'Aborting future {rdtype} queries to "{parent}" because error count ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                                 )
-                            self._dns_warnings.add(parent_hash)
+                            self._dns_warnings[parent_hash] = True
                             return results, errors
                     results = await self._catch(self.resolver.resolve, query, **kwargs)
                     if use_cache:
