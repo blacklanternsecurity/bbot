@@ -50,9 +50,31 @@ jobs:
             -f context="CLAAssistant" \
             -f description="CLA check skipped — author is an org member"
 
+      - name: Check if author is a bot
+        id: bot-check
+        if: github.event_name == 'pull_request_target'
+        run: |
+          AUTHOR="${{ github.event.pull_request.user.login }}"
+          if [[ "$AUTHOR" == *"[bot]" ]]; then
+            echo "is_bot=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_bot=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip CLA for bots
+        if: steps.bot-check.outputs.is_bot == 'true' && github.event_name == 'pull_request_target'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method POST "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
+            -f state=success \
+            -f context="CLAAssistant" \
+            -f description="CLA check skipped — author is a bot"
+
       - name: "CLA Assistant"
         if: |
           (steps.membership.outputs.is_member != 'true') &&
+          (steps.bot-check.outputs.is_bot != 'true') &&
           ((github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') || github.event_name == 'pull_request_target')
         uses: contributor-assistant/github-action@v2.6.1
         env:
