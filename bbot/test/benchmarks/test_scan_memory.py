@@ -9,6 +9,7 @@ benchmark extra_info["total_memory_mb"].
 
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -17,11 +18,13 @@ NUM_PAGES = 500
 BODY_SIZE = 500_000  # 500 KB per page
 SUBDOMAIN_ENUM_COUNT = 5000
 
+_BENCHMARKS_DIR = Path(__file__).parent
 
-def _run_scan_subprocess(script: str) -> float:
+
+def _run_scan_subprocess(script_path: Path, *args: str) -> float:
     """Run a scan script in a clean subprocess, return peak memory in MB."""
     result = subprocess.run(
-        [sys.executable, "-c", script],
+        [sys.executable, str(script_path), *args],
         capture_output=True,
         text=True,
         timeout=600,
@@ -34,132 +37,19 @@ def _run_scan_subprocess(script: str) -> float:
     raise RuntimeError(f"No PEAK_MB in subprocess output:\n{result.stdout[-2000:]}")
 
 
-# ---------------------------------------------------------------------------
-# 1) Web crawl -- httpx visits many pages, excavate processes bodies
-# ---------------------------------------------------------------------------
-
-_WEB_CRAWL_SCRIPT = """
-import gc, asyncio, threading, tracemalloc
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from bbot.scanner import Scanner
-
-NUM_PAGES = NUM_PAGES_PLACEHOLDER
-BODY_SIZE = BODY_SIZE_PLACEHOLDER
-
-class H(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == "/":
-            links = "".join(f'<a href="/page{i}">page{i}</a>' for i in range(NUM_PAGES))
-            body = "<html><body>" + links + "</body></html>"
-        elif self.path.startswith("/page"):
-            i = self.path.replace("/page", "")
-            links = f'<a href="/data{i}/info">info</a><a href="/data{i}/details">details</a>'
-            body = "<html><body><h1>Page " + i + "</h1>" + links + "A" * BODY_SIZE + "</body></html>"
-        elif self.path.startswith("/data"):
-            body = "<html><body>data endpoint</body></html>"
-        else:
-            self.send_response(404); self.end_headers(); return
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html")
-        self.end_headers()
-        self.wfile.write(body.encode())
-    def log_message(self, *a): pass
-
-server = HTTPServer(("127.0.0.1", 0), H)
-port = server.server_address[1]
-threading.Thread(target=server.serve_forever, daemon=True).start()
-
-scan = Scanner(
-    f"http://127.0.0.1:{port}/",
-    modules=["httpx"], output_modules=["python"],
-    config={
-        "dns": {"disable": True},
-        "scope": {"search_distance": 0},
-        "web": {"spider_distance": 10, "spider_depth": 10, "spider_links_per_page": NUM_PAGES},
-        "speculate": True, "excavate": True, "aggregate": False, "cloudcheck": False,
-        "modules": {"httpx": {"batch_size": 25}},
-    },
-    force_start=True,
-)
-
-async def run():
-    await scan._prep()
-    gc.collect()
-    if tracemalloc.is_tracing():
-        tracemalloc.stop()
-    tracemalloc.start()
-    events = []
-    async for event in scan.async_start():
-        events.append(event)
-
-asyncio.run(run())
-_, peak = tracemalloc.get_traced_memory()
-tracemalloc.stop()
-server.shutdown()
-print(f"PEAK_MB:{round(peak / 1024 / 1024, 2)}")
-""".replace("NUM_PAGES_PLACEHOLDER", str(NUM_PAGES)).replace("BODY_SIZE_PLACEHOLDER", str(BODY_SIZE))
-
-
 class TestWebCrawlMemory:
     """Measures peak memory during a realistic web crawl with large pages."""
 
     @pytest.mark.benchmark(group="memory_scan_patterns")
     def test_memory_use_web_crawl(self, benchmark):
-        peak_mb = _run_scan_subprocess(_WEB_CRAWL_SCRIPT)
+        peak_mb = _run_scan_subprocess(
+            _BENCHMARKS_DIR / "_scan_memory_web_crawl.py",
+            str(NUM_PAGES),
+            str(BODY_SIZE),
+        )
         benchmark.extra_info["total_memory_mb"] = peak_mb
         benchmark.extra_info["num_pages"] = NUM_PAGES
         benchmark.pedantic(lambda: None, iterations=1, rounds=1, warmup_rounds=0)
-
-
-# ---------------------------------------------------------------------------
-# 2) Subdomain enum -- many DNS_NAME events, no heavy bodies
-# ---------------------------------------------------------------------------
-
-_SUBDOMAIN_ENUM_SCRIPT = """
-import gc, asyncio, tracemalloc
-from bbot.scanner import Scanner
-
-SUBDOMAIN_ENUM_COUNT = SUBDOMAIN_COUNT_PLACEHOLDER
-
-scan = Scanner(
-    "blacklanternsecurity.com",
-    modules=[], output_modules=["python"],
-    config={
-        "dns": {"disable": True},
-        "scope": {"search_distance": 0},
-        "web": {"spider_distance": 0, "spider_depth": 0},
-        "speculate": False, "excavate": True, "aggregate": False, "cloudcheck": False,
-    },
-    force_start=True,
-)
-
-async def run():
-    await scan._prep()
-    gc.collect()
-    if tracemalloc.is_tracing():
-        tracemalloc.stop()
-    tracemalloc.start()
-    events = []
-    injected = False
-    async for event in scan.async_start():
-        events.append(event)
-        if event.type == "SCAN" and not injected:
-            injected = True
-            root_event = scan.root_event
-            for i in range(SUBDOMAIN_ENUM_COUNT):
-                dns_event = scan.make_event(
-                    f"sub{i}.blacklanternsecurity.com",
-                    "DNS_NAME",
-                    parent=root_event,
-                    context=f"benchmark DNS_NAME {i}",
-                )
-                await scan.ingress_module.queue_event(dns_event, {})
-
-asyncio.run(run())
-_, peak = tracemalloc.get_traced_memory()
-tracemalloc.stop()
-print(f"PEAK_MB:{round(peak / 1024 / 1024, 2)}")
-""".replace("SUBDOMAIN_COUNT_PLACEHOLDER", str(SUBDOMAIN_ENUM_COUNT))
 
 
 class TestSubdomainEnumMemory:
@@ -167,7 +57,10 @@ class TestSubdomainEnumMemory:
 
     @pytest.mark.benchmark(group="memory_scan_patterns")
     def test_memory_use_subdomain_enum(self, benchmark):
-        peak_mb = _run_scan_subprocess(_SUBDOMAIN_ENUM_SCRIPT)
+        peak_mb = _run_scan_subprocess(
+            _BENCHMARKS_DIR / "_scan_memory_subdomain_enum.py",
+            str(SUBDOMAIN_ENUM_COUNT),
+        )
         benchmark.extra_info["total_memory_mb"] = peak_mb
         benchmark.extra_info["num_subdomains"] = SUBDOMAIN_ENUM_COUNT
         benchmark.pedantic(lambda: None, iterations=1, rounds=1, warmup_rounds=0)
