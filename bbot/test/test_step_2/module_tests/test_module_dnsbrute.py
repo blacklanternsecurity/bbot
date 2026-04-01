@@ -95,3 +95,44 @@ class TestDnsbrute(ModuleTestBase):
         assert 1 == len(
             [e for e in events if e.data == "asdf.blacklanternsecurity.com" and str(e.module) == "dnsbrute"]
         )
+
+
+class TestDnsbruteCanaryCheck(ModuleTestBase):
+    """Test that the canary check correctly aborts brute-forcing on wildcard domains.
+
+    Simulates a wildcard domain by making massdns return a result for every input
+    subdomain, including the canary subdomains. The canary check should detect
+    this and return no results.
+    """
+
+    module_name = "dnsbrute"
+    subdomain_wordlist = tempwordlist(["www", "mail"])
+    config_overrides = {"modules": {"dnsbrute": {"wordlist": str(subdomain_wordlist)}}}
+
+    async def setup_after_prep(self, module_test):
+        old_run_live = module_test.scan.helpers.run_live
+
+        async def new_run_live(*command, check=False, text=True, **kwargs):
+            if "massdns" in command[:2]:
+                # simulate a wildcard domain: return a result for EVERY input subdomain
+                _input = [l async for l in kwargs["input"]]
+                for subdomain in _input:
+                    hostname = subdomain.strip()
+                    if hostname:
+                        yield '{"name": "' + hostname + '.", "type": "A", "class": "IN", "status": "NOERROR", "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "' + hostname + '.", "data": "1.2.3.4"}]}, "resolver": "195.226.187.130:53", "proto": "UDP"}'
+            else:
+                async for _ in old_run_live(*command, check=False, text=True, **kwargs):
+                    yield _
+
+        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", new_run_live)
+
+        await module_test.mock_dns(
+            {
+                "blacklanternsecurity.com": {"A": ["4.3.2.1"]},
+            }
+        )
+
+    def check(self, module_test, events):
+        # canary check should have aborted, so no DNS_NAME events from dnsbrute
+        dnsbrute_events = [e for e in events if e.type == "DNS_NAME" and str(e.module) == "dnsbrute"]
+        assert len(dnsbrute_events) == 0, f"Expected no results from dnsbrute (canary check should abort), but got {len(dnsbrute_events)}: {[e.data for e in dnsbrute_events]}"
