@@ -629,8 +629,25 @@ class Preset(metaclass=BasePreset):
     def in_target(self, host):
         return self.target.in_target(host)
 
+    @staticmethod
+    def _resolve_file_entries(entries):
+        """Resolve relative file paths in target/seeds/blacklist entries via PresetPath.
+
+        Replaces entries that match a file in PresetPath's known directories with
+        their absolute path, so that chain_lists' existing try_files logic can find them.
+        Entries that don't match a file are left as-is.
+        """
+        resolved = []
+        for entry in entries:
+            found = PRESET_PATH.find_file(entry)
+            if found is not None:
+                resolved.append(str(found))
+            else:
+                resolved.append(entry)
+        return resolved
+
     @classmethod
-    def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False, _base_dir=None):
+    def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
         """
         Create a preset from a Python dictionary object.
 
@@ -639,7 +656,6 @@ class Preset(metaclass=BasePreset):
             name (str, optional): Name of preset
             _exclude (list[Path], optional): Preset filenames to exclude from inclusion. Used internally to prevent infinite recursion in circular or self-referencing presets.
             _log (bool, optional): Whether to enable logging for the preset. This will record which modules/flags are enabled, etc.
-            _base_dir (Path, optional): Base directory for resolving relative file paths in target/seeds/blacklist.
 
         Returns:
             Preset: The loaded preset
@@ -652,31 +668,25 @@ class Preset(metaclass=BasePreset):
         # Handle seeds and targets from dict
         # for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.
         target_vals = (preset_dict.get("target") or []) + (preset_dict.get("targets") or [])
-        _source = f"preset '{name}'" if name else "preset"
+        # resolve relative file paths via PresetPath (which knows the preset's directory)
         targets = chain_lists(
-            target_vals,
+            cls._resolve_file_entries(target_vals),
             try_files=True,
             msg="Reading targets from preset file: {filename}",
-            base_dir=_base_dir,
-            source=_source,
         )
         seeds = preset_dict.get("seeds")
         if seeds is not None:
             seeds = chain_lists(
-                seeds,
+                cls._resolve_file_entries(seeds),
                 try_files=True,
                 msg="Reading seeds from preset file: {filename}",
-                base_dir=_base_dir,
-                source=_source,
             )
         blacklist = preset_dict.get("blacklist")
         if blacklist is not None:
             blacklist = chain_lists(
-                blacklist,
+                cls._resolve_file_entries(blacklist),
                 try_files=True,
                 msg="Reading blacklist from preset file: {filename}",
-                base_dir=_base_dir,
-                source=_source,
             )
         new_preset = cls(
             *targets,
@@ -755,7 +765,6 @@ class Preset(metaclass=BasePreset):
                 name=filename.stem,
                 _exclude=_exclude,
                 _log=_log,
-                _base_dir=filename.parent,
             )
             preset._yaml_str = yaml_str
             preset.filename = filename

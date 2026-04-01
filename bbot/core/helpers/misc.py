@@ -1128,8 +1128,6 @@ def chain_lists(
     remove_blank=True,
     validate=False,
     validate_chars='<>:"/\\|?*)',
-    base_dir=None,
-    source=None,
 ):
     """Chains together list elements, allowing for entries separated by commas.
 
@@ -1138,10 +1136,6 @@ def chain_lists(
 
     The order of entries is preserved, and deduplication is performed automatically.
 
-    When ``try_files`` is True, each entry is checked to see if it is a file path.
-    Relative paths are resolved against ``base_dir`` first (if provided), then CWD.
-    Absolute paths are used as-is.
-
     Args:
         l (list): The list of strings to chain together.
         try_files (bool, optional): Whether to try to open entries as files. Defaults to False.
@@ -1149,10 +1143,6 @@ def chain_lists(
         remove_blank (bool, optional): Whether to remove blank entries from the list. Defaults to True.
         validate (bool, optional): Whether to perform validation for undesirable characters. Defaults to False.
         validate_chars (str, optional): When performing validation, what additional set of characters to block (blocks non-printable ascii automatically). Defaults to '<>:"/\\|?*)'
-        base_dir (Path, optional): Base directory for resolving relative file paths (e.g. the directory
-            of the preset YAML file). Relative paths are tried here first, then in CWD. Defaults to None.
-        source (str, optional): Where the entries came from (e.g. preset filename), included in warning
-            messages. Defaults to None.
 
     Returns:
         list: The list of chained elements.
@@ -1176,62 +1166,20 @@ def chain_lists(
             if validate:
                 if any((c in validate_chars) or (ord(c) < 32 and c != " ") for c in f):
                     raise ValueError(f"Invalid character in string: {f}")
-            if try_files:
-                f_path = _resolve_file_path(f, base_dir)
-                if f_path is not None:
-                    if msg is not None:
-                        new_msg = str(msg).format(filename=f_path)
-                        log.info(new_msg)
-                    for line in str_or_file(str(f_path)):
-                        final_list[line] = None
-                    continue
-                elif _looks_like_filename(f):
-                    source_str = f" (from {source})" if source else ""
-                    log.warning(
-                        f'"{f}" looks like a filename but no file was found{source_str}, treating it as a target'
-                    )
-            final_list[f] = None
+            f_path = Path(f).resolve()
+            if try_files and f_path.is_file():
+                if msg is not None:
+                    new_msg = str(msg).format(filename=f_path)
+                    log.info(new_msg)
+                for line in str_or_file(f):
+                    final_list[line] = None
+            else:
+                final_list[f] = None
 
     ret = list(final_list)
     if remove_blank:
         ret = [r for r in ret if r]
     return ret
-
-
-def _resolve_file_path(f, base_dir=None):
-    """Try to resolve a string as a file path.
-
-    For absolute paths, check directly. For relative paths, try base_dir first
-    (if provided), then CWD.
-
-    Returns the resolved Path if a file is found, otherwise None.
-    """
-    f_path = Path(f)
-    if f_path.is_absolute():
-        f_path = f_path.resolve()
-        if f_path.is_file():
-            return f_path
-        return None
-    # relative path: try base_dir first, then CWD
-    if base_dir is not None:
-        candidate = (Path(base_dir) / f_path).resolve()
-        if candidate.is_file():
-            return candidate
-    candidate = f_path.resolve()
-    if candidate.is_file():
-        return candidate
-    return None
-
-
-# file extensions that suggest an entry was meant to be a file path
-_file_extensions = {".txt", ".csv", ".list", ".lst", ".conf", ".cfg", ".tsv", ".tab", ".text"}
-
-
-def _looks_like_filename(s):
-    """Return True if s looks like it was meant to be a filename."""
-    if "/" in s or "\\" in s:
-        return True
-    return Path(s).suffix.lower() in _file_extensions
 
 
 def list_files(directory, filter=lambda x: True):
