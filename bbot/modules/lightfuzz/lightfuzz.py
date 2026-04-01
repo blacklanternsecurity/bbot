@@ -2,6 +2,7 @@ import importlib
 from bbot.modules.base import BaseModule
 
 from bbot.errors import InteractshError
+from bbot.core.helpers.misc import get_waf_strings
 
 
 class lightfuzz(BaseModule):
@@ -59,6 +60,8 @@ class lightfuzz(BaseModule):
             except ImportError:
                 return False, f"Invalid Lightfuzz submodule ({submodule_name}) specified in enabled_modules"
             self.submodules[submodule_name] = submodule_class
+
+        self.waf_yara_rules = self.helpers.yara.compile_strings(get_waf_strings(), nocase=True)
 
         interactsh_needed = any(submodule.uses_interactsh for submodule in self.submodules.values())
         if interactsh_needed and not self.interactsh_disable:

@@ -1,6 +1,5 @@
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
-from bbot.core.helpers.misc import get_waf_strings
 
 import statistics
 
@@ -122,7 +121,10 @@ class sqli(BaseLightfuzz):
                     ):
                         # Check if the status code change is due to a WAF, not SQL injection
                         if single_quote[3].status_code == 403:
-                            waf_detected = any(ws in single_quote[3].text for ws in get_waf_strings())
+                            waf_matches = await self.lightfuzz.helpers.yara.match(
+                                self.lightfuzz.waf_yara_rules, single_quote[3].text
+                            )
+                            waf_detected = len(waf_matches) > 0
                             if waf_detected:
                                 self.debug(
                                     "Single quote probe returned 403 with WAF signature, "

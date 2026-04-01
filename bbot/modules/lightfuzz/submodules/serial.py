@@ -1,6 +1,5 @@
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
-from bbot.core.helpers.misc import get_waf_strings
 
 
 class serial(BaseLightfuzz):
@@ -48,10 +47,20 @@ class serial(BaseLightfuzz):
         "java.io.optionaldataexception",
     ]
 
-    GENERAL_ERRORS = [
+    GENERAL_ERROR_STRINGS = [
         "Internal Error",
         "Internal Server Error",
-    ] + get_waf_strings()
+    ]
+
+    @property
+    def general_error_yara_rules(self):
+        if not hasattr(self.lightfuzz, "_serial_general_error_rules"):
+            from bbot.core.helpers.misc import get_waf_strings
+
+            self.lightfuzz._serial_general_error_rules = self.lightfuzz.helpers.yara.compile_strings(
+                self.GENERAL_ERROR_STRINGS + get_waf_strings(), nocase=True
+            )
+        return self.lightfuzz._serial_general_error_rules
 
     def is_possibly_serialized(self, value):
         # Use the is_base64 method from BaseLightfuzz via self
@@ -101,7 +110,6 @@ class serial(BaseLightfuzz):
         php_raw_serialization_payloads = self.PHP_RAW_SERIALIZATION_PAYLOADS
 
         serialization_errors = self.SERIALIZATION_ERRORS
-        general_errors = self.GENERAL_ERRORS
 
         probe_value = self.incoming_probe_value(populate_empty=False)
         if probe_value:
@@ -172,12 +180,13 @@ class serial(BaseLightfuzz):
                     )
                     continue
 
+                general_error_matches = await self.lightfuzz.helpers.yara.match(
+                    self.general_error_yara_rules, response.text
+                )
                 if (
                     status_code == 200
                     and "code" in diff_reasons
-                    and not any(
-                        error in response.text for error in general_errors
-                    )  # ensure the 200 is not actually an error
+                    and not general_error_matches  # ensure the 200 is not actually an error
                 ):
                     # Confirm the baseline error state is stable by re-sending the control payload.
                     # If the control also returns 200 now, the original error was transient.

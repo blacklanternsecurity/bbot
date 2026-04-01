@@ -113,9 +113,8 @@ class path(BaseLightfuzz):
                         and doubledot_probe[0] is False
                         and doubledot_probe[3] is not None
                         and doubledot_probe[1] != ["header"]
-                        and not any(
-                            waf_string in doubledot_probe[3].text
-                            for waf_string in self.lightfuzz.helpers.get_waf_strings()
+                        and not await self.lightfuzz.helpers.yara.match(
+                            self.lightfuzz.waf_yara_rules, doubledot_probe[3].text
                         )
                     ):
                         confirmations += 1
