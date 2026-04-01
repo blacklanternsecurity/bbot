@@ -692,21 +692,13 @@ class BaseEvent:
             e = parent
         return parents
 
-    def _release(self):
+    def _minimize(self):
         """
         Called when a module is done processing this event.
 
         Decrements the consumer count. When no modules are left waiting to
         process this event, heavy payload data (e.g. HTTP response bodies)
         is stripped to free memory.
-        """
-        self._module_consumers = max(0, self._module_consumers - 1)
-        if self._module_consumers <= 0:
-            self._minimize()
-
-    def _minimize(self):
-        """
-        Strip heavy payload data from the event to free memory.
 
         The event object stays alive (for parent-chain references, etc.)
         but large fields like HTTP response bodies and raw headers are removed.
@@ -714,7 +706,8 @@ class BaseEvent:
         So basically, the parent becomes dead inside for the sake of the children.
         Just like real life.
         """
-        if isinstance(self._data, dict):
+        self._module_consumers = max(0, self._module_consumers - 1)
+        if self._module_consumers <= 0 and isinstance(self._data, dict):
             self._data.pop("body", None)
             self._data.pop("raw_header", None)
 

@@ -496,7 +496,7 @@ class BaseModule:
                     self.debug(f"{context} was cancelled")
                 finally:
                     for event in events:
-                        event._release()
+                        event._minimize()
                 self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
@@ -666,12 +666,12 @@ class BaseModule:
                 if acceptable:
                     if event.type == "FINISHED":
                         finish = True
-                        event._release()
+                        event._minimize()
                     else:
                         events.append(event)
                         self.scan.stats.event_consumed(event, self)
                 else:
-                    event._release()
+                    event._minimize()
                     if reason:
                         self.debug(f"Not accepting {event} because {reason}")
             except asyncio.queues.QueueEmpty:
@@ -791,7 +791,7 @@ class BaseModule:
                             else:
                                 self.debug(f"Not accepting {event} because {reason}")
                         finally:
-                            event._release()
+                            event._minimize()
         except asyncio.CancelledError:
             # this trace was used for debugging leaked CancelledErrors from inside httpx
             # self.log.trace("Worker cancelled")
