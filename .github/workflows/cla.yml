@@ -33,26 +33,36 @@ jobs:
           else
             PR_NUM="${{ github.event.issue.number }}"
           fi
-          BOT_ALLOWLIST="dependabot[bot] github-actions[bot] renovate[bot]"
           COMMITTERS=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUM/commits" --paginate --jq '.[].author.login' | sort -u)
           ALL_EXEMPT=true
+
           for LOGIN in $COMMITTERS; do
-            [ -z "$LOGIN" ] && continue
-            # check bot allowlist
+            # treat commits with no associated GitHub login as non-exempt
+            if [ -z "$LOGIN" ] || [ "$LOGIN" = "null" ]; then
+              echo "Unknown committer (no GitHub login) — not exempt"
+              ALL_EXEMPT=false
+              break
+            fi
+
             EXEMPT=false
-            for BOT in $BOT_ALLOWLIST; do
-              if [ "$LOGIN" = "$BOT" ]; then
-                EXEMPT=true
-                break
-              fi
-            done
+
+            # check if account type is Bot (GitHub App accounts)
+            AUTHOR_TYPE=$(gh api "users/${LOGIN}" --jq '.type' 2>/dev/null || echo "Unknown")
+            if [ "$AUTHOR_TYPE" = "Bot" ]; then
+              echo "$LOGIN is a Bot account — exempt"
+              EXEMPT=true
+            fi
+
             # check org membership
             if [ "$EXEMPT" = "false" ]; then
               if gh api "orgs/blacklanternsecurity/members/$LOGIN" > /dev/null 2>&1; then
+                echo "$LOGIN is an org member — exempt"
                 EXEMPT=true
               fi
             fi
+
             if [ "$EXEMPT" = "false" ]; then
+              echo "$LOGIN is not exempt — CLA required"
               ALL_EXEMPT=false
               break
             fi
