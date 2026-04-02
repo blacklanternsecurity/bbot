@@ -311,24 +311,35 @@ class WebHelper:
             >>>     if response is not None and response.status_code == 200:
             >>>         self.hugesuccess(response)
         """
-        tasks = {}
+        queue = asyncio.Queue()
         urls = list(urls)
-        semaphore = asyncio.Semaphore(threads)
+        total = len(urls)
+        completed = 0
 
-        async def _request(url):
-            async with semaphore:
-                return url, await self.request(url, **kwargs)
+        async def _worker():
+            while True:
+                url = await queue.get()
+                try:
+                    response = await self.request(url, **kwargs)
+                    yield_queue.put_nowait((url, response))
+                except (RuntimeError, OSError, ConnectionError):
+                    yield_queue.put_nowait((url, None))
+                finally:
+                    queue.task_done()
+
+        yield_queue = asyncio.Queue()
+        workers = [asyncio.create_task(_worker()) for _ in range(min(threads, total))]
 
         for url in urls:
-            task = asyncio.create_task(_request(url))
-            tasks[task] = True
+            await queue.put(url)
 
-        while tasks:
-            finished, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            for task in finished:
-                del tasks[task]
-                url, response = task.result()
-                yield url, response
+        while completed < total:
+            url, response = await yield_queue.get()
+            completed += 1
+            yield url, response
+
+        for w in workers:
+            w.cancel()
 
     async def request_custom_batch(self, urls_and_kwargs, threads=10):
         """
@@ -352,27 +363,38 @@ class WebHelper:
             >>>     if response is not None and response.status_code == 200:
             >>>         self.hugesuccess(response)
         """
-        tasks = {}
-        semaphore = asyncio.Semaphore(threads)
+        entries = list(urls_and_kwargs)
+        total = len(entries)
+        completed = 0
+        work_queue = asyncio.Queue()
+        yield_queue = asyncio.Queue()
 
-        for entry in urls_and_kwargs:
+        async def _worker():
+            while True:
+                url, entry_kwargs, tracker = await work_queue.get()
+                try:
+                    response = await self.request(url, **entry_kwargs)
+                    yield_queue.put_nowait((url, entry_kwargs, tracker, response))
+                except (RuntimeError, OSError, ConnectionError):
+                    yield_queue.put_nowait((url, entry_kwargs, tracker, None))
+                finally:
+                    work_queue.task_done()
+
+        workers = [asyncio.create_task(_worker()) for _ in range(min(threads, total))]
+
+        for entry in entries:
             url = entry[0]
             entry_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else {}
             tracker = entry[2] if len(entry) > 2 else None
+            await work_queue.put((url, entry_kwargs, tracker))
 
-            async def _request(_url=url, _kwargs=entry_kwargs, _tracker=tracker):
-                async with semaphore:
-                    return _url, _kwargs, _tracker, await self.request(_url, **_kwargs)
+        while completed < total:
+            url, kw, tracker, response = await yield_queue.get()
+            completed += 1
+            yield url, kw, tracker, response
 
-            task = asyncio.create_task(_request())
-            tasks[task] = True
-
-        while tasks:
-            finished, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            for task in finished:
-                del tasks[task]
-                url, kw, tracker, response = task.result()
-                yield url, kw, tracker, response
+        for w in workers:
+            w.cancel()
 
     async def download(self, url, **kwargs):
         """

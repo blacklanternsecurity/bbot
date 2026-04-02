@@ -351,35 +351,35 @@ class web_brute(BaseModule):
                 self.debug("Found canary in results, all hits are likely false positives — aborting")
                 return
 
-            # Mid-scan validation for each hit
-            for hit in hits:
-                if not baseline and ext_filter:
-                    canary_word = "".join(random.choice(string.ascii_lowercase) for _ in range(4))
-                    canary_url = f"{url}{prefix}{canary_word}{suffix}{ext}"
-                    canary_configs = [
-                        blasthttp.BatchConfig(
-                            canary_url,
-                            headers=headers,
-                            timeout=self.scan.http_timeout,
-                            retries=0,
-                            verify_certs=False,
-                            follow_redirects=False,
-                            proxy=proxy,
-                        )
-                    ]
-                    canary_batch = await self.helpers.run_in_executor_io(
-                        self.blast_client.request_batch, canary_configs, 1, rate_limit=self.rate
+            # Mid-scan validation: one canary check per extension, not per hit
+            if hits and not baseline and ext_filter:
+                canary_word = "".join(random.choice(string.ascii_lowercase) for _ in range(4))
+                canary_url = f"{url}{prefix}{canary_word}{suffix}{ext}"
+                canary_configs = [
+                    blasthttp.BatchConfig(
+                        canary_url,
+                        headers=headers,
+                        timeout=self.scan.http_timeout,
+                        retries=0,
+                        verify_certs=False,
+                        follow_redirects=False,
+                        proxy=proxy,
                     )
-                    if canary_batch and canary_batch[0].success:
-                        canary_metrics = self._batch_response_metrics(canary_batch[0].response)
-                        if not self._is_baseline_match(canary_metrics, ext_filter):
-                            self.verbose(
-                                f"Would have reported [{hit['url']}], but mid-scan baseline check failed. "
-                                "This could be due to a WAF turning on mid-scan."
-                            )
-                            self.verbose(f"Aborting the current run against [{url}]")
-                            return
+                ]
+                canary_batch = await self.helpers.run_in_executor_io(
+                    self.blast_client.request_batch, canary_configs, 1, rate_limit=self.rate
+                )
+                if canary_batch and canary_batch[0].success:
+                    canary_metrics = self._batch_response_metrics(canary_batch[0].response)
+                    if not self._is_baseline_match(canary_metrics, ext_filter):
+                        self.verbose(
+                            f"Would have reported {len(hits)} hit(s), but mid-scan baseline check failed. "
+                            "This could be due to a WAF turning on mid-scan."
+                        )
+                        self.verbose(f"Aborting the current run against [{url}]")
+                        return
 
+            for hit in hits:
                 yield hit
 
     def generate_templist(self, prefix=None):
