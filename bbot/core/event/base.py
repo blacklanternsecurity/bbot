@@ -164,6 +164,8 @@ class BaseEvent:
         "dns_resolve_distance",
         # Host metadata (cloud providers, ASN, whois, etc.)
         "_host_metadata",
+        # Memory management
+        "_module_consumers",
         # Public attributes
         "module",
         "scan",
@@ -224,6 +226,7 @@ class BaseEvent:
         self.dns_children = {}
         self.raw_dns_records = {}
         self._discovery_context = ""
+        self._module_consumers = 0
 
         # for creating one-off events without enforcing parent requirement
         self._dummy = _dummy
@@ -688,6 +691,15 @@ class BaseEvent:
             parents.append(parent)
             e = parent
         return parents
+
+    def _minimize(self):
+        """
+        Called when a module is done processing this event.
+
+        Decrements the consumer count. When no modules are left waiting to
+        process this event, heavy payload data is stripped to free memory.
+        """
+        self._module_consumers = max(0, self._module_consumers - 1)
 
     def clone(self):
         # Create a shallow copy of the event first
@@ -1571,6 +1583,12 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
 
     def _pretty_string(self):
         return f"{self.data['hash']['header_mmh3']}:{self.data['hash']['body_mmh3']}"
+
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self._data.pop("body", None)
+            self._data.pop("raw_header", None)
 
     @property
     def raw_response(self):
