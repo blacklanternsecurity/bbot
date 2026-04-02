@@ -629,6 +629,23 @@ class Preset(metaclass=BasePreset):
     def in_target(self, host):
         return self.target.in_target(host)
 
+    @staticmethod
+    def _resolve_file_entries(entries):
+        """Resolve relative file paths in target/seeds/blacklist entries via PresetPath.
+
+        Replaces entries that match a file in PresetPath's known directories with
+        their absolute path, so that chain_lists' existing try_files logic can find them.
+        Entries that don't match a file are left as-is.
+        """
+        resolved = []
+        for entry in entries:
+            found = PRESET_PATH.find_file(entry)
+            if found is not None:
+                resolved.append(str(found))
+            else:
+                resolved.append(entry)
+        return resolved
+
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
         """
@@ -646,15 +663,35 @@ class Preset(metaclass=BasePreset):
         Examples:
             >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
+        from bbot.core.helpers.misc import chain_lists
+
         # Handle seeds and targets from dict
         # for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.
         target_vals = (preset_dict.get("target") or []) + (preset_dict.get("targets") or [])
-        targets = list(dict.fromkeys(target_vals))
+        # resolve relative file paths via PresetPath (which knows the preset's directory)
+        targets = chain_lists(
+            cls._resolve_file_entries(target_vals),
+            try_files=True,
+            msg="Reading targets from preset file: {filename}",
+        )
         seeds = preset_dict.get("seeds")
+        if seeds is not None:
+            seeds = chain_lists(
+                cls._resolve_file_entries(seeds),
+                try_files=True,
+                msg="Reading seeds from preset file: {filename}",
+            )
+        blacklist = preset_dict.get("blacklist")
+        if blacklist is not None:
+            blacklist = chain_lists(
+                cls._resolve_file_entries(blacklist),
+                try_files=True,
+                msg="Reading blacklist from preset file: {filename}",
+            )
         new_preset = cls(
             *targets,
             seeds=seeds,
-            blacklist=preset_dict.get("blacklist"),
+            blacklist=blacklist,
             modules=preset_dict.get("modules"),
             output_modules=preset_dict.get("output_modules"),
             exclude_modules=preset_dict.get("exclude_modules"),
@@ -724,7 +761,10 @@ class Preset(metaclass=BasePreset):
             except FileNotFoundError:
                 raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
             preset = cls.from_dict(
-                omegaconf.OmegaConf.create(yaml_str), name=filename.stem, _exclude=_exclude, _log=_log
+                omegaconf.OmegaConf.create(yaml_str),
+                name=filename.stem,
+                _exclude=_exclude,
+                _log=_log,
             )
             preset._yaml_str = yaml_str
             preset.filename = filename
