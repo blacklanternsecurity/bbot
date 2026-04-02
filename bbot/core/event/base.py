@@ -697,19 +697,9 @@ class BaseEvent:
         Called when a module is done processing this event.
 
         Decrements the consumer count. When no modules are left waiting to
-        process this event, heavy payload data (e.g. HTTP response bodies)
-        is stripped to free memory.
-
-        The event object stays alive (for parent-chain references, etc.)
-        but large fields like HTTP response bodies and raw headers are removed.
-
-        So basically, the parent becomes dead inside for the sake of the children.
-        Just like real life.
+        process this event, heavy payload data is stripped to free memory.
         """
         self._module_consumers = max(0, self._module_consumers - 1)
-        if self._module_consumers <= 0 and isinstance(self._data, dict):
-            self._data.pop("body", None)
-            self._data.pop("raw_header", None)
 
     def clone(self):
         # Create a shallow copy of the event first
@@ -1593,6 +1583,12 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
 
     def _pretty_string(self):
         return f"{self.data['hash']['header_mmh3']}:{self.data['hash']['body_mmh3']}"
+
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self._data.pop("body", None)
+            self._data.pop("raw_header", None)
 
     @property
     def raw_response(self):
