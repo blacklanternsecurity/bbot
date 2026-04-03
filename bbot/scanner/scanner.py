@@ -768,15 +768,13 @@ class Scanner:
                 )
 
             num_queued_events = self.num_queued_events
-            io_backlog = self.helpers._io_executor._work_queue.qsize()
-            cpu_backlog = self.helpers._cpu_executor._work_queue.qsize()
             if num_queued_events:
                 self.info(
-                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds) | Thread pool backlog: I/O: {io_backlog:,}, CPU: {cpu_backlog:,}"
+                    f"{self.name}: {num_queued_events:,} events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds)"
                 )
             else:
                 self.info(
-                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds) | Thread pool backlog: I/O: {io_backlog:,}, CPU: {cpu_backlog:,}"
+                    f"{self.name}: No events in queue ({self.stats.speedometer.speed:,} processed in the past {self.status_frequency} seconds)"
                 )
 
             if detailed or self.log_level <= logging.DEBUG:

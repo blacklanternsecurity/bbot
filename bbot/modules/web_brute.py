@@ -180,9 +180,7 @@ class web_brute(BaseModule):
                 )
 
             canary_results = []
-            results = await self.helpers.run_in_executor_io(
-                self.blast_client.request_batch, canary_configs, 4, rate_limit=self.rate
-            )
+            results = await self.blast_client.request_batch(canary_configs, 4, rate_limit=self.rate)
             for result in results:
                 if result.success:
                     canary_results.append(self._batch_response_metrics(result.response))
@@ -306,9 +304,7 @@ class web_brute(BaseModule):
             self.debug(f"Fuzzing {len(configs)} URLs for ext [{ext}]")
 
             # Fire all requests via native blasthttp batch (Rust concurrency)
-            results = await self.helpers.run_in_executor_io(
-                self.blast_client.request_batch, configs, self.concurrency, rate_limit=self.rate
-            )
+            results = await self.blast_client.request_batch(configs, self.concurrency, rate_limit=self.rate)
 
             # Index results by URL for ordered processing
             results_by_url = {}
@@ -367,9 +363,7 @@ class web_brute(BaseModule):
                             proxy=proxy,
                         )
                     ]
-                    canary_batch = await self.helpers.run_in_executor_io(
-                        self.blast_client.request_batch, canary_configs, 1, rate_limit=self.rate
-                    )
+                    canary_batch = await self.blast_client.request_batch(canary_configs, 1, rate_limit=self.rate)
                     if canary_batch and canary_batch[0].success:
                         canary_metrics = self._batch_response_metrics(canary_batch[0].response)
                         if not self._is_baseline_match(canary_metrics, ext_filter):

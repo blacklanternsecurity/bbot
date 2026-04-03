@@ -266,8 +266,8 @@ class WebHelper:
             if self.http_debug:
                 log.trace(f"blasthttp request: {method} {url}")
 
-            # Run in executor — blasthttp blocks the thread (tokio runtime)
-            blast_response = await self.parent_helper.run_in_executor_io(self.client.request, url, **blast_kwargs)
+            # blasthttp returns a native coroutine via pyo3-async-runtimes
+            blast_response = await self.client.request(url, **blast_kwargs)
 
             response = BlasthttpResponse(blast_response, request_url=url, method=method)
 
