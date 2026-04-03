@@ -75,7 +75,7 @@ class paramminer_headers(BaseModule):
         "zx-request-id",
         "zx-timer",
     }
-    _module_threads = 12
+    _module_threads = 4
     in_scope_only = True
     compare_mode = "header"
     default_wordlist = "paramminer_headers.txt"
@@ -199,27 +199,35 @@ class paramminer_headers(BaseModule):
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.url}]")
             await self.process_results(event, results)
 
+    max_count = 95
+
     async def count_test(self, url):
         baseline = await self.helpers.request(url)
         if baseline is None:
             return
         if str(baseline.status_code)[0] in {"4", "5"}:
             return
-        for count, args, kwargs in self.gen_count_args(url):
+
+        # Binary search for the maximum count the server accepts
+        lo, hi = 0, self.max_count
+        result = None
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            if mid == 0:
+                break
+            args, kwargs = self.build_count_test_request(url, mid)
             r = await self.helpers.request(*args, **kwargs)
             if r is not None and str(r.status_code)[0] not in {"4", "5"}:
-                return count
+                result = mid
+                lo = mid + 1
+            else:
+                hi = mid - 1
+        return result
 
-    def gen_count_args(self, url):
-        header_count = 95
-        while 1:
-            if header_count < 0:
-                break
-            fake_headers = {}
-            for i in range(0, header_count):
-                fake_headers[self.rand_string(14)] = self.rand_string(14)
-            yield header_count, (url,), {"headers": fake_headers}
-            header_count -= 5
+    def build_count_test_request(self, url, count):
+        """Build a test request with `count` fake parameters. Returns (args, kwargs) for helpers.request()."""
+        fake_headers = {self.rand_string(14): self.rand_string(14) for _ in range(count)}
+        return (url,), {"headers": fake_headers}
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
