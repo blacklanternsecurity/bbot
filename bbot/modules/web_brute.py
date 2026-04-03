@@ -23,6 +23,7 @@ class web_brute(BaseModule):
         "extensions": "",
         "ignore_case": False,
         "rate": 0,
+        "concurrency": 50,
     }
 
     options_desc = {
@@ -31,13 +32,15 @@ class web_brute(BaseModule):
         "max_depth": "the maximum directory depth to attempt to solve",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
         "ignore_case": "Only put lowercase words into the wordlist",
-        "rate": "Rate of requests per second (default: 0)",
+        "rate": "Maximum requests per second (0 = unlimited)",
+        "concurrency": "Number of concurrent requests per URL being fuzzed",
     }
 
     banned_characters = {" "}
     blacklist = ["images", "css", "image"]
 
     in_scope_only = True
+    _module_threads = 4
 
     async def setup_deps(self):
         self.wordlist = await self.helpers.wordlist(self.config.get("wordlist"))
@@ -50,7 +53,15 @@ class web_brute(BaseModule):
         self.debug(f"Using wordlist [{wordlist_url}]")
         self.wordlist_lines = self.generate_wordlist(self.wordlist)
         self.words, words_len = self.generate_templist()
-        self.rate = self.config.get("rate", 0)
+        self.rate = self.config.get("rate", 0) or None
+        self.concurrency = self.config.get("concurrency", 50)
+        # warn if the module rate limit is less restrictive than the global setting
+        global_rate = self.scan.web_config.get("http_rate_limit", 0)
+        if self.rate and global_rate and global_rate < self.rate:
+            self.info(
+                f"Module rate limit ({self.rate} rps) is higher than global http_rate_limit ({global_rate} rps). "
+                f"The more restrictive global setting will be used."
+            )
         self.verbose(f"Generated dynamic wordlist with length [{str(words_len)}]")
         try:
             self.extensions = self.helpers.chain_lists(self.config.get("extensions", ""), validate=True)
@@ -169,7 +180,7 @@ class web_brute(BaseModule):
                 )
 
             canary_results = []
-            results = await self.helpers.run_in_executor(self.blast_client.request_batch, canary_configs, 4)
+            results = await self.blast_client.request_batch(canary_configs, 4, rate_limit=self.rate)
             for result in results:
                 if result.success:
                     canary_results.append(self._batch_response_metrics(result.response))
@@ -293,7 +304,7 @@ class web_brute(BaseModule):
             self.debug(f"Fuzzing {len(configs)} URLs for ext [{ext}]")
 
             # Fire all requests via native blasthttp batch (Rust concurrency)
-            results = await self.helpers.run_in_executor(self.blast_client.request_batch, configs, 50)
+            results = await self.blast_client.request_batch(configs, self.concurrency, rate_limit=self.rate)
 
             # Index results by URL for ordered processing
             results_by_url = {}
@@ -352,9 +363,7 @@ class web_brute(BaseModule):
                             proxy=proxy,
                         )
                     ]
-                    canary_batch = await self.helpers.run_in_executor(
-                        self.blast_client.request_batch, canary_configs, 1
-                    )
+                    canary_batch = await self.blast_client.request_batch(canary_configs, 1, rate_limit=self.rate)
                     if canary_batch and canary_batch[0].success:
                         canary_metrics = self._batch_response_metrics(canary_batch[0].response)
                         if not self._is_baseline_match(canary_metrics, ext_filter):

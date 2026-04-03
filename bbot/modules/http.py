@@ -212,8 +212,8 @@ class http(BaseModule):
             )
             configs.append(config)
 
-        # Run batch in executor to avoid blocking the event loop
-        results = await self.helpers.run_in_executor(self.client.request_batch, configs, self.threads)
+        # blasthttp batch returns a native coroutine via pyo3-async-runtimes
+        results = await self.client.request_batch(configs, self.threads)
 
         # Index results by URL for the dedup check
         results_by_url = {r.url: r for r in results}
@@ -277,13 +277,6 @@ class http(BaseModule):
 
             # main URL
             tags = [f"status-{status_code}"]
-            response_ip = j.get("host", "")
-            if response_ip:
-                tags.append(f"ip-{response_ip}")
-            # grab title
-            title = self.helpers.tagify(j.get("title", ""), maxlen=30)
-            if title:
-                tags.append(f"http-title-{title}")
 
             url_context = "{module} visited {event.parent.data} and got status code {event.http_status}"
             if parent_event.type == "OPEN_TCP_PORT":
@@ -297,6 +290,12 @@ class http(BaseModule):
                 context=url_context,
             )
             if url_event:
+                response_ip = j.get("host", "")
+                if response_ip:
+                    url_event._resolved_hosts.add(response_ip)
+                title = j.get("title", "")
+                if title:
+                    url_event.http_title = title
                 if url_event != parent_event:
                     await self.emit_event(url_event)
                 # HTTP response

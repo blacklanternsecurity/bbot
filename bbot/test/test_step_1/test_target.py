@@ -654,6 +654,27 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     assert set(urls) == {"http://127.0.0.1:8888/"}
 
 
+def test_blacklist_get_invalid_host():
+    """Blacklist.get() should not crash when _make_event_seed returns None for an invalid host."""
+    from bbot.scanner.target import ScanBlacklist
+
+    blacklist = ScanBlacklist("bad.com")
+    # Inputs that fail EventSeed validation (e.g. wildcards, single chars) cause
+    # _make_event_seed() to return None. Previously this crashed with:
+    # AttributeError: 'NoneType' object has no attribute 'host'
+    for invalid in ["*", "*.example.com", "a", ""]:
+        result = blacklist.get(invalid)
+        assert result is None
+    # Multi-level subdomains should never crash Blacklist.get(), even if
+    # future changes cause EventSeed to reject them
+    for hostname in ["cdn.info.test.example.com", "a.b.c.d.example.com", "x.y.example.co.uk"]:
+        result = blacklist.get(hostname)
+        assert result is None
+    # Verify actual blacklisted hosts still work
+    result = blacklist.get("bad.com")
+    assert result is not None
+
+
 def test_no_double_parsing():
     """Regression test: when seeds are auto-populated from target, EventSeed parsing
     should happen only once (via ScanTarget), not twice. BBOTTarget should pass

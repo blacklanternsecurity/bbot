@@ -2718,7 +2718,7 @@ def clean_dns_record(record):
     """
     if not isinstance(record, str):
         record = str(record.to_text())
-    return str(record).rstrip(".").lower()
+    return str(record).strip("'\"").rstrip(".").lower()
 
 
 def truncate_filename(file_path, max_length=255):
