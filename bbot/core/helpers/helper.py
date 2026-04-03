@@ -208,10 +208,8 @@ class ConfigAwareHelper:
         """
         if self._loop is None:
             self._loop = get_event_loop()
-            # increase default thread pool size to prevent executor starvation
-            # during heavy scans where YARA, regex, DNS, and HTTP all compete for threads
-            thread_pool_size = max(32, (os.cpu_count() or 1) * 4)
-            self._io_executor = ThreadPoolExecutor(max_workers=thread_pool_size)
+            # only current caller is wafw00f (sync requests library)
+            self._io_executor = ThreadPoolExecutor(max_workers=max(8, (os.cpu_count() or 1) + 4))
             self._cpu_executor = ThreadPoolExecutor(max_workers=max(8, os.cpu_count() or 4))
             self._loop.set_default_executor(self._io_executor)
         return self._loop
