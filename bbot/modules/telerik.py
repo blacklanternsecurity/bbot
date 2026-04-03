@@ -299,9 +299,9 @@ class telerik(BaseModule):
                 url = self.create_url(base_url, f"{dh}?dp=1")
                 urls[url] = dh
 
-            gen = self.helpers.request_batch(list(urls))
+            results = await self.helpers.request_batch(list(urls))
             fail_count = 0
-            async for url, response in gen:
+            for url, response in results:
                 # cancel if we run into timeouts etc.
                 if response is None:
                     fail_count += 1
@@ -310,7 +310,7 @@ class telerik(BaseModule):
                     if fail_count < 2:
                         continue
                     self.debug(f"Cancelling run against {base_url} due to failed request")
-                    await gen.aclose()
+                    break
                 else:
                     if "Cannot deserialize dialog parameters" in response.text:
                         self.debug(f"Detected Telerik UI instance ({dh})")
@@ -328,7 +328,7 @@ class telerik(BaseModule):
                             event,
                         )
                         # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
-                        await gen.aclose()
+                        break
 
             spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
             result, _ = await self.test_detector(base_url, spellcheckhandler)
