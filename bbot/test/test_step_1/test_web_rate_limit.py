@@ -80,7 +80,7 @@ async def test_batch_rate_limit_min_wins(bbot_scanner):
     # If min() works, dispatch should be paced at 10 rps (~400ms for 5 requests)
     # If global wins, dispatch would be at 100 rps (~40ms for 5 requests)
     start = time.monotonic()
-    client.request_batch(configs, concurrency=50, rate_limit=10.0)
+    await client.request_batch(configs, concurrency=50, rate_limit=10.0)
     elapsed = time.monotonic() - start
 
     # 5 requests at 10 rps = 4 intervals × 100ms = ~400ms minimum
