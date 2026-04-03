@@ -271,3 +271,7 @@ class ScanEgress(BaseInterceptModule):
             # don't distribute events to intercept modules
             if not mod._intercept:
                 await mod.queue_event(event)
+
+        # if no module accepted this event, minimize it now
+        if event._module_consumers <= 0:
+            event._minimize()
