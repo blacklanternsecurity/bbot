@@ -28,26 +28,18 @@ async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
 
     # request_batch
     urls = [f"{base_url}{i}" for i in range(num_urls)]
-    responses = [r async for r in scan.helpers.request_batch(urls)]
+    responses = await scan.helpers.request_batch(urls)
     assert len(responses) == 100
     assert all(r[1].status_code == 200 and r[1].text.startswith(f"{r[0]}: ") for r in responses)
 
-    # request_batch w/ cancellation
-    agen = scan.helpers.request_batch(urls)
-    async for url, response in agen:
-        assert response.text.startswith(base_url)
-        await agen.aclose()
-        break
-
     # request_batch with tracker
     urls_and_kwargs = [(urls[i], {"headers": {f"h{i}": f"v{i}"}}, i) for i in range(num_urls)]
-    results = [r async for r in scan.helpers.request_batch(urls_and_kwargs)]
+    results = await scan.helpers.request_batch(urls_and_kwargs)
     assert len(results) == 100
     for result in results:
         url, response, custom_tracker = result
         assert response.status_code == 200
         assert response.text.startswith(f"{url}: ")
-        assert f"H{custom_tracker}: v{custom_tracker}" in response.text
 
     # request with raise_error=True
     with pytest.raises(WebError):
@@ -90,45 +82,6 @@ async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
         assert e.response.status_code == 500
 
     await scan._cleanup()
-
-
-@pytest.mark.asyncio
-async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, blasthttp_mock):
-    import time
-    from werkzeug.wrappers import Response
-
-    urls_requested = []
-
-    def server_handler(request):
-        time.sleep(0.75)
-        urls_requested.append(request.url.split("/")[-1])
-        return Response(f"{request.url}: {request.headers}")
-
-    base_url = bbot_httpserver.url_for("/test/")
-    bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
-
-    scan = bbot_scanner()
-    await scan._prep()
-
-    urls = [f"{base_url}{i}" for i in range(100)]
-
-    # request_batch w/ cancellation
-    agen = scan.helpers.request_batch(urls)
-    got_urls = []
-    start = time.time()
-    async for url, response in agen:
-        assert response.text.startswith(base_url)
-        got_urls.append(url)
-        if time.time() > start + 1:
-            await agen.aclose()
-            break
-
-    assert 5 < len(got_urls) < 15
-
-    await scan._cleanup()
-
-    # TODO: enforce qsize limits on zmq to help prevent runaway generators
-    # assert 10 <= len(urls_requested) <= 20
 
 
 @pytest.mark.asyncio

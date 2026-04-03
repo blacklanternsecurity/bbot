@@ -132,7 +132,7 @@ class iis_shortnames(BaseModule):
                 url = f"{target}{payload}{suffix}"
                 urls_and_kwargs.append((url, kwargs, (c, file_part)))
 
-        async for url, response, (c, file_part) in self.helpers.request_batch(urls_and_kwargs):
+        for url, response, (c, file_part) in await self.helpers.request_batch(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     if file_part == "stem":
@@ -173,7 +173,7 @@ class iis_shortnames(BaseModule):
             kwargs = {"method": method}
             urls_and_kwargs.append((url, kwargs, c))
 
-        async for url, response, c in self.helpers.request_batch(urls_and_kwargs):
+        for url, response, c in await self.helpers.request_batch(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     found_results = True
