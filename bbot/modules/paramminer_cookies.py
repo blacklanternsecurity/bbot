@@ -27,7 +27,7 @@ class paramminer_cookies(paramminer_headers):
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
     scanned_hosts = []
     boring_words = set()
-    _module_threads = 12
+    _module_threads = 4
     in_scope_only = True
     compare_mode = "cookie"
     default_wordlist = "paramminer_parameters.txt"
@@ -36,11 +36,8 @@ class paramminer_cookies(paramminer_headers):
         cookies = {p: self.rand_string(14) for p in cookie_list}
         return await compare_helper.compare(url, cookies=cookies, check_reflection=(len(cookie_list) == 1))
 
-    def gen_count_args(self, url):
-        cookie_count = 40
-        while 1:
-            if cookie_count < 0:
-                break
-            fake_cookies = {self.rand_string(14): self.rand_string(14) for _ in range(0, cookie_count)}
-            yield cookie_count, (url,), {"cookies": fake_cookies}
-            cookie_count -= 5
+    max_count = 40
+
+    def build_count_test_request(self, url, count):
+        fake_cookies = {self.rand_string(14): self.rand_string(14) for _ in range(count)}
+        return (url,), {"cookies": fake_cookies}
