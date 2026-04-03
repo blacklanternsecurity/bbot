@@ -301,100 +301,82 @@ class WebHelper:
         """
         Given a list of URLs, request them in parallel and yield responses as they come in.
 
+        Each entry in ``urls`` can be:
+            - A plain URL string (uses shared ``**kwargs`` for all requests)
+            - A ``(url, per_request_kwargs)`` tuple for per-request options
+            - A ``(url, per_request_kwargs, tracker)`` tuple to attach arbitrary
+              tracking data that is yielded back alongside the response
+
+        When entries are plain strings, yields ``(url, response)``.
+        When entries include a tracker, yields ``(url, response, tracker)``.
+
         Args:
-            urls (list[str]): List of URLs to visit
+            urls: URLs to visit — strings or ``(url, kwargs[, tracker])`` tuples.
             threads (int): Max concurrent requests. Defaults to 10.
-            **kwargs: Keyword arguments to pass through to request()
+            **kwargs: Default keyword arguments passed to ``request()``.
+                Overridden by per-request kwargs when entries are tuples.
 
         Examples:
+            Simple (shared kwargs):
+
             >>> async for url, response in self.helpers.request_batch(urls, headers={"X-Test": "Test"}):
-            >>>     if response is not None and response.status_code == 200:
-            >>>         self.hugesuccess(response)
+            >>>     ...
+
+            Per-request kwargs with tracker:
+
+            >>> reqs = [("http://example.com", {"method": "POST"}, "my-tracker")]
+            >>> async for url, response, tracker in self.helpers.request_batch(reqs):
+            >>>     ...
         """
-        queue = asyncio.Queue()
-        urls = list(urls)
-        total = len(urls)
-        completed = 0
+        entries = []
+        has_tracker = False
+        for entry in urls:
+            if isinstance(entry, str):
+                entries.append((entry, kwargs, None))
+            elif isinstance(entry, tuple):
+                url = entry[0]
+                req_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else kwargs
+                tracker = entry[2] if len(entry) > 2 else None
+                if tracker is not None:
+                    has_tracker = True
+                entries.append((url, req_kwargs, tracker))
+            else:
+                entries.append((str(entry), kwargs, None))
 
-        async def _worker():
-            while True:
-                url = await queue.get()
-                try:
-                    response = await self.request(url, **kwargs)
-                    yield_queue.put_nowait((url, response))
-                except (RuntimeError, OSError, ConnectionError):
-                    yield_queue.put_nowait((url, None))
-                finally:
-                    queue.task_done()
-
-        yield_queue = asyncio.Queue()
-        workers = [asyncio.create_task(_worker()) for _ in range(min(threads, total))]
-
-        for url in urls:
-            await queue.put(url)
-
-        while completed < total:
-            url, response = await yield_queue.get()
-            completed += 1
-            yield url, response
-
-        for w in workers:
-            w.cancel()
-
-    async def request_custom_batch(self, urls_and_kwargs, threads=10):
-        """
-        Make web requests in parallel with custom options for each request. Yield responses as they come in.
-
-        Similar to ``request_batch`` except it allows individual arguments for each URL.
-
-        Args:
-            urls_and_kwargs (list[tuple]): List of tuples in the format: (url, kwargs, custom_tracker)
-                where custom_tracker is an optional value for your own internal use.
-            threads (int): Max concurrent requests. Defaults to 10.
-
-        Examples:
-            >>> urls_and_kwargs = [
-            >>>     ("http://evilcorp.com/1", {"method": "GET"}, "request-1"),
-            >>>     ("http://evilcorp.com/2", {"method": "POST"}, "request-2"),
-            >>> ]
-            >>> async for url, kwargs, custom_tracker, response in self.helpers.request_custom_batch(
-            >>>     urls_and_kwargs
-            >>> ):
-            >>>     if response is not None and response.status_code == 200:
-            >>>         self.hugesuccess(response)
-        """
-        entries = list(urls_and_kwargs)
         total = len(entries)
-        completed = 0
+        if total == 0:
+            return
         work_queue = asyncio.Queue()
         yield_queue = asyncio.Queue()
 
         async def _worker():
             while True:
-                url, entry_kwargs, tracker = await work_queue.get()
+                url, req_kwargs, tracker = await work_queue.get()
                 try:
-                    response = await self.request(url, **entry_kwargs)
-                    yield_queue.put_nowait((url, entry_kwargs, tracker, response))
+                    response = await self.request(url, **req_kwargs)
+                    yield_queue.put_nowait((url, response, tracker))
                 except (RuntimeError, OSError, ConnectionError):
-                    yield_queue.put_nowait((url, entry_kwargs, tracker, None))
+                    yield_queue.put_nowait((url, None, tracker))
                 finally:
                     work_queue.task_done()
 
         workers = [asyncio.create_task(_worker()) for _ in range(min(threads, total))]
+        try:
+            for url, req_kwargs, tracker in entries:
+                await work_queue.put((url, req_kwargs, tracker))
 
-        for entry in entries:
-            url = entry[0]
-            entry_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else {}
-            tracker = entry[2] if len(entry) > 2 else None
-            await work_queue.put((url, entry_kwargs, tracker))
-
-        while completed < total:
-            url, kw, tracker, response = await yield_queue.get()
-            completed += 1
-            yield url, kw, tracker, response
-
-        for w in workers:
-            w.cancel()
+            completed = 0
+            while completed < total:
+                url, response, tracker = await yield_queue.get()
+                completed += 1
+                if has_tracker:
+                    yield url, response, tracker
+                else:
+                    yield url, response
+        finally:
+            for w in workers:
+                w.cancel()
+            await asyncio.gather(*workers, return_exceptions=True)
 
     async def download(self, url, **kwargs):
         """
