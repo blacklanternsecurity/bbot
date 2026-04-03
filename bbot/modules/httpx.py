@@ -206,6 +206,9 @@ class httpx(BaseModule):
                 title = j.get("title", "")
                 if title:
                     url_event.http_title = title
+                location = j.get("header", {}).get("location", "")
+                if location:
+                    url_event.redirect_location = location
                 if url_event != parent_event:
                     await self.emit_event(url_event)
                 # HTTP response

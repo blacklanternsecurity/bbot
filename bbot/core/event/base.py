@@ -1363,6 +1363,22 @@ class URL_UNVERIFIED(DictHostEvent):
     def pretty_string(self):
         return self.url
 
+    def _data_human(self):
+        parts = []
+        status = self.http_status
+        if status:
+            parts.append(f"[{status}]")
+        parts.append(self.url)
+        if status and str(status).startswith("3"):
+            location = self.data.get("redirect_location", "")
+            if location:
+                parts.append(f"-> {location}")
+        else:
+            title = self.http_title
+            if title:
+                parts.append(f"- [{title}]")
+        return " ".join(parts)
+
     def add_tag(self, tag):
         self_url = getattr(self, "parsed_url", "")
         self_host = getattr(self, "host", "")
@@ -1426,6 +1442,14 @@ class URL_UNVERIFIED(DictHostEvent):
     @http_title.setter
     def http_title(self, value):
         self.data["http_title"] = value
+
+    @property
+    def redirect_location(self):
+        return self.data.get("redirect_location", "")
+
+    @redirect_location.setter
+    def redirect_location(self, value):
+        self.data["redirect_location"] = value
 
 
 class URL(URL_UNVERIFIED):
