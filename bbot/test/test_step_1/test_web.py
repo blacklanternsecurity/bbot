@@ -39,15 +39,12 @@ async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
         await agen.aclose()
         break
 
-    # request_custom_batch
+    # request_batch with tracker
     urls_and_kwargs = [(urls[i], {"headers": {f"h{i}": f"v{i}"}}, i) for i in range(num_urls)]
-    results = [r async for r in scan.helpers.request_custom_batch(urls_and_kwargs)]
-    assert len(responses) == 100
+    results = [r async for r in scan.helpers.request_batch(urls_and_kwargs)]
+    assert len(results) == 100
     for result in results:
-        url, kwargs, custom_tracker, response = result
-        assert "headers" in kwargs
-        assert f"h{custom_tracker}" in kwargs["headers"]
-        assert kwargs["headers"][f"h{custom_tracker}"] == f"v{custom_tracker}"
+        url, response, custom_tracker = result
         assert response.status_code == 200
         assert response.text.startswith(f"{url}: ")
         assert f"H{custom_tracker}: v{custom_tracker}" in response.text

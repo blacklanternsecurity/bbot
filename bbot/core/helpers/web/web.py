@@ -301,78 +301,70 @@ class WebHelper:
         """
         Given a list of URLs, request them in parallel and yield responses as they come in.
 
+        Each entry in ``urls`` can be:
+            - A plain URL string (uses shared ``**kwargs`` for all requests)
+            - A ``(url, per_request_kwargs)`` tuple for per-request options
+            - A ``(url, per_request_kwargs, tracker)`` tuple to attach arbitrary
+              tracking data that is yielded back alongside the response
+
+        When entries are plain strings, yields ``(url, response)``.
+        When entries include a tracker, yields ``(url, response, tracker)``.
+
         Args:
-            urls (list[str]): List of URLs to visit
+            urls: URLs to visit — strings or ``(url, kwargs[, tracker])`` tuples.
             threads (int): Max concurrent requests. Defaults to 10.
-            **kwargs: Keyword arguments to pass through to request()
+            **kwargs: Default keyword arguments passed to ``request()``.
+                Overridden by per-request kwargs when entries are tuples.
 
         Examples:
+            Simple (shared kwargs):
+
             >>> async for url, response in self.helpers.request_batch(urls, headers={"X-Test": "Test"}):
-            >>>     if response is not None and response.status_code == 200:
-            >>>         self.hugesuccess(response)
+            >>>     ...
+
+            Per-request kwargs with tracker:
+
+            >>> reqs = [("http://example.com", {"method": "POST"}, "my-tracker")]
+            >>> async for url, response, tracker in self.helpers.request_batch(reqs):
+            >>>     ...
         """
         tasks = {}
-        urls = list(urls)
         semaphore = asyncio.Semaphore(threads)
+        has_tracker = False
 
-        async def _request(url):
+        async def _do_request(_url, _kwargs, _tracker):
             async with semaphore:
-                return url, await self.request(url, **kwargs)
+                return _url, await self.request(_url, **_kwargs), _tracker
 
-        for url in urls:
-            task = asyncio.create_task(_request(url))
+        for entry in urls:
+            if isinstance(entry, str):
+                url, req_kwargs, tracker = entry, kwargs, None
+            elif isinstance(entry, tuple):
+                url = entry[0]
+                req_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else kwargs
+                tracker = entry[2] if len(entry) > 2 else None
+                if tracker is not None:
+                    has_tracker = True
+            else:
+                url, req_kwargs, tracker = str(entry), kwargs, None
+            task = asyncio.create_task(_do_request(url, req_kwargs, tracker))
             tasks[task] = True
 
-        while tasks:
-            finished, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            for task in finished:
-                del tasks[task]
-                url, response = task.result()
-                yield url, response
-
-    async def request_custom_batch(self, urls_and_kwargs, threads=10):
-        """
-        Make web requests in parallel with custom options for each request. Yield responses as they come in.
-
-        Similar to ``request_batch`` except it allows individual arguments for each URL.
-
-        Args:
-            urls_and_kwargs (list[tuple]): List of tuples in the format: (url, kwargs, custom_tracker)
-                where custom_tracker is an optional value for your own internal use.
-            threads (int): Max concurrent requests. Defaults to 10.
-
-        Examples:
-            >>> urls_and_kwargs = [
-            >>>     ("http://evilcorp.com/1", {"method": "GET"}, "request-1"),
-            >>>     ("http://evilcorp.com/2", {"method": "POST"}, "request-2"),
-            >>> ]
-            >>> async for url, kwargs, custom_tracker, response in self.helpers.request_custom_batch(
-            >>>     urls_and_kwargs
-            >>> ):
-            >>>     if response is not None and response.status_code == 200:
-            >>>         self.hugesuccess(response)
-        """
-        tasks = {}
-        semaphore = asyncio.Semaphore(threads)
-
-        for entry in urls_and_kwargs:
-            url = entry[0]
-            entry_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else {}
-            tracker = entry[2] if len(entry) > 2 else None
-
-            async def _request(_url=url, _kwargs=entry_kwargs, _tracker=tracker):
-                async with semaphore:
-                    return _url, _kwargs, _tracker, await self.request(_url, **_kwargs)
-
-            task = asyncio.create_task(_request())
-            tasks[task] = True
-
-        while tasks:
-            finished, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            for task in finished:
-                del tasks[task]
-                url, kw, tracker, response = task.result()
-                yield url, kw, tracker, response
+        try:
+            while tasks:
+                finished, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                for task in finished:
+                    del tasks[task]
+                    url, response, tracker = task.result()
+                    if has_tracker:
+                        yield url, response, tracker
+                    else:
+                        yield url, response
+        finally:
+            for task in tasks:
+                task.cancel()
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
 
     async def download(self, url, **kwargs):
         """
