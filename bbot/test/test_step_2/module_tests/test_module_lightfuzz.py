@@ -2373,7 +2373,7 @@ class Test_Lightfuzz_envelope_isolation_paddingoracle_reflecting(Test_Lightfuzz_
 # ECB Mode Detection: ciphertext with repeated 16-byte blocks (A+B+A+B pattern)
 class Test_Lightfuzz_ECBDetection(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2417,7 +2417,7 @@ class Test_Lightfuzz_ECBDetection(ModuleTestBase):
 # ECB Negative: all unique blocks, should NOT detect ECB
 class Test_Lightfuzz_ECBDetection_Negative(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2463,7 +2463,7 @@ class Test_Lightfuzz_ECBDetection_Negative(ModuleTestBase):
 # CBC Bit-Flipping Detection: server returns different responses for different byte-position mutations
 class Test_Lightfuzz_CBCBitflipDetection(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2522,7 +2522,7 @@ class Test_Lightfuzz_CBCBitflipDetection(ModuleTestBase):
 # CBC Bit-Flipping Negative: server returns identical response regardless of mutation position
 class Test_Lightfuzz_CBCBitflipDetection_Negative(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -2563,7 +2563,7 @@ class Test_Lightfuzz_CBCBitflipDetection_Negative(ModuleTestBase):
 # CBC bit-flip probes still produce different responses → detected.
 class Test_Lightfuzz_CBCBitflipDetection_NoPaddingOracle(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "lightfuzz"]
+    modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {

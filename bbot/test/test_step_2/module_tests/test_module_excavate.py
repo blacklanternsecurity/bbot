@@ -1582,7 +1582,7 @@ class TestExcavateRedirectParameterScope(ModuleTestBase):
     """
 
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
 
     async def setup_before_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(
