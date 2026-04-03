@@ -37,7 +37,7 @@ class pgp(subdomain_enum):
         results = set()
         urls = self.config.get("search_urls", [])
         urls = [url.replace("<query>", self.helpers.quote(query)) for url in urls]
-        async for url, response in self.helpers.request_batch(urls):
+        for url, response in await self.helpers.request_batch(urls):
             keyserver = self.helpers.urlparse(url).netloc
             if response is not None:
                 for email in await self.helpers.re.extract_emails(response.text):

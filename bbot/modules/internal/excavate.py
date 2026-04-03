@@ -348,7 +348,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     scope_distance_modifier = None
     accept_dupes = False
 
-    _module_threads = 8
+    _module_threads = 6
 
     yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
