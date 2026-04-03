@@ -61,7 +61,14 @@ class lightfuzz(BaseModule):
                 return False, f"Invalid Lightfuzz submodule ({submodule_name}) specified in enabled_modules"
             self.submodules[submodule_name] = submodule_class
 
-        self.waf_yara_rules = self.helpers.yara.compile_strings(get_waf_strings(), nocase=True)
+        waf_strings = get_waf_strings()
+        self.waf_yara_rules = self.helpers.yara.compile_strings(waf_strings, nocase=True)
+        # Serial submodule needs WAF + general error strings in one rule
+        from bbot.modules.lightfuzz.submodules.serial import serial
+
+        self.serial_general_error_yara_rules = self.helpers.yara.compile_strings(
+            serial.GENERAL_ERROR_STRINGS + waf_strings, nocase=True
+        )
 
         interactsh_needed = any(submodule.uses_interactsh for submodule in self.submodules.values())
         if interactsh_needed and not self.interactsh_disable:

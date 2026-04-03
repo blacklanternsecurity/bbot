@@ -120,26 +120,18 @@ class sqli(BaseLightfuzz):
                         single_quote[3].status_code != double_single_quote[3].status_code
                     ):
                         # Check if the status code change is due to a WAF, not SQL injection
+                        is_waf = False
                         if single_quote[3].status_code == 403:
                             waf_matches = await self.lightfuzz.helpers.yara.match(
                                 self.lightfuzz.waf_yara_rules, single_quote[3].text
                             )
-                            waf_detected = len(waf_matches) > 0
-                            if waf_detected:
+                            if waf_matches:
                                 self.debug(
                                     "Single quote probe returned 403 with WAF signature, "
                                     "suppressing SQL injection finding"
                                 )
-                            else:
-                                self.results.append(
-                                    {
-                                        "name": "Possible SQL Injection",
-                                        "severity": "HIGH",
-                                        "confidence": "MEDIUM",
-                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({http_compare.baseline.status_code}->{single_quote[3].status_code}->{double_single_quote[3].status_code})]",
-                                    }
-                                )
-                        else:
+                                is_waf = True
+                        if not is_waf:
                             self.results.append(
                                 {
                                     "name": "Possible SQL Injection",

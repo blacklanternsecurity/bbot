@@ -54,13 +54,7 @@ class serial(BaseLightfuzz):
 
     @property
     def general_error_yara_rules(self):
-        if not hasattr(self.lightfuzz, "_serial_general_error_rules"):
-            from bbot.core.helpers.misc import get_waf_strings
-
-            self.lightfuzz._serial_general_error_rules = self.lightfuzz.helpers.yara.compile_strings(
-                self.GENERAL_ERROR_STRINGS + get_waf_strings(), nocase=True
-            )
-        return self.lightfuzz._serial_general_error_rules
+        return self.lightfuzz.serial_general_error_yara_rules
 
     def is_possibly_serialized(self, value):
         # Use the is_base64 method from BaseLightfuzz via self
