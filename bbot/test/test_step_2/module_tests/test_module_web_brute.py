@@ -1,3 +1,7 @@
+import re
+
+from werkzeug.wrappers import Response
+
 from .base import ModuleTestBase, tempwordlist
 
 
@@ -89,3 +93,40 @@ class TestWebBruteHeaders(TestWebBrute):
     def check(self, module_test, events):
         assert any(e.type == "URL_UNVERIFIED" and "console" in e.url for e in events)
         assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.url for e in events)
+
+
+class TestWebBruteRedirectFalsePositive(ModuleTestBase):
+    """Server returns 404 for random paths but 302->/ for ~-prefixed paths.
+    web_brute should detect that all redirect hits go to the same location
+    and filter them as false positives."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "web_brute"
+    test_wordlist = ["~joe", "~", "junkword1", "zzzjunkword2"]
+    config_overrides = {
+        "modules": {
+            "web_brute": {
+                "wordlist": tempwordlist(test_wordlist),
+            }
+        }
+    }
+    modules_overrides = ["web_brute", "http"]
+
+    def request_handler(self, request):
+        uri = request.path
+        if uri == "/":
+            return Response("<html>Home</html>", status=200)
+        if uri.lstrip("/").startswith("~"):
+            return Response("", status=302, headers={"Location": "/"})
+        return Response("Not Found", status=404)
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        tilde_hits = [
+            e for e in events if e.type == "URL_UNVERIFIED" and "~" in e.url and str(e.module) == "web_brute"
+        ]
+        assert len(tilde_hits) == 0, (
+            f"web_brute should not report redirect-to-root paths as findings, but got: {[e.url for e in tilde_hits]}"
+        )

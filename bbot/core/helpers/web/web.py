@@ -358,26 +358,26 @@ class WebHelper:
 
         # Build BatchConfig objects using the same logic as request()
         configs = []
-        tracker_by_url = {}
+        trackers = []
         for url, req_kwargs, tracker in entries:
             url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
             config = blasthttp.BatchConfig(url, **blast_kwargs)
             configs.append(config)
-            if tracker is not None:
-                tracker_by_url[url] = tracker
+            trackers.append(tracker)
 
         # Send to Rust — all I/O happens here
         batch_results = await self.client.request_batch(configs, concurrency=threads)
 
         # Convert to (url, response[, tracker]) tuples
+        # Results are returned in the same order as configs
         results = []
-        for br in batch_results:
+        for i, br in enumerate(batch_results):
             if br.response is not None:
                 response = BlasthttpResponse(br.response, request_url=br.url, method="GET")
             else:
                 response = None
             if has_tracker:
-                results.append((br.url, response, tracker_by_url.get(br.url)))
+                results.append((br.url, response, trackers[i]))
             else:
                 results.append((br.url, response))
         return results

@@ -132,9 +132,60 @@ def blasthttp_mock():
             return result
         return await original_request(self, *args, **kwargs)
 
+    original_request_batch = WebHelper.request_batch
+
+    async def patched_request_batch(self, urls, threads=10, **kwargs):
+        import blasthttp
+
+        # Run the real entry-parsing and config-building logic unmodified
+        entries = []
+        has_tracker = False
+        for entry in urls:
+            if isinstance(entry, str):
+                entries.append((entry, kwargs, None))
+            elif isinstance(entry, tuple):
+                url = entry[0]
+                req_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else kwargs
+                tracker = entry[2] if len(entry) > 2 else None
+                if tracker is not None:
+                    has_tracker = True
+                entries.append((url, req_kwargs, tracker))
+            else:
+                entries.append((str(entry), kwargs, None))
+
+        if not entries:
+            return []
+
+        configs = []
+        trackers = []
+        for url, req_kwargs, tracker in entries:
+            url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
+            config = blasthttp.BatchConfig(url, **blast_kwargs)
+            configs.append(config)
+            trackers.append(tracker)
+
+        # Route through mock's batch handler instead of Rust client directly
+        batch_results = await mock.handle_batch(self.client, configs, concurrency=threads)
+
+        from bbot.core.helpers.web.blast_response import BlasthttpResponse
+
+        results = []
+        for i, br in enumerate(batch_results):
+            if br.response is not None:
+                response = BlasthttpResponse(br.response, request_url=br.url, method="GET")
+            else:
+                response = None
+            if has_tracker:
+                results.append((br.url, response, trackers[i]))
+            else:
+                results.append((br.url, response))
+        return results
+
     WebHelper.request = patched_request
+    WebHelper.request_batch = patched_request_batch
     yield mock
     WebHelper.request = original_request
+    WebHelper.request_batch = original_request_batch
 
 
 @pytest.fixture

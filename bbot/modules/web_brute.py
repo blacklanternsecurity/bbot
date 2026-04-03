@@ -340,6 +340,18 @@ class web_brute(BaseModule):
                     canary_found = True
                     continue
 
+                # Filter 3xx redirects to site root — these are soft 404s,
+                # not real findings (e.g. mod_userdir sending ~user to /)
+                if 300 <= response.status < 400:
+                    location = ""
+                    for hdr_name, hdr_val in response.headers:
+                        if hdr_name.lower() == "location":
+                            location = hdr_val
+                            break
+                    if location in ("/", url):
+                        self.debug(f"Filtering redirect-to-root hit: {response.url} -> {location}")
+                        continue
+
                 hits.append({"url": response.url, "status": response.status})
 
             # If canary was found in results, the server is returning everything — abort
