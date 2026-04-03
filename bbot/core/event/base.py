@@ -164,6 +164,8 @@ class BaseEvent:
         "dns_resolve_distance",
         # Host metadata (cloud providers, ASN, whois, etc.)
         "_host_metadata",
+        # Memory management
+        "_module_consumers",
         # Public attributes
         "module",
         "scan",
@@ -224,6 +226,7 @@ class BaseEvent:
         self.dns_children = {}
         self.raw_dns_records = {}
         self._discovery_context = ""
+        self._module_consumers = 0
 
         # for creating one-off events without enforcing parent requirement
         self._dummy = _dummy
@@ -708,6 +711,15 @@ class BaseEvent:
             parents.append(parent)
             e = parent
         return parents
+
+    def _minimize(self):
+        """
+        Called when a module is done processing this event.
+
+        Decrements the consumer count. When no modules are left waiting to
+        process this event, heavy payload data is stripped to free memory.
+        """
+        self._module_consumers = max(0, self._module_consumers - 1)
 
     def clone(self):
         # Create a shallow copy of the event first
@@ -1371,6 +1383,22 @@ class URL_UNVERIFIED(DictHostEvent):
     def pretty_string(self):
         return self.url
 
+    def _data_human(self):
+        parts = []
+        status = self.http_status
+        if status:
+            parts.append(f"[{status}]")
+        parts.append(self.url)
+        if status and str(status).startswith("3"):
+            location = self.data.get("redirect_location", "")
+            if location:
+                parts.append(f"-> {location}")
+        else:
+            title = self.http_title
+            if title:
+                parts.append(f"- [{title}]")
+        return " ".join(parts)
+
     def add_tag(self, tag):
         self_url = getattr(self, "parsed_url", "")
         self_host = getattr(self, "host", "")
@@ -1434,6 +1462,14 @@ class URL_UNVERIFIED(DictHostEvent):
     @http_title.setter
     def http_title(self, value):
         self.data["http_title"] = value
+
+    @property
+    def redirect_location(self):
+        return self.data.get("redirect_location", "")
+
+    @redirect_location.setter
+    def redirect_location(self, value):
+        self.data["redirect_location"] = value
 
 
 class URL(URL_UNVERIFIED):
@@ -1591,6 +1627,12 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
 
     def _pretty_string(self):
         return f"{self.data['hash']['header_mmh3']}:{self.data['hash']['body_mmh3']}"
+
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self._data.pop("body", None)
+            self._data.pop("raw_header", None)
 
     @property
     def raw_response(self):

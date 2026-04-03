@@ -63,6 +63,29 @@ class PresetPath:
         self.paths = [p for p in self.paths if not p.is_relative_to(path)]
         self.paths.insert(0, path)
 
+    def find_file(self, filename):
+        """Search known preset paths for a file of any type (e.g. target lists).
+
+        For absolute paths, checks directly. For relative paths, searches each
+        known preset path and its subdirectories (consistent with how ``find()``
+        uses rglob for preset YAML files), then falls back to CWD.
+
+        Returns the resolved Path if found, otherwise None.
+        """
+        filename_path = Path(filename).expanduser()
+        if filename_path.is_absolute():
+            resolved = filename_path.resolve()
+            return resolved if resolved.is_file() else None
+        for path in self.paths:
+            for match in path.rglob(str(filename_path)):
+                if match.is_file():
+                    return match.resolve()
+        # fall back to CWD
+        candidate = filename_path.resolve()
+        if candidate.is_file():
+            return candidate
+        return None
+
     def __iter__(self):
         yield from self.paths
 
