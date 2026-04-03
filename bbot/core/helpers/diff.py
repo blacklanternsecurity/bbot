@@ -233,9 +233,21 @@ class HttpCompare:
                         if item in subject_response.text:
                             reflection = True
                             break
+        diff_reasons = await self.parent_helper.run_in_executor_cpu(
+            self._compare_sync,
+            subject_response,
+            subject,
+        )
+
+        if not diff_reasons:
+            return (True, [], reflection, subject_response)
+        else:
+            return (False, diff_reasons, reflection, subject_response)
+
+    def _compare_sync(self, subject_response, subject):
+        """CPU-bound comparison work offloaded from the event loop."""
         try:
             subject_json = xmltodict.parse(subject_response.text)
-
         except ExpatError:
             log.debug(f"Can't HTML parse for {subject.split('?')[0]}. Switching to text parsing as a backup")
             subject_json = subject_response.text.split("\n")
@@ -255,13 +267,9 @@ class HttpCompare:
 
         if self.compare_body(self.baseline_json, subject_json) is False:
             log.debug("difference in HTML body, no match")
-
             diff_reasons.append("body")
 
-        if not diff_reasons:
-            return (True, [], reflection, subject_response)
-        else:
-            return (False, diff_reasons, reflection, subject_response)
+        return diff_reasons
 
     async def canary_check(self, url, mode, rounds=3):
         """

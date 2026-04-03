@@ -45,16 +45,16 @@ class web_brute_shortnames(web_brute):
 
     supplementary_words = ["html", "ajax", "xml", "json", "api"]
 
-    def generate_templist(self, hint, shortname_type):
+    async def generate_templist(self, hint, shortname_type):
+        words = await self.helpers.run_in_executor_cpu(self._generate_templist_sync, hint, shortname_type)
+        return words, len(words)
+
+    def _generate_templist_sync(self, hint, shortname_type):
         words = set()
-
         for prediction, score in self.predict(hint, self.max_predictions, model=shortname_type):
-            prediction_lower = prediction.lower()
-            self.debug(f"Got prediction: [{prediction_lower}] from prefix [{hint}] with score [{score}]")
-            words.add(prediction_lower)
-
+            words.add(prediction.lower())
         words.add(self.canary.lower())
-        return list(words), len(words)
+        return list(words)
 
     def predict(self, prefix, n=25, model="endpoint"):
         predictor_name = f"{model}_predictor"
@@ -224,7 +224,7 @@ class web_brute_shortnames(web_brute):
             used_extensions = self.build_extension_list(event)
 
         if len(filename_hint) == 6:
-            words, words_len = self.generate_templist(filename_hint, shortname_type)
+            words, words_len = await self.generate_templist(filename_hint, shortname_type)
             self.verbose(f"generated word list of size [{str(words_len)}] for filename hint: [{filename_hint}]")
         else:
             words = [filename_hint]
@@ -259,7 +259,7 @@ class web_brute_shortnames(web_brute):
                 if delimiter_r:
                     delimiter, prefix, partial_hint = delimiter_r
                     self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
-                    words, words_len = self.generate_templist(partial_hint, "directory")
+                    words, words_len = await self.generate_templist(partial_hint, "directory")
                     fuzz_prefix = f"{prefix}{delimiter}"
                     async for r in self.execute_fuzz(words, root_url, prefix=fuzz_prefix, exts=["/"]):
                         await self.emit_event(
@@ -276,7 +276,7 @@ class web_brute_shortnames(web_brute):
                     if delimiter_r:
                         delimiter, prefix, partial_hint = delimiter_r
                         self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
-                        words, words_len = self.generate_templist(partial_hint, "endpoint")
+                        words, words_len = await self.generate_templist(partial_hint, "endpoint")
                         fuzz_prefix = f"{prefix}{delimiter}"
                         async for r in self.execute_fuzz(words, root_url, prefix=fuzz_prefix, suffix=f".{ext}"):
                             await self.emit_event(
@@ -291,7 +291,7 @@ class web_brute_shortnames(web_brute):
             subword, suffix = self.find_subword(filename_hint)
             if subword:
                 if "shortname-directory" in event.tags:
-                    words, words_len = self.generate_templist(suffix, "directory")
+                    words, words_len = await self.generate_templist(suffix, "directory")
                     async for r in self.execute_fuzz(words, root_url, prefix=subword, exts=["/"]):
                         await self.emit_event(
                             r["url"],
@@ -302,7 +302,7 @@ class web_brute_shortnames(web_brute):
                         )
                 elif "shortname-endpoint" in event.tags:
                     for ext in used_extensions:
-                        words, words_len = self.generate_templist(suffix, "endpoint")
+                        words, words_len = await self.generate_templist(suffix, "endpoint")
                         async for r in self.execute_fuzz(words, root_url, prefix=subword, suffix=f".{ext}"):
                             await self.emit_event(
                                 r["url"],
@@ -338,7 +338,7 @@ class web_brute_shortnames(web_brute):
 
                             # safeguard to prevent loading the entire wordlist
                             if len(partial_hint) > 0:
-                                words, words_len = self.generate_templist(partial_hint, shortname_type)
+                                words, words_len = await self.generate_templist(partial_hint, shortname_type)
 
                                 if "shortname-directory" in self.shortname_to_event[hint].tags:
                                     self.verbose(

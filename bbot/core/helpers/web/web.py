@@ -299,80 +299,88 @@ class WebHelper:
 
     async def request_batch(self, urls, threads=10, **kwargs):
         """
-        Given a list of URLs, request them in parallel and yield responses as they come in.
+        Request multiple URLs in parallel via blasthttp's native Rust batch engine.
+
+        Applies the same header/cookie/proxy/timeout logic as ``request()`` — each
+        entry is translated into a ``blasthttp.BatchConfig`` and sent to Rust in one
+        shot.  Results are returned as a list (not streamed).
+
+        Each entry in ``urls`` can be:
+            - A plain URL string (uses shared ``**kwargs`` for all requests)
+            - A ``(url, per_request_kwargs)`` tuple for per-request options
+            - A ``(url, per_request_kwargs, tracker)`` tuple to attach arbitrary
+              tracking data that is returned alongside the response
+
+        Returns:
+            When entries are plain strings: ``list[(url, response)]``
+            When any entry includes a tracker: ``list[(url, response, tracker)]``
 
         Args:
-            urls (list[str]): List of URLs to visit
-            threads (int): Max concurrent requests. Defaults to 10.
-            **kwargs: Keyword arguments to pass through to request()
+            urls: URLs to visit — strings or ``(url, kwargs[, tracker])`` tuples.
+            threads (int): Concurrency passed to blasthttp. Defaults to 10.
+            **kwargs: Default keyword arguments (same as ``request()``).
+                Overridden by per-request kwargs when entries are tuples.
 
         Examples:
-            >>> async for url, response in self.helpers.request_batch(urls, headers={"X-Test": "Test"}):
-            >>>     if response is not None and response.status_code == 200:
-            >>>         self.hugesuccess(response)
+            Simple (shared kwargs)::
+
+                results = await self.helpers.request_batch(urls, headers={"X-Test": "Test"})
+                for url, response in results:
+                    ...
+
+            Per-request kwargs with tracker::
+
+                reqs = [("http://example.com", {"method": "POST"}, "my-tracker")]
+                results = await self.helpers.request_batch(reqs)
+                for url, response, tracker in results:
+                    ...
         """
-        tasks = {}
-        urls = list(urls)
-        semaphore = asyncio.Semaphore(threads)
+        import blasthttp
 
-        async def _request(url):
-            async with semaphore:
-                return url, await self.request(url, **kwargs)
+        # Parse entries into uniform (url, req_kwargs, tracker) tuples
+        entries = []
+        has_tracker = False
+        for entry in urls:
+            if isinstance(entry, str):
+                entries.append((entry, kwargs, None))
+            elif isinstance(entry, tuple):
+                url = entry[0]
+                req_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else kwargs
+                tracker = entry[2] if len(entry) > 2 else None
+                if tracker is not None:
+                    has_tracker = True
+                entries.append((url, req_kwargs, tracker))
+            else:
+                entries.append((str(entry), kwargs, None))
 
-        for url in urls:
-            task = asyncio.create_task(_request(url))
-            tasks[task] = True
+        if not entries:
+            return []
 
-        while tasks:
-            finished, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            for task in finished:
-                del tasks[task]
-                url, response = task.result()
-                yield url, response
+        # Build BatchConfig objects using the same logic as request()
+        configs = []
+        tracker_by_url = {}
+        for url, req_kwargs, tracker in entries:
+            url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
+            config = blasthttp.BatchConfig(url, **blast_kwargs)
+            configs.append(config)
+            if tracker is not None:
+                tracker_by_url[url] = tracker
 
-    async def request_custom_batch(self, urls_and_kwargs, threads=10):
-        """
-        Make web requests in parallel with custom options for each request. Yield responses as they come in.
+        # Send to Rust — all I/O happens here
+        batch_results = await self.client.request_batch(configs, concurrency=threads)
 
-        Similar to ``request_batch`` except it allows individual arguments for each URL.
-
-        Args:
-            urls_and_kwargs (list[tuple]): List of tuples in the format: (url, kwargs, custom_tracker)
-                where custom_tracker is an optional value for your own internal use.
-            threads (int): Max concurrent requests. Defaults to 10.
-
-        Examples:
-            >>> urls_and_kwargs = [
-            >>>     ("http://evilcorp.com/1", {"method": "GET"}, "request-1"),
-            >>>     ("http://evilcorp.com/2", {"method": "POST"}, "request-2"),
-            >>> ]
-            >>> async for url, kwargs, custom_tracker, response in self.helpers.request_custom_batch(
-            >>>     urls_and_kwargs
-            >>> ):
-            >>>     if response is not None and response.status_code == 200:
-            >>>         self.hugesuccess(response)
-        """
-        tasks = {}
-        semaphore = asyncio.Semaphore(threads)
-
-        for entry in urls_and_kwargs:
-            url = entry[0]
-            entry_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else {}
-            tracker = entry[2] if len(entry) > 2 else None
-
-            async def _request(_url=url, _kwargs=entry_kwargs, _tracker=tracker):
-                async with semaphore:
-                    return _url, _kwargs, _tracker, await self.request(_url, **_kwargs)
-
-            task = asyncio.create_task(_request())
-            tasks[task] = True
-
-        while tasks:
-            finished, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            for task in finished:
-                del tasks[task]
-                url, kw, tracker, response = task.result()
-                yield url, kw, tracker, response
+        # Convert to (url, response[, tracker]) tuples
+        results = []
+        for br in batch_results:
+            if br.response is not None:
+                response = BlasthttpResponse(br.response, request_url=br.url, method="GET")
+            else:
+                response = None
+            if has_tracker:
+                results.append((br.url, response, tracker_by_url.get(br.url)))
+            else:
+                results.append((br.url, response))
+        return results
 
     async def download(self, url, **kwargs):
         """

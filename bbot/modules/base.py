@@ -1857,16 +1857,15 @@ class BaseInterceptModule(BaseModule):
                         continue
 
                     acceptable = True
-                    async with self._task_counter.count(f"event_precheck({event})"):
-                        precheck_pass, reason = self._event_precheck(event)
+                    precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
                         self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
-                    async with self._task_counter.count(f"event_postcheck({event})"):
+                    else:
                         postcheck_pass, reason = await self._event_postcheck(event)
-                    if not postcheck_pass:
-                        self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
-                        acceptable = False
+                        if not postcheck_pass:
+                            self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
+                            acceptable = False
 
                     # whether to pass the event on to the rest of the scan
                     # defaults to true, unless handle_event returns False
