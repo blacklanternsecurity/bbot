@@ -11,6 +11,7 @@ class TestWebBruteShortnames(ModuleTestBase):
                 "find_common_prefixes": True,
                 "find_subwords": True,
                 "wordlist": tempwordlist(test_wordlist),
+                "max_predictions": 250,
             }
         }
     }

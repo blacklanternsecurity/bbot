@@ -40,7 +40,7 @@ rule strings_match
         Given a compiled YARA rule and a body of text, return a list of strings that match the rule
         """
         matched_strings = []
-        matches = await self.parent_helper.run_in_executor(compiled_rules.match, data=text)
+        matches = await self.parent_helper.run_in_executor_cpu(compiled_rules.match, data=text)
         if matches:
             for match in matches:
                 for string_match in match.strings:

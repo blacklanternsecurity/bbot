@@ -293,7 +293,8 @@ class Scanner:
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
         # expand async seed types (e.g. ASN → IP ranges)
-        await self.preset.target.generate_children()
+        ssl_verify = self.preset.web_config.get("ssl_verify", False)
+        await self.preset.target.generate_children(ssl_verify=ssl_verify)
 
         # evaluate preset conditions (may abort the scan)
         if self.preset.conditions:
@@ -870,13 +871,13 @@ class Scanner:
         """
         self.debug("Draining queues")
         for module in self.modules.values():
-            with contextlib.suppress(asyncio.queues.QueueEmpty):
-                while 1:
-                    if module.incoming_event_queue not in (None, False):
+            if module.incoming_event_queue not in (None, False):
+                with contextlib.suppress(asyncio.queues.QueueEmpty):
+                    while 1:
                         module.incoming_event_queue.get_nowait()
-            with contextlib.suppress(asyncio.queues.QueueEmpty):
-                while 1:
-                    if module.outgoing_event_queue not in (None, False):
+            if module.outgoing_event_queue not in (None, False):
+                with contextlib.suppress(asyncio.queues.QueueEmpty):
+                    while 1:
                         module.outgoing_event_queue.get_nowait()
         self.debug("Finished draining queues")
 
@@ -1193,7 +1194,7 @@ class Scanner:
             if self.dns_yara_rules_uncompiled is not None:
                 import yara
 
-                self._dns_yara_rules = await self.helpers.run_in_executor(
+                self._dns_yara_rules = await self.helpers.run_in_executor_cpu(
                     yara.compile, source="\n".join(self.dns_yara_rules_uncompiled.values())
                 )
         return self._dns_yara_rules
@@ -1209,7 +1210,7 @@ class Scanner:
         matches = set()
         dns_yara_rules = await self.dns_yara_rules()
         if dns_yara_rules is not None:
-            for match in await self.helpers.run_in_executor(dns_yara_rules.match, data=s):
+            for match in await self.helpers.run_in_executor_cpu(dns_yara_rules.match, data=s):
                 for string in match.strings:
                     for instance in string.instances:
                         matches.add(str(instance))

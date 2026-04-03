@@ -98,7 +98,8 @@ class web_brute_shortnames(web_brute):
         self.ignore_redirects = self.config.get("ignore_redirects")
         self.max_predictions = self.config.get("max_predictions")
         self.find_subwords = self.config.get("find_subwords")
-        self.rate = self.config.get("rate", 0)
+        self.rate = self.config.get("rate", 0) or None
+        self.concurrency = 50
 
         class MinimalWordPredictor:
             def __init__(self):
