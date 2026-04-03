@@ -21,8 +21,8 @@ class TestWayback(ModuleTestBase):
 
 class TestWaybackParameters(ModuleTestBase):
     module_name = "wayback"
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     modules_overrides = ["wayback", "hunt"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {"modules": {"wayback": {"urls": True, "parameters": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -61,7 +61,7 @@ class TestWaybackParameters(ModuleTestBase):
 class TestWaybackInterestingFiles(ModuleTestBase):
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -89,7 +89,7 @@ class TestWaybackInterestingFiles(ModuleTestBase):
 class TestWaybackArchive(ModuleTestBase):
     module_name = "wayback"
     modules_overrides = ["wayback", "badsecrets", "excavate"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     sample_viewstate = """<html>
@@ -121,17 +121,17 @@ class TestWaybackArchive(ModuleTestBase):
         # the dead URL (port 1) should NOT be verified as live
         assert not any(e.type == "URL" and "deadpage" in e.url for e in events)
         # badsecrets should have found the vulnerability in the archived viewstate
-        assert any(e.type == "VULNERABILITY" and "Known Secret Found." in e.data["description"] for e in events), (
+        assert any(e.type == "FINDING" and "Known Secret Found." in e.data["description"] for e in events), (
             "Failed to detect badsecrets vulnerability from archived content"
         )
         # the vulnerability should reference the original URL, with "from-wayback" tag for provenance
         for e in events:
-            if e.type == "VULNERABILITY" and "Known Secret Found." in e.data["description"]:
+            if e.type == "FINDING" and "Known Secret Found." in e.data["description"]:
                 assert "127.0.0.1" in e.data["url"], (
-                    f"VULNERABILITY url should contain the original host, got: {e.data['url']}"
+                    f"FINDING url should contain the original host, got: {e.data['url']}"
                 )
                 assert "web.archive.org" not in e.data["url"], (
-                    f"VULNERABILITY url should NOT be an archive.org URL, got: {e.data['url']}"
+                    f"FINDING url should NOT be an archive.org URL, got: {e.data['url']}"
                 )
         # web.archive.org should NOT appear as a DNS_NAME event
         assert not any(e.type == "DNS_NAME" and e.data == "web.archive.org" for e in events), (
@@ -144,7 +144,7 @@ class TestWaybackHttpHttpsDedup(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com"]
+    targets = ["blacklanternsecurity.com"]
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -171,7 +171,7 @@ class TestWaybackHttpOnlyKept(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com"]
+    targets = ["blacklanternsecurity.com"]
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -196,7 +196,7 @@ class TestWaybackCdnCgiBlacklist(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com"]
+    targets = ["blacklanternsecurity.com"]
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -225,7 +225,7 @@ class TestWaybackArchiveHostField(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback", "excavate"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -268,7 +268,7 @@ class TestWaybackArchiveHuntFinding(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback", "excavate", "hunt"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -340,8 +340,8 @@ class TestWaybackLightfuzzXSS(ModuleTestBase):
 
     module_name = "wayback"
     targets = ["blacklanternsecurity.com"]
-    modules_overrides = ["wayback", "httpx", "lightfuzz", "excavate"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    modules_overrides = ["wayback", "http", "lightfuzz", "excavate"]
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {
         "interactsh_disable": True,
         "modules": {
@@ -454,7 +454,7 @@ class TestWaybackArchiveBloomDedup(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -499,7 +499,7 @@ class TestWaybackArchiveRetry(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -531,7 +531,7 @@ class TestWaybackGarbageUrlFilter(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com"]
+    targets = ["blacklanternsecurity.com"]
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -539,7 +539,7 @@ class TestWaybackGarbageUrlFilter(ModuleTestBase):
         repeating = "/themes/sites/example.com".lstrip("/")
         garbage_path = "/get-materials/" + "/".join([repeating] * 20)
         garbage_url = f"https://blacklanternsecurity.com{garbage_path}"
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[
                 ["original"],
@@ -564,13 +564,13 @@ class TestWaybackGarbageUrlLength(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com"]
+    targets = ["blacklanternsecurity.com"]
     config_overrides = {"modules": {"wayback": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
         # URL exceeding 2000 character limit
         long_url = "https://blacklanternsecurity.com/" + "a" * 2000
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[
                 ["original"],
@@ -595,7 +595,7 @@ class TestWaybackArchive429Retry(ModuleTestBase):
 
     module_name = "wayback"
     modules_overrides = ["wayback"]
-    whitelist = ["blacklanternsecurity.com", "127.0.0.1"]
+    targets = ["blacklanternsecurity.com", "127.0.0.1"]
     config_overrides = {"modules": {"wayback": {"urls": True, "archive": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -603,18 +603,18 @@ class TestWaybackArchive429Retry(ModuleTestBase):
         module_test.scan.modules["wayback"]._archive_429_default_delay = 0.01
         module_test.scan.modules["wayback"]._archive_error_delay = 0.01
         module_test.scan.modules["wayback"]._archive_delay = 0
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[["original"], ["http://127.0.0.1:1/rate-limited-page"]],
         )
         # first attempt: 429 rate limited
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/rate-limited-page",
             status_code=429,
             headers={"Retry-After": "1"},
         )
         # retry after backoff: 200
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/web/http://127.0.0.1:1/rate-limited-page",
             text="<html><body>content after rate limit</body></html>",
             headers={"Content-Type": "text/html"},

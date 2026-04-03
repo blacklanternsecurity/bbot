@@ -1301,7 +1301,7 @@ class TestExcavate_webparameter_ip_host(ModuleTestBase):
     """
 
     targets = ["http://localhost:8888"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {"interactsh_disable": True}
 
     async def setup_after_prep(self, module_test):

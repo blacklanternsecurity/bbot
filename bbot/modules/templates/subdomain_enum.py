@@ -171,8 +171,6 @@ class subdomain_enum(BaseModule):
         # reject if it's a cloud resource and not in our target (unless it's a seed event)
         if is_cloud and not self.scan.in_target(event) and "seed" not in event.tags:
             return False, "Event is a cloud resource and not a direct target"
-        # don't reject targets — if the user explicitly targeted a domain, always process it
-        is_target = event in self.scan.target.whitelist
         # optionally reject events with wildcards / errors
         if self.reject_wildcards:
             if any(t in event.tags for t in ("a-error", "aaaa-error")):
