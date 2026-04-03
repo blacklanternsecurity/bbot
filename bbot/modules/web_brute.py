@@ -347,7 +347,7 @@ class web_brute(BaseModule):
                 self.debug("Found canary in results, all hits are likely false positives — aborting")
                 return
 
-            # Mid-scan validation: one canary check per extension, not per hit
+            # Mid-scan validation: one canary check per extension
             if hits and not baseline and ext_filter:
                 canary_word = "".join(random.choice(string.ascii_lowercase) for _ in range(4))
                 canary_url = f"{url}{prefix}{canary_word}{suffix}{ext}"
