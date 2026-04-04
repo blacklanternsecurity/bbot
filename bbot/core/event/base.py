@@ -700,6 +700,10 @@ class BaseEvent:
         process this event, heavy payload data is stripped to free memory.
         """
         self._module_consumers = max(0, self._module_consumers - 1)
+        if self._module_consumers <= 0:
+            self.dns_children = {}
+            self.raw_dns_records = {}
+            self._resolved_hosts = set()
 
     def clone(self):
         # Create a shallow copy of the event first
