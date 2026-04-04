@@ -1489,6 +1489,13 @@ class WEB_PARAMETER(DictHostEvent):
         "envelopes",
     ]
 
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self._data.pop("original_value", None)
+            self._data.pop("additional_params", None)
+            self._data.pop("assigned_cookies", None)
+
     @property
     def children(self):
         # if we have any subparams, raise a new WEB_PARAMETER for each one
