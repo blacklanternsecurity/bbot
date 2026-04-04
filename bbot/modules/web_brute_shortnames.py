@@ -20,7 +20,6 @@ class web_brute_shortnames(web_brute):
         "wordlist_extensions": "",  # default is defined within setup function
         "max_depth": 1,
         "extensions": "",
-        "ignore_redirects": True,
         "find_common_prefixes": False,
         "find_delimiters": True,
         "find_subwords": False,
@@ -32,7 +31,6 @@ class web_brute_shortnames(web_brute):
         "wordlist_extensions": "Specify wordlist to use when making extension lists",
         "max_depth": "the maximum directory depth to attempt to solve",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "ignore_redirects": "Explicitly ignore redirects (301,302)",
         "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional runs against them",
         "find_delimiters": "Attempt to detect common delimiters and make additional runs against them",
         "find_subwords": "Attempt to detect subwords and make additional runs against them",
@@ -95,7 +93,6 @@ class web_brute_shortnames(web_brute):
     async def setup(self):
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         self.blast_client = self.helpers.blasthttp
-        self.ignore_redirects = self.config.get("ignore_redirects")
         self.max_predictions = self.config.get("max_predictions")
         self.find_subwords = self.config.get("find_subwords")
         self.rate = self.config.get("rate", 0) or None
