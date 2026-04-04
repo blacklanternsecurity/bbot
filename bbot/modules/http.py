@@ -32,7 +32,7 @@ class http(BaseModule):
 
     scope_distance_modifier = 2
     _shuffle_incoming_queue = False
-    _batch_size = 500
+    _batch_size = 250
     _priority = 2
     # accept Javascript URLs
     accept_url_special = True
