@@ -1613,6 +1613,9 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         if self._module_consumers <= 0:
             self._data.pop("body", None)
             self._data.pop("raw_header", None)
+            self._data.pop("header", None)
+            self._data.pop("hash", None)
+            self._data.pop("cert_info", None)
 
     @property
     def raw_response(self):

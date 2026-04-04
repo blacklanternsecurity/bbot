@@ -215,9 +215,6 @@ class http(BaseModule):
         # blasthttp batch returns a native coroutine via pyo3-async-runtimes
         results = await self.client.request_batch(configs, self.threads)
 
-        # Index results by URL for the dedup check
-        results_by_url = {r.url: r for r in results}
-
         # For OPEN_TCP_PORT probes, suppress redundant https when http already succeeded.
         # When probing an unknown port, we try both http:// and https://. If http works,
         # the port definitely speaks HTTP — the https result may be a proxy artifact
@@ -227,18 +224,20 @@ class http(BaseModule):
         # Explicit URLs (URL_UNVERIFIED/URL) are never suppressed — this only applies
         # to speculative OPEN_TCP_PORT probes.
         suppressed_urls = set()
-        for key, schemes in port_probes.items():
-            http_url = schemes.get("http")
-            https_url = schemes.get("https")
-            if not (http_url and https_url):
-                continue
-            http_result = results_by_url.get(http_url)
-            if http_result and http_result.success and http_result.response.status != 0:
-                if https_url in results_by_url:
+        if port_probes:
+            successful_urls = {r.url for r in results if r.success and r.response.status != 0}
+            for key, schemes in port_probes.items():
+                http_url = schemes.get("http")
+                https_url = schemes.get("https")
+                if not (http_url and https_url):
+                    continue
+                if http_url in successful_urls and https_url in successful_urls:
                     self.debug(f"Suppressing https probe {https_url} (http already succeeded: {http_url})")
                     suppressed_urls.add(https_url)
 
-        for result in results:
+        for i in range(len(results)):
+            result = results[i]
+            results[i] = None  # free response body memory as we go
             if not result.success:
                 self.debug(f"blasthttp error for {result.url}: {result.error}")
                 continue
