@@ -742,10 +742,7 @@ def test_target_comments_blacklist_file(tmp_path):
     from bbot.core.helpers.misc import chain_lists
 
     blacklist_file = tmp_path / "blacklist.txt"
-    blacklist_file.write_text(
-        "# don't scan the blog\n"
-        "blog.evilcorp.com # unstable host\n"
-    )
+    blacklist_file.write_text("# don't scan the blog\nblog.evilcorp.com # unstable host\n")
 
     result = chain_lists([str(blacklist_file)], try_files=True, _strip_comments=True)
     assert result == ["blog.evilcorp.com"]
