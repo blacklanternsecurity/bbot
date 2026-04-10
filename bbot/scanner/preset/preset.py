@@ -673,6 +673,7 @@ class Preset(metaclass=BasePreset):
             cls._resolve_file_entries(target_vals),
             try_files=True,
             msg="Reading targets from preset file: {filename}",
+            _strip_comments=True,
         )
         seeds = preset_dict.get("seeds")
         if seeds is not None:
@@ -680,6 +681,7 @@ class Preset(metaclass=BasePreset):
                 cls._resolve_file_entries(seeds),
                 try_files=True,
                 msg="Reading seeds from preset file: {filename}",
+                _strip_comments=True,
             )
         blacklist = preset_dict.get("blacklist")
         if blacklist is not None:
@@ -687,6 +689,7 @@ class Preset(metaclass=BasePreset):
                 cls._resolve_file_entries(blacklist),
                 try_files=True,
                 msg="Reading blacklist from preset file: {filename}",
+                _strip_comments=True,
             )
         new_preset = cls(
             *targets,

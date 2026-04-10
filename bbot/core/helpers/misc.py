@@ -1118,6 +1118,32 @@ def str_or_file(s):
         yield s
 
 
+_comment_re = re.compile(r"\s#")
+
+
+def strip_comments(line):
+    """Strip #-style comments from a line.
+
+    Handles full-line comments (``# ...``) and inline comments (``target # ...``).
+    The ``#`` must be preceded by whitespace to count as an inline comment,
+    so URL fragments like ``http://example.com/page#section`` are preserved.
+
+    Examples:
+        >>> strip_comments("evilcorp.com # main domain")
+        'evilcorp.com'
+        >>> strip_comments("# full line comment")
+        ''
+        >>> strip_comments("http://example.com/page#section")
+        'http://example.com/page#section'
+    """
+    if line.lstrip().startswith("#"):
+        return ""
+    m = _comment_re.search(line)
+    if m:
+        return line[: m.start()]
+    return line
+
+
 split_regex = re.compile(r"[\s,]")
 
 
@@ -1128,6 +1154,7 @@ def chain_lists(
     remove_blank=True,
     validate=False,
     validate_chars='<>:"/\\|?*)',
+    _strip_comments=False,
 ):
     """Chains together list elements, allowing for entries separated by commas.
 
@@ -1143,6 +1170,7 @@ def chain_lists(
         remove_blank (bool, optional): Whether to remove blank entries from the list. Defaults to True.
         validate (bool, optional): Whether to perform validation for undesirable characters. Defaults to False.
         validate_chars (str, optional): When performing validation, what additional set of characters to block (blocks non-printable ascii automatically). Defaults to '<>:"/\\|?*)'
+        _strip_comments (bool, optional): Whether to strip ``#``-style comments from entries and file lines. Defaults to False.
 
     Returns:
         list: The list of chained elements.
@@ -1172,6 +1200,8 @@ def chain_lists(
                     new_msg = str(msg).format(filename=f_path)
                     log.info(new_msg)
                 for line in str_or_file(f):
+                    if _strip_comments:
+                        line = strip_comments(line)
                     final_list[line] = None
             else:
                 final_list[f] = None

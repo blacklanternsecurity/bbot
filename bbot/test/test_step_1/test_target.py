@@ -710,3 +710,68 @@ def test_target_pickle():
 
     # hashes match
     assert target.hash == restored.hash
+
+
+def test_target_comments_from_file(tmp_path):
+    """Comments in a target file are stripped when loaded via chain_lists."""
+    from bbot.core.helpers.misc import chain_lists
+
+    target_file = tmp_path / "targets.txt"
+    target_file.write_text(
+        "# My target list\n"
+        "evilcorp.com # main domain\n"
+        "\n"
+        "  # another comment\n"
+        "othercorp.com\n"
+        "192.168.1.0/24 # lab network\n"
+        "http://example.com/page#fragment # with a URL fragment\n"
+    )
+
+    result = chain_lists([str(target_file)], try_files=True, _strip_comments=True)
+    assert "evilcorp.com" in result
+    assert "othercorp.com" in result
+    assert "192.168.1.0/24" in result
+    assert "http://example.com/page#fragment" in result
+    # comments and blank lines are gone
+    assert not any(r.lstrip().startswith("#") for r in result)
+    assert len(result) == 4
+
+
+def test_target_comments_blacklist_file(tmp_path):
+    """Comments in a blacklist file are stripped when loaded via chain_lists."""
+    from bbot.core.helpers.misc import chain_lists
+
+    blacklist_file = tmp_path / "blacklist.txt"
+    blacklist_file.write_text(
+        "# don't scan the blog\n"
+        "blog.evilcorp.com # unstable host\n"
+    )
+
+    result = chain_lists([str(blacklist_file)], try_files=True, _strip_comments=True)
+    assert result == ["blog.evilcorp.com"]
+
+
+def test_strip_comments_helper():
+    """Unit tests for the strip_comments function."""
+    from bbot.core.helpers.misc import strip_comments
+
+    # full-line comments
+    assert strip_comments("# comment") == ""
+    assert strip_comments("  # indented comment") == ""
+
+    # inline comments
+    assert strip_comments("evilcorp.com # main domain") == "evilcorp.com"
+    assert strip_comments("1.2.3.0/24\t# tab comment") == "1.2.3.0/24"
+
+    # no comment
+    assert strip_comments("evilcorp.com") == "evilcorp.com"
+
+    # URL fragment (no space before #) is preserved
+    assert strip_comments("http://example.com/page#section") == "http://example.com/page#section"
+
+    # URL fragment with trailing inline comment
+    assert strip_comments("http://example.com/page#section # a comment") == "http://example.com/page#section"
+
+    # empty / whitespace
+    assert strip_comments("") == ""
+    assert strip_comments("   ") == "   "
