@@ -51,7 +51,7 @@ jobs:
 
     # Upload benchmark results as artifacts
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: benchmark-results
         path: |
@@ -62,7 +62,7 @@ jobs:
 
     # Comment on PR with benchmark results
     - name: Comment benchmark results on PR
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const fs = require('fs');
