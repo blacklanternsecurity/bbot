@@ -661,7 +661,6 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
                 acceptable, reason = await self._event_postcheck(event)
                 if acceptable:
                     if event.type == "FINISHED":
@@ -766,7 +765,6 @@ class BaseModule:
                                 break
                         except asyncio.queues.QueueEmpty:
                             continue
-                        self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
                         try:
                             async with self._task_counter.count(f"event_postcheck({event})"):
                                 acceptable, reason = await self._event_postcheck(event)
@@ -781,13 +779,12 @@ class BaseModule:
                                 else:
                                     context = f"{self.name}.handle_event({event})"
                                     self.scan.stats.event_consumed(event, self)
-                                    self.debug(f"Handling {event}")
+                                    self.debug(f"Handling {event} from {getattr(event, 'module', 'unknown_module')}")
                                     try:
                                         await self.run_task(self.handle_event(event), context)
                                     except asyncio.CancelledError:
                                         self.debug(f"{context} was cancelled")
                                         continue
-                                    self.debug(f"Finished handling {event}")
                             else:
                                 self.debug(f"Not accepting {event} because {reason}")
                         finally:
@@ -940,7 +937,6 @@ class BaseModule:
             if not filter_result:
                 return False, msg
 
-        self.debug(f"{event} passed post-check")
         return True, ""
 
     def _scope_distance_check(self, event):
