@@ -268,24 +268,6 @@ class DepsInstaller:
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
-        # Ensure pip is available in the environment
-        try:
-            check_pip_command = [sys.executable, "-m", "pip", "--version"]
-            await self.parent_helper.run(check_pip_command, check=True)
-        except CalledProcessError:
-            # pip is not available, try to install it with ensurepip
-            log.info("pip not found in virtual environment, attempting to install with ensurepip")
-            try:
-                ensurepip_command = [sys.executable, "-m", "ensurepip", "--upgrade"]
-                await self.parent_helper.run(ensurepip_command, check=True)
-                log.info("Successfully installed pip with ensurepip")
-            except CalledProcessError as err:
-                log.warning(
-                    f"Failed to install pip with ensurepip (return code {err.returncode}): {err.stderr}. "
-                    f"If using uv, create the virtual environment with 'uv venv --seed' or set UV_VENV_SEED=1"
-                )
-                return False
-
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
 
         # if no custom constraints are provided, use the constraints of the currently installed version of bbot
