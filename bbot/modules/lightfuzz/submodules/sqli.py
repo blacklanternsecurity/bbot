@@ -69,6 +69,65 @@ class sqli(BaseLightfuzz):
         else:
             return False
 
+    async def _confirm_code_change(self, probe_value, cookies, initial_status_codes, rounds=2):
+        """Run additional confirmation rounds with fresh baselines to rule out transient server/CDN flaps.
+
+        Each round creates a new HttpCompare (fresh baseline pair) and re-runs both probes.
+        Returns True only if every round produces the same (baseline, sq, dq) status codes
+        as the initial detection and the baseline status code is stable across all rounds.
+        """
+        for i in range(rounds):
+            try:
+                fresh_compare = self.compare_baseline(
+                    self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
+                )
+                sq = await self.compare_probe(
+                    fresh_compare,
+                    self.event.data["type"],
+                    f"{probe_value}'",
+                    cookies,
+                    additional_params_populate_empty=True,
+                )
+                dq = await self.compare_probe(
+                    fresh_compare,
+                    self.event.data["type"],
+                    f"{probe_value}''",
+                    cookies,
+                    additional_params_populate_empty=True,
+                )
+            except HttpCompareError as e:
+                self.debug(f"Confirmation round {i + 1} baseline unstable: {e}")
+                return False
+
+            if not sq[3] or not dq[3]:
+                self.debug(f"Confirmation round {i + 1} failed to get responses")
+                return False
+
+            round_status_codes = (
+                fresh_compare.baseline.status_code,
+                sq[3].status_code,
+                dq[3].status_code,
+            )
+
+            # Baseline must be stable across rounds
+            if round_status_codes[0] != initial_status_codes[0]:
+                self.debug(
+                    f"Confirmation round {i + 1} baseline status code changed "
+                    f"({initial_status_codes[0]} -> {round_status_codes[0]}), discarding as flappy"
+                )
+                return False
+
+            if round_status_codes != initial_status_codes:
+                self.debug(
+                    f"Confirmation round {i + 1} status codes changed: "
+                    f"expected {initial_status_codes}, got {round_status_codes}"
+                )
+                return False
+
+            self.debug(f"Confirmation round {i + 1} passed: {round_status_codes}")
+
+        return True
+
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=True)
@@ -85,6 +144,7 @@ class sqli(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
+            sq_request = getattr(self, "_last_probe_request", None)
             double_single_quote = await self.compare_probe(
                 http_compare,
                 self.event.data["type"],
@@ -92,6 +152,7 @@ class sqli(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
+            dq_request = getattr(self, "_last_probe_request", None)
             # if the single quote probe response is different from the baseline
             if single_quote[0] is False:
                 # check for common SQL error strings in the response
@@ -132,14 +193,36 @@ class sqli(BaseLightfuzz):
                                 )
                                 is_waf = True
                         if not is_waf:
-                            self.results.append(
-                                {
-                                    "name": "Possible SQL Injection",
-                                    "severity": "HIGH",
-                                    "confidence": "MEDIUM",
-                                    "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({http_compare.baseline.status_code}->{single_quote[3].status_code}->{double_single_quote[3].status_code})]",
-                                }
+                            # Confirmation loop: require 2 additional rounds with fresh baselines
+                            # to confirm the status-code triplet is stable and not a transient CDN/server flap.
+                            # TODO: apply this same confirmation pattern to other submodules that use compare_probe-based detection.
+                            initial_status_codes = (
+                                http_compare.baseline.status_code,
+                                single_quote[3].status_code,
+                                double_single_quote[3].status_code,
                             )
+                            confirmed = await self._confirm_code_change(probe_value, cookies, initial_status_codes)
+                            if confirmed:
+                                # Build probe body descriptions for triage
+                                baseline_desc = self.describe_probe_request(
+                                    "baseline",
+                                    {
+                                        "method": http_compare.method,
+                                        "url": http_compare.baseline_url,
+                                        "data": http_compare.data,
+                                        "json": http_compare.json,
+                                    },
+                                )
+                                sq_desc = self.describe_probe_request("sq", sq_request)
+                                dq_desc = self.describe_probe_request("dq", dq_request)
+                                self.results.append(
+                                    {
+                                        "name": "Possible SQL Injection",
+                                        "severity": "HIGH",
+                                        "confidence": "MEDIUM",
+                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({initial_status_codes[0]}->{initial_status_codes[1]}->{initial_status_codes[2]})]{baseline_desc}{sq_desc}{dq_desc}",
+                                    }
+                                )
             else:
                 self.debug("Failed to get responses for both single_quote and double_single_quote")
         except HttpCompareError as e:

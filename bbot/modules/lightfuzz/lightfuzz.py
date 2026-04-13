@@ -236,6 +236,12 @@ class lightfuzz(BaseModule):
             self.debug(f"Skipping {event.type} because it is likely to be blocked by a WAF. URL: {url}")
             return False
 
+        # Skip WEB_PARAMETERs on static-asset URLs (pdf, doc, xml, etc.) — fuzzing them is pointless
+        if event.type == "WEB_PARAMETER":
+            ext = getattr(event, "url_extension", None)
+            if ext and ext in self.scan.config.get("url_extension_static", []):
+                return False, f"skipping WEB_PARAMETER on static-asset URL (.{ext})"
+
         # If we've disabled fuzzing POST parameters, back out of POSTPARAM WEB_PARAMETER events as quickly as possible
         if event.type == "WEB_PARAMETER" and self.disable_post and event.data["type"] == "POSTPARAM":
             if not self.try_post_as_get:

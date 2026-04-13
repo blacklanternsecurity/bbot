@@ -1097,8 +1097,10 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
                         excavate_extracted_form_parameter_details = True
             if e.type == "FINDING":
                 if (
-                    e.data["description"]
-                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Technique: [Error Resolution (Baseline: [500]  -> Probe: [200] )] Serialization Payload: [dotnet_base64]"
+                    "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM]"
+                    in e.data["description"]
+                    and "Technique: [Error Resolution (Baseline: [500]  -> Probe: [200] )] Serialization Payload: [dotnet_base64]"
+                    in e.data["description"]
                 ):
                     lightfuzz_serial_detect_errorresolution = True
 
@@ -1200,8 +1202,10 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
                 if e.data["description"] == "HTTP response (body) contains a possible serialized object (DOTNET)":
                     excavate_detect_serialization_value = True
                 if (
-                    e.data["description"]
-                    == "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Original Value: [AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==] Technique: [Error Resolution (Baseline: [500]  -> Probe: [200] )] Serialization Payload: [dotnet_base64]"
+                    "POSSIBLE Unsafe Deserialization. Parameter: [TextBox1] Parameter Type: [POSTPARAM] Original Value: [AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==]"
+                    in e.data["description"]
+                    and "Technique: [Error Resolution (Baseline: [500]  -> Probe: [200] )] Serialization Payload: [dotnet_base64]"
+                    in e.data["description"]
                 ):
                     lightfuzz_serial_detect_errorresolution = True
 
@@ -3045,4 +3049,174 @@ class Test_Lightfuzz_sqli_waf(Test_Lightfuzz_sqli):
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert not sqli_finding_emitted, (
             "SQLi should NOT be reported when single quote probe triggers a WAF 403 response"
+        )
+
+
+# SQLi flappy baseline: server alternates between status codes across rounds.
+# The confirmation loop should detect the instability and suppress the finding.
+class Test_Lightfuzz_sqli_flappy_baseline(Test_Lightfuzz_sqli):
+    """SQLi negative test: server flaps between 200 and 303 across requests.
+    The confirmation loop should detect unstable baselines and suppress the finding."""
+
+    request_count = 0
+
+    def request_handler(self, request):
+        self.__class__.request_count += 1
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search the blog...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+
+            # First round: return the classic 200->500->200 pattern to trigger initial detection
+            # Subsequent rounds: flap baseline to 303 to simulate CDN instability
+            if self.__class__.request_count > 12:
+                # After initial probes, start flapping the baseline
+                return Response("Redirecting", status=303, headers={"Location": "/"})
+
+            if value.endswith("'"):
+                if value.endswith("''"):
+                    return Response("<p>normal</p>", status=200)
+                return Response("<p>error</p>", status=500)
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        sqli_finding_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [search]" in e.data["description"]:
+                    web_parameter_emitted = True
+            if e.type == "FINDING":
+                if "Possible SQL Injection" in e.data["description"] and "Code Change" in e.data["description"]:
+                    sqli_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert not sqli_finding_emitted, (
+            "SQLi code-change finding should NOT be emitted when baseline is flappy across confirmation rounds"
+        )
+
+
+# Verify that code-change SQLi findings include probe body descriptions for triage
+class Test_Lightfuzz_sqli_probe_descriptions(Test_Lightfuzz_sqli):
+    def check(self, module_test, events):
+        sqli_finding_emitted = False
+        for e in events:
+            if e.type == "FINDING" and "Code Change" in e.data.get("description", ""):
+                desc = e.data["description"]
+                # Verify probe body descriptions are present
+                assert "baseline:" in desc, f"Finding description missing baseline probe details: {desc}"
+                assert "sq:" in desc, f"Finding description missing single-quote probe details: {desc}"
+                assert "dq:" in desc, f"Finding description missing double-quote probe details: {desc}"
+                sqli_finding_emitted = True
+        assert sqli_finding_emitted, "SQLi code-change FINDING not emitted"
+
+
+# Verify that POST SQLi findings include additional_params in the description
+class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli"],
+            }
+        },
+    }
+
+    def request_handler(self, request):
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=POST>
+                <input type=text name=search>
+                <input type=hidden name=form_id value=search_form>
+                <button type=submit>Search</button>
+            </form>
+        </section>
+        """
+        if "search" in request.form.keys():
+            value = request.form["search"]
+            if value.endswith("'"):
+                if value.endswith("''"):
+                    return Response("<p>normal</p>", status=200)
+                return Response("<p>error</p>", status=500)
+            return Response("<p>results</p>", status=200)
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        sqli_finding_emitted = False
+        for e in events:
+            if e.type == "FINDING" and "Code Change" in e.data.get("description", ""):
+                desc = e.data["description"]
+                if "POSTPARAM" in desc:
+                    # POST findings should include additional_params info
+                    assert "Additional Params:" in desc, f"POST finding description missing additional_params: {desc}"
+                    sqli_finding_emitted = True
+        assert sqli_finding_emitted, "SQLi POST code-change FINDING not emitted"
+
+
+# Verify that lightfuzz rejects WEB_PARAMETER events on static-asset URLs (.pdf, .xml, etc.)
+class Test_Lightfuzz_static_url_filter(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli"],
+            }
+        },
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        respond_args = {"response_data": "<html><body>placeholder</body></html>", "status": 200}
+        expect_args = {"method": "GET", "uri": "/"}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # Inject a WEB_PARAMETER event on a .pdf URL
+        seed_events = []
+        parent_event = module_test.scan.make_event(
+            "http://127.0.0.1:8888/",
+            "URL",
+            module_test.scan.root_event,
+            module="http",
+            tags=["status-200", "distance-0"],
+        )
+        data = {
+            "host": "127.0.0.1",
+            "type": "GETPARAM",
+            "name": "v",
+            "original_value": "1",
+            "url": "http://127.0.0.1:8888/document.pdf?v=1",
+            "description": "HTTP Extracted Parameter [v]",
+        }
+        seed_event = module_test.scan.make_event(data, "WEB_PARAMETER", parent_event, tags=["distance-0"])
+        seed_events.append(seed_event)
+        for event in seed_events:
+            await module_test.scan.ingress_module.incoming_event_queue.put(event)
+
+    def check(self, module_test, events):
+        sqli_finding_emitted = False
+        for e in events:
+            if e.type == "FINDING":
+                if "Possible SQL Injection" in e.data["description"]:
+                    sqli_finding_emitted = True
+
+        assert not sqli_finding_emitted, (
+            "SQLi finding should NOT be emitted for WEB_PARAMETER on a static-asset URL (.pdf)"
         )

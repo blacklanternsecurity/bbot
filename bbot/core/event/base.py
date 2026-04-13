@@ -1068,10 +1068,20 @@ class DefaultEvent(BaseEvent):
 
 
 class DictEvent(BaseEvent):
+    __slots__ = ["url_extension"]
+
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
             self.parsed_url = self.validators.validate_url_parsed(url)
+            # extract url_extension from any dict event with a URL
+            url_path = self.parsed_url.path
+            if url_path:
+                parsed_path_lower = str(url_path).lower()
+                extension = get_file_extension(parsed_path_lower)
+                if extension:
+                    self.url_extension = extension
+                    self.add_tag(f"extension-{extension}")
         return data
 
     def _data_load(self, data):
@@ -1297,7 +1307,6 @@ class URL_UNVERIFIED(DictHostEvent):
 
     __slots__ = [
         "web_spider_distance",
-        "url_extension",
         "num_redirects",
     ]
 

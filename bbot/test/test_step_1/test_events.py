@@ -138,6 +138,44 @@ async def test_events(events, helpers):
     with pytest.raises(ValidationError, match=".*status tag.*"):
         scan.make_event("https://evilcorp.com", "URL", events.ipv4_url)
 
+    # url_extension: URL events
+    css_url = scan.make_event("https://evilcorp.com/style.css?v=1", dummy=True)
+    assert getattr(css_url, "url_extension", "") == "css"
+    assert "extension-css" in css_url.tags
+    js_url = scan.make_event("https://evilcorp.com/app.js", dummy=True)
+    assert getattr(js_url, "url_extension", "") == "js"
+    no_ext_url = scan.make_event("https://evilcorp.com/search", dummy=True)
+    assert getattr(no_ext_url, "url_extension", "NOT_SET") == "NOT_SET"
+
+    # url_extension: WEB_PARAMETER events (dict events with URLs)
+    wp_css = scan.make_event(
+        {
+            "host": "evilcorp.com",
+            "type": "GETPARAM",
+            "name": "v",
+            "original_value": "1",
+            "url": "https://evilcorp.com/style.css?v=1",
+            "description": "test",
+        },
+        "WEB_PARAMETER",
+        dummy=True,
+    )
+    assert getattr(wp_css, "url_extension", "") == "css"
+    assert "extension-css" in wp_css.tags
+    wp_no_ext = scan.make_event(
+        {
+            "host": "evilcorp.com",
+            "type": "GETPARAM",
+            "name": "q",
+            "original_value": "test",
+            "url": "https://evilcorp.com/search?q=test",
+            "description": "test",
+        },
+        "WEB_PARAMETER",
+        dummy=True,
+    )
+    assert getattr(wp_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
+
     # http response
     assert events.http_response.host == "example.com"
     assert events.http_response.port == 80

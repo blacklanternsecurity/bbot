@@ -159,7 +159,7 @@ class BaseLightfuzz:
         """
         Executes a baseline probe to establish a baseline for comparison.
         """
-        if self.event.data.get("eventtype") in ["POSTPARAM", "BODYJSON"]:
+        if self.event.data.get("type") in ["POSTPARAM", "BODYJSON"]:
             method = "POST"
         else:
             method = "GET"
@@ -209,6 +209,8 @@ class BaseLightfuzz:
             additional_params_populate_empty,
             skip_urlencoding,
         )
+        # Stash request params for finding descriptions
+        self._last_probe_request = dict(request_params)
         # Perform the comparison using the constructed request parameters
         url = request_params.pop("url")
         return await http_compare.compare(url, **request_params)
@@ -251,6 +253,16 @@ class BaseLightfuzz:
             metadata_string += (
                 f" Original Value: [{self.lightfuzz.helpers.truncate_string(self.event.data['original_value'], 200)}]"
             )
+        # Surface additional_params for param types where they're needed to reproduce findings
+        if self.event.data["type"] in ("POSTPARAM", "BODYJSON", "HEADER", "COOKIE"):
+            additional_params = self.event.data.get("additional_params", {})
+            if additional_params:
+                # Truncate individual values and the total string to keep descriptions manageable
+                truncated = {
+                    k: self.lightfuzz.helpers.truncate_string(str(v), 50) for k, v in additional_params.items()
+                }
+                params_str = self.lightfuzz.helpers.truncate_string(str(truncated), 500)
+                metadata_string += f" Additional Params: {params_str}"
         return metadata_string
 
     def incoming_probe_value(self, populate_empty=True):
@@ -258,11 +270,11 @@ class BaseLightfuzz:
         Transparently modifies the incoming probe value (the original value of the WEB_PARAMETER), given any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
         """
         envelopes = getattr(self.event, "envelopes", None)
-        probe_value = ""
+        probe_value = None
         if envelopes is not None:
             probe_value = envelopes.get_subparam()
             self.debug(f"incoming_probe_value (after unpacking): {probe_value} with envelopes [{envelopes}]")
-        if not probe_value:
+        if probe_value is None or probe_value == "":
             if populate_empty is True:
                 probe_value = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
             else:
@@ -286,6 +298,27 @@ class BaseLightfuzz:
                 f"outgoing_probe_value (after packing): {outgoing_probe_value} with envelopes [{envelopes}] / {self.event}"
             )
         return outgoing_probe_value
+
+    def describe_probe_request(self, label, request_params):
+        """Format a probe's request params into a compact string for finding descriptions."""
+        if not request_params:
+            return ""
+        method = request_params.get("method", "GET")
+        url = request_params.get("url", "")
+        data = request_params.get("data")
+        json_data = request_params.get("json")
+        if data:
+            body = "&".join(f"{k}={v}" for k, v in data.items())
+        elif json_data:
+            import json
+
+            body = json.dumps(json_data, separators=(",", ":"))
+        elif "?" in url:
+            body = url.split("?", 1)[1]
+        else:
+            body = ""
+        body = self.lightfuzz.helpers.truncate_string(body, 500)
+        return f" {label}: [{method} {body}]"
 
     def get_submodule_name(self):
         """Extracts the submodule name from the class name."""

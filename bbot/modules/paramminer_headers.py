@@ -272,7 +272,8 @@ class paramminer_headers(BaseModule):
 
     async def filter_event(self, event):
         # Filter out static endpoints
-        if event.url.endswith(tuple(f".{ext}" for ext in self.config.get("url_extension_static", []))):
+        ext = getattr(event, "url_extension", None)
+        if ext and ext in self.scan.config.get("url_extension_static", []):
             return False
 
         # We don't need to look at WEB_PARAMETERS that we produced
