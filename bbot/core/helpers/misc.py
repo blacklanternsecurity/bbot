@@ -2696,6 +2696,7 @@ def get_waf_strings():
         "Request unsuccessful. Incapsula incident",
         "Access Denied - Sucuri Website Firewall",
         "Attention Required! | Cloudflare",
+        "Microsoft-Azure-Application-Gateway",
     ]
 
 
