@@ -62,11 +62,7 @@ class BaseTarget:
 
     def __init__(self, *targets, strict_scope=False, acl_mode=False):
         # strip comments and ignore blank targets
-        targets = [
-            stripped
-            for t in targets
-            if (stripped := (strip_comments(t).strip() if isinstance(t, str) else t))
-        ]
+        targets = [stripped for t in targets if (stripped := (strip_comments(t).strip() if isinstance(t, str) else t))]
         self.strict_scope = strict_scope
         self._rt = RadixTarget(strict_scope=strict_scope, acl_mode=acl_mode)
         self.event_seeds = set()
