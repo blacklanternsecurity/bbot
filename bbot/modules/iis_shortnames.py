@@ -32,6 +32,9 @@ class iis_shortnames(BaseModule):
 
     _module_threads = 8
 
+    # Gateway error codes from reverse proxies / CDNs — not IIS shortname signals
+    gateway_error_codes = {502, 503, 504}
+
     async def detect(self, target):
         technique = None
         detections = []
@@ -47,6 +50,13 @@ class iis_shortnames(BaseModule):
                 control_result = await self.helpers.request(control_url, **kwargs)
                 test_result = await self.helpers.request(test_url, **kwargs)
                 if control_result and test_result:
+                    # Skip gateway errors (502/503/504) — these come from CDNs/reverse proxies, not IIS
+                    if {control_result.status_code, test_result.status_code} & self.gateway_error_codes:
+                        self.debug(
+                            f"Skipping {method} detection on {target}: gateway error code "
+                            f"({control_result.status_code}/{test_result.status_code})"
+                        )
+                        break
                     if control_result.status_code != test_result.status_code:
                         confirmations += 1
                         self.debug(f"New detection on {target}, number of confirmations: [{str(confirmations)}]")
