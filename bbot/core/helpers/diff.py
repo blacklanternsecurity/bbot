@@ -98,7 +98,6 @@ class HttpCompare:
                 baseline_1_json = xmltodict.parse(baseline_1.text)
                 baseline_2_json = xmltodict.parse(baseline_2.text)
             except ExpatError:
-                log.debug(f"Can't HTML parse for {self.baseline_url}. Switching to text parsing as a backup")
                 baseline_1_json = baseline_1.text.split("\n")
                 baseline_2_json = baseline_2.text.split("\n")
 
@@ -139,7 +138,6 @@ class HttpCompare:
             for header, value in list(headers.items()):
                 if header.lower() in self.baseline_ignore_headers:
                     with suppress(KeyError):
-                        log.debug(f'found ignored header "{header}" in headers_{i + 1} and removed')
                         del headers[header]
 
         ddiff = DeepDiff(headers_1, headers_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
@@ -237,25 +235,18 @@ class HttpCompare:
             subject_json = xmltodict.parse(subject_response.text)
 
         except ExpatError:
-            log.debug(f"Can't HTML parse for {subject.split('?')[0]}. Switching to text parsing as a backup")
             subject_json = subject_response.text.split("\n")
 
         diff_reasons = []
 
         if self.baseline.status_code != subject_response.status_code:
-            log.debug(
-                f"status code was different [{str(self.baseline.status_code)}] -> [{str(subject_response.status_code)}], no match"
-            )
             diff_reasons.append("code")
 
         different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
         if different_headers:
-            log.debug("headers were different, no match")
             diff_reasons.append("header")
 
         if self.compare_body(self.baseline_json, subject_json) is False:
-            log.debug("difference in HTML body, no match")
-
             diff_reasons.append("body")
 
         if not diff_reasons:
