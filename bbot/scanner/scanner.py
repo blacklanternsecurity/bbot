@@ -384,7 +384,7 @@ class Scanner:
             if not self._prepped:
                 await self._prep()
             await self._set_status(SCAN_STATUS_STARTING)
-            self.root_event.data["started_at"] = self.start_time.isoformat()
+            self.root_event.data["started_at"] = self.start_time.timestamp()
 
             self._start_log_handlers()
             self.trace(f"Ran BBOT {__version__} at {self.start_time}, command: {' '.join(sys.argv)}")
