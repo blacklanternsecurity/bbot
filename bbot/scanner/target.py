@@ -17,7 +17,7 @@ def _fnv1a_64(data_strings):
 from bbot.errors import *
 from bbot.core.event import is_event
 from bbot.core.event.helpers import EventSeed, BaseEventSeed
-from bbot.core.helpers.misc import is_dns_name, is_ip, is_ip_type
+from bbot.core.helpers.misc import is_dns_name, is_ip, is_ip_type, strip_comments
 
 log = logging.getLogger("bbot.core.target")
 
@@ -61,8 +61,12 @@ class BaseTarget:
     accept_target_types = ["TARGET"]
 
     def __init__(self, *targets, strict_scope=False, acl_mode=False):
-        # ignore blank targets (sometimes happens as a symptom of .splitlines())
-        targets = [stripped for t in targets if (stripped := (t.strip() if isinstance(t, str) else t))]
+        # strip comments and ignore blank targets
+        targets = [
+            stripped
+            for t in targets
+            if (stripped := (strip_comments(t).strip() if isinstance(t, str) else t))
+        ]
         self.strict_scope = strict_scope
         self._rt = RadixTarget(strict_scope=strict_scope, acl_mode=acl_mode)
         self.event_seeds = set()

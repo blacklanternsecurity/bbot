@@ -1189,6 +1189,8 @@ def chain_lists(
         l = [l]
     final_list = {}
     for entry in l:
+        if _strip_comments:
+            entry = strip_comments(entry)
         for s in split_regex.split(entry):
             f = s.strip()
             if validate:
