@@ -126,6 +126,8 @@ class BaseEvent:
     _suppress_chain_dupes = False
     # Shared compiled regex for discovery context formatting (class-level to avoid per-instance overhead)
     _discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
+    # Stats class for the status line — override in subclasses for custom formatting
+    _stats_class = None
 
     # using __slots__ dramatically reduces memory usage in large scans
     __slots__ = [
@@ -1655,6 +1657,35 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
 class FINDING(ClosestHostEvent):
     _always_emit = True
     _quick_emit = True
+
+    class _stats_class:
+        _severity_order = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+
+        def __init__(self):
+            self.count = 0
+            self.severities = {}
+
+        def increment(self, event):
+            self.count += 1
+            sev = event.data.get("severity", "UNKNOWN")
+            try:
+                self.severities[sev] += 1
+            except KeyError:
+                self.severities[sev] = 1
+
+        def format(self, event_type):
+            if not self.severities:
+                return f"{event_type}: {self.count}"
+            parts = []
+            for sev in self._severity_order:
+                n = self.severities.get(sev, 0)
+                if n:
+                    parts.append(f"{n} {sev}")
+            for sev, n in sorted(self.severities.items()):
+                if sev not in self._severity_order and n:
+                    parts.append(f"{n} {sev}")
+            return f"{event_type}: {self.count} ({', '.join(parts)})"
+
     severity_colors = {
         "CRITICAL": "🟪",
         "HIGH": "🟥",
