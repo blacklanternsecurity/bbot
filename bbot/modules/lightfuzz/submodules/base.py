@@ -209,8 +209,6 @@ class BaseLightfuzz:
             additional_params_populate_empty,
             skip_urlencoding,
         )
-        # Stash request params for finding descriptions
-        self._last_probe_request = dict(request_params)
         # Perform the comparison using the constructed request parameters
         url = request_params.pop("url")
         return await http_compare.compare(url, **request_params)
@@ -298,27 +296,6 @@ class BaseLightfuzz:
                 f"outgoing_probe_value (after packing): {outgoing_probe_value} with envelopes [{envelopes}] / {self.event}"
             )
         return outgoing_probe_value
-
-    def describe_probe_request(self, label, request_params):
-        """Format a probe's request params into a compact string for finding descriptions."""
-        if not request_params:
-            return ""
-        method = request_params.get("method", "GET")
-        url = request_params.get("url", "")
-        data = request_params.get("data")
-        json_data = request_params.get("json")
-        if data:
-            body = "&".join(f"{k}={v}" for k, v in data.items())
-        elif json_data:
-            import json
-
-            body = json.dumps(json_data, separators=(",", ":"))
-        elif "?" in url:
-            body = url.split("?", 1)[1]
-        else:
-            body = ""
-        body = self.lightfuzz.helpers.truncate_string(body, 500)
-        return f" {label}: [{method} {body}]"
 
     def get_submodule_name(self):
         """Extracts the submodule name from the class name."""

@@ -144,7 +144,6 @@ class sqli(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
-            sq_request = getattr(self, "_last_probe_request", None)
             double_single_quote = await self.compare_probe(
                 http_compare,
                 self.event.data["type"],
@@ -152,7 +151,6 @@ class sqli(BaseLightfuzz):
                 cookies,
                 additional_params_populate_empty=True,
             )
-            dq_request = getattr(self, "_last_probe_request", None)
             # if the single quote probe response is different from the baseline
             if single_quote[0] is False:
                 # check for common SQL error strings in the response
@@ -203,24 +201,12 @@ class sqli(BaseLightfuzz):
                             )
                             confirmed = await self._confirm_code_change(probe_value, cookies, initial_status_codes)
                             if confirmed:
-                                # Build probe body descriptions for triage
-                                baseline_desc = self.describe_probe_request(
-                                    "baseline",
-                                    {
-                                        "method": http_compare.method,
-                                        "url": http_compare.baseline_url,
-                                        "data": http_compare.data,
-                                        "json": http_compare.json,
-                                    },
-                                )
-                                sq_desc = self.describe_probe_request("sq", sq_request)
-                                dq_desc = self.describe_probe_request("dq", dq_request)
                                 self.results.append(
                                     {
                                         "name": "Possible SQL Injection",
                                         "severity": "HIGH",
                                         "confidence": "MEDIUM",
-                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({initial_status_codes[0]}->{initial_status_codes[1]}->{initial_status_codes[2]})]{baseline_desc}{sq_desc}{dq_desc}",
+                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({initial_status_codes[0]}->{initial_status_codes[1]}->{initial_status_codes[2]})]",
                                     }
                                 )
             else:
