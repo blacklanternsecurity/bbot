@@ -223,7 +223,7 @@ class paramminer_headers(BaseModule):
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
             reasons = []
-        self.debug(f"Entering recursive binary_search with {len(group):,} sized group for URL [{url}]")
+            self.debug(f"Entering binary_search with {len(group):,} sized group for URL [{url}]")
         if len(group) == 1 and len(reasons) > 0:
             yield group[0], reasons, reflection
         elif len(group) > 1 or (len(group) == 1 and len(reasons) == 0):
