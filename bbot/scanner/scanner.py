@@ -266,10 +266,14 @@ class Scanner:
         self.status_frequency = self.config.get("status_frequency", 15)
 
         # memory-pressure backpressure: cleared when RAM is high, set when OK.
-        # module worker loops await this before pulling new events.
+        # ingress awaits _memory_ok before pulling new events.
+        # _memory_throttled = slow drip mode after safety valve fires.
+        # _memory_throttle_delay = seconds between events, scales with overshoot.
         self._memory_ok = asyncio.Event()
         self._memory_ok.set()
         self._memory_paused_since = None
+        self._memory_throttled = False
+        self._memory_throttle_delay = 0.0
 
         from .stats import ScanStats
 
@@ -737,38 +741,49 @@ class Scanner:
 
         mem_status = self.helpers.memory_status()
         mem_percent = mem_status.percent
-        high_watermark = self.config.get("max_mem_percent", 90)
-        # require memory to drop a few points before resuming to avoid flapping
-        low_watermark = max(0, high_watermark - 5)
+        max_mem_percent = self.config.get("max_mem_percent", 90)
+        resume_threshold = max(0, max_mem_percent - 2)
         # safety valve: force-resume after this many seconds to prevent stuck scans
         max_pause_seconds = 120
 
-        if mem_percent > high_watermark:
+        if mem_percent > max_mem_percent:
             free_memory_human = self.helpers.bytes_to_human(mem_status.available)
-            if self._memory_ok.is_set():
+            if self._memory_ok.is_set() and not self._memory_throttled:
                 self.warning(
                     f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining); "
-                    f"pausing event processing until it drops below {low_watermark}%"
+                    f"pausing event processing until it drops below {resume_threshold}%"
                 )
                 self._memory_ok.clear()
+                self._memory_throttled = False
                 self._memory_paused_since = time.time()
-            else:
+            elif not self._memory_ok.is_set():
                 paused_for = time.time() - self._memory_paused_since
                 if paused_for >= max_pause_seconds:
+                    self._memory_ok.set()
+                    self._memory_throttled = True
+                    self._memory_paused_since = None
+                    self._update_throttle_delay(mem_percent, max_mem_percent)
                     self.warning(
                         f"System memory still at {mem_percent:.1f}% after {paused_for:.0f}s paused; "
-                        f"force-resuming to prevent stuck scan"
+                        f"switching to throttled ingress ({self._memory_throttle_delay:.1f}s/event)"
                     )
-                    self._memory_ok.set()
-                    self._memory_paused_since = None
                 else:
                     self.warning(
                         f"System memory still at {mem_percent:.1f}% ({free_memory_human} remaining); "
                         f"event processing paused ({paused_for:.0f}s / {max_pause_seconds}s)"
                     )
-        elif not self._memory_ok.is_set() and mem_percent <= low_watermark:
-            self.hugesuccess(f"System memory dropped to {mem_percent:.1f}%; resuming event processing")
+            else:
+                # throttled mode, memory still high — update delay and keep dripping
+                self._update_throttle_delay(mem_percent, max_mem_percent)
+                self.warning(
+                    f"System memory still at {mem_percent:.1f}% ({free_memory_human} remaining); "
+                    f"ingress throttled ({self._memory_throttle_delay:.1f}s/event)"
+                )
+        elif (self._memory_throttled or not self._memory_ok.is_set()) and mem_percent <= resume_threshold:
+            self.hugesuccess(f"System memory dropped to {mem_percent:.1f}%; resuming full-speed event processing")
             self._memory_ok.set()
+            self._memory_throttled = False
+            self._memory_throttle_delay = 0.0
             self._memory_paused_since = None
 
         if _log:
@@ -841,6 +856,13 @@ class Scanner:
         status.update({"modules_errored": len(modules_errored)})
 
         return status
+
+    def _update_throttle_delay(self, mem_percent, max_mem_percent):
+        """Scale throttle delay linearly: 0s at threshold, 5s at cap (threshold+5 or 95%, whichever is lower)."""
+        cap = min(max_mem_percent + 5, 95)
+        overshoot_range = max(cap - max_mem_percent, 1)
+        overshoot = min(mem_percent - max_mem_percent, overshoot_range)
+        self._memory_throttle_delay = max(0.0, (overshoot / overshoot_range) * 5.0)
 
     async def async_stop(self):
         """Stops the in-progress scan and performs necessary cleanup.

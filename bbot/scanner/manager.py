@@ -150,6 +150,8 @@ class ScanIngress(BaseInterceptModule):
         # we just stop feeding new events into the pipeline.
         if not self.scan._memory_ok.is_set():
             await self.scan._memory_ok.wait()
+        elif self.scan._memory_throttled:
+            await asyncio.sleep(self.scan._memory_throttle_delay)
 
         for q in self.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
             try:

@@ -454,34 +454,47 @@ async def test_memory_backpressure(bbot_scanner, monkeypatch):
     # simulate high memory — should pause
     mem_percent[0] = 95.0
     scan.modules_status(_log=False)
-    assert not scan._memory_ok.is_set(), "Ingress should be paused when memory exceeds high watermark"
+    assert not scan._memory_ok.is_set(), "Ingress should be paused when memory exceeds threshold"
     assert scan._memory_paused_since is not None
 
-    # memory drops but not below low watermark (85) — should stay paused
+    # memory drops but not below resume threshold (88) — should stay paused
+    mem_percent[0] = 89.0
+    scan.modules_status(_log=False)
+    assert not scan._memory_ok.is_set(), "Should stay paused until memory drops below resume threshold"
+
+    # memory drops below resume threshold — should resume
     mem_percent[0] = 87.0
     scan.modules_status(_log=False)
-    assert not scan._memory_ok.is_set(), "Should stay paused until memory drops below low watermark"
-
-    # memory drops below low watermark — should resume
-    mem_percent[0] = 80.0
-    scan.modules_status(_log=False)
-    assert scan._memory_ok.is_set(), "Ingress should resume when memory drops below low watermark"
+    assert scan._memory_ok.is_set(), "Ingress should resume when memory drops below resume threshold"
     assert scan._memory_paused_since is None
 
-    # test force-resume safety valve
+    # test safety valve → throttled mode
     import time
 
     mem_percent[0] = 95.0
     scan.modules_status(_log=False)
     assert not scan._memory_ok.is_set()
+    assert not scan._memory_throttled
     # fake that we've been paused for a long time
     scan._memory_paused_since = time.time() - 200
     scan.modules_status(_log=False)
-    assert scan._memory_ok.is_set(), "Should force-resume after max pause duration to prevent stuck scan"
+    # should switch to throttled mode: _memory_ok set but _memory_throttled on
+    assert scan._memory_ok.is_set(), "Should open ingress after max pause duration"
+    assert scan._memory_throttled, "Should be in throttled mode, not full speed"
+    # next tick: memory still high → stays throttled (doesn't re-pause)
+    scan.modules_status(_log=False)
+    assert scan._memory_ok.is_set(), "Should stay open in throttled mode"
+    assert scan._memory_throttled, "Should remain throttled while memory is high"
+    # memory drops → back to full speed
+    mem_percent[0] = 80.0
+    scan.modules_status(_log=False)
+    assert scan._memory_ok.is_set(), "Should be fully resumed"
+    assert not scan._memory_throttled, "Throttle should be cleared when memory drops"
 
     # verify the scan still completes with memory pressure active during the run
     mem_percent[0] = 50.0
     scan._memory_ok.set()
+    scan._memory_throttled = False
     scan._memory_paused_since = None
     events = [e async for e in scan.async_start()]
     assert any(e.type == "IP_ADDRESS" for e in events), "Scan should still produce events"
