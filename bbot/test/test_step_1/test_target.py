@@ -731,3 +731,126 @@ def test_target_pickle():
 
     # hashes match
     assert target.hash == restored.hash
+
+
+def test_target_comments():
+    """Target strings support # comments — both full-line and inline."""
+    from bbot.scanner.target import BBOTTarget
+
+    target = BBOTTarget(
+        target=[
+            "# this is a full-line comment",
+            "evilcorp.com # main evilcorp domain",
+            "  # indented comment  ",
+            "1.2.3.0/24 # internal network",
+            "othercorp.com",
+        ],
+    )
+
+    # comment-only lines are ignored
+    assert len(target.target) == 3
+
+    # inline comments are stripped — targets work normally
+    assert target.in_target("evilcorp.com")
+    assert target.in_target("www.evilcorp.com")
+    assert target.in_target("1.2.3.4")
+    assert target.in_target("othercorp.com")
+
+    # the comment text itself is not a target
+    assert not target.in_target("main")
+    assert not target.in_target("internal")
+
+
+def test_target_comments_url_fragment_not_stripped():
+    """A # inside a URL (fragment) must NOT be treated as a comment.
+
+    BBOT's URL normalisation may drop fragments, but the important thing
+    is that the host is still recognised as a valid target.
+    """
+    from bbot.scanner.target import BBOTTarget
+
+    target = BBOTTarget(target=["http://evilcorp.com/page#section"])
+    assert target.in_target("evilcorp.com")
+    assert len(target.target) == 1
+
+
+def test_target_comments_blacklist():
+    """Comments work for blacklist entries too."""
+    from bbot.scanner.target import BBOTTarget
+
+    target = BBOTTarget(
+        target=["evilcorp.com"],
+        blacklist=[
+            "# don't scan the blog",
+            "blog.evilcorp.com # unstable host",
+        ],
+    )
+    assert target.in_scope("www.evilcorp.com")
+    assert not target.in_scope("blog.evilcorp.com")
+    assert len(target.blacklist) == 1
+
+
+def test_target_comments_seeds():
+    """Comments work for seed entries too."""
+    from bbot.scanner.target import BBOTTarget
+
+    target = BBOTTarget(
+        target=["evilcorp.com"],
+        seeds=[
+            "# seed comment",
+            "evilcorp.com # the main domain",
+        ],
+    )
+    assert "evilcorp.com" in target.seeds
+    assert len(target.seeds) == 1
+
+
+def test_target_comments_from_file(tmp_path):
+    """Comments in a target file are stripped when loaded via chain_lists."""
+    from bbot.core.helpers.misc import chain_lists
+
+    target_file = tmp_path / "targets.txt"
+    target_file.write_text(
+        "# My target list\n"
+        "evilcorp.com # main domain\n"
+        "\n"
+        "  # another comment\n"
+        "othercorp.com\n"
+        "192.168.1.0/24 # lab network\n"
+        "http://example.com/page#fragment # with a URL fragment\n"
+    )
+
+    result = chain_lists([str(target_file)], try_files=True, _strip_comments=True)
+    assert "evilcorp.com" in result
+    assert "othercorp.com" in result
+    assert "192.168.1.0/24" in result
+    assert "http://example.com/page#fragment" in result
+    # comments and blank lines are gone
+    assert not any(r.lstrip().startswith("#") for r in result)
+    assert len(result) == 4
+
+
+def test_strip_comments_helper():
+    """Unit tests for the strip_comments function."""
+    from bbot.core.helpers.misc import strip_comments
+
+    # full-line comments
+    assert strip_comments("# comment") == ""
+    assert strip_comments("  # indented comment") == ""
+
+    # inline comments
+    assert strip_comments("evilcorp.com # main domain") == "evilcorp.com"
+    assert strip_comments("1.2.3.0/24\t# tab comment") == "1.2.3.0/24"
+
+    # no comment
+    assert strip_comments("evilcorp.com") == "evilcorp.com"
+
+    # URL fragment (no space before #) is preserved
+    assert strip_comments("http://example.com/page#section") == "http://example.com/page#section"
+
+    # URL fragment with trailing inline comment
+    assert strip_comments("http://example.com/page#section # a comment") == "http://example.com/page#section"
+
+    # empty / whitespace
+    assert strip_comments("") == ""
+    assert strip_comments("   ") == "   "
