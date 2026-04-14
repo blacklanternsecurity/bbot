@@ -74,6 +74,9 @@ home: ~/.bbot
 keep_scans: 20
 # Interval for displaying status messages
 status_frequency: 15
+# Pause event processing when system memory exceeds this percentage.
+# Workers finish their current event then stop pulling new ones until memory drops.
+max_mem_percent: 90
 # Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
 file_blobs: false
 # Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
