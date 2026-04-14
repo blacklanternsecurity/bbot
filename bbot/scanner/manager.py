@@ -145,6 +145,12 @@ class ScanIngress(BaseInterceptModule):
         return self._module_priority_weights
 
     async def get_incoming_event(self):
+        # memory-pressure backpressure: pause ingress while RAM is high.
+        # modules keep draining their queues (freeing memory via _minimize()),
+        # we just stop feeding new events into the pipeline.
+        if not self.scan._memory_ok.is_set():
+            await self.scan._memory_ok.wait()
+
         for q in self.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
             try:
                 return q.get_nowait()

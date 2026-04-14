@@ -1,4 +1,5 @@
 import sys
+import time
 import asyncio
 import logging
 import traceback
@@ -263,6 +264,12 @@ class Scanner:
 
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)
+
+        # memory-pressure backpressure: cleared when RAM is high, set when OK.
+        # module worker loops await this before pulling new events.
+        self._memory_ok = asyncio.Event()
+        self._memory_ok.set()
+        self._memory_paused_since = None
 
         from .stats import ScanStats
 
@@ -728,14 +735,41 @@ class Scanner:
 
         modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
 
-        max_mem_percent = 90
         mem_status = self.helpers.memory_status()
-        # abort if we don't have the memory
         mem_percent = mem_status.percent
-        if mem_percent > max_mem_percent:
-            free_memory = mem_status.available
-            free_memory_human = self.helpers.bytes_to_human(free_memory)
-            self.warning(f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining)")
+        high_watermark = self.config.get("max_mem_percent", 90)
+        # require memory to drop a few points before resuming to avoid flapping
+        low_watermark = max(0, high_watermark - 5)
+        # safety valve: force-resume after this many seconds to prevent stuck scans
+        max_pause_seconds = 120
+
+        if mem_percent > high_watermark:
+            free_memory_human = self.helpers.bytes_to_human(mem_status.available)
+            if self._memory_ok.is_set():
+                self.warning(
+                    f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining); "
+                    f"pausing event processing until it drops below {low_watermark}%"
+                )
+                self._memory_ok.clear()
+                self._memory_paused_since = time.time()
+            else:
+                paused_for = time.time() - self._memory_paused_since
+                if paused_for >= max_pause_seconds:
+                    self.warning(
+                        f"System memory still at {mem_percent:.1f}% after {paused_for:.0f}s paused; "
+                        f"force-resuming to prevent stuck scan"
+                    )
+                    self._memory_ok.set()
+                    self._memory_paused_since = None
+                else:
+                    self.warning(
+                        f"System memory still at {mem_percent:.1f}% ({free_memory_human} remaining); "
+                        f"event processing paused ({paused_for:.0f}s / {max_pause_seconds}s)"
+                    )
+        elif not self._memory_ok.is_set() and mem_percent <= low_watermark:
+            self.hugesuccess(f"System memory dropped to {mem_percent:.1f}%; resuming event processing")
+            self._memory_ok.set()
+            self._memory_paused_since = None
 
         if _log:
             modules_status = []

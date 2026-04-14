@@ -431,3 +431,57 @@ async def test_scan_name(bbot_scanner):
     await scan._prep()
     assert scan.name == "test_scan_name"
     assert scan.preset.scan_name == "test_scan_name"
+
+
+@pytest.mark.asyncio
+async def test_memory_backpressure(bbot_scanner, monkeypatch):
+    """Test that memory pressure pauses ingress and the scan still completes."""
+    from types import SimpleNamespace
+
+    mem_percent = [50.0]  # mutable so the mock can be changed mid-scan
+
+    def mock_memory_status():
+        return SimpleNamespace(percent=mem_percent[0], available=1_000_000_000)
+
+    scan = bbot_scanner("127.0.0.1", config={"max_mem_percent": 90})
+    await scan._prep()
+    await scan.helpers.dns._mock_dns({"1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one"]}})
+    monkeypatch.setattr("bbot.core.helpers.misc.memory_status", mock_memory_status)
+
+    # starts in the OK state
+    assert scan._memory_ok.is_set()
+
+    # simulate high memory — should pause
+    mem_percent[0] = 95.0
+    scan.modules_status(_log=False)
+    assert not scan._memory_ok.is_set(), "Ingress should be paused when memory exceeds high watermark"
+    assert scan._memory_paused_since is not None
+
+    # memory drops but not below low watermark (85) — should stay paused
+    mem_percent[0] = 87.0
+    scan.modules_status(_log=False)
+    assert not scan._memory_ok.is_set(), "Should stay paused until memory drops below low watermark"
+
+    # memory drops below low watermark — should resume
+    mem_percent[0] = 80.0
+    scan.modules_status(_log=False)
+    assert scan._memory_ok.is_set(), "Ingress should resume when memory drops below low watermark"
+    assert scan._memory_paused_since is None
+
+    # test force-resume safety valve
+    import time
+
+    mem_percent[0] = 95.0
+    scan.modules_status(_log=False)
+    assert not scan._memory_ok.is_set()
+    # fake that we've been paused for a long time
+    scan._memory_paused_since = time.time() - 200
+    scan.modules_status(_log=False)
+    assert scan._memory_ok.is_set(), "Should force-resume after max pause duration to prevent stuck scan"
+
+    # verify the scan still completes with memory pressure active during the run
+    mem_percent[0] = 50.0
+    scan._memory_ok.set()
+    scan._memory_paused_since = None
+    events = [e async for e in scan.async_start()]
+    assert any(e.type == "IP_ADDRESS" for e in events), "Scan should still produce events"
