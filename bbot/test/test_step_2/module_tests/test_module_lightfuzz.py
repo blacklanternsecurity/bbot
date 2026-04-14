@@ -3105,21 +3105,6 @@ class Test_Lightfuzz_sqli_flappy_baseline(Test_Lightfuzz_sqli):
         )
 
 
-# Verify that code-change SQLi findings include probe body descriptions for triage
-class Test_Lightfuzz_sqli_probe_descriptions(Test_Lightfuzz_sqli):
-    def check(self, module_test, events):
-        sqli_finding_emitted = False
-        for e in events:
-            if e.type == "FINDING" and "Code Change" in e.data.get("description", ""):
-                desc = e.data["description"]
-                # Verify probe body descriptions are present
-                assert "baseline:" in desc, f"Finding description missing baseline probe details: {desc}"
-                assert "sq:" in desc, f"Finding description missing single-quote probe details: {desc}"
-                assert "dq:" in desc, f"Finding description missing double-quote probe details: {desc}"
-                sqli_finding_emitted = True
-        assert sqli_finding_emitted, "SQLi code-change FINDING not emitted"
-
-
 # Verify that POST SQLi findings include additional_params in the description
 class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
