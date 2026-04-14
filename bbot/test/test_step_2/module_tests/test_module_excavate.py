@@ -473,6 +473,8 @@ class TestExcavateNonHttpScheme(TestExcavate):
     <p>hxxp://test.notreal</p>
     <p>ftp://test.notreal</p>
     <p>nonsense://test.notreal</p>
+    <p>ws://test.notreal</p>
+    <p>wss://test.notreal</p>
     </body>
     </html>
     """
@@ -484,6 +486,9 @@ class TestExcavateNonHttpScheme(TestExcavate):
         found_hxxp_url = False
         found_ftp_url = False
         found_nonsense_url = False
+        found_ws_finding = False
+        found_ws_url = False
+        found_wss_url = False
 
         for e in events:
             if e.type == "FINDING":
@@ -493,9 +498,19 @@ class TestExcavateNonHttpScheme(TestExcavate):
                     found_ftp_url = True
                 if "nonsense" in e.data["description"]:
                     found_nonsense_url = True
+                if "ws://" in e.data.get("description", "") or "wss://" in e.data.get("description", ""):
+                    found_ws_finding = True
+            if e.type == "URL_UNVERIFIED":
+                if e.data.get("url", "") == "http://test.notreal/":
+                    found_ws_url = True
+                if e.data.get("url", "") == "https://test.notreal/":
+                    found_wss_url = True
         assert found_hxxp_url
         assert found_ftp_url
         assert not found_nonsense_url
+        assert not found_ws_finding, "ws:// should not produce a FINDING"
+        assert found_ws_url, "ws:// should be converted to http:// URL_UNVERIFIED"
+        assert found_wss_url, "wss:// should be converted to https:// URL_UNVERIFIED"
 
 
 class TestExcavateParameterExtraction(TestExcavate):
