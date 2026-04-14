@@ -75,9 +75,7 @@ class DNSResolve(BaseInterceptModule):
                 # this prevents rDNS results from triggering subdomain enumeration against unrelated domains
                 # (e.g. scanning 1.2.3.0/24 would otherwise enumerate every PTR parent like randomothercorp.com)
                 if self.filter_ptrs and "ptr" in main_host_event.tags:
-                    self.debug(
-                        f"Not making {main_host_event} in-scope: PTR-derived hostname (filter_ptrs=true)"
-                    )
+                    self.debug(f"Not making {main_host_event} in-scope: PTR-derived hostname (filter_ptrs=true)")
                 else:
                     self.debug(
                         f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
