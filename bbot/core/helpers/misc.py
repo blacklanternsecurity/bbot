@@ -2742,14 +2742,7 @@ def clean_dns_record(record):
     Examples:
         >>> clean_dns_record('www.evilcorp.com.')
         'www.evilcorp.com'
-
-        >>> from dns.rrset import from_text
-        >>> record = from_text('www.evilcorp.com', 3600, 'IN', 'A', '1.2.3.4')[0]
-        >>> clean_dns_record(record)
-        '1.2.3.4'
     """
-    if not isinstance(record, str):
-        record = str(record.to_text())
     return str(record).rstrip(".").lower()
 
 

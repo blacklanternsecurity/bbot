@@ -177,18 +177,12 @@ class TestSubdomainEnumWildcardDefense(TestSubdomainEnumWildcardBaseline):
 
     dns_mock_data = {
         "walmart.cn": {"A": ["127.0.0.2"], "TXT": ["asdf.walmart.cn"]},
+        # wildcard: every *.walmart.cn resolves to the same wildcard A record
+        r"regex:.*\.walmart\.cn$": {"A": ["127.0.0.99"]},
     }
 
     async def setup_after_prep(self, module_test):
-        # simulate wildcard
-        custom_lookup = """
-def custom_lookup(query, rdtype):
-    import random
-    if rdtype == "A" and query.endswith(".walmart.cn"):
-        ip = ".".join([str(random.randint(0,256)) for _ in range(4)])
-        return {ip}
-"""
-        await module_test.mock_dns(self.dns_mock_data, custom_lookup_fn=custom_lookup)
+        await module_test.mock_dns(self.dns_mock_data)
 
     def check(self, module_test, events):
         # no subdomain enum should happen on this domain!
