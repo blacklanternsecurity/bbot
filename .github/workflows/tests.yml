@@ -120,7 +120,6 @@ jobs:
           push: true
           context: .
           tags: |
-            blacklanternsecurity/bbot:latest
             blacklanternsecurity/bbot:dev
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}
@@ -132,6 +131,7 @@ jobs:
           push: true
           context: .
           tags: |
+            blacklanternsecurity/bbot:latest
             blacklanternsecurity/bbot:stable
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}
@@ -144,7 +144,6 @@ jobs:
           file: Dockerfile.full
           context: .
           tags: |
-            blacklanternsecurity/bbot:latest-full
             blacklanternsecurity/bbot:dev-full
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}-full
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}-full
@@ -157,6 +156,7 @@ jobs:
           file: Dockerfile.full
           context: .
           tags: |
+            blacklanternsecurity/bbot:latest-full
             blacklanternsecurity/bbot:stable-full
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}-full
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}-full
