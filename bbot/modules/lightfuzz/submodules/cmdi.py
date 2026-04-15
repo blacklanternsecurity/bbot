@@ -64,7 +64,7 @@ class cmdi(BaseLightfuzz):
                         self.debug(f"canary [{canary}] found in response when sending probe [{p}]")
                         if p == "AAAA":  # Handle detection false positive probe
                             self.warning(
-                                f"False Postive Probe appears to have been triggered for {self.event.data['url']}, aborting remaining detection"
+                                f"False Postive Probe appears to have been triggered for {self.event.url}, aborting remaining detection"
                             )
                             return
                         positive_detections.append(p)  # Add detected probes to positive detections
@@ -74,22 +74,25 @@ class cmdi(BaseLightfuzz):
         if len(positive_detections) > 0:
             self.results.append(
                 {
-                    "type": "FINDING",
+                    "name": "Possible Command Injection",
+                    "severity": "CRITICAL",
+                    "confidence": "MEDIUM",
                     "description": f"POSSIBLE OS Command Injection. {self.metadata()} Detection Method: [echo canary] CMD Probe Delimeters: [{' '.join(positive_detections)}]",
                 }
             )
 
         # Blind OS Command Injection
         if self.lightfuzz.interactsh_instance:
-            self.lightfuzz.event_dict[self.event.data["url"]] = self.event  # Store the event associated with the URL
+            self.lightfuzz.event_dict[self.event.url] = self.event  # Store the event associated with the URL
             for p in cmdi_probe_strings:
                 # generate a random subdomain tag and associate it with the event, type, name, and probe
                 subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
                 self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
                     "event": self.event,
-                    "type": self.event.data["type"],
-                    "name": self.event.data["name"],
-                    "probe": p,
+                    "name": "OS Command Injection",
+                    "description": f"OS Command Injection (OOB Interaction) Type: [{self.event.data['type']}] Parameter Name: [{self.event.data['name']}] Probe: [{p}]",
+                    "severity": "CRITICAL",
+                    "confidence": "CONFIRMED",
                 }
                 # payload is an nslookup command that includes the interactsh domain prepended the previously generated subdomain tag
                 interactsh_probe = f"{p} nslookup {subdomain_tag}.{self.lightfuzz.interactsh_domain} {p}"

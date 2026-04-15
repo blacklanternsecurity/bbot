@@ -84,6 +84,22 @@ class crypto(BaseLightfuzz):
         return _compiled_rules_cache
 
     @staticmethod
+    def is_plausible_base64_crypto(s):
+        """
+        Check if a string is plausibly base64-encoded cryptographic data.
+        Non-standard encodings like F5 BIG-IP's A-P nibble encoding use a narrow
+        consecutive character range that technically round-trips as base64 but is
+        not actual base64. Real base64 of encrypted/random bytes spans a wide
+        character range (typically 70+).
+        """
+        unique_chars = set(s) - set("=")
+        if len(s) >= 16 and unique_chars:
+            char_ords = [ord(c) for c in unique_chars]
+            if max(char_ords) - min(char_ords) <= 20:
+                return False
+        return True
+
+    @staticmethod
     def format_agnostic_decode(input_string, urldecode=False):
         """
         Decodes a string from either hex or base64 (without knowing which first), and optionally URL-decoding it first.
@@ -101,7 +117,7 @@ class crypto(BaseLightfuzz):
         if BaseLightfuzz.is_hex(input_string):
             data = bytes.fromhex(input_string)
             encoding = "hex"
-        elif BaseLightfuzz.is_base64(input_string):
+        elif BaseLightfuzz.is_base64(input_string) and crypto.is_plausible_base64_crypto(input_string):
             data = base64.b64decode(input_string)
             encoding = "base64"
         else:
@@ -232,37 +248,56 @@ class crypto(BaseLightfuzz):
         else:
             baseline_byte = b"\x00"  # set the baseline byte to 0x00
             starting_pos = 1  # set the starting position to 1
-        # first obtain
+
+        baseline_probe_value = self.format_agnostic_encode(
+            ivblock + paddingblock[:-1] + baseline_byte + datablock, encoding
+        )
         baseline = self.compare_baseline(
             self.event.data["type"],
-            self.format_agnostic_encode(ivblock + paddingblock[:-1] + baseline_byte + datablock, encoding),
+            baseline_probe_value,
             cookies,
         )
         differ_count = 0
         # for each possible byte value, send a probe and check if the response is different
         for i in range(starting_pos, starting_pos + 254):
             byte = bytes([i])
+            probe_value = self.format_agnostic_encode(ivblock + paddingblock[:-1] + byte + datablock, encoding)
             oracle_probe = await self.compare_probe(
                 baseline,
                 self.event.data["type"],
-                self.format_agnostic_encode(ivblock + paddingblock[:-1] + byte + datablock, encoding),
+                probe_value,
                 cookies,
             )
             # oracle_probe[0] will be false if the response is different - oracle_probe[1] stores what aspect of the response is different (headers, body, code)
             if oracle_probe[0] is False and "body" in oracle_probe[1]:
+                # When the server reflects submitted values or reveals decrypted data, every probe will differ in the body. Strip the known probe values from both responses and re-compare.
+                stripped_baseline = baseline.baseline.text
+                stripped_probe = oracle_probe[3].text
+                for encoded_baseline, encoded_probe in [
+                    (baseline_probe_value, probe_value),
+                    (baseline_probe_value.replace("+", " "), probe_value.replace("+", " ")),
+                    (quote(baseline_probe_value), quote(probe_value)),
+                ]:
+                    stripped_baseline = stripped_baseline.replace(encoded_baseline, "")
+                    stripped_probe = stripped_probe.replace(encoded_probe, "")
+                if stripped_baseline == stripped_probe:
+                    continue
+                # If the server reveals decrypted data, the response may differ by only a few bytes (the varying decrypted byte). Tolerate small character-level differences.
+                if len(stripped_baseline) == len(stripped_probe):
+                    char_diffs = sum(1 for a, b in zip(stripped_baseline, stripped_probe) if a != b)
+                    if char_diffs <= 5:
+                        continue
                 differ_count += 1
-
-                if i == 2:
-                    if possible_first_byte is True:
-                        # Thats two results which appear "different". Since this is the first run, it's entirely possible \x00 was the correct padding.
-                        # We will break from this loop and redo it with the last byte as the baseline instead of the first
-                        return None
-                    else:
-                        # Now that we have tried the run twice, we know it can't be because the first byte was the correct padding, and we know it is not vulnerable
-                        return False
-        # A padding oracle vulnerability will produce exactly one different response, and no more, so this is likely a real padding oracle
-        if differ_count == 1:
+        self.debug(f"padding_oracle_execute: finished loop. differ_count={differ_count}")
+        # A padding oracle vulnerability can produce a small number of different responses.
+        # The correct \x01 padding byte always differs, but also, multi-byte padding values (\x02\x02, \x03\x03\x03, etc.) can also produce valid padding if the intermediate state randomly aligns. At most 'block_size' of such values are possible.
+        if 1 <= differ_count <= block_size:
             return True
+        # If too many probes differ, the baseline byte may have been the correct padding byte (1/255 chance).
+        # In that case, the baseline response represents "valid padding" and nearly all probes appear different.
+        # Retry with a different baseline byte to rule this out.
+        if possible_first_byte and differ_count > block_size:
+            return None
         return False
 
     async def padding_oracle(self, probe_value, cookies):
@@ -281,11 +316,25 @@ class crypto(BaseLightfuzz):
                 )
 
             if padding_oracle_result is True:
+                # Confirmation round: re-run to rule out jitter-based false positives
+                self.debug(f"Initial padding oracle detection for block_size={block_size}, running confirmation round")
+                confirmation_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
+                if confirmation_result is None:
+                    confirmation_result = await self.padding_oracle_execute(
+                        data, encoding, block_size, cookies, possible_first_byte=False
+                    )
+                if confirmation_result is not True:
+                    self.debug(
+                        f"Confirmation round failed for block_size={block_size} - likely jitter false positive, suppressing"
+                    )
+                    continue
+
                 context = f"Lightfuzz Cryptographic Probe Submodule detected a probable padding oracle vulnerability after manipulating parameter: [{self.event.data['name']}]"
                 self.results.append(
                     {
-                        "type": "VULNERABILITY",
                         "severity": "HIGH",
+                        "name": "Padding Oracle Vulnerability",
+                        "confidence": "HIGH",
                         "description": f"Padding Oracle Vulnerability. Block size: [{str(block_size)}] {self.metadata()}",
                         "context": context,
                     }
@@ -319,7 +368,9 @@ class crypto(BaseLightfuzz):
             if unique_matches:
                 self.results.append(
                     {
-                        "type": "FINDING",
+                        "name": "Possible Cryptographic Error",
+                        "severity": "INFO",
+                        "confidence": "LOW",
                         "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(unique_matches)}] Detection Technique(s): [{','.join(matching_techniques)}]",
                         "context": context,
                     }
@@ -358,7 +409,7 @@ class crypto(BaseLightfuzz):
         # obtain the baseline probe to compare against
         baseline_probe = await self.baseline_probe(cookies)
         if not baseline_probe:
-            self.verbose(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
+            self.verbose(f"Couldn't get baseline_probe for url {self.event.url}, aborting")
             return
 
         # perform the manipulation techniques
@@ -413,7 +464,9 @@ class crypto(BaseLightfuzz):
             context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) to appears to drive a cryptographic operation"
             self.results.append(
                 {
-                    "type": "FINDING",
+                    "name": "Probable Cryptographic Parameter",
+                    "severity": "INFO",
+                    "confidence": "LOW",
                     "description": f"Probable Cryptographic Parameter. {self.metadata()} Detection Technique(s): [{', '.join(confirmed_techniques)}]",
                     "context": context,
                 }
@@ -450,6 +503,8 @@ class crypto(BaseLightfuzz):
                 ):
                     # for each additional parameter, we send a probe and check if it causes the same change in the response as the original probe
                     for additional_param_name, additional_param_value in self.event.data["additional_params"].items():
+                        if additional_param_value is None:
+                            continue
                         try:
                             additional_param_probe = await self.compare_probe(
                                 http_compare,
@@ -467,7 +522,9 @@ class crypto(BaseLightfuzz):
                             context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) that is a likely a hash, which is connected to another parameter {additional_param_name})"
                             self.results.append(
                                 {
-                                    "type": "FINDING",
+                                    "name": "Possible Length Extension Attack",
+                                    "severity": "INFO",
+                                    "confidence": "LOW",
                                     "description": f"Possible {self.event.data['type']} parameter with {hash_instance.name.upper()} Hash as value. {self.metadata()}, linked to additional parameter [{additional_param_name}]",
                                     "context": context,
                                 }

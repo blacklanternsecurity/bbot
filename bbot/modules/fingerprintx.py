@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class fingerprintx(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["PROTOCOL"]
-    flags = ["active", "safe", "service-enum", "slow"]
+    flags = ["safe", "active", "service-enum", "slow"]
     meta = {
         "description": "Fingerprint exposed services like RDP, SSH, MySQL, etc.",
         "created_date": "2023-01-30",
@@ -25,7 +25,7 @@ class fingerprintx(BaseModule):
         {
             "name": "Download fingerprintx",
             "unarchive": {
-                "src": "https://github.com/praetorian-inc/fingerprintx/releases/download/v#{BBOT_MODULES_FINGERPRINTX_VERSION}/fingerprintx_#{BBOT_MODULES_FINGERPRINTX_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH}.tar.gz",
+                "src": "https://github.com/praetorian-inc/fingerprintx/releases/download/v#{BBOT_MODULES_FINGERPRINTX_VERSION}/fingerprintx_#{BBOT_MODULES_FINGERPRINTX_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH_GOLANG}.tar.gz",
                 "include": "fingerprintx",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -80,8 +80,6 @@ class fingerprintx(BaseModule):
             banner = j.get("metadata", {}).get("banner", "").strip()
             port_data = f"{host}:{port}"
             tags = set()
-            if host and ip:
-                tags.add(f"ip-{ip}")
             parent_event = _input.get(port_data)
             protocol_data = {"host": host, "protocol": protocol}
             if port:

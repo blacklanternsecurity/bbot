@@ -1,4 +1,5 @@
 import re
+import sys
 import orjson
 import tempfile
 import subprocess
@@ -9,9 +10,10 @@ from bbot.modules.base import BaseModule
 
 
 class httpx(BaseModule):
+    httpx_tempdir_regex = re.compile(r"^httpx\d+$")
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
-    flags = ["active", "safe", "web-basic", "social-enum", "subdomain-enum", "cloud-enum"]
+    flags = ["safe", "active", "web", "social-enum", "subdomain-enum", "cloud-enum"]
     meta = {
         "description": "Visit webpages. Many other modules rely on httpx",
         "created_date": "2022-07-08",
@@ -38,7 +40,7 @@ class httpx(BaseModule):
         {
             "name": "Download httpx",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/httpx/releases/download/v#{BBOT_MODULES_HTTPX_VERSION}/httpx_#{BBOT_MODULES_HTTPX_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
+                "src": "https://github.com/projectdiscovery/httpx/releases/download/v#{BBOT_MODULES_HTTPX_VERSION}/httpx_#{BBOT_MODULES_HTTPX_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH_GOLANG}.zip",
                 "include": "httpx",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -58,7 +60,6 @@ class httpx(BaseModule):
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.store_responses = self.config.get("store_responses", False)
         self.probe_all_ips = self.config.get("probe_all_ips", False)
-        self.httpx_tempdir_regex = re.compile(r"^httpx\d+$")
         return True
 
     async def filter_event(self, event):
@@ -185,17 +186,10 @@ class httpx(BaseModule):
 
             # main URL
             tags = [f"status-{status_code}"]
-            httpx_ip = j.get("host", "")
-            if httpx_ip:
-                tags.append(f"ip-{httpx_ip}")
-            # grab title
-            title = self.helpers.tagify(j.get("title", ""), maxlen=30)
-            if title:
-                tags.append(f"http-title-{title}")
 
-            url_context = "{module} visited {event.parent.data} and got status code {event.http_status}"
+            url_context = "{module} visited {event.parent.pretty_string} and got status code {event.http_status}"
             if parent_event.type == "OPEN_TCP_PORT":
-                url_context += " at {event.data}"
+                url_context += " at {event.pretty_string}"
 
             url_event = self.make_event(
                 url,
@@ -205,6 +199,16 @@ class httpx(BaseModule):
                 context=url_context,
             )
             if url_event:
+                httpx_ip = j.get("host", "")
+                if httpx_ip:
+                    url_event._resolved_hosts.add(sys.intern(httpx_ip))
+                url_event.data["status_code"] = status_code
+                title = j.get("title", "")
+                if title:
+                    url_event.http_title = title
+                location = j.get("header", {}).get("location", "")
+                if location:
+                    url_event.redirect_location = location
                 if url_event != parent_event:
                     await self.emit_event(url_event)
                 # HTTP response

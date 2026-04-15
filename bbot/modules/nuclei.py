@@ -6,8 +6,8 @@ from bbot.modules.base import BaseModule
 
 class nuclei(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
-    flags = ["active", "aggressive", "deadly"]
+    produced_events = ["FINDING", "TECHNOLOGY"]
+    flags = ["active", "loud", "invasive"]
     meta = {
         "description": "Fast and customisable vulnerability scanner",
         "created_date": "2022-03-12",
@@ -15,7 +15,7 @@ class nuclei(BaseModule):
     }
 
     options = {
-        "version": "3.6.1",
+        "version": "3.7.1",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -50,7 +50,7 @@ class nuclei(BaseModule):
         {
             "name": "Download nuclei",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v#{BBOT_MODULES_NUCLEI_VERSION}/nuclei_#{BBOT_MODULES_NUCLEI_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
+                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v#{BBOT_MODULES_NUCLEI_VERSION}/nuclei_#{BBOT_MODULES_NUCLEI_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH_GOLANG}.zip",
                 "include": "nuclei",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -143,8 +143,8 @@ class nuclei(BaseModule):
     async def handle_batch(self, *events):
         temp_target = self.helpers.make_target()
         for e in events:
-            temp_target.add(e.data, e)
-        nuclei_input = [str(e.data) for e in events]
+            temp_target.add(e.url, e)
+        nuclei_input = [e.url for e in events]
         async for severity, template, tags, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
             cleaned_host = temp_target.get(host)
@@ -154,7 +154,7 @@ class nuclei(BaseModule):
                 continue
 
             if url == "":
-                url = str(parent_event.data)
+                url = parent_event.url
 
             if severity == "INFO" and "tech" in tags:
                 await self.emit_event(
@@ -175,6 +175,9 @@ class nuclei(BaseModule):
                         "host": str(parent_event.host),
                         "url": url,
                         "description": description_string,
+                        "name": f"Nuclei Vuln - {name}",
+                        "severity": "INFO",
+                        "confidence": "HIGH",
                     },
                     "FINDING",
                     parent_event,
@@ -187,8 +190,10 @@ class nuclei(BaseModule):
                         "host": str(parent_event.host),
                         "url": url,
                         "description": description_string,
+                        "name": f"Nuclei Vuln - {name}",
+                        "confidence": "HIGH",
                     },
-                    "VULNERABILITY",
+                    "FINDING",
                     parent_event,
                     context=f"{{module}} scanned {url} and identified {severity.lower()} {{event.type}}: {description_string}",
                 )
@@ -199,7 +204,7 @@ class nuclei(BaseModule):
                 return event
         self.verbose(f"Failed to correlate nuclei result for {host}. Possible parent events:")
         for event in events:
-            self.verbose(f" - {event.data}")
+            self.verbose(f" - {event.url}")
 
     async def execute_nuclei(self, nuclei_input):
         command = [
@@ -311,9 +316,7 @@ class nuclei(BaseModule):
     async def filter_event(self, event):
         if self.config.get("directory_only", True):
             if "endpoint" in event.tags:
-                self.debug(
-                    f"rejecting URL [{str(event.data)}] because directory_only is true and event has endpoint tag"
-                )
+                self.debug(f"rejecting URL [{event.url}] because directory_only is true and event has endpoint tag")
                 return False
         return True
 

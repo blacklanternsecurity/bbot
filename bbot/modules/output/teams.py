@@ -8,11 +8,11 @@ class Teams(WebhookOutputModule):
         "created_date": "2023-08-14",
         "author": "@TheTechromancer",
     }
-    options = {"webhook_url": "", "event_types": ["VULNERABILITY", "FINDING"], "min_severity": "LOW", "retries": 10}
+    options = {"webhook_url": "", "event_types": ["FINDING"], "min_severity": "LOW", "retries": 10}
     options_desc = {
         "webhook_url": "Teams webhook URL",
         "event_types": "Types of events to send",
-        "min_severity": "Only allow VULNERABILITY events of this severity or higher",
+        "min_severity": "Only allow FINDING events of this severity or higher",
         "retries": "Number of times to retry sending the message before skipping the event",
     }
 
@@ -46,7 +46,7 @@ class Teams(WebhookOutputModule):
 
     def get_severity_color(self, event):
         color = "Accent"
-        if event.type == "VULNERABILITY":
+        if event.type == "FINDING":
             severity = event.data.get("severity", "INFO")
             if severity == "CRITICAL":
                 color = "Attention"
@@ -78,7 +78,7 @@ class Teams(WebhookOutputModule):
         heading = {"type": "TextBlock", "text": f"{event.type}", "wrap": True, "size": "Large", "style": "heading"}
         body = adaptive_card["attachments"][0]["content"]["body"]
         body.append(heading)
-        if event.type in ("VULNERABILITY", "FINDING"):
+        if event.type == "FINDING":
             subheading = {
                 "type": "TextBlock",
                 "text": event.data.get("severity", "INFO"),

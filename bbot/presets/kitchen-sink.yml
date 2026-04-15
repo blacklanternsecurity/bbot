@@ -6,13 +6,8 @@ include:
   - code-enum
   - email-enum
   - spider
-  - web-basic
+  - web
   - paramminer
   - dirbust-light
   - web-screenshots
-  - baddns-intense
-
-config:
-  modules:
-    baddns:
-      enable_references: True
+  - baddns-heavy

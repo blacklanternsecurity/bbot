@@ -99,7 +99,9 @@ class sqli(BaseLightfuzz):
                     if sqli_error_string.lower() in single_quote[3].text.lower():
                         self.results.append(
                             {
-                                "type": "FINDING",
+                                "name": "Possible SQL Injection",
+                                "severity": "HIGH",
+                                "confidence": "MEDIUM",
                                 "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [SQL Error Detection] Detected String: [{sqli_error_string}]",
                             }
                         )
@@ -119,7 +121,9 @@ class sqli(BaseLightfuzz):
                     ):
                         self.results.append(
                             {
-                                "type": "FINDING",
+                                "name": "Possible SQL Injection",
+                                "severity": "HIGH",
+                                "confidence": "MEDIUM",
                                 "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({http_compare.baseline.status_code}->{single_quote[3].status_code}->{double_single_quote[3].status_code})]",
                             }
                         )
@@ -171,7 +175,7 @@ class sqli(BaseLightfuzz):
                     ):  # decide if the delay is within the detection threshold and constitutes a successful sleep execution
                         confirmations += 1
                         self.debug(
-                            f"{self.event.data['url']}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
+                            f"{self.event.url}:{self.event.data['name']}:{self.event.data['type']} Increasing confirmations, now: {str(confirmations)} "
                         )
                     else:
                         break
@@ -179,7 +183,9 @@ class sqli(BaseLightfuzz):
                 if confirmations == 3:
                     self.results.append(
                         {
-                            "type": "FINDING",
+                            "name": "Possible Blind SQL Injection",
+                            "severity": "HIGH",
+                            "confidence": "LOW",
                             "description": f"Possible Blind SQL Injection. {self.metadata()} Detection Method: [Delay Probe ({p})]",
                         }
                     )

@@ -11,7 +11,7 @@ from bbot.core.helpers.web.ssl_context import ssl_context_noverify
 class sslcert(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS"]
-    flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic"]
+    flags = ["safe", "affiliates", "subdomain-enum", "email-enum", "active", "web"]
     meta = {
         "description": "Visit open ports and retrieve SSL certificates",
         "created_date": "2022-03-30",
@@ -63,9 +63,9 @@ class sslcert(BaseModule):
         else:
             abort_threshold = self.out_of_scope_abort_threshold
 
-        tasks = [self.visit_host(host, port) for host in hosts]
-        async for task in self.helpers.as_completed(tasks):
-            result = await task
+        coroutines = [self.visit_host(host, port) for host in hosts]
+        async for coroutine in self.helpers.as_completed(coroutines):
+            result = await coroutine
             if not isinstance(result, tuple) or not len(result) == 3:
                 continue
             dns_names, emails, (host, port) = result
@@ -90,10 +90,10 @@ class sslcert(BaseModule):
                                 await self.emit_event(
                                     ssl_event,
                                     tags=tags,
-                                    context=f"{{module}} parsed SSL certificate at {event.data} and found {{event.type}}: {{event.data}}",
+                                    context=f"{{module}} parsed SSL certificate at {event.pretty_string} and found {{event.type}}: {{event.pretty_string}}",
                                 )
                         except ValidationError as e:
-                            self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
+                            self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.pretty_string}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")
 
     def on_success_callback(self, event):

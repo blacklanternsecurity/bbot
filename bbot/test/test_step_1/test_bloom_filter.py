@@ -13,6 +13,7 @@ async def test_bloom_filter():
     from bbot.scanner import Scanner
 
     scan = Scanner()
+    await scan._prep()
 
     n_items_to_add = 100000
     n_items_to_test = 100000

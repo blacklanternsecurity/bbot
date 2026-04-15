@@ -20,7 +20,7 @@ class BaseModule:
 
         meta (Dict): Metadata about the module, such as whether authentication is required and a description.
 
-        flags (List): Flags indicating the type of module (must have at least "safe" or "aggressive" and "passive" or "active").
+        flags (List): Flags indicating the type of module (must have at least "passive" or "active").
 
         deps_modules (List): Other BBOT modules this module depends on. Empty list by default.
 
@@ -51,6 +51,9 @@ class BaseModule:
             ```
 
         target_only (bool): Accept only the initial target event(s). Default is False.
+
+        accept_seeds (bool): Accept seed events (events from initial scan seeds).
+            Defaults to True for passive modules, False otherwise. Can be explicitly set to override the default.
 
         in_scope_only (bool): Accept only explicitly in-scope events, regardless of the scan's search distance. Default is False.
 
@@ -111,7 +114,7 @@ class BaseModule:
     # whether to retry on 429s when first pinging the API at scan start
     _ping_retry_on_http_429 = False
 
-    default_discovery_context = "{module} discovered {event.type}: {event.data}"
+    default_discovery_context = "{module} discovered {event.type}: {event.pretty_string}"
 
     _preserve_graph = False
     _stats_exclude = False
@@ -491,6 +494,9 @@ class BaseModule:
                     await self.run_task(self.handle_batch(*events), context, n=len(events))
                 except asyncio.CancelledError:
                     self.debug(f"{context} was cancelled")
+                finally:
+                    for event in events:
+                        event._minimize()
                 self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
@@ -660,11 +666,14 @@ class BaseModule:
                 if acceptable:
                     if event.type == "FINISHED":
                         finish = True
+                        event._minimize()
                     else:
                         events.append(event)
                         self.scan.stats.event_consumed(event, self)
-                elif reason:
-                    self.debug(f"Not accepting {event} because {reason}")
+                else:
+                    event._minimize()
+                    if reason:
+                        self.debug(f"Not accepting {event} because {reason}")
             except asyncio.queues.QueueEmpty:
                 break
         return events, finish
@@ -738,8 +747,8 @@ class BaseModule:
             - Each event is subject to a post-check via '_event_postcheck()' to decide whether it should be handled.
             - Special 'FINISHED' events trigger the 'finish()' method of the module.
         """
-        async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
-            try:
+        try:
+            async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
                 while not self.scan.stopping and not self.errored:
                     # if batch wasn't big enough, we wait for the next event before continuing
                     if self.batch_size > 1:
@@ -758,39 +767,53 @@ class BaseModule:
                         except asyncio.queues.QueueEmpty:
                             continue
                         self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                        async with self._task_counter.count(f"event_postcheck({event})"):
-                            acceptable, reason = await self._event_postcheck(event)
-                        if acceptable:
-                            if event.type == "FINISHED":
-                                context = f"{self.name}.finish()"
-                                try:
-                                    await self.run_task(self.finish(), context)
-                                except asyncio.CancelledError:
-                                    self.debug(f"{context} was cancelled")
-                                    continue
+                        try:
+                            async with self._task_counter.count(f"event_postcheck({event})"):
+                                acceptable, reason = await self._event_postcheck(event)
+                            if acceptable:
+                                if event.type == "FINISHED":
+                                    context = f"{self.name}.finish()"
+                                    try:
+                                        await self.run_task(self.finish(), context)
+                                    except asyncio.CancelledError:
+                                        self.debug(f"{context} was cancelled")
+                                        continue
+                                else:
+                                    context = f"{self.name}.handle_event({event})"
+                                    self.scan.stats.event_consumed(event, self)
+                                    self.debug(f"Handling {event}")
+                                    try:
+                                        await self.run_task(self.handle_event(event), context)
+                                    except asyncio.CancelledError:
+                                        self.debug(f"{context} was cancelled")
+                                        continue
+                                    self.debug(f"Finished handling {event}")
                             else:
-                                context = f"{self.name}.handle_event({event})"
-                                self.scan.stats.event_consumed(event, self)
-                                self.debug(f"Handling {event}")
-                                try:
-                                    await self.run_task(self.handle_event(event), context)
-                                except asyncio.CancelledError:
-                                    self.debug(f"{context} was cancelled")
-                                    continue
-                                self.debug(f"Finished handling {event}")
-                        else:
-                            self.debug(f"Not accepting {event} because {reason}")
-            except asyncio.CancelledError:
-                # this trace was used for debugging leaked CancelledErrors from inside httpx
-                # self.log.trace("Worker cancelled")
-                raise
-            except BaseException as e:
-                if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
-                    self.scan.stop()
-                else:
-                    self.error(f"Critical failure in module {self.name}: {e}")
-                    self.error(traceback.format_exc())
+                                self.debug(f"Not accepting {event} because {reason}")
+                        finally:
+                            event._minimize()
+        except asyncio.CancelledError:
+            # this trace was used for debugging leaked CancelledErrors from inside httpx
+            # self.log.trace("Worker cancelled")
+            raise
+        except RuntimeError as e:
+            self.trace(f"RuntimeError in module {self.name}: {e}")
+        except BaseException as e:
+            if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
+                await self.scan.async_stop()
+            else:
+                self.error(f"Critical failure in module {self.name}: {e}")
+                self.error(traceback.format_exc())
         self.log.trace("Worker stopped")
+
+    @property
+    def accept_seeds(self):
+        """
+        Returns whether the module accepts seed events.
+        Defaults to True for passive modules, False otherwise.
+        """
+        # Default to True for passive modules, False otherwise
+        return "passive" in self.flags
 
     @property
     def max_scope_distance(self):
@@ -838,11 +861,15 @@ class BaseModule:
         if self.errored:
             return False, "module is in error state"
         # exclude non-watched types
-        if not any(t in self.get_watched_events() for t in ("*", event.type)):
+        watched_events = self.get_watched_events()
+        event_type_watched = any(t in watched_events for t in ("*", event.type))
+        # Check if module accepts seeds and event is a seed (only if event type is watched)
+        if self.accept_seeds and "seed" in event.tags and event_type_watched:
+            return True, "it is a seed event and module accepts seeds"
+        if not event_type_watched:
             return False, "its type is not in watched_events"
-        if self.target_only:
-            if "target" not in event.tags:
-                return False, "it did not meet target_only filter criteria"
+        if self.target_only and "target" not in event.tags:
+            return False, "it did not meet target_only filter criteria"
 
         # limit js URLs to modules that opt in to receive them
         if (not self.accept_url_special) and event.type.startswith("URL"):
@@ -917,6 +944,9 @@ class BaseModule:
         return True, ""
 
     def _scope_distance_check(self, event):
+        # Seeds bypass scope distance checks
+        if self.accept_seeds and "seed" in event.tags:
+            return True, "it is a seed event and module accepts seeds"
         if self.in_scope_only:
             if event.scope_distance > 0:
                 return False, "it did not meet in_scope_only filter criteria"
@@ -1001,6 +1031,7 @@ class BaseModule:
                 self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
+                event._module_consumers += 1
                 async with self.event_received:
                     self.event_received.notify()
                 if event.type != "FINISHED":
@@ -1803,8 +1834,8 @@ class BaseInterceptModule(BaseModule):
     _intercept = True
 
     async def _worker(self):
-        async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
-            try:
+        try:
+            async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
                 while not self.scan.stopping and not self.errored:
                     try:
                         if self.incoming_event_queue is not False:
@@ -1863,16 +1894,19 @@ class BaseInterceptModule(BaseModule):
                     self.debug(f"Forwarding {event}")
                     await self.forward_event(event, kwargs)
 
-            except asyncio.CancelledError:
-                # this trace was used for debugging leaked CancelledErrors from inside httpx
-                # self.log.trace("Worker cancelled")
-                raise
-            except BaseException as e:
-                if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
-                    self.scan.stop()
-                else:
-                    self.critical(f"Critical failure in intercept module {self.name}: {e}")
-                    self.critical(traceback.format_exc())
+        except asyncio.CancelledError:
+            # this trace was used for debugging leaked CancelledErrors from inside httpx
+            # self.log.trace("Worker cancelled")
+            raise
+        except RuntimeError as e:
+            self.trace(f"RuntimeError in intercept module {self.name}: {e}")
+        except BaseException as e:
+            if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
+                await self.scan.async_stop()
+            else:
+                self.critical(f"Critical failure in intercept module {self.name}: {e}")
+                self.critical(traceback.format_exc())
+
         self.log.trace("Worker stopped")
 
     async def get_incoming_event(self):

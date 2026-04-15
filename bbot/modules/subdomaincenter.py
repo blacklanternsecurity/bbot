@@ -2,7 +2,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
 class subdomaincenter(subdomain_enum):
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {

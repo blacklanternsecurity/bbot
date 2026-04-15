@@ -1,3 +1,6 @@
+from omegaconf import OmegaConf
+
+from bbot.models.pydantic import Event
 from bbot.modules.output.base import BaseOutputModule
 
 
@@ -14,8 +17,8 @@ class HTTP(BaseOutputModule):
         "bearer": "",
         "username": "",
         "password": "",
+        "headers": {},
         "timeout": 10,
-        "siem_friendly": False,
     }
     options_desc = {
         "url": "Web URL",
@@ -23,16 +26,15 @@ class HTTP(BaseOutputModule):
         "bearer": "Authorization Bearer token",
         "username": "Username (basic auth)",
         "password": "Password (basic auth)",
+        "headers": "Additional headers to send with the request",
         "timeout": "HTTP timeout",
-        "siem_friendly": "Format JSON in a SIEM-friendly way for ingestion into Elastic, Splunk, etc.",
     }
 
     async def setup(self):
         self.url = self.config.get("url", "")
         self.method = self.config.get("method", "POST")
         self.timeout = self.config.get("timeout", 10)
-        self.siem_friendly = self.config.get("siem_friendly", False)
-        self.headers = {}
+        self.headers = OmegaConf.to_object(self.config.get("headers", OmegaConf.create()))
         bearer = self.config.get("bearer", "")
         if bearer:
             self.headers["Authorization"] = f"Bearer {bearer}"
@@ -51,12 +53,15 @@ class HTTP(BaseOutputModule):
 
     async def handle_event(self, event):
         while 1:
+            event_json = event.json()
+            event_pydantic = Event(**event_json)
+            event_json = event_pydantic.model_dump(exclude_none=True)
             response = await self.helpers.request(
                 url=self.url,
                 method=self.method,
                 auth=self.auth,
                 headers=self.headers,
-                json=event.json(siem_friendly=self.siem_friendly),
+                json=event_json,
             )
             is_success = False if response is None else response.is_success
             if not is_success:

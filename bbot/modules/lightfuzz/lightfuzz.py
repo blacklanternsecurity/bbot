@@ -6,18 +6,24 @@ from bbot.errors import InteractshError
 
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
-    produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "aggressive", "web-thorough", "deadly"]
+    produced_events = ["FINDING"]
+    flags = ["active", "loud", "web-heavy", "invasive"]
 
     options = {
         "force_common_headers": False,
-        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi"],
+        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi", "ssrf"],
         "disable_post": False,
+        "try_post_as_get": False,
+        "try_get_as_post": False,
+        "avoid_wafs": True,
     }
     options_desc = {
         "force_common_headers": "Force emit commonly exploitable parameters that may be difficult to detect",
         "enabled_submodules": "A list of submodules to enable. Empty list enabled all modules.",
         "disable_post": "Disable processing of POST parameters, avoiding form submissions.",
+        "try_post_as_get": "For each POSTPARAM, also fuzz it as a GETPARAM (in addition to normal POST fuzzing).",
+        "try_get_as_post": "For each GETPARAM, also fuzz it as a POSTPARAM (in addition to normal GET fuzzing).",
+        "avoid_wafs": "Avoid running against confirmed WAFs, which are likely to block lightfuzz requests",
     }
 
     meta = {
@@ -36,8 +42,11 @@ class lightfuzz(BaseModule):
         self.interactsh_instance = None
         self.interactsh_domain = None
         self.disable_post = self.config.get("disable_post", False)
+        self.try_post_as_get = self.config.get("try_post_as_get", False)
+        self.try_get_as_post = self.config.get("try_get_as_post", False)
         self.enabled_submodules = self.config.get("enabled_submodules")
         self.interactsh_disable = self.scan.config.get("interactsh_disable", False)
+        self.avoid_wafs = self.scan.config.get("avoid_wafs", True)
         self.submodules = {}
 
         if not self.enabled_submodules:
@@ -71,15 +80,24 @@ class lightfuzz(BaseModule):
                 details = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
                 if not details["event"]:
                     return
-                # currently, this is only used by the cmdi submodule. Later, when other modules use it, we will need to store description data in the interactsh_subdomain_tags dictionary
+                protocol = r.get("protocol", "dns").lower()
+                severity = details.get("severity", "HIGH")
+                confidence = details.get("confidence", "CONFIRMED")
+                # Allow submodules to specify alternative severity/confidence for DNS-only interactions
+                if protocol == "dns":
+                    severity = details.get("severity_dns", severity)
+                    confidence = details.get("confidence_dns", confidence)
+                description = f"{details['description']} Interaction Protocol: [{protocol}]"
                 await self.emit_event(
                     {
-                        "severity": "CRITICAL",
+                        "severity": severity,
+                        "confidence": confidence,
                         "host": str(details["event"].host),
-                        "url": details["event"].data["url"],
-                        "description": f"OS Command Injection (OOB Interaction) Type: [{details['type']}] Parameter Name: [{details['name']}] Probe: [{details['probe']}]",
+                        "url": details["event"].url,
+                        "name": f"Lightfuzz - {details['name']}",
+                        "description": description,
                     },
-                    "VULNERABILITY",
+                    "FINDING",
                     details["event"],
                 )
             else:
@@ -91,7 +109,7 @@ class lightfuzz(BaseModule):
             (
                 "lightfuzz",
                 str(event.host),
-                event.data["url"],
+                event.url,
                 event.data["description"],
                 event.data.get("type", ""),
                 event.data.get("name", ""),
@@ -103,7 +121,12 @@ class lightfuzz(BaseModule):
         await submodule_instance.fuzz()
         if len(submodule_instance.results) > 0:
             for r in submodule_instance.results:
-                event_data = {"host": str(event.host), "url": event.data["url"], "description": r["description"]}
+                event_data = {
+                    "host": str(event.host),
+                    "url": event.url,
+                    "name": r["name"],
+                    "description": r["description"],
+                }
 
                 envelopes = getattr(event, "envelopes", None)
                 envelope_summary = getattr(envelopes, "summary", None)
@@ -111,11 +134,12 @@ class lightfuzz(BaseModule):
                     # Append the envelope summary to the description
                     event_data["description"] += f" Envelopes: [{envelope_summary}]"
 
-                if r["type"] == "VULNERABILITY":
-                    event_data["severity"] = r["severity"]
+                event_data["severity"] = r["severity"]
+                event_data["confidence"] = r["confidence"]
+                event_data["name"] = f"Lightfuzz - {r['name']}"
                 await self.emit_event(
                     event_data,
-                    r["type"],
+                    "FINDING",
                     event,
                 )
 
@@ -132,21 +156,41 @@ class lightfuzz(BaseModule):
                     "type": "HEADER",
                     "name": h,
                     "original_value": None,
-                    "url": event.data,
+                    "url": event.url,
                     "description": description,
                 }
                 await self.emit_event(data, "WEB_PARAMETER", event)
 
         elif event.type == "WEB_PARAMETER":
             # check connectivity to url
-            connectivity_test = await self.helpers.request(event.data["url"], timeout=10)
+            connectivity_test = await self.helpers.request(event.url, timeout=10)
 
             if connectivity_test:
-                for submodule_name, submodule in self.submodules.items():
-                    self.debug(f"Starting {submodule_name} fuzz()")
-                    await self.run_submodule(submodule, event)
+                original_type = event.data["type"]
+
+                # Normal fuzzing pass (skipped for POSTPARAM if disable_post is True)
+                if not (self.disable_post and original_type == "POSTPARAM"):
+                    for submodule_name, submodule in self.submodules.items():
+                        self.debug(f"Starting {submodule_name} fuzz()")
+                        await self.run_submodule(submodule, event)
+
+                # Additional pass: try POSTPARAM as GETPARAM
+                if self.try_post_as_get and original_type == "POSTPARAM":
+                    event.data["type"] = "GETPARAM"
+                    event.data["converted_from_post"] = True
+                    for submodule_name, submodule in self.submodules.items():
+                        self.debug(f"Starting {submodule_name} fuzz() (try_post_as_get)")
+                        await self.run_submodule(submodule, event)
+
+                # Additional pass: try GETPARAM as POSTPARAM
+                if self.try_get_as_post and original_type == "GETPARAM":
+                    event.data["type"] = "POSTPARAM"
+                    event.data["converted_from_get"] = True
+                    for submodule_name, submodule in self.submodules.items():
+                        self.debug(f"Starting {submodule_name} fuzz() (try_get_as_post)")
+                        await self.run_submodule(submodule, event)
             else:
-                self.debug(f"WEB_PARAMETER URL {event.data['url']} failed connectivity test, aborting")
+                self.debug(f"WEB_PARAMETER URL {event.url} failed connectivity test, aborting")
 
     async def cleanup(self):
         if self.interactsh_instance:
@@ -160,17 +204,32 @@ class lightfuzz(BaseModule):
 
     async def finish(self):
         if self.interactsh_instance:
+            self.debug("finish(): sleeping 5s before final interactsh poll")
             await self.helpers.sleep(5)
             try:
-                for r in await self.interactsh_instance.poll():
+                results = await self.interactsh_instance.poll()
+                self.debug(f"finish(): interactsh poll returned {len(results)} interaction(s)")
+                for r in results:
+                    protocol = r.get("protocol", "unknown")
+                    full_id = r.get("full-id", "unknown")
+                    self.debug(f"finish(): interactsh interaction: protocol={protocol}, full-id={full_id}")
                     await self.interactsh_callback(r)
             except InteractshError as e:
                 self.debug(f"Error in interact.sh: {e}")
 
-    # If we've disabled fuzzing POST parameters, back out of POSTPARAM WEB_PARAMETER events as quickly as possible
     async def filter_event(self, event):
+        # Unless configured specifically to do so, avoid running against confirmed WAFs
+        if self.avoid_wafs and "waf" in event.tags:
+            # Use parsed_url.geturl() for both URL and WEB_PARAMETER events
+            parsed_url = getattr(event, "parsed_url", None)
+            url = parsed_url.geturl() if parsed_url else "unknown"
+            self.debug(f"Skipping {event.type} because it is likely to be blocked by a WAF. URL: {url}")
+            return False
+
+        # If we've disabled fuzzing POST parameters, back out of POSTPARAM WEB_PARAMETER events as quickly as possible
         if event.type == "WEB_PARAMETER" and self.disable_post and event.data["type"] == "POSTPARAM":
-            return False, "POST parameter disabled in lightfuzz module"
+            if not self.try_post_as_get:
+                return False, "POST parameter disabled in lightfuzz module"
         return True
 
     @classmethod

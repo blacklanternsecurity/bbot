@@ -6,12 +6,13 @@ import json
 import yaml
 from pathlib import Path
 
-from bbot import Preset
+from bbot.scanner import Preset
 from bbot.core.modules import MODULE_LOADER
 
 
 DEFAULT_PRESET = Preset()
 
+os.environ["NO_COLOR"] = "1"
 os.environ["BBOT_TABLE_FORMAT"] = "github"
 
 

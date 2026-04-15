@@ -4,13 +4,12 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class pgp(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
-    flags = ["passive", "email-enum", "safe"]
+    flags = ["safe", "passive", "email-enum"]
     meta = {
         "description": "Query common PGP servers for email addresses",
         "created_date": "2022-08-10",
         "author": "@TheTechromancer",
     }
-    # TODO: scan for Web Key Directory (/.well-known/openpgpkey/)
     options = {
         "search_urls": [
             "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=vindex&search=<query>",
@@ -31,7 +30,7 @@ class pgp(subdomain_enum):
                     "EMAIL_ADDRESS",
                     event,
                     abort_if=self.abort_if,
-                    context=f'{{module}} queried PGP keyserver {keyserver} for "{query}" and found {{event.type}}: {{event.data}}',
+                    context=f'{{module}} queried PGP keyserver {keyserver} for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                 )
 
     async def query(self, query):
@@ -40,7 +39,6 @@ class pgp(subdomain_enum):
         urls = [url.replace("<query>", self.helpers.quote(query)) for url in urls]
         async for url, response in self.helpers.request_batch(urls):
             keyserver = self.helpers.urlparse(url).netloc
-            response = await self.helpers.request(url)
             if response is not None:
                 for email in await self.helpers.re.extract_emails(response.text):
                     email = email.lower()

@@ -7,7 +7,7 @@ from bbot.modules.templates.postman import postman
 class postman_download(postman):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "subdomain-enum", "safe", "code-enum", "download"]
+    flags = ["safe", "passive", "subdomain-enum", "code-enum", "download"]
     meta = {
         "description": "Download workspaces, collections, requests from Postman",
         "created_date": "2024-09-07",
@@ -36,7 +36,7 @@ class postman_download(postman):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         workspace_id = await self.get_workspace_id(repo_url)
         if workspace_id:
             self.verbose(f"Found workspace ID {workspace_id} for {repo_url}")

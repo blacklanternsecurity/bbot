@@ -1,5 +1,6 @@
 import io
 import re
+import sys
 import uuid
 import json
 import base64
@@ -11,6 +12,7 @@ import traceback
 
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
 from copy import copy, deepcopy
 from contextlib import suppress
 from radixtarget import RadixTarget
@@ -21,6 +23,7 @@ from urllib.parse import urlparse, urljoin, parse_qs
 from bbot.errors import *
 from .helpers import EventSeed
 from bbot.core.helpers import (
+    bytes_to_human,
     extract_words,
     is_domain,
     is_subdomain,
@@ -40,6 +43,7 @@ from bbot.core.helpers import (
     validators,
     get_file_extension,
 )
+from bbot.models.helpers import utc_datetime_validator
 from bbot.core.helpers.web.envelopes import BaseEnvelope
 
 
@@ -96,7 +100,8 @@ class BaseEvent:
             "timestamp": 1688526222.723366,
             "resolved_hosts": ["185.199.108.153"],
             "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
-            "tags": ["in-scope", "distance-0", "dir", "ip-185-199-108-153", "status-301", "http-title-301-moved-permanently"],
+            "tags": ["in-scope", "distance-0", "dir", "status-301"],
+            "http_title": "301 Moved Permanently",
             "module": "httpx",
             "module_sequence": "httpx"
         }
@@ -106,9 +111,10 @@ class BaseEvent:
     # Always emit this event type even if it's not in scope
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
-    _always_emit_tags = ["affiliate", "target"]
+
+    _always_emit_tags = ["affiliate", "seed"]
     # Bypass scope checking and dns resolution, distribute immediately to modules
-    # This is useful for "end-of-line" events like FINDING and VULNERABILITY
+    # This is useful for "end-of-line" events like FINDING
     _quick_emit = False
     # Data validation, if data is a dictionary
     _data_validator = None
@@ -119,6 +125,10 @@ class BaseEvent:
     # Don't allow duplicates to occur within a parent chain
     # In other words, don't emit the event if the same one already exists in its discovery context
     _suppress_chain_dupes = False
+    # Shared compiled regex for discovery context formatting (class-level to avoid per-instance overhead)
+    _discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
+    # Stats class for the status line — override in subclasses for custom formatting
+    _stats_class = None
 
     # using __slots__ dramatically reduces memory usage in large scans
     __slots__ = [
@@ -147,23 +157,18 @@ class BaseEvent:
         "_graph_important",
         "_resolved_hosts",
         "_discovery_context",
-        "_discovery_context_regex",
         "_stats_recorded",
         "_internal",
-        "_confidence",
         "_dummy",
         "_module",
         # DNS-related attributes
         "dns_children",
         "raw_dns_records",
         "dns_resolve_distance",
-        # Web-related attributes
-        "web_spider_distance",
-        "parsed_url",
-        "url_extension",
-        "num_redirects",
-        # File-related attributes
-        "_data_path",
+        # Host metadata (cloud providers, ASN, whois, etc.)
+        "_host_metadata",
+        # Memory management
+        "_module_consumers",
         # Public attributes
         "module",
         "scan",
@@ -179,7 +184,6 @@ class BaseEvent:
         module=None,
         scan=None,
         tags=None,
-        confidence=100,
         timestamp=None,
         _dummy=False,
         _internal=None,
@@ -197,7 +201,6 @@ class BaseEvent:
             module (str, optional): Module that discovered the event. Defaults to None.
             scan (Scan, optional): BBOT Scan object. Required unless _dummy is True. Defaults to None.
             tags (list of str, optional): Descriptive tags for the event. Defaults to None.
-            confidence (int, optional): Confidence level for the event, on a scale of 1-100. Defaults to 100.
             timestamp (datetime, optional): Time of event discovery. Defaults to current UTC time.
             _dummy (bool, optional): If True, disables certain data validations. Defaults to False.
             _internal (Any, optional): If specified, makes the event internal. Defaults to None.
@@ -226,8 +229,7 @@ class BaseEvent:
         self.dns_children = {}
         self.raw_dns_records = {}
         self._discovery_context = ""
-        self._discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
-        self.web_spider_distance = 0
+        self._module_consumers = 0
 
         # for creating one-off events without enforcing parent requirement
         self._dummy = _dummy
@@ -245,7 +247,6 @@ class BaseEvent:
             except AttributeError:
                 self.timestamp = datetime.datetime.utcnow()
 
-        self.confidence = int(confidence)
         self._internal = False
 
         # self.scan holds the instantiated scan object (for helpers, etc.)
@@ -286,27 +287,6 @@ class BaseEvent:
         return self._data
 
     @property
-    def confidence(self):
-        return self._confidence
-
-    @confidence.setter
-    def confidence(self, confidence):
-        self._confidence = min(100, max(1, int(confidence)))
-
-    @property
-    def cumulative_confidence(self):
-        """
-        Considers the confidence of parent events. This is useful for filtering out speculative/unreliable events.
-
-        E.g. an event with a confidence of 50 whose parent is also 50 would have a cumulative confidence of 25.
-
-        A confidence of 100 will reset the cumulative confidence to 100.
-        """
-        if self._confidence == 100 or self.parent is None or self.parent is self:
-            return self._confidence
-        return int(self._confidence * self.parent.cumulative_confidence / 100)
-
-    @property
     def resolved_hosts(self):
         if is_ip(self.host):
             return {
@@ -322,6 +302,18 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self._data = data
+
+    @property
+    def host_metadata(self):
+        try:
+            return self._host_metadata
+        except AttributeError:
+            self._host_metadata = {}
+            return self._host_metadata
+
+    @host_metadata.setter
+    def host_metadata(self, value):
+        self._host_metadata = value
 
     @property
     def internal(self):
@@ -384,6 +376,13 @@ class BaseEvent:
         return self._host_original
 
     @property
+    def url(self):
+        parsed_url = getattr(self, "parsed_url", None)
+        if parsed_url is not None:
+            return parsed_url.geturl()
+        return ""
+
+    @property
     def host_filterable(self):
         """
         A string version of the event that's used for regex-based blacklisting.
@@ -401,6 +400,8 @@ class BaseEvent:
     @property
     def port(self):
         self.host
+        if self._port:
+            return self._port
         if getattr(self, "parsed_url", None):
             if self.parsed_url.port is not None:
                 return self.parsed_url.port
@@ -408,7 +409,6 @@ class BaseEvent:
                 return 443
             elif self.parsed_url.scheme == "http":
                 return 80
-        return self._port
 
     @property
     def netloc(self):
@@ -485,7 +485,7 @@ class BaseEvent:
             self.add_tag(tag)
 
     def add_tag(self, tag):
-        self._tags.add(tagify(tag))
+        self._tags.add(sys.intern(tagify(tag)))
 
     def add_tags(self, tags):
         for tag in set(tags):
@@ -493,7 +493,7 @@ class BaseEvent:
 
     def remove_tag(self, tag):
         with suppress(KeyError):
-            self._tags.remove(tagify(tag))
+            self._tags.remove(sys.intern(tagify(tag)))
 
     @property
     def always_emit(self):
@@ -618,6 +618,9 @@ class BaseEvent:
                     new_scope_distance += 1
             self.scope_distance = new_scope_distance
             # inherit certain tags
+            # inherit seed tag from DNS_NAME_UNRESOLVED -> DNS_NAME only
+            if "seed" in parent.tags and parent.type == "DNS_NAME_UNRESOLVED" and self.type == "DNS_NAME":
+                self.add_tag("seed")
             if hosts_are_same:
                 # inherit web spider distance from parent
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
@@ -691,6 +694,15 @@ class BaseEvent:
             parents.append(parent)
             e = parent
         return parents
+
+    def _minimize(self):
+        """
+        Called when a module is done processing this event.
+
+        Decrements the consumer count. When no modules are left waiting to
+        process this event, heavy payload data is stripped to free memory.
+        """
+        self._module_consumers = max(0, self._module_consumers - 1)
 
     def clone(self):
         # Create a shallow copy of the event first
@@ -813,11 +825,11 @@ class BaseEvent:
                 return True
             # hostnames and IPs
             radixtarget = RadixTarget()
-            radixtarget.insert(self.host)
-            return bool(radixtarget.search(other_event.host))
+            radixtarget.insert(str(self.host))
+            return bool(radixtarget.search(str(other_event.host)))
         return False
 
-    def json(self, mode="json", siem_friendly=False):
+    def json(self, mode="json"):
         """
         Serializes the event object to a JSON-compatible dictionary.
 
@@ -826,7 +838,6 @@ class BaseEvent:
 
         Parameters:
             mode (str): Specifies the data serialization mode. Default is "json". Other options include "graph", "human", and "id".
-            siem_friendly (bool): Whether to format the JSON in a way that's friendly to SIEM ingestion by Elastic, Splunk, etc. This ensures the value of "data" is always the same type (a dictionary).
 
         Returns:
             dict: JSON-serializable dictionary representation of the event object.
@@ -843,10 +854,12 @@ class BaseEvent:
             data = data_attr
         else:
             data = smart_decode(self.data)
-        if siem_friendly:
-            j["data"] = {self.type: data}
-        else:
+        if isinstance(data, str):
             j["data"] = data
+        elif isinstance(data, dict):
+            j["data_json"] = data
+        else:
+            raise ValueError(f"Invalid data type: {type(data)}")
         # host, dns children
         if self.host:
             j["host"] = str(self.host)
@@ -864,7 +877,7 @@ class BaseEvent:
         if self.scan:
             j["scan"] = self.scan.id
         # timestamp
-        j["timestamp"] = self.timestamp.isoformat()
+        j["timestamp"] = utc_datetime_validator(self.timestamp).timestamp()
         # parent event
         parent_id = self.parent_id
         if parent_id:
@@ -873,8 +886,7 @@ class BaseEvent:
         if parent_uuid:
             j["parent_uuid"] = parent_uuid
         # tags
-        if self.tags:
-            j.update({"tags": list(self.tags)})
+        j.update({"tags": sorted(self.tags)})
         # parent module
         if self.module:
             j.update({"module": str(self.module)})
@@ -886,6 +898,10 @@ class BaseEvent:
         j["discovery_path"] = self.discovery_path
         j["parent_chain"] = self.parent_chain
 
+        # host metadata (cloud providers, ASN, etc.)
+        host_metadata = getattr(self, "host_metadata", None)
+        if host_metadata:
+            j["host_metadata"] = host_metadata
         # parameter envelopes
         parameter_envelopes = getattr(self, "envelopes", None)
         if parameter_envelopes is not None:
@@ -1073,13 +1089,13 @@ class DictHostEvent(DictEvent):
             return make_ip_type(self.data["host"])
         else:
             parsed = getattr(self, "parsed_url", None)
-            if parsed is not None:
+            if parsed is not None and parsed.hostname:
                 return make_ip_type(parsed.hostname)
 
 
 class ClosestHostEvent(DictHostEvent):
     # if a host/path/url isn't specified, this event type grabs it from the closest parent
-    # inherited by FINDING and VULNERABILITY
+    # inherited by FINDING
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.host:
@@ -1094,9 +1110,10 @@ class ClosestHostEvent(DictHostEvent):
                     parent_path = parent.data.get("path", None)
                     if parent_path is not None:
                         self.data["path"] = parent_path
-                # inherit closest host
+                # inherit closest host+port
                 if parent.host:
                     self.data["host"] = str(parent.host)
+                    self._port = parent.port
                     # we do this to refresh the hash
                     self.data = self.data
                     break
@@ -1105,8 +1122,13 @@ class ClosestHostEvent(DictHostEvent):
             raise ValueError(f"No host was found in event parents: {self.get_parents()}. Host must be specified!")
 
 
-class DictPathEvent(DictEvent):
+class DictPathEvent(DictHostEvent):
+    __slots__ = [
+        "_data_path",
+    ]
+
     def sanitize_data(self, data):
+        data = super().sanitize_data(data)
         new_data = dict(data)
         new_data["path"] = str(new_data["path"])
         file_blobs = getattr(self.scan, "_file_blobs", False)
@@ -1145,6 +1167,24 @@ class ASN(DictEvent):
     _always_emit = True
     _quick_emit = True
 
+    def sanitize_data(self, data):
+        # accept bare int (from make_event(12345, "ASN")) or dict (from JSON round-trip)
+        if isinstance(data, int):
+            data = {"asn": data}
+        if not isinstance(data, dict) or "asn" not in data:
+            raise ValidationError(f"Invalid ASN data (expected dict with 'asn' key): {data}")
+        data["asn"] = int(data["asn"])
+        return data
+
+    def _data_id(self):
+        return str(self.data["asn"])
+
+    def _pretty_string(self):
+        return str(self.data["asn"])
+
+    def _data_human(self):
+        return f"AS{self.data['asn']}"
+
 
 class CODE_REPOSITORY(DictHostEvent):
     _always_emit = True
@@ -1154,6 +1194,9 @@ class CODE_REPOSITORY(DictHostEvent):
         _validate_url = field_validator("url")(validators.validate_url)
 
     def _pretty_string(self):
+        return self.data["url"]
+
+    def _data_human(self):
         return self.data["url"]
 
 
@@ -1234,6 +1277,9 @@ class DNS_NAME(DnsEvent):
 
 
 class OPEN_TCP_PORT(BaseEvent):
+    # we generally don't care about open ports on affiliates
+    _always_emit_tags = ["seed"]
+
     def sanitize_data(self, data):
         return validators.validate_open_port(data)
 
@@ -1247,19 +1293,36 @@ class OPEN_TCP_PORT(BaseEvent):
         return set()
 
 
-class URL_UNVERIFIED(BaseEvent):
+class OPEN_UDP_PORT(OPEN_TCP_PORT):
+    pass
+
+
+class URL_UNVERIFIED(DictHostEvent):
     _status_code_regex = re.compile(r"^status-(\d{1,3})$")
 
+    __slots__ = [
+        "web_spider_distance",
+        "url_extension",
+        "num_redirects",
+    ]
+
     def __init__(self, *args, **kwargs):
+        self.web_spider_distance = 0
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
+    def _data_load(self, data):
+        # accept a bare URL string and wrap it into a dict
+        if isinstance(data, str):
+            return {"url": data}
+        return data
+
     def _data_id(self):
-        data = super()._data_id()
+        url = self.url
 
         # remove the querystring for URL/URL_UNVERIFIED events, because we will conditionally add it back in (based on settings)
         if self.__class__.__name__.startswith("URL") and self.scan is not None:
-            prefix = data.split("?")[0]
+            prefix = url.split("?")[0]
 
             # consider spider-danger tag when deduping
             if "spider-danger" in self.tags:
@@ -1275,11 +1338,13 @@ class URL_UNVERIFIED(BaseEvent):
                     cleaned_query = "&".join(
                         f"{key}={','.join(sorted(values))}" for key, values in sorted(query_dict.items())
                     )
-                data = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
-        return data
+                url = f"{prefix}:{self.parsed_url.scheme}:{self.parsed_url.netloc}:{self.parsed_url.path}:{cleaned_query}"
+        return url
 
     def sanitize_data(self, data):
-        self.parsed_url = self.validators.validate_url_parsed(data)
+        url = data.get("url", "")
+        self.parsed_url = self.validators.validate_url_parsed(url)
+        data["url"] = self.parsed_url.geturl()
 
         # special handling of URL extensions
         if self.parsed_url is not None:
@@ -1297,8 +1362,27 @@ class URL_UNVERIFIED(BaseEvent):
         else:
             self.add_tag("endpoint")
 
-        data = self.parsed_url.geturl()
         return data
+
+    @property
+    def pretty_string(self):
+        return self.url
+
+    def _data_human(self):
+        parts = []
+        status = self.http_status
+        if status:
+            parts.append(f"[{status}]")
+        parts.append(self.url)
+        if status and str(status).startswith("3"):
+            location = self.data.get("redirect_location", "")
+            if location:
+                parts.append(f"-> {location}")
+        else:
+            title = self.http_title
+            if title:
+                parts.append(f"- [{title}]")
+        return " ".join(parts)
 
     def add_tag(self, tag):
         self_url = getattr(self, "parsed_url", "")
@@ -1347,11 +1431,30 @@ class URL_UNVERIFIED(BaseEvent):
 
     @property
     def http_status(self):
+        status_code = self.data.get("status_code", 0)
+        if status_code:
+            return int(status_code)
         for t in self.tags:
             match = self._status_code_regex.match(t)
             if match:
                 return int(match.groups()[0])
         return 0
+
+    @property
+    def http_title(self):
+        return self.data.get("http_title", "")
+
+    @http_title.setter
+    def http_title(self, value):
+        self.data["http_title"] = value
+
+    @property
+    def redirect_location(self):
+        return self.data.get("redirect_location", "")
+
+    @redirect_location.setter
+    def redirect_location(self, value):
+        self.data["redirect_location"] = value
 
 
 class URL(URL_UNVERIFIED):
@@ -1363,17 +1466,8 @@ class URL(URL_UNVERIFIED):
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
 
-    @property
-    def resolved_hosts(self):
-        # TODO: remove this when we rip out httpx
-        return {".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")}
 
-    @property
-    def pretty_string(self):
-        return self.data
-
-
-class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
+class STORAGE_BUCKET(URL_UNVERIFIED):
     _always_emit = True
     _suppress_chain_dupes = True
 
@@ -1387,6 +1481,9 @@ class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
         data["name"] = data["name"].lower()
         return data
 
+    def _data_human(self):
+        return f"{self.data['name']} ({self.data['url']})"
+
     def _words(self):
         return self.data["name"]
 
@@ -1396,6 +1493,10 @@ class URL_HINT(URL_UNVERIFIED):
 
 
 class WEB_PARAMETER(DictHostEvent):
+    __slots__ = [
+        "envelopes",
+    ]
+
     @property
     def children(self):
         # if we have any subparams, raise a new WEB_PARAMETER for each one
@@ -1417,6 +1518,7 @@ class WEB_PARAMETER(DictHostEvent):
         return children
 
     def sanitize_data(self, data):
+        data = super().sanitize_data(data)
         original_value = data.get("original_value", None)
         if original_value is not None:
             try:
@@ -1450,6 +1552,29 @@ class WEB_PARAMETER(DictHostEvent):
     def _url(self):
         return self.data["url"]
 
+    def _data_human(self):
+        param_type = self.data.get("type", "")
+        name = self.data.get("name", "")
+        original_value = self.data.get("original_value", "")
+        url = self.data.get("url", "")
+        description = self.data.get("description", "")
+        additional_params = self.data.get("additional_params", {})
+        parts = []
+        if param_type:
+            parts.append(f"[{param_type}]")
+        if original_value:
+            parts.append(f"{name}={original_value}")
+        else:
+            parts.append(name)
+        if description:
+            parts.append(f"- {description}")
+        if additional_params:
+            param_names = ", ".join(sorted(additional_params.keys()))
+            parts.append(f"Additional Params: [{param_names}]")
+        if url:
+            parts.append(f"({url})")
+        return " ".join(parts)
+
     def __str__(self):
         max_event_len = 200
         d = str(self.data)
@@ -1469,7 +1594,7 @@ class EMAIL_ADDRESS(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
+class HTTP_RESPONSE(URL_UNVERIFIED):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # count number of consecutive redirects
@@ -1514,6 +1639,34 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def _pretty_string(self):
         return f"{self.data['hash']['header_mmh3']}:{self.data['hash']['body_mmh3']}"
 
+    def _data_human(self):
+        parts = []
+        status = self.http_status
+        if status:
+            parts.append(f"[{status}]")
+        method = self.data.get("method", "")
+        if method:
+            parts.append(method)
+        parts.append(self.data.get("url", ""))
+        if status and str(status).startswith("3"):
+            location = self.redirect_location
+            if location:
+                parts.append(f"-> {location}")
+        else:
+            title = self.http_title
+            if title:
+                parts.append(f"- [{title}]")
+        content_length = self.data.get("content_length", 0)
+        if content_length:
+            parts.append(f"({bytes_to_human(content_length)})")
+        return " ".join(parts)
+
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self._data.pop("body", None)
+            self._data.pop("raw_header", None)
+
     @property
     def raw_response(self):
         """
@@ -1552,49 +1705,99 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         return location
 
 
-class VULNERABILITY(ClosestHostEvent):
+class FINDING(ClosestHostEvent):
     _always_emit = True
     _quick_emit = True
+
+    class _stats_class:
+        _severity_order = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+
+        def __init__(self):
+            self.count = 0
+            self.severities = {}
+
+        def increment(self, event):
+            self.count += 1
+            sev = event.data.get("severity", "UNKNOWN")
+            try:
+                self.severities[sev] += 1
+            except KeyError:
+                self.severities[sev] = 1
+
+        def format(self, event_type):
+            if not self.severities:
+                return f"{event_type}: {self.count}"
+            parts = []
+            for sev in self._severity_order:
+                n = self.severities.get(sev, 0)
+                if n:
+                    parts.append(f"{n} {sev}")
+            for sev, n in sorted(self.severities.items()):
+                if sev not in self._severity_order and n:
+                    parts.append(f"{n} {sev}")
+            return f"{event_type}: {self.count} ({', '.join(parts)})"
+
     severity_colors = {
         "CRITICAL": "🟪",
         "HIGH": "🟥",
         "MEDIUM": "🟧",
         "LOW": "🟨",
-        "UNKNOWN": "⬜",
+        "INFO": "⬜",
+    }
+
+    confidence_colors = {
+        "CONFIRMED": "🟣",
+        "HIGH": "🔴",
+        "MEDIUM": "🟠",
+        "LOW": "🟡",
+        "UNKNOWN": "⚪",
     }
 
     def sanitize_data(self, data):
-        self.add_tag(data["severity"].lower())
+        data = super().sanitize_data(data)
+        self.add_tag(f"severity-{data['severity'].lower()}")
+        self.add_tag(f"confidence-{data['confidence'].lower()}")
         return data
 
     class _data_validator(BaseModel):
         host: Optional[str] = None
         severity: str
+        name: str
         description: str
+        confidence: str
         url: Optional[str] = None
+        full_url: Optional[str] = None
         path: Optional[str] = None
+        cves: Optional[list[str]] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
+        _validate_confidence = field_validator("confidence")(validators.validate_confidence)
 
     def _pretty_string(self):
-        return f"[{self.data['severity']}] {self.data['description']}"
+        severity = self.data["severity"]
+        confidence = self.data["confidence"]
+        description = self.data["description"]
 
+        # Add bold formatting for CONFIRMED confidence
+        if confidence == "CONFIRMED":
+            confidence_str = f"[\033[1m{confidence}\033[0m]"
+        else:
+            confidence_str = f"[{confidence}]"
+        return f"Severity: [{severity}] Confidence: {confidence_str} {description}"
 
-class FINDING(ClosestHostEvent):
-    _always_emit = True
-    _quick_emit = True
-
-    class _data_validator(BaseModel):
-        host: Optional[str] = None
-        description: str
-        url: Optional[str] = None
-        path: Optional[str] = None
-        _validate_url = field_validator("url")(validators.validate_url)
-        _validate_host = field_validator("host")(validators.validate_host)
-
-    def _pretty_string(self):
-        return self.data["description"]
+    def _data_human(self):
+        parts = []
+        parts.append(f"Severity: [{self.data['severity']}]")
+        parts.append(f"Confidence: [{self.data['confidence']}]")
+        parts.append(self.data["description"])
+        url = self.data.get("url", "")
+        if url and url not in self.data["description"]:
+            parts.append(f"({url})")
+        cves = self.data.get("cves", [])
+        if cves:
+            parts.append(f"[{', '.join(cves)}]")
+        return " ".join(parts)
 
 
 class TECHNOLOGY(DictHostEvent):
@@ -1605,6 +1808,11 @@ class TECHNOLOGY(DictHostEvent):
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
+    def _sanitize_data(self, data):
+        data = super()._sanitize_data(data)
+        data["technology"] = data["technology"].lower()
+        return data
+
     def _data_id(self):
         # dedupe by host+port+tech
         tech = self.data.get("technology", "")
@@ -1613,17 +1821,12 @@ class TECHNOLOGY(DictHostEvent):
     def _pretty_string(self):
         return self.data["technology"]
 
-
-class VHOST(DictHostEvent):
-    class _data_validator(BaseModel):
-        host: str
-        vhost: str
-        url: Optional[str] = None
-        _validate_url = field_validator("url")(validators.validate_url)
-        _validate_host = field_validator("host")(validators.validate_host)
-
-    def _pretty_string(self):
-        return self.data["vhost"]
+    def _data_human(self):
+        tech = self.data["technology"]
+        url = self.data.get("url", "")
+        if url:
+            return f"{tech} ({url})"
+        return tech
 
 
 class PROTOCOL(DictHostEvent):
@@ -1647,10 +1850,34 @@ class PROTOCOL(DictHostEvent):
     def _pretty_string(self):
         return self.data["protocol"]
 
+    def _data_human(self):
+        protocol = self.data["protocol"]
+        port = self.data.get("port")
+        banner = self.data.get("banner", "")
+        if port:
+            result = f"{protocol}/{port}"
+        else:
+            result = protocol
+        if banner:
+            result += f" - {banner}"
+        return result
+
 
 class GEOLOCATION(BaseEvent):
     _always_emit = True
     _quick_emit = True
+
+    def _data_human(self):
+        country = self.data.get("country_name", "")
+        region = self.data.get("region_name", "")
+        city = self.data.get("city_name", "") or self.data.get("city", "")
+        lat = self.data.get("latitude", "")
+        lon = self.data.get("longitude", "")
+        location_parts = [p for p in (city, region, country) if p]
+        result = ", ".join(location_parts)
+        if lat and lon:
+            result += f" ({lat}, {lon})"
+        return result if result else super()._data_human()
 
 
 class PASSWORD(BaseEvent):
@@ -1673,15 +1900,49 @@ class SOCIAL(DictHostEvent):
     _quick_emit = True
     _scope_distance_increment_same_host = True
 
+    def _data_human(self):
+        platform = self.data.get("platform", "")
+        profile_name = self.data.get("profile_name", "")
+        url = self.data.get("url", "")
+        parts = []
+        if platform:
+            parts.append(f"{platform}:")
+        parts.append(profile_name)
+        if url:
+            parts.append(f"({url})")
+        return " ".join(parts)
 
-class WEBSCREENSHOT(DictPathEvent, DictHostEvent):
+
+class WEBSCREENSHOT(DictPathEvent):
     _always_emit = True
     _quick_emit = True
+
+    def _data_human(self):
+        return f"{self.data.get('url', '')} Saved to: {self.data.get('path', '')}"
 
 
 class AZURE_TENANT(DictEvent):
     _always_emit = True
     _quick_emit = True
+
+    def _data_human(self):
+        max_domains = 20
+        tenant_names = self.data.get("tenant-names", [])
+        tenant_id = self.data.get("tenant-id", "")
+        domains = self.data.get("domains", [])
+        parts = []
+        if tenant_names:
+            parts.append(", ".join(tenant_names))
+        if tenant_id:
+            parts.append(f"({tenant_id})")
+        if domains:
+            if len(domains) <= max_domains:
+                parts.append(f"- {', '.join(domains)}")
+            else:
+                shown = ", ".join(domains[:max_domains])
+                hidden = len(domains) - max_domains
+                parts.append(f"- {shown} (hiding {hidden} additional domains)")
+        return " ".join(parts) if parts else super()._data_human()
 
 
 class WAF(DictHostEvent):
@@ -1699,8 +1960,25 @@ class WAF(DictHostEvent):
     def _pretty_string(self):
         return self.data["waf"]
 
+    def _data_human(self):
+        waf = self.data["waf"]
+        info = self.data.get("info", "")
+        url = self.data.get("url", "")
+        if info:
+            waf += f" - {info}"
+        if url:
+            waf += f" ({url})"
+        return waf
+
 
 class FILESYSTEM(DictPathEvent):
+    def _data_human(self):
+        path = self.data.get("path", "")
+        description = self.data.get("magic_description", "")
+        if description:
+            return f"{path} ({description})"
+        return path
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self._data_path.is_file():
@@ -1727,13 +2005,20 @@ class FILESYSTEM(DictPathEvent):
 
 class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
     # don't emit raw DNS records for affiliates
-    _always_emit_tags = ["target"]
+    _always_emit_tags = ["seed"]
+
+    def _data_human(self):
+        rdtype = self.data.get("type", "")
+        host = self.data.get("host", "")
+        answer = self.data.get("answer", "")
+        return f"{rdtype} {host} -> {answer}"
 
 
 class MOBILE_APP(DictEvent):
     _always_emit = True
 
     def _sanitize_data(self, data):
+        data = super()._sanitize_data(data)
         if isinstance(data, str):
             data = {"url": data}
         if "url" not in data:
@@ -1756,6 +2041,13 @@ class MOBILE_APP(DictEvent):
 
     def _pretty_string(self):
         return self.data["url"]
+
+    def _data_human(self):
+        app_id = self.data.get("id", "")
+        url = self.data.get("url", "")
+        if app_id and url:
+            return f"{app_id} ({url})"
+        return url or app_id
 
 
 def update_event(
@@ -1815,7 +2107,6 @@ def make_event(
     module=None,
     scan=None,
     tags=None,
-    confidence=100,
     dummy=False,
     internal=None,
 ):
@@ -1834,7 +2125,6 @@ def make_event(
         scan (Scan, optional): BBOT Scan object associated with the event.
         scans (List[Scan], optional): Multiple BBOT Scan objects, primarily used for unserialization.
         tags (Union[str, List[str]], optional): Descriptive tags for the event, as a list or a single string.
-        confidence (int, optional): Confidence level for the event, on a scale of 1-100. Defaults to 100.
         dummy (bool, optional): Disables data validations if set to True. Defaults to False.
         internal (Any, optional): Makes the event internal if set to True. Defaults to None.
 
@@ -1868,7 +2158,7 @@ def make_event(
         if not dummy:
             log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
 
-    event_type = str(event_type).strip().upper()
+    event_type = sys.intern(str(event_type).strip().upper())
 
     # Catch these common whoopsies
     if event_type in ("DNS_NAME", "IP_ADDRESS"):
@@ -1908,13 +2198,12 @@ def make_event(
         module=module,
         scan=scan,
         tags=tags,
-        confidence=confidence,
         _dummy=dummy,
         _internal=internal,
     )
 
 
-def event_from_json(j, siem_friendly=False):
+def event_from_json(j):
     """
     Creates an event object from a JSON dictionary.
 
@@ -1941,14 +2230,15 @@ def event_from_json(j, siem_friendly=False):
         kwargs = {
             "event_type": event_type,
             "tags": j.get("tags", []),
-            "confidence": j.get("confidence", 100),
             "context": j.get("discovery_context", None),
             "dummy": True,
         }
-        if siem_friendly:
-            data = j["data"][event_type]
-        else:
-            data = j["data"]
+        data = j.get("data_json", None)
+        if data is None:
+            data = j.get("data", None)
+        if data is None:
+            json_pretty = json.dumps(j, indent=2)
+            raise ValueError(f"data or data_json must be provided. JSON: {json_pretty}")
         kwargs["data"] = data
         event = make_event(**kwargs)
         event_uuid = j.get("uuid", None)
@@ -1957,7 +2247,19 @@ def event_from_json(j, siem_friendly=False):
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = set(resolved_hosts)
-        event.timestamp = datetime.datetime.fromisoformat(j["timestamp"])
+
+        http_title = j.get("http_title", "")
+        if http_title:
+            try:
+                event.http_title = http_title
+            except AttributeError:
+                pass
+
+        # accept both isoformat and unix timestamp
+        try:
+            event.timestamp = datetime.datetime.fromtimestamp(j["timestamp"], ZoneInfo("UTC"))
+        except Exception:
+            event.timestamp = datetime.datetime.fromisoformat(j["timestamp"])
         event.scope_distance = j["scope_distance"]
         parent_id = j.get("parent", None)
         if parent_id is not None:

@@ -105,10 +105,12 @@ def extract_params_location(location_header_value, original_parsed_url):
 
 
 class YaraRuleSettings:
-    def __init__(self, description, tags, emit_match):
+    def __init__(self, description, tags, emit_match, severity, confidence):
         self.description = description
         self.tags = tags
         self.emit_match = emit_match
+        self.severity = severity
+        self.confidence = confidence
 
 
 class ExcavateRule:
@@ -153,6 +155,8 @@ class ExcavateRule:
         description = ""
         tags = []
         emit_match = False
+        severity = "INFO"
+        confidence = "UNKNOWN"
 
         if "description" in r.meta.keys():
             description = r.meta["description"]
@@ -160,8 +164,12 @@ class ExcavateRule:
             tags = self.excavate.helpers.chain_lists(r.meta["tags"])
         if "emit_match" in r.meta.keys():
             emit_match = True
+        if "severity" in r.meta.keys():
+            severity = r.meta["severity"]
+        if "confidence" in r.meta.keys():
+            confidence = r.meta["confidence"]
 
-        yara_rule_settings = YaraRuleSettings(description, tags, emit_match)
+        yara_rule_settings = YaraRuleSettings(description, tags, emit_match, severity, confidence)
         yara_results = {}
         for h in r.strings:
             yara_results[h.identifier.lstrip("$")] = sorted(
@@ -185,7 +193,7 @@ class ExcavateRule:
         event : Event
             The event data associated with the YARA match.
         yara_rule_settings : YaraRuleSettings
-            The settings configured from YARA rule meta tags, including description, tags, and emit_match flag.
+            The settings configured from YARA rule meta tags, including description, severity, confidence, tags, and emit_match flag.
         discovery_context : DiscoveryContext
             The context in which the discovery is made.
 
@@ -194,7 +202,10 @@ class ExcavateRule:
         """
         for results in yara_results.values():
             for result in results:
-                event_data = {"description": f"{discovery_context} {yara_rule_settings.description}"}
+                event_data = {
+                    "name": f"{discovery_context} {yara_rule_settings.description}",
+                    "description": f"{discovery_context} {yara_rule_settings.description}",
+                }
                 if yara_rule_settings.emit_match:
                     event_data["description"] += f" [{result}]"
                 await self.report(event_data, event, yara_rule_settings, discovery_context)
@@ -245,7 +256,7 @@ class ExcavateRule:
         event : Event
             The parent event to which this event is related.
         yara_rule_settings : YaraRuleSettings
-            The settings configured from YARA rule meta tags, including description and tags.
+            The settings configured from YARA rule meta tags, including description, severity, confidence, and tags.
         discovery_context : DiscoveryContext
             The context in which the discovery is made.
         event_type : str, optional
@@ -258,10 +269,16 @@ class ExcavateRule:
         Returns:
         None
         """
-
         # If a description is not set and is needed, provide a basic one
-        if event_type == "FINDING" and "description" not in event_data.keys():
-            event_data["description"] = f"{discovery_context} {yara_rule_settings['self.description']}"
+        if event_type == "FINDING":
+            if "description" not in event_data.keys():
+                event_data["description"] = f"{discovery_context} {yara_rule_settings.description}"
+            if "name" not in event_data.keys():
+                event_data["name"] = f"{discovery_context} {yara_rule_settings.description}"
+            if "severity" not in event_data.keys():
+                event_data["severity"] = yara_rule_settings.severity
+            if "confidence" not in event_data.keys():
+                event_data["confidence"] = yara_rule_settings.confidence
         subject = ""
         if isinstance(event_data, str):
             subject = f" {event_data}"
@@ -281,7 +298,9 @@ class CustomExtractor(ExcavateRule):
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
         for identifier, results in yara_results.items():
             for result in results:
-                event_data = {}
+                event_data = {
+                    "name": f"Custom Yara Rule [{self.name}]",
+                }
                 description_string = (
                     f" with description: [{yara_rule_settings.description}]" if yara_rule_settings.description else ""
                 )
@@ -290,6 +309,9 @@ class CustomExtractor(ExcavateRule):
                 )
                 if yara_rule_settings.emit_match:
                     event_data["description"] += f" and extracted [{result}]"
+                event_data["severity"] = yara_rule_settings.get("severity", "LOW")
+                event_data["confidence"] = yara_rule_settings.get("confidence", "UNKNOWN")
+
                 await self.report(event_data, event, yara_rule_settings, discovery_context)
 
 
@@ -306,7 +328,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
     produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Passively extract juicy tidbits from scan data",
         "created_date": "2022-06-27",
@@ -339,7 +361,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             return True
 
         for bl_param_prefix in self.parameter_blacklist_prefixes:
-            if lower_value.startswith(bl_param_prefix.lower()):
+            if lower_value.startswith(bl_param_prefix):
                 return True
 
         return False
@@ -380,6 +402,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             name = "GET jquery"
             discovery_regex = r"/\$.get\([^\)].+\)/ nocase"
             extraction_regex = re.compile(r"\$.get\([\'\"](.+)[\'\"].+(\{.+\})\)")
+            _json_key_regex = re.compile(r"(\w+):")
             output_type = "GETPARAM"
 
             async def extract(self):
@@ -387,6 +410,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 if extracted_results:
                     for action, extracted_parameters in extracted_results:
                         extracted_parameters_dict = await self.convert_to_dict(extracted_parameters)
+                        if extracted_parameters_dict is None:
+                            continue
                         for parameter_name, original_value in extracted_parameters_dict.items():
                             yield (
                                 self.output_type,
@@ -399,7 +424,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             async def convert_to_dict(self, extracted_str):
                 extracted_str = extracted_str.replace("'", '"')
                 extracted_str = await self.excavate.helpers.re.sub(
-                    re.compile(r"(\w+):"), r'"\1":', extracted_str
+                    self._json_key_regex, r'"\1":', extracted_str
                 )  # Quote keys
 
                 try:
@@ -682,7 +707,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     class JWTExtractor(ExcavateRule):
         description = "Extracts JSON Web Tokens."
         yara_rules = {
-            "jwt": r'rule jwt { meta: emit_match = "True" description = "contains JSON Web Token (JWT)" strings: $jwt = /\beyJ[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*/ nocase condition: $jwt }',
+            "jwt": r'rule jwt { meta: emit_match = "True" description = "contains JSON Web Token (JWT)" confidence = "CONFIRMED" strings: $jwt = /\beyJ[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*\.[_a-zA-Z0-9\/+]*/ nocase condition: $jwt }',
         }
 
     class ErrorExtractor(ExcavateRule):
@@ -712,14 +737,15 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 signature_component_list.append(rf"${signature_name} = {signature}")
             signature_component = " ".join(signature_component_list)
             self.yara_rules["error_detection"] = (
-                f'rule error_detection {{meta: description = "contains a verbose error message" strings: {signature_component} condition: any of them}}'
+                f'rule error_detection {{meta: description = "contains a verbose error message" severity = "INFO" confidence = "MEDIUM" strings: {signature_component} condition: any of them}}'
             )
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
                     event_data = {
-                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})"
+                        "name": "Possible Verbose Error Message",
+                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})",
                     }
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
 
@@ -743,21 +769,22 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 regexes_component_list.append(rf"${regex_name} = /\b{regex.pattern}/")
             regexes_component = " ".join(regexes_component_list)
             self.yara_rules["serialization_detection"] = (
-                f'rule serialization_detection {{meta: description = "contains a possible serialized object" strings: {regexes_component} condition: any of them}}'
+                f'rule serialization_detection {{meta: description = "contains a possible serialized object" severity = "INFO" confidence = "MEDIUM" strings: {regexes_component} condition: any of them}}'
             )
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for findings in yara_results[identifier]:
                     event_data = {
-                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})"
+                        "name": "Possible Serialized Object",
+                        "description": f"{discovery_context} {yara_rule_settings.description} ({identifier})",
                     }
                     await self.report(event_data, event, yara_rule_settings, discovery_context, event_type="FINDING")
 
     class FunctionalityExtractor(ExcavateRule):
         description = "Detects potentially exploitable functionality and attack surface in web applications."
         yara_rules = {
-            "File_Upload_Functionality": r'rule File_Upload_Functionality { meta: description = "contains file upload functionality" strings: $fileuploadfunc = /<input[^>]+type=["\']?file["\']?[^>]+>/ nocase condition: $fileuploadfunc }',
+            "File_Upload_Functionality": r'rule File_Upload_Functionality { meta: description = "contains file upload functionality" confidence = "CONFIRMED" strings: $fileuploadfunc = /<input[^>]+type=["\']?file["\']?[^>]+>/ nocase condition: $fileuploadfunc }',
             "Web_Service_WSDL": r'rule Web_Service_WSDL { meta: emit_match = "True" description = "contains a web service WSDL URL" strings: $wsdl = /https?:\/\/[^\s]*\.(wsdl)/ nocase condition: $wsdl }',
         }
 
@@ -790,13 +817,30 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     except ValueError as e:
                         self.excavate.debug(f"Failed to parse netloc: {e}")
                         continue
+                    # convert websocket URLs to their HTTP equivalents
+                    if parsed_url.scheme in ["ws", "wss"]:
+                        http_scheme = "https" if parsed_url.scheme == "wss" else "http"
+                        http_url = parsed_url._replace(scheme=http_scheme).geturl()
+                        await self.report(
+                            http_url,
+                            event,
+                            yara_rule_settings,
+                            discovery_context,
+                            event_type="URL_UNVERIFIED",
+                        )
+                        continue
+
                     if parsed_url.scheme in ["http", "https"]:
                         continue
 
                     def abort_if(e):
                         return e.scope_distance > 0
 
-                    finding_data = {"host": str(host), "description": f"Non-HTTP URI: {parsed_url.geturl()}"}
+                    finding_data = {
+                        "host": str(host),
+                        "name": "Non-HTTP URI",
+                        "description": f"Non-HTTP URI: {parsed_url.geturl()}",
+                    }
                     await self.report(finding_data, event, yara_rule_settings, discovery_context, abort_if=abort_if)
                     protocol_data = {"protocol": parsed_url.scheme, "host": str(host)}
                     if port:
@@ -1015,7 +1059,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         self.add_yara_rule(rule_name, rule_content, excavateRule)
 
         self.parameter_blacklist = set(p.lower() for p in self.scan.config.get("parameter_blacklist", []))
-        self.parameter_blacklist_prefixes = set(self.scan.config.get("parameter_blacklist_prefixes", []))
+        self.parameter_blacklist_prefixes = set(
+            p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
+        )
 
         self.custom_yara_rules = str(self.config.get("custom_yara_rules", ""))
         if self.custom_yara_rules:
@@ -1092,7 +1138,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 param_type="SPECULATIVE",
                                 name=parameter_name,
                                 original_value=original_value,
-                                url=str(event.data["url"]),
+                                url=event.url,
                                 description=f"HTTP Extracted Parameter (speculative from {source_type} content) [{parameter_name}]",
                                 additional_params={},
                                 event=event,
@@ -1135,8 +1181,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 await self.emit_custom_parameters(event, "http_cookies", "COOKIE", "Custom Cookie")
                 await self.emit_custom_parameters(event, "http_headers", "HEADER", "Custom Header")
 
-                # if parameter extraction is enabled, and querystring removal is disabled, and the event is directly from the TARGET, create a WEB
-                if self.url_querystring_remove is False and str(event.parent.parent.module) == "TARGET":
+                # if parameter extraction is enabled, and querystring removal is disabled, and the event is directly from the SEED, create a WEB
+                if self.url_querystring_remove is False and str(event.parent.parent.module) == "SEED":
                     self.debug(f"Processing target URL [{urlunparse(event.parsed_url)}] for GET parameters")
                     for (
                         method,
@@ -1212,7 +1258,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                         reported_location_header = True
                                         await self.emit_event(
                                             url_event,
-                                            context=f'excavate looked in "Location" header and found {url_event.type}: {url_event.data}',
+                                            context=f'excavate looked in "Location" header and found {url_event.type}: {url_event.url}',
                                         )
 
                             # Try to extract parameters from the redirect URL
@@ -1241,6 +1287,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.warning("location header found but missing redirect_location in HTTP_RESPONSE")
                     if header.lower() == "content-type":
                         content_type = headers["content-type"][0]
+
+            # skip PDF responses -- running YARA/regex on raw PDF bytes produces false positives and wastes time.
+            # PDFs are still processed correctly via the filedownload → kreuzberg → RAW_TEXT pipeline,
+            # which extracts readable text and feeds it back to excavate as a RAW_TEXT event (handled separately below).
+            # TODO: remove this in favor of a proper categorization system for text vs non-text (i.e. to-be-extracted) content
+            if content_type and "application/pdf" in content_type.lower():
+                self.debug(f"Skipping PDF response: {event.url or 'unknown'}")
+                return
 
             await self.search(
                 body,

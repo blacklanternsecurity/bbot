@@ -4,7 +4,7 @@ from bbot.modules.templates.github import github
 class github_org(github):
     watched_events = ["ORG_STUB", "SOCIAL"]
     produced_events = ["CODE_REPOSITORY"]
-    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
+    flags = ["safe", "passive", "subdomain-enum", "code-enum"]
     meta = {
         "description": "Query Github's API for organization and member repositories",
         "created_date": "2023-12-14",
@@ -90,7 +90,7 @@ class github_org(github):
             user = event.data
             self.verbose(f"Validating whether the organization {user} is within our scope...")
             is_org, in_scope = await self.validate_org(user)
-            if "target" in event.tags:
+            if "seed" in event.tags:
                 in_scope = True
             if not is_org or not in_scope:
                 self.verbose(f"Unable to validate that {user} is in-scope, skipping...")

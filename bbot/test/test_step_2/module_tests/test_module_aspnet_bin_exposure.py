@@ -62,12 +62,12 @@ class TestAspnetBinExposure(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        vulnerability_found = False
+        finding_found = False
         for e in events:
-            if e.type == "VULNERABILITY" and "IIS Bin Directory DLL Exposure" in e.data["description"]:
-                vulnerability_found = True
+            if e.type == "FINDING" and "IIS Bin Directory DLL Exposure" in e.data["description"]:
+                finding_found = True
                 assert e.data["severity"] == "HIGH", "Vulnerability severity should be HIGH"
                 assert "Detection Url" in e.data["description"], "Description should include detection URL"
                 break
 
-        assert vulnerability_found, "No vulnerability event was found"
+        assert finding_found, "No finding event was found"

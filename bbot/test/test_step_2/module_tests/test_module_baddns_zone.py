@@ -38,25 +38,27 @@ zzzz 600 IN AAAA dead::beef
     def check(self, module_test, events):
         assert any(e.data == "zzzz.bad.dns" for e in events), "Zone transfer failed (1)"
         assert any(e.data == "asdf.bad.dns" for e in events), "Zone transfer failed (2)"
-        assert any(e.type == "VULNERABILITY" for e in events), "Failed to emit VULNERABILITY"
+        assert any(e.type == "FINDING" for e in events), "Failed to emit FINDING"
         assert any("baddns-zonetransfer" in e.tags for e in events), "Failed to add baddns tag"
 
 
 class TestBaddns_zone_nsec(BaseTestBaddns_zone):
+    targets = ["bad.com"]
+
     async def setup_after_prep(self, module_test):
         from baddns.lib.whoismanager import WhoisManager
 
         await module_test.mock_dns(
             {
-                "bad.dns": {"A": ["127.0.0.5"], "NSEC": ["asdf.bad.dns"]},
-                "asdf.bad.dns": {"NSEC": ["zzzz.bad.dns"]},
-                "zzzz.bad.dns": {"NSEC": ["xyz.bad.dns"]},
+                "bad.com": {"A": ["127.0.0.5"], "NSEC": ["asdf.bad.com"]},
+                "asdf.bad.com": {"NSEC": ["zzzz.bad.com"]},
+                "zzzz.bad.com": {"NSEC": ["xyz.bad.com"]},
             }
         )
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
     def check(self, module_test, events):
-        assert any(e.data == "zzzz.bad.dns" for e in events), "NSEC Walk Failed (1)"
-        assert any(e.data == "xyz.bad.dns" for e in events), "NSEC Walk Failed (2)"
-        assert any(e.type == "VULNERABILITY" for e in events), "Failed to emit VULNERABILITY"
+        assert any(e.data == "zzzz.bad.com" for e in events), "NSEC Walk Failed (1)"
+        assert any(e.data == "xyz.bad.com" for e in events), "NSEC Walk Failed (2)"
+        assert any(e.type == "FINDING" for e in events), "Failed to emit FINDING"
         assert any("baddns-nsec" in e.tags for e in events), "Failed to add baddns tag"

@@ -1,3 +1,4 @@
+import sys
 import ipaddress
 from contextlib import suppress
 
@@ -37,6 +38,8 @@ class DNSResolve(BaseInterceptModule):
         self.dns_search_distance = max(0, int(self.dns_config.get("search_distance", 1)))
         self._emit_raw_records = None
 
+        self.filter_ptrs = self.dns_config.get("filter_ptrs", True)
+
         self.host_module = self.HostModule(self.scan)
         self.children_emitted = set()
         self.children_emitted_raw = set()
@@ -59,17 +62,25 @@ class DNSResolve(BaseInterceptModule):
             non_minimal_rdtypes = self.non_minimal_rdtypes
 
         # first, we find or create the main DNS_NAME or IP_ADDRESS associated with this event
-        main_host_event, whitelisted, blacklisted, new_event = self.get_dns_parent(event)
+        main_host_event, in_target, blacklisted, new_event = self.get_dns_parent(event)
         original_tags = set(event.tags)
 
         # minimal resolution - first, we resolve A/AAAA records for scope purposes
         if new_event or event is main_host_event:
             await self.resolve_event(main_host_event, types=minimal_rdtypes)
-            # are any of its IPs whitelisted/blacklisted?
-            whitelisted, blacklisted = self.check_scope(main_host_event)
-            if whitelisted and event.scope_distance > 0:
-                self.debug(f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)")
-                main_host_event.scope_distance = 0
+            # are any of its IPs in target scope or blacklisted?
+            in_target, blacklisted = self.check_scope(main_host_event)
+            if in_target and main_host_event.scope_distance > 0:
+                # when filter_ptrs is enabled, don't promote PTR-derived hostnames to in-scope
+                # this prevents rDNS results from triggering subdomain enumeration against unrelated domains
+                # (e.g. scanning 1.2.3.0/24 would otherwise enumerate every PTR parent like randomothercorp.com)
+                if self.filter_ptrs and "ptr" in main_host_event.tags:
+                    self.debug(f"Not making {main_host_event} in-scope: PTR-derived hostname (filter_ptrs=true)")
+                else:
+                    self.debug(
+                        f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
+                    )
+                    main_host_event.scope_distance = 0
 
         # abort if the event resolves to something blacklisted
         if blacklisted:
@@ -99,9 +110,13 @@ class DNSResolve(BaseInterceptModule):
                                 )
 
         # if there weren't any DNS children and it's not an IP address, tag as unresolved
+        # Exception: don't convert seed events to DNS_NAME_UNRESOLVED so accept_seeds modules can process them
         if not main_host_event.raw_dns_records and not event_is_ip:
-            main_host_event.add_tag("unresolved")
-            main_host_event.type = "DNS_NAME_UNRESOLVED"
+            if "seed" not in main_host_event.tags:
+                main_host_event.add_tag("unresolved")
+                main_host_event.type = "DNS_NAME_UNRESOLVED"
+                # avoid emitting DNS_NAME_UNRESOLVED affiliates
+                main_host_event.always_emit_tags = []
 
         # main_host_event.add_tag(f"resolve-distance-{main_host_event.dns_resolve_distance}")
 
@@ -150,7 +165,7 @@ class DNSResolve(BaseInterceptModule):
             event.add_tag(f"{rdtype}-{wildcard_tag}")
 
         # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-        if wildcard_rdtypes and "target" not in event.tags:
+        if wildcard_rdtypes and "seed" not in event.tags:
             # these are the rdtypes that have wildcards
             wildcard_rdtypes_set = set(wildcard_rdtypes)
             # consider the event a full wildcard if all its records are wildcards
@@ -167,7 +182,9 @@ class DNSResolve(BaseInterceptModule):
                             break
                     wildcard_data = f"_wildcard.{wildcard_parent}"
                     if wildcard_data != event.data:
-                        self.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
+                        self.debug(
+                            f'Wildcard detected, changing event.data "{event.pretty_string}" --> "{wildcard_data}"'
+                        )
                         event.data = wildcard_data
                         return True
         return False
@@ -187,6 +204,10 @@ class DNSResolve(BaseInterceptModule):
                 except ValidationError as e:
                     self.warning(f'Event validation failed for DNS child of {event}: "{child_host}" ({rdtype}): {e}')
                     continue
+
+                # tag PTR-derived children so downstream logic can identify them
+                if rdtype == "PTR":
+                    child_event.add_tag("ptr")
 
                 child_hash = hash(f"{event.host}:{module}:{child_host}")
                 # if we haven't emitted this one before
@@ -219,21 +240,21 @@ class DNSResolve(BaseInterceptModule):
                         )
 
     def check_scope(self, event):
-        whitelisted = False
+        in_target = False
         blacklisted = False
         dns_children = getattr(event, "dns_children", {})
         for rdtype in ("A", "AAAA", "CNAME"):
             hosts = dns_children.get(rdtype, [])
             # update resolved hosts
-            event.resolved_hosts.update(hosts)
+            event.resolved_hosts.update(sys.intern(h) for h in hosts)
             for host in hosts:
                 # having a CNAME to an in-scope host doesn't make you in-scope
                 if rdtype != "CNAME":
-                    if not whitelisted:
+                    if not in_target:
                         with suppress(ValidationError):
-                            if self.scan.whitelisted(host):
-                                whitelisted = True
-                                event.add_tag(f"dns-whitelisted-{rdtype}")
+                            if self.scan.in_target(host):
+                                in_target = True
+                                event.add_tag(f"dns-in-target-{rdtype}")
                 # but a CNAME to a blacklisted host means you're blacklisted
                 if not blacklisted:
                     with suppress(ValidationError):
@@ -242,8 +263,8 @@ class DNSResolve(BaseInterceptModule):
                             event.add_tag("blacklisted")
                             event.add_tag(f"dns-blacklisted-{rdtype}")
         if blacklisted:
-            whitelisted = False
-        return whitelisted, blacklisted
+            in_target = False
+        return in_target, blacklisted
 
     async def resolve_event(self, event, types):
         if not types:
@@ -252,6 +273,7 @@ class DNSResolve(BaseInterceptModule):
         queries = [(event_host, rdtype) for rdtype in types]
         dns_errors = {}
         async for (query, rdtype), (answers, errors) in self.helpers.dns.resolve_raw_batch(queries):
+            rdtype = sys.intern(rdtype)
             # errors
             try:
                 dns_errors[rdtype].update(errors)
@@ -266,6 +288,8 @@ class DNSResolve(BaseInterceptModule):
                     event.raw_dns_records[rdtype] = {answer}
                 # hosts
                 for _rdtype, host in extract_targets(answer):
+                    _rdtype = sys.intern(_rdtype)
+                    host = sys.intern(host)
                     try:
                         event.dns_children[_rdtype].add(host)
                     except KeyError:
@@ -287,16 +311,22 @@ class DNSResolve(BaseInterceptModule):
     def get_dns_parent(self, event):
         """
         Get the first parent DNS_NAME / IP_ADDRESS of an event. If one isn't found, create it.
+
+        Returns a 4-tuple of:
+        - the parent event
+        - whether the parent is in target
+        - whether the parent is blacklisted
+        - whether the parent is a new event, i.e. it is newly created or is the current event
         """
         for parent in event.get_parents(include_self=True):
             if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
                 blacklisted = any(t.startswith("dns-blacklisted-") for t in parent.tags)
-                whitelisted = any(t.startswith("dns-whitelisted-") for t in parent.tags)
+                in_target = any(t.startswith("dns-in-target-") for t in parent.tags)
                 new_event = parent is event
-                return parent, whitelisted, blacklisted, new_event
+                return parent, in_target, blacklisted, new_event
         tags = set()
-        if "target" in event.tags:
-            tags.add("target")
+        if "seed" in event.tags:
+            tags.add("seed")
         return (
             self.scan.make_event(
                 event.host,

@@ -6,8 +6,8 @@ from badsecrets.base import carve_all_modules
 
 class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
-    produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-basic"]
+    produced_events = ["FINDING", "TECHNOLOGY"]
+    flags = ["safe", "active", "web"]
     meta = {
         "description": "Library for detecting known or weak secrets across many web frameworks",
         "created_date": "2022-11-19",
@@ -17,7 +17,7 @@ class badsecrets(BaseModule):
     options_desc = {
         "custom_secrets": "Include custom secrets loaded from a local file",
     }
-    deps_pip = ["badsecrets~=0.12.12"]
+    deps_pip = ["badsecrets~=1.0.0"]
 
     async def setup(self):
         self.custom_secrets = None
@@ -58,7 +58,7 @@ class badsecrets(BaseModule):
                     body=resp_body,
                     headers=resp_headers,
                     cookies=resp_cookies,
-                    url=event.data.get("url", None),
+                    url=event.url or None,
                     custom_resource=self.custom_secrets,
                 )
             except Exception as e:
@@ -69,31 +69,40 @@ class badsecrets(BaseModule):
                     if r["type"] == "SecretFound":
                         data = {
                             "severity": r["description"]["severity"],
+                            "name": "BadSecrets - Known Secret",
                             "description": f"Known Secret Found. Secret Type: [{r['description']['secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'], 2000)}] Detecting Module: [{r['detecting_module']}] Details: [{r['details']}]",
-                            "url": event.data["url"],
+                            "url": event.url,
                             "host": str(event.host),
+                            "confidence": "CONFIRMED",
                         }
                         await self.emit_event(
                             data,
-                            "VULNERABILITY",
+                            "FINDING",
                             event,
                             context=f'{{module}}\'s "{r["detecting_module"]}" module found known {r["description"]["product"]} secret ({{event.type}}): "{r["secret"]}"',
                         )
                     elif r["type"] == "IdentifyOnly":
-                        # There is little value to presenting a non-vulnerable asp.net viewstate, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
-                        if r["detecting_module"] == "ASPNET_Viewstate":
+                        # Excavate's JWTExtractor submodule already emits findings for JWT existence.
+                        # Only vulnerable (SecretFound) JWT results are worth emitting from badsecrets.
+                        if r["detecting_module"] == "Generic_JWT":
+                            continue
+                        # There is little value to presenting a non-vulnerable asp.net viewstate/resource, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
+                        if r["detecting_module"] in ("ASPNET_Viewstate", "ASPNET_Resource"):
                             technology = "microsoft asp.net"
                             await self.emit_event(
-                                {"technology": technology, "url": event.data["url"], "host": str(event.host)},
+                                {"technology": technology, "url": event.url, "host": str(event.host)},
                                 "TECHNOLOGY",
                                 event,
                                 context=f"{{module}} identified {{event.type}}: {technology}",
                             )
                         else:
                             data = {
+                                "name": "BadSecrets - Cryptographic Product",
                                 "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'], 2000)}] Detecting Module: [{r['detecting_module']}]",
-                                "url": event.data["url"],
+                                "url": event.url,
                                 "host": str(event.host),
+                                "severity": "INFO",
+                                "confidence": "CONFIRMED",
                             }
                             await self.emit_event(
                                 data,

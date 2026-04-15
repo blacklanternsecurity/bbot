@@ -27,7 +27,7 @@ class BaseLightfuzz:
         try:
             if base64.b64encode(base64.b64decode(s)).decode() == s:
                 return True
-        except (binascii.Error, UnicodeDecodeError):
+        except (binascii.Error, UnicodeDecodeError, ValueError):
             return False
         return False
 
@@ -65,7 +65,7 @@ class BaseLightfuzz:
 
     def build_query_string(self, probe, parameter_name, additional_params=None):
         """Constructs a URL with query parameters from the given probe and additional parameters."""
-        url = f"{self.event.data['url']}?{parameter_name}={probe}"
+        url = f"{self.event.url}?{parameter_name}={probe}"
         if additional_params:
             url = self.lightfuzz.helpers.add_get_params(url, additional_params, encode=False).geturl()
         return url
@@ -106,19 +106,19 @@ class BaseLightfuzz:
             return {"method": "GET", "cookies": cookies, "url": url}
         elif event_type == "COOKIE":
             cookies_probe = {parameter_name: probe}
-            return {"method": "GET", "cookies": {**cookies, **cookies_probe}, "url": self.event.data["url"]}
+            return {"method": "GET", "cookies": {**cookies, **cookies_probe}, "url": self.event.url}
         elif event_type == "HEADER":
             headers = {parameter_name: probe}
-            return {"method": "GET", "headers": headers, "cookies": cookies, "url": self.event.data["url"]}
+            return {"method": "GET", "headers": headers, "cookies": cookies, "url": self.event.url}
         elif event_type in ["POSTPARAM", "BODYJSON"]:
             # Prepare data for POSTPARAM and BODYJSON event types
             data = {parameter_name: probe}
             if additional_params:
                 data.update(additional_params)
             if event_type == "BODYJSON":
-                return {"method": "POST", "json": data, "cookies": cookies, "url": self.event.data["url"]}
+                return {"method": "POST", "json": data, "cookies": cookies, "url": self.event.url}
             else:
-                return {"method": "POST", "data": data, "cookies": cookies, "url": self.event.data["url"]}
+                return {"method": "POST", "data": data, "cookies": cookies, "url": self.event.url}
 
     def compare_baseline(
         self,
@@ -167,7 +167,7 @@ class BaseLightfuzz:
         return await self.lightfuzz.helpers.request(
             method=method,
             cookies=cookies,
-            url=self.event.data.get("url"),
+            url=self.event.url,
             allow_redirects=False,
             retries=1,
             timeout=10,
@@ -238,8 +238,15 @@ class BaseLightfuzz:
         self.debug(f"standard_probe requested URL: [{request_params['url']}]")
         return await self.lightfuzz.helpers.request(**request_params)
 
+    def conversion_note(self):
+        if self.event.data.get("converted_from_post", False):
+            return " (converted from POSTPARAM)"
+        elif self.event.data.get("converted_from_get", False):
+            return " (converted from GETPARAM)"
+        return ""
+
     def metadata(self):
-        metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]"
+        metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]{self.conversion_note()}"
         if self.event.data["original_value"] != "" and self.event.data["original_value"] is not None:
             metadata_string += (
                 f" Original Value: [{self.lightfuzz.helpers.truncate_string(self.event.data['original_value'], 200)}]"
@@ -265,13 +272,16 @@ class BaseLightfuzz:
 
     def outgoing_probe_value(self, outgoing_probe_value):
         """
-        Transparently modifies the outgoing probe value (fuzz probe being sent to the target), given any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
+        Transparently packs the outgoing probe value (fuzz probe being sent to the target) through
+        any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
+
+        Uses pack_value() to avoid mutating the envelope's internal state, preventing cross-contamination
+        between submodules that share the same event/envelope object.
         """
         self.debug(f"outgoing_probe_value (before packing): {outgoing_probe_value} / {self.event}")
         envelopes = getattr(self.event, "envelopes", None)
         if envelopes is not None:
-            envelopes.set_subparam(value=outgoing_probe_value)
-            outgoing_probe_value = envelopes.pack()
+            outgoing_probe_value = envelopes.pack_value(outgoing_probe_value)
             self.debug(
                 f"outgoing_probe_value (after packing): {outgoing_probe_value} with envelopes [{envelopes}] / {self.event}"
             )

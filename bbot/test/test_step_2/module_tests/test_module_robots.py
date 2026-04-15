@@ -22,18 +22,18 @@ class TestRobots(ModuleTestBase):
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
-                if str(e.module) != "TARGET":
+                if str(e.module) != "SEED":
                     assert "spider-danger" in e.tags, f"{e} doesn't have spider-danger tag"
-                if e.data == "http://127.0.0.1:8888/allow/":
+                if e.url == "http://127.0.0.1:8888/allow/":
                     allow_bool = True
 
-                if e.data == "http://127.0.0.1:8888/disallow/":
+                if e.url == "http://127.0.0.1:8888/disallow/":
                     disallow_bool = True
 
-                if e.data == "http://127.0.0.1:8888/sitemap.txt":
+                if e.url == "http://127.0.0.1:8888/sitemap.txt":
                     sitemap_bool = True
 
-                if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.data):
+                if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.url):
                     wildcard_bool = True
 
         assert allow_bool

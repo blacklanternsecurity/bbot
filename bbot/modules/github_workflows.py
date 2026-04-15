@@ -8,7 +8,7 @@ from bbot.modules.templates.github import github
 class github_workflows(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "code-enum", "download"]
+    flags = ["safe", "passive", "code-enum", "download"]
     meta = {
         "description": "Download a github repositories workflow logs and workflow artifacts",
         "created_date": "2024-04-29",
@@ -44,12 +44,12 @@ class github_workflows(github):
     async def filter_event(self, event):
         if "git" not in event.tags:
             return False, "event is not a git repository"
-        elif "github.com" not in event.data.get("url", ""):
+        elif "github.com" not in event.url:
             return False, "event is not a github repository"
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         owner = repo_url.split("/")[-2]
         repo = repo_url.split("/")[-1]
         for workflow in await self.get_workflows(owner, repo):

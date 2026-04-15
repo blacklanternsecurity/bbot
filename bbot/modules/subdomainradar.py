@@ -7,7 +7,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 class SubdomainRadar(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query the Subdomain API for subdomains",
         "created_date": "2022-07-08",
@@ -64,6 +64,8 @@ class SubdomainRadar(subdomain_enum_apikey):
 
         self.enum_tasks = {}
         self.poll_task = asyncio.create_task(self.task_poll_loop())
+        # Track poll_task so _cancel_tasks() picks it up during shutdown
+        self._tasks.append(self.poll_task)
 
         return True
 
@@ -124,7 +126,7 @@ class SubdomainRadar(subdomain_enum_apikey):
                         "DNS_NAME",
                         event,
                         abort_if=self.abort_if,
-                        context=f'{{module}} searched SubDomainRadar.io API for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} searched SubDomainRadar.io API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
             return True
         return False

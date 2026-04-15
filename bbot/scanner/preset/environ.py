@@ -3,7 +3,13 @@ import sys
 import omegaconf
 from pathlib import Path
 
-from bbot.core.helpers.misc import cpu_architecture, os_platform, os_platform_friendly
+from bbot.core.helpers.misc import (
+    cpu_architecture,
+    cpu_architecture_golang,
+    cpu_architecture_rust,
+    os_platform,
+    os_platform_friendly,
+)
 
 
 REQUESTS_PATCHED = False
@@ -103,6 +109,8 @@ class BBOTEnviron:
         environ["BBOT_OS_PLATFORM"] = os_platform()
         environ["BBOT_OS"] = os_platform_friendly()
         environ["BBOT_CPU_ARCH"] = cpu_architecture()
+        environ["BBOT_CPU_ARCH_GOLANG"] = cpu_architecture_golang()
+        environ["BBOT_CPU_ARCH_RUST"] = cpu_architecture_rust()
 
         # copy config to environment
         bbot_environ = self.flatten_config(self.preset.config)

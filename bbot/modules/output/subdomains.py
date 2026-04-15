@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 
 class Subdomains(TXT):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
-    flags = ["subdomain-enum"]
+    flags = ["safe", "subdomain-enum"]
     meta = {
         "description": "Output only resolved, in-scope subdomains",
         "created_date": "2023-07-31",
@@ -33,7 +33,7 @@ class Subdomains(TXT):
     async def handle_event(self, event):
         if self.file is not None:
             self.subdomains_written += 1
-            self.file.write(f"{event.data}\n")
+            self.file.write(f"{event.pretty_string}\n")
             self.file.flush()
 
     async def report(self):

@@ -46,7 +46,7 @@ class TestDNSCAA(ModuleTestBase):
         )
         assert any(e.type == "DNS_NAME" and e.data == "pki.goog" for e in events), "Failed to detect CA DNS name"
         assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "https://caa.blacklanternsecurity.notreal/" for e in events
+            e.type == "URL_UNVERIFIED" and e.url == "https://caa.blacklanternsecurity.notreal/" for e in events
         ), "Failed to detect URL"
         assert any(e.type == "EMAIL_ADDRESS" and e.data == "caa@blacklanternsecurity.notreal" for e in events), (
             "Failed to detect email address"

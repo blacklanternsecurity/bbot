@@ -3,8 +3,8 @@ from bbot.modules.base import BaseModule
 
 class aspnet_bin_exposure(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["VULNERABILITY"]
-    flags = ["active", "safe", "web-thorough"]
+    produced_events = ["FINDING"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Check for ASP.NET Security Feature Bypasses (CVE-2023-36899 and CVE-2023-36560)",
         "created_date": "2025-01-28",
@@ -25,10 +25,10 @@ class aspnet_bin_exposure(BaseModule):
         return str(url.rstrip("/") + "/").lower()
 
     def _incoming_dedup_hash(self, event):
-        return hash(self.normalize_url(event.data))
+        return hash(self.normalize_url(event.url))
 
     async def handle_event(self, event):
-        normalized_url = self.normalize_url(event.data)
+        normalized_url = self.normalize_url(event.url)
         for test_dll in self.test_dlls:
             for technique in ["b/(S(X))in/###DLL_PLACEHOLDER###/(S(X))/", "(S(X))/b/(S(X))in/###DLL_PLACEHOLDER###"]:
                 test_url = f"{normalized_url}{technique.replace('###DLL_PLACEHOLDER###', test_dll)}"
@@ -63,12 +63,14 @@ class aspnet_bin_exposure(BaseModule):
                                 description = f"IIS Bin Directory DLL Exposure. Detection Url: [{test_url}]"
                                 await self.emit_event(
                                     {
+                                        "name": "IIS Bin Directory DLL Exposure",
                                         "severity": "HIGH",
+                                        "confidence": "HIGH",
                                         "host": str(event.host),
                                         "url": normalized_url,
                                         "description": description,
                                     },
-                                    "VULNERABILITY",
+                                    "FINDING",
                                     event,
                                     context="{module} detected IIS Bin Directory DLL Exposure vulnerability",
                                 )

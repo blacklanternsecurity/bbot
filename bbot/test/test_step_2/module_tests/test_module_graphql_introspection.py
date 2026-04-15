@@ -31,4 +31,4 @@ class TestGraphQLIntrospection(ModuleTestBase):
         finding = [e for e in events if e.type == "FINDING"]
         assert finding, "should have raised 1 FINDING event"
         assert finding[0].data["url"] == "http://127.0.0.1:8888/"
-        assert finding[0].data["description"] == "GraphQL schema"
+        assert finding[0].data["description"] == "GraphQL Schema at http://127.0.0.1:8888/"

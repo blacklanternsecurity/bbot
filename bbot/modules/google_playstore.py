@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class google_playstore(BaseModule):
     watched_events = ["ORG_STUB", "CODE_REPOSITORY"]
     produced_events = ["MOBILE_APP"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "Search for android applications on play.google.com",
         "created_date": "2024-10-08",
@@ -30,7 +30,7 @@ class google_playstore(BaseModule):
             await self.handle_org_stub(event)
 
     async def handle_url(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         app_id = repo_url.split("id=")[1].split("&")[0]
         await self.emit_event(
             {"id": app_id, "url": repo_url},

@@ -341,3 +341,77 @@ async def test_web_envelopes():
 
     tiny_base64 = BaseEnvelope.detect("YWJi")
     assert isinstance(tiny_base64, TextEnvelope)
+
+
+async def test_web_envelope_pack_value():
+    """
+    Test pack_value() - encodes a value through the envelope chain without modifying internal state.
+    """
+    import base64
+    import json
+
+    from bbot.core.helpers.web.envelopes import BaseEnvelope
+
+    # Text envelope (singleton, transparent)
+    text_envelope = BaseEnvelope.detect("original_text")
+    assert text_envelope.pack_value("new_text") == "new_text"
+    assert text_envelope.get_subparam() == "original_text"
+
+    # Hex envelope (singleton chain: hex -> text)
+    hex_envelope = BaseEnvelope.detect("706172616d")  # "param" in hex
+    packed = hex_envelope.pack_value("modified")
+    assert packed == "modified".encode().hex()
+    assert hex_envelope.get_subparam() == "param"
+
+    # Base64 envelope (singleton chain: base64 -> text)
+    b64_envelope = BaseEnvelope.detect("cGFyYW0=")  # "param" in base64
+    packed = b64_envelope.pack_value("modified")
+    assert packed == base64.b64encode(b"modified").decode()
+    assert b64_envelope.get_subparam() == "param"
+
+    # Nested hex -> base64 -> text chain
+    nested_envelope = BaseEnvelope.detect("634746795957303d")  # hex(base64("param"))
+    packed = nested_envelope.pack_value("modified")
+    expected = base64.b64encode(b"modified").decode().encode().hex()
+    assert packed == expected
+    assert nested_envelope.get_subparam() == "param"
+
+    # URL envelope (singleton chain: url -> text)
+    url_envelope = BaseEnvelope.detect("a%20b%20c")
+    packed = url_envelope.pack_value("x y z")
+    assert packed == "x%20y%20z"
+    assert url_envelope.get_subparam() == "a b c"
+
+    # JSON inside base64 (non-singleton: base64 -> json) - only the selected subparam is substituted in the output
+    b64_json = BaseEnvelope.detect("eyJwYXJhbTEiOiAidmFsMSIsICJwYXJhbTIiOiB7InBhcmFtMyI6ICJ2YWwzIn19")
+    b64_json.selected_subparam = ["param2", "param3"]
+    packed = b64_json.pack_value("new_val3")
+    decoded_json = json.loads(base64.b64decode(packed).decode())
+    assert decoded_json["param1"] == "val1"
+    assert decoded_json["param2"]["param3"] == "new_val3"
+    assert b64_json.get_subparam() == "val3"
+    assert b64_json.get_subparam(["param1"]) == "val1"
+
+    # Repeated calls do not accumulate - each starts from the original state
+    hex_envelope = BaseEnvelope.detect("706172616d")
+    hex_envelope.pack_value("first_modification")
+    hex_envelope.pack_value("second_modification")
+    hex_envelope.pack_value("third_modification")
+    assert hex_envelope.get_subparam() == "param"
+
+    # Multiple callers sharing the same envelope each produce correct output independently
+    shared_envelope = BaseEnvelope.detect("706172616d")  # "param" in hex
+
+    probe_a = shared_envelope.pack_value("param' OR 1=1--")
+    assert probe_a == "param' OR 1=1--".encode().hex()
+    assert shared_envelope.get_subparam() == "param"
+
+    probe_b = shared_envelope.pack_value("param| echo 1234 |")
+    assert probe_b == "param| echo 1234 |".encode().hex()
+    assert shared_envelope.get_subparam() == "param"
+
+    probe_c = shared_envelope.pack_value("../../etc/passwd")
+    assert probe_c == "../../etc/passwd".encode().hex()
+
+    assert shared_envelope.get_subparam() == "param"
+    assert shared_envelope.pack() == "706172616d"
