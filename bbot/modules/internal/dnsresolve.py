@@ -38,6 +38,8 @@ class DNSResolve(BaseInterceptModule):
         self.dns_search_distance = max(0, int(self.dns_config.get("search_distance", 1)))
         self._emit_raw_records = None
 
+        self.filter_ptrs = self.dns_config.get("filter_ptrs", True)
+
         self.host_module = self.HostModule(self.scan)
         self.children_emitted = set()
         self.children_emitted_raw = set()
@@ -69,8 +71,16 @@ class DNSResolve(BaseInterceptModule):
             # are any of its IPs in target scope or blacklisted?
             in_target, blacklisted = self.check_scope(main_host_event)
             if in_target and main_host_event.scope_distance > 0:
-                self.debug(f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)")
-                main_host_event.scope_distance = 0
+                # when filter_ptrs is enabled, don't promote PTR-derived hostnames to in-scope
+                # this prevents rDNS results from triggering subdomain enumeration against unrelated domains
+                # (e.g. scanning 1.2.3.0/24 would otherwise enumerate every PTR parent like randomothercorp.com)
+                if self.filter_ptrs and "ptr" in main_host_event.tags:
+                    self.debug(f"Not making {main_host_event} in-scope: PTR-derived hostname (filter_ptrs=true)")
+                else:
+                    self.debug(
+                        f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
+                    )
+                    main_host_event.scope_distance = 0
 
         # abort if the event resolves to something blacklisted
         if blacklisted:
@@ -194,6 +204,10 @@ class DNSResolve(BaseInterceptModule):
                 except ValidationError as e:
                     self.warning(f'Event validation failed for DNS child of {event}: "{child_host}" ({rdtype}): {e}')
                     continue
+
+                # tag PTR-derived children so downstream logic can identify them
+                if rdtype == "PTR":
+                    child_event.add_tag("ptr")
 
                 child_hash = hash(f"{event.host}:{module}:{child_host}")
                 # if we haven't emitted this one before
