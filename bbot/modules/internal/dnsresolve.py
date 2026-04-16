@@ -203,7 +203,7 @@ class DNSResolve(BaseInterceptModule):
                         context=f"{rdtype} record for {event.host} contains {{event.type}}: {{event.host}}",
                     )
                 except ValidationError as e:
-                    self.warning(f'Event validation failed for DNS child of {event}: "{child_host}" ({rdtype}): {e}')
+                    self.trace(f'Event validation failed for DNS child of {event}: "{child_host}" ({rdtype}): {e}')
                     continue
 
                 # tag PTR-derived children so downstream logic can identify them

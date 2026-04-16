@@ -141,11 +141,14 @@ class BaseTarget:
         try:
             return EventSeed(target)
         except ValidationError:
+            import traceback
+
             msg = f"Invalid target: '{target}'"
             if raise_error:
                 raise KeyError(msg)
             else:
                 log.warning(msg)
+                log.trace("".join(traceback.format_stack()))
 
     def __contains__(self, other):
         if isinstance(other, BaseTarget):

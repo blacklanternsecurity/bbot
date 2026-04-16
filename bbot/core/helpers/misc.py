@@ -2742,8 +2742,12 @@ def clean_dns_record(record):
     Examples:
         >>> clean_dns_record('www.evilcorp.com.')
         'www.evilcorp.com'
+
+        >>> clean_dns_record('*.evilcorp.com.')
+        'evilcorp.com'
     """
-    return str(record).rstrip(".").lower()
+    record = str(record).strip("*.").lower()
+    return record
 
 
 def truncate_filename(file_path, max_length=255):

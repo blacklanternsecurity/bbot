@@ -132,13 +132,26 @@ class DNSHelper:
     async def resolve_multi_full(self, query, rdtypes):
         """Resolve many rdtypes for one host concurrently in Rust.
 
-        Skips rdtypes listed in ``dns_omit_queries`` for the matching host suffix.
+        Skips rdtypes listed in ``dns_omit_queries`` and rdtypes whose parent
+        zone has exceeded ``abort_threshold`` consecutive errors.
         Returns ``dict[rdtype, DNSResult | DNSError]``.
         """
         rdtypes = [r for r in rdtypes if not self._is_omitted(query, r)]
+        filtered = []
+        for r in rdtypes:
+            if not await self._is_aborted(query, r):
+                filtered.append(r)
+        rdtypes = filtered
         if not rdtypes:
             return {}
-        return await self.blastdns.resolve_multi_full(query, rdtypes)
+        results = await self.blastdns.resolve_multi_full(query, rdtypes)
+        # Track per-zone errors so we can circuit-break dead zones
+        for rdtype, response in results.items():
+            if isinstance(response, DNSError):
+                self.record_dns_error(query, rdtype)
+            elif isinstance(response, DNSResult) and response.response.answers:
+                self.reset_dns_errors(query, rdtype)
+        return results
 
     async def resolve_batch_full(self, hosts, rdtype="A", skip_empty=False, skip_errors=False):
         """Resolve many hosts for one rdtype concurrently in Rust.
@@ -341,6 +354,33 @@ class DNSHelper:
     # ------------------------------------------------------------------
     # Error tracking + connectivity
     # ------------------------------------------------------------------
+
+    async def _is_aborted(self, query, rdtype):
+        """Check if queries for this parent zone + rdtype have been circuit-broken.
+
+        Only triggers on sustained timeouts (DNSError), not instant failures
+        like NXDOMAIN or SERVFAIL. When the threshold is hit, verifies
+        network connectivity first — if the network is down, clears error
+        counters instead of aborting (the zone might be fine).
+        """
+        parent = parent_domain(str(query))
+        parent_hash = hash((parent, rdtype))
+        error_count = self._errors.get(parent_hash, 0)
+        if error_count >= self.abort_threshold:
+            # before aborting, make sure our network is actually up
+            connectivity = await self._connectivity_check()
+            if not connectivity:
+                # network is down — don't blame the zone
+                self._errors.clear()
+                return False
+            if parent_hash not in self._dns_warnings:
+                self.log.info(
+                    f'Aborting {rdtype} queries to "{parent}" — '
+                    f"{error_count} consecutive errors exceeded threshold ({self.abort_threshold})"
+                )
+                self._dns_warnings[parent_hash] = True
+            return True
+        return False
 
     def record_dns_error(self, query, rdtype):
         """Bump the error counter for ``query``'s parent zone. Returns the new count."""

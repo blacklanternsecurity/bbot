@@ -20,7 +20,11 @@ def extract_targets(record):
     since SPF / DKIM / similar TXT payloads commonly embed hostnames worth
     pivoting on. That regex extraction is BBOT-specific and stays here.
     """
-    results = set(tuple(t) for t in record.extract_targets())
+    results = set()
+    for rdtype, host in record.extract_targets():
+        cleaned = clean_dns_record(host)
+        if cleaned:
+            results.add((rdtype, cleaned))
 
     # TXT: pull additional hostnames out of the free-form text content
     is_txt = "TXT" in record.rdata
