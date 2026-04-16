@@ -384,7 +384,7 @@ class Scanner:
             if not self._prepped:
                 await self._prep()
             await self._set_status(SCAN_STATUS_STARTING)
-            self.root_event.data["started_at"] = self.start_time.isoformat()
+            self.root_event.data["started_at"] = self.start_time.timestamp()
 
             self._start_log_handlers()
             self.trace(f"Ran BBOT {__version__} at {self.start_time}, command: {' '.join(sys.argv)}")
@@ -754,11 +754,9 @@ class Scanner:
                 self.info(f"{self.name}: Modules running (incoming:processing:outgoing) {modules_status_str}")
             else:
                 self.info(f"{self.name}: No modules running")
-            event_type_summary = sorted(self.stats.events_emitted_by_type.items(), key=lambda x: x[-1], reverse=True)
+            event_type_summary = self.stats.event_type_summary()
             if event_type_summary:
-                self.info(
-                    f"{self.name}: Events produced so far: {', '.join([f'{k}: {v}' for k, v in event_type_summary])}"
-                )
+                self.info(f"{self.name}: Events produced so far: {', '.join(event_type_summary)}")
             else:
                 self.info(f"{self.name}: No events produced yet")
 

@@ -407,6 +407,25 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
     }
 
 
+@pytest.mark.asyncio
+async def test_scan_event_started_at_type(bbot_scanner):
+    """Regression test: started_at must be a float on both RUNNING and FINISHED SCAN events."""
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    scan_events = []
+    async for event in scan.async_start():
+        if event.type == "SCAN":
+            scan_events.append(event)
+
+    assert len(scan_events) == 2, f"Expected 2 SCAN events, got {len(scan_events)}"
+    for e in scan_events:
+        started_at = e.data.get("started_at")
+        status = e.data.get("status")
+        assert isinstance(started_at, float), (
+            f"SCAN event (status={status}) started_at should be float, got {type(started_at).__name__}: {started_at!r}"
+        )
+
+
 async def test_scan_name(bbot_scanner):
     scan = bbot_scanner("evilcorp.com", name="test_scan_name")
     await scan._prep()

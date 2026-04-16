@@ -854,6 +854,19 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     except ValueError as e:
                         self.excavate.debug(f"Failed to parse netloc: {e}")
                         continue
+                    # convert websocket URLs to their HTTP equivalents
+                    if parsed_url.scheme in ["ws", "wss"]:
+                        http_scheme = "https" if parsed_url.scheme == "wss" else "http"
+                        http_url = parsed_url._replace(scheme=http_scheme).geturl()
+                        await self.report(
+                            http_url,
+                            event,
+                            yara_rule_settings,
+                            discovery_context,
+                            event_type="URL_UNVERIFIED",
+                        )
+                        continue
+
                     if parsed_url.scheme in ["http", "https"]:
                         continue
 

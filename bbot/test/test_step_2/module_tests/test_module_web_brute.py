@@ -130,3 +130,41 @@ class TestWebBruteRedirectFalsePositive(ModuleTestBase):
         assert len(tilde_hits) == 0, (
             f"web_brute should not report redirect-to-root paths as findings, but got: {[e.url for e in tilde_hits]}"
         )
+
+
+class TestWebBruteWAFFalsePositive(ModuleTestBase):
+    """WAF returns 200 with block page body for certain paths.
+    web_brute should detect WAF content and filter these as false positives."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "web_brute"
+    test_wordlist = ["admin", "secret", "junkword1", "zzzjunkword2"]
+    config_overrides = {
+        "modules": {
+            "web_brute": {
+                "wordlist": tempwordlist(test_wordlist),
+            }
+        }
+    }
+    modules_overrides = ["web_brute", "http"]
+
+    waf_body = "<html><head><title>Request Rejected</title></head><body>The requested URL was rejected. Please consult with your administrator.</body></html>"
+
+    def request_handler(self, request):
+        uri = request.path
+        if uri == "/":
+            return Response("<html>Home</html>", status=200)
+        if uri.lstrip("/").startswith(("admin", "secret")):
+            return Response(self.waf_body, status=200)
+        return Response("Not Found", status=404)
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        waf_hits = [
+            e
+            for e in events
+            if e.type == "URL_UNVERIFIED" and str(e.module) == "web_brute" and ("admin" in e.url or "secret" in e.url)
+        ]
+        assert len(waf_hits) == 0, f"web_brute should filter WAF block pages, but got: {[e.url for e in waf_hits]}"

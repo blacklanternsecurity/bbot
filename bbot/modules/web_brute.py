@@ -49,6 +49,7 @@ class web_brute(BaseModule):
     async def setup(self):
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         self.blast_client = self.helpers.blasthttp
+        self.waf_yara_rules = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
         self.wordlist_lines = self.generate_wordlist(self.wordlist)
@@ -180,10 +181,19 @@ class web_brute(BaseModule):
                 )
 
             canary_results = []
+            canary_waf_count = 0
             results = await self.blast_client.request_batch(canary_configs, 4, rate_limit=self.rate)
             for result in results:
                 if result.success:
                     canary_results.append(self._batch_response_metrics(result.response))
+                    if await self.helpers.yara.match(self.waf_yara_rules, result.response.body):
+                        canary_waf_count += 1
+
+            # If all canary responses are WAF block pages, the WAF is blocking everything
+            if canary_waf_count == len(canary_results) and canary_waf_count > 0:
+                self.warning(f"All baseline requests for URL [{url}] ext [{ext}] returned WAF block pages, aborting.")
+                filters[ext] = {"abort": True, "reason": "WAF_BLOCK_PAGE"}
+                continue
 
             # Check we got all 4 responses
             if len(canary_results) != 4:
@@ -351,6 +361,11 @@ class web_brute(BaseModule):
                     if location in ("/", url):
                         self.debug(f"Filtering redirect-to-root hit: {response.url} -> {location}")
                         continue
+
+                # Filter WAF block pages (can return any status code, including 200)
+                if await self.helpers.yara.match(self.waf_yara_rules, response.body):
+                    self.debug(f"Filtering WAF block page: {response.url}")
+                    continue
 
                 hits.append({"url": response.url, "status": response.status})
 
