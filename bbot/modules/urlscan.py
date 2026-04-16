@@ -2,7 +2,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
 class urlscan(subdomain_enum):
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "URL_UNVERIFIED"]
     meta = {
@@ -30,7 +30,7 @@ class urlscan(subdomain_enum):
                         await self.emit_event(
                             domain_event,
                             abort_if=self.abort_if,
-                            context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.data}}',
+                            context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                         )
                         parent_event = domain_event
             if url:
@@ -41,7 +41,7 @@ class urlscan(subdomain_enum):
                             await self.emit_event(
                                 url_event,
                                 abort_if=self.abort_if,
-                                context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.data}}',
+                                context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                             )
                         else:
                             await self.emit_event(
@@ -49,7 +49,7 @@ class urlscan(subdomain_enum):
                                 "DNS_NAME",
                                 parent=event,
                                 abort_if=self.abort_if,
-                                context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.data}}',
+                                context=f'{{module}} searched urlscan.io API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                             )
                     else:
                         self.debug(f"{url_event.host} does not match {query}")

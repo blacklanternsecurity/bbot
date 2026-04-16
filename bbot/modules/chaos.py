@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 class chaos(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query ProjectDiscovery's Chaos API for subdomains",
         "created_date": "2022-08-14",

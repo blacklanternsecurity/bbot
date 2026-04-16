@@ -9,6 +9,20 @@ from bbot.core.helpers import regexes, smart_decode, smart_encode_punycode
 bbot_event_seeds = {}
 
 
+# Pre-compute sorted event classes for performance
+# This is computed once when the module is loaded instead of on every EventSeed() call
+def _get_sorted_event_classes():
+    """
+    Sort event classes by priority (higher priority first).
+    This ensures specific patterns like ASN:12345 are checked before broad patterns like hostname:port.
+    """
+    return sorted(bbot_event_seeds.items(), key=lambda x: getattr(x[1], "priority", 5), reverse=True)
+
+
+# This will be populated after all event seed classes are registered
+_sorted_event_classes = None
+
+
 """
 An "Event Seed" is a lightweight event containing only the minimum logic required to:
     - parse input to determine the event type + data
@@ -18,6 +32,19 @@ An "Event Seed" is a lightweight event containing only the minimum logic require
 It's useful for quickly parsing target lists without the cpu+memory overhead of creating full-fledged BBOT events
 
 Not every type of BBOT event needs to be represented here. Only ones that are meant to be targets.
+
+PRIORITY SYSTEM:
+Event seeds support a priority system to control the order in which regex patterns are checked.
+This prevents conflicts where one event type's regex might incorrectly match another type's input.
+
+Priority values:
+- Higher numbers = checked first
+- Default priority = 5
+- Range: 1-10
+
+To set priority on an event seed class:
+    class MyEventSeed(BaseEventSeed):
+        priority = 8  # Higher than default, will be checked before most others
 """
 
 
@@ -27,17 +54,25 @@ class EventSeedRegistry(type):
     """
 
     def __new__(mcs, name, bases, attrs):
-        global bbot_event_seeds
+        global bbot_event_seeds, _sorted_event_classes
         cls = super().__new__(mcs, name, bases, attrs)
         # Don't register the base EventSeed class
         if name != "BaseEventSeed":
             bbot_event_seeds[cls.__name__] = cls
+            # Recompute sorted classes whenever a new event seed is registered
+            _sorted_event_classes = _get_sorted_event_classes()
         return cls
 
 
 def EventSeed(input):
     input = smart_encode_punycode(smart_decode(input).strip())
-    for _, event_class in bbot_event_seeds.items():
+
+    # Use pre-computed sorted event classes for better performance
+    global _sorted_event_classes
+    if _sorted_event_classes is None:
+        _sorted_event_classes = _get_sorted_event_classes()
+
+    for _, event_class in _sorted_event_classes:
         if hasattr(event_class, "precheck"):
             if event_class.precheck(input):
                 return event_class(input)
@@ -53,6 +88,7 @@ def EventSeed(input):
 class BaseEventSeed(metaclass=EventSeedRegistry):
     regexes = []
     _target_type = "TARGET"
+    priority = 5  # Default priority for event seed matching (1-10, higher = checked first)
 
     __slots__ = ["data", "host", "port", "input"]
 
@@ -76,12 +112,21 @@ class BaseEventSeed(metaclass=EventSeedRegistry):
         """
         return data, None, None
 
+    async def _generate_children(self, ssl_verify=False):
+        return []
+
     def _override_input(self, input):
         return self.data
 
     @property
     def type(self):
         return self.__class__.__name__
+
+    @property
+    def url(self):
+        if self.type == "URL_UNVERIFIED":
+            return self.data
+        return ""
 
     @cached_property
     def _hash(self):
@@ -143,6 +188,7 @@ class IP_RANGE(BaseEventSeed):
 
 class OPEN_TCP_PORT(BaseEventSeed):
     regexes = regexes.event_type_regexes["OPEN_TCP_PORT"]
+    priority = 1  # Low priority: broad hostname:port pattern should be checked after specific patterns
 
     @staticmethod
     def _sanitize_and_extract_host(data):
@@ -232,6 +278,36 @@ class BLACKLIST_REGEX(BaseEventSeed):
 
     def _override_input(self, input):
         return f"REGEX:{self.data}"
+
+    @staticmethod
+    def handle_match(match):
+        return match.group(1)
+
+
+class ASN(BaseEventSeed):
+    regexes = (re.compile(r"^(?:ASN|AS):?(\d+)$", re.I),)  # adjust regex to match ASN:17178 AS17178
+    priority = 10  # High priority
+
+    def _override_input(self, input):
+        return f"ASN:{self.data}"
+
+    # ASNs are essentially just a superset of IP_RANGES.
+    # This method resolves the ASN to a list of IP_RANGES using the ASN API, and then adds the cidr string as a child event seed.
+    # These will later be automatically resolved to an IP_RANGE event seed and added to the target.
+    async def _generate_children(self, ssl_verify=False):
+        from asndb import ASNDB
+
+        client = ASNDB(verify=ssl_verify)
+        asn_data = await client.lookup_asn(str(self.data), include_subnets=True)
+        children = []
+        if asn_data:
+            subnets = asn_data.get("subnets")
+            if isinstance(subnets, str):
+                subnets = [subnets]
+            if subnets:
+                for cidr in subnets:
+                    children.append(cidr)
+        return children
 
     @staticmethod
     def handle_match(match):

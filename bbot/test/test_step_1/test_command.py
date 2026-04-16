@@ -6,6 +6,7 @@ from subprocess import CalledProcessError
 @pytest.mark.asyncio
 async def test_command(bbot_scanner):
     scan1 = bbot_scanner()
+    await scan1._prep()
 
     # test timeouts
     command = ["sleep", "3"]
@@ -116,7 +117,7 @@ async def test_command(bbot_scanner):
     assert not lines
 
     # test sudo + existence of environment variables
-    await scan1.load_modules()
+    await scan1._prep()
     path_parts = os.environ.get("PATH", "").split(":")
     assert "/tmp/.bbot_test/tools" in path_parts
     run_lines = (await scan1.helpers.run(["env"])).stdout.splitlines()

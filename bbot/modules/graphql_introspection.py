@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class graphql_introspection(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["safe", "active", "web-basic"]
+    flags = ["safe", "active", "web"]
     meta = {
         "description": "Perform GraphQL introspection on a target",
         "created_date": "2025-07-01",
@@ -135,8 +135,16 @@ fragment TypeRef on __Type {
                 filename = self.output_dir / filename
                 with open(filename, "w") as f:
                     json.dump(response_json, f)
+                relative_path = str(filename.relative_to(self.scan.home))
                 await self.emit_event(
-                    {"url": url, "description": "GraphQL schema", "path": str(filename.relative_to(self.scan.home))},
+                    {
+                        "name": "GraphQL Schema",
+                        "url": url,
+                        "description": f"GraphQL Schema at {url}",
+                        "path": relative_path,
+                        "severity": "INFO",
+                        "confidence": "CONFIRMED",
+                    },
                     "FINDING",
                     event,
                     context=f"{{module}} found GraphQL schema at {url}",

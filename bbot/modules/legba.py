@@ -18,7 +18,7 @@ def map_protocol_to_legba_plugin_name(common_protocol_name: str) -> str:
 class legba(BaseModule):
     watched_events = ["PROTOCOL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "deadly"]
+    flags = ["active", "loud", "invasive"]
     per_hostport_only = True
     meta = {
         "description": "Credential bruteforcing supporting various services.",
@@ -133,6 +133,7 @@ class legba(BaseModule):
                             "confidence": "CONFIRMED",
                             "host": str(event.host),
                             "port": str(event.port),
+                            "name": f"Legba - {protocol.upper()} Credentials",
                             "description": f"Valid {protocol} credentials found - {message_addition}",
                         },
                         "FINDING",

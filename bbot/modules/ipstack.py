@@ -9,7 +9,7 @@ class Ipstack(BaseModule):
 
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
-    flags = ["passive", "safe"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Query IPStack's GeoIP API",
         "created_date": "2022-11-26",
@@ -30,7 +30,7 @@ class Ipstack(BaseModule):
 
     async def handle_event(self, event):
         try:
-            url = f"{self.base_url}/{event.data}?access_key={{api_key}}"
+            url = f"{self.base_url}/{event.pretty_string}?access_key={{api_key}}"
             result = await self.api_request(url)
             if result:
                 geo_data = result.json()
@@ -39,7 +39,7 @@ class Ipstack(BaseModule):
             else:
                 self.verbose(f"No response from {url}")
         except Exception:
-            self.verbose(f"Error retrieving results for {event.data}", trace=True)
+            self.verbose(f"Error retrieving results for {event.pretty_string}", trace=True)
             return
         geo_data = {k: v for k, v in geo_data.items() if v is not None}
         if "error" in geo_data:
@@ -57,5 +57,5 @@ class Ipstack(BaseModule):
                 geo_data,
                 "GEOLOCATION",
                 event,
-                context=f'{{module}} queried ipstack.com\'s API for "{event.data}" and found {{event.type}}: {description}',
+                context=f'{{module}} queried ipstack.com\'s API for "{event.pretty_string}" and found {{event.type}}: {description}',
             )

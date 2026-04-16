@@ -9,7 +9,7 @@ from bbot.modules.ffuf import ffuf
 class ffuf_shortnames(ffuf):
     watched_events = ["URL_HINT"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["aggressive", "active", "iis-shortnames", "web-thorough"]
+    flags = ["loud", "active", "iis-shortnames", "web-heavy"]
     meta = {
         "description": "Use ffuf in combination IIS shortnames",
         "created_date": "2022-07-05",
@@ -213,10 +213,10 @@ class ffuf_shortnames(ffuf):
 
         host = f"{event.parent.parsed_url.scheme}://{event.parent.parsed_url.netloc}/"
         if host not in self.per_host_collection.keys():
-            self.per_host_collection[host] = [(filename_hint, event.parent.data)]
+            self.per_host_collection[host] = [(filename_hint, event.parent.url)]
 
         else:
-            self.per_host_collection[host].append((filename_hint, event.parent.data))
+            self.per_host_collection[host].append((filename_hint, event.parent.url))
 
         self.shortname_to_event[filename_hint] = event
 
@@ -245,7 +245,7 @@ class ffuf_shortnames(ffuf):
                             "URL_UNVERIFIED",
                             parent=event,
                             tags=[f"status-{r['status']}"],
-                            context=f"{{module}} brute-forced {ext.upper()} files at {root_url} and found {{event.type}}: {{event.data}}",
+                            context=f"{{module}} brute-forced {ext.upper()} files at {root_url} and found {{event.type}}: {{event.pretty_string}}",
                         )
 
             elif shortname_type == "directory":
@@ -256,7 +256,7 @@ class ffuf_shortnames(ffuf):
                         "URL_UNVERIFIED",
                         parent=event,
                         tags=[f"status-{r['status']}"],
-                        context=f"{{module}} brute-forced directories at {r_url} and found {{event.type}}: {{event.data}}",
+                        context=f"{{module}} brute-forced directories at {r_url} and found {{event.type}}: {{event.pretty_string}}",
                     )
 
         if self.config.get("find_delimiters"):
@@ -273,7 +273,7 @@ class ffuf_shortnames(ffuf):
                             "URL_UNVERIFIED",
                             parent=event,
                             tags=[f"status-{r['status']}"],
-                            context=f'{{module}} brute-forced directories with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.data}}',
+                            context=f'{{module}} brute-forced directories with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.pretty_string}}',
                         )
 
             elif "shortname-endpoint" in event.tags:
@@ -290,7 +290,7 @@ class ffuf_shortnames(ffuf):
                                 "URL_UNVERIFIED",
                                 parent=event,
                                 tags=[f"status-{r['status']}"],
-                                context=f'{{module}} brute-forced {ext.upper()} files with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.data}}',
+                                context=f'{{module}} brute-forced {ext.upper()} files with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.pretty_string}}',
                             )
 
         if self.config.get("find_subwords"):
@@ -304,7 +304,7 @@ class ffuf_shortnames(ffuf):
                             "URL_UNVERIFIED",
                             parent=event,
                             tags=[f"status-{r['status']}"],
-                            context=f'{{module}} brute-forced directories with detected subword "{subword}" and found {{event.type}}: {{event.data}}',
+                            context=f'{{module}} brute-forced directories with detected subword "{subword}" and found {{event.type}}: {{event.pretty_string}}',
                         )
                 elif "shortname-endpoint" in event.tags:
                     for ext in used_extensions:
@@ -315,7 +315,7 @@ class ffuf_shortnames(ffuf):
                                 "URL_UNVERIFIED",
                                 parent=event,
                                 tags=[f"status-{r['status']}"],
-                                context=f'{{module}} brute-forced {ext.upper()} files with detected subword "{subword}" and found {{event.type}}: {{event.data}}',
+                                context=f'{{module}} brute-forced {ext.upper()} files with detected subword "{subword}" and found {{event.type}}: {{event.pretty_string}}',
                             )
 
     async def finish(self):
@@ -357,7 +357,7 @@ class ffuf_shortnames(ffuf):
                                             "URL_UNVERIFIED",
                                             parent=self.shortname_to_event[hint],
                                             tags=[f"status-{r['status']}"],
-                                            context=f'{{module}} brute-forced directories with common prefix "{prefix}" and found {{event.type}}: {{event.data}}',
+                                            context=f'{{module}} brute-forced directories with common prefix "{prefix}" and found {{event.type}}: {{event.pretty_string}}',
                                         )
                                 elif shortname_type == "endpoint":
                                     used_extensions = self.build_extension_list(self.shortname_to_event[hint])
@@ -374,5 +374,5 @@ class ffuf_shortnames(ffuf):
                                                 "URL_UNVERIFIED",
                                                 parent=self.shortname_to_event[hint],
                                                 tags=[f"status-{r['status']}"],
-                                                context=f'{{module}} brute-forced {ext.upper()} files with common prefix "{prefix}" and found {{event.type}}: {{event.data}}',
+                                                context=f'{{module}} brute-forced {ext.upper()} files with common prefix "{prefix}" and found {{event.type}}: {{event.pretty_string}}',
                                             )

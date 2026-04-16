@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 class passivetotal(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query the PassiveTotal API for subdomains",
         "created_date": "2022-08-08",

@@ -9,7 +9,7 @@ cwd = Path(__file__).parent.parent.parent
 
 
 def run_bbot_multiprocess(queue):
-    from bbot import Scanner
+    from bbot.scanner import Scanner
 
     scan = Scanner("http://127.0.0.1:8888", "blacklanternsecurity.com", modules=["httpx"])
     events = [e.json() for e in scan.start()]
@@ -27,7 +27,7 @@ def test_bbot_multiprocess(bbot_httpserver):
     assert len(events) >= 3
     scan_events = [e for e in events if e["type"] == "SCAN"]
     assert len(scan_events) == 2
-    assert any(e["data"] == "test@blacklanternsecurity.com" for e in events)
+    assert any(e.get("data", "") == "test@blacklanternsecurity.com" for e in events)
 
 
 def test_bbot_fastapi(bbot_httpserver):
@@ -58,7 +58,7 @@ def test_bbot_fastapi(bbot_httpserver):
         assert len(events) >= 3
         scan_events = [e for e in events if e["type"] == "SCAN"]
         assert len(scan_events) == 2
-        assert any(e["data"] == "test@blacklanternsecurity.com" for e in events)
+        assert any(e.get("data", "") == "test@blacklanternsecurity.com" for e in events)
 
     finally:
         with suppress(Exception):

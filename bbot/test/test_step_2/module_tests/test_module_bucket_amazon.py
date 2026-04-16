@@ -75,33 +75,16 @@ class Bucket_Amazon_Base(ModuleTestBase):
         storage_buckets = [e for e in events if e.type == "STORAGE_BUCKET"]
         assert len(storage_buckets) == 3
         assert 1 == len(
-            [
-                e
-                for e in storage_buckets
-                if e.data["name"] == random_bucket_name_1
-                and str(e.module) == "cloudcheck"
-                and f"cloud-{self.provider}" in e.tags
-                and f"{self.provider}-domain" in e.tags
-            ]
+            [e for e in storage_buckets if e.data["name"] == random_bucket_name_1 and str(e.module) == "cloudcheck"]
+        )
+        assert 1 == len(
+            [e for e in storage_buckets if e.data["name"] == random_bucket_name_2 and str(e.module) == "cloudcheck"]
         )
         assert 1 == len(
             [
                 e
                 for e in storage_buckets
-                if e.data["name"] == random_bucket_name_2
-                and str(e.module) == "cloudcheck"
-                and f"cloud-{self.provider}" in e.tags
-                and f"{self.provider}-domain" in e.tags
-            ]
-        )
-        assert 1 == len(
-            [
-                e
-                for e in storage_buckets
-                if e.data["name"] == random_bucket_name_3
-                and str(e.module) == str(self.module_name)
-                and f"cloud-{module_test.module.cloudcheck_provider_name.lower()}" in e.tags
-                and f"{module_test.module.cloudcheck_provider_name.lower()}-domain" in e.tags
+                if e.data["name"] == random_bucket_name_3 and str(e.module) == str(self.module_name)
             ]
         )
         # make sure open buckets were found

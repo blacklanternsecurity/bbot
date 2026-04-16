@@ -5,7 +5,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class github_codesearch(github, subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["CODE_REPOSITORY", "URL_UNVERIFIED"]
-    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
+    flags = ["safe", "passive", "subdomain-enum", "code-enum"]
     meta = {
         "description": "Query Github's API for code containing the target domain name",
         "created_date": "2023-12-14",

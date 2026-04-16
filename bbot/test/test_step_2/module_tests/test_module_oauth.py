@@ -1,12 +1,10 @@
 from .base import ModuleTestBase
 
-from .test_module_azure_realm import TestAzure_Realm as Azure_Realm
-
 
 class TestOAUTH(ModuleTestBase):
     targets = ["evilcorp.com"]
     config_overrides = {"scope": {"report_distance": 1}, "omit_event_types": []}
-    modules_overrides = ["azure_realm", "oauth"]
+    modules_overrides = ["azure_tenant", "oauth"]
     openid_config_azure = {
         "token_endpoint": "https://login.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/oauth2/token",
         "token_endpoint_auth_methods_supported": ["client_secret_post", "private_key_jwt", "client_secret_basic"],
@@ -166,10 +164,44 @@ class TestOAUTH(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         await module_test.mock_dns({"evilcorp.com": {"A": ["127.0.0.1"]}})
+
+        # azure_tenant mocks
         module_test.httpx_mock.add_response(
-            url="https://login.microsoftonline.com/getuserrealm.srf?login=test@evilcorp.com",
-            json=Azure_Realm.response_json,
+            url="https://azmap.dev/api/tenant?domain=evilcorp.com&extract=true",
+            json={
+                "tenant_id": "cc74fc12-4142-400e-a653-f98bdeadbeef",
+                "tenant_name": "evilcorp",
+                "email_domains": ["evilcorp.com"],
+            },
         )
+        module_test.httpx_mock.add_response(
+            url="https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=evilcorp.com",
+            json={},
+        )
+        module_test.httpx_mock.add_response(
+            url="https://login.microsoftonline.com/evilcorp.com/.well-known/openid-configuration",
+            json={},
+        )
+        module_test.httpx_mock.add_response(
+            url="https://login.microsoftonline.com/common/GetCredentialType",
+            method="POST",
+            json={
+                "Credentials": {
+                    "FederationRedirectUrl": "https://evilcorp.okta.com/app/office365/deadbeef/sso/wsfed/passive",
+                },
+                "EstsProperties": {},
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://login.microsoftonline.com/common/userrealm/test@evilcorp.com?api-version=2.0",
+            json={},
+        )
+        module_test.httpx_mock.add_response(
+            url="https://mta-sts.evilcorp.com/.well-known/mta-sts.txt",
+            status_code=404,
+        )
+
+        # oauth module mocks
         module_test.httpx_mock.add_response(
             url="https://login.windows.net/evilcorp.com/.well-known/openid-configuration",
             json=self.openid_config_azure,
@@ -228,4 +260,4 @@ class TestOAUTH(ModuleTestBase):
             == "Potentially Sprayable OAUTH Endpoint (domain: evilcorp.com) at https://evilcorp.okta.com/oauth2/v1/token"
             for e in events
         )
-        assert any(e.data == "https://sts.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/" for e in events)
+        assert any(e.url == "https://sts.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/" for e in events)

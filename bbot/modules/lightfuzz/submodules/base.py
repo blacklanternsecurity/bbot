@@ -27,7 +27,7 @@ class BaseLightfuzz:
         try:
             if base64.b64encode(base64.b64decode(s)).decode() == s:
                 return True
-        except (binascii.Error, UnicodeDecodeError):
+        except (binascii.Error, UnicodeDecodeError, ValueError):
             return False
         return False
 
@@ -65,7 +65,7 @@ class BaseLightfuzz:
 
     def build_query_string(self, probe, parameter_name, additional_params=None):
         """Constructs a URL with query parameters from the given probe and additional parameters."""
-        url = f"{self.event.data['url']}?{parameter_name}={probe}"
+        url = f"{self.event.url}?{parameter_name}={probe}"
         if additional_params:
             url = self.lightfuzz.helpers.add_get_params(url, additional_params, encode=False).geturl()
         return url
@@ -106,19 +106,19 @@ class BaseLightfuzz:
             return {"method": "GET", "cookies": cookies, "url": url}
         elif event_type == "COOKIE":
             cookies_probe = {parameter_name: probe}
-            return {"method": "GET", "cookies": {**cookies, **cookies_probe}, "url": self.event.data["url"]}
+            return {"method": "GET", "cookies": {**cookies, **cookies_probe}, "url": self.event.url}
         elif event_type == "HEADER":
             headers = {parameter_name: probe}
-            return {"method": "GET", "headers": headers, "cookies": cookies, "url": self.event.data["url"]}
+            return {"method": "GET", "headers": headers, "cookies": cookies, "url": self.event.url}
         elif event_type in ["POSTPARAM", "BODYJSON"]:
             # Prepare data for POSTPARAM and BODYJSON event types
             data = {parameter_name: probe}
             if additional_params:
                 data.update(additional_params)
             if event_type == "BODYJSON":
-                return {"method": "POST", "json": data, "cookies": cookies, "url": self.event.data["url"]}
+                return {"method": "POST", "json": data, "cookies": cookies, "url": self.event.url}
             else:
-                return {"method": "POST", "data": data, "cookies": cookies, "url": self.event.data["url"]}
+                return {"method": "POST", "data": data, "cookies": cookies, "url": self.event.url}
 
     def compare_baseline(
         self,
@@ -167,7 +167,7 @@ class BaseLightfuzz:
         return await self.lightfuzz.helpers.request(
             method=method,
             cookies=cookies,
-            url=self.event.data.get("url"),
+            url=self.event.url,
             allow_redirects=False,
             retries=1,
             timeout=10,

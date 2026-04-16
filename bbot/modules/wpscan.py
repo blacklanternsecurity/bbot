@@ -4,8 +4,8 @@ from bbot.modules.base import BaseModule
 
 class wpscan(BaseModule):
     watched_events = ["HTTP_RESPONSE", "TECHNOLOGY"]
-    produced_events = ["URL_UNVERIFIED", "FINDING", "VULNERABILITY", "TECHNOLOGY"]
-    flags = ["active", "aggressive"]
+    produced_events = ["URL_UNVERIFIED", "FINDING", "TECHNOLOGY"]
+    flags = ["active", "loud"]
     meta = {
         "description": "Wordpress security scanner. Highly recommended to use an API key for better results.",
         "created_date": "2024-05-29",
@@ -174,7 +174,14 @@ class wpscan(BaseModule):
                 if url_event:
                     yield url_event
                 yield self.make_event(
-                    {"description": description_string, "url": url, "host": str(source_event.host)},
+                    {
+                        "description": description_string,
+                        "url": url,
+                        "host": str(source_event.host),
+                        "name": "WPScan - Possible Vulnerability",
+                        "severity": "INFO",
+                        "confidence": "MEDIUM",
+                    },
                     "FINDING",
                     source_event,
                 )
@@ -194,11 +201,13 @@ class wpscan(BaseModule):
             yield self.make_event(
                 {
                     "severity": "HIGH",
+                    "confidence": "MEDIUM",
                     "host": str(source_event.host),
                     "url": url,
                     "description": self.vulnerability_to_s(wp_vuln),
+                    "name": "WPScan - Possible Vulnerability",
                 },
-                "VULNERABILITY",
+                "FINDING",
                 source_event,
             )
 
@@ -219,11 +228,13 @@ class wpscan(BaseModule):
             yield self.make_event(
                 {
                     "severity": "HIGH",
+                    "confidence": "MEDIUM",
                     "host": str(source_event.host),
                     "url": url,
                     "description": self.vulnerability_to_s(theme_vuln),
+                    "name": "WPScan - Possible Vulnerability",
                 },
-                "VULNERABILITY",
+                "FINDING",
                 source_event,
             )
 
@@ -248,11 +259,13 @@ class wpscan(BaseModule):
                 yield self.make_event(
                     {
                         "severity": "HIGH",
+                        "confidence": "MEDIUM",
                         "host": str(source_event.host),
                         "url": url,
                         "description": self.vulnerability_to_s(vuln),
+                        "name": "WPScan - Possible Vulnerability",
                     },
-                    "VULNERABILITY",
+                    "FINDING",
                     source_event,
                 )
 
@@ -279,7 +292,7 @@ class wpscan(BaseModule):
         return " ".join(string)
 
     def get_base_url(self, event):
-        base_url = event.data.get("url", "")
+        base_url = event.url
         if not base_url:
             base_url = f"https://{event.host}"
         return self.helpers.urlparse(base_url)._replace(path="/").geturl()

@@ -1,5 +1,14 @@
 ### BASIC OPTIONS ###
 
+# NOTE: If used in a preset, these options must be nested underneath "config:" like so:
+# config:
+#   home: ~/.bbot
+#   keep_scans: 20
+#   scope:
+#     strict: true
+#   dns:
+#     minimal: true
+
 # BBOT working directory
 home: ~/.bbot
 # How many scan results to keep before cleaning up the older ones
@@ -15,7 +24,7 @@ folder_blobs: false
 
 scope:
   # strict scope means only exact DNS names are considered in-scope
-  # subdomains are not included unless they are explicitly provided in the target list
+  # their subdomains are not included unless explicitly added to the target
   strict: false
   # Filter by scope distance which events are displayed in the output
   # 0 == show only in-scope events (affiliates are always shown)
@@ -28,7 +37,7 @@ scope:
 ### DNS ###
 
 dns:
-  # Completely disable DNS resolution (careful if you have IP whitelists/blacklists, consider using minimal=true instead)
+  # Completely disable DNS resolution (careful if you have IP targets/blacklists, consider using minimal=true instead)
   disable: false
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
@@ -59,7 +68,9 @@ dns:
   # Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
   # This helps prevent faulty DNS servers from hanging up the scan
   abort_threshold: 50
-  # Don't show PTR records containing IP addresses
+  # Treat hostnames discovered via PTR records as affiliates instead of in-scope
+  # This prevents rDNS results (e.g. 1-2-3-4.ptr.example.com) from triggering
+  # subdomain enumeration against unrelated domains when scanning IP ranges
   filter_ptrs: true
   # Enable/disable debug messages for DNS queries
   debug: false
@@ -77,6 +88,8 @@ web:
   http_proxy:
   # Web user-agent
   user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
+  # Suffix to append to user-agent (e.g. for tracking or identification)
+  user_agent_suffix:
   # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
   spider_distance: 0
   # Set the maximum directory depth for the web spider
@@ -246,6 +259,7 @@ parameter_blacklist:
   - __SCROLLPOSITIONY
   - __SCROLLPOSITIONX
   - ASP.NET_SessionId
+  - .AspNetCore.Session
   - PHPSESSID
   - __cf_bm
   - f5_cspm
@@ -253,6 +267,7 @@ parameter_blacklist:
 parameter_blacklist_prefixes:
   - TS01
   - BIGipServer
+  - f5avr
   - incap_
   - visid_incap_
   - AWSALB

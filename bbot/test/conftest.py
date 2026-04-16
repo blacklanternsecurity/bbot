@@ -94,7 +94,10 @@ def bbot_httpserver_ssl():
 
 
 def should_mock(request):
-    return request.url.host not in ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
+    return (
+        request.url.host
+        not in ["127.0.0.1", "localhost", "raw.githubusercontent.com", "asndb.api.bbot.io"] + interactsh_servers
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -342,6 +345,25 @@ def pytest_sessionfinish(session, exitstatus):
 
     # Wipe out BBOT home dir
     shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
+
+    # Ensure stdout/stderr are blocking before pytest writes summaries
+    try:
+        import sys
+        import fcntl
+        import os
+        import io
+
+        fds = []
+        for stream in (sys.stdout, sys.stderr):
+            try:
+                fds.append(stream.fileno())
+            except io.UnsupportedOperation:
+                pass
+        for fd in fds:
+            flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
+    except Exception:
+        pass
 
     yield
 

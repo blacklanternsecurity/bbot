@@ -6,14 +6,14 @@ Documented in this section are commonly-used classes and functions within BBOT, 
 
 ## Adding BBOT to Your Python Project
 
-If you are using Poetry, you can add BBOT to your python environment like this:
+If you are using uv, you can add BBOT to your python environment like this:
 
 ```bash
 # stable
-poetry add bbot
+uv add bbot
 
 # bleeding-edge (dev branch)
-poetry add bbot --allow-prereleases
+uv add bbot --prerelease=allow
 ```
 
 ## Running a BBOT Scan from Python
@@ -68,7 +68,7 @@ For more details, including which types of targets are valid, see [Targets](../s
 
 #### Other Custom Options
 
-In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments that can override the default functionality. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../output.md), a [`whitelist` or `blacklist`](../scanning/index.md#whitelists-and-blacklists), and custom [`config` options](../scanning/configuration.md):
+In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments that can override the default functionality. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../output.md), a [target list / `seeds` / `blacklist`](../scanning/index.md#targets-seeds-and-blacklists), and custom [`config` options](../scanning/configuration.md):
 
 ```python
 # create a scan against multiple targets
@@ -78,8 +78,8 @@ scan = Scanner(
     "4.3.2.1",
     # enable these presets
     presets=["subdomain-enum"],
-    # whitelist these hosts
-    whitelist=["evilcorp.com", "evilcorp.org"],
+    # explicitly define in-scope targets
+    target=["evilcorp.com", "evilcorp.org"],
     # blacklist these hosts
     blacklist=["prod.evilcorp.com"],
     # also enable these individual modules

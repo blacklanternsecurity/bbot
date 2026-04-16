@@ -46,7 +46,7 @@ class TestDNSTLSRPT(ModuleTestBase):
         assert any(e.type == "EMAIL_ADDRESS" and e.data == "test@on.thirdparty.com" for e in events), (
             "Failed to detect third party email address"
         )
-        assert any(e.type == "URL_UNVERIFIED" and e.data == "https://tlspost.example.com/" for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and e.url == "https://tlspost.example.com/" for e in events), (
             "Failed to detect third party URL"
         )
 

@@ -68,9 +68,9 @@ class TestHTTPX_404(ModuleTestBase):
 
     def check(self, module_test, events):
         assert 1 == len(
-            [e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/" and "status-301" in e.tags]
+            [e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/" and "status-301" in e.tags]
         )
-        assert 1 == len([e for e in events if e.type == "URL" and e.data == "https://127.0.0.1:9999/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "https://127.0.0.1:9999/"])
 
 
 class TestHTTPX_Redirect(ModuleTestBase):
@@ -84,13 +84,13 @@ class TestHTTPX_Redirect(ModuleTestBase):
 
     def check(self, module_test, events):
         assert 1 == len(
-            [e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/" and "status-301" in e.tags]
+            [e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/" and "status-301" in e.tags]
         )
         assert 1 == len(
             [
                 e
                 for e in events
-                if e.type == "URL_UNVERIFIED" and e.data == "http://www.evilcorp.com/" and "affiliate" in e.tags
+                if e.type == "URL_UNVERIFIED" and e.url == "http://www.evilcorp.com/" and "affiliate" in e.tags
             ]
         )
         assert 1 == len(
@@ -121,11 +121,11 @@ class TestHTTPX_URLBlacklist(ModuleTestBase):
         assert 4 == len([e for e in events if e.type == "URL_UNVERIFIED"])
         assert 3 == len([e for e in events if e.type == "HTTP_RESPONSE"])
         assert 3 == len([e for e in events if e.type == "URL"])
-        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
-        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/test.aspx"])
-        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/test.txt"])
-        assert not any(e for e in events if "URL" in e.type and ".svg" in e.data)
-        assert not any(e for e in events if "URL" in e.type and ".woff" in e.data)
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/test.aspx"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/test.txt"])
+        assert not any(e for e in events if "URL" in e.type and ".svg" in e.url)
+        assert not any(e for e in events if "URL" in e.type and ".woff" in e.url)
 
 
 class TestHTTPX_querystring_removed(ModuleTestBase):
@@ -136,14 +136,14 @@ class TestHTTPX_querystring_removed(ModuleTestBase):
         module_test.httpserver.expect_request("/").respond_with_data('<a href="/test.php?foo=bar"/>')
 
     def check(self, module_test, events):
-        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/test.php"]
+        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/test.php"]
 
 
 class TestHTTPX_querystring_notremoved(TestHTTPX_querystring_removed):
     config_overrides = {"url_querystring_remove": False}
 
     def check(self, module_test, events):
-        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/test.php?foo=bar"]
+        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/test.php?foo=bar"]
 
 
 class TestHTTPX_custom_headers(ModuleTestBase):

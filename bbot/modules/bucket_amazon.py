@@ -4,7 +4,7 @@ from bbot.modules.templates.bucket import bucket_template
 class bucket_amazon(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic"]
+    flags = ["safe", "active", "cloud-enum", "web"]
     meta = {
         "description": "Check for S3 buckets related to target",
         "created_date": "2022-11-04",

@@ -55,4 +55,4 @@ class TestUrlScan(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
-        assert any(e.data == "https://asdf.blacklanternsecurity.com/cna.html" for e in events), "Failed to detect URL"
+        assert any(e.url == "https://asdf.blacklanternsecurity.com/cna.html" for e in events), "Failed to detect URL"

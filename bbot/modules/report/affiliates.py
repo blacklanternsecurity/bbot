@@ -4,7 +4,7 @@ from bbot.modules.report.base import BaseReportModule
 class affiliates(BaseReportModule):
     watched_events = ["*"]
     produced_events = []
-    flags = ["passive", "safe", "affiliates"]
+    flags = ["safe", "passive", "affiliates"]
     meta = {
         "description": "Summarize affiliate domains at the end of a scan",
         "created_date": "2022-07-25",

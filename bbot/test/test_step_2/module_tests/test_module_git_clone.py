@@ -190,6 +190,7 @@ class TestGit_Clone(ModuleTestBase):
             event.data["url"] = event.data["url"].replace(
                 "https://github.com/blacklanternsecurity", f"file://{temp_path}"
             )
+            event.parsed_url = module_test.scan.helpers.urlparse(event.data["url"])
             return old_filter_event(event)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "filter_event", new_filter_event)

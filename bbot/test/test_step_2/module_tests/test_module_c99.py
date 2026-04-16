@@ -69,8 +69,8 @@ class TestC99AbortThreshold1(TestC99):
 class TestC99AbortThreshold2(TestC99AbortThreshold1):
     targets = ["blacklanternsecurity.com", "evilcorp.com"]
 
-    async def setup_before_prep(self, module_test):
-        await super().setup_before_prep(module_test)
+    async def setup_after_prep(self, module_test):
+        await super().setup_after_prep(module_test)
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["127.0.0.88"]},

@@ -17,12 +17,20 @@ jobs:
         os: ["ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "kalilinux/kali-rolling", "parrotsec/security"]
     steps:
       - uses: actions/checkout@v6
-      - name: Install Python and Poetry
+      - name: Install Python and uv
         run: |
           if [ -f /etc/os-release ]; then
             . /etc/os-release
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kali" ] || [ "$ID" = "parrotsec" ]; then
               export DEBIAN_FRONTEND=noninteractive
+              # Pin Parrot to MIT mirror to avoid stale third-party mirrors (e.g. mirror.clarkson.edu)
+              # Note: parrotsec/security image reports ID=debian, so we detect via parrot.list
+              if [ -f /etc/apt/sources.list.d/parrot.list ]; then
+                rm -f /etc/apt/sources.list /etc/apt/sources.list.old /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources
+                echo "deb https://mirrors.mit.edu/parrot/ echo main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/parrot.list
+                echo "deb https://mirrors.mit.edu/parrot/ echo-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list.d/parrot.list
+                echo "deb https://mirrors.mit.edu/parrot/ echo-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list.d/parrot.list
+              fi
               apt-get update
               apt-get -y install curl git bash build-essential docker.io libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
             elif [ "$ID" = "alpine" ]; then
@@ -51,22 +59,25 @@ jobs:
             pyenv rehash
             python3.11 -m pip install --user pipx
             python3.11 -m pipx ensurepath
-            pipx install poetry
+            pipx install uv
           "
       - name: Set OS Environment Variable
         run: echo "OS_NAME=${{ matrix.os }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
       - name: Run tests
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          export PATH="$HOME/.pyenv/bin:$PATH"
-          export PATH="$HOME/.pyenv/shims:$PATH"
+          # Preserve pyenv/pipx paths installed under the GitHub-set HOME
+          export PATH="/github/home/.local/bin:$PATH"
+          export PATH="/github/home/.pyenv/bin:$PATH"
+          export PATH="/github/home/.pyenv/shims:$PATH"
+          # Fix HOME to match euid (root) so rustup/cargo don't refuse to build
+          export HOME="$(getent passwd $(whoami) | cut -d: -f6)"
           export BBOT_DISTRO_TESTS=true
-          poetry env use python3.11
-          poetry install
-          poetry run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
+          uv python pin 3.11
+          uv sync --group dev
+          uv run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
       - name: Upload Debug Logs
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-debug-logs-${{ env.OS_NAME }}
           path: pytest_debug.log

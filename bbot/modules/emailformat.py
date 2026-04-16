@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class emailformat(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
-    flags = ["passive", "email-enum", "safe"]
+    flags = ["safe", "passive", "email-enum"]
     meta = {
         "description": "Query email-format.com for email addresses",
         "created_date": "2022-07-11",
@@ -43,5 +43,5 @@ class emailformat(BaseModule):
                     email,
                     "EMAIL_ADDRESS",
                     parent=event,
-                    context=f'{{module}} searched email-format.com for "{query}" and found {{event.type}}: {{event.data}}',
+                    context=f'{{module}} searched email-format.com for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                 )

@@ -5,8 +5,8 @@ from bbot.modules.base import BaseModule
 
 class trufflehog(BaseModule):
     watched_events = ["CODE_REPOSITORY", "FILESYSTEM", "HTTP_RESPONSE", "RAW_TEXT"]
-    produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["passive", "safe", "code-enum"]
+    produced_events = ["FINDING"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "TruffleHog is a tool for finding credentials",
         "created_date": "2024-03-12",
@@ -75,7 +75,7 @@ class trufflehog(BaseModule):
             if self.deleted_forks:
                 if "git" not in event.tags:
                     return False, "Module only accepts git CODE_REPOSITORY events"
-                if "github" not in event.data["url"]:
+                if "github" not in event.url:
                     return False, "Module only accepts github CODE_REPOSITORY events"
             else:
                 return False, "Deleted forks is not enabled"
@@ -90,7 +90,7 @@ class trufflehog(BaseModule):
             description = event.data.get("description", "")
 
         if event.type == "CODE_REPOSITORY":
-            path = event.data["url"]
+            path = event.url
             module = "github-experimental"
         elif event.type == "FILESYSTEM":
             path = event.data["path"]
@@ -123,14 +123,16 @@ class trufflehog(BaseModule):
             source_metadata,
         ) in self.execute_trufflehog(module, path):
             verified_str = "Verified" if verified else "Possible"
-            finding_type = "VULNERABILITY" if verified else "FINDING"
+            confidence = "CONFIRMED" if verified else "MEDIUM"
             data = {
+                "name": f"TruffleHog - {detector_name}",
                 "description": f"{verified_str} Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",
             }
             if host:
                 data["host"] = host
-            if finding_type == "VULNERABILITY":
-                data["severity"] = "High"
+
+            data["severity"] = "HIGH"
+            data["confidence"] = confidence
             if description:
                 data["description"] += f" Description: [{description}]"
             data["description"] += f" Raw result: [{raw_result}]"
@@ -138,7 +140,7 @@ class trufflehog(BaseModule):
                 data["description"] += f" RawV2 result: [{rawv2_result}]"
             await self.emit_event(
                 data,
-                finding_type,
+                "FINDING",
                 event,
                 context=f'{{module}} searched {event.type} using "{module}" method and found {verified_str.lower()} secret ({{event.type}}): {raw_result}',
             )

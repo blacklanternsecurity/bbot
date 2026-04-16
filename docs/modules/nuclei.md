@@ -7,14 +7,13 @@ BBOT integrates with [Nuclei](https://github.com/projectdiscovery/nuclei), an op
 ![Nuclei Killchain](https://github.com/blacklanternsecurity/bbot/assets/24899338/7174c4ba-4a6e-4596-bb89-5a0c5f5abe74)
 
 
-* The BBOT Nuclei module ingests **[URL]** events and emits events of type **[VULNERABILITY]** or **[FINDING]**
-* Vulnerabilities will inherit their severity from the Nuclei templates
-* Nuclei templates of severity INFO will be emitted as **[FINDINGS]**
+* The BBOT Nuclei module ingests **[URL]** events and emits events of type **[FINDING]**
+* Findings will inherit their severity from the Nuclei templates
 
 ## Default Behavior
 
 * By default, only "directory URLs" (URLs ending in a slash) will be scanned, but ALL templates will be used (**BE CAREFUL!**)
-* Because it's so aggressive, Nuclei is considered a **deadly** module. This means you need to use the flag **--allow-deadly** to turn it on.
+* Because it's aggressive and potentially destructive, Nuclei is tagged as both **loud** and **invasive**. BBOT will warn you before starting the scan, but no special flag is needed to enable it.
 
 ## Specifying custom templates
 
@@ -104,20 +103,20 @@ The **ratelimit** and **concurrency** settings default to the same defaults that
 
 ```bash
 # Scan a SINGLE target with a basic port scan and web modules
-bbot -f web-basic -m portscan nuclei --allow-deadly -t app.evilcorp.com
+bbot -f web -m portscan nuclei -t app.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets
-bbot -f web-basic -m portscan nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f web -m portscan nuclei -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets while performing subdomain enumeration
-bbot -f subdomain-enum web-basic -m portscan nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f subdomain-enum web -m portscan nuclei -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```
 
 ```bash
 # Scanning MULTIPLE targets on a BUDGET
-bbot -f subdomain-enum web-basic -m portscan nuclei --allow-deadly -c modules.nuclei.mode=budget -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
+bbot -f subdomain-enum web -m portscan nuclei -c modules.nuclei.mode=budget -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com
 ```

@@ -11,7 +11,7 @@ wrapper for https://github.com/defparam/smuggler.git
 class smuggler(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "slow", "web-thorough"]
+    flags = ["active", "loud", "invasive", "slow", "web-heavy"]
     meta = {"description": "Check for HTTP smuggling", "created_date": "2022-07-06", "author": "@liquidsec"}
 
     in_scope_only = True
@@ -31,7 +31,7 @@ class smuggler(BaseModule):
             "--no-color",
             "-q",
             "-u",
-            event.data,
+            event.url,
         ]
         async for line in self.run_process_live(command):
             for f in line.split("\r"):
@@ -40,8 +40,15 @@ class smuggler(BaseModule):
                     text = f.split(":")[1].split("-")[0].strip()
                     description = f"[HTTP SMUGGLER] [{text}] Technique: {technique}"
                     await self.emit_event(
-                        {"host": str(event.host), "url": event.data, "description": description},
+                        {
+                            "host": str(event.host),
+                            "url": event.url,
+                            "description": description,
+                            "name": "Possible HTTP Smuggling",
+                            "severity": "MEDIUM",
+                            "confidence": "LOW",
+                        },
                         "FINDING",
                         parent=event,
-                        context=f"{{module}} scanned {event.data} and found HTTP smuggling ({{event.type}}): {text}",
+                        context=f"{{module}} scanned {event.url} and found HTTP smuggling ({{event.type}}): {text}",
                     )

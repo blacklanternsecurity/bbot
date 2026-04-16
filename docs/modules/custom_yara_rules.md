@@ -135,6 +135,23 @@ rule ContainsTitle
 }
 ```
 
+#### Severity and Confidence
+```
+rule ContainsTitle
+{
+    meta:
+        description = "Contains an HTML title tag"
+        severity = "HIGH"
+        confidence = "CONFIRMED"
+        $title_value = /<title>(.*)?<\/title>/i
+    condition:
+        $title_value
+}
+```
+Confidence and Severity levels will be assigned to the FINDING event produced if there is a match.
+
+
+
 When run against the Black Lantern Security homepage with the following BBOT command:
 
 ```

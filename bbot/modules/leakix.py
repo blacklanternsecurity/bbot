@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 class leakix(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     options = {"api_key": ""}
     # NOTE: API key is not required (but having one will get you more results)
     options_desc = {"api_key": "LeakIX API Key"}

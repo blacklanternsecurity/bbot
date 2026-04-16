@@ -54,8 +54,8 @@ class TestSubdomainEnum(ModuleTestBase):
 
 
 class TestSubdomainEnumHighestParent(TestSubdomainEnum):
-    targets = ["api.test.asdf.www.blacklanternsecurity.com", "evilcorp.com"]
-    whitelist = ["www.blacklanternsecurity.com"]
+    seeds = ["api.test.asdf.www.blacklanternsecurity.com", "evilcorp.com"]
+    targets = ["www.blacklanternsecurity.com"]
     modules_overrides = ["speculate"]
     dedup_strategy = "highest_parent"
     txt = None
@@ -71,8 +71,11 @@ class TestSubdomainEnumHighestParent(TestSubdomainEnum):
         assert len(distance_1_dns_names) == 2
         assert 1 == len([e for e in distance_1_dns_names if e.data == "evilcorp.com"])
         assert 1 == len([e for e in distance_1_dns_names if e.data == "blacklanternsecurity.com"])
-        assert len(self.queries) == 1
-        assert self.queries[0] == "www.blacklanternsecurity.com"
+
+        # Passive subdomain enum templates operate on all seeds, even when
+        # they are outside the explicit target_list.
+        # we expect one query for the blacklantern scope and one for the unrelated evilcorp.com seed.
+        assert set(self.queries) == {"www.blacklanternsecurity.com", "evilcorp.com"}
 
 
 class TestSubdomainEnumLowestParent(TestSubdomainEnumHighestParent):
@@ -80,6 +83,7 @@ class TestSubdomainEnumLowestParent(TestSubdomainEnumHighestParent):
 
     def check(self, module_test, events):
         assert set(self.queries) == {
+            "evilcorp.com",
             "test.asdf.www.blacklanternsecurity.com",
             "asdf.www.blacklanternsecurity.com",
             "www.blacklanternsecurity.com",
@@ -88,8 +92,8 @@ class TestSubdomainEnumLowestParent(TestSubdomainEnumHighestParent):
 
 class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
     # oh walmart.cn why are you like this
-    targets = ["www.walmart.cn"]
-    whitelist = ["walmart.cn"]
+    targets = ["walmart.cn"]
+    seeds = ["www.walmart.cn"]
     modules_overrides = []
     config_overrides = {"dns": {"minimal": False}, "scope": {"report_distance": 10}, "omit_event_types": []}
     dedup_strategy = "highest_parent"
@@ -101,8 +105,10 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
     }
 
     async def setup_before_prep(self, module_test):
-        await module_test.mock_dns(self.dns_mock_data)
         self.queries = []
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(self.dns_mock_data)
 
         async def mock_query(query):
             self.queries.append(query)
@@ -112,6 +118,7 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
         from bbot.modules.templates.subdomain_enum import subdomain_enum
 
         subdomain_enum_module = subdomain_enum(module_test.scan)
+        await subdomain_enum_module.setup()
 
         subdomain_enum_module.query = mock_query
         subdomain_enum_module._name = "subdomain_enum"
@@ -134,7 +141,7 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
                 for e in events
                 if e.type == "DNS_NAME"
                 and e.data == "www.walmart.cn"
-                and str(e.module) == "TARGET"
+                and str(e.module) == "SEED"
                 and e.scope_distance == 0
             ]
         )
@@ -163,6 +170,7 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
 class TestSubdomainEnumWildcardDefense(TestSubdomainEnumWildcardBaseline):
     # oh walmart.cn why are you like this
     targets = ["walmart.cn"]
+    seeds = ["walmart.cn"]
     modules_overrides = []
     config_overrides = {"dns": {"minimal": False}, "scope": {"report_distance": 10}}
     dedup_strategy = "highest_parent"
@@ -195,7 +203,7 @@ def custom_lookup(query, rdtype):
                 for e in events
                 if e.type == "DNS_NAME"
                 and e.data == "walmart.cn"
-                and str(e.module) == "TARGET"
+                and str(e.module) == "SEED"
                 and e.scope_distance == 0
             ]
         )

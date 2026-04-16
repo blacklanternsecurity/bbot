@@ -9,7 +9,7 @@ class gitlab_onprem(GitLabBaseModule):
         "CODE_REPOSITORY",
         "FINDING",
     ]
-    flags = ["active", "safe", "code-enum"]
+    flags = ["safe", "active", "code-enum"]
     meta = {
         "description": "Detect self-hosted GitLab instances and query them for repositories",
         "created_date": "2024-03-11",

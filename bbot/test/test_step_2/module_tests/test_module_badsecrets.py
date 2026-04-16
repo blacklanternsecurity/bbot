@@ -79,7 +79,7 @@ class TestBadSecrets(ModuleTestBase):
 
         for e in events:
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "Known Secret Found." in e.data["description"]
                 and "validationKey: 0F97BAE23F6F36801ABDB5F145124E00A6F795A97093D778EE5CD24F35B78B6FC4C0D0D4420657689C4F321F8596B59E83F02E296E970C4DEAD2DFE226294979 validationAlgo: SHA1 encryptionKey: 8CCFBC5B7589DD37DC3B4A885376D7480A69645DAEEC74F418B4877BEC008156 encryptionAlgo: AES"
                 in e.data["description"]
@@ -94,7 +94,7 @@ class TestBadSecrets(ModuleTestBase):
                 IdentifyOnly = True
 
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "1234" in e.data["description"]
                 and "eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo"
                 in e.data["description"]
@@ -102,7 +102,7 @@ class TestBadSecrets(ModuleTestBase):
                 CookieBasedDetection = True
 
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "keyboard cat" in e.data["description"]
                 and "s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc"
                 in e.data["description"]
@@ -110,7 +110,7 @@ class TestBadSecrets(ModuleTestBase):
                 CookieBasedDetection_2 = True
 
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "Express.js Secret (cookie-session)" in e.data["description"]
                 and "zOQU7v7aTe_3zu7tnVuHi1MJ2DU" in e.data["description"]
             ):
@@ -121,6 +121,66 @@ class TestBadSecrets(ModuleTestBase):
         assert CookieBasedDetection, "No JWT cookie vuln detected"
         assert CookieBasedDetection_2, "No Express.js cookie vuln detected"
         assert CookieBasedDetection_3, "No Express.js (cs dual cookies) vuln detected"
+
+        # Verify that badsecrets emits CONFIRMED confidence for detected secrets
+        confirmed_finding = None
+        for e in events:
+            if e.type == "FINDING" and "Known Secret Found." in e.data["description"]:
+                confirmed_finding = e
+                break
+        if confirmed_finding:
+            assert confirmed_finding.data["confidence"] == "CONFIRMED"
+
+
+class TestBadSecrets_JWTIdentifyOnly(ModuleTestBase):
+    """Verify that badsecrets suppresses JWT IdentifyOnly findings (excavate handles JWT detection)
+    while still emitting SecretFound findings for vulnerable JWTs."""
+
+    targets = [
+        "http://127.0.0.1:8888/",
+        "http://127.0.0.1:8888/vuln_jwt.aspx",
+        "http://127.0.0.1:8888/safe_jwt.aspx",
+    ]
+    modules_overrides = ["badsecrets", "httpx"]
+
+    # JWT signed with a secret NOT in badsecrets' wordlists (will produce IdentifyOnly)
+    safe_jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0In0.BHvEIdlrTFS4VXvT9nUOycVzokhfIYSxJa7DXNz_h0o"
+
+    # JWT signed with "1234" which IS in badsecrets' wordlists (will produce SecretFound)
+    vuln_jwt = "eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo"
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"uri": "/vuln_jwt.aspx"},
+            respond_args={
+                "response_data": "<html><body><p>Vulnerable JWT</p></body></html>",
+                "headers": {"set-cookie": f"vulnjwt={self.vuln_jwt}; secure"},
+            },
+        )
+        module_test.set_expect_requests(
+            expect_args={"uri": "/safe_jwt.aspx"},
+            respond_args={
+                "response_data": "<html><body><p>Safe JWT</p></body></html>",
+                "headers": {"set-cookie": f"safejwt={self.safe_jwt}; secure"},
+            },
+        )
+        module_test.set_expect_requests(
+            respond_args={"response_data": "<html><body>index</body></html>"},
+        )
+
+    def check(self, module_test, events):
+        # Vulnerable JWT (SecretFound) should still produce a FINDING
+        assert any(
+            e.type == "FINDING"
+            and "Known Secret Found." in e.data["description"]
+            and self.vuln_jwt in e.data["description"]
+            for e in events
+        ), "Vulnerable JWT SecretFound finding was not emitted"
+
+        # Safe JWT (IdentifyOnly) should NOT produce any FINDING
+        assert not any(e.type == "FINDING" and self.safe_jwt in e.data["description"] for e in events), (
+            "JWT IdentifyOnly finding should have been suppressed"
+        )
 
 
 class TestBadSecrets_customsecrets(TestBadSecrets):
@@ -156,7 +216,7 @@ class TestBadSecrets_customsecrets(TestBadSecrets):
         SecretFound = False
         for e in events:
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "Known Secret Found." in e.data["description"]
                 and "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF" in e.data["description"]
             ):

@@ -84,6 +84,22 @@ class crypto(BaseLightfuzz):
         return _compiled_rules_cache
 
     @staticmethod
+    def is_plausible_base64_crypto(s):
+        """
+        Check if a string is plausibly base64-encoded cryptographic data.
+        Non-standard encodings like F5 BIG-IP's A-P nibble encoding use a narrow
+        consecutive character range that technically round-trips as base64 but is
+        not actual base64. Real base64 of encrypted/random bytes spans a wide
+        character range (typically 70+).
+        """
+        unique_chars = set(s) - set("=")
+        if len(s) >= 16 and unique_chars:
+            char_ords = [ord(c) for c in unique_chars]
+            if max(char_ords) - min(char_ords) <= 20:
+                return False
+        return True
+
+    @staticmethod
     def format_agnostic_decode(input_string, urldecode=False):
         """
         Decodes a string from either hex or base64 (without knowing which first), and optionally URL-decoding it first.
@@ -101,7 +117,7 @@ class crypto(BaseLightfuzz):
         if BaseLightfuzz.is_hex(input_string):
             data = bytes.fromhex(input_string)
             encoding = "hex"
-        elif BaseLightfuzz.is_base64(input_string):
+        elif BaseLightfuzz.is_base64(input_string) and crypto.is_plausible_base64_crypto(input_string):
             data = base64.b64decode(input_string)
             encoding = "base64"
         else:
@@ -300,11 +316,25 @@ class crypto(BaseLightfuzz):
                 )
 
             if padding_oracle_result is True:
+                # Confirmation round: re-run to rule out jitter-based false positives
+                self.debug(f"Initial padding oracle detection for block_size={block_size}, running confirmation round")
+                confirmation_result = await self.padding_oracle_execute(data, encoding, block_size, cookies)
+                if confirmation_result is None:
+                    confirmation_result = await self.padding_oracle_execute(
+                        data, encoding, block_size, cookies, possible_first_byte=False
+                    )
+                if confirmation_result is not True:
+                    self.debug(
+                        f"Confirmation round failed for block_size={block_size} - likely jitter false positive, suppressing"
+                    )
+                    continue
+
                 context = f"Lightfuzz Cryptographic Probe Submodule detected a probable padding oracle vulnerability after manipulating parameter: [{self.event.data['name']}]"
                 self.results.append(
                     {
-                        "type": "VULNERABILITY",
                         "severity": "HIGH",
+                        "name": "Padding Oracle Vulnerability",
+                        "confidence": "HIGH",
                         "description": f"Padding Oracle Vulnerability. Block size: [{str(block_size)}] {self.metadata()}",
                         "context": context,
                     }
@@ -338,7 +368,9 @@ class crypto(BaseLightfuzz):
             if unique_matches:
                 self.results.append(
                     {
-                        "type": "FINDING",
+                        "name": "Possible Cryptographic Error",
+                        "severity": "INFO",
+                        "confidence": "LOW",
                         "description": f"Possible Cryptographic Error. {self.metadata()} Strings: [{','.join(unique_matches)}] Detection Technique(s): [{','.join(matching_techniques)}]",
                         "context": context,
                     }
@@ -377,7 +409,7 @@ class crypto(BaseLightfuzz):
         # obtain the baseline probe to compare against
         baseline_probe = await self.baseline_probe(cookies)
         if not baseline_probe:
-            self.verbose(f"Couldn't get baseline_probe for url {self.event.data['url']}, aborting")
+            self.verbose(f"Couldn't get baseline_probe for url {self.event.url}, aborting")
             return
 
         # perform the manipulation techniques
@@ -432,7 +464,9 @@ class crypto(BaseLightfuzz):
             context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) to appears to drive a cryptographic operation"
             self.results.append(
                 {
-                    "type": "FINDING",
+                    "name": "Probable Cryptographic Parameter",
+                    "severity": "INFO",
+                    "confidence": "LOW",
                     "description": f"Probable Cryptographic Parameter. {self.metadata()} Detection Technique(s): [{', '.join(confirmed_techniques)}]",
                     "context": context,
                 }
@@ -469,6 +503,8 @@ class crypto(BaseLightfuzz):
                 ):
                     # for each additional parameter, we send a probe and check if it causes the same change in the response as the original probe
                     for additional_param_name, additional_param_value in self.event.data["additional_params"].items():
+                        if additional_param_value is None:
+                            continue
                         try:
                             additional_param_probe = await self.compare_probe(
                                 http_compare,
@@ -486,7 +522,9 @@ class crypto(BaseLightfuzz):
                             context = f"Lightfuzz Cryptographic Probe Submodule detected a parameter ({self.event.data['name']}) that is a likely a hash, which is connected to another parameter {additional_param_name})"
                             self.results.append(
                                 {
-                                    "type": "FINDING",
+                                    "name": "Possible Length Extension Attack",
+                                    "severity": "INFO",
+                                    "confidence": "LOW",
                                     "description": f"Possible {self.event.data['type']} parameter with {hash_instance.name.upper()} Hash as value. {self.metadata()}, linked to additional parameter [{additional_param_name}]",
                                     "context": context,
                                 }

@@ -13,9 +13,8 @@ async def test_modules_basic_checks(events, httpx_mock):
     from bbot.scanner import Scanner
 
     scan = Scanner(config={"omit_event_types": ["URL_UNVERIFIED"]})
+    await scan._prep()
     assert "URL_UNVERIFIED" in scan.omitted_event_types
-
-    await scan.load_modules()
 
     # output module specific event filtering tests
     base_output_module_1 = BaseOutputModule(scan)
@@ -89,6 +88,36 @@ async def test_modules_basic_checks(events, httpx_mock):
     await egress_module.handle_event(url)
     assert url._omit is True
 
+    # omitted always_emit events should still be omitted
+    finding_data = {
+        "host": "evilcorp.com",
+        "description": "test",
+        "severity": "LOW",
+        "confidence": "LOW",
+        "name": "test",
+    }
+    finding = scan.make_event(finding_data, "FINDING", parent=scan.root_event)
+    assert finding.always_emit is True
+    finding._omit = True
+    result, reason = base_output_module_2._event_precheck(finding)
+    assert result is False
+    assert reason == "its type is omitted in the config"
+
+    # always_emit should bypass the internal check
+    finding_data2 = {
+        "host": "evilcorp.com",
+        "description": "test2",
+        "severity": "LOW",
+        "confidence": "LOW",
+        "name": "test2",
+    }
+    finding2 = scan.make_event(finding_data2, "FINDING", parent=scan.root_event)
+    assert finding2.always_emit is True
+    finding2._internal = True
+    result, reason = base_output_module_2._event_precheck(finding2)
+    assert result is True
+    assert reason == "event is always emitted"
+
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
         base_module = module_class(scan)
@@ -150,11 +179,18 @@ async def test_modules_basic_checks(events, httpx_mock):
             assert ("active" in flags and "passive" not in flags) or ("active" not in flags and "passive" in flags), (
                 f'module "{module_name}" must have either "active" or "passive" flag'
             )
-            assert ("safe" in flags and "aggressive" not in flags) or (
-                "safe" not in flags and "aggressive" in flags
-            ), f'module "{module_name}" must have either "safe" or "aggressive" flag'
-            assert not ("web-basic" in flags and "web-thorough" in flags), (
-                f'module "{module_name}" should have either "web-basic" or "web-thorough" flags, not both'
+            assert not ("web" in flags and "web-heavy" in flags), (
+                f'module "{module_name}" should have either "web" or "web-heavy" flags, not both'
+            )
+            # every scan module must be classified as safe, loud, and/or invasive
+            has_safe = "safe" in flags
+            has_loud = "loud" in flags
+            has_invasive = "invasive" in flags
+            assert has_safe or has_loud or has_invasive, (
+                f'module "{module_name}" must have at least one of "safe", "loud", or "invasive" flags'
+            )
+            assert not (has_safe and (has_loud or has_invasive)), (
+                f'module "{module_name}" has "safe" flag but also has "loud" or "invasive" — these are mutually exclusive'
             )
         meta = preloaded.get("meta", {})
         # make sure every module has a description
@@ -238,11 +274,13 @@ async def test_modules_basic_perhostonly(bbot_scanner):
         force_start=True,
     )
 
+    await scan._prep()
+
     scan.modules["mod_normal"] = mod_normal(scan)
     scan.modules["mod_host_only"] = mod_host_only(scan)
     scan.modules["mod_hostport_only"] = mod_hostport_only(scan)
     scan.modules["mod_domain_only"] = mod_domain_only(scan)
-    scan.status = "RUNNING"
+    await scan._set_status("RUNNING")
 
     url_1 = scan.make_event("http://evilcorp.com/1", event_type="URL", parent=scan.root_event, tags=["status-200"])
     url_2 = scan.make_event("http://evilcorp.com/2", event_type="URL", parent=scan.root_event, tags=["status-200"])
@@ -308,9 +346,9 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
         force_start=True,
     )
 
-    await per_domain_scan.load_modules()
+    await per_domain_scan._prep()
     await per_domain_scan.setup_modules()
-    per_domain_scan.status = "RUNNING"
+    await per_domain_scan._set_status("RUNNING")
 
     # ensure that multiple events to the same "host" (schema + host) are blocked and check the per host tracker
 
@@ -379,7 +417,16 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
             # quick emit events like FINDINGS behave differently than normal ones
             # hosts are not speculated from them
             await self.emit_event(
-                {"host": "www.evilcorp.com", "url": "http://www.evilcorp.com", "description": "asdf"}, "FINDING", event
+                {
+                    "host": "www.evilcorp.com",
+                    "url": "http://www.evilcorp.com",
+                    "description": "asdf",
+                    "name": "Finding",
+                    "severity": "LOW",
+                    "confidence": "MEDIUM",
+                },
+                "FINDING",
+                event,
             )
             await self.emit_event("https://asdf.evilcorp.com", "URL", event, tags=["status-200"])
 
@@ -389,6 +436,9 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         output_modules=["python"],
         force_start=True,
     )
+
+    await scan._prep()
+
     await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"A": ["127.0.254.1"]},
@@ -422,9 +472,9 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "FINDING": 1,
     }
 
-    assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "dnsresolve"}
+    assert set(scan.stats.module_stats) == {"speculate", "host", "SEED", "python", "dummy", "dnsresolve"}
 
-    target_stats = scan.stats.module_stats["TARGET"]
+    target_stats = scan.stats.module_stats["SEED"]
     assert target_stats.produced == {"SCAN": 1, "DNS_NAME": 1}
     assert target_stats.produced_total == 2
     assert target_stats.consumed == {}
@@ -464,6 +514,8 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     assert speculate_stats.consumed == {"URL": 1, "DNS_NAME": 3, "URL_UNVERIFIED": 1, "IP_ADDRESS": 3}
     assert speculate_stats.consumed_total == 8
 
+    await scan._cleanup()
+
 
 @pytest.mark.asyncio
 async def test_module_loading(bbot_scanner):
@@ -473,8 +525,8 @@ async def test_module_loading(bbot_scanner):
         config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
-    await scan2.load_modules()
-    scan2.status = "RUNNING"
+    await scan2._prep()
+    await scan2._set_status("RUNNING")
 
     # attributes, descriptions, etc.
     for module_name, module in sorted(scan2.modules.items()):

@@ -2,7 +2,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
 class sitedossier(subdomain_enum):
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
@@ -28,7 +28,7 @@ class sitedossier(subdomain_enum):
                     "DNS_NAME",
                     event,
                     abort_if=self.abort_if,
-                    context=f'{{module}} searched sitedossier.com for "{query}" and found {{event.type}}: {{event.data}}',
+                    context=f'{{module}} searched sitedossier.com for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                 )
 
     async def query(self, query, parse_fn=None, request_fn=None):

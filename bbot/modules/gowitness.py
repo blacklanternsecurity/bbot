@@ -1,4 +1,5 @@
 import os
+import sys
 import asyncio
 import aiosqlite
 import multiprocessing
@@ -13,10 +14,10 @@ from bbot.modules.base import BaseModule
 class gowitness(BaseModule):
     watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-screenshots"]
+    flags = ["safe", "active", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
     options = {
-        "version": "3.0.5",
+        "version": "3.1.1",
         "threads": 0,
         "timeout": 10,
         "resolution_x": 1440,
@@ -152,36 +153,68 @@ class gowitness(BaseModule):
                 return False, "event is not in-scope"
         return True
 
+    @staticmethod
+    def _url_key(parsed_url):
+        """Scheme-and-port-agnostic key for URL correlation.
+
+        Gowitness may change both the scheme and port of a URL it visits
+        (e.g. recording http://host:443/ for an input of http://host/ when
+        the server redirects to HTTPS). We key only by hostname + path so
+        correlation succeeds regardless of scheme/port differences.
+        """
+        hostname = parsed_url.hostname or ""
+        path = parsed_url.path or "/"
+        return f"{hostname}{path}"
+
+    def _resolve_parent(self, db_url):
+        """Match a URL from the gowitness DB back to the original input event.
+
+        Tries exact match first, then falls back to a scheme-and-port-agnostic
+        lookup for cases where gowitness transforms the stored URL (e.g. after
+        a redirect from http to https).
+        """
+        parent = self._event_dict.get(db_url)
+        if parent is None:
+            parent = self._event_dict_loose.get(self._url_key(self.helpers.urlparse(db_url)))
+        return parent
+
     async def handle_batch(self, *events):
         self.prep()
-        event_dict = {}
+        self._event_dict = {}
+        self._event_dict_loose = {}
+        stdin_urls = []
         for e in events:
-            key = e.data
+            url = e.url or e.data
             if e.type == "SOCIAL":
-                key = e.data["url"]
-            event_dict[key] = e
-        stdin = "\n".join(list(event_dict))
+                url = e.url
+            stdin_urls.append(url)
+            self._event_dict[url] = e
+            loose_key = self._url_key(self.helpers.urlparse(url))
+            self._event_dict_loose.setdefault(loose_key, e)
+        stdin = "\n".join(stdin_urls)
 
         try:
             async for line in self.run_process_live(self.command, input=stdin, idle_timeout=self.idle_timeout):
                 self.debug(line)
         except asyncio.exceptions.TimeoutError:
-            urls_str = ",".join(event_dict)
+            urls_str = ",".join(self._event_dict)
             self.warning(f"Gowitness timed out while visiting the following URLs: {urls_str}", trace=False)
             return
 
         # emit web screenshots
         new_screenshots = await self.get_new_screenshots()
         for filename, screenshot in new_screenshots.items():
-            url = screenshot["url"]
-            url = self.helpers.clean_url(url).geturl()
+            raw_url = screenshot["url"]
             final_url = screenshot["final_url"]
             filename = self.screenshot_path / screenshot["filename"]
             filename = filename.relative_to(self.scan.home)
             # NOTE: this prevents long filenames from causing problems in BBOT, but gowitness will still fail to save it.
             filename = self.helpers.truncate_filename(filename)
             webscreenshot_data = {"path": str(filename), "url": final_url}
-            parent_event = event_dict[url]
+            parent_event = self._resolve_parent(raw_url)
+            if parent_event is None:
+                self.warning(f"Could not correlate screenshot to parent event for URL: {raw_url}")
+                continue
             await self.emit_event(
                 webscreenshot_data,
                 "WEBSCREENSHOT",
@@ -194,27 +227,37 @@ class gowitness(BaseModule):
         for url, row in new_network_logs.items():
             ip = row["remote_ip"]
             status_code = row["status_code"]
-            tags = [f"status-{status_code}", f"ip-{ip}", "spider-danger"]
+            tags = [f"status-{status_code}", "spider-danger"]
 
             _id = row["result_id"]
-            parent_url = self.screenshots_taken[_id]
-            parent_event = event_dict[parent_url]
+            raw_parent_url = self.screenshots_taken[_id]
+            parent_event = self._resolve_parent(raw_parent_url)
+            if parent_event is None:
+                self.warning(f"Could not correlate network log to parent event for URL: {raw_parent_url}")
+                continue
             if url and url.startswith("http"):
-                await self.emit_event(
+                url_event = self.make_event(
                     url,
                     "URL_UNVERIFIED",
                     parent=parent_event,
                     tags=tags,
                     context=f"{{module}} visited {{event.type}}: {url}",
                 )
+                if url_event and ip:
+                    url_event._resolved_hosts.add(sys.intern(ip))
+                await self.emit_event(url_event)
 
         # emit technologies
         new_technologies = await self.get_new_technologies()
         for row in new_technologies.values():
             parent_id = row["result_id"]
-            parent_url = self.screenshots_taken[parent_id]
-            parent_event = event_dict[parent_url]
+            raw_parent_url = self.screenshots_taken[parent_id]
+            parent_event = self._resolve_parent(raw_parent_url)
+            if parent_event is None:
+                self.warning(f"Could not correlate technology to parent event for URL: {raw_parent_url}")
+                continue
             technology = row["value"]
+            parent_url = self.helpers.clean_url(raw_parent_url).geturl()
             tech_data = {"technology": technology, "url": parent_url, "host": str(parent_event.host)}
             await self.emit_event(
                 tech_data,

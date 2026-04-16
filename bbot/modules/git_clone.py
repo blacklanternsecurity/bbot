@@ -6,7 +6,7 @@ from bbot.modules.templates.github import github
 class git_clone(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow", "code-enum", "download"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Clone code github repositories",
         "created_date": "2024-03-08",
@@ -34,7 +34,7 @@ class git_clone(github):
         return True
 
     async def handle_event(self, event):
-        repository_url = event.data.get("url")
+        repository_url = event.url
         repository_path = await self.clone_git_repository(repository_url)
         if repository_path:
             self.verbose(f"Cloned {repository_url} to {repository_path}")

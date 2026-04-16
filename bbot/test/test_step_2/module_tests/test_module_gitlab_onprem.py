@@ -167,7 +167,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                 e
                 for e in events
                 if e.type == "TECHNOLOGY"
-                and e.data["technology"] == "GitLab"
+                and e.data["technology"] == "gitlab"
                 and e.data["url"] == "http://127.0.0.1:8888/"
             ]
         )

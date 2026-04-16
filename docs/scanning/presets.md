@@ -61,7 +61,7 @@ target:
 include:
   # include these default presets
   - subdomain-enum
-  - web-basic
+  - web
 
 modules:
   # enable nuclei in addition to the other modules
@@ -122,7 +122,27 @@ bbot -p ./mypreset.yml --current-preset
 
 ## Advanced Usage
 
-BBOT Presets support advanced features like environment variable substitution and custom conditions.
+BBOT Presets support advanced features like file-based targets, environment variable substitution, and custom conditions.
+
+### Files as Targets
+
+You can specify file paths in your preset's `target`, `seeds`, or `blacklist` fields. BBOT will read each file and expand its lines as individual entries:
+
+```yaml title="my_preset.yml"
+target:
+  - targets.txt
+  - extra.evilcorp.com
+
+seeds:
+  - seeds.txt
+
+blacklist:
+  - /home/user/blacklist.txt
+```
+
+Relative paths (like `targets.txt`) are resolved relative to the preset file's directory first, then the current working directory. Absolute paths are used as-is.
+
+You can mix file paths and literal targets in the same list. If an entry doesn't point to an existing file, it is treated as a literal target.
 
 ### Custom Modules
 
