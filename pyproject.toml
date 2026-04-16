@@ -78,8 +78,8 @@ dev = [
     "fastapi>=0.115.5,<0.129.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
-    "ruff==0.15.2",
     "baddns~=2.1.0",
+    "ruff==0.15.10",
 ]
 docs = [
     "mkdocs>=1.5.2,<2",
