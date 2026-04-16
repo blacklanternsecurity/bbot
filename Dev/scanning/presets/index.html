@@ -11,7 +11,7 @@
 <link href="../" rel="prev"/>
 <link href="../presets_list/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Overview - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.lfe8z969.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.pn5epy71.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -361,6 +361,15 @@
 </a>
 <nav aria-label="Advanced Usage" class="md-nav">
 <ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#files-as-targets">
+<span class="md-ellipsis">
+      
+        Files as Targets
+      
+    </span>
+</a>
+</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#custom-modules">
 <span class="md-ellipsis">
@@ -980,7 +989,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <span style="color: #7EE787">include</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># include these default presets</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">subdomain-enum</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">web-basic</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">web</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># enable nuclei in addition to the other modules</span>
@@ -1022,7 +1031,21 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>./mypreset.yml<span style="color: #6E7681"> </span>--current-preset
 </code></pre></div>
 <h2 id="advanced-usage">Advanced Usage</h2>
-<p>BBOT Presets support advanced features like environment variable substitution and custom conditions.</p>
+<p>BBOT Presets support advanced features like file-based targets, environment variable substitution, and custom conditions.</p>
+<h3 id="files-as-targets">Files as Targets</h3>
+<p>You can specify file paths in your preset's <code>target</code>, <code>seeds</code>, or <code>blacklist</code> fields. BBOT will read each file and expand its lines as individual entries:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">target</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">targets.txt</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">extra.evilcorp.com</span>
+
+<span style="color: #7EE787">seeds</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">seeds.txt</span>
+
+<span style="color: #7EE787">blacklist</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">/home/user/blacklist.txt</span>
+</code></pre></div>
+<p>Relative paths (like <code>targets.txt</code>) are resolved relative to the preset file's directory first, then the current working directory. Absolute paths are used as-is.</p>
+<p>You can mix file paths and literal targets in the same list. If an entry doesn't point to an existing file, it is treated as a literal target.</p>
 <h3 id="custom-modules">Custom Modules</h3>
 <p>If you want to use a custom BBOT <code>.py</code> module, you can either move it into <code>bbot/modules</code> where BBOT is installed, or add its parent folder to <code>module_dirs</code> like so:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">custom_modules.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># load extra BBOT modules from this locaation</span>

@@ -11,7 +11,7 @@
 <link href="../troubleshooting/" rel="prev"/>
 <link href="dev_environment/" rel="next"/>
 <link href="../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Development Overview - BBOT Docs</title>
 <link href="../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.lfe8z969.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.pn5epy71.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -931,12 +931,12 @@
 <p>BBOT exposes a Python API that allows you to create, start, and stop scans.</p>
 <p>Documented in this section are commonly-used classes and functions within BBOT, along with usage examples.</p>
 <h2 id="adding-bbot-to-your-python-project">Adding BBOT to Your Python Project</h2>
-<p>If you are using Poetry, you can add BBOT to your python environment like this:</p>
+<p>If you are using uv, you can add BBOT to your python environment like this:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># stable</span>
-poetry<span style="color: #6E7681"> </span>add<span style="color: #6E7681"> </span>bbot
+uv<span style="color: #6E7681"> </span>add<span style="color: #6E7681"> </span>bbot
 
 <span style="color: #8B949E; font-style: italic"># bleeding-edge (dev branch)</span>
-poetry<span style="color: #6E7681"> </span>add<span style="color: #6E7681"> </span>bbot<span style="color: #6E7681"> </span>--allow-prereleases
+uv<span style="color: #6E7681"> </span>add<span style="color: #6E7681"> </span>bbot<span style="color: #6E7681"> </span>--prerelease<span style="color: #FF7B72; font-weight: bold">=</span>allow
 </code></pre></div>
 <h2 id="running-a-bbot-scan-from-python">Running a BBOT Scan from Python</h2>
 <h4 id="synchronous">Synchronous</h4>
@@ -978,7 +978,7 @@ poetry<span style="color: #6E7681"> </span>add<span style="color: #6E7681"> </sp
 </code></pre></div>
 <p>For more details, including which types of targets are valid, see <a href="../scanning/#targets-t">Targets</a></p>
 <h4 id="other-custom-options">Other Custom Options</h4>
-<p>In many cases, using a <a href="../scanning/presets/">Preset</a> like <code>subdomain-enum</code> is sufficient. However, the <code>Scanner</code> is flexible and accepts many other arguments that can override the default functionality. You can specify <a href="../scanning/#flags-f"><code>flags</code></a>, <a href="../scanning/#modules-m"><code>modules</code></a>, <a href="../output.md"><code>output_modules</code></a>, a <a href="../scanning/#whitelists-and-blacklists"><code>whitelist</code> or <code>blacklist</code></a>, and custom <a href="../scanning/configuration/"><code>config</code> options</a>:</p>
+<p>In many cases, using a <a href="../scanning/presets/">Preset</a> like <code>subdomain-enum</code> is sufficient. However, the <code>Scanner</code> is flexible and accepts many other arguments that can override the default functionality. You can specify <a href="../scanning/#flags-f"><code>flags</code></a>, <a href="../scanning/#modules-m"><code>modules</code></a>, <a href="../output.md"><code>output_modules</code></a>, a <a href="../scanning/#targets-seeds-and-blacklists">target list / <code>seeds</code> / <code>blacklist</code></a>, and custom <a href="../scanning/configuration/"><code>config</code> options</a>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># create a scan against multiple targets</span>
 <span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Scanner(</span>
     <span style="color: #8B949E; font-style: italic"># targets</span>
@@ -986,8 +986,8 @@ poetry<span style="color: #6E7681"> </span>add<span style="color: #6E7681"> </sp
     <span style="color: #A5D6FF">"4.3.2.1"</span><span style="color: #E6EDF3">,</span>
     <span style="color: #8B949E; font-style: italic"># enable these presets</span>
     <span style="color: #E6EDF3">presets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"subdomain-enum"</span><span style="color: #E6EDF3">],</span>
-    <span style="color: #8B949E; font-style: italic"># whitelist these hosts</span>
-    <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"evilcorp.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"evilcorp.org"</span><span style="color: #E6EDF3">],</span>
+    <span style="color: #8B949E; font-style: italic"># explicitly define in-scope targets</span>
+    <span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"evilcorp.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"evilcorp.org"</span><span style="color: #E6EDF3">],</span>
     <span style="color: #8B949E; font-style: italic"># blacklist these hosts</span>
     <span style="color: #E6EDF3">blacklist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"prod.evilcorp.com"</span><span style="color: #E6EDF3">],</span>
     <span style="color: #8B949E; font-style: italic"># also enable these individual modules</span>

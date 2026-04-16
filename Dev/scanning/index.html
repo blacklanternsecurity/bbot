@@ -11,7 +11,7 @@
 <link href="../comparison/" rel="prev"/>
 <link href="presets/" rel="next"/>
 <link href="../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Scanning Overview - BBOT Docs</title>
 <link href="../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.lfe8z969.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.pn5epy71.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -411,24 +411,15 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#whitelists-and-blacklists">
+<a class="md-nav__link" href="#targets-seeds-and-blacklists">
 <span class="md-ellipsis">
       
-        Whitelists and Blacklists
+        Targets, Seeds, and Blacklists
       
     </span>
 </a>
-<nav aria-label="Whitelists and Blacklists" class="md-nav">
+<nav aria-label="Targets, Seeds, and Blacklists" class="md-nav">
 <ul class="md-nav__list">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#whitelists">
-<span class="md-ellipsis">
-      
-        Whitelists
-      
-    </span>
-</a>
-</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#blacklists">
 <span class="md-ellipsis">
@@ -1115,20 +1106,20 @@ bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>
 <p>Modules can be easily enabled/disabled based on their flags:</p>
 <ul>
 <li><code>-f</code> Enable these flags (e.g. <code>-f subdomain-enum</code>)</li>
-<li><code>-rf</code> Require modules to have this flag (e.g. <code>-rf safe</code>)</li>
+<li><code>-rf</code> Require modules to have this flag (e.g. <code>-rf passive</code>)</li>
 <li><code>-ef</code> Exclude these flags (e.g. <code>-ef slow</code>)</li>
 <li><code>-em</code> Exclude these individual modules (e.g. <code>-em ipneighbor</code>)</li>
 <li><code>-lf</code> List all available flags</li>
 </ul>
-<p>Every module is either <code>safe</code> or <code>aggressive</code>, and either <code>active</code> or <code>passive</code>. These can be useful for filtering. For example, if you wanted to enable all the <code>safe</code> modules, but exclude active ones, you could do:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Enable safe modules but exclude active ones</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>safe<span style="color: #6E7681"> </span>-ef<span style="color: #6E7681"> </span>active
+<p>Every module is either <code>active</code> or <code>passive</code>. Some modules are additionally tagged <code>loud</code> (generates lots of traffic) or <code>invasive</code> (intrusive or potentially destructive). These can be useful for filtering. For example, if you wanted to enable subdomain enumeration modules but exclude loud ones, you could do:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Enable subdomain-enum modules but exclude loud ones</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-ef<span style="color: #6E7681"> </span>loud
 </code></pre></div>
 <p>This is equivalent to requiring the passive flag:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Enable safe modules but only if they're also passive</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>safe<span style="color: #6E7681"> </span>-rf<span style="color: #6E7681"> </span>passive
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Enable subdomain-enum modules but only if they're also passive</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-rf<span style="color: #6E7681"> </span>passive
 </code></pre></div>
-<p>A single module can have multiple flags. For example, the <code>securitytrails</code> module is <code>passive</code>, <code>safe</code>, <code>subdomain-enum</code>. Below is a full list of flags and their associated modules.</p>
+<p>A single module can have multiple flags. For example, the <code>securitytrails</code> module is <code>passive</code>, <code>subdomain-enum</code>. Below is a full list of flags and their associated modules.</p>
 <h3 id="list-of-flags">List of Flags</h3>
 <!-- BBOT MODULE FLAGS -->
 <table>
@@ -1143,63 +1134,63 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <tbody>
 <tr>
 <td>safe</td>
-<td>98</td>
-<td>Non-intrusive, safe to run</td>
-<td>affiliates, aggregate, ajaxpro, anubisdb, apkpure, asn, aspnet_bin_exposure, azure_realm, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bevigil, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, code_repository, credshed, crt, crt_db, dehashed, digitorus, dnsbimi, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, docker_pull, dockerhub, emailformat, extractous, filedownload, fingerprintx, fullhunt, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, gowitness, graphql_introspection, hackertarget, httpx, hunt, hunterio, iis_shortnames, ip2location, ipstack, jadx, leakix, myssl, newsletters, ntlm, oauth, otx, passivetotal, pgp, portfilter, portscan, postman, postman_download, rapiddns, reflected_parameters, retirejs, robots, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, skymem, social, sslcert, subdomaincenter, subdomainradar, trickest, trufflehog, unarchive, urlscan, viewdns, virustotal, wayback</td>
+<td>101</td>
+<td>Non-intrusive and non-destructive</td>
+<td>affiliates, aggregate, ajaxpro, anubisdb, apkpure, asn, aspnet_bin_exposure, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bevigil, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, code_repository, credshed, crt, crt_db, dehashed, digitorus, dnsbimi, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, docker_pull, dockerhub, emailformat, emails, excavate, filedownload, fingerprintx, fullhunt, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, gowitness, graphql_introspection, hackertarget, httpx, hunt, hunterio, ip2location, ipstack, jadx, kreuzberg, leakix, myssl, newsletters, ntlm, oauth, otx, passivetotal, pgp, portfilter, postman, postman_download, rapiddns, reflected_parameters, retirejs, robots, securitytrails, securitytxt, shodan_dns, shodan_enterprise, shodan_idb, sitedossier, skymem, social, speculate, sslcert, subdomaincenter, subdomainradar, subdomains, trajan, trickest, trufflehog, unarchive, urlscan, viewdns, virustotal, wayback</td>
 </tr>
 <tr>
 <td>passive</td>
-<td>70</td>
+<td>71</td>
 <td>Never connects to target systems</td>
-<td>affiliates, aggregate, anubisdb, apkpure, asn, azure_realm, azure_tenant, bevigil, bucket_file_enum, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, code_repository, credshed, crt, crt_db, dehashed, digitorus, dnsbimi, dnscaa, dnsdumpster, dnstlsrpt, docker_pull, dockerhub, emailformat, excavate, extractous, fullhunt, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, google_playstore, hackertarget, hunterio, ip2location, ipneighbor, ipstack, jadx, leakix, myssl, otx, passivetotal, pgp, portfilter, postman, postman_download, rapiddns, securitytrails, shodan_dns, shodan_idb, sitedossier, skymem, social, speculate, subdomaincenter, subdomainradar, trickest, trufflehog, unarchive, urlscan, viewdns, virustotal, wayback</td>
+<td>affiliates, aggregate, anubisdb, apkpure, asn, azure_tenant, bevigil, bucket_file_enum, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, code_repository, credshed, crt, crt_db, dehashed, digitorus, dnsbimi, dnscaa, dnsdumpster, dnstlsrpt, docker_pull, dockerhub, emailformat, excavate, fullhunt, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, google_playstore, hackertarget, hunterio, ip2location, ipneighbor, ipstack, jadx, kreuzberg, leakix, myssl, otx, passivetotal, pgp, portfilter, postman, postman_download, rapiddns, securitytrails, shodan_dns, shodan_enterprise, shodan_idb, sitedossier, skymem, social, speculate, subdomaincenter, subdomainradar, trajan, trickest, trufflehog, unarchive, urlscan, viewdns, virustotal, wayback</td>
 </tr>
 <tr>
 <td>active</td>
-<td>52</td>
+<td>50</td>
 <td>Makes active connections to target systems</td>
-<td>ajaxpro, aspnet_bin_exposure, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bypass403, dnsbrute, dnsbrute_mutations, dnscommonsrv, dotnetnuke, ffuf, ffuf_shortnames, filedownload, fingerprintx, generic_ssrf, git, gitlab_com, gitlab_onprem, gowitness, graphql_introspection, host_header, httpx, hunt, iis_shortnames, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, oauth, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, reflected_parameters, retirejs, robots, securitytxt, smuggler, sslcert, telerik, url_manipulation, vhost, wafw00f, wpscan</td>
+<td>ajaxpro, aspnet_bin_exposure, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bypass403, dnsbrute, dnsbrute_mutations, dnscommonsrv, dotnetnuke, ffuf, ffuf_shortnames, filedownload, fingerprintx, git, gitlab_com, gitlab_onprem, gowitness, graphql_introspection, host_header, httpx, hunt, iis_shortnames, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, oauth, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, reflected_parameters, retirejs, robots, securitytxt, smuggler, sslcert, telerik, url_manipulation, wafw00f, wpscan</td>
 </tr>
 <tr>
 <td>subdomain-enum</td>
-<td>51</td>
+<td>50</td>
 <td>Enumerates subdomains</td>
-<td>anubisdb, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, sslcert, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, virustotal, wayback</td>
+<td>anubisdb, asn, azure_tenant, baddns_direct, baddns_zone, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, sslcert, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, virustotal, wayback</td>
 </tr>
 <tr>
-<td>aggressive</td>
+<td>loud</td>
 <td>22</td>
 <td>Generates a large amount of network traffic</td>
-<td>bypass403, dnsbrute, dnsbrute_mutations, dotnetnuke, ffuf, ffuf_shortnames, generic_ssrf, host_header, ipneighbor, legba, lightfuzz, medusa, nuclei, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler, telerik, url_manipulation, vhost, wafw00f, wpscan</td>
+<td>bypass403, dnsbrute, dnsbrute_mutations, dotnetnuke, ffuf, ffuf_shortnames, host_header, iis_shortnames, ipneighbor, legba, lightfuzz, medusa, nuclei, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, smuggler, telerik, url_manipulation, wafw00f, wpscan</td>
 </tr>
 <tr>
 <td>code-enum</td>
-<td>18</td>
+<td>19</td>
 <td>Find public code repositories and search them for secrets etc.</td>
-<td>apkpure, code_repository, docker_pull, dockerhub, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, jadx, postman, postman_download, trufflehog</td>
+<td>apkpure, code_repository, docker_pull, dockerhub, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, jadx, postman, postman_download, trajan, trufflehog</td>
 </tr>
 <tr>
-<td>web-basic</td>
-<td>17</td>
-<td>Basic, non-intrusive web scan functionality</td>
-<td>azure_realm, baddns, badsecrets, bucket_amazon, bucket_firebase, bucket_google, bucket_microsoft, filedownload, git, graphql_introspection, httpx, iis_shortnames, ntlm, oauth, robots, securitytxt, sslcert</td>
+<td>web</td>
+<td>16</td>
+<td>Non-intrusive web scan functionality</td>
+<td>baddns, badsecrets, bucket_amazon, bucket_firebase, bucket_google, bucket_microsoft, filedownload, git, graphql_introspection, httpx, iis_shortnames, ntlm, oauth, robots, securitytxt, sslcert</td>
 </tr>
 <tr>
 <td>cloud-enum</td>
-<td>16</td>
+<td>15</td>
 <td>Enumerates cloud resources</td>
-<td>azure_realm, azure_tenant, baddns, baddns_direct, baddns_zone, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_microsoft, dnsbimi, dnstlsrpt, httpx, oauth, securitytxt</td>
+<td>azure_tenant, baddns, baddns_direct, baddns_zone, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_microsoft, dnsbimi, dnstlsrpt, httpx, oauth, securitytxt</td>
 </tr>
 <tr>
-<td>web-thorough</td>
-<td>15</td>
+<td>web-heavy</td>
+<td>14</td>
 <td>More advanced web scanning functionality</td>
-<td>ajaxpro, aspnet_bin_exposure, bucket_digitalocean, bypass403, dotnetnuke, ffuf_shortnames, generic_ssrf, host_header, hunt, lightfuzz, reflected_parameters, retirejs, smuggler, telerik, url_manipulation</td>
+<td>ajaxpro, aspnet_bin_exposure, bucket_digitalocean, bypass403, dotnetnuke, ffuf_shortnames, host_header, hunt, lightfuzz, reflected_parameters, retirejs, smuggler, telerik, url_manipulation</td>
 </tr>
 <tr>
 <td>slow</td>
-<td>11</td>
+<td>10</td>
 <td>May take a long time to complete</td>
-<td>bucket_digitalocean, dnsbrute_mutations, docker_pull, fingerprintx, git_clone, gitdumper, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler, vhost</td>
+<td>bucket_digitalocean, dnsbrute_mutations, docker_pull, fingerprintx, git_clone, gitdumper, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler</td>
 </tr>
 <tr>
 <td>email-enum</td>
@@ -1209,9 +1200,9 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </tr>
 <tr>
 <td>affiliates</td>
-<td>8</td>
+<td>7</td>
 <td>Discovers affiliated hostnames/domains</td>
-<td>affiliates, azure_realm, azure_tenant, builtwith, oauth, sslcert, trickest, viewdns</td>
+<td>affiliates, azure_tenant, builtwith, oauth, sslcert, trickest, viewdns</td>
 </tr>
 <tr>
 <td>download</td>
@@ -1220,10 +1211,10 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <td>apkpure, docker_pull, filedownload, git_clone, gitdumper, github_workflows, postman_download</td>
 </tr>
 <tr>
-<td>deadly</td>
-<td>6</td>
-<td>Highly aggressive</td>
-<td>ffuf, legba, lightfuzz, medusa, nuclei, vhost</td>
+<td>invasive</td>
+<td>7</td>
+<td>Intrusive or potentially destructive</td>
+<td>dotnetnuke, legba, lightfuzz, medusa, nuclei, smuggler, telerik</td>
 </tr>
 <tr>
 <td>baddns</td>
@@ -1300,18 +1291,23 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </code></pre></div>
 <h3 id="strict-scope">Strict Scope</h3>
 <p>If you want to scan <strong><em>only</em></strong> that specific target hostname and none of its children, you can specify <code>--strict-scope</code>.</p>
-<p>Note that <code>--strict-scope</code> only applies to targets and whitelists, but not blacklists. This means that if you put <code>internal.evilcorp.com</code> in your blacklist, you can be sure none of its subdomains will be scanned, even when using <code>--strict-scope</code>.</p>
-<h3 id="whitelists-and-blacklists">Whitelists and Blacklists</h3>
-<p>BBOT allows precise control over scope with whitelists and blacklists. These both use the same syntax as <code>--target</code>, meaning they accept the same event types, and you can specify an unlimited number of them, via a file, the CLI, or both.</p>
-<h4 id="whitelists">Whitelists</h4>
-<p><code>--whitelist</code> enables you to override what's in scope. For example, if you want to run nuclei against <code>evilcorp.com</code>, but stay only inside their corporate IP range of <code>1.2.3.0/24</code>, you can accomplish this like so:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Seed scan with evilcorp.com, but restrict scope to 1.2.3.0/24</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--whitelist<span style="color: #6E7681"> </span><span style="color: #A5D6FF">1</span>.2.3.0/24<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>--allow-deadly
+<p>Note that <code>--strict-scope</code> only applies to targets, but not blacklists. This means that if you put <code>internal.evilcorp.com</code> in your blacklist, you can be sure none of its subdomains will be scanned, even when using <code>--strict-scope</code>.</p>
+<h3 id="targets-seeds-and-blacklists">Targets, Seeds, and Blacklists</h3>
+<p>BBOT uses three related concepts to control scope and how a scan is driven:</p>
+<ul>
+<li><strong>Targets (<code>-t</code> / <code>--targets</code>)</strong>: Define what is in-scope. These also act as scan seeds if seeds aren't explicitly defined.</li>
+<li><strong>Seeds (<code>-s</code> / <code>--seeds</code>)</strong>: Seeds define the starting point for the scan. They drive <strong>passive</strong> modules and can be outside of the explicit target list (out of scope) for those passive modules. If you don’t specify <code>--seeds</code>, BBOT will automatically use your targets as seeds.</li>
+<li><strong>Blacklists (<code>-b</code> / <code>--blacklist</code>)</strong>: Define what is <strong>never</strong> touched. Anything matching the blacklist is excluded from the scan, even if it would otherwise be in-scope.</li>
+</ul>
+<p>This separation lets you, for example, keep a tight target list for what’s considered in-scope, while still allowing passive modules to discover new subdomains that may ultimately be in-scope. The blacklist helps to mask-off anything that you know should not be scanned.</p>
+<p>For example, lets say you have a target with subdomains that resolve both within, and outside of an IP range that defines your scope. You can set the IP range as the <strong>target</strong>, and then safely let BBOT explore the domain defined in <strong>seeds</strong>. Any discovered assets that are in your scope will automatically be assessed by active modules.</p>
+<p><div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span><span style="color: #A5D6FF">192</span>.168.1.0/24<span style="color: #6E7681"> </span>-s<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>nuclei
 </code></pre></div>
+In this example, any discovered <code>evilcorp.com</code> subdomains that resolve within <code>192.168.1.0/24</code> will be scanned by <code>Nuclei</code>. Any others will be discovered, but not touched by active modules. </p>
 <h4 id="blacklists">Blacklists</h4>
-<p><code>--blacklist</code> takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it's in the whitelist.</p>
+<p><code>--blacklist</code> takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it would otherwise be in-scope based on your targets or seeds.</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scan evilcorp.com, but exclude internal.evilcorp.com and its children</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--blacklist<span style="color: #6E7681"> </span>internal.evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>--allow-deadly
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--blacklist<span style="color: #6E7681"> </span>internal.evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei
 </code></pre></div>
 <h4 id="blacklist-by-regex">Blacklist by Regex</h4>
 <p>Blacklists also accept regex patterns. These regexes are are checked against the full URL, including the host and path.</p>
@@ -1326,7 +1322,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <p>If you only want to blacklist the URL, you could narrow the regex like so:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--blacklist<span style="color: #6E7681"> </span><span style="color: #A5D6FF">'RE:signout\.aspx$'</span>
 </code></pre></div>
-<p>Similar to targets and whitelists, blacklists can be specified in your preset. The <code>spider</code> preset makes use of this to prevent the spider from following logout links:</p>
+<p>Similar to targets, blacklists can be specified in your preset. The <code>spider</code> preset makes use of this to prevent the spider from following logout links:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">spider.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Recursive web spider</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
@@ -1365,7 +1361,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <span style="color: #7EE787">dns</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">wildcard_tests</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">20</span>
 </code></pre></div>
-<p>If that doesn't work you can consider <a href="#whitelists-and-blacklists">blacklisting</a> the offending domain.</p>
+<p>If that doesn't work you can consider <a href="#targets-seeds-and-blacklists">blacklisting</a> the offending domain.</p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

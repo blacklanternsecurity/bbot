@@ -11,7 +11,7 @@
 <link href="../presets_list/" rel="prev"/>
 <link href="../output/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Events - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.lfe8z969.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.pn5epy71.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -370,10 +370,10 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#findings-vs-vulnerabilities">
+<a class="md-nav__link" href="#findings">
 <span class="md-ellipsis">
       
-        Findings Vs. Vulnerabilities
+        Findings
       
     </span>
 </a>
@@ -1004,9 +1004,9 @@ event type      event data          source module    tags
 <tbody>
 <tr>
 <td>*</td>
-<td>18</td>
+<td>24</td>
 <td>0</td>
-<td>affiliates, cloudcheck, csv, discord, dnsresolve, http, json, mysql, neo4j, postgres, python, slack, splunk, sqlite, stdout, teams, txt, websocket</td>
+<td>affiliates, cloudcheck, csv, discord, dnsresolve, elastic, http, json, kafka, mongo, mysql, nats, neo4j, postgres, python, rabbitmq, slack, splunk, sqlite, stdout, teams, txt, websocket, zeromq</td>
 <td></td>
 </tr>
 <tr>
@@ -1019,23 +1019,23 @@ event type      event data          source module    tags
 <tr>
 <td>AZURE_TENANT</td>
 <td>1</td>
-<td>0</td>
+<td>1</td>
 <td>speculate</td>
-<td></td>
+<td>azure_tenant</td>
 </tr>
 <tr>
 <td>CODE_REPOSITORY</td>
-<td>7</td>
 <td>8</td>
-<td>docker_pull, git_clone, gitdumper, github_workflows, google_playstore, postman_download, trufflehog</td>
+<td>8</td>
+<td>docker_pull, git_clone, gitdumper, github_workflows, google_playstore, postman_download, trajan, trufflehog</td>
 <td>code_repository, dockerhub, git, github_codesearch, github_org, gitlab_com, gitlab_onprem, postman</td>
 </tr>
 <tr>
 <td>DNS_NAME</td>
-<td>60</td>
-<td>43</td>
-<td>anubisdb, asset_inventory, azure_realm, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, credshed, crt, crt_db, dehashed, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otx, passivetotal, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
-<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, crt, crt_db, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otx, passivetotal, rapiddns, securitytrails, shodan_dns, shodan_idb, sitedossier, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, vhost, viewdns, virustotal, wayback</td>
+<td>59</td>
+<td>42</td>
+<td>anubisdb, asset_inventory, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, credshed, crt, crt_db, dehashed, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otx, passivetotal, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
+<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, crt, crt_db, digitorus, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otx, passivetotal, rapiddns, securitytrails, shodan_dns, shodan_idb, sitedossier, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, viewdns, virustotal, wayback</td>
 </tr>
 <tr>
 <td>DNS_NAME_UNRESOLVED</td>
@@ -1055,15 +1055,15 @@ event type      event data          source module    tags
 <td>FILESYSTEM</td>
 <td>4</td>
 <td>9</td>
-<td>extractous, jadx, trufflehog, unarchive</td>
+<td>jadx, kreuzberg, trufflehog, unarchive</td>
 <td>apkpure, docker_pull, filedownload, git_clone, gitdumper, github_workflows, jadx, postman_download, unarchive</td>
 </tr>
 <tr>
 <td>FINDING</td>
 <td>2</td>
-<td>32</td>
+<td>36</td>
 <td>asset_inventory, web_report</td>
-<td>ajaxpro, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bypass403, git, gitlab_onprem, graphql_introspection, host_header, hunt, legba, lightfuzz, newsletters, ntlm, nuclei, paramminer_cookies, paramminer_getparams, reflected_parameters, retirejs, shodan_idb, smuggler, speculate, telerik, trufflehog, url_manipulation, wpscan</td>
+<td>ajaxpro, aspnet_bin_exposure, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bypass403, dotnetnuke, git, gitlab_onprem, graphql_introspection, host_header, hunt, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, reflected_parameters, retirejs, shodan_enterprise, shodan_idb, smuggler, speculate, telerik, trajan, trufflehog, url_manipulation, wpscan</td>
 </tr>
 <tr>
 <td>GEOLOCATION</td>
@@ -1088,9 +1088,9 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>IP_ADDRESS</td>
-<td>10</td>
+<td>11</td>
 <td>5</td>
-<td>asn, asset_inventory, censys_ip, ip2location, ipneighbor, ipstack, nmap_xml, portscan, shodan_idb, speculate</td>
+<td>asn, asset_inventory, censys_ip, ip2location, ipneighbor, ipstack, nmap_xml, portscan, shodan_enterprise, shodan_idb, speculate</td>
 <td>asset_inventory, censys_ip, dnsresolve, ipneighbor, speculate</td>
 </tr>
 <tr>
@@ -1110,16 +1110,16 @@ event type      event data          source module    tags
 <tr>
 <td>OPEN_TCP_PORT</td>
 <td>6</td>
-<td>5</td>
+<td>6</td>
 <td>asset_inventory, fingerprintx, httpx, nmap_xml, portfilter, sslcert</td>
-<td>asset_inventory, censys_ip, portscan, shodan_idb, speculate</td>
+<td>asset_inventory, censys_ip, portscan, shodan_enterprise, shodan_idb, speculate</td>
 </tr>
 <tr>
 <td>OPEN_UDP_PORT</td>
 <td>0</td>
-<td>1</td>
+<td>2</td>
 <td></td>
-<td>censys_ip</td>
+<td>censys_ip, shodan_enterprise</td>
 </tr>
 <tr>
 <td>ORG_STUB</td>
@@ -1154,7 +1154,7 @@ event type      event data          source module    tags
 <td>2</td>
 <td>1</td>
 <td>excavate, trufflehog</td>
-<td>extractous</td>
+<td>kreuzberg</td>
 </tr>
 <tr>
 <td>SOCIAL</td>
@@ -1172,16 +1172,16 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>TECHNOLOGY</td>
-<td>4</td>
-<td>8</td>
-<td>asset_inventory, gitlab_onprem, web_report, wpscan</td>
-<td>badsecrets, censys_ip, dotnetnuke, gitlab_onprem, gowitness, nuclei, shodan_idb, wpscan</td>
+<td>5</td>
+<td>10</td>
+<td>asset_inventory, gitlab_onprem, trajan, web_report, wpscan</td>
+<td>ajaxpro, badsecrets, censys_ip, dotnetnuke, gitlab_onprem, gowitness, nuclei, shodan_enterprise, shodan_idb, wpscan</td>
 </tr>
 <tr>
 <td>URL</td>
-<td>24</td>
+<td>22</td>
 <td>2</td>
-<td>ajaxpro, aspnet_bin_exposure, asset_inventory, baddns_direct, bypass403, ffuf, generic_ssrf, git, gowitness, graphql_introspection, httpx, iis_shortnames, lightfuzz, ntlm, nuclei, portfilter, robots, smuggler, speculate, telerik, url_manipulation, vhost, wafw00f, web_report</td>
+<td>ajaxpro, aspnet_bin_exposure, asset_inventory, baddns_direct, bypass403, ffuf, git, gowitness, graphql_introspection, httpx, iis_shortnames, lightfuzz, ntlm, nuclei, portfilter, robots, smuggler, speculate, telerik, url_manipulation, wafw00f, web_report</td>
 <td>gowitness, httpx</td>
 </tr>
 <tr>
@@ -1193,10 +1193,10 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>URL_UNVERIFIED</td>
-<td>8</td>
+<td>9</td>
 <td>19</td>
-<td>code_repository, filedownload, httpx, oauth, portfilter, retirejs, social, speculate</td>
-<td>azure_realm, bevigil, bucket_file_enum, censys_ip, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, ffuf, ffuf_shortnames, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, wpscan</td>
+<td>code_repository, filedownload, httpx, oauth, portfilter, retirejs, social, speculate, trajan</td>
+<td>azure_tenant, bevigil, bucket_file_enum, censys_ip, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, ffuf, ffuf_shortnames, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, wpscan</td>
 </tr>
 <tr>
 <td>USERNAME</td>
@@ -1208,16 +1208,9 @@ event type      event data          source module    tags
 <tr>
 <td>VHOST</td>
 <td>1</td>
-<td>1</td>
+<td>0</td>
 <td>web_report</td>
-<td>vhost</td>
-</tr>
-<tr>
-<td>VULNERABILITY</td>
-<td>2</td>
-<td>15</td>
-<td>asset_inventory, web_report</td>
-<td>ajaxpro, aspnet_bin_exposure, baddns, baddns_direct, baddns_zone, badsecrets, dotnetnuke, generic_ssrf, lightfuzz, medusa, nuclei, shodan_idb, telerik, trufflehog, wpscan</td>
+<td></td>
 </tr>
 <tr>
 <td>WAF</td>
@@ -1243,19 +1236,14 @@ event type      event data          source module    tags
 </tbody>
 </table>
 <!-- END BBOT EVENTS -->
-<h2 id="findings-vs-vulnerabilities">Findings Vs. Vulnerabilities</h2>
-<p>BBOT has a sharp distinction between Findings and Vulnerabilities:</p>
-<p><strong>VULNERABILITY</strong></p>
+<h2 id="findings">Findings</h2>
+<p>All vulnerability discoveries, security-relevant observations, and other notable results in BBOT are emitted as <strong><code>FINDING</code></strong> events.</p>
+<p>Each finding has a <strong>severity</strong> and a <strong>confidence</strong>:</p>
 <ul>
-<li>There's a higher standard for what is allowed to be a vulnerability. They should be considered <strong>confirmed</strong> and <strong>actionable</strong> - no additional confirmation required</li>
-<li>They are always assigned a severity. The possible severities are: LOW, MEDIUM, HIGH, or CRITICAL</li>
+<li><strong>Severity</strong> indicates impact: <code>INFO</code>, <code>LOW</code>, <code>MEDIUM</code>, <code>HIGH</code>, or <code>CRITICAL</code></li>
+<li><strong>Confidence</strong> indicates how certain the finding is: <code>CONFIRMED</code>, <code>HIGH</code>, <code>MEDIUM</code>, <code>LOW</code>, or <code>UNKNOWN</code></li>
 </ul>
-<p><strong>FINDING</strong></p>
-<ul>
-<li>Findings can range anywhere from "slightly interesting behavior" to "likely, but unconfirmed vulnerability"</li>
-<li>Are often false positives</li>
-</ul>
-<p>By making this separation, actionable vulnerabilities can be identified quickly in the midst of a large scan</p>
+<p>Together, these let you quickly prioritize results -- e.g. a <code>CRITICAL</code> severity with <code>CONFIRMED</code> confidence is immediately actionable, while a <code>MEDIUM</code> severity with <code>LOW</code> confidence may need manual verification.</p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

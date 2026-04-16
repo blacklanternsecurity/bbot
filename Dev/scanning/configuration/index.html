@@ -11,7 +11,7 @@
 <link href="../advanced/" rel="prev"/>
 <link href="../../modules/list_of_modules/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Configuration - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.lfe8z969.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.pn5epy71.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -949,7 +949,7 @@
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># send BBOT traffic through an HTTP proxy</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span><span style="color: #79C0FF">http_proxy</span><span style="color: #FF7B72; font-weight: bold">=</span>http://127.0.0.1:8080
 </code></pre></div>
-<p>Or, in <code>~/.config/bbot/config.yml</code>:</p>
+<p>Or, in <code>~/.config/bbot/bbot.yml</code>:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">http_proxy</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http://127.0.0.1:8080</span>
 </code></pre></div>
 <p>These two are equivalent.</p>
@@ -967,6 +967,15 @@ Is the same as:
 <!-- BBOT DEFAULT CONFIG -->
 <div class="highlight" style="background: #0d1117"><span class="filename">defaults.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic">### BASIC OPTIONS ###</span>
 
+<span style="color: #8B949E; font-style: italic"># NOTE: If used in a preset, these options must be nested underneath "config:" like so:</span>
+<span style="color: #8B949E; font-style: italic"># config:</span>
+<span style="color: #8B949E; font-style: italic">#   home: ~/.bbot</span>
+<span style="color: #8B949E; font-style: italic">#   keep_scans: 20</span>
+<span style="color: #8B949E; font-style: italic">#   scope:</span>
+<span style="color: #8B949E; font-style: italic">#     strict: true</span>
+<span style="color: #8B949E; font-style: italic">#   dns:</span>
+<span style="color: #8B949E; font-style: italic">#     minimal: true</span>
+
 <span style="color: #8B949E; font-style: italic"># BBOT working directory</span>
 <span style="color: #7EE787">home</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">~/.bbot</span>
 <span style="color: #8B949E; font-style: italic"># How many scan results to keep before cleaning up the older ones</span>
@@ -982,7 +991,7 @@ Is the same as:
 
 <span style="color: #7EE787">scope</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># strict scope means only exact DNS names are considered in-scope</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># subdomains are not included unless they are explicitly provided in the target list</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># their subdomains are not included unless explicitly added to the target</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">strict</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Filter by scope distance which events are displayed in the output</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># 0 == show only in-scope events (affiliates are always shown)</span>
@@ -995,7 +1004,7 @@ Is the same as:
 <span style="color: #8B949E; font-style: italic">### DNS ###</span>
 
 <span style="color: #7EE787">dns</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Completely disable DNS resolution (careful if you have IP whitelists/blacklists, consider using minimal=true instead)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Completely disable DNS resolution (careful if you have IP targets/blacklists, consider using minimal=true instead)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">disable</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Speed up scan by not creating any new DNS events, and only resolving A and AAAA records</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">minimal</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
@@ -1044,6 +1053,8 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">http_proxy</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Web user-agent</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">user_agent</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Suffix to append to user-agent (e.g. for tracking or identification)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">user_agent_suffix</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">spider_distance</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Set the maximum directory depth for the web spider</span>
@@ -1213,6 +1224,7 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">__SCROLLPOSITIONY</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">__SCROLLPOSITIONX</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ASP.NET_SessionId</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">.AspNetCore.Session</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">PHPSESSID</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">__cf_bm</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">f5_cspm</span>
@@ -1220,6 +1232,7 @@ Is the same as:
 <span style="color: #7EE787">parameter_blacklist_prefixes</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">TS01</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">BIGipServer</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">f5avr</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">incap_</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">visid_incap_</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">AWSALB</span>
@@ -1279,10 +1292,16 @@ Is the same as:
 <td>[]</td>
 </tr>
 <tr>
-<td>modules.baddns.only_high_confidence</td>
-<td>bool</td>
-<td>Do not emit low-confidence or generic detections</td>
-<td>False</td>
+<td>modules.baddns.min_confidence</td>
+<td>str</td>
+<td>Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)</td>
+<td>MODERATE</td>
+</tr>
+<tr>
+<td>modules.baddns.min_severity</td>
+<td>str</td>
+<td>Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)</td>
+<td>LOW</td>
 </tr>
 <tr>
 <td>modules.baddns_direct.custom_nameservers</td>
@@ -1291,16 +1310,34 @@ Is the same as:
 <td>[]</td>
 </tr>
 <tr>
+<td>modules.baddns_direct.min_confidence</td>
+<td>str</td>
+<td>Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)</td>
+<td>MODERATE</td>
+</tr>
+<tr>
+<td>modules.baddns_direct.min_severity</td>
+<td>str</td>
+<td>Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)</td>
+<td>LOW</td>
+</tr>
+<tr>
 <td>modules.baddns_zone.custom_nameservers</td>
 <td>list</td>
 <td>Force BadDNS to use a list of custom nameservers</td>
 <td>[]</td>
 </tr>
 <tr>
-<td>modules.baddns_zone.only_high_confidence</td>
-<td>bool</td>
-<td>Do not emit low-confidence or generic detections</td>
-<td>False</td>
+<td>modules.baddns_zone.min_confidence</td>
+<td>str</td>
+<td>Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)</td>
+<td>MODERATE</td>
+</tr>
+<tr>
+<td>modules.baddns_zone.min_severity</td>
+<td>str</td>
+<td>Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)</td>
+<td>INFO</td>
 </tr>
 <tr>
 <td>modules.badsecrets.custom_secrets</td>
@@ -1489,12 +1526,6 @@ Is the same as:
 <td>1.1.4</td>
 </tr>
 <tr>
-<td>modules.generic_ssrf.skip_dns_interaction</td>
-<td>bool</td>
-<td>Do not report DNS interactions (only HTTP interaction)</td>
-<td>False</td>
-</tr>
-<tr>
 <td>modules.gitlab_com.api_key</td>
 <td>str</td>
 <td>GitLab access token (for gitlab.com/org only)</td>
@@ -1558,7 +1589,7 @@ Is the same as:
 <td>modules.gowitness.version</td>
 <td>str</td>
 <td>Gowitness version</td>
-<td>3.0.5</td>
+<td>3.1.1</td>
 </tr>
 <tr>
 <td>modules.graphql_introspection.graphql_endpoint_urls</td>
@@ -1702,7 +1733,7 @@ Is the same as:
 <td>modules.lightfuzz.enabled_submodules</td>
 <td>list</td>
 <td>A list of submodules to enable. Empty list enabled all modules.</td>
-<td>['sqli', 'cmdi', 'xss', 'path', 'ssti', 'crypto', 'serial', 'esi']</td>
+<td>['sqli', 'cmdi', 'xss', 'path', 'ssti', 'crypto', 'serial', 'esi', 'ssrf']</td>
 </tr>
 <tr>
 <td>modules.lightfuzz.force_common_headers</td>
@@ -2047,24 +2078,6 @@ Is the same as:
 <td>True</td>
 </tr>
 <tr>
-<td>modules.vhost.force_basehost</td>
-<td>str</td>
-<td>Use a custom base host (e.g. evilcorp.com) instead of the default behavior of using the current URL</td>
-<td></td>
-</tr>
-<tr>
-<td>modules.vhost.lines</td>
-<td>int</td>
-<td>take only the first N lines from the wordlist when finding directories</td>
-<td>5000</td>
-</tr>
-<tr>
-<td>modules.vhost.wordlist</td>
-<td>str</td>
-<td>Wordlist containing subdomains</td>
-<td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt</td>
-</tr>
-<tr>
 <td>modules.wafw00f.generic_detect</td>
 <td>bool</td>
 <td>When no specific WAF detections are made, try to perform a generic detect</td>
@@ -2305,12 +2318,6 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
-<td>modules.extractous.extensions</td>
-<td>list</td>
-<td>File extensions to parse</td>
-<td>['bak', 'bash', 'bashrc', 'conf', 'cfg', 'crt', 'csv', 'db', 'sqlite', 'doc', 'docx', 'ica', 'indd', 'ini', 'json', 'key', 'pub', 'log', 'markdown', 'md', 'odg', 'odp', 'ods', 'odt', 'pdf', 'pem', 'pps', 'ppsx', 'ppt', 'pptx', 'ps1', 'rdp', 'rsa', 'sh', 'sql', 'swp', 'sxw', 'txt', 'vbs', 'wpd', 'xls', 'xlsx', 'xml', 'yml', 'yaml']</td>
-</tr>
-<tr>
 <td>modules.fullhunt.api_key</td>
 <td>str</td>
 <td>FullHunt API Key</td>
@@ -2437,6 +2444,12 @@ Is the same as:
 <td>4</td>
 </tr>
 <tr>
+<td>modules.kreuzberg.extensions</td>
+<td>list</td>
+<td>File extensions to parse</td>
+<td>['bak', 'bash', 'bashrc', 'conf', 'cfg', 'crt', 'csv', 'db', 'sqlite', 'doc', 'docx', 'ica', 'indd', 'ini', 'json', 'key', 'pub', 'log', 'markdown', 'md', 'odg', 'odp', 'ods', 'odt', 'pdf', 'pem', 'pps', 'ppsx', 'ppt', 'pptx', 'ps1', 'rdp', 'rsa', 'sh', 'sql', 'swp', 'sxw', 'txt', 'vbs', 'wpd', 'xls', 'xlsx', 'xml', 'yml', 'yaml']</td>
+</tr>
+<tr>
 <td>modules.leakix.api_key</td>
 <td>str</td>
 <td>LeakIX API Key</td>
@@ -2469,8 +2482,8 @@ Is the same as:
 <tr>
 <td>modules.portfilter.cdn_tags</td>
 <td>str</td>
-<td>Comma-separated list of tags to skip, e.g. 'cdn,cloud'</td>
-<td>cdn-</td>
+<td>Comma-separated list of tags to skip, e.g. 'cdn,waf'</td>
+<td>cdn,waf</td>
 </tr>
 <tr>
 <td>modules.postman.api_key</td>
@@ -2503,6 +2516,18 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.shodan_enterprise.api_key</td>
+<td>str</td>
+<td>Shodan API Key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.shodan_enterprise.in_scope_only</td>
+<td>bool</td>
+<td>Only query in-scope IPs. If False, will query up to distance 1.</td>
+<td>True</td>
+</tr>
+<tr>
 <td>modules.shodan_idb.retries</td>
 <td>NoneType</td>
 <td>How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting.</td>
@@ -2525,6 +2550,54 @@ Is the same as:
 <td>int</td>
 <td>Timeout in seconds</td>
 <td>120</td>
+</tr>
+<tr>
+<td>modules.trajan.ado_token</td>
+<td>str</td>
+<td>Azure DevOps Personal Access Token (PAT)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.trajan.github_token</td>
+<td>str</td>
+<td>GitHub API token for rate-limiting and private repo access</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.trajan.gitlab_token</td>
+<td>str</td>
+<td>GitLab API token for private repo access</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.trajan.jenkins_password</td>
+<td>str</td>
+<td>Jenkins password for basic auth</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.trajan.jenkins_token</td>
+<td>str</td>
+<td>Jenkins API token</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.trajan.jenkins_username</td>
+<td>str</td>
+<td>Jenkins username for basic auth</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.trajan.jfrog_token</td>
+<td>str</td>
+<td>JFrog API token</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.trajan.version</td>
+<td>str</td>
+<td>Trajan version to download and use</td>
+<td>1.0.0</td>
 </tr>
 <tr>
 <td>modules.trickest.api_key</td>
@@ -2620,12 +2693,12 @@ Is the same as:
 <td>modules.discord.event_types</td>
 <td>list</td>
 <td>Types of events to send</td>
-<td>['VULNERABILITY', 'FINDING']</td>
+<td>['FINDING']</td>
 </tr>
 <tr>
 <td>modules.discord.min_severity</td>
 <td>str</td>
-<td>Only allow VULNERABILITY events of this severity or higher</td>
+<td>Only allow FINDING events of this severity or higher</td>
 <td>LOW</td>
 </tr>
 <tr>
@@ -2641,6 +2714,30 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.elastic.password</td>
+<td>str</td>
+<td>Elastic password</td>
+<td>bbotislife</td>
+</tr>
+<tr>
+<td>modules.elastic.timeout</td>
+<td>int</td>
+<td>HTTP timeout</td>
+<td>10</td>
+</tr>
+<tr>
+<td>modules.elastic.url</td>
+<td>str</td>
+<td><code>Elastic URL (e.g. https://localhost:9200/&lt;your_index&gt;/_doc)</code></td>
+<td>https://localhost:9200/bbot_events/_doc</td>
+</tr>
+<tr>
+<td>modules.elastic.username</td>
+<td>str</td>
+<td>Elastic username</td>
+<td>elastic</td>
+</tr>
+<tr>
 <td>modules.emails.output_file</td>
 <td>str</td>
 <td>Output to file</td>
@@ -2653,6 +2750,12 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.http.headers</td>
+<td>dict</td>
+<td>Additional headers to send with the request</td>
+<td>{}</td>
+</tr>
+<tr>
 <td>modules.http.method</td>
 <td>str</td>
 <td>HTTP method</td>
@@ -2663,12 +2766,6 @@ Is the same as:
 <td>str</td>
 <td>Password (basic auth)</td>
 <td></td>
-</tr>
-<tr>
-<td>modules.http.siem_friendly</td>
-<td>bool</td>
-<td>Format JSON in a SIEM-friendly way for ingestion into Elastic, Splunk, etc.</td>
-<td>False</td>
 </tr>
 <tr>
 <td>modules.http.timeout</td>
@@ -2695,10 +2792,46 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
-<td>modules.json.siem_friendly</td>
-<td>bool</td>
-<td>Output JSON in a SIEM-friendly format for ingestion into Elastic, Splunk, etc.</td>
-<td>False</td>
+<td>modules.kafka.bootstrap_servers</td>
+<td>str</td>
+<td>A comma-separated list of Kafka server addresses</td>
+<td>localhost:9092</td>
+</tr>
+<tr>
+<td>modules.kafka.topic</td>
+<td>str</td>
+<td>The Kafka topic to publish events to</td>
+<td>bbot_events</td>
+</tr>
+<tr>
+<td>modules.mongo.collection_prefix</td>
+<td>str</td>
+<td>Prefix the name of each collection with this string</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.mongo.database</td>
+<td>str</td>
+<td>The name of the database to use</td>
+<td>bbot</td>
+</tr>
+<tr>
+<td>modules.mongo.password</td>
+<td>str</td>
+<td>The password to use to connect to the database</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.mongo.uri</td>
+<td>str</td>
+<td>The URI of the MongoDB server</td>
+<td>mongodb://localhost:27017</td>
+</tr>
+<tr>
+<td>modules.mongo.username</td>
+<td>str</td>
+<td>The username to use to connect to the database</td>
+<td></td>
 </tr>
 <tr>
 <td>modules.mysql.database</td>
@@ -2729,6 +2862,18 @@ Is the same as:
 <td>str</td>
 <td>The username to connect to MySQL</td>
 <td>root</td>
+</tr>
+<tr>
+<td>modules.nats.servers</td>
+<td>list</td>
+<td>A list of NATS server addresses</td>
+<td>[]</td>
+</tr>
+<tr>
+<td>modules.nats.subject</td>
+<td>str</td>
+<td>The NATS subject to publish events to</td>
+<td>bbot_events</td>
 </tr>
 <tr>
 <td>modules.neo4j.password</td>
@@ -2779,15 +2924,27 @@ Is the same as:
 <td>postgres</td>
 </tr>
 <tr>
+<td>modules.rabbitmq.queue</td>
+<td>str</td>
+<td>The RabbitMQ queue to publish events to</td>
+<td>bbot_events</td>
+</tr>
+<tr>
+<td>modules.rabbitmq.url</td>
+<td>str</td>
+<td>The RabbitMQ connection URL</td>
+<td>amqp://guest:guest@localhost/</td>
+</tr>
+<tr>
 <td>modules.slack.event_types</td>
 <td>list</td>
 <td>Types of events to send</td>
-<td>['VULNERABILITY', 'FINDING']</td>
+<td>['FINDING']</td>
 </tr>
 <tr>
 <td>modules.slack.min_severity</td>
 <td>str</td>
-<td>Only allow VULNERABILITY events of this severity or higher</td>
+<td>Only allow FINDING events of this severity or higher</td>
 <td>LOW</td>
 </tr>
 <tr>
@@ -2884,12 +3041,12 @@ Is the same as:
 <td>modules.teams.event_types</td>
 <td>list</td>
 <td>Types of events to send</td>
-<td>['VULNERABILITY', 'FINDING']</td>
+<td>['FINDING']</td>
 </tr>
 <tr>
 <td>modules.teams.min_severity</td>
 <td>str</td>
-<td>Only allow VULNERABILITY events of this severity or higher</td>
+<td>Only allow FINDING events of this severity or higher</td>
 <td>LOW</td>
 </tr>
 <tr>
@@ -2959,6 +3116,12 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.zeromq.zmq_address</td>
+<td>str</td>
+<td>The ZeroMQ socket address to publish events to (e.g. tcp://localhost:5555)</td>
+<td></td>
+</tr>
+<tr>
 <td>modules.excavate.custom_yara_rules</td>
 <td>str</td>
 <td>Include custom Yara rules</td>
@@ -2983,9 +3146,9 @@ Is the same as:
 <td>False</td>
 </tr>
 <tr>
-<td>modules.speculate.max_hosts</td>
+<td>modules.speculate.ip_range_max_hosts</td>
 <td>int</td>
-<td>Max number of IP_RANGE hosts to convert into IP_ADDRESS events</td>
+<td>Max number of hosts an IP_RANGE can contain to allow conversion into IP_ADDRESS events</td>
 <td>65536</td>
 </tr>
 <tr>
