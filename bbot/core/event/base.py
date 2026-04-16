@@ -258,7 +258,8 @@ class BaseEvent:
             self.data = self._sanitize_data(data)
         except Exception as e:
             log.trace(traceback.format_exc())
-            raise ValidationError(f'Error sanitizing event data "{data}" for type "{self.type}": {e}')
+            data_preview = str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+            raise ValidationError(f'Error sanitizing event data "{data_preview}" for type "{self.type}": {e}')
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
@@ -2206,7 +2207,8 @@ def make_event(
                 data = validators.validate_host(data)
             except Exception as e:
                 log.trace(traceback.format_exc())
-                raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
+                data_preview = str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+                raise ValidationError(f'Error sanitizing event data "{data_preview}" for type "{event_type}": {e}')
             data_is_ip = is_ip(data)
             if event_type == "DNS_NAME" and data_is_ip:
                 event_type = "IP_ADDRESS"

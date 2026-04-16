@@ -315,6 +315,9 @@ class wayback(subdomain_enum):
                     continue
                 if not (parsed.hostname and self.scan.in_scope(parsed.hostname)):
                     continue
+                # skip non-HTTP URLs (e.g. ftp:// archived by the Wayback Machine)
+                if parsed.scheme not in ("http", "https"):
+                    continue
 
                 cleaned_str = clean_url(url).geturl()
 
