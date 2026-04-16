@@ -7,6 +7,7 @@ from cachetools import LFUCache, LRUCache
 from radixtarget import RadixTarget
 
 from blastdns import Client, ClientConfig, DNSError, DNSResult, MockClient, get_system_resolvers
+from blastdns.exceptions import BlastDNSError
 
 from bbot.core.helpers.async_helpers import NamedLock, async_cachedmethod
 from .helpers import all_rdtypes, extract_targets, record_to_text
@@ -106,12 +107,27 @@ class DNSHelper:
     # ------------------------------------------------------------------
 
     async def resolve(self, query, rdtype="A"):
-        """Resolve to a set of rdata strings (e.g. IPs)."""
-        return set(await self.blastdns.resolve(query, rdtype))
+        """Resolve to a set of rdata strings (e.g. IPs).
+
+        Returns an empty set on DNS failure (timeout, SERVFAIL, etc).
+        """
+        try:
+            return set(await self.blastdns.resolve(query, rdtype))
+        except BlastDNSError as e:
+            self.log.debug(f"DNS error resolving {query}/{rdtype}: {e}")
+            return set()
 
     async def resolve_full(self, query, rdtype="A"):
-        """Return blastdns ``DNSResult`` (full response with Record objects)."""
-        return await self.blastdns.resolve_full(query, rdtype)
+        """Return blastdns ``DNSResult`` (full response with Record objects).
+
+        Returns an empty-answer DNSResult on DNS failure so callers can
+        unconditionally iterate ``.response.answers`` without try/except.
+        """
+        try:
+            return await self.blastdns.resolve_full(query, rdtype)
+        except BlastDNSError as e:
+            self.log.debug(f"DNS error resolving {query}/{rdtype}: {e}")
+            return self._empty_result(query)
 
     async def resolve_multi_full(self, query, rdtypes):
         """Resolve many rdtypes for one host concurrently in Rust.
@@ -378,6 +394,29 @@ class DNSHelper:
         mock_client = MockClient()
         mock_client.mock_dns(mock_data)
         self.blastdns = mock_client
+
+    @staticmethod
+    def _empty_result(host=""):
+        """Build a minimal ``DNSResult`` with no answers, for use as a safe fallback."""
+        from blastdns.models import Header, Response
+
+        header = Header(
+            id=0,
+            message_type="Response",
+            op_code="Query",
+            authoritative=False,
+            truncation=False,
+            recursion_desired=True,
+            recursion_available=True,
+            authentic_data=False,
+            checking_disabled=False,
+            response_code="NoError",
+            query_count=0,
+            answer_count=0,
+            name_server_count=0,
+            additional_count=0,
+        )
+        return DNSResult(host=host, response=Response(header=header, queries=[], answers=[], name_servers=[], additionals=[]))
 
     async def shutdown(self):
         """No-op kept for API compatibility -- blastdns runs in-process, nothing to tear down."""
