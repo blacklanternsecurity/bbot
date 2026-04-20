@@ -1,6 +1,6 @@
 [project]
 name = "bbot"
-dynamic = ["version"]
+version = "3.0.0"
 description = "OSINT automation for hackers."
 readme = "README.md"
 license = "AGPL-3.0"
@@ -97,9 +97,6 @@ docs = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.hatch.version]
-path = "bbot/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["bbot"]

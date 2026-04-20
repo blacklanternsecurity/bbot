@@ -137,6 +137,12 @@ class BaseTarget:
             return
         self._rt.insert(str(host), data=data)
 
+    # RFC 2317 classless reverse delegation names contain "/" in their labels
+    # (e.g. "207.128/25.38.186.64.in-addr.arpa").  These are valid DNS wire
+    # names but fail hostname validation.  Hickory-DNS may also backslash-
+    # escape the slash in presentation format ("128\/25").
+    _rfc2317_re = re.compile(r"[/\\].*\.in-addr\.arpa$|[/\\].*\.ip6\.arpa$", re.IGNORECASE)
+
     def _make_event_seed(self, target, raise_error=False):
         try:
             return EventSeed(target)
@@ -146,6 +152,8 @@ class BaseTarget:
             msg = f"Invalid target: '{target}'"
             if raise_error:
                 raise KeyError(msg)
+            elif self._rfc2317_re.search(str(target)):
+                log.verbose(f"Skipping RFC 2317 classless delegation name: '{target}'")
             else:
                 log.warning(msg)
                 log.trace("".join(traceback.format_stack()))
