@@ -456,7 +456,9 @@ class DNSHelper:
             name_server_count=0,
             additional_count=0,
         )
-        return DNSResult(host=host, response=Response(header=header, queries=[], answers=[], name_servers=[], additionals=[]))
+        return DNSResult(
+            host=host, response=Response(header=header, queries=[], answers=[], name_servers=[], additionals=[])
+        )
 
     async def shutdown(self):
         """No-op kept for API compatibility -- blastdns runs in-process, nothing to tear down."""

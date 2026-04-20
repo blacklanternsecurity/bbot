@@ -69,7 +69,7 @@ dns:
   wildcard_tests: 10
   # Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
   # This helps prevent faulty DNS servers from hanging up the scan
-  abort_threshold: 20
+  abort_threshold: 10
   # Treat hostnames discovered via PTR records as affiliates instead of in-scope
   # This prevents rDNS results (e.g. 1-2-3-4.ptr.example.com) from triggering
   # subdomain enumeration against unrelated domains when scanning IP ranges
