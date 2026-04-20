@@ -15,6 +15,7 @@ classifiers = [
     "Topic :: Security",
 ]
 dependencies = [
+    "pip",
     "omegaconf>=2.3.0,<3",
     "psutil>=5.9.4,<8.0.0",
     "wordninja>=2.0.0,<3",

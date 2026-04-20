@@ -157,10 +157,9 @@ class BlasthttpResponse:
             )
 
     def __str__(self):
-        return self.text
-
-    def __repr__(self):
         return f"BlasthttpResponse(status={self.status_code}, url='{self.url}')"
+
+    __repr__ = __str__
 
 
 class BlasthttpHTTPError(Exception):

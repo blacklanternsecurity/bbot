@@ -93,6 +93,7 @@ class web_brute_shortnames(web_brute):
     async def setup(self):
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         self.blast_client = self.helpers.blasthttp
+        self.waf_yara_rules = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
         self.max_predictions = self.config.get("max_predictions")
         self.find_subwords = self.config.get("find_subwords")
         self.rate = self.config.get("rate", 0) or None
