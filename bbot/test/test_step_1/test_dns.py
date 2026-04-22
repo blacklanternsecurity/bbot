@@ -303,14 +303,15 @@ async def test_wildcards(bbot_scanner):
 
     await scan._cleanup()
 
-    ### wildcard TXT record (empty TXT for any *.test.evilcorp.com) ###
+    ### wildcard TXT record (empty TXT for any host ending in test.evilcorp.com) ###
 
+    # regex matches both test.evilcorp.com itself and any subdomain beneath it,
+    # mirroring the original custom_lookup_fn's ``query.strip(".").endswith(...)``
     txt_mock_data = {
         "evilcorp.com": {"A": ["127.0.0.1"]},
         "test.evilcorp.com": {"A": ["127.0.0.2"]},
         "www.test.evilcorp.com": {"AAAA": ["dead::beef"]},
-        # any subdomain of test.evilcorp.com gets an empty TXT (a known wildcard pattern)
-        r"regex:.*\.test\.evilcorp\.com$": {"TXT": [""]},
+        r"regex:^(.+\.)?test\.evilcorp\.com$": {"TXT": [""]},
     }
 
     # first, run with wildcard detection disabled for evilcorp.com
@@ -318,70 +319,175 @@ async def test_wildcards(bbot_scanner):
         "evilcorp.com",
         seeds=["bbot.fdsa.www.test.evilcorp.com"],
         config={
-            "dns": {"minimal": False, "search_distance": 5, "wildcard_ignore": ["evilcorp.com"]},
+            "dns": {"minimal": False, "disable": False, "search_distance": 5, "wildcard_ignore": ["evilcorp.com"]},
             "speculate": True,
         },
     )
     await scan._prep()
     await scan.helpers.dns._mock_dns(txt_mock_data)
     events = [e async for e in scan.async_start()]
-    dns_names = sorted(e.data for e in events if e.type == "DNS_NAME")
-    assert dns_names == [
+
+    assert len(events) == 12
+    assert len([e for e in events if e.type == "DNS_NAME"]) == 5
+    assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
+    assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
         "bbot.fdsa.www.test.evilcorp.com",
         "evilcorp.com",
         "fdsa.www.test.evilcorp.com",
         "test.evilcorp.com",
         "www.test.evilcorp.com",
     ]
-    dns_names_by_host = {e.host: e for e in events if e.type == "DNS_NAME"}
-    # nothing should be tagged wildcard since detection is disabled for evilcorp.com
-    for e in dns_names_by_host.values():
-        assert "wildcard" not in e.tags
-        assert not any(t.endswith("-wildcard") for t in e.tags)
-    assert dns_names_by_host["evilcorp.com"].resolved_hosts == {"127.0.0.1"}
-    assert dns_names_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
-    assert dns_names_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
 
-    # then run with wildcard detection enabled
+    dns_names_by_host = {e.host: e for e in events if e.type == "DNS_NAME"}
+    assert dns_names_by_host["evilcorp.com"].tags == {
+        "domain",
+        "private-ip",
+        "in-scope",
+        "a-record",
+    }
+    assert dns_names_by_host["evilcorp.com"].resolved_hosts == {"127.0.0.1"}
+    assert dns_names_by_host["test.evilcorp.com"].tags == {
+        "subdomain",
+        "private-ip",
+        "in-scope",
+        "a-record",
+        "txt-record",
+    }
+    assert dns_names_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
+    assert dns_names_by_host["www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "aaaa-record", "txt-record"}
+    assert dns_names_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    assert dns_names_by_host["fdsa.www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert dns_names_by_host["fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+    assert dns_names_by_host["bbot.fdsa.www.test.evilcorp.com"].tags == {
+        "target",
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "seed",
+    }
+    assert dns_names_by_host["bbot.fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+
+    raw_records_by_host = {e.host: e for e in events if e.type == "RAW_DNS_RECORD"}
+    assert raw_records_by_host["test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
+    assert raw_records_by_host["www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    assert raw_records_by_host["fdsa.www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+    assert raw_records_by_host["bbot.fdsa.www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["bbot.fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+
+    # then we run it again with wildcard detection enabled
+
     scan = bbot_scanner(
         "evilcorp.com",
         seeds=["bbot.fdsa.www.test.evilcorp.com"],
         config={
-            "dns": {"minimal": False, "search_distance": 5, "wildcard_ignore": []},
+            "dns": {"minimal": False, "disable": False, "search_distance": 5, "wildcard_ignore": []},
             "speculate": True,
         },
     )
     await scan._prep()
     await scan.helpers.dns._mock_dns(txt_mock_data)
-    events = [e async for e in scan.async_start()]
-    dns_names_by_host = {e.host: e for e in events if e.type == "DNS_NAME"}
 
-    # the seed event keeps its real host (renaming is suppressed for seeds)
-    assert "bbot.fdsa.www.test.evilcorp.com" in dns_names_by_host
-    # at least one wildcard-renamed event was emitted
-    renamed = [e for e in events if e.type == "DNS_NAME" and e.data.startswith("_wildcard.")]
-    assert renamed, "expected at least one _wildcard.* renamed event"
-    # explicit www.test.evilcorp.com still has its real AAAA, but is tagged wildcard for TXT
-    if "www.test.evilcorp.com" in dns_names_by_host:
-        assert "txt-wildcard" in dns_names_by_host["www.test.evilcorp.com"].tags
-        assert dns_names_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    events = [e async for e in scan.async_start()]
+
+    assert len(events) == 12
+    assert len([e for e in events if e.type == "DNS_NAME"]) == 5
+    assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
+    assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
+        "_wildcard.test.evilcorp.com",
+        "bbot.fdsa.www.test.evilcorp.com",
+        "evilcorp.com",
+        "test.evilcorp.com",
+        "www.test.evilcorp.com",
+    ]
+
+    dns_names_by_host = {e.host: e for e in events if e.type == "DNS_NAME"}
+    assert dns_names_by_host["evilcorp.com"].tags == {
+        "domain",
+        "private-ip",
+        "in-scope",
+        "a-record",
+    }
+    assert dns_names_by_host["evilcorp.com"].resolved_hosts == {"127.0.0.1"}
+    assert dns_names_by_host["test.evilcorp.com"].tags == {
+        "subdomain",
+        "private-ip",
+        "in-scope",
+        "a-record",
+        "txt-record",
+    }
+    assert dns_names_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
+    assert dns_names_by_host["_wildcard.test.evilcorp.com"].tags == {
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "txt-wildcard",
+        "wildcard",
+    }
+    assert dns_names_by_host["_wildcard.test.evilcorp.com"].resolved_hosts == set()
+    assert dns_names_by_host["www.test.evilcorp.com"].tags == {
+        "subdomain",
+        "in-scope",
+        "aaaa-record",
+        "txt-record",
+        "txt-wildcard",
+        "wildcard",
+    }
+    assert dns_names_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    assert dns_names_by_host["bbot.fdsa.www.test.evilcorp.com"].tags == {
+        "target",
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "txt-wildcard",
+        "wildcard",
+        "seed",
+    }
+    assert dns_names_by_host["bbot.fdsa.www.test.evilcorp.com"].resolved_hosts == set()
+
+    raw_records_by_host = {e.host: e for e in events if e.type == "RAW_DNS_RECORD"}
+    assert raw_records_by_host["test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record"}
+    assert raw_records_by_host["test.evilcorp.com"].resolved_hosts == {"127.0.0.2"}
+    assert raw_records_by_host["www.test.evilcorp.com"].tags == {"subdomain", "in-scope", "txt-record", "txt-wildcard"}
+    assert raw_records_by_host["www.test.evilcorp.com"].resolved_hosts == {"dead::beef"}
+    assert raw_records_by_host["_wildcard.test.evilcorp.com"].tags == {
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "txt-wildcard",
+    }
+    assert raw_records_by_host["_wildcard.test.evilcorp.com"].resolved_hosts == set()
+    assert raw_records_by_host["bbot.fdsa.www.test.evilcorp.com"].tags == {
+        "subdomain",
+        "in-scope",
+        "txt-record",
+        "txt-wildcard",
+    }
+    assert raw_records_by_host["bbot.fdsa.www.test.evilcorp.com"].resolved_hosts == set()
 
     ### runaway SRV wildcard ###
 
-    # mock a chain of SRV records that recursively point to a deeper subdomain.
-    # without runaway detection, this would generate infinite events.
+    # mock a chain of SRV records that recursively point to a deeper subdomain
+    # (replacing the original test's dynamic ``custom_lookup_fn``).
+    # The regex catch-all is what makes wildcard detection see *.evilcorp.com as a
+    # SRV wildcard zone -- without it, random probes during wildcard detection
+    # would return no SRV records and the *-wildcard-possible tags would never fire.
     runaway_mock = {
         "evilcorp.com": {"A": ["127.0.0.1"], "SRV": ["0 100 389 test.evilcorp.com."]},
         "test.evilcorp.com": {"AAAA": ["dead::beef"], "SRV": ["0 100 389 test.test.evilcorp.com."]},
         "test.test.evilcorp.com": {"SRV": ["0 100 389 test.test.test.evilcorp.com."]},
         "test.test.test.evilcorp.com": {"SRV": ["0 100 389 test.test.test.test.evilcorp.com."]},
         "test.test.test.test.evilcorp.com": {"SRV": ["0 100 389 test.test.test.test.test.evilcorp.com."]},
+        r"regex:^.+\.evilcorp\.com$": {"SRV": ["0 100 389 test.evilcorp.com."]},
     }
     scan = bbot_scanner(
         "evilcorp.com",
         config={
             "dns": {
                 "minimal": False,
+                "disable": False,
                 "search_distance": 5,
                 "wildcard_ignore": [],
                 "runaway_limit": 3,
@@ -390,22 +496,112 @@ async def test_wildcards(bbot_scanner):
     )
     await scan._prep()
     await scan.helpers.dns._mock_dns(runaway_mock)
+
     events = [e async for e in scan.async_start()]
-    dns_name_data = sorted(e.data for e in events if e.type == "DNS_NAME")
-    # runaway_limit=3 should stop the cascade before the 5th level
-    assert "test.test.test.test.test.evilcorp.com" not in dns_name_data
-    # the leaf event that hit the runaway limit should be tagged accordingly
-    runaway_tagged = [e for e in events if e.type == "DNS_NAME" and any(t.startswith("runaway-dns-") for t in e.tags)]
-    assert runaway_tagged, "expected at least one event tagged runaway-dns-N"
+
+    assert len(events) == 11
+    assert len([e for e in events if e.type == "DNS_NAME"]) == 5
+    assert len([e for e in events if e.type == "RAW_DNS_RECORD"]) == 4
+    assert sorted([e.data for e in events if e.type == "DNS_NAME"]) == [
+        "evilcorp.com",
+        "test.evilcorp.com",
+        "test.test.evilcorp.com",
+        "test.test.test.evilcorp.com",
+        "test.test.test.test.evilcorp.com",
+    ]
+
+    dns_names_by_host = {e.host: e for e in events if e.type == "DNS_NAME"}
+    assert dns_names_by_host["evilcorp.com"].tags == {
+        "target",
+        "a-record",
+        "in-scope",
+        "domain",
+        "srv-record",
+        "private-ip",
+        "seed",
+    }
+    assert dns_names_by_host["test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "aaaa-record",
+        "srv-wildcard-possible",
+        "wildcard-possible",
+        "subdomain",
+    }
+    assert dns_names_by_host["test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "wildcard-possible",
+        "subdomain",
+    }
+    assert dns_names_by_host["test.test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "wildcard-possible",
+        "subdomain",
+    }
+    assert dns_names_by_host["test.test.test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "wildcard-possible",
+        "subdomain",
+        "runaway-dns-3",
+    }
+
+    raw_records_by_host = {e.host: e for e in events if e.type == "RAW_DNS_RECORD"}
+    assert raw_records_by_host["evilcorp.com"].tags == {"in-scope", "srv-record", "domain"}
+    assert raw_records_by_host["test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "subdomain",
+    }
+    assert raw_records_by_host["test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "subdomain",
+    }
+    assert raw_records_by_host["test.test.test.evilcorp.com"].tags == {
+        "in-scope",
+        "srv-record",
+        "srv-wildcard-possible",
+        "subdomain",
+    }
 
     await scan._cleanup()
 
-    ### dns_resolve_distance bookkeeping ###
+    ### event resolution + dns_resolve_distance (live github.io wildcard) ###
 
     scan = bbot_scanner("1.1.1.1")
     await scan._prep()
-    dnsresolve = scan.modules["dnsresolve"]
 
+    # event resolution -- github.io is a stable GitHub Pages wildcard zone
+    wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event1.scope_distance = 0
+    wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event2.scope_distance = 0
+    wildcard_event3 = scan.make_event("github.io", "DNS_NAME", parent=scan.root_event)
+    wildcard_event3.scope_distance = 0
+
+    dnsresolve = scan.modules["dnsresolve"]
+    await dnsresolve.handle_event(wildcard_event1)
+    await dnsresolve.handle_event(wildcard_event2)
+    await dnsresolve.handle_event(wildcard_event3)
+    assert "wildcard" in wildcard_event1.tags
+    assert "a-wildcard" in wildcard_event1.tags
+    assert "srv-wildcard" not in wildcard_event1.tags
+    assert "wildcard" in wildcard_event2.tags
+    assert "a-wildcard" in wildcard_event2.tags
+    assert "srv-wildcard" not in wildcard_event2.tags
+    assert wildcard_event1.data == "_wildcard.github.io"
+    assert wildcard_event2.data == "_wildcard.github.io"
+    assert wildcard_event3.data == "github.io"
+
+    # dns resolve distance
     event_distance_0 = scan.make_event("8.8.8.8", module=dnsresolve._make_dummy_module("PTR"), parent=scan.root_event)
     assert event_distance_0.dns_resolve_distance == 0
     event_distance_1 = scan.make_event(
@@ -413,7 +609,6 @@ async def test_wildcards(bbot_scanner):
     )
     assert event_distance_1.dns_resolve_distance == 1
     event_distance_2 = scan.make_event("1.2.3.4", module=dnsresolve._make_dummy_module("PTR"), parent=event_distance_1)
-    # IP_ADDRESS inherits its parent's distance directly
     assert event_distance_2.dns_resolve_distance == 1
     event_distance_3 = scan.make_event(
         "evilcorp.org", module=dnsresolve._make_dummy_module("A"), parent=event_distance_2
@@ -421,6 +616,106 @@ async def test_wildcards(bbot_scanner):
     assert event_distance_3.dns_resolve_distance == 2
 
     await scan._cleanup()
+
+    ### full Scanner test against live github.io ###
+
+    from bbot.scanner import Scanner
+
+    scan2 = Scanner(
+        "github.io",
+        seeds=["asdfl.gashdgkjsadgsdf.github.io"],
+        config={"dns": {"minimal": False}},
+    )
+    await scan2._prep()
+    other_event = scan2.make_event(
+        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dnsresolve"], parent=scan2.root_event
+    )
+    await scan2.ingress_module.queue_event(other_event, {})
+    events = [e async for e in scan2.async_start()]
+
+    assert len(events) == 4
+    assert 2 == len([e for e in events if e.type == "SCAN"])
+    unmodified_wildcard_events = [
+        e for e in events if e.type == "DNS_NAME" and e.data == "asdfl.gashdgkjsadgsdf.github.io"
+    ]
+    assert len(unmodified_wildcard_events) == 1
+    assert unmodified_wildcard_events[0].tags.issuperset(
+        {
+            "a-record",
+            "target",
+            "aaaa-wildcard",
+            "in-scope",
+            "subdomain",
+            "aaaa-record",
+            "wildcard",
+            "a-wildcard",
+        }
+    )
+    modified_wildcard_events = [e for e in events if e.type == "DNS_NAME" and e.data == "_wildcard.github.io"]
+    assert len(modified_wildcard_events) == 1
+    assert modified_wildcard_events[0].tags.issuperset(
+        {
+            "a-record",
+            "aaaa-wildcard",
+            "in-scope",
+            "subdomain",
+            "aaaa-record",
+            "wildcard",
+            "a-wildcard",
+        }
+    )
+    assert modified_wildcard_events[0].host_original == "lkjg.sdfgsg.jgkhajshdsadf.github.io"
+
+    # full scan with wildcard detection disabled for github.io
+    scan2 = Scanner(
+        "github.io",
+        seeds=["asdfl.gashdgkjsadgsdf.github.io"],
+        config={"dns": {"wildcard_ignore": ["github.io"]}},
+        exclude_modules=["cloudcheck"],
+    )
+    await scan2._prep()
+    other_event = scan2.make_event(
+        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dnsresolve"], parent=scan2.root_event
+    )
+    await scan2.ingress_module.queue_event(other_event, {})
+    events = [e async for e in scan2.async_start()]
+    assert len(events) == 4
+    assert 2 == len([e for e in events if e.type == "SCAN"])
+    unmodified_wildcard_events = [e for e in events if e.type == "DNS_NAME" and "_wildcard" not in e.data]
+    assert len(unmodified_wildcard_events) == 2
+    assert 1 == len(
+        [
+            e
+            for e in unmodified_wildcard_events
+            if e.data == "asdfl.gashdgkjsadgsdf.github.io"
+            and e.tags.issuperset(
+                {
+                    "target",
+                    "a-record",
+                    "in-scope",
+                    "subdomain",
+                    "aaaa-record",
+                }
+            )
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in unmodified_wildcard_events
+            if e.data == "lkjg.sdfgsg.jgkhajshdsadf.github.io"
+            and e.tags.issuperset(
+                {
+                    "a-record",
+                    "in-scope",
+                    "subdomain",
+                    "aaaa-record",
+                }
+            )
+        ]
+    )
+    modified_wildcard_events = [e for e in events if e.type == "DNS_NAME" and e.data == "_wildcard.github.io"]
+    assert len(modified_wildcard_events) == 0
 
 
 @pytest.mark.asyncio
