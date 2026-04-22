@@ -1876,7 +1876,7 @@ class BaseInterceptModule(BaseModule):
                     forward_event_reason = ""
 
                     if acceptable:
-                        context = f"{self.name}.handle_event({event, kwargs})"
+                        context = f"{self.name}.handle_event({event})"
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Intercepting {event}")
                         try:
