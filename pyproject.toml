@@ -79,7 +79,7 @@ dev = [
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "baddns~=2.1.0",
-    "ruff==0.15.10",
+    "ruff==0.15.11",
 ]
 docs = [
     "mkdocs>=1.5.2,<2",
