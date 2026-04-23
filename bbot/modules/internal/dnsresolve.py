@@ -2,9 +2,10 @@ import sys
 import ipaddress
 from contextlib import suppress
 
+from blastdns import DNSResult
+
 from bbot.errors import ValidationError
-from bbot.core.helpers.dns.engine import all_rdtypes
-from bbot.core.helpers.dns.helpers import extract_targets
+from bbot.core.helpers.dns.helpers import all_rdtypes, extract_targets, record_to_text
 from bbot.modules.base import BaseInterceptModule, BaseModule
 
 
@@ -202,7 +203,7 @@ class DNSResolve(BaseInterceptModule):
                         context=f"{rdtype} record for {event.host} contains {{event.type}}: {{event.host}}",
                     )
                 except ValidationError as e:
-                    self.warning(f'Event validation failed for DNS child of {event}: "{child_host}" ({rdtype}): {e}')
+                    self.trace(f'Event validation failed for DNS child of {event}: "{child_host}" ({rdtype}): {e}')
                     continue
 
                 # tag PTR-derived children so downstream logic can identify them
@@ -227,7 +228,7 @@ class DNSResolve(BaseInterceptModule):
             tags = {t for t in dns_tags if rdtype_lower in t.split("-")}
             if self.emit_raw_records and rdtype not in ("A", "AAAA", "CNAME", "PTR"):
                 for answer in answers:
-                    text_answer = answer.to_text()
+                    text_answer = record_to_text(answer)
                     child_hash = hash(f"{event.host}:{rdtype}:{text_answer}")
                     if child_hash not in self.children_emitted_raw:
                         self.children_emitted_raw.add(child_hash)
@@ -270,23 +271,23 @@ class DNSResolve(BaseInterceptModule):
         if not types:
             return
         event_host = str(event.host)
-        queries = [(event_host, rdtype) for rdtype in types]
-        dns_errors = {}
-        async for (query, rdtype), (answers, errors) in self.helpers.dns.resolve_raw_batch(queries):
+        results = await self.helpers.dns.resolve_multi_full(event_host, list(types))
+        for rdtype, response in results.items():
             rdtype = sys.intern(rdtype)
-            # errors
-            try:
-                dns_errors[rdtype].update(errors)
-            except KeyError:
-                dns_errors[rdtype] = set(errors)
+            if not isinstance(response, DNSResult):
+                # blastdns returns a DNSError for this rdtype; tag and move on
+                if rdtype not in event.dns_children:
+                    event.add_tag(f"{rdtype}-error")
+                continue
+
+            answers = response.response.answers
+            if not answers:
+                continue
+
+            event.add_tag(f"{rdtype}-record")
+            # blastdns hands us an already-unique list[Record] -- store as-is, no copy
+            event.raw_dns_records[rdtype] = answers
             for answer in answers:
-                event.add_tag(f"{rdtype}-record")
-                # raw dnspython answers
-                try:
-                    event.raw_dns_records[rdtype].add(answer)
-                except KeyError:
-                    event.raw_dns_records[rdtype] = {answer}
-                # hosts
                 for _rdtype, host in extract_targets(answer):
                     _rdtype = sys.intern(_rdtype)
                     host = sys.intern(host)
@@ -301,12 +302,6 @@ class DNSResolve(BaseInterceptModule):
                             event.add_tag("private-ip")
                     except ValueError:
                         continue
-
-        # tag event with errors
-        for rdtype, errors in dns_errors.items():
-            # only consider it an error if there weren't any results for that rdtype
-            if errors and rdtype not in event.dns_children:
-                event.add_tag(f"{rdtype}-error")
 
     def get_dns_parent(self, event):
         """

@@ -1,4 +1,6 @@
+from importlib.metadata import version, PackageNotFoundError
+
 try:
-    from bbot._version import __version__
-except ImportError:
+    __version__ = version("bbot")
+except PackageNotFoundError:
     __version__ = "0.0.0"
