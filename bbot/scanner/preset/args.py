@@ -1,10 +1,48 @@
 import re
+import yaml
 import logging
 import argparse
-from omegaconf import OmegaConf
 
 from bbot.errors import *
+from bbot.core.config.merge import dotted_get, dotted_set
 from bbot.core.helpers.misc import chain_lists, get_closest_match, get_keys_in_dot_syntax
+
+
+def _parse_cli_value(raw: str):
+    """
+    Parse the RHS of a `-c a.b.c=value` argument.
+
+    YAML safe_load handles `true`/`false`/`null`/ints/floats and quoted strings
+    the way users expect when they write `web.spider_distance=2` or
+    `modules.stdout.event_fields='[type, data]'`.
+    """
+    try:
+        return yaml.safe_load(raw)
+    except yaml.YAMLError:
+        return raw
+
+
+def parse_dotted_cli(entries):
+    """
+    Parse one or more `a.b.c=value` strings into a nested dict.
+
+    Examples:
+        >>> parse_dotted_cli(["modules.shodan.api_key=1234"])
+        {'modules': {'shodan': {'api_key': 1234}}}
+        >>> parse_dotted_cli(["web.spider_distance=2"])
+        {'web': {'spider_distance': 2}}
+    """
+    result: dict = {}
+    for entry in entries:
+        if "=" not in entry:
+            raise ValueError(f'Expected "key=value" (got {entry!r})')
+        path, _, raw = entry.partition("=")
+        path = path.strip()
+        if not path:
+            raise ValueError(f'Empty key in "{entry}"')
+        dotted_set(result, path, _parse_cli_value(raw.strip()))
+    return result
+
 
 log = logging.getLogger("bbot.presets.args")
 
@@ -197,8 +235,7 @@ class BBOTArgs:
         # CLI config options (dot-syntax)
         for config_arg in self.parsed.config:
             try:
-                # if that fails, try to parse as key=value syntax
-                args_preset.core.merge_custom(OmegaConf.from_cli([config_arg]))
+                args_preset.core.merge_custom(parse_dotted_cli([config_arg]))
             except Exception as e:
                 raise BBOTArgumentError(f'Error parsing command-line config option: "{config_arg}": {e}')
 
@@ -459,7 +496,7 @@ class BBOTArgs:
         all_options = set(get_keys_in_dot_syntax(self.preset.core.default_config))
         for c in self.parsed.config:
             c = c.split("=")[0].strip()
-            v = OmegaConf.select(self.preset.core.default_config, c, default=sentinel)
+            v = dotted_get(self.preset.core.default_config, c, default=sentinel)
             # if option isn't in the default config
             if v is sentinel:
                 # skip if it's excluded from validation

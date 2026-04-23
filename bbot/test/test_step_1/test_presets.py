@@ -25,31 +25,21 @@ def test_preset_descriptions():
 def test_core():
     from bbot.core import CORE
 
-    import omegaconf
-
     assert "testasdf" not in CORE.default_config
     assert "testasdf" not in CORE.custom_config
     assert "testasdf" not in CORE.config
 
     core_copy = CORE.copy()
-    # make sure our default config is read-only
-    with pytest.raises(omegaconf.errors.ReadonlyConfigError):
-        core_copy.default_config["testasdf"] = "test"
-    # same for merged config
-    with pytest.raises(omegaconf.errors.ReadonlyConfigError):
-        core_copy.config["testasdf"] = "test"
-
-    assert "testasdf" not in core_copy.default_config
-    assert "testasdf" not in core_copy.custom_config
-    assert "testasdf" not in core_copy.config
-
+    # custom_config is mutable per-instance; default/merged config should not leak back
     core_copy.custom_config["testasdf"] = "test"
-    assert "testasdf" not in core_copy.default_config
+    assert "testasdf" not in CORE.custom_config
+    assert "testasdf" not in CORE.config
     assert "testasdf" in core_copy.custom_config
+    # force a re-merge by reading .config
     assert "testasdf" in core_copy.config
 
     # test config merging
-    config_to_merge = omegaconf.OmegaConf.create({"test123": {"test321": [3, 2, 1], "test456": [4, 5, 6]}})
+    config_to_merge = {"test123": {"test321": [3, 2, 1], "test456": [4, 5, 6]}}
     core_copy.merge_custom(config_to_merge)
     assert "test123" not in core_copy.default_config
     assert "test123" in core_copy.custom_config
@@ -58,7 +48,9 @@ def test_core():
     assert "test321" in core_copy.config["test123"]
 
     # test deletion
-    del core_copy.custom_config.test123.test321
+    del core_copy.custom_config["test123"]["test321"]
+    # force re-merge
+    core_copy._config = None
     assert "test123" in core_copy.custom_config
     assert "test123" in core_copy.config
     assert "test321" not in core_copy.custom_config["test123"]
@@ -902,19 +894,19 @@ config:
 
     # with include=
     preset = Preset(include=[str(custom_preset_dir_1 / "preset1")])
-    assert preset.config.modules.testpreset1.test == "asdf"
-    assert preset.config.modules.testpreset2.test == "fdsa"
-    assert preset.config.modules.testpreset3.test == "qwerty"
-    assert preset.config.modules.testpreset4.test == "zxcv"
-    assert preset.config.modules.testpreset5.test == "hjkl"
+    assert preset.config["modules"]["testpreset1"]["test"] == "asdf"
+    assert preset.config["modules"]["testpreset2"]["test"] == "fdsa"
+    assert preset.config["modules"]["testpreset3"]["test"] == "qwerty"
+    assert preset.config["modules"]["testpreset4"]["test"] == "zxcv"
+    assert preset.config["modules"]["testpreset5"]["test"] == "hjkl"
 
     # same thing but with presets= (an alias to include)
     preset = Preset(presets=[str(custom_preset_dir_1 / "preset1")])
-    assert preset.config.modules.testpreset1.test == "asdf"
-    assert preset.config.modules.testpreset2.test == "fdsa"
-    assert preset.config.modules.testpreset3.test == "qwerty"
-    assert preset.config.modules.testpreset4.test == "zxcv"
-    assert preset.config.modules.testpreset5.test == "hjkl"
+    assert preset.config["modules"]["testpreset1"]["test"] == "asdf"
+    assert preset.config["modules"]["testpreset2"]["test"] == "fdsa"
+    assert preset.config["modules"]["testpreset3"]["test"] == "qwerty"
+    assert preset.config["modules"]["testpreset4"]["test"] == "zxcv"
+    assert preset.config["modules"]["testpreset5"]["test"] == "hjkl"
 
     # can't use both include= and presets= at the same time
     with pytest.raises(ValueError):

@@ -218,6 +218,11 @@ class legba(BaseModule):
                 "1",
             ]
         else:
-            cmd += ["--rate-limit", self.config.rate_limit, "--concurrency", self.config.concurrency]
+            cmd += [
+                "--rate-limit",
+                str(self.config.get("rate_limit")),
+                "--concurrency",
+                str(self.config.get("concurrency")),
+            ]
 
         return cmd, output_path

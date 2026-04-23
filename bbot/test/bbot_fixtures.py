@@ -7,12 +7,12 @@ import logging
 import tldextract
 import pytest_httpserver
 from pathlib import Path
-from omegaconf import OmegaConf  # noqa
 
 from werkzeug.wrappers import Request
 
 from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
+from bbot.core.config.merge import deep_update
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir, rand_string
 
@@ -49,13 +49,14 @@ def tempapkfile():
 
 @pytest.fixture
 def clean_default_config(monkeypatch):
-    clean_config = OmegaConf.merge(
-        CORE.files_config.get_default_config(), {"modules": DEFAULT_PRESET.module_loader.configs()}
+    clean_config = deep_update(
+        CORE.files_config.get_default_config(),
+        {"modules": DEFAULT_PRESET.module_loader.configs()},
     )
     with monkeypatch.context() as m:
         m.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
         # Also clear CORE's custom_config to ensure Preset.copy() gets a clean core
-        m.setattr(CORE, "_custom_config", OmegaConf.create({}))
+        m.setattr(CORE, "_custom_config", {})
         yield
 
 

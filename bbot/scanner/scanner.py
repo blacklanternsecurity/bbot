@@ -76,7 +76,7 @@ class Scanner:
         _status_code (int): The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in `_status_codes`.
         target (Target): Target of scan (alias to `self.preset.target`).
         preset (Preset): The main scan Preset in its baked form.
-        config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `self.preset.config`).
+        config (dict): BBOT config (alias to `self.preset.config`).
         seeds (Target): Scan seeds (by default this is the same as `target`) (alias to `self.preset.seeds`).
         blacklist (Target): Scan blacklist (this takes ultimate precedence) (alias to `self.preset.blacklist`).
         helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc. (alias to `self.preset.helpers`).

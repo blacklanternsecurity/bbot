@@ -1,11 +1,9 @@
 import os
 import yaml
 import logging
-import omegaconf
 import traceback
 from copy import copy
 from pathlib import Path
-from contextlib import suppress
 
 from .path import PRESET_PATH
 
@@ -93,7 +91,7 @@ class Preset(metaclass=BasePreset):
         require_flags (set): Require modules to have these flags. When set, automatically removes offending modules.
         exclude_flags (set): Exclude modules that have any of these flags. When set, automatically removes offending modules.
         module_dirs (set): Custom directories from which to load modules (alias to `self.module_loader.module_dirs`). When set, automatically preloads contained modules.
-        config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `core.config`)
+        config (dict): BBOT config (alias to `core.config`)
         core (BBOTCore): Local copy of BBOTCore object.
         verbose (bool): Whether log level is currently set to verbose. When set, updates log level for all BBOT log handlers.
         debug (bool): Whether log level is currently set to debug. When set, updates log level for all BBOT log handlers.
@@ -249,7 +247,7 @@ class Preset(metaclass=BasePreset):
         # bbot core config
         self.core = CORE.copy()
         if config is None:
-            config = omegaconf.OmegaConf.create({})
+            config = {}
         # merge custom configs if specified by the user
         self.core.merge_custom(config)
 
@@ -570,16 +568,14 @@ class Preset(metaclass=BasePreset):
             if apply_core:
                 self.core.logger.log_level = "CRITICAL"
                 for key in ("verbose", "debug"):
-                    with suppress(omegaconf.errors.ConfigKeyError):
-                        del self.core.custom_config[key]
+                    self.core.custom_config.pop(key, None)
         else:
             # then debug
             if self.debug:
                 self.verbose = False
                 if apply_core:
                     self.core.logger.log_level = "DEBUG"
-                    with suppress(omegaconf.errors.ConfigKeyError):
-                        del self.core.custom_config["verbose"]
+                    self.core.custom_config.pop("verbose", None)
             else:
                 # finally verbose
                 if self.verbose and apply_core:
@@ -764,7 +760,7 @@ class Preset(metaclass=BasePreset):
             except FileNotFoundError:
                 raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
             preset = cls.from_dict(
-                omegaconf.OmegaConf.create(yaml_str),
+                yaml.safe_load(yaml_str) or {},
                 name=filename.stem,
                 _exclude=_exclude,
                 _log=_log,
@@ -789,7 +785,7 @@ class Preset(metaclass=BasePreset):
             >>> - portscan'''
             >>> preset = Preset.from_yaml_string(yaml_string)
         """
-        return cls.from_dict(omegaconf.OmegaConf.create(yaml_preset))
+        return cls.from_dict(yaml.safe_load(yaml_preset) or {})
 
     def to_dict(self, include_target=False, full_config=False, redact_secrets=False):
         """
@@ -814,10 +810,9 @@ class Preset(metaclass=BasePreset):
 
         # config
         if full_config:
-            config = self.core.config
+            config = dict(self.core.config)
         else:
-            config = self.core.custom_config
-        config = omegaconf.OmegaConf.to_object(config)
+            config = dict(self.core.custom_config)
         if redact_secrets:
             config = self.core.no_secrets_config(config)
         if config:

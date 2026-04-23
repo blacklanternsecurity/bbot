@@ -1,15 +1,14 @@
 import re
 import ast
 import sys
+import yaml
 import atexit
 import pickle
 import logging
 import importlib
-import omegaconf
 import traceback
 from copy import copy
 from pathlib import Path
-from omegaconf import OmegaConf
 from contextlib import suppress
 
 from bbot.core import CORE
@@ -32,6 +31,77 @@ from .helpers.misc import (
 log = logging.getLogger("bbot.module_loader")
 
 bbot_code_dir = Path(__file__).parent.parent
+
+
+_UNEVALUATED = object()
+
+
+def _eval_ast_default(node):
+    """
+    Extract a literal default value from an AST node. Returns _UNEVALUATED if
+    the node can't be resolved statically (e.g. `default_factory=lambda: ...`
+    or a non-constant expression). Preload uses this for display-time defaults
+    only; actual validation happens at bake time against the real pydantic
+    Config class.
+    """
+    if node is None:
+        return _UNEVALUATED
+    try:
+        return ast.literal_eval(node)
+    except (ValueError, TypeError, SyntaxError):
+        # Recognize a few common default_factory values.
+        if isinstance(node, ast.Name):
+            return {"list": [], "dict": {}, "set": set(), "tuple": (), "str": "", "int": 0, "float": 0.0}.get(
+                node.id, _UNEVALUATED
+            )
+        return _UNEVALUATED
+
+
+def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict]:
+    """
+    Walk a `class Config(BaseModuleConfig):` block and extract
+    `(field_defaults, field_descriptions)` dicts mirroring the legacy
+    `options`/`options_desc` shape.
+
+    Used by the preloader so `bbot -l` and module listing work without
+    importing the module (deps may be missing on the host).
+    """
+    defaults: dict = {}
+    descriptions: dict = {}
+    for node in config_class.body:
+        # `model_config = ConfigDict(...)` etc. are plain assigns, not typed — skip.
+        if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
+            continue
+        name = node.target.id
+        if name.startswith("_"):
+            continue
+
+        default = _UNEVALUATED
+        description = ""
+
+        value = node.value
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "Field":
+            # Field(default, description="...", default_factory=..., ...)
+            # - first positional arg is the default, if given
+            if value.args:
+                default = _eval_ast_default(value.args[0])
+            for kw in value.keywords:
+                if kw.arg == "default":
+                    default = _eval_ast_default(kw.value)
+                elif kw.arg == "default_factory":
+                    default = _eval_ast_default(kw.value)
+                elif kw.arg == "description":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        description = ast.literal_eval(kw.value)
+        elif value is not None:
+            default = _eval_ast_default(value)
+
+        if default is _UNEVALUATED:
+            # couldn't statically determine; fall back to None so listing still works
+            default = None
+        defaults[name] = default
+        descriptions[name] = description
+    return defaults, descriptions
 
 
 class ModuleLoader:
@@ -196,18 +266,12 @@ class ModuleLoader:
                 self.flag_choices.update(set(flags))
 
                 self.__preloaded[module_name] = preloaded
-                config = OmegaConf.create(preloaded.get("config", {}))
-                self._configs[module_name] = config
+                self._configs[module_name] = dict(preloaded.get("config", {}))
 
             self._module_dirs_preloaded.add(module_dir)
 
         # update default config with module defaults
-        module_config = omegaconf.OmegaConf.create(
-            {
-                "modules": self.configs(),
-            }
-        )
-        self.core.merge_default(module_config)
+        self.core.merge_default({"modules": self.configs()})
 
         return new_modules
 
@@ -254,12 +318,9 @@ class ModuleLoader:
         return preloaded
 
     def configs(self, type=None):
-        configs = {}
         if type is not None:
-            configs = {k: v for k, v in self._configs.items() if self.check_type(k, type)}
-        else:
-            configs = dict(self._configs)
-        return OmegaConf.create(configs)
+            return {k: dict(v) for k, v in self._configs.items() if self.check_type(k, type)}
+        return {k: dict(v) for k, v in self._configs.items()}
 
     def find_and_replace(self, **kwargs):
         self.__preloaded = search_format_dict(self.__preloaded, **kwargs)
@@ -355,15 +416,22 @@ class ModuleLoader:
             # look for classes
             if type(root_element) == ast.ClassDef:
                 for class_attr in root_element.body:
+                    # nested `class Config(BaseModuleConfig): ...` — the new pydantic-based schema
+                    if type(class_attr) == ast.ClassDef and class_attr.name == "Config":
+                        config_fields, config_descs = _extract_pydantic_config(class_attr)
+                        config.update(config_fields)
+                        options_desc.update(config_descs)
+                        continue
+
                     if not type(class_attr) == ast.Assign:
                         continue
 
                     # class attributes that are dictionaries
                     if type(class_attr.value) == ast.Dict:
-                        # module options
+                        # module options (legacy — pre-pydantic shim)
                         if any(target.id == "options" for target in class_attr.targets):
                             config.update(ast.literal_eval(class_attr.value))
-                        # module options
+                        # module options descriptions (legacy)
                         elif any(target.id == "options_desc" for target in class_attr.targets):
                             options_desc.update(ast.literal_eval(class_attr.value))
                         # module metadata
@@ -692,25 +760,25 @@ class ModuleLoader:
             + "# Please be sure to uncomment when inserting API keys, etc.\n"
         )
 
-        config_obj = OmegaConf.to_object(self.core.default_config)
+        config_obj = dict(self.core.default_config)
 
         # ensure bbot.yml
         if not files.config_filename.exists():
             log_to_stderr(f"Creating BBOT config at {files.config_filename}")
             no_secrets_config = self.core.no_secrets_config(config_obj)
-            yaml = OmegaConf.to_yaml(no_secrets_config)
-            yaml = comment_notice + "\n".join(f"# {line}" for line in yaml.splitlines())
+            yaml_str = yaml.dump(no_secrets_config, sort_keys=False)
+            yaml_str = comment_notice + "\n".join(f"# {line}" for line in yaml_str.splitlines())
             with open(str(files.config_filename), "w") as f:
-                f.write(yaml)
+                f.write(yaml_str)
 
         # ensure secrets.yml
         if not files.secrets_filename.exists():
             log_to_stderr(f"Creating BBOT secrets at {files.secrets_filename}")
             secrets_only_config = self.core.secrets_only_config(config_obj)
-            yaml = OmegaConf.to_yaml(secrets_only_config)
-            yaml = comment_notice + "\n".join(f"# {line}" for line in yaml.splitlines())
+            yaml_str = yaml.dump(secrets_only_config, sort_keys=False)
+            yaml_str = comment_notice + "\n".join(f"# {line}" for line in yaml_str.splitlines())
             with open(str(files.secrets_filename), "w") as f:
-                f.write(yaml)
+                f.write(yaml_str)
             files.secrets_filename.chmod(0o600)
 
 
