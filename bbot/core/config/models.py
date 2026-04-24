@@ -1,9 +1,14 @@
 """
 Pydantic schema for BBOT's global config and preset files.
 
-The top-level `BBOTConfig` mirrors the structure of `defaults.yml`. Per-module
-configs are validated separately at bake time against each module's own
-`class Config(BaseModuleConfig)` (see `BaseModuleConfig` below).
+These models describe the *shape* of valid BBOT configuration — field names
+and their expected types — so that `validate_preset()` can catch typos
+(`scpoe:`, `http_timoeut:`) and type errors at the boundary.
+
+Defaults live in `bbot/defaults.yml` — the single source of truth. This file
+intentionally does **not** repeat those values; every field is optional, and
+an absent field passes validation. At runtime, `BBOTConfigFiles` loads the
+merged dict straight from YAML, and these models only ever validate shape.
 """
 
 from __future__ import annotations
@@ -20,75 +25,65 @@ STRICT = ConfigDict(extra="forbid")
 class ScopeConfig(BaseModel):
     model_config = STRICT
 
-    strict: bool = False
-    report_distance: int = 0
-    search_distance: int = 0
+    strict: Optional[bool] = None
+    report_distance: Optional[int] = None
+    search_distance: Optional[int] = None
 
 
 class DnsConfig(BaseModel):
     model_config = STRICT
 
-    disable: bool = False
-    minimal: bool = False
-    threads: int = 10
-    cache_size: int = 100000
-    brute_threads: int = 1000
-    brute_nameservers: str = (
-        "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt"
-    )
-    search_distance: int = 1
-    runaway_limit: int = 5
-    timeout: int = 5
-    retries: int = 1
-    wildcard_disable: bool = False
-    wildcard_ignore: list[str] = Field(default_factory=list)
-    wildcard_tests: int = 10
-    abort_threshold: int = 10
-    filter_ptrs: bool = True
-    debug: bool = False
-    omit_queries: list[str] = Field(
-        default_factory=lambda: [
-            "SRV:mail.protection.outlook.com",
-            "CNAME:mail.protection.outlook.com",
-            "TXT:mail.protection.outlook.com",
-        ]
-    )
+    disable: Optional[bool] = None
+    minimal: Optional[bool] = None
+    threads: Optional[int] = None
+    cache_size: Optional[int] = None
+    brute_threads: Optional[int] = None
+    brute_nameservers: Optional[str] = None
+    search_distance: Optional[int] = None
+    runaway_limit: Optional[int] = None
+    timeout: Optional[int] = None
+    retries: Optional[int] = None
+    wildcard_disable: Optional[bool] = None
+    wildcard_ignore: Optional[list[str]] = None
+    wildcard_tests: Optional[int] = None
+    abort_threshold: Optional[int] = None
+    filter_ptrs: Optional[bool] = None
+    debug: Optional[bool] = None
+    omit_queries: Optional[list[str]] = None
 
 
 class WebConfig(BaseModel):
     model_config = STRICT
 
     http_proxy: Optional[str] = None
-    user_agent: str = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97"
-    )
+    user_agent: Optional[str] = None
     user_agent_suffix: Optional[str] = None
-    spider_distance: int = 0
-    spider_depth: int = 1
-    spider_links_per_page: int = 25
-    http_timeout: int = 10
-    httpx_timeout: int = 5
-    http_headers: dict[str, str] = Field(default_factory=dict)
-    http_cookies: dict[str, str] = Field(default_factory=dict)
-    api_retries: int = 2
-    http_retries: int = 1
-    httpx_retries: int = 1
-    sleep_interval_429: int = Field(30, alias="429_sleep_interval")
-    max_sleep_interval_429: int = Field(60, alias="429_max_sleep_interval")
-    debug: bool = False
-    http_max_redirects: int = 5
-    ssl_verify: bool = False
+    spider_distance: Optional[int] = None
+    spider_depth: Optional[int] = None
+    spider_links_per_page: Optional[int] = None
+    http_timeout: Optional[int] = None
+    httpx_timeout: Optional[int] = None
+    http_headers: Optional[dict[str, str]] = None
+    http_cookies: Optional[dict[str, str]] = None
+    api_retries: Optional[int] = None
+    http_retries: Optional[int] = None
+    httpx_retries: Optional[int] = None
+    # The `429_*` keys start with a digit, so we expose them via aliases.
+    sleep_interval_429: Optional[int] = Field(default=None, alias="429_sleep_interval")
+    max_sleep_interval_429: Optional[int] = Field(default=None, alias="429_max_sleep_interval")
+    debug: Optional[bool] = None
+    http_max_redirects: Optional[int] = None
+    ssl_verify: Optional[bool] = None
 
 
 class EngineConfig(BaseModel):
     model_config = STRICT
 
-    debug: bool = False
+    debug: Optional[bool] = None
 
 
 class DepsToolConfig(BaseModel):
-    """Per-tool dep config, e.g. deps.ffuf.version"""
+    """Per-tool dep config (e.g. `deps.ffuf.version`)."""
 
     model_config = STRICT
 
@@ -98,30 +93,34 @@ class DepsToolConfig(BaseModel):
 class DepsConfig(BaseModel):
     model_config = STRICT
 
-    behavior: str = "abort_on_failure"
-    ffuf: DepsToolConfig = Field(default_factory=lambda: DepsToolConfig(version="2.1.0"))
+    behavior: Optional[str] = None
+    ffuf: Optional[DepsToolConfig] = None
 
 
 class BaseModuleConfig(BaseModel):
     """
     Shared base for every module's `class Config(BaseModuleConfig)`.
-    Carries the three universal module options that are applied to every
-    module regardless of declaration.
+
+    Declares the three universal module options that are applied to every
+    module regardless of declaration. The actual default values live in
+    `bbot/defaults.yml`; this class only validates shape.
     """
 
     model_config = STRICT
 
-    batch_size: int = 10
-    module_threads: int = 5
-    module_timeout: int = 3600
+    batch_size: Optional[int] = None
+    module_threads: Optional[int] = None
+    module_timeout: Optional[int] = None
 
 
 class BBOTConfig(BaseSettings):
     """
-    Root BBOT config. Mirrors `bbot/defaults.yml`.
+    Root BBOT config schema. Unknown top-level keys are rejected so that
+    typos like `scpoe:` or `moudules:` become loud errors instead of silent
+    no-ops.
 
-    Unknown top-level keys raise ValidationError. This is what catches typos
-    like `scpoe:` or `moudules:` in user configs.
+    This is a validation schema only — it has no default values. The real
+    defaults live in `bbot/defaults.yml`.
     """
 
     model_config = SettingsConfigDict(
@@ -132,167 +131,56 @@ class BBOTConfig(BaseSettings):
     )
 
     # Basic options
-    home: str = "~/.bbot"
-    keep_scans: int = 20
-    status_frequency: int = 15
-    file_blobs: bool = False
-    folder_blobs: bool = False
+    home: Optional[str] = None
+    keep_scans: Optional[int] = None
+    status_frequency: Optional[int] = None
+    file_blobs: Optional[bool] = None
+    folder_blobs: Optional[bool] = None
 
-    # Scope / DNS / Web / Engine / Deps
-    scope: ScopeConfig = Field(default_factory=ScopeConfig)
-    dns: DnsConfig = Field(default_factory=DnsConfig)
-    web: WebConfig = Field(default_factory=WebConfig)
-    engine: EngineConfig = Field(default_factory=EngineConfig)
-    deps: DepsConfig = Field(default_factory=DepsConfig)
+    # Nested sections
+    scope: Optional[ScopeConfig] = None
+    dns: Optional[DnsConfig] = None
+    web: Optional[WebConfig] = None
+    engine: Optional[EngineConfig] = None
+    deps: Optional[DepsConfig] = None
 
     # Module loader paths
-    module_dirs: list[str] = Field(default_factory=list)
+    module_dirs: Optional[list[str]] = None
 
     # Module runtime
-    module_handle_event_timeout: int = 3600
-    module_handle_batch_timeout: int = 7200
+    module_handle_event_timeout: Optional[int] = None
+    module_handle_batch_timeout: Optional[int] = None
 
-    # Internal module toggles (these are hardcoded because they're first-class
-    # features of the scan pipeline; the set changes rarely)
-    speculate: bool = True
-    excavate: bool = True
-    aggregate: bool = True
-    dnsresolve: bool = True
-    cloudcheck: bool = True
+    # Internal module toggles (hardcoded because they're first-class scan
+    # pipeline features; the set changes rarely)
+    speculate: Optional[bool] = None
+    excavate: Optional[bool] = None
+    aggregate: Optional[bool] = None
+    dnsresolve: Optional[bool] = None
+    cloudcheck: Optional[bool] = None
 
     # URL handling
-    url_querystring_remove: bool = True
-    url_querystring_collapse: bool = True
-    url_extension_blacklist: list[str] = Field(
-        default_factory=lambda: [
-            "png",
-            "jpg",
-            "bmp",
-            "ico",
-            "jpeg",
-            "gif",
-            "svg",
-            "webp",
-            "css",
-            "woff",
-            "woff2",
-            "ttf",
-            "eot",
-            "sass",
-            "scss",
-            "mp3",
-            "m4a",
-            "wav",
-            "flac",
-            "mp4",
-            "mkv",
-            "avi",
-            "wmv",
-            "mov",
-            "flv",
-            "webm",
-        ]
-    )
-    url_extension_special: list[str] = Field(default_factory=lambda: ["js"])
-    url_extension_static: list[str] = Field(
-        default_factory=lambda: [
-            "pdf",
-            "doc",
-            "docx",
-            "xls",
-            "xlsx",
-            "ppt",
-            "pptx",
-            "txt",
-            "csv",
-            "xml",
-            "yaml",
-            "ini",
-            "log",
-            "conf",
-            "cfg",
-            "env",
-            "md",
-            "rtf",
-            "tiff",
-            "bmp",
-            "jpg",
-            "jpeg",
-            "png",
-            "gif",
-            "svg",
-            "ico",
-            "mp3",
-            "wav",
-            "flac",
-            "mp4",
-            "mov",
-            "avi",
-            "mkv",
-            "webm",
-            "zip",
-            "tar",
-            "gz",
-            "bz2",
-            "7z",
-            "rar",
-        ]
-    )
+    url_querystring_remove: Optional[bool] = None
+    url_querystring_collapse: Optional[bool] = None
+    url_extension_blacklist: Optional[list[str]] = None
+    url_extension_special: Optional[list[str]] = None
+    url_extension_static: Optional[list[str]] = None
 
     # Parameter handling
-    parameter_blacklist: list[str] = Field(
-        default_factory=lambda: [
-            "__VIEWSTATE",
-            "__EVENTARGUMENT",
-            "__EVENTVALIDATION",
-            "__EVENTTARGET",
-            "__VIEWSTATEGENERATOR",
-            "__SCROLLPOSITIONY",
-            "__SCROLLPOSITIONX",
-            "ASP.NET_SessionId",
-            ".AspNetCore.Session",
-            "PHPSESSID",
-            "__cf_bm",
-            "f5_cspm",
-        ]
-    )
-    parameter_blacklist_prefixes: list[str] = Field(
-        default_factory=lambda: [
-            "TS01",
-            "BIGipServer",
-            "f5avr",
-            "incap_",
-            "visid_incap_",
-            "AWSALB",
-            "utm_",
-            "ApplicationGatewayAffinity",
-            "JSESSIONID",
-            "ARRAffinity",
-        ]
-    )
+    parameter_blacklist: Optional[list[str]] = None
+    parameter_blacklist_prefixes: Optional[list[str]] = None
 
     # Event output filter
-    omit_event_types: list[str] = Field(
-        default_factory=lambda: [
-            "HTTP_RESPONSE",
-            "RAW_TEXT",
-            "URL_UNVERIFIED",
-            "DNS_NAME_UNRESOLVED",
-            "FILESYSTEM",
-            "WEB_PARAMETER",
-            "RAW_DNS_RECORD",
-        ]
-    )
+    omit_event_types: Optional[list[str]] = None
 
     # Interactsh
     interactsh_server: Optional[str] = None
     interactsh_token: Optional[str] = None
-    interactsh_disable: bool = False
+    interactsh_disable: Optional[bool] = None
 
-    # Per-module configs — validated separately, per-module, at bake time.
-    # Stored here as raw dicts so the root validator accepts any module
-    # registered at preload time.
-    modules: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    # Per-module configs — validated separately, per-module, against each
+    # module's own `class Config(BaseModuleConfig)`.
+    modules: Optional[dict[str, dict[str, Any]]] = None
 
 
 class PresetSchema(BaseModel):
@@ -300,8 +188,8 @@ class PresetSchema(BaseModel):
     Schema for the top-level keys in a preset YAML file. Catches typos like
     `modlues:` or `flgas:` at load time.
 
-    `target`/`targets` and `include`/`presets` are aliases; both accepted.
-    `config` is validated separately as `BBOTConfig`.
+    `target`/`targets` and `include`/`presets` are aliases; both are accepted.
+    The `config` key is validated separately as `BBOTConfig`.
     """
 
     model_config = ConfigDict(
@@ -309,8 +197,8 @@ class PresetSchema(BaseModel):
         populate_by_name=True,
     )
 
-    target: Optional[list[str]] = Field(default=None)
-    targets: Optional[list[str]] = Field(default=None)
+    target: Optional[list[str]] = None
+    targets: Optional[list[str]] = None
     seeds: Optional[list[str]] = None
     blacklist: Optional[list[str]] = None
 
@@ -334,9 +222,9 @@ class PresetSchema(BaseModel):
 
     conditions: Optional[list[str]] = None
 
-    verbose: bool = False
-    debug: bool = False
-    silent: bool = False
+    verbose: Optional[bool] = None
+    debug: Optional[bool] = None
+    silent: Optional[bool] = None
 
 
 __all__ = [
