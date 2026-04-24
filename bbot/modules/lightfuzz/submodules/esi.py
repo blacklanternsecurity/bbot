@@ -61,20 +61,17 @@ class esi(BaseLightfuzz):
         # interactsh URL from being self-fetched if it gets reflected
         # into the response body (out-of-scope host, not fetched).
         if self.lightfuzz.interactsh_instance:
-            subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
-            interactsh_host = f"{subdomain_tag}.{self.lightfuzz.interactsh_domain}"
-            self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
-                "event": self.event,
-                "name": "Edge Side Include Remote Fetch",
-                "description": (
+            _, host = self.register_interactsh_tag(
+                name="Edge Side Include Remote Fetch",
+                description=(
                     f"Edge Side Include Remote Fetch (OOB Interaction) "
                     f"Parameter: [{self.event.data['name']}] "
                     f"Parameter Type: [{self.event.data['type']}]{self.conversion_note()}"
                 ),
-                "severity": "CRITICAL",
-                "confidence": "CONFIRMED",
-            }
-            include_payload = f'<esi:include src="http://{interactsh_host}/"/>'
+                severity="CRITICAL",
+                confidence="CONFIRMED",
+            )
+            include_payload = f'<esi:include src="http://{host}/"/>'
             await self.standard_probe(
                 self.event.data["type"],
                 cookies,

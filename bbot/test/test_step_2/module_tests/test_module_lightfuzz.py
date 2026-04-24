@@ -121,8 +121,7 @@ class Test_Lightfuzz_path_singledot_strict(Test_Lightfuzz_path_singledot):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert simple_pathtraversal_finding_emitted, (
-            "Simple single-dot path traversal FINDING not emitted — "
-            "strict-resolver detection regression."
+            "Simple single-dot path traversal FINDING not emitted — strict-resolver detection regression."
         )
 
 
@@ -357,8 +356,8 @@ class Test_Lightfuzz_xss(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -408,8 +407,8 @@ class Test_Lightfuzz_xss_single_quote_attribute(Test_Lightfuzz_xss):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -456,8 +455,8 @@ class Test_Lightfuzz_xss_html_comment(Test_Lightfuzz_xss):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -494,16 +493,14 @@ class Test_Lightfuzz_xss_js_backtick(Test_Lightfuzz_xss):
             # leave `${`, `}`, and backtick alone.
             safe = decoded.replace("<", "").replace(">", "")
             return Response(
-                "<html><body><script>"
-                f"const g = `hi, {safe}`;console.log(g);"
-                "</script></body></html>",
+                f"<html><body><script>const g = `hi, {safe}`;console.log(g);</script></body></html>",
                 status=200,
             )
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -810,8 +807,8 @@ class Test_Lightfuzz_xss_intag(Test_Lightfuzz_xss):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -831,11 +828,7 @@ class Test_Lightfuzz_xss_intag(Test_Lightfuzz_xss):
 
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if (
-                    "Possible Reflected XSS. Parameter: [foo] Context: [Tag Attribute"
-                    in desc
-                    and 'quoted)' in desc
-                ):
+                if "Possible Reflected XSS. Parameter: [foo] Context: [Tag Attribute" in desc and "quoted)" in desc:
                     xss_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
@@ -876,8 +869,8 @@ console.log(lang);
         return Response(self.parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -990,8 +983,8 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -1060,8 +1053,8 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -1119,8 +1112,8 @@ class Test_Lightfuzz_disable_post(Test_Lightfuzz_sqli_post):
 # SQLI Single Quote/Two Single Quote (headers)
 class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -1189,8 +1182,8 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
 # SQLI Single Quote/Two Single Quote (cookies)
 class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -1360,18 +1353,13 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
                     web_parameter_emitted = True
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if (
-                    "Possible Blind SQL Injection" in desc
-                    and "OR SLEEP(5) IS NOT NULL LIMIT 1-- -" in desc
-                ):
+                if "Possible Blind SQL Injection" in desc and "OR SLEEP(5) IS NOT NULL LIMIT 1-- -" in desc:
                     one_shot_delay_finding = True
 
         # Guard against regression of the missing-comma bug: Python string-literal
         # concatenation of adjacent list entries would produce a payload containing
         # both DBMS_LOCK.SLEEP and WAITFOR, which is never a valid single probe.
-        garbled = [
-            p for p in self.received_payloads if "DBMS_LOCK.SLEEP" in p and "WAITFOR" in p
-        ]
+        garbled = [p for p in self.received_payloads if "DBMS_LOCK.SLEEP" in p and "WAITFOR" in p]
         assert not garbled, (
             f"Garbled Oracle+MSSQL concatenated probe was sent ({len(garbled)} times): "
             f"{garbled[:1]}. This indicates the missing-comma bug has regressed."
@@ -1379,8 +1367,7 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert one_shot_delay_finding, (
-            "One-shot row-independent SLEEP finding not emitted — "
-            "row-independent blind sqli detection regression."
+            "One-shot row-independent SLEEP finding not emitted — row-independent blind sqli detection regression."
         )
 
 
@@ -1902,10 +1889,7 @@ class Test_Lightfuzz_serial_pickle_interactsh(Test_Lightfuzz_serial_python_pickl
         for e in events:
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if (
-                    "Python pickle OOB RCE (OOB Interaction)" in desc
-                    and "Payload: [python_pickle_oob]" in desc
-                ):
+                if "Python pickle OOB RCE (OOB Interaction)" in desc and "Payload: [python_pickle_oob]" in desc:
                     oob_finding = True
         assert oob_finding, "Python pickle OOB interactsh FINDING not emitted"
 
@@ -1940,10 +1924,7 @@ class Test_Lightfuzz_serial_urldns_interactsh(Test_Lightfuzz_serial_pickle_inter
         for e in events:
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if (
-                    "Java URLDNS OOB (OOB Interaction)" in desc
-                    and "Payload: [java_urldns_oob]" in desc
-                ):
+                if "Java URLDNS OOB (OOB Interaction)" in desc and "Payload: [java_urldns_oob]" in desc:
                     urldns_finding = True
         assert urldns_finding, "Java URLDNS OOB interactsh FINDING not emitted"
 
@@ -2081,9 +2062,7 @@ class Test_Lightfuzz_cmdi_windows(Test_Lightfuzz_cmdi):
                 ):
                     windows_arith_finding = True
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert windows_arith_finding, (
-            "Windows cmd arithmetic canary HIGH-confidence FINDING was not emitted"
-        )
+        assert windows_arith_finding, "Windows cmd arithmetic canary HIGH-confidence FINDING was not emitted"
 
 
 # CMDi parser-error reflection: simulates a parser (SQL, JSON, YAML) that
@@ -2351,8 +2330,8 @@ class Test_Lightfuzz_speculative(ModuleTestBase):
         return Response(parameter_block, status=200, headers={"Content-Type": "application/json"})
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -2409,8 +2388,8 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -2456,8 +2435,8 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
         return Response(fp_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -3063,9 +3042,7 @@ class Test_Lightfuzz_esi_interactsh(Test_Lightfuzz_esi):
             # the interactsh subdomain from within an include payload and
             # fire a mock interaction to prove the OOB detection path.
             if "<esi:include" in decoded:
-                include_match = _re.search(
-                    r"([a-z]+)\.fakedomain\.fakeinteractsh\.com", decoded
-                )
+                include_match = _re.search(r"([a-z]+)\.fakedomain\.fakeinteractsh\.com", decoded)
                 if include_match:
                     tag = include_match.group(1)
                     self.interactsh_mock_instance.mock_interaction(tag)
@@ -3077,10 +3054,7 @@ class Test_Lightfuzz_esi_interactsh(Test_Lightfuzz_esi):
         for e in events:
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if (
-                    "Edge Side Include Remote Fetch (OOB Interaction)" in desc
-                    and "Parameter: [search]" in desc
-                ):
+                if "Edge Side Include Remote Fetch (OOB Interaction)" in desc and "Parameter: [search]" in desc:
                     remote_include_finding = True
         assert remote_include_finding, "ESI remote-include OOB FINDING not emitted"
 
@@ -3154,8 +3128,8 @@ class Test_Lightfuzz_ECBDetection(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -3203,8 +3177,8 @@ class Test_Lightfuzz_ECBDetection_Negative(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -3543,8 +3517,8 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -3621,8 +3595,8 @@ class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -3736,8 +3710,8 @@ class Test_Lightfuzz_xss_multicontext(Test_Lightfuzz_xss):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -3897,8 +3871,8 @@ class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
@@ -3929,8 +3903,8 @@ class Test_Lightfuzz_static_url_filter(ModuleTestBase):
     }
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
-            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
         )
         respond_args = {"response_data": "<html><body>placeholder</body></html>", "status": 200}
         expect_args = {"method": "GET", "uri": "/"}

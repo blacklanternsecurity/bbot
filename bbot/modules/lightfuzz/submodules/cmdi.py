@@ -158,17 +158,13 @@ class cmdi(BaseLightfuzz):
         if self.lightfuzz.interactsh_instance:
             self.lightfuzz.event_dict[self.event.url] = self.event  # Store the event associated with the URL
             for p in cmdi_probe_strings:
-                # generate a random subdomain tag and associate it with the event, type, name, and probe
-                subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
-                self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
-                    "event": self.event,
-                    "name": "OS Command Injection",
-                    "description": f"OS Command Injection (OOB Interaction) Type: [{self.event.data['type']}] Parameter Name: [{self.event.data['name']}] Probe: [{p}]",
-                    "severity": "CRITICAL",
-                    "confidence": "CONFIRMED",
-                }
-                # payload is an nslookup command that includes the interactsh domain prepended the previously generated subdomain tag
-                interactsh_probe = f"{p} nslookup {subdomain_tag}.{self.lightfuzz.interactsh_domain} {p}"
+                _, host = self.register_interactsh_tag(
+                    name="OS Command Injection",
+                    description=f"OS Command Injection (OOB Interaction) Type: [{self.event.data['type']}] Parameter Name: [{self.event.data['name']}] Probe: [{p}]",
+                    severity="CRITICAL",
+                    confidence="CONFIRMED",
+                )
+                interactsh_probe = f"{p} nslookup {host} {p}"
                 # we have to handle our own URL-encoding here, because our payloads include the & character
                 if self.event.data["type"] == "GETPARAM":
                     interactsh_probe = urllib.parse.quote(interactsh_probe.encode(), safe="")
@@ -198,13 +194,7 @@ class cmdi(BaseLightfuzz):
         except HttpCompareError as e:
             self.debug(f"arithmetic probe [{shell_label}] error for [{delim}]: {e}")
             return False
-        matched = (
-            probe[3] is not None
-            and expected in probe[3].text
-            and "echo" not in probe[3].text
-        )
+        matched = probe[3] is not None and expected in probe[3].text and "echo" not in probe[3].text
         if matched:
-            self.debug(
-                f"{shell_label} arithmetic canary [{expected}] matched for delimiter [{delim}]"
-            )
+            self.debug(f"{shell_label} arithmetic canary [{expected}] matched for delimiter [{delim}]")
         return matched

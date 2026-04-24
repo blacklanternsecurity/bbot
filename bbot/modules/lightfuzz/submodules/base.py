@@ -20,6 +20,31 @@ class BaseLightfuzz:
         self.results = []
         self.parameter_name = self.event.data["name"]
 
+    def register_interactsh_tag(
+        self, *, name, description, severity, confidence, severity_dns=None, confidence_dns=None
+    ):
+        """Register a fresh interactsh subdomain tag and return `(tag, host)`.
+
+        Caller incorporates ``host`` into its payload, then sends via
+        ``self.standard_probe`` (or equivalent). ``severity_dns`` and
+        ``confidence_dns`` optionally override the emitted finding's
+        severity/confidence when the observed interaction is DNS-only.
+        """
+        tag = self.lightfuzz.helpers.rand_string(4, digits=False)
+        details = {
+            "event": self.event,
+            "name": name,
+            "description": description,
+            "severity": severity,
+            "confidence": confidence,
+        }
+        if severity_dns is not None:
+            details["severity_dns"] = severity_dns
+        if confidence_dns is not None:
+            details["confidence_dns"] = confidence_dns
+        self.lightfuzz.interactsh_subdomain_tags[tag] = details
+        return tag, f"{tag}.{self.lightfuzz.interactsh_domain}"
+
     @staticmethod
     def is_hex(s):
         try:

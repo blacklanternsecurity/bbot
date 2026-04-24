@@ -193,8 +193,8 @@ class xss(BaseLightfuzz):
         if not reflection or reflection is False:
             return
 
-        between_tags, attribute_quote, in_javascript, in_html_comment, in_js_backtick = (
-            await self.determine_context(cookies, reflection_probe_result.text, random_string)
+        between_tags, attribute_quote, in_javascript, in_html_comment, in_js_backtick = await self.determine_context(
+            cookies, reflection_probe_result.text, random_string
         )
         self.debug(
             f"determine_context returned: between_tags [{between_tags}], attribute_quote [{attribute_quote}], "

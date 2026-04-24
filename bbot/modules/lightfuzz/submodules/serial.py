@@ -377,18 +377,15 @@ class serial(BaseLightfuzz):
             self.lightfuzz.event_dict[self.event.url] = self.event
 
             # Python pickle OOB
-            pkl_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
-            pkl_host = f"{pkl_tag}.{self.lightfuzz.interactsh_domain}"
-            self.lightfuzz.interactsh_subdomain_tags[pkl_tag] = {
-                "event": self.event,
-                "name": "Unsafe Deserialization",
-                "description": (
+            _, pkl_host = self.register_interactsh_tag(
+                name="Unsafe Deserialization",
+                description=(
                     f"Python pickle OOB RCE (OOB Interaction) Type: [{self.event.data['type']}] "
                     f"Parameter Name: [{self.event.data['name']}] Payload: [python_pickle_oob]"
                 ),
-                "severity": "CRITICAL",
-                "confidence": "CONFIRMED",
-            }
+                severity="CRITICAL",
+                confidence="CONFIRMED",
+            )
             try:
                 pkl_b64 = base64.b64encode(pickle.dumps(_PickleOOB(pkl_host))).decode()
             except Exception as e:
@@ -403,18 +400,15 @@ class serial(BaseLightfuzz):
 
             # Java URLDNS OOB — fires on ANY Java deserialization sink;
             # requires only java.util.HashMap + java.net.URL (stdlib).
-            java_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
-            java_host = f"{java_tag}.{self.lightfuzz.interactsh_domain}"
-            self.lightfuzz.interactsh_subdomain_tags[java_tag] = {
-                "event": self.event,
-                "name": "Unsafe Deserialization",
-                "description": (
+            _, java_host = self.register_interactsh_tag(
+                name="Unsafe Deserialization",
+                description=(
                     f"Java URLDNS OOB (OOB Interaction) Type: [{self.event.data['type']}] "
                     f"Parameter Name: [{self.event.data['name']}] Payload: [java_urldns_oob]"
                 ),
-                "severity": "CRITICAL",
-                "confidence": "CONFIRMED",
-            }
+                severity="CRITICAL",
+                confidence="CONFIRMED",
+            )
             try:
                 java_b64 = base64.b64encode(_build_java_urldns_payload(java_host)).decode()
             except Exception as e:
