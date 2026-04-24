@@ -285,6 +285,147 @@ class Test_Lightfuzz_xss(ModuleTestBase):
         assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
 
 
+# Tag Attribute XSS with single-quoted value. Verifies that the attribute-
+# context probes trigger against `<tag attr='...reflection...'>` — which was
+# previously missed because the regex only matched double-quoted attributes
+# and the breakout probe hardcoded `"` as the breakout char.
+class Test_Lightfuzz_xss_single_quote_attribute(Test_Lightfuzz_xss):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <html>
+            <a href="/otherpage.php?foo=bar">Link</a>
+        </html>
+        """
+        if "foo=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            # Single-quoted attribute; only `<` and `>` are stripped so the
+            # attacker can still close the quote and inject event handlers.
+            safe = unquote(value).replace("<", "").replace(">", "")
+            xss_block = f"""
+        <section>
+            <div data-user='{safe}'>hi</div>
+            <hr>
+        </section>
+        """
+            return Response(xss_block, status=200)
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+        expect_args = re.compile("/otherpage.php")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        single_quote_finding = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [foo]" in e.data["description"]:
+                    web_parameter_emitted = True
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if (
+                    "Possible Reflected XSS" in desc
+                    and "Parameter: [foo]" in desc
+                    and "Tag Attribute (' quoted)" in desc
+                ):
+                    single_quote_finding = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert single_quote_finding, "Single-quote attribute XSS FINDING not emitted"
+
+
+# HTML-comment-context XSS. Verifies that a reflection inside `<!-- ... -->`
+# is detected when the `-->` sequence survives reflection (attacker can
+# close the comment and inject markup afterward).
+class Test_Lightfuzz_xss_html_comment(Test_Lightfuzz_xss):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <html>
+            <a href="/otherpage.php?foo=bar">Link</a>
+        </html>
+        """
+        if "foo=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            return Response(f"<html><body><!-- note: {decoded} --></body></html>", status=200)
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+        expect_args = re.compile("/otherpage.php")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        html_comment_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if "Possible Reflected XSS" in desc and "Context: [HTML Comment]" in desc:
+                    html_comment_finding = True
+        assert html_comment_finding, "HTML Comment XSS FINDING not emitted"
+
+
+# JS-template-literal-context XSS. Verifies detection of reflection inside
+# a backtick-wrapped string in a <script> block, where `${...}` interpolation
+# is the exploitation vector.
+class Test_Lightfuzz_xss_js_backtick(Test_Lightfuzz_xss):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <html>
+            <a href="/otherpage.php?foo=bar">Link</a>
+        </html>
+        """
+        if "foo=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Strip angle brackets to block classic </script> closure, but
+            # leave `${`, `}`, and backtick alone.
+            safe = decoded.replace("<", "").replace(">", "")
+            return Response(
+                "<html><body><script>"
+                f"const g = `hi, {safe}`;console.log(g);"
+                "</script></body></html>",
+                status=200,
+            )
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+        expect_args = re.compile("/otherpage.php")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        backtick_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if "Possible Reflected XSS" in desc and "Context: [JS Template Literal]" in desc:
+                    backtick_finding = True
+        assert backtick_finding, "JS Template Literal XSS FINDING not emitted"
+
+
 # Form Action Injection Detection
 class Test_Lightfuzz_xss_formaction(Test_Lightfuzz_xss):
     def request_handler(self, request):
@@ -325,14 +466,15 @@ class Test_Lightfuzz_xss_formaction(Test_Lightfuzz_xss):
                     web_parameter_emitted = True
 
             if e.type == "FINDING":
+                desc = e.data["description"]
                 if (
-                    "Possible Reflected XSS. Parameter: [func] Context: [Form Action Injection] Parameter Type: [POSTPARAM]"
-                    in e.data["description"]
+                    'Possible Reflected XSS. Parameter: [func] Context: [URL-scheme Injection (" quoted)] Parameter Type: [POSTPARAM]'
+                    in desc
                 ):
                     xss_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert xss_finding_emitted, "Form Action XSS FINDING not emitted"
+        assert xss_finding_emitted, "URL-scheme Injection XSS FINDING not emitted"
 
 
 # Base64 Envelope XSS Detection
@@ -594,12 +736,17 @@ class Test_Lightfuzz_xss_intag(Test_Lightfuzz_xss):
                         original_value_captured = True
 
             if e.type == "FINDING":
-                if "Possible Reflected XSS. Parameter: [foo] Context: [Tag Attribute]" in e.data["description"]:
+                desc = e.data["description"]
+                if (
+                    "Possible Reflected XSS. Parameter: [foo] Context: [Tag Attribute"
+                    in desc
+                    and 'quoted)' in desc
+                ):
                     xss_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert original_value_captured, "original_value not captured"
-        assert xss_finding_emitted, "Between Tags XSS FINDING not emitted"
+        assert xss_finding_emitted, "Tag Attribute XSS FINDING not emitted"
 
 
 # In Javascript XSS Detection

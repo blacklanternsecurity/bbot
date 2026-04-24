@@ -29,34 +29,62 @@ class xss(BaseLightfuzz):
         With XSS, the context is what kind part of the page the injection is occuring in, which determine what payloads might be successful
 
         https://portswigger.net/web-security/cross-site-scripting/contexts
+
+        Returns (between_tags, attribute_quote, in_javascript) where
+        `attribute_quote` is '"' if the reflection is inside a double-quoted
+        attribute, "'" if single-quoted, or None if the attribute context did
+        not match. Tracking the quote character lets probes break out of the
+        specific attribute wrapper rather than guessing and risking false
+        positives from the wrong-quote character reflecting harmlessly inside.
         """
         between_tags = False
-        in_tag_attribute = False
+        attribute_quote = None
         in_javascript = False
+        in_html_comment = False
+        in_js_backtick = False
 
         between_tags_regex = re.compile(
             rf"<(\/?\w+)[^>]*>.*?{random_string}.*?<\/?\w+>"
         )  # The between tags context is when the injection occurs between HTML tags
-        in_tag_attribute_regex = re.compile(
+        double_attr_regex = re.compile(
             rf'<(\w+)\s+[^>]*?(\w+)="([^"]*?{random_string}[^"]*?)"[^>]*>'
-        )  # The in tag attribute context is when the injection occurs in an attribute of an HTML tag
+        )  # attribute context with double-quoted value
+        single_attr_regex = re.compile(
+            rf"<(\w+)\s+[^>]*?(\w+)='([^']*?{random_string}[^']*?)'[^>]*>"
+        )  # attribute context with single-quoted value
         in_javascript_regex = re.compile(
             rf"<script\b[^>]*>[^<]*(?:<(?!\/script>)[^<]*)*{random_string}[^<]*(?:<(?!\/script>)[^<]*)*<\/script>"
         )  # The in javascript context is when the injection occurs within a <script> tag
+        # HTML comment context: `<!-- ... {random} ... -->`. Breakout is
+        # closing the comment with `-->` and injecting fresh markup.
+        in_html_comment_regex = re.compile(rf"<!--(?:(?!-->).)*?{random_string}(?:(?!-->).)*?-->", re.DOTALL)
+        # JS template literal (backtick) context: reflection inside a
+        # `...${x}...` style string. Exploitable via `${}` interpolation.
+        in_js_backtick_regex = re.compile(
+            rf"<script\b[^>]*>[^<]*(?:<(?!\/script>)[^<]*)*`[^`]*{random_string}[^`]*`"
+            rf"[^<]*(?:<(?!\/script>)[^<]*)*<\/script>"
+        )
 
         between_tags_match = await self.lightfuzz.helpers.re.search(between_tags_regex, html)
         if between_tags_match:
             between_tags = True
 
-        in_tag_attribute_match = await self.lightfuzz.helpers.re.search(in_tag_attribute_regex, html)
-        if in_tag_attribute_match:
-            in_tag_attribute = True
+        if await self.lightfuzz.helpers.re.search(double_attr_regex, html):
+            attribute_quote = '"'
+        elif await self.lightfuzz.helpers.re.search(single_attr_regex, html):
+            attribute_quote = "'"
 
         in_javascript_match = await self.lightfuzz.helpers.re.search(in_javascript_regex, html)
         if in_javascript_match:
             in_javascript = True
 
-        return between_tags, in_tag_attribute, in_javascript
+        if await self.lightfuzz.helpers.re.search(in_html_comment_regex, html):
+            in_html_comment = True
+
+        if await self.lightfuzz.helpers.re.search(in_js_backtick_regex, html):
+            in_js_backtick = True
+
+        return between_tags, attribute_quote, in_javascript, in_html_comment, in_js_backtick
 
     async def determine_javascript_quote_context(self, target, text):
         # Define and compile regex patterns for double and single quotes
@@ -165,11 +193,12 @@ class xss(BaseLightfuzz):
         if not reflection or reflection is False:
             return
 
-        between_tags, in_tag_attribute, in_javascript = await self.determine_context(
-            cookies, reflection_probe_result.text, random_string
+        between_tags, attribute_quote, in_javascript, in_html_comment, in_js_backtick = (
+            await self.determine_context(cookies, reflection_probe_result.text, random_string)
         )
         self.debug(
-            f"determine_context returned: between_tags [{between_tags}], in_tag_attribute [{in_tag_attribute}], in_javascript [{in_javascript}]"
+            f"determine_context returned: between_tags [{between_tags}], attribute_quote [{attribute_quote}], "
+            f"in_javascript [{in_javascript}], in_html_comment [{in_html_comment}], in_js_backtick [{in_js_backtick}]"
         )
         tags = [
             "z",
@@ -185,24 +214,33 @@ class xss(BaseLightfuzz):
                 if result is True:
                     break
 
-        if in_tag_attribute:
-            in_tag_attribute_probe = f'{random_string}"z'
-            in_tag_attribute_match = f'{random_string}"z'
+        if attribute_quote:
+            q = attribute_quote
+            # After reflection in the HTTP response, did the wrapping quote survive without url-encoding or other sanitization/escaping?
+            in_tag_attribute_probe = f"{random_string}{q}z"
+            in_tag_attribute_match = f"{random_string}{q}z"
             await self.check_probe(
-                cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute"
-            )  # After reflection in the HTTP response, did the quote survive without url-encoding or other sanitization/escaping?
+                cookies, in_tag_attribute_probe, in_tag_attribute_match, f"Tag Attribute ({q} quoted)"
+            )
 
-            in_tag_attribute_probe = f'{random_string}"z'
-            in_tag_attribute_match = f'"{random_string}""z'
+            # Account for apps that auto-wrap the reflected value in its own
+            # quote pair (e.g. framework helpers that re-quote), producing
+            # `{q}{value}{q}{q}z` after our breakout.
+            in_tag_attribute_probe = f"{random_string}{q}z"
+            in_tag_attribute_match = f"{q}{random_string}{q}{q}z"
             await self.check_probe(
-                cookies, in_tag_attribute_probe, in_tag_attribute_match, "Tag Attribute (autoquote)"
-            )  # After reflection in the HTTP response, did the quote survive without url-encoding or other sanitization/escaping (and account for auto-quoting)
+                cookies, in_tag_attribute_probe, in_tag_attribute_match, f"Tag Attribute autoquote ({q} quoted)"
+            )
 
+            # URL-scheme injection: did `javascript:` survive into any
+            # URL-bearing attribute? The match key is just `{q}javascript:{random}`
+            # (no attribute name) so it triggers on href, src, action,
+            # formaction, data, poster, etc.
             in_tag_attribute_probe = f"javascript:{random_string}"
-            in_tag_attribute_match = f'action="javascript:{random_string}'
+            in_tag_attribute_match = f"{q}javascript:{random_string}"
             await self.check_probe(
-                cookies, in_tag_attribute_probe, in_tag_attribute_match, "Form Action Injection"
-            )  # After reflection in the HTTP response, did the javascript sch
+                cookies, in_tag_attribute_probe, in_tag_attribute_match, f"URL-scheme Injection ({q} quoted)"
+            )
 
         if in_javascript:
             in_javascript_probe = rf"</script><script>{random_string}</script>"
@@ -215,21 +253,38 @@ class xss(BaseLightfuzz):
                     random_string, reflection_probe_result.text
                 )
 
-                # Skip the test if the context is outside
-                if quote_context == "outside":
-                    return
+                # Only run the escape-the-escape probe for quoted-string
+                # contexts. Backtick-wrapped (template-literal) context is
+                # handled separately below.
+                if quote_context in ("single", "double"):
+                    if quote_context == "single":
+                        in_javascript_escape_probe = rf"a\';zzzzz({random_string})\\"
+                        in_javascript_escape_match = rf"a\\';zzzzz({random_string})\\"
+                    else:
+                        in_javascript_escape_probe = rf"a\";zzzzz({random_string})\\"
+                        in_javascript_escape_match = rf'a\\";zzzzz({random_string})\\'
 
-                # Update probes based on the quote context
-                if quote_context == "single":
-                    in_javascript_escape_probe = rf"a\';zzzzz({random_string})\\"
-                    in_javascript_escape_match = rf"a\\';zzzzz({random_string})\\"
-                elif quote_context == "double":
-                    in_javascript_escape_probe = rf"a\";zzzzz({random_string})\\"
-                    in_javascript_escape_match = rf'a\\";zzzzz({random_string})\\'
+                    await self.check_probe(
+                        cookies,
+                        in_javascript_escape_probe,
+                        in_javascript_escape_match,
+                        f"In Javascript (escaping the escape character, {quote_context} quote)",
+                    )
 
-                await self.check_probe(
-                    cookies,
-                    in_javascript_escape_probe,
-                    in_javascript_escape_match,
-                    f"In Javascript (escaping the escape character, {quote_context} quote)",
-                )
+        if in_html_comment:
+            # Breakout probe: if `-->` survives reflection inside an HTML
+            # comment, the attacker can close the comment and inject fresh
+            # markup. Match must be inside the HTML comment's bounds — or
+            # we'd be reflecting somewhere else.
+            html_comment_probe = f"{random_string}-->z"
+            html_comment_match = f"{random_string}-->z"
+            await self.check_probe(cookies, html_comment_probe, html_comment_match, "HTML Comment")
+
+        if in_js_backtick:
+            # Template-literal probe: inside `...{injection}...` inside a
+            # script tag, `${...}` interpolation runs arbitrary JS. If
+            # `${`, the canary, and `}` all survive reflection unescaped,
+            # the injection can execute JS via template-literal interpolation.
+            backtick_probe = f"${{{random_string}}}"
+            backtick_match = f"${{{random_string}}}"
+            await self.check_probe(cookies, backtick_probe, backtick_match, "JS Template Literal")
