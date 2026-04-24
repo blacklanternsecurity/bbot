@@ -71,6 +71,61 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
         assert pathtraversal_finding_emitted, "Path Traversal single dot tolerance FINDING not emitted"
 
 
+# Path Traversal single-dot tolerance, strict path resolver (Python/Go/Rust style)
+# Simulates a server that opens files via a raw OS path walk rather than by
+# string-normalizing first (as PHP include() does). Only the "simple" dot probes
+# — `./X` and `/./X` — resolve cleanly; the `a/../X` variants fail on the missing
+# `a/` component. Guards against regression of the simple-probe coverage path
+# that was previously missed on non-PHP stacks.
+class Test_Lightfuzz_path_singledot_strict(Test_Lightfuzz_path_singledot):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        if "filename=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+
+            block = """
+<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1">
+  <rect width="1" height="1" fill="black"/>
+</svg>
+        """
+            # Only exact-file or simple-dot-prefixed reads succeed. Any path
+            # containing `a/../` fails because `a/` does not exist, mirroring
+            # Python's open() / Go's os.Open behavior on the filesystem.
+            if value in (
+                "default.jpg",
+                "./default.jpg",
+                "/./default.jpg",
+                "%2E%2Fdefault.jpg",
+            ):
+                return Response(block, status=200)
+        return Response("file not found", status=500)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        simple_pathtraversal_finding_emitted = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [filename]" in e.data["description"]:
+                    web_parameter_emitted = True
+
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if (
+                    "POSSIBLE Path Traversal" in desc
+                    and "Parameter: [filename]" in desc
+                    and "single-dot traversal tolerance (simple" in desc
+                ):
+                    simple_pathtraversal_finding_emitted = True
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert simple_pathtraversal_finding_emitted, (
+            "Simple single-dot path traversal FINDING not emitted — "
+            "strict-resolver detection regression."
+        )
+
+
 # Path Traversal Absolute path
 class Test_Lightfuzz_path_absolute(Test_Lightfuzz_path_singledot):
     etc_passwd = """
@@ -208,7 +263,9 @@ class Test_Lightfuzz_xss(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -517,7 +574,9 @@ class Test_Lightfuzz_xss_intag(Test_Lightfuzz_xss):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
         expect_args = re.compile("/otherpage.php")
@@ -576,7 +635,9 @@ console.log(lang);
         return Response(self.parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
         expect_args = re.compile("/otherpage.php")
@@ -688,7 +749,9 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -756,7 +819,9 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -813,7 +878,9 @@ class Test_Lightfuzz_disable_post(Test_Lightfuzz_sqli_post):
 # SQLI Single Quote/Two Single Quote (headers)
 class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -881,7 +948,9 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
 # SQLI Single Quote/Two Single Quote (cookies)
 class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -997,6 +1066,81 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert sqldelay_finding_emitted, "SQLi Delay FINDING not emitted"
+
+
+# Blind SQLi where only row-independent one-shot SLEEP payloads trigger a delay.
+# Simulates the common real-world case where the injected value does not match
+# any row in the target table, causing row-scoped AND-based SLEEP payloads to
+# short-circuit and never execute. Also guards against regression of a missing
+# list comma that previously fused Oracle and MSSQL probes into one malformed
+# concatenated string.
+class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
+    received_payloads = []
+
+    def request_handler(self, request):
+        from time import sleep
+
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search the blog...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            self.__class__.received_payloads.append(decoded)
+
+            sql_block = """
+        <section class=blog-header>
+            <h1>0 search results found</h1>
+            <hr>
+        </section>
+        """
+            # Only the one-shot row-independent MySQL payload triggers a delay.
+            # The original AND-based mysql probe does not fire here, simulating
+            # a context where the injected value does not match any row.
+            if "OR SLEEP(5) IS NOT NULL LIMIT 1-- -" in decoded:
+                sleep(5)
+            return Response(sql_block, status=200)
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        one_shot_delay_finding = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [search]" in e.data["description"]:
+                    web_parameter_emitted = True
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if (
+                    "Possible Blind SQL Injection" in desc
+                    and "OR SLEEP(5) IS NOT NULL LIMIT 1-- -" in desc
+                ):
+                    one_shot_delay_finding = True
+
+        # Guard against regression of the missing-comma bug: Python string-literal
+        # concatenation of adjacent list entries would produce a payload containing
+        # both DBMS_LOCK.SLEEP and WAITFOR, which is never a valid single probe.
+        garbled = [
+            p for p in self.received_payloads if "DBMS_LOCK.SLEEP" in p and "WAITFOR" in p
+        ]
+        assert not garbled, (
+            f"Garbled Oracle+MSSQL concatenated probe was sent ({len(garbled)} times): "
+            f"{garbled[:1]}. This indicates the missing-comma bug has regressed."
+        )
+
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert one_shot_delay_finding, (
+            "One-shot row-independent SLEEP finding not emitted — "
+            "row-independent blind sqli detection regression."
+        )
 
 
 # Serialization Module (Error Resolution)
@@ -1449,13 +1593,20 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
             value = qs.split("=")[1]
             if "&" in value:
                 value = value.split("&")[0]
-            if "&& echo " in unquote(value):
-                cmdi_value = unquote(value).split("&& echo ")[1].split(" ")[0]
+            decoded = unquote(value)
+            # Simulate a Linux bash-family shell: evaluate $((A*B)) first so
+            # the arithmetic confirmation probe lands a product value, then
+            # fall back to plain-echo reflection for the generic probe.
+            arith = re.search(r"&& echo \$\(\((\d+)\*(\d+)\)\) &&", decoded)
+            if arith:
+                cmdi_value = str(int(arith.group(1)) * int(arith.group(2)))
+            elif "&& echo " in decoded:
+                cmdi_value = decoded.split("&& echo ")[1].split(" ")[0]
             else:
-                cmdi_value = value
+                cmdi_value = decoded
             cmdi_block = f"""
         <section class=blog-header>
-            <h1>0 search results for '{unquote(cmdi_value)}'</h1>
+            <h1>0 search results for '{cmdi_value}'</h1>
             <hr>
         </section>
         """
@@ -1464,13 +1615,21 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        # Respect the numeric_only=True contract so int() conversions in the
+        # arithmetic canary path succeed. Non-numeric calls still receive the
+        # original deterministic letter string.
+        def rand_string(*args, **kwargs):
+            if kwargs.get("numeric_only"):
+                return "1234567890"
+            return "AAAAAAAAAAAAAA"
+
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = rand_string
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
         web_parameter_emitted = False
-        cmdi_echocanary_finding_emitted = False
+        cmdi_posix_arith_finding = False
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if "HTTP Extracted Parameter [search]" in e.data["description"]:
@@ -1478,16 +1637,146 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
 
             if e.type == "FINDING":
                 if (
-                    "POSSIBLE OS Command Injection. Parameter: [search] Parameter Type: [GETPARAM] Detection Method: [echo canary] CMD Probe Delimeters: [&&]"
+                    "POSSIBLE OS Command Injection. Parameter: [search] Parameter Type: [GETPARAM] Detection Method: [arithmetic canary (POSIX)] CMD Probe Delimeters: [&&]"
                     in e.data["description"]
                 ):
-                    cmdi_echocanary_finding_emitted = True
+                    cmdi_posix_arith_finding = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert cmdi_echocanary_finding_emitted, "echo canary CMDi FINDING not emitted"
+        assert cmdi_posix_arith_finding, "POSIX arithmetic canary CMDi FINDING not emitted"
 
 
-# CMDi interactsh
+# CMDi Windows `set /A` canary: simulates a cmd.exe target that evaluates
+# `set /A A*B` and prints the product. The arithmetic confirmation cascade
+# should land on the Windows arithmetic probe (after the POSIX probe returns
+# the literal) and emit a HIGH-confidence finding labeled as cmd.
+class Test_Lightfuzz_cmdi_windows(Test_Lightfuzz_cmdi):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search the blog...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Simulate cmd.exe: evaluate `set /A A*B` and print the product;
+            # reflect $((A*B)) literal (cmd doesn't expand POSIX arithmetic);
+            # reflect `echo X` args verbatim.
+            setA = re.search(r"&& set /A (\d+)\*(\d+) &&", decoded)
+            if setA:
+                result = int(setA.group(1)) * int(setA.group(2))
+                return Response(f"<section><h1>{result}</h1></section>", status=200)
+            if "&& echo " in decoded:
+                cmdi_value = decoded.split("&& echo ")[1].split(" ")[0]
+                return Response(
+                    f"<section><h1>0 search results for '{cmdi_value}'</h1></section>",
+                    status=200,
+                )
+            return Response(f"<section><h1>0 search results for '{decoded}'</h1></section>", status=200)
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+        web_parameter_emitted = False
+        windows_arith_finding = False
+        for e in events:
+            if e.type == "WEB_PARAMETER":
+                if "HTTP Extracted Parameter [search]" in e.data["description"]:
+                    web_parameter_emitted = True
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if (
+                    "Detection Method: [arithmetic canary (cmd)]" in desc
+                    and "Parameter: [search]" in desc
+                    and "[&&]" in desc
+                ):
+                    windows_arith_finding = True
+        assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
+        assert windows_arith_finding, (
+            "Windows cmd arithmetic canary HIGH-confidence FINDING was not emitted"
+        )
+
+
+# CMDi parser-error reflection: simulates a parser (SQL, JSON, YAML) that
+# reflects the probe's offending token back in its error. Under the three-
+# stage cascade this should NOT produce a "Possible Command Injection"
+# finding at all, because neither the POSIX `$((A*B))` nor the Windows
+# `set /A A*B` confirmation probe can coax a shell product out of a text
+# parser. Instead, a separate "Possible Parameter Reflection" finding is
+# emitted to preserve the adjacent-vuln signal without overclaiming cmdi.
+class Test_Lightfuzz_cmdi_parser_reflection_downgrade(Test_Lightfuzz_cmdi):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search the blog...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Real parsers only trip when a shell-style metachar breaks the
+            # surrounding syntax. Require a delimiter before the token so the
+            # AAAA false-positive probe does not accidentally reflect.
+            arith_match = re.search(r"[;|&]\s*echo\s+(\$\(\(\d+\*\d+\)\))", decoded)
+            if arith_match:
+                return Response(
+                    f'{{"error":"parse error near {arith_match.group(1)}"}}',
+                    status=500,
+                    mimetype="application/json",
+                )
+            setA_match = re.search(r"[;|&]\s*set\s*/A\s+(\d+\*\d+)", decoded)
+            if setA_match:
+                return Response(
+                    f'{{"error":"parse error near {setA_match.group(1)}"}}',
+                    status=500,
+                    mimetype="application/json",
+                )
+            generic_match = re.search(r"[;|&]\s*echo\s+(\d+)", decoded)
+            if generic_match:
+                return Response(
+                    f'{{"error":"parse error near {generic_match.group(1)}"}}',
+                    status=500,
+                    mimetype="application/json",
+                )
+            return Response('{"results":[]}', status=200, mimetype="application/json")
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+        cmdi_finding = False
+        reflection_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                name = e.data.get("name", "")
+                if "Command Injection" in name:
+                    cmdi_finding = True
+                if "Parameter Reflection" in name:
+                    reflection_finding = True
+
+        assert not cmdi_finding, (
+            "Parser-error reflection should NOT produce a Possible Command "
+            "Injection finding under the three-stage cascade (neither POSIX "
+            "nor Windows arithmetic probe can coax a product out of a text "
+            "parser)."
+        )
+        assert reflection_finding, (
+            "Expected a Possible Parameter Reflection finding for the "
+            "reflection-only detection path (preserves adjacent-vuln signal "
+            "without overclaiming cmdi)."
+        )
+
+
 class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
     @staticmethod
     def extract_subdomain_tag(data):
@@ -1679,7 +1968,9 @@ class Test_Lightfuzz_speculative(ModuleTestBase):
         return Response(parameter_block, status=200, headers={"Content-Type": "application/json"})
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -1735,7 +2026,9 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -1780,7 +2073,9 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
         return Response(fp_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -2405,7 +2700,9 @@ class Test_Lightfuzz_ECBDetection(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -2452,7 +2749,9 @@ class Test_Lightfuzz_ECBDetection_Negative(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -2790,7 +3089,9 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -2866,7 +3167,9 @@ class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -2979,7 +3282,9 @@ class Test_Lightfuzz_xss_multicontext(Test_Lightfuzz_xss):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -3138,7 +3443,9 @@ class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
         return Response(parameter_block, status=200)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -3168,7 +3475,9 @@ class Test_Lightfuzz_static_url_filter(ModuleTestBase):
     }
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = (
+            lambda *args, **kwargs: "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
         respond_args = {"response_data": "<html><body>placeholder</body></html>", "status": 200}
         expect_args = {"method": "GET", "uri": "/"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)

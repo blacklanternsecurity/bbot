@@ -34,8 +34,25 @@ class path(BaseLightfuzz):
             )
             return
 
-        # Single dot traversal tolerance test
+        # Single dot traversal tolerance test.
+        # The `a/../` variants require the intermediate dummy path component to
+        # exist during OS path walking (works for frameworks that string-normalize
+        # before open(), like PHP include). The `simple` variants omit the dummy
+        # component so they also trigger against stacks that pass paths raw to
+        # the kernel (Python open(), Go os.Open, Rust File::open, etc.).
         path_techniques = {
+            "single-dot traversal tolerance (simple, no-encoding)": {
+                "singledot_payload": f"./{probe_value}",
+                "doubledot_payload": f"../{probe_value}",
+            },
+            "single-dot traversal tolerance (simple, leading slash)": {
+                "singledot_payload": f"/./{probe_value}",
+                "doubledot_payload": f"/../{probe_value}",
+            },
+            "single-dot traversal tolerance (simple, url-encoding)": {
+                "singledot_payload": quote(f"./{probe_value}".encode(), safe=""),
+                "doubledot_payload": quote(f"../{probe_value}".encode(), safe=""),
+            },
             "single-dot traversal tolerance (no-encoding)": {
                 "singledot_payload": f"./a/../{probe_value}",
                 "doubledot_payload": f"../a/../{probe_value}",
