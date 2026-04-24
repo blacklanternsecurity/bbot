@@ -19,7 +19,7 @@ BBOT has extremely thorough tests, including **one or more individual tests for 
 ## Tooling
 
 - **Package manager**: [uv](https://docs.astral.sh/uv/)
-- **Linter/formatter**: [ruff](https://docs.astral.sh/ruff/) (pinned to 0.15.2)
+- **Linter/formatter**: [ruff](https://docs.astral.sh/ruff/) (pinned to 0.15.10)
 - **Test framework**: [pytest](https://docs.pytest.org/) with pytest-asyncio
 - **Python**: 3.10 - 3.14
 

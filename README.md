@@ -20,6 +20,8 @@ pipx install --pip-args '\--pre' bbot
 
 _For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_
 
+> **Speed tip:** BBOT's DNS engine spins up ten workers per resolver in `/etc/resolv.conf`. Adding more unfiltered resolvers dramatically speeds up scans. See the [sample resolv.conf](docs/data/resolv-sample.conf) and [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks/#speed-up-scans-with-more-dns-resolvers) for details.
+
 ## Example Commands
 
 ### 1) Subdomain Finder

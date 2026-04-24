@@ -1,0 +1,97 @@
+name: "CLA Assistant"
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, closed, synchronize]
+
+permissions:
+  pull-requests: write
+  statuses: write
+
+jobs:
+  CLAAssistant:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate token from GitHub App
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: blacklanternsecurity
+
+      - name: Check all committers against org and allowlist
+        id: cla-check
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            PR_NUM="${{ github.event.pull_request.number }}"
+          else
+            PR_NUM="${{ github.event.issue.number }}"
+          fi
+
+          COMMITTERS=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUM/commits" --paginate --jq '.[].author.login' | sort -u)
+          ALL_EXEMPT=true
+
+          for LOGIN in $COMMITTERS; do
+            # treat commits with no associated GitHub login as non-exempt
+            if [ -z "$LOGIN" ] || [ "$LOGIN" = "null" ]; then
+              echo "Unknown committer (no GitHub login) — not exempt"
+              ALL_EXEMPT=false
+              break
+            fi
+
+            EXEMPT=false
+
+            # check if account type is Bot (GitHub App accounts)
+            AUTHOR_TYPE=$(gh api "users/${LOGIN}" --jq '.type' 2>/dev/null || echo "Unknown")
+            if [ "$AUTHOR_TYPE" = "Bot" ]; then
+              echo "$LOGIN is a Bot account — exempt"
+              EXEMPT=true
+            fi
+
+            # check org membership
+            if [ "$EXEMPT" = "false" ]; then
+              if gh api "orgs/blacklanternsecurity/members/$LOGIN" > /dev/null 2>&1; then
+                echo "$LOGIN is an org member — exempt"
+                EXEMPT=true
+              fi
+            fi
+
+            if [ "$EXEMPT" = "false" ]; then
+              echo "$LOGIN is not exempt — CLA required"
+              ALL_EXEMPT=false
+              break
+            fi
+          done
+
+          echo "all_exempt=$ALL_EXEMPT" >> "$GITHUB_OUTPUT"
+
+      - name: Skip CLA when all committers are exempt
+        if: steps.cla-check.outputs.all_exempt == 'true' && github.event_name == 'pull_request_target'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method POST "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
+            -f state=success \
+            -f context="CLAAssistant" \
+            -f description="CLA check skipped — all committers are org members or bots"
+
+      - name: "CLA Assistant"
+        if: |
+          (steps.cla-check.outputs.all_exempt != 'true') &&
+          ((github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') || github.event_name == 'pull_request_target')
+        uses: contributor-assistant/github-action@v2.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERSONAL_ACCESS_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          path-to-signatures: "signatures/version1/cla.json"
+          path-to-document: "https://github.com/blacklanternsecurity/CLA/blob/main/ICLA.md"
+          branch: "main"
+          allowlist: "dependabot[bot],github-actions[bot],renovate[bot]"
+          remote-organization-name: "blacklanternsecurity"
+          remote-repository-name: "CLA"
+          lock-pullrequest-aftermerge: "false"
