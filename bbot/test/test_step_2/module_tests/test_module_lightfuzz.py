@@ -1910,6 +1910,44 @@ class Test_Lightfuzz_serial_pickle_interactsh(Test_Lightfuzz_serial_python_pickl
         assert oob_finding, "Python pickle OOB interactsh FINDING not emitted"
 
 
+# Java URLDNS OOB — verifies that the pure-Python URLDNS payload built
+# from scratch triggers an interactsh DNS lookup callback when a mock
+# "Java" endpoint "deserializes" it. Because the URLDNS gadget requires
+# only java.util.HashMap + java.net.URL (both stdlib), it fires against
+# any Java deserialization sink without depending on app-specific gadget
+# classes.
+class Test_Lightfuzz_serial_urldns_interactsh(Test_Lightfuzz_serial_pickle_interactsh):
+    def request_handler(self, request):
+        import base64 as _b64
+        import re as _re
+
+        value = request.args.get("pklparam", "")
+        try:
+            decoded = _b64.b64decode(value)
+        except Exception:
+            decoded = b""
+        # The URLDNS payload embeds the host string as a Java-modified-UTF
+        # with a 2-byte length prefix. The host bytes appear verbatim, so
+        # we can grep for the interactsh subdomain directly.
+        match = _re.search(rb"([a-z]+)\.fakedomain\.fakeinteractsh\.com", decoded)
+        if match:
+            tag = match.group(1).decode("ascii")
+            self.interactsh_mock_instance.mock_interaction(tag)
+        return Response("<html>ok</html>", status=200)
+
+    def check(self, module_test, events):
+        urldns_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if (
+                    "Java URLDNS OOB (OOB Interaction)" in desc
+                    and "Payload: [java_urldns_oob]" in desc
+                ):
+                    urldns_finding = True
+        assert urldns_finding, "Java URLDNS OOB interactsh FINDING not emitted"
+
+
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]

