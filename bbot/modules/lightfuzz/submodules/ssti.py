@@ -51,6 +51,9 @@ class ssti(BaseLightfuzz):
             "{{1337*1337}}",  # Jinja2 / Twig / Tornado / Django-template
             "1,787{{z}},569",  # Jinja2 comma-collapse (legacy, still useful)
             "{1337*1337}",  # Smarty single-brace
+            # Apache Velocity uses `#set($x=A*B)$x`. The `#` must be
+            # URL-encoded to avoid being interpreted as a URL fragment.
+            "%23set(%24x%3d1337*1337)%24x",
         ]
         for probe_value in ssti_probes:
             r = await self.standard_probe(

@@ -288,6 +288,37 @@ class Test_Lightfuzz_ssti_baseline_fp(Test_Lightfuzz_ssti_multiply):
         )
 
 
+# SSTI Apache Velocity — `#set($x=A*B)$x` syntax. None of the pre-existing
+# probes use this shape so a Velocity-backed endpoint would slip past.
+class Test_Lightfuzz_ssti_velocity(Test_Lightfuzz_ssti_multiply):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        from urllib.parse import unquote as _unquote
+
+        value = qs.split("data=")[1] if "data=" in qs else ""
+        if "&" in value:
+            value = value.split("&")[0]
+        decoded = _unquote(value)
+        # Recognize a Velocity `#set($x=A*B)$x` probe and render the product.
+        m = re.match(r"#set\(\$\w+=(\d+)\*(\d+)\)\$\w+", decoded)
+        if m:
+            return Response(
+                f"<html><div>{int(m.group(1)) * int(m.group(2))}</div></html>",
+                status=200,
+            )
+        # Anything else: plain echo with no template evaluation
+        return Response(f"<html><div>Hi, {decoded}</div></html>", status=200)
+
+    def check(self, module_test, events):
+        velocity_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if "Server-side Template Injection" in desc and "%23set" in desc:
+                    velocity_finding = True
+        assert velocity_finding, "Velocity SSTI FINDING not emitted"
+
+
 # Between Tags XSS Detection
 class Test_Lightfuzz_xss(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
