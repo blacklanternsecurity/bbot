@@ -188,14 +188,6 @@ class crypto(BaseLightfuzz):
             modified_data = bytes(byte_list)
         elif action == "extend":
             modified_data = data + (b"\x00" * extension_length)
-        elif action == "flip":
-            if position is None:
-                position = len(data) // 2
-            if position < 0 or position >= len(data):
-                raise ValueError("Position out of range")
-            byte_list = list(data)
-            byte_list[position] ^= 0xFF  # Flip all bits in the byte at the specified position
-            modified_data = bytes(byte_list)
         else:
             raise ValueError("Unsupported action")
         return crypto.format_agnostic_encode(modified_data, encoding)
@@ -510,6 +502,7 @@ class crypto(BaseLightfuzz):
         hash_functions = {
             16: hashlib.md5,
             20: hashlib.sha1,
+            28: hashlib.sha224,
             32: hashlib.sha256,
             48: hashlib.sha384,
             64: hashlib.sha512,
