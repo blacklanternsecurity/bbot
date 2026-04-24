@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.pn5epy71.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.klt0ezgz.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1008,8 +1008,10 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">disable</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Speed up scan by not creating any new DNS events, and only resolving A and AAAA records</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">minimal</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many instances of the dns module to run concurrently</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">25</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many threads to use per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many DNS records to cache</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">cache_size</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">100000</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many concurrent DNS resolvers to use when brute-forcing</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># (under the hood this is passed through directly to massdns -s)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">brute_threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1000</span>
@@ -1034,8 +1036,10 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">wildcard_tests</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># This helps prevent faulty DNS servers from hanging up the scan</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">abort_threshold</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">50</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Don't show PTR records containing IP addresses</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">abort_threshold</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Treat hostnames discovered via PTR records as affiliates instead of in-scope</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># This prevents rDNS results (e.g. 1-2-3-4.ptr.example.com) from triggering</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># subdomain enumeration against unrelated domains when scanning IP ranges</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">filter_ptrs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Enable/disable debug messages for DNS queries</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">debug</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
@@ -1294,8 +1298,8 @@ Is the same as:
 <tr>
 <td>modules.baddns.min_confidence</td>
 <td>str</td>
-<td>Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)</td>
-<td>MODERATE</td>
+<td>Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)</td>
+<td>MEDIUM</td>
 </tr>
 <tr>
 <td>modules.baddns.min_severity</td>
@@ -1312,8 +1316,8 @@ Is the same as:
 <tr>
 <td>modules.baddns_direct.min_confidence</td>
 <td>str</td>
-<td>Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)</td>
-<td>MODERATE</td>
+<td>Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)</td>
+<td>MEDIUM</td>
 </tr>
 <tr>
 <td>modules.baddns_direct.min_severity</td>
@@ -1330,8 +1334,8 @@ Is the same as:
 <tr>
 <td>modules.baddns_zone.min_confidence</td>
 <td>str</td>
-<td>Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)</td>
-<td>MODERATE</td>
+<td>Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)</td>
+<td>MEDIUM</td>
 </tr>
 <tr>
 <td>modules.baddns_zone.min_severity</td>
@@ -1871,7 +1875,7 @@ Is the same as:
 <td>modules.nuclei.version</td>
 <td>str</td>
 <td>nuclei version</td>
-<td>3.7.1</td>
+<td>3.8.0</td>
 </tr>
 <tr>
 <td>modules.oauth.try_all</td>

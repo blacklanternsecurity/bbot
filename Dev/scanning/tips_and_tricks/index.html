@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.pn5epy71.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.klt0ezgz.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -417,6 +417,15 @@
 <span class="md-ellipsis">
       
         Boost DNS Brute-force Speed
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#speed-up-scans-with-more-dns-resolvers">
+<span class="md-ellipsis">
+      
+        Speed Up Scans with More DNS Resolvers
       
     </span>
 </a>
@@ -1029,6 +1038,75 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># massdns with 5000 resolvers, about 5MB/s</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.brute_threads<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">5000</span>
 </code></pre></div>
+<h3 id="speed-up-scans-with-more-dns-resolvers">Speed Up Scans with More DNS Resolvers</h3>
+<p>By far the most effective way to speed up a BBOT scan is to <strong>add more resolvers to <code>/etc/resolv.conf</code></strong>. BBOT's DNS engine (blastdns) spins up ten workers per resolver, so more resolvers = more parallelism = faster scans.</p>
+<p>For OSINT, it's critical that every resolver is <strong>unfiltered</strong>. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample <code>/etc/resolv.conf</code> with 11 unfiltered public resolvers:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code># ============================================================================
+# Sample /etc/resolv.conf for BBOT
+# ============================================================================
+#
+# BBOT's DNS engine (blastdns) automatically spins up ten workers per
+# resolver listed here.  Adding more resolvers = more parallelism =
+# faster scans.
+#
+# To use: copy (or append) to /etc/resolv.conf, or point your
+# systemd-resolved / resolvconf config at these addresses.
+# ============================================================================
+
+# --- Google Public DNS ---
+# No filtering, DNSSEC-validating, DoH/DoT capable.
+# Huge anycast footprint for geographically relevant answers.
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+
+# --- Cloudflare 1.1.1.1 ---
+# Unfiltered, DNSSEC, very fast, DoH/DoT.
+# NOTE: Avoid 1.1.1.2 / 1.1.1.3 -- those variants apply malware
+# and adult-content filtering, which will hide results during OSINT.
+nameserver 1.1.1.1
+nameserver 1.0.0.1
+
+# --- Quad9 (unfiltered) ---
+# IMPORTANT: Quad9's main address (9.9.9.9) blocks known-malicious
+# domains -- exactly what you do NOT want when pivoting on adversary
+# infrastructure.  The .10 addresses are their no-blocklist,
+# no-DNSSEC-validation variant, which lets you see raw responses
+# without validation stripping records.
+nameserver 9.9.9.10
+nameserver 149.112.112.10
+
+# --- OpenDNS "Sandbox" (unfiltered) ---
+# Cisco Umbrella's unfiltered pair.  The well-known 208.67.222.222
+# enforces category filtering; the .2 addresses do not.
+nameserver 208.67.222.2
+nameserver 208.67.220.2
+
+# --- Verisign Public DNS ---
+# Run by the .com / .net registry operator.
+# No filtering, no NXDOMAIN hijacking, DNSSEC.
+nameserver 64.6.64.6
+nameserver 64.6.65.6
+
+# --- Hurricane Electric ---
+# Unfiltered, strong IPv6 support, well-regarded in the netops community.
+nameserver 74.82.42.42
+
+# ============================================================================
+# IPv6 equivalents (uncomment if your host has IPv6 connectivity)
+# ============================================================================
+# nameserver 2001:4860:4860::8888   # Google
+# nameserver 2001:4860:4860::8844   # Google
+# nameserver 2606:4700:4700::1111   # Cloudflare
+# nameserver 2606:4700:4700::1001   # Cloudflare
+# nameserver 2620:fe::10            # Quad9 (unfiltered)
+# nameserver 2620:fe::fe:10         # Quad9 (unfiltered)
+# nameserver 2001:470:20::2         # Hurricane Electric
+</code></pre></div>
+<p>Copy this to <code>/etc/resolv.conf</code> (or append the <code>nameserver</code> lines to your existing config). With all 11 resolvers, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If your system uses <code>systemd-resolved</code> or <code>resolvconf</code>, you may need to configure the upstream forwarders there instead of editing <code>/etc/resolv.conf</code> directly.</p>
+</div>
 <h3 id="web-spider">Web Spider</h3>
 <p>The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of <code>web.spider_distance</code>.</p>
 <p>The web spider is controlled with three config values:</p>
