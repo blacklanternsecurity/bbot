@@ -255,11 +255,11 @@ jobs:
       - name: Generate docs (stable branch)
         if: github.ref == 'refs/heads/stable'
         run: |
-          uv run mike deploy Stable
+          uv run --frozen mike deploy Stable
       - name: Generate docs (dev branch)
         if: github.ref == 'refs/heads/dev'
         run: |
-          uv run mike deploy Dev
+          uv run --frozen mike deploy Dev
       - name: Publish docs
         run: |
           git switch gh-pages
