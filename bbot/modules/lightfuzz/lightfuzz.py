@@ -88,7 +88,9 @@ class lightfuzz(BaseModule):
         if full_id:
             if "." in full_id:
                 details = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
-                if not details["event"]:
+                if not details or not details.get("event"):
+                    # Callback for a subdomain we didn't register, or whose
+                    # tag entry is incomplete — ignore rather than NPE.
                     return
                 protocol = r.get("protocol", "dns").lower()
                 severity = details.get("severity", "HIGH")
