@@ -3014,6 +3014,77 @@ class Test_Lightfuzz_esi(ModuleTestBase):
         assert esi_finding_emitted, "ESI FINDING not emitted"
 
 
+# ESI remote-include OOB — verifies the new `<esi:include>` probe triggers
+# an interactsh callback when the edge actually fetches the include URL,
+# producing a CRITICAL CONFIRMED finding separate from the tag-strip one.
+class Test_Lightfuzz_esi_interactsh(Test_Lightfuzz_esi):
+    config_overrides = {
+        "interactsh_disable": False,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["esi"]},
+        },
+    }
+
+    async def setup_before_prep(self, module_test):
+        self.interactsh_mock_instance = module_test.mock_interactsh("lightfuzz")
+
+        def mock_interactsh_factory(*args, **kwargs):
+            return self.interactsh_mock_instance
+
+        from bbot.core.helpers.helper import ConfigAwareHelper
+
+        module_test.monkeypatch.setattr(ConfigAwareHelper, "interactsh", mock_interactsh_factory)
+
+    def request_handler(self, request):
+        import re as _re
+
+        qs = str(request.query_string.decode())
+        # Parameter block must include the search form so excavate can
+        # extract the `search` GETPARAM on the initial fetch; otherwise
+        # esi only fuzzes the HEADER test param and the include probe
+        # never reaches us.
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            # Split only at the FIRST `=` — the include payload's `src=`
+            # embeds unencoded `=` characters that would otherwise
+            # truncate the value.
+            value = qs.split("=", 1)[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Simulate an edge that fetches esi:include src URLs. Extract
+            # the interactsh subdomain from within an include payload and
+            # fire a mock interaction to prove the OOB detection path.
+            if "<esi:include" in decoded:
+                include_match = _re.search(
+                    r"([a-z]+)\.fakedomain\.fakeinteractsh\.com", decoded
+                )
+                if include_match:
+                    tag = include_match.group(1)
+                    self.interactsh_mock_instance.mock_interaction(tag)
+            return Response(f"<html>search: '{decoded}'</html>", status=200)
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+        remote_include_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if (
+                    "Edge Side Include Remote Fetch (OOB Interaction)" in desc
+                    and "Parameter: [search]" in desc
+                ):
+                    remote_include_finding = True
+        assert remote_include_finding, "ESI remote-include OOB FINDING not emitted"
+
+
 # Envelope state isolation: crypto error detection with all submodules enabled.
 # Crypto runs after sqli/cmdi/xss/path/ssti. Each prior submodule calls outgoing_probe_value()
 # which must not corrupt the envelope state that crypto reads via incoming_probe_value().
