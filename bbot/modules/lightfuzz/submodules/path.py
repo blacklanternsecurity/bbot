@@ -95,6 +95,15 @@ class path(BaseLightfuzz):
                 "singledot_payload": f"%252f.%252fa%252f..%252f{probe_value}",
                 "doubledot_payload": f"%252f..%252fa%252f..%252f{probe_value}",
             },
+            # Simple (no-`a/`-intermediate) variants for strict path resolvers.
+            "single-dot traversal tolerance (double url-encoding, simple)": {
+                "singledot_payload": f".%252f{probe_value}",
+                "doubledot_payload": f"..%252f{probe_value}",
+            },
+            "single-dot traversal tolerance (double url-encoding, simple, leading slash)": {
+                "singledot_payload": f"%252f.%252f{probe_value}",
+                "doubledot_payload": f"%252f..%252f{probe_value}",
+            },
         }
 
         compiled_regex = self.lightfuzz.helpers.re.compile(r"/(?:[\w-]+/)*[\w-]+\.\w+")
