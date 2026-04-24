@@ -77,6 +77,16 @@ class path(BaseLightfuzz):
                 "singledot_payload": f"/...//a/....//{probe_value}",
                 "doubledot_payload": f"/....//a/....//{probe_value}",
             },
+            # Simple (no-`a/`-intermediate) variants for servers that
+            # reject paths whose intermediate components don't exist.
+            "single-dot traversal tolerance (non-recursive stripping, simple)": {
+                "singledot_payload": f"...//{probe_value}",
+                "doubledot_payload": f"....//{probe_value}",
+            },
+            "single-dot traversal tolerance (non-recursive stripping, simple, leading slash)": {
+                "singledot_payload": f"/...//{probe_value}",
+                "doubledot_payload": f"/....//{probe_value}",
+            },
             "single-dot traversal tolerance (double url-encoding)": {
                 "singledot_payload": f".%252fa%252f..%252f{probe_value}",
                 "doubledot_payload": f"..%252fa%252f..%252f{probe_value}",
