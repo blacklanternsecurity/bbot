@@ -225,6 +225,69 @@ class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
         assert ssti_finding_emitted, "SSTI integer multiply FINDING not emitted"
 
 
+# SSTI direct {{A*B}} probe — simulates a template engine (e.g. Jinja2 with
+# StrictUndefined) that raises on `{{undefined_var}}` so the comma-collapse
+# trick fails, but still evaluates an arithmetic expression like
+# `{{1337*1337}}` because arithmetic has no undefined variables.
+class Test_Lightfuzz_ssti_direct_jinja(Test_Lightfuzz_ssti_multiply):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        from urllib.parse import unquote as _unquote
+
+        value = qs.split("data=")[1] if "data=" in qs else ""
+        if "&" in value:
+            value = value.split("&")[0]
+        decoded = _unquote(value)
+        # `{{z}}` raises in StrictUndefined engines — the comma-collapse
+        # probe produces a 500 instead of the expected `1,787,569`.
+        if "{{z}}" in decoded:
+            return Response("Template error: 'z' is undefined", status=500)
+        # `{{A*B}}` evaluates normally when A and B are literal ints.
+        if decoded.startswith("{{") and decoded.endswith("}}"):
+            inner = decoded[2:-2]
+            if "*" in inner:
+                a, b = inner.split("*")
+                try:
+                    return Response(f"<html><div>{int(a) * int(b)}</div></html>", status=200)
+                except ValueError:
+                    pass
+        # Anything else: baseline-ish echo, no template evaluation
+        return Response(f"<html><div>Hi, {decoded}</div></html>", status=200)
+
+    def check(self, module_test, events):
+        ssti_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                if "Server-side Template Injection" in desc and "[{{1337*1337}}]" in desc:
+                    ssti_finding = True
+        assert ssti_finding, "Direct {{1337*1337}} SSTI FINDING not emitted"
+
+
+# SSTI baseline FP suppression — simulates an endpoint whose static content
+# happens to include the canary product value (1787569 or 1,787,569). The
+# baseline check should suppress all ssti findings on this endpoint.
+class Test_Lightfuzz_ssti_baseline_fp(Test_Lightfuzz_ssti_multiply):
+    def request_handler(self, request):
+        # Every response contains the canary literal as static content.
+        # No template evaluation anywhere — pure coincidental number.
+        return Response(
+            "<html><body>Total units sold: 1,787,569</body></html>",
+            status=200,
+        )
+
+    def check(self, module_test, events):
+        ssti_finding = False
+        for e in events:
+            if e.type == "FINDING":
+                if "Server-side Template Injection" in e.data.get("description", ""):
+                    ssti_finding = True
+        assert not ssti_finding, (
+            "SSTI finding emitted on a page whose baseline already contains "
+            "the canary number — baseline-check guard failed."
+        )
+
+
 # Between Tags XSS Detection
 class Test_Lightfuzz_xss(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
