@@ -143,14 +143,24 @@ class path(BaseLightfuzz):
                     # next, if doubledot_probe[0] is false, the response is different from the baseline. This further indicates that a real path is being manipulated
                     # if doubledot_probe[3] is not None, the response is not empty.
                     # if doubledot_probe[1] is not ["header"], the response is not JUST a header change.
+                    # The doubledot response must look like a successful fetch of a different
+                    # resource (2xx with body) — a 4xx/5xx is the server *rejecting* the `..`,
+                    # which is the opposite of a vulnerability and was previously flagged because
+                    # any non-baseline response satisfied `[0] is False`.
                     # "The requested URL was rejected" is a very common WAF error message which appears on 200 OK response, confusing detections
+                    doubledot_response = doubledot_probe[3]
+                    doubledot_is_success = (
+                        doubledot_response is not None
+                        and 200 <= doubledot_response.status_code < 300
+                        and bool(doubledot_response.text)
+                    )
                     if (
                         singledot_probe[0] is True
                         and doubledot_probe[0] is False
-                        and doubledot_probe[3] is not None
+                        and doubledot_is_success
                         and doubledot_probe[1] != ["header"]
                         and not await self.lightfuzz.helpers.yara.match(
-                            self.lightfuzz.waf_yara_rules, doubledot_probe[3].text
+                            self.lightfuzz.waf_yara_rules, doubledot_response.text
                         )
                     ):
                         confirmations += 1

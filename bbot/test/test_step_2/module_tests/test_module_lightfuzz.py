@@ -48,8 +48,19 @@ class Test_Lightfuzz_path_singledot(ModuleTestBase):
   <rect width="1" height="1" fill="black"/>
 </svg>
         """
+            # Real path-traversal payload: a successful fetch of a different
+            # resource (200 + distinct body). This is what a vulnerable server
+            # actually returns — it's the signal the detector relies on.
+            traversed_block = """
+<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2">
+  <rect width="2" height="2" fill="red"/>
+</svg>
+SECRET_FROM_PARENT_DIR
+        """
             if value == "%2F.%2Fa%2F..%2Fdefault.jpg" or value == "default.jpg":
                 return Response(block, status=200)
+            if value == "%2F..%2Fa%2F..%2Fdefault.jpg":
+                return Response(traversed_block, status=200)
         return Response("file not found", status=500)
 
     def check(self, module_test, events):
@@ -90,6 +101,15 @@ class Test_Lightfuzz_path_singledot_strict(Test_Lightfuzz_path_singledot):
   <rect width="1" height="1" fill="black"/>
 </svg>
         """
+            # Real strict-resolver traversal: `../X` reads a different file
+            # successfully (200 + distinct body). The detector requires a
+            # successful fetch on the doubledot probe to flag.
+            traversed_block = """
+<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2">
+  <rect width="2" height="2" fill="red"/>
+</svg>
+SECRET_FROM_PARENT_DIR
+        """
             # Only exact-file or simple-dot-prefixed reads succeed. Any path
             # containing `a/../` fails because `a/` does not exist, mirroring
             # Python's open() / Go's os.Open behavior on the filesystem.
@@ -100,6 +120,8 @@ class Test_Lightfuzz_path_singledot_strict(Test_Lightfuzz_path_singledot):
                 "%2E%2Fdefault.jpg",
             ):
                 return Response(block, status=200)
+            if value == "../default.jpg":
+                return Response(traversed_block, status=200)
         return Response("file not found", status=500)
 
     def check(self, module_test, events):
@@ -123,6 +145,46 @@ class Test_Lightfuzz_path_singledot_strict(Test_Lightfuzz_path_singledot):
         assert simple_pathtraversal_finding_emitted, (
             "Simple single-dot path traversal FINDING not emitted — strict-resolver detection regression."
         )
+
+
+# Negative regression test for the JSF-style path-traversal FP: a server
+# that normalizes `./X` (returns the canonical resource for the no-op
+# prefix) but strictly REJECTS any `..` segment with a 4xx/empty body.
+# That's the opposite of a vulnerability — no file from a different path
+# is being delivered. The detector must not emit a finding.
+class Test_Lightfuzz_path_singledot_rejection_fp(Test_Lightfuzz_path_singledot):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        if "filename=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+
+            # Strict rejection of any `..` segment in any encoding (raw,
+            # url-encoded, double-url-encoded). Empty body — no resource
+            # exfiltrated.
+            decoded = unquote(unquote(value))
+            if ".." in decoded:
+                return Response("", status=404)
+
+            block = """
+<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1">
+  <rect width="1" height="1" fill="black"/>
+</svg>
+        """
+            # Server normalizes `./` (and url-encoded variants) to a no-op
+            # and returns the canonical resource — singledot tolerance only.
+            if "default.jpg" in decoded:
+                return Response(block, status=200)
+        return Response("", status=404)
+
+    def check(self, module_test, events):
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                assert "Possible Path Traversal" not in desc and "POSSIBLE Path Traversal" not in desc, (
+                    f"Path Traversal false positive emitted when server rejects `..`: {desc}"
+                )
 
 
 # Path Traversal Absolute path
@@ -566,6 +628,55 @@ class Test_Lightfuzz_xss_formaction(Test_Lightfuzz_xss):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert xss_finding_emitted, "URL-scheme Injection XSS FINDING not emitted"
+
+
+# Negative regression test for the FMCSA-style URL-scheme false positive:
+# the parameter is reflected only into a non-URL-bearing attribute
+# (`<input value="...">`), with `<`, `>`, `"` HTML-encoded everywhere else.
+# `javascript:RAND` survives into the value attribute, but no browser will
+# navigate to it from there. The URL-scheme Injection probe must NOT fire.
+class Test_Lightfuzz_xss_url_scheme_value_attr_fp(Test_Lightfuzz_xss):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <html>
+            <a href="/otherpage.php?Keyword=bar">Link</a>
+        </html>
+        """
+        if "Keyword=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Mimic the FMCSA pattern: `"`, `<`, `>` are HTML-encoded
+            # outside the value attribute, and the only place the raw
+            # token survives is inside `<input value="...">`.
+            safe = decoded.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+            return Response(
+                f"<html><body>"
+                f"<title>{safe}</title>"
+                f'<input id="Keyword" name="Keyword" value="{decoded}" />'
+                f"</body></html>",
+                status=200,
+            )
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+        expect_args = re.compile("/otherpage.php")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        for e in events:
+            if e.type == "FINDING":
+                desc = e.data["description"]
+                assert "URL-scheme Injection" not in desc, (
+                    f"URL-scheme Injection false positive emitted for non-URL-bearing attribute: {desc}"
+                )
 
 
 # Base64 Envelope XSS Detection

@@ -23,6 +23,31 @@ class xss(BaseLightfuzz):
 
     friendly_name = "Cross-Site Scripting"
 
+    # Attributes the browser will navigate to or fetch from. A `javascript:`
+    # URL only becomes an XSS sink when reflected into one of these.
+    _url_bearing_attrs = (
+        "href",
+        "src",
+        "action",
+        "formaction",
+        "data",
+        "poster",
+        "background",
+        "cite",
+        "usemap",
+        "icon",
+        "manifest",
+        "longdesc",
+        "codebase",
+        "ping",
+        "archive",
+        "xlink:href",
+    )
+    # Match `<attr>=` immediately at the end of a small preceding window.
+    # Leading `[\s/]` requires a real attribute boundary so prefixes like
+    # `data-href=` or `src-foo=` don't masquerade as URL-bearing.
+    _url_attr_regex = re.compile(r"(?i)[\s/](" + "|".join(re.escape(a) for a in _url_bearing_attrs) + r")\s*=\s*$")
+
     async def determine_context(self, cookies, html, random_string):
         """
         Determines the context of the random string in the HTML response.
@@ -143,6 +168,20 @@ class xss(BaseLightfuzz):
                 rf"[^<]*(?:<(?!\/script>)[^<]*)*<\/script>"
             )
             return bool(in_js_regex.search(html))
+        elif "URL-scheme Injection" in context:
+            # The match key starts with the wrapping quote (`"javascript:RAND`
+            # or `'javascript:RAND`). The attribute name and `=` live in the
+            # bytes immediately preceding that quote. Only fire if at least
+            # one occurrence is in a URL-bearing attribute — otherwise a
+            # `<input value="javascript:...">` reflection (HTML-encoded, no
+            # exploitation path) would false-positive.
+            pos = html.find(match)
+            while pos != -1:
+                preceding = html[max(0, pos - 64) : pos]
+                if self._url_attr_regex.search(preceding):
+                    return True
+                pos = html.find(match, pos + 1)
+            return False
         return True
 
     async def check_probe(self, cookies, probe, match, context):
