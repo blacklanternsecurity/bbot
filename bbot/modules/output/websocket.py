@@ -11,11 +11,16 @@ from bbot.core.config.models import BaseModuleConfig
 class Websocket(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Output to websockets", "created_date": "2022-04-15", "author": "@TheTechromancer"}
+
     class Config(BaseModuleConfig):
-        url: str = Field('', description='Web URL')
-        token: str = Field('', description='Authorization Bearer token')
-        preserve_graph: bool = Field(True, description='Preserve full chains of events in the graph (prevents orphans)')
-        ignore_ssl: bool = Field(False, description='Ignores all Websocket SSL related errors (like Self-Signed Certificates, etc.)')
+        url: str = Field("", description="Web URL")
+        token: str = Field("", description="Authorization Bearer token")
+        preserve_graph: bool = Field(
+            True, description="Preserve full chains of events in the graph (prevents orphans)"
+        )
+        ignore_ssl: bool = Field(
+            False, description="Ignores all Websocket SSL related errors (like Self-Signed Certificates, etc.)"
+        )
 
     async def setup(self):
         self.url = self.config.get("url", "")

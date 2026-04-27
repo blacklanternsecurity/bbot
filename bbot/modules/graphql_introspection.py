@@ -14,9 +14,12 @@ class graphql_introspection(BaseModule):
         "created_date": "2025-07-01",
         "author": "@mukesh-dream11",
     }
+
     class Config(BaseModuleConfig):
-        graphql_endpoint_urls: list[str] = Field(['/', '/graphql', '/v1/graphql'], description='List of GraphQL endpoint to suffix to the target URL')
-        output_folder: str = Field('', description='Folder to save the GraphQL schemas to')
+        graphql_endpoint_urls: list[str] = Field(
+            ["/", "/graphql", "/v1/graphql"], description="List of GraphQL endpoint to suffix to the target URL"
+        )
+        output_folder: str = Field("", description="Folder to save the GraphQL schemas to")
 
     async def setup(self):
         output_folder = self.config.get("output_folder", "")

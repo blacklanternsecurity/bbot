@@ -12,9 +12,14 @@ class dnsbrute(subdomain_enum):
         "author": "@TheTechromancer",
         "created_date": "2024-04-24",
     }
+
     class Config(BaseModuleConfig):
-        wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt', description='Subdomain wordlist URL')
-        max_depth: int = Field(5, description='How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com')
+        wordlist: str = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
+            description="Subdomain wordlist URL",
+        )
+        max_depth: int = Field(5, description="How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com")
+
     deps_common = ["massdns"]
     reject_wildcards = "strict"
     dedup_strategy = "lowest_parent"

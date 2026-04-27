@@ -39,11 +39,18 @@ class asset_inventory(CSV):
         "created_date": "2022-09-30",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
-        output_file: str = Field('', description='Set a custom output file')
-        use_previous: bool = Field(False, description='Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)')
-        recheck: bool = Field(False, description="When use_previous=True, don't retain past details like open ports or findings. Instead, allow them to be rediscovered by the new scan")
-        summary_netmask: int = Field(16, description='Subnet mask to use when summarizing IP addresses at end of scan')
+        output_file: str = Field("", description="Set a custom output file")
+        use_previous: bool = Field(
+            False,
+            description="Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)",
+        )
+        recheck: bool = Field(
+            False,
+            description="When use_previous=True, don't retain past details like open ports or findings. Instead, allow them to be rediscovered by the new scan",
+        )
+        summary_netmask: int = Field(16, description="Subnet mask to use when summarizing IP addresses at end of scan")
 
     header_row = [
         "Host",

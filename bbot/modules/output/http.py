@@ -11,14 +11,15 @@ class HTTP(BaseOutputModule):
         "created_date": "2022-04-13",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        url: str = Field('', description='Web URL')
-        method: str = Field('POST', description='HTTP method')
-        bearer: str = Field('', description='Authorization Bearer token')
-        username: str = Field('', description='Username (basic auth)')
-        password: str = Field('', description='Password (basic auth)')
-        headers: dict = Field({}, description='Additional headers to send with the request')
-        timeout: int = Field(10, description='HTTP timeout')
+        url: str = Field("", description="Web URL")
+        method: str = Field("POST", description="HTTP method")
+        bearer: str = Field("", description="Authorization Bearer token")
+        username: str = Field("", description="Username (basic auth)")
+        password: str = Field("", description="Password (basic auth)")
+        headers: dict = Field({}, description="Additional headers to send with the request")
+        timeout: int = Field(10, description="HTTP timeout")
 
     async def setup(self):
         self.url = self.config.get("url", "")

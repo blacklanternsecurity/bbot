@@ -10,12 +10,14 @@ class MySQL(SQLTemplate):
         "created_date": "2024-11-13",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        username: str = Field('root', description='The username to connect to MySQL')
-        password: str = Field('bbotislife', description='The password to connect to MySQL')
-        host: str = Field('localhost', description='The server running MySQL')
-        port: int = Field(3306, description='The port to connect to MySQL')
-        database: str = Field('bbot', description='The database name to connect to')
+        username: str = Field("root", description="The username to connect to MySQL")
+        password: str = Field("bbotislife", description="The password to connect to MySQL")
+        host: str = Field("localhost", description="The server running MySQL")
+        port: int = Field(3306, description="The port to connect to MySQL")
+        database: str = Field("bbot", description="The database name to connect to")
+
     deps_pip = ["sqlmodel", "aiomysql"]
     protocol = "mysql+aiomysql"
 

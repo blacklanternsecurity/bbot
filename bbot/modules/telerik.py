@@ -156,8 +156,8 @@ class telerik(BaseModule):
     RAUConfirmed = []
 
     class Config(BaseModuleConfig):
-        exploit_RAU_crypto: bool = Field(False, description='Attempt to confirm any RAU AXD detections are vulnerable')
-        include_subdirs: bool = Field(False, description='Include subdirectories in the scan (off by default)')
+        exploit_RAU_crypto: bool = Field(False, description="Attempt to confirm any RAU AXD detections are vulnerable")
+        include_subdirs: bool = Field(False, description="Include subdirectories in the scan (off by default)")
 
     in_scope_only = True
 

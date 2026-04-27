@@ -31,11 +31,13 @@ class dnscaa(BaseModule):
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "URL_UNVERIFIED"]
     flags = ["safe", "subdomain-enum", "email-enum", "passive"]
     meta = {"description": "Check for CAA records", "author": "@colin-stubbs", "created_date": "2024-05-26"}
+
     class Config(BaseModuleConfig):
-        in_scope_only: bool = Field(True, description='Only check in-scope domains')
-        dns_names: bool = Field(True, description='emit DNS_NAME events')
-        emails: bool = Field(True, description='emit EMAIL_ADDRESS events')
-        urls: bool = Field(True, description='emit URL_UNVERIFIED events')
+        in_scope_only: bool = Field(True, description="Only check in-scope domains")
+        dns_names: bool = Field(True, description="emit DNS_NAME events")
+        emails: bool = Field(True, description="emit EMAIL_ADDRESS events")
+        urls: bool = Field(True, description="emit URL_UNVERIFIED events")
+
     # accept DNS_NAMEs out to 2 hops if in_scope_only is False
     scope_distance_modifier = 2
 

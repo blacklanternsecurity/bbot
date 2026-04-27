@@ -338,9 +338,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     }
 
     class Config(BaseModuleConfig):
-        yara_max_match_data: int = Field(2000, description='Sets the maximum amount of text that can extracted from a YARA regex')
-        custom_yara_rules: str = Field('', description='Include custom Yara rules')
-        speculate_params: bool = Field(False, description='Enable speculative parameter extraction from JSON and XML content')
+        yara_max_match_data: int = Field(
+            2000, description="Sets the maximum amount of text that can extracted from a YARA regex"
+        )
+        custom_yara_rules: str = Field("", description="Include custom Yara rules")
+        speculate_params: bool = Field(
+            False, description="Enable speculative parameter extraction from JSON and XML content"
+        )
+
     scope_distance_modifier = None
     accept_dupes = False
 

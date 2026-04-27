@@ -14,8 +14,10 @@ class ipneighbor(BaseModule):
         "created_date": "2022-06-08",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        num_bits: int = Field(4, description='Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)')
+        num_bits: int = Field(4, description="Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)")
+
     scope_distance_modifier = 1
 
     async def setup(self):

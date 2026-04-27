@@ -14,8 +14,10 @@ class jadx(BaseModule):
         "created_date": "2024-11-04",
         "author": "@domwhewell-sage",
     }
+
     class Config(BaseModuleConfig):
         threads: int = Field(4, description="Maximum jadx threads for extracting apk's, default: 4")
+
     deps_common = ["java"]
     deps_ansible = [
         {

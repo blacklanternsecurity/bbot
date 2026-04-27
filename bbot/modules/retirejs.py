@@ -29,10 +29,13 @@ class retirejs(BaseModule):
         "created_date": "2025-08-19",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
-        version: str = Field('5.3.0', description='retire.js version')
-        node_version: str = Field('18.19.1', description='Node.js version to install locally')
-        severity: str = Field('medium', description='Minimum severity level to report (none, low, medium, high, critical)')
+        version: str = Field("5.3.0", description="retire.js version")
+        node_version: str = Field("18.19.1", description="Node.js version to install locally")
+        severity: str = Field(
+            "medium", description="Minimum severity level to report (none, low, medium, high, critical)"
+        )
 
     deps_ansible = [
         # Download Node.js binary (Linux x64)

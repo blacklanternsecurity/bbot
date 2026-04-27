@@ -17,10 +17,11 @@ class github_workflows(github):
         "author": "@domwhewell-sage",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Github token')
-        num_logs: int = Field(1, description='For each workflow fetch the last N successful runs logs (max 100)')
-        output_folder: str = Field('', description='Folder to download workflow logs and artifacts to')
+        api_key: str = Field("", description="Github token")
+        num_logs: int = Field(1, description="For each workflow fetch the last N successful runs logs (max 100)")
+        output_folder: str = Field("", description="Folder to download workflow logs and artifacts to")
 
     scope_distance_modifier = 2
 

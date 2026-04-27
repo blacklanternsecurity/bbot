@@ -12,9 +12,11 @@ class Subdomains(TXT):
         "created_date": "2023-07-31",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        output_file: str = Field('', description='Output to file')
-        include_unresolved: bool = Field(False, description='Include unresolved subdomains in output')
+        output_file: str = Field("", description="Output to file")
+        include_unresolved: bool = Field(False, description="Include unresolved subdomains in output")
+
     accept_dupes = False
     in_scope_only = True
 

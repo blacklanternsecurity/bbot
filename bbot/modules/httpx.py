@@ -23,12 +23,13 @@ class httpx(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        threads: int = Field(50, description='Number of httpx threads to use')
-        in_scope_only: bool = Field(True, description='Only visit web reparents that are in scope.')
-        version: str = Field('1.2.5', description='httpx version')
-        max_response_size: int = Field(5242880, description='Max response size in bytes')
-        store_responses: bool = Field(False, description='Save raw HTTP responses to scan folder')
-        probe_all_ips: bool = Field(False, description='Probe all the ips associated with same host')
+        threads: int = Field(50, description="Number of httpx threads to use")
+        in_scope_only: bool = Field(True, description="Only visit web reparents that are in scope.")
+        version: str = Field("1.2.5", description="httpx version")
+        max_response_size: int = Field(5242880, description="Max response size in bytes")
+        store_responses: bool = Field(False, description="Save raw HTTP responses to scan folder")
+        probe_all_ips: bool = Field(False, description="Probe all the ips associated with same host")
+
     deps_ansible = [
         {
             "name": "Download httpx",

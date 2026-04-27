@@ -14,8 +14,12 @@ class apkpure(BaseModule):
         "created_date": "2024-10-11",
         "author": "@domwhewell-sage",
     }
+
     class Config(BaseModuleConfig):
-        output_folder: str = Field('', description='Folder to download APKs to. If not specified, downloaded APKs will be deleted when the scan completes, to minimize disk usage.')
+        output_folder: str = Field(
+            "",
+            description="Folder to download APKs to. If not specified, downloaded APKs will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     async def setup(self):
         output_folder = self.config.get("output_folder", "")

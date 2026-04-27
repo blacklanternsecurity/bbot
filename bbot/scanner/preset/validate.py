@@ -26,6 +26,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from bbot.core.helpers.misc import get_closest_match
+
 
 log = logging.getLogger("bbot.presets.validate")
 
@@ -70,7 +72,7 @@ def _classify_loc(loc: tuple) -> tuple[str, str]:
     return ("preset", ".".join(parts))
 
 
-def _format_msg(err: dict) -> str:
+def _format_msg(err: dict, known_modules: set | None = None) -> str:
     kind = err["type"]
     input_value = err.get("input")
     loc = err["loc"]
@@ -78,10 +80,10 @@ def _format_msg(err: dict) -> str:
     path = ".".join(str(p) for p in loc)
 
     if kind == "extra_forbidden":
-        # Special-case the unknown-module-name error so users get
-        # "Unknown module: 'nucleii'" instead of "Unknown option: 'nucleii'".
+        # Special-case unknown module name (config.modules.<bad>) so users get
+        # a suggestion rather than "Unknown option".
         if len(loc) == 3 and loc[0] == "config" and loc[1] == "modules":
-            return f'Unknown module: "{field}"'
+            return get_closest_match(field, known_modules or set(), msg="module")
         msg = f"Unknown option: {field!r}"
         if isinstance(input_value, (str, int, bool, float)):
             msg += f" (value: {input_value!r})"
@@ -112,11 +114,11 @@ def _format_msg(err: dict) -> str:
     return err["msg"] if err.get("msg") else f"validation error at {path}"
 
 
-def _format_errors(exc: ValidationError) -> list[PresetValidationError]:
+def _format_errors(exc: ValidationError, known_modules: set | None = None) -> list[PresetValidationError]:
     out: list[PresetValidationError] = []
     for err in exc.errors():
         where, path = _classify_loc(err["loc"])
-        out.append(PresetValidationError(where=where, path=path, message=_format_msg(err)))
+        out.append(PresetValidationError(where=where, path=path, message=_format_msg(err, known_modules)))
     return out
 
 
@@ -125,8 +127,14 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
     Validate a preset dict against BBOT's composite schema.
 
     Returns a list of `PresetValidationError` objects. An empty list means
-    the preset is valid. Errors from all layers are aggregated in a single
-    pass, so a user with multiple typos sees them all at once.
+    the preset is valid. Errors from all layers are aggregated, so a user
+    with multiple typos sees them all at once.
+
+    **Side effect**: any custom `module_dirs` declared in the preset (either
+    at top level or inside `config`) are registered with `module_loader` so
+    their modules become known. Without this, modules from a custom dir
+    would be falsely reported as unknown. Idempotent — `add_module_dir`
+    short-circuits on already-loaded directories.
 
     Args:
         preset_dict: Preset as a plain dict (e.g. from `yaml.safe_load`).
@@ -146,28 +154,37 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
 
         module_loader = MODULE_LOADER
 
-    errors: list[PresetValidationError] = []
+    # Pre-load any custom module_dirs the preset declares so the composite
+    # schema includes their modules. Defensive iteration — bad shape gets
+    # surfaced by the schema pass below.
+    config_dict = preset_dict.get("config")
+    for source in (
+        preset_dict.get("module_dirs"),
+        config_dict.get("module_dirs") if isinstance(config_dict, dict) else None,
+    ):
+        for d in source or []:
+            if isinstance(d, str):
+                module_loader.add_module_dir(d)
 
-    # Single-pass validation against the composite schema
+    errors: list[PresetValidationError] = []
+    known_modules = set(module_loader.all_module_choices)
+
+    # Validate against the composite schema (rebuilt automatically if new
+    # module_dirs were just preloaded above). Closest-match suggestions
+    # for unknown module names are produced inside the formatter.
     try:
         module_loader.validation_schema.model_validate(preset_dict)
     except ValidationError as e:
-        errors.extend(_format_errors(e))
+        errors.extend(_format_errors(e, known_modules=known_modules))
 
     # Module names listed in top-level `modules`/`output_modules`/`exclude_modules`
     # aren't covered by the composite schema (they're a list of strings, not a
-    # nested mapping). Check them here.
-    known_modules = set(module_loader.all_module_choices)
+    # nested mapping). Check them explicitly, with the same closest-match hint.
     for key in ("modules", "output_modules", "exclude_modules"):
         for name in preset_dict.get(key) or []:
             if name not in known_modules:
-                errors.append(
-                    PresetValidationError(
-                        where="preset",
-                        path=key,
-                        message=f'Unknown module: "{name}"',
-                    )
-                )
+                hint = get_closest_match(name, known_modules, msg="module")
+                errors.append(PresetValidationError(where="preset", path=key, message=hint))
 
     return errors
 

@@ -25,10 +25,16 @@ class censys_ip(censys):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description="Censys.io API Key in the format of 'key:secret'")
-        dns_names_limit: int = Field(100, description='Maximum number of DNS names to extract from dns.names (default 100)')
-        in_scope_only: bool = Field(True, description='Only query in-scope IPs. If False, will query up to distance 1.')
+        api_key: str = Field("", description="Censys.io API Key in the format of 'key:secret'")
+        dns_names_limit: int = Field(
+            100, description="Maximum number of DNS names to extract from dns.names (default 100)"
+        )
+        in_scope_only: bool = Field(
+            True, description="Only query in-scope IPs. If False, will query up to distance 1."
+        )
+
     scope_distance_modifier = 1
 
     async def setup(self):

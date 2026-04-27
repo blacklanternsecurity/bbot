@@ -13,8 +13,10 @@ class JSON(BaseOutputModule):
         "created_date": "2022-04-07",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        output_file: str = Field('', description='Output to file')
+        output_file: str = Field("", description="Output to file")
+
     _preserve_graph = True
 
     async def setup(self):

@@ -16,14 +16,14 @@ class paramminer_cookies(paramminer_headers):
         "created_date": "2022-06-27",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
         wordlist: str = Field("", description="Define the wordlist to be used to derive cookies")
         recycle_words: bool = Field(
             False, description="Attempt to use words found during the scan on all other endpoints"
         )
-        skip_boring_words: bool = Field(
-            True, description="Remove commonly uninteresting words from the wordlist"
-        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+
     scanned_hosts = []
     boring_words = set()
     _module_threads = 12

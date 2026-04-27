@@ -12,10 +12,14 @@ class baddns_direct(baddns_module):
         "created_date": "2024-01-29",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
-        custom_nameservers: list = Field([], description='Force BadDNS to use a list of custom nameservers')
-        min_severity: str = Field('LOW', description='Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)')
-        min_confidence: str = Field('MEDIUM', description='Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)')
+        custom_nameservers: list = Field([], description="Force BadDNS to use a list of custom nameservers")
+        min_severity: str = Field("LOW", description="Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)")
+        min_confidence: str = Field(
+            "MEDIUM", description="Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)"
+        )
+
     module_threads = 8
     deps_pip = ["baddns~=2.1.0"]
 

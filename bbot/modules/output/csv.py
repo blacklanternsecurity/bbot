@@ -9,8 +9,9 @@ from bbot.core.config.models import BaseModuleConfig
 class CSV(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Output to CSV", "created_date": "2022-04-07", "author": "@TheTechromancer"}
+
     class Config(BaseModuleConfig):
-        output_file: str = Field('', description='Output to CSV file')
+        output_file: str = Field("", description="Output to CSV file")
 
     header_row = [
         "Event type",

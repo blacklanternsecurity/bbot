@@ -13,7 +13,7 @@ class dnscommonsrv(subdomain_enum):
     deps_common = ["massdns"]
 
     class Config(BaseModuleConfig):
-        max_depth: int = Field(2, description='The maximum subdomain depth to brute-force SRV records')
+        max_depth: int = Field(2, description="The maximum subdomain depth to brute-force SRV records")
 
     async def setup(self):
         self.max_subdomain_depth = self.config.get("max_depth", 2)

@@ -14,9 +14,10 @@ class github_codesearch(github, subdomain_enum):
         "author": "@domwhewell-sage",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Github token')
-        limit: int = Field(100, description='Limit code search to this many results')
+        api_key: str = Field("", description="Github token")
+        limit: int = Field(100, description="Limit code search to this many results")
 
     github_raw_url = "https://raw.githubusercontent.com/"
 

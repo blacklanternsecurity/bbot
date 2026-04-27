@@ -17,10 +17,14 @@ class paramminer_getparams(paramminer_headers):
         "author": "@liquidsec",
     }
     scanned_hosts = []
+
     class Config(BaseModuleConfig):
-        wordlist: str = Field('', description='Define the wordlist to be used to derive headers')
-        recycle_words: bool = Field(False, description='Attempt to use words found during the scan on all other endpoints')
-        skip_boring_words: bool = Field(True, description='Remove commonly uninteresting words from the wordlist')
+        wordlist: str = Field("", description="Define the wordlist to be used to derive headers")
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+
     boring_words = {"utm_source", "utm_campaign", "utm_medium", "utm_term", "utm_content"}
     in_scope_only = True
     compare_mode = "getparam"

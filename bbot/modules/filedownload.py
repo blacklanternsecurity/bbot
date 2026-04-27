@@ -22,10 +22,78 @@ class filedownload(BaseModule):
         "created_date": "2023-10-11",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        extensions: list[str] = Field(['bak', 'bash', 'bashrc', 'cfg', 'conf', 'crt', 'csv', 'db', 'dll', 'doc', 'docx', 'exe', 'ica', 'indd', 'ini', 'jar', 'json', 'key', 'log', 'markdown', 'md', 'msi', 'odg', 'odp', 'ods', 'odt', 'pdf', 'pem', 'pps', 'ppsx', 'ppt', 'pptx', 'ps1', 'pub', 'raw', 'rdp', 'rsa', 'sh', 'sql', 'sqlite', 'swp', 'sxw', 'tar.gz', 'tgz', 'tar', 'txt', 'vbs', 'war', 'wpd', 'xls', 'xlsx', 'xml', 'yaml', 'yml', 'zip', 'lzma', 'rar', '7z', 'xz', 'bz2'], description='File extensions to download')
-        max_filesize: str = Field('10MB', description='Cancel download if filesize is greater than this size')
-        output_folder: str = Field('', description='Folder to download files to. If not specified, downloaded files will be deleted when the scan completes, to minimize disk usage.')
+        extensions: list[str] = Field(
+            [
+                "bak",
+                "bash",
+                "bashrc",
+                "cfg",
+                "conf",
+                "crt",
+                "csv",
+                "db",
+                "dll",
+                "doc",
+                "docx",
+                "exe",
+                "ica",
+                "indd",
+                "ini",
+                "jar",
+                "json",
+                "key",
+                "log",
+                "markdown",
+                "md",
+                "msi",
+                "odg",
+                "odp",
+                "ods",
+                "odt",
+                "pdf",
+                "pem",
+                "pps",
+                "ppsx",
+                "ppt",
+                "pptx",
+                "ps1",
+                "pub",
+                "raw",
+                "rdp",
+                "rsa",
+                "sh",
+                "sql",
+                "sqlite",
+                "swp",
+                "sxw",
+                "tar.gz",
+                "tgz",
+                "tar",
+                "txt",
+                "vbs",
+                "war",
+                "wpd",
+                "xls",
+                "xlsx",
+                "xml",
+                "yaml",
+                "yml",
+                "zip",
+                "lzma",
+                "rar",
+                "7z",
+                "xz",
+                "bz2",
+            ],
+            description="File extensions to download",
+        )
+        max_filesize: str = Field("10MB", description="Cancel download if filesize is greater than this size")
+        output_folder: str = Field(
+            "",
+            description="Folder to download files to. If not specified, downloaded files will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     scope_distance_modifier = 3
 

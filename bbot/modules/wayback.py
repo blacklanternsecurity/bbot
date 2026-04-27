@@ -14,9 +14,14 @@ class wayback(subdomain_enum):
         "created_date": "2022-04-01",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
-        urls: bool = Field(False, description='emit URLs in addition to DNS_NAMEs')
-        garbage_threshold: int = Field(10, description='Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)')
+        urls: bool = Field(False, description="emit URLs in addition to DNS_NAMEs")
+        garbage_threshold: int = Field(
+            10,
+            description="Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
+        )
+
     in_scope_only = True
 
     base_url = "http://web.archive.org"

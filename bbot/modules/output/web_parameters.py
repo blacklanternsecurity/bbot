@@ -13,9 +13,10 @@ class Web_parameters(BaseOutputModule):
         "created_date": "2025-01-25",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
-        output_file: str = Field('', description='Output to file')
-        include_count: bool = Field(False, description='Include the count of each parameter in the output')
+        output_file: str = Field("", description="Output to file")
+        include_count: bool = Field(False, description="Include the count of each parameter in the output")
 
     output_filename = "web_parameters.txt"
 

@@ -18,8 +18,10 @@ class Ipstack(BaseModule):
         "author": "@tycoonslive",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='IPStack GeoIP API Key')
+        api_key: str = Field("", description="IPStack GeoIP API Key")
+
     scope_distance_modifier = 1
     _priority = 2
     suppress_dupes = False

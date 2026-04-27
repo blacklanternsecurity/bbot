@@ -14,8 +14,10 @@ class dnsbrute_mutations(BaseModule):
         "author": "@TheTechromancer",
         "created_date": "2024-04-25",
     }
+
     class Config(BaseModuleConfig):
-        max_mutations: int = Field(100, description='Maximum number of target-specific mutations to try per subdomain')
+        max_mutations: int = Field(100, description="Maximum number of target-specific mutations to try per subdomain")
+
     deps_common = ["massdns"]
     _qsize = 10000
 

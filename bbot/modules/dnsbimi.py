@@ -54,10 +54,11 @@ class dnsbimi(BaseModule):
         "author": "@colin-stubbs",
         "created_date": "2024-11-15",
     }
+
     class Config(BaseModuleConfig):
-        emit_raw_dns_records: bool = Field(False, description='Emit RAW_DNS_RECORD events')
-        emit_urls: bool = Field(True, description='Emit URL_UNVERIFIED events')
-        selectors: str = Field('default,email,mail,bimi', description='CSV list of BIMI selectors to check')
+        emit_raw_dns_records: bool = Field(False, description="Emit RAW_DNS_RECORD events")
+        emit_urls: bool = Field(True, description="Emit URL_UNVERIFIED events")
+        selectors: str = Field("default,email,mail,bimi", description="CSV list of BIMI selectors to check")
 
     async def setup(self):
         self.emit_raw_dns_records = self.config.get("emit_raw_dns_records", False)

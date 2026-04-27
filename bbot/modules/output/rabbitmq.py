@@ -13,9 +13,11 @@ class RabbitMQ(BaseOutputModule):
         "created_date": "2024-11-22",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        url: str = Field('amqp://guest:guest@localhost/', description='The RabbitMQ connection URL')
-        queue: str = Field('bbot_events', description='The RabbitMQ queue to publish events to')
+        url: str = Field("amqp://guest:guest@localhost/", description="The RabbitMQ connection URL")
+        queue: str = Field("bbot_events", description="The RabbitMQ queue to publish events to")
+
     deps_pip = ["aio_pika~=9.5.0"]
 
     async def setup(self):

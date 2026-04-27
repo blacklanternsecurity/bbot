@@ -17,12 +17,20 @@ class medusa(BaseModule):
     scope_distance_modifier = None
 
     class Config(BaseModuleConfig):
-        snmp_wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt', description='Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt)')
-        snmp_versions: list[str] = Field(['1', '2C'], description="List of SNMP versions to attempt against the SNMP server (default ['1', '2C'])")
-        wait_microseconds: int = Field(200, description='Wait time after every SNMP request in microseconds (default 200)')
-        timeout_s: int = Field(5, description='Wait time for the SNMP response(s) once at the end of all attempts (default 5)')
-        threads: int = Field(5, description='Number of communities to be tested concurrently (default 5)')
-
+        snmp_wordlist: str = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt",
+            description="Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt)",
+        )
+        snmp_versions: list[str] = Field(
+            ["1", "2C"], description="List of SNMP versions to attempt against the SNMP server (default ['1', '2C'])"
+        )
+        wait_microseconds: int = Field(
+            200, description="Wait time after every SNMP request in microseconds (default 200)"
+        )
+        timeout_s: int = Field(
+            5, description="Wait time for the SNMP response(s) once at the end of all attempts (default 5)"
+        )
+        threads: int = Field(5, description="Number of communities to be tested concurrently (default 5)")
 
     deps_ansible = [
         {

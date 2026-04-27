@@ -14,11 +14,15 @@ class Elastic(HTTP):
         "created_date": "2022-11-21",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        url: str = Field('https://localhost:9200/bbot_events/_doc', description='Elastic URL (e.g. https://localhost:9200/<your_index>/_doc)')
-        username: str = Field('elastic', description='Elastic username')
-        password: str = Field('bbotislife', description='Elastic password')
-        timeout: int = Field(10, description='HTTP timeout')
+        url: str = Field(
+            "https://localhost:9200/bbot_events/_doc",
+            description="Elastic URL (e.g. https://localhost:9200/<your_index>/_doc)",
+        )
+        username: str = Field("elastic", description="Elastic username")
+        password: str = Field("bbotislife", description="Elastic password")
+        timeout: int = Field(10, description="HTTP timeout")
 
     async def cleanup(self):
         # refresh the index

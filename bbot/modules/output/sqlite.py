@@ -12,8 +12,10 @@ class SQLite(SQLTemplate):
         "created_date": "2024-11-07",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        database: str = Field('', description='The path to the sqlite database file')
+        database: str = Field("", description="The path to the sqlite database file")
+
     deps_pip = ["sqlmodel", "aiosqlite"]
 
     async def setup(self):

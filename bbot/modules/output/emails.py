@@ -12,8 +12,10 @@ class Emails(TXT):
         "created_date": "2023-12-23",
         "author": "@domwhewell-sage",
     }
+
     class Config(BaseModuleConfig):
-        output_file: str = Field('', description='Output to file')
+        output_file: str = Field("", description="Output to file")
+
     in_scope_only = True
     accept_dupes = False
 

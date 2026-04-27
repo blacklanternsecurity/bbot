@@ -13,8 +13,11 @@ class ZeroMQ(BaseOutputModule):
         "created_date": "2024-11-22",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        zmq_address: str = Field('', description='The ZeroMQ socket address to publish events to (e.g. tcp://localhost:5555)')
+        zmq_address: str = Field(
+            "", description="The ZeroMQ socket address to publish events to (e.g. tcp://localhost:5555)"
+        )
 
     async def setup(self):
         self.zmq_address = self.config.get("zmq_address", "")

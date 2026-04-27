@@ -17,9 +17,10 @@ class bevigil(subdomain_enum_apikey):
         "author": "@alt-glitch",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='BeVigil OSINT API Key')
-        urls: bool = Field(False, description='Emit URLs in addition to DNS_NAMEs')
+        api_key: str = Field("", description="BeVigil OSINT API Key")
+        urls: bool = Field(False, description="Emit URLs in addition to DNS_NAMEs")
 
     base_url = "https://osint.bevigil.com/api"
 

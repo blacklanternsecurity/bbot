@@ -35,10 +35,12 @@ class neo4j(BaseOutputModule):
 
     watched_events = ["*"]
     meta = {"description": "Output to Neo4j", "created_date": "2022-04-07", "author": "@TheTechromancer"}
+
     class Config(BaseModuleConfig):
-        uri: str = Field('bolt://localhost:7687', description='Neo4j server + port')
-        username: str = Field('neo4j', description='Neo4j username')
-        password: str = Field('bbotislife', description='Neo4j password')
+        uri: str = Field("bolt://localhost:7687", description="Neo4j server + port")
+        username: str = Field("neo4j", description="Neo4j username")
+        password: str = Field("bbotislife", description="Neo4j password")
+
     deps_pip = ["neo4j"]
     _batch_size = 500
     _preserve_graph = True

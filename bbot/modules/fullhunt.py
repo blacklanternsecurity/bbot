@@ -13,8 +13,9 @@ class fullhunt(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='FullHunt API Key')
+        api_key: str = Field("", description="FullHunt API Key")
 
     base_url = "https://fullhunt.io/api/v1"
 

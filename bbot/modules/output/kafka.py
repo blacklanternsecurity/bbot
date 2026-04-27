@@ -13,9 +13,13 @@ class Kafka(BaseOutputModule):
         "created_date": "2024-11-22",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        bootstrap_servers: str = Field('localhost:9092', description='A comma-separated list of Kafka server addresses')
-        topic: str = Field('bbot_events', description='The Kafka topic to publish events to')
+        bootstrap_servers: str = Field(
+            "localhost:9092", description="A comma-separated list of Kafka server addresses"
+        )
+        topic: str = Field("bbot_events", description="The Kafka topic to publish events to")
+
     deps_pip = ["aiokafka~=0.12.0"]
 
     async def setup(self):

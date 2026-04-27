@@ -11,12 +11,13 @@ class Splunk(BaseOutputModule):
         "created_date": "2024-02-17",
         "author": "@w0Tx",
     }
+
     class Config(BaseModuleConfig):
-        url: str = Field('', description='Web URL')
-        hectoken: str = Field('', description='HEC Token')
-        index: str = Field('', description='Index to send data to')
-        source: str = Field('', description='Source path to be added to the metadata')
-        timeout: int = Field(10, description='HTTP timeout')
+        url: str = Field("", description="Web URL")
+        hectoken: str = Field("", description="HEC Token")
+        index: str = Field("", description="Index to send data to")
+        source: str = Field("", description="Source path to be added to the metadata")
+        timeout: int = Field(10, description="HTTP timeout")
 
     async def setup(self):
         self.url = self.config.get("url", "")

@@ -12,9 +12,11 @@ class NATS(BaseOutputModule):
         "created_date": "2024-11-22",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        servers: list = Field([], description='A list of NATS server addresses')
-        subject: str = Field('bbot_events', description='The NATS subject to publish events to')
+        servers: list = Field([], description="A list of NATS server addresses")
+        subject: str = Field("bbot_events", description="The NATS subject to publish events to")
+
     deps_pip = ["nats-py"]
 
     async def setup(self):

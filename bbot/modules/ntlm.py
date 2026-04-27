@@ -76,8 +76,9 @@ class ntlm(BaseModule):
         "created_date": "2022-07-25",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
-        try_all: bool = Field(False, description='Try every NTLM endpoint')
+        try_all: bool = Field(False, description="Try every NTLM endpoint")
 
     in_scope_only = True
 

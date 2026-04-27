@@ -12,12 +12,25 @@ class lightfuzz(BaseModule):
     flags = ["active", "loud", "web-heavy", "invasive"]
 
     class Config(BaseModuleConfig):
-        force_common_headers: bool = Field(False, description='Force emit commonly exploitable parameters that may be difficult to detect')
-        enabled_submodules: list[str] = Field(['sqli', 'cmdi', 'xss', 'path', 'ssti', 'crypto', 'serial', 'esi', 'ssrf'], description='A list of submodules to enable. Empty list enabled all modules.')
-        disable_post: bool = Field(False, description='Disable processing of POST parameters, avoiding form submissions.')
-        try_post_as_get: bool = Field(False, description='For each POSTPARAM, also fuzz it as a GETPARAM (in addition to normal POST fuzzing).')
-        try_get_as_post: bool = Field(False, description='For each GETPARAM, also fuzz it as a POSTPARAM (in addition to normal GET fuzzing).')
-        avoid_wafs: bool = Field(True, description='Avoid running against confirmed WAFs, which are likely to block lightfuzz requests')
+        force_common_headers: bool = Field(
+            False, description="Force emit commonly exploitable parameters that may be difficult to detect"
+        )
+        enabled_submodules: list[str] = Field(
+            ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi", "ssrf"],
+            description="A list of submodules to enable. Empty list enabled all modules.",
+        )
+        disable_post: bool = Field(
+            False, description="Disable processing of POST parameters, avoiding form submissions."
+        )
+        try_post_as_get: bool = Field(
+            False, description="For each POSTPARAM, also fuzz it as a GETPARAM (in addition to normal POST fuzzing)."
+        )
+        try_get_as_post: bool = Field(
+            False, description="For each GETPARAM, also fuzz it as a POSTPARAM (in addition to normal GET fuzzing)."
+        )
+        avoid_wafs: bool = Field(
+            True, description="Avoid running against confirmed WAFs, which are likely to block lightfuzz requests"
+        )
 
     meta = {
         "description": "Find Web Parameters and Lightly Fuzz them using a heuristic based scanner",

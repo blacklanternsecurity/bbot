@@ -12,8 +12,12 @@ class anubisdb(subdomain_enum):
         "created_date": "2022-10-04",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        limit: int = Field(1000, description='Limit the number of subdomains returned per query (increasing this may slow the scan due to garbage results from this API)')
+        limit: int = Field(
+            1000,
+            description="Limit the number of subdomains returned per query (increasing this may slow the scan due to garbage results from this API)",
+        )
 
     base_url = "https://jldc.me/anubis/subdomains"
     dns_abort_depth = 5

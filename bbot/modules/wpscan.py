@@ -15,13 +15,18 @@ class wpscan(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='WPScan API Key')
-        enumerate: str = Field('vp,vt,cb,dbe', description='Enumeration Process see wpscan help documentation (default: vp,vt,cb,dbe)')
-        threads: int = Field(5, description='How many wpscan threads to spawn (default is 5)')
-        request_timeout: int = Field(5, description='The request timeout in seconds (default 5)')
-        connection_timeout: int = Field(2, description='The connection timeout in seconds (default 2)')
-        disable_tls_checks: bool = Field(True, description='Disables the SSL/TLS certificate verification (Default True)')
-        force: bool = Field(False, description='Do not check if the target is running WordPress or returns a 403')
+        api_key: str = Field("", description="WPScan API Key")
+        enumerate: str = Field(
+            "vp,vt,cb,dbe", description="Enumeration Process see wpscan help documentation (default: vp,vt,cb,dbe)"
+        )
+        threads: int = Field(5, description="How many wpscan threads to spawn (default is 5)")
+        request_timeout: int = Field(5, description="The request timeout in seconds (default 5)")
+        connection_timeout: int = Field(2, description="The connection timeout in seconds (default 2)")
+        disable_tls_checks: bool = Field(
+            True, description="Disables the SSL/TLS certificate verification (Default True)"
+        )
+        force: bool = Field(False, description="Do not check if the target is running WordPress or returns a 403")
+
     deps_apt = ["curl", "make", "gcc"]
     deps_ansible = [
         {

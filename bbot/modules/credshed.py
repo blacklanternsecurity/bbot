@@ -15,10 +15,12 @@ class credshed(subdomain_enum):
         "author": "@SpamFaux",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        username: str = Field('', description='Credshed username')
-        password: str = Field('', description='Credshed password')
-        credshed_url: str = Field('', description='URL of credshed server')
+        username: str = Field("", description="Credshed username")
+        password: str = Field("", description="Credshed password")
+        credshed_url: str = Field("", description="URL of credshed server")
+
     target_only = True
 
     async def setup(self):

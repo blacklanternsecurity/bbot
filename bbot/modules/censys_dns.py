@@ -18,9 +18,10 @@ class censys_dns(censys):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description="Censys.io API Key in the format of 'key:secret'")
-        max_pages: int = Field(5, description='Maximum number of pages to fetch (100 results per page)')
+        api_key: str = Field("", description="Censys.io API Key in the format of 'key:secret'")
+        max_pages: int = Field(5, description="Maximum number of pages to fetch (100 results per page)")
 
     async def setup(self):
         self.max_pages = self.config.get("max_pages", 5)

@@ -13,8 +13,9 @@ class Trickest(subdomain_enum_apikey):
         "created_date": "2024-07-27",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Trickest API key')
+        api_key: str = Field("", description="Trickest API key")
 
     base_url = "https://api.trickest.io/solutions/v1/public/solution/a7cba1f1-df07-4a5c-876a-953f178996be"
     ping_url = f"{base_url}/dataset"

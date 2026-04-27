@@ -15,8 +15,10 @@ class dehashed(subdomain_enum):
         "author": "@SpamFaux",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='DeHashed API Key')
+        api_key: str = Field("", description="DeHashed API Key")
+
     target_only = True
 
     base_url = "https://api.dehashed.com/v2/search"

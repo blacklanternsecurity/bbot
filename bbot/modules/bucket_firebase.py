@@ -12,8 +12,9 @@ class bucket_firebase(bucket_template):
         "created_date": "2023-03-20",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        permutations: bool = Field(False, description='Whether to try permutations')
+        permutations: bool = Field(False, description="Whether to try permutations")
 
     cloudcheck_provider_name = "Google"
     delimiters = ("", "-")

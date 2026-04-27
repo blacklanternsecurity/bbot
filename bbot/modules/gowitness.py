@@ -18,16 +18,20 @@ class gowitness(BaseModule):
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["safe", "active", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
+
     class Config(BaseModuleConfig):
-        version: str = Field('3.1.1', description='Gowitness version')
-        threads: int = Field(0, description='How many gowitness threads to spawn (default is number of CPUs x 2)')
-        timeout: int = Field(10, description='Preflight check timeout')
-        resolution_x: int = Field(1440, description='Screenshot resolution x')
-        resolution_y: int = Field(900, description='Screenshot resolution y')
-        output_path: str = Field('', description='Where to save screenshots')
-        social: bool = Field(False, description='Whether to screenshot social media webpages')
-        idle_timeout: int = Field(1800, description='Skip the current gowitness batch if it stalls for longer than this many seconds')
-        chrome_path: str = Field('', description='Path to chrome executable')
+        version: str = Field("3.1.1", description="Gowitness version")
+        threads: int = Field(0, description="How many gowitness threads to spawn (default is number of CPUs x 2)")
+        timeout: int = Field(10, description="Preflight check timeout")
+        resolution_x: int = Field(1440, description="Screenshot resolution x")
+        resolution_y: int = Field(900, description="Screenshot resolution y")
+        output_path: str = Field("", description="Where to save screenshots")
+        social: bool = Field(False, description="Whether to screenshot social media webpages")
+        idle_timeout: int = Field(
+            1800, description="Skip the current gowitness batch if it stalls for longer than this many seconds"
+        )
+        chrome_path: str = Field("", description="Path to chrome executable")
+
     deps_common = ["chromium"]
     deps_pip = ["aiosqlite"]
     deps_ansible = [

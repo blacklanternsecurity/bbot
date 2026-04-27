@@ -27,7 +27,9 @@ class wafw00f(BaseModule):
     deps_pip = ["wafw00f~=2.3.1"]
 
     class Config(BaseModuleConfig):
-        generic_detect: bool = Field(True, description='When no specific WAF detections are made, try to perform a generic detect')
+        generic_detect: bool = Field(
+            True, description="When no specific WAF detections are made, try to perform a generic detect"
+        )
 
     in_scope_only = True
     per_hostport_only = True

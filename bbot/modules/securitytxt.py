@@ -66,9 +66,10 @@ class securitytxt(BaseModule):
         "author": "@colin-stubbs",
         "created_date": "2024-05-26",
     }
+
     class Config(BaseModuleConfig):
-        emails: bool = Field(True, description='emit EMAIL_ADDRESS events')
-        urls: bool = Field(True, description='emit URL_UNVERIFIED events')
+        emails: bool = Field(True, description="emit EMAIL_ADDRESS events")
+        urls: bool = Field(True, description="emit URL_UNVERIFIED events")
 
     async def setup(self):
         self._emails = self.config.get("emails", True)

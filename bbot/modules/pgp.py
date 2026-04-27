@@ -12,8 +12,17 @@ class pgp(subdomain_enum):
         "created_date": "2022-08-10",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        search_urls: list[str] = Field(['https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=vindex&search=<query>', 'http://the.earth.li:11371/pks/lookup?fingerprint=on&op=vindex&search=<query>', 'https://pgpkeys.eu/pks/lookup?search=<query>&op=index', 'https://pgp.mit.edu/pks/lookup?search=<query>&op=index'], description='PGP key servers to search')
+        search_urls: list[str] = Field(
+            [
+                "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=vindex&search=<query>",
+                "http://the.earth.li:11371/pks/lookup?fingerprint=on&op=vindex&search=<query>",
+                "https://pgpkeys.eu/pks/lookup?search=<query>&op=index",
+                "https://pgp.mit.edu/pks/lookup?search=<query>&op=index",
+            ],
+            description="PGP key servers to search",
+        )
 
     async def handle_event(self, event):
         query = self.make_query(event)

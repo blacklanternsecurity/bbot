@@ -7,8 +7,10 @@ class leakix(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["safe", "subdomain-enum", "passive"]
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='LeakIX API Key')
+        api_key: str = Field("", description="LeakIX API Key")
+
     # NOTE: API key is not required (but having one will get you more results)
     meta = {
         "description": "Query leakix.net for subdomains",

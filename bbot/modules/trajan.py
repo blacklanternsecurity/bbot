@@ -18,14 +18,14 @@ class trajan(BaseModule):
 
     # Configuration options
     class Config(BaseModuleConfig):
-        version: str = Field('1.0.0', description='Trajan version to download and use')
-        github_token: str = Field('', description='GitHub API token for rate-limiting and private repo access')
-        gitlab_token: str = Field('', description='GitLab API token for private repo access')
-        ado_token: str = Field('', description='Azure DevOps Personal Access Token (PAT)')
-        jfrog_token: str = Field('', description='JFrog API token')
-        jenkins_username: str = Field('', description='Jenkins username for basic auth')
-        jenkins_password: str = Field('', description='Jenkins password for basic auth')
-        jenkins_token: str = Field('', description='Jenkins API token')
+        version: str = Field("1.0.0", description="Trajan version to download and use")
+        github_token: str = Field("", description="GitHub API token for rate-limiting and private repo access")
+        gitlab_token: str = Field("", description="GitLab API token for private repo access")
+        ado_token: str = Field("", description="Azure DevOps Personal Access Token (PAT)")
+        jfrog_token: str = Field("", description="JFrog API token")
+        jenkins_username: str = Field("", description="Jenkins username for basic auth")
+        jenkins_password: str = Field("", description="Jenkins password for basic auth")
+        jenkins_token: str = Field("", description="Jenkins API token")
 
     deps_ansible = [
         {

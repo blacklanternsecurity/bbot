@@ -24,10 +24,16 @@ class iis_shortnames(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
-        detect_only: bool = Field(True, description='Only detect the vulnerability and do not run the shortname scanner')
-        max_node_count: int = Field(50, description='Limit how many nodes to attempt to resolve on any given recursion branch')
+        detect_only: bool = Field(
+            True, description="Only detect the vulnerability and do not run the shortname scanner"
+        )
+        max_node_count: int = Field(
+            50, description="Limit how many nodes to attempt to resolve on any given recursion branch"
+        )
         speculate_magic_urls: bool = Field(True, description="Attempt to discover iis 'magic' special folders")
+
     in_scope_only = True
 
     _module_threads = 8

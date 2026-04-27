@@ -20,18 +20,31 @@ class portscan(BaseModule):
         "created_date": "2024-05-15",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
         top_ports: int = Field(100, description="Top ports to scan (default 100) (to override, specify 'ports')")
-        ports: str = Field('', description='Ports to scan')
-        rate: int = Field(300, description='Rate in packets per second')
-        wait: int = Field(5, description='Seconds to wait for replies after scan is complete')
-        ping_first: bool = Field(False, description='Only portscan hosts that reply to pings')
-        ping_only: bool = Field(False, description='Ping sweep only, no portscan')
-        adapter: str = Field('', description='Manually specify a network interface, such as "eth0" or "tun0". If not specified, the first network interface found with a default gateway will be used.')
-        adapter_ip: str = Field('', description="Send packets using this IP address. Not needed unless masscan's autodetection fails")
-        adapter_mac: str = Field('', description="Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails")
-        router_mac: str = Field('', description="Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails")
-        module_timeout: int = Field(259200, description='Max time in seconds to spend handling each batch of events')
+        ports: str = Field("", description="Ports to scan")
+        rate: int = Field(300, description="Rate in packets per second")
+        wait: int = Field(5, description="Seconds to wait for replies after scan is complete")
+        ping_first: bool = Field(False, description="Only portscan hosts that reply to pings")
+        ping_only: bool = Field(False, description="Ping sweep only, no portscan")
+        adapter: str = Field(
+            "",
+            description='Manually specify a network interface, such as "eth0" or "tun0". If not specified, the first network interface found with a default gateway will be used.',
+        )
+        adapter_ip: str = Field(
+            "", description="Send packets using this IP address. Not needed unless masscan's autodetection fails"
+        )
+        adapter_mac: str = Field(
+            "",
+            description="Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
+        )
+        router_mac: str = Field(
+            "",
+            description="Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
+        )
+        module_timeout: int = Field(259200, description="Max time in seconds to spend handling each batch of events")
+
     deps_common = ["masscan"]
     batch_size = 1000000
     _shuffle_incoming_queue = False

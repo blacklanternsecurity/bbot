@@ -16,7 +16,7 @@ class gitlab_com(GitLabBaseModule):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='GitLab access token (for gitlab.com/org only)')
+        api_key: str = Field("", description="GitLab access token (for gitlab.com/org only)")
 
     # This is needed because we are consuming SOCIAL events, which aren't in scope
     scope_distance_modifier = 2

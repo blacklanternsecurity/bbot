@@ -18,12 +18,12 @@ class nuclei(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        version: str = Field('3.8.0', description='nuclei version')
-        tags: str = Field('', description='execute a subset of templates that contain the provided tags')
-        templates: str = Field('', description='template or template directory paths to include in the scan')
-        severity: str = Field('', description='Filter based on severity field available in the template.')
-        ratelimit: int = Field(150, description='maximum number of requests to send per second (default 150)')
-        concurrency: int = Field(25, description='maximum number of templates to be executed in parallel (default 25)')
+        version: str = Field("3.8.0", description="nuclei version")
+        tags: str = Field("", description="execute a subset of templates that contain the provided tags")
+        templates: str = Field("", description="template or template directory paths to include in the scan")
+        severity: str = Field("", description="Filter based on severity field available in the template.")
+        ratelimit: int = Field(150, description="maximum number of requests to send per second (default 150)")
+        concurrency: int = Field(25, description="maximum number of templates to be executed in parallel (default 25)")
         mode: Literal["manual", "technology", "severe", "budget"] = Field(
             "manual",
             description=(
@@ -34,13 +34,14 @@ class nuclei(BaseModule):
                 "Budget: Limit Nuclei to a specified number of HTTP requests"
             ),
         )
-        etags: str = Field('', description='tags to exclude from the scan')
-        budget: int = Field(1, description='Used in budget mode to set the number of allowed requests per host')
+        etags: str = Field("", description="tags to exclude from the scan")
+        budget: int = Field(1, description="Used in budget mode to set the number of allowed requests per host")
         silent: bool = Field(False, description="Don't display nuclei's banner or status messages")
         directory_only: bool = Field(True, description="Filter out 'file' URL event (default True)")
-        retries: int = Field(0, description='number of times to retry a failed request (default 0)')
-        batch_size: int = Field(200, description='Number of targets to send to Nuclei per batch (default 200)')
-        module_timeout: int = Field(21600, description='Max time in seconds to spend handling each batch of events')
+        retries: int = Field(0, description="number of times to retry a failed request (default 0)")
+        batch_size: int = Field(200, description="Number of targets to send to Nuclei per batch (default 200)")
+        module_timeout: int = Field(21600, description="Max time in seconds to spend handling each batch of events")
+
     deps_ansible = [
         {
             "name": "Download nuclei",

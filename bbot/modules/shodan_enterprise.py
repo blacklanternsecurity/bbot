@@ -13,9 +13,13 @@ class shodan_enterprise(BaseModule):
         "description": "Shodan Enterprise API integration module.",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Shodan API Key')
-        in_scope_only: bool = Field(True, description='Only query in-scope IPs. If False, will query up to distance 1.')
+        api_key: str = Field("", description="Shodan API Key")
+        in_scope_only: bool = Field(
+            True, description="Only query in-scope IPs. If False, will query up to distance 1."
+        )
+
     in_scope_only = True
 
     base_url = "https://api.shodan.io"

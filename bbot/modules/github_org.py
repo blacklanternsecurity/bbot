@@ -12,9 +12,10 @@ class github_org(github):
         "created_date": "2023-12-14",
         "author": "@domwhewell-sage",
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Github token')
-        include_members: bool = Field(True, description='Enumerate organization members')
+        api_key: str = Field("", description="Github token")
+        include_members: bool = Field(True, description="Enumerate organization members")
         include_member_repos: bool = Field(False, description="Also enumerate organization members' repositories")
 
     scope_distance_modifier = 2

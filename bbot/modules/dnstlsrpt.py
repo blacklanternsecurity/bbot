@@ -42,10 +42,11 @@ class dnstlsrpt(BaseModule):
         "author": "@colin-stubbs",
         "created_date": "2024-07-26",
     }
+
     class Config(BaseModuleConfig):
-        emit_emails: bool = Field(True, description='Emit EMAIL_ADDRESS events')
-        emit_raw_dns_records: bool = Field(False, description='Emit RAW_DNS_RECORD events')
-        emit_urls: bool = Field(True, description='Emit URL_UNVERIFIED events')
+        emit_emails: bool = Field(True, description="Emit EMAIL_ADDRESS events")
+        emit_raw_dns_records: bool = Field(False, description="Emit RAW_DNS_RECORD events")
+        emit_urls: bool = Field(True, description="Emit URL_UNVERIFIED events")
 
     async def setup(self):
         self.emit_emails = self.config.get("emit_emails", True)

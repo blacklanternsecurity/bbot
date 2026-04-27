@@ -13,8 +13,9 @@ class shodan_dns(shodan):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Shodan API key')
+        api_key: str = Field("", description="Shodan API key")
 
     base_url = "https://api.shodan.io"
 

@@ -16,9 +16,13 @@ class docker_pull(BaseModule):
         "created_date": "2024-03-24",
         "author": "@domwhewell-sage",
     }
+
     class Config(BaseModuleConfig):
-        all_tags: bool = Field(False, description='Download all tags from each registry (Default False)')
-        output_folder: str = Field('', description='Folder to download docker repositories to. If not specified, downloaded docker images will be deleted when the scan completes, to minimize disk usage.')
+        all_tags: bool = Field(False, description="Download all tags from each registry (Default False)")
+        output_folder: str = Field(
+            "",
+            description="Folder to download docker repositories to. If not specified, downloaded docker images will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     scope_distance_modifier = 2
 

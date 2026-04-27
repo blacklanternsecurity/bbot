@@ -12,8 +12,10 @@ class postman(postman):
         "created_date": "2024-09-07",
         "author": "@domwhewell-sage",
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Postman API Key')
+        api_key: str = Field("", description="Postman API Key")
+
     reject_wildcards = False
 
     async def handle_event(self, event):

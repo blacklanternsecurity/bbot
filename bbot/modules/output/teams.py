@@ -10,11 +10,12 @@ class Teams(WebhookOutputModule):
         "created_date": "2023-08-14",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        webhook_url: str = Field('', description='Teams webhook URL')
-        event_types: list[str] = Field(['FINDING'], description='Types of events to send')
-        min_severity: str = Field('LOW', description='Only allow FINDING events of this severity or higher')
-        retries: int = Field(10, description='Number of times to retry sending the message before skipping the event')
+        webhook_url: str = Field("", description="Teams webhook URL")
+        event_types: list[str] = Field(["FINDING"], description="Types of events to send")
+        min_severity: str = Field("LOW", description="Only allow FINDING events of this severity or higher")
+        retries: int = Field(10, description="Number of times to retry sending the message before skipping the event")
 
     async def handle_event(self, event):
         data = self.format_message(event)

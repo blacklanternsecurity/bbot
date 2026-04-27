@@ -10,12 +10,14 @@ class Postgres(SQLTemplate):
         "created_date": "2024-11-08",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        username: str = Field('postgres', description='The username to connect to Postgres')
-        password: str = Field('bbotislife', description='The password to connect to Postgres')
-        host: str = Field('localhost', description='The server running Postgres')
-        port: int = Field(5432, description='The port to connect to Postgres')
-        database: str = Field('bbot', description='The database name to connect to')
+        username: str = Field("postgres", description="The username to connect to Postgres")
+        password: str = Field("bbotislife", description="The password to connect to Postgres")
+        host: str = Field("localhost", description="The server running Postgres")
+        port: int = Field(5432, description="The port to connect to Postgres")
+        database: str = Field("bbot", description="The database name to connect to")
+
     deps_pip = ["sqlmodel", "asyncpg"]
     protocol = "postgresql+asyncpg"
 

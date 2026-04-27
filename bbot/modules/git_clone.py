@@ -14,9 +14,13 @@ class git_clone(github):
         "created_date": "2024-03-08",
         "author": "@domwhewell-sage",
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Github token')
-        output_folder: str = Field('', description='Folder to clone repositories to. If not specified, cloned repositories will be deleted when the scan completes, to minimize disk usage.')
+        api_key: str = Field("", description="Github token")
+        output_folder: str = Field(
+            "",
+            description="Folder to clone repositories to. If not specified, cloned repositories will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     deps_apt = ["git"]
 

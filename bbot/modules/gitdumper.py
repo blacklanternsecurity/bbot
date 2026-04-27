@@ -15,10 +15,16 @@ class gitdumper(BaseModule):
         "created_date": "2025-02-11",
         "author": "@domwhewell-sage",
     }
+
     class Config(BaseModuleConfig):
-        output_folder: str = Field('', description='Folder to download repositories to. If not specified, downloaded repositories will be deleted when the scan completes, to minimize disk usage.')
-        fuzz_tags: bool = Field(False, description='Fuzz for common git tag names (v0.0.1, 0.0.2, etc.) up to the max_semanic_version')
-        max_semanic_version: int = Field(10, description='Maximum version number to fuzz for (default < v10.10.10)')
+        output_folder: str = Field(
+            "",
+            description="Folder to download repositories to. If not specified, downloaded repositories will be deleted when the scan completes, to minimize disk usage.",
+        )
+        fuzz_tags: bool = Field(
+            False, description="Fuzz for common git tag names (v0.0.1, 0.0.2, etc.) up to the max_semanic_version"
+        )
+        max_semanic_version: int = Field(10, description="Maximum version number to fuzz for (default < v10.10.10)")
 
     scope_distance_modifier = 2
 

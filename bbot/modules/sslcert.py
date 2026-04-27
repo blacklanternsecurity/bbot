@@ -19,9 +19,11 @@ class sslcert(BaseModule):
         "created_date": "2022-03-30",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        timeout: float = Field(5.0, description='Socket connect timeout in seconds')
+        timeout: float = Field(5.0, description="Socket connect timeout in seconds")
         skip_non_ssl: bool = Field(True, description="Don't try common non-SSL ports")
+
     deps_apt = ["openssl"]
     deps_pip = ["pyOpenSSL~=25.3.0"]
     _module_threads = 25

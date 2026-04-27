@@ -13,8 +13,9 @@ class hunterio(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='Hunter.IO API key')
+        api_key: str = Field("", description="Hunter.IO API key")
 
     base_url = "https://api.hunter.io/v2"
     ping_url = f"{base_url}/account?api_key={{api_key}}"

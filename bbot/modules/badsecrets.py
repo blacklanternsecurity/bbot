@@ -16,8 +16,10 @@ class badsecrets(BaseModule):
         "created_date": "2022-11-19",
         "author": "@liquidsec",
     }
+
     class Config(BaseModuleConfig):
-        custom_secrets: Optional[str] = Field(None, description='Include custom secrets loaded from a local file')
+        custom_secrets: Optional[str] = Field(None, description="Include custom secrets loaded from a local file")
+
     deps_pip = ["badsecrets~=1.0.0"]
 
     async def setup(self):

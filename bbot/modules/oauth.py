@@ -14,8 +14,9 @@ class OAUTH(BaseModule):
         "created_date": "2023-07-12",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        try_all: bool = Field(False, description='Check for OAUTH/IODC on every subdomain and URL.')
+        try_all: bool = Field(False, description="Check for OAUTH/IODC on every subdomain and URL.")
 
     in_scope_only = False
     scope_distance_modifier = 1

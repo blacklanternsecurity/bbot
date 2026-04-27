@@ -19,8 +19,10 @@ class bucket_file_enum(BaseModule):
         "author": "@TheTechromancer",
     }
     flags = ["safe", "passive", "cloud-enum"]
+
     class Config(BaseModuleConfig):
-        file_limit: int = Field(50, description='Limit the number of files downloaded per bucket')
+        file_limit: int = Field(50, description="Limit the number of files downloaded per bucket")
+
     scope_distance_modifier = 2
 
     async def setup(self):

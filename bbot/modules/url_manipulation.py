@@ -16,7 +16,10 @@ class url_manipulation(BaseModule):
     in_scope_only = True
 
     class Config(BaseModuleConfig):
-        allow_redirects: bool = Field(True, description='Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default.')
+        allow_redirects: bool = Field(
+            True,
+            description="Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default.",
+        )
 
     async def setup(self):
         # ([string]method,[string]path,[bool]strip trailing slash)

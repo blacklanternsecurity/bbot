@@ -19,12 +19,14 @@ class Mongo(BaseOutputModule):
         "created_date": "2024-11-17",
         "author": "@TheTechromancer",
     }
+
     class Config(BaseModuleConfig):
-        uri: str = Field('mongodb://localhost:27017', description='The URI of the MongoDB server')
-        database: str = Field('bbot', description='The name of the database to use')
-        username: str = Field('', description='The username to use to connect to the database')
-        password: str = Field('', description='The password to use to connect to the database')
-        collection_prefix: str = Field('', description='Prefix the name of each collection with this string')
+        uri: str = Field("mongodb://localhost:27017", description="The URI of the MongoDB server")
+        database: str = Field("bbot", description="The name of the database to use")
+        username: str = Field("", description="The username to use to connect to the database")
+        password: str = Field("", description="The password to use to connect to the database")
+        collection_prefix: str = Field("", description="Prefix the name of each collection with this string")
+
     deps_pip = ["pymongo~=4.15"]
 
     async def setup(self):

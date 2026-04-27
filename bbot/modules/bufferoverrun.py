@@ -13,9 +13,10 @@ class BufferOverrun(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
+
     class Config(BaseModuleConfig):
-        api_key: str = Field('', description='BufferOverrun API key')
-        commercial: bool = Field(False, description='Use commercial API')
+        api_key: str = Field("", description="BufferOverrun API key")
+        commercial: bool = Field(False, description="Use commercial API")
 
     base_url = "https://tls.bufferover.run/dns"
     commercial_base_url = "https://bufferover-run-tls.p.rapidapi.com/ipv4/dns"

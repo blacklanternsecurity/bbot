@@ -35,9 +35,14 @@ class speculate(BaseInternalModule):
     }
 
     class Config(BaseModuleConfig):
-        ip_range_max_hosts: int = Field(65536, description='Max number of hosts an IP_RANGE can contain to allow conversion into IP_ADDRESS events')
-        ports: str = Field('80,443', description='The set of ports to speculate on')
-        essential_only: bool = Field(False, description='Only enable essential speculate features (no extra discovery)')
+        ip_range_max_hosts: int = Field(
+            65536, description="Max number of hosts an IP_RANGE can contain to allow conversion into IP_ADDRESS events"
+        )
+        ports: str = Field("80,443", description="The set of ports to speculate on")
+        essential_only: bool = Field(
+            False, description="Only enable essential speculate features (no extra discovery)"
+        )
+
     scope_distance_modifier = 1
     _priority = 4
 
