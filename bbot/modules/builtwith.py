@@ -11,6 +11,8 @@
 ############################################################
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class builtwith(subdomain_enum_apikey):
@@ -23,8 +25,9 @@ class builtwith(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": "", "redirects": True}
-    options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='Builtwith API key')
+        redirects: bool = Field(True, description='Also look up inbound and outbound redirects')
     base_url = "https://api.builtwith.com"
 
     async def handle_event(self, event):

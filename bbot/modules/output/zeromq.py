@@ -2,6 +2,8 @@ import zmq
 import json
 
 from bbot.modules.output.base import BaseOutputModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class ZeroMQ(BaseOutputModule):
@@ -11,12 +13,8 @@ class ZeroMQ(BaseOutputModule):
         "created_date": "2024-11-22",
         "author": "@TheTechromancer",
     }
-    options = {
-        "zmq_address": "",
-    }
-    options_desc = {
-        "zmq_address": "The ZeroMQ socket address to publish events to (e.g. tcp://localhost:5555)",
-    }
+    class Config(BaseModuleConfig):
+        zmq_address: str = Field('', description='The ZeroMQ socket address to publish events to (e.g. tcp://localhost:5555)')
 
     async def setup(self):
         self.zmq_address = self.config.get("zmq_address", "")

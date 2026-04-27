@@ -6,6 +6,8 @@ from bbot.errors import ValidationError
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.helpers.web.ssl_context import ssl_context_noverify
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class sslcert(BaseModule):
@@ -17,8 +19,9 @@ class sslcert(BaseModule):
         "created_date": "2022-03-30",
         "author": "@TheTechromancer",
     }
-    options = {"timeout": 5.0, "skip_non_ssl": True}
-    options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
+    class Config(BaseModuleConfig):
+        timeout: float = Field(5.0, description='Socket connect timeout in seconds')
+        skip_non_ssl: bool = Field(True, description="Don't try common non-SSL ports")
     deps_apt = ["openssl"]
     deps_pip = ["pyOpenSSL~=25.3.0"]
     _module_threads = 25

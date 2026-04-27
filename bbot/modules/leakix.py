@@ -1,13 +1,15 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class leakix(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["safe", "subdomain-enum", "passive"]
-    options = {"api_key": ""}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='LeakIX API Key')
     # NOTE: API key is not required (but having one will get you more results)
-    options_desc = {"api_key": "LeakIX API Key"}
     meta = {
         "description": "Query leakix.net for subdomains",
         "created_date": "2022-07-11",

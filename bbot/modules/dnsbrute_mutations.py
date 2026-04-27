@@ -1,6 +1,8 @@
 import time
 
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class dnsbrute_mutations(BaseModule):
@@ -12,12 +14,8 @@ class dnsbrute_mutations(BaseModule):
         "author": "@TheTechromancer",
         "created_date": "2024-04-25",
     }
-    options = {
-        "max_mutations": 100,
-    }
-    options_desc = {
-        "max_mutations": "Maximum number of target-specific mutations to try per subdomain",
-    }
+    class Config(BaseModuleConfig):
+        max_mutations: int = Field(100, description='Maximum number of target-specific mutations to try per subdomain')
     deps_common = ["massdns"]
     _qsize = 10000
 

@@ -1,4 +1,6 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class BufferOverrun(subdomain_enum_apikey):
@@ -11,8 +13,9 @@ class BufferOverrun(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": "", "commercial": False}
-    options_desc = {"api_key": "BufferOverrun API key", "commercial": "Use commercial API"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='BufferOverrun API key')
+        commercial: bool = Field(False, description='Use commercial API')
 
     base_url = "https://tls.bufferover.run/dns"
     commercial_base_url = "https://bufferover-run-tls.p.rapidapi.com/ipv4/dns"

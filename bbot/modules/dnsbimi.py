@@ -28,6 +28,8 @@ from bbot.modules.base import BaseModule
 from bbot.core.helpers.dns.helpers import record_to_text, service_record
 
 import re
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 # Handle "v=BIMI1; l=; a=;" == RFC conformant explicit declination to publish, e.g. useful on a sub-domain if you don't want the sub-domain to have a BIMI logo, yet your registered domain does?
 # Handle "v=BIMI1; l=; a=" == RFC non-conformant explicit declination to publish
@@ -52,16 +54,10 @@ class dnsbimi(BaseModule):
         "author": "@colin-stubbs",
         "created_date": "2024-11-15",
     }
-    options = {
-        "emit_raw_dns_records": False,
-        "emit_urls": True,
-        "selectors": "default,email,mail,bimi",
-    }
-    options_desc = {
-        "emit_raw_dns_records": "Emit RAW_DNS_RECORD events",
-        "emit_urls": "Emit URL_UNVERIFIED events",
-        "selectors": "CSV list of BIMI selectors to check",
-    }
+    class Config(BaseModuleConfig):
+        emit_raw_dns_records: bool = Field(False, description='Emit RAW_DNS_RECORD events')
+        emit_urls: bool = Field(True, description='Emit URL_UNVERIFIED events')
+        selectors: str = Field('default,email,mail,bimi', description='CSV list of BIMI selectors to check')
 
     async def setup(self):
         self.emit_raw_dns_records = self.config.get("emit_raw_dns_records", False)

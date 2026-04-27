@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from bbot.errors import WordlistError
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 # key: <common-protocol-name> value: <legba-protocol-plugin-name>
 # List with `legba -L`
@@ -28,31 +30,18 @@ class legba(BaseModule):
     _module_threads = 25
     scope_distance_modifier = None
 
-    options = {
-        "ssh_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt",
-        "ftp_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt",
-        "telnet_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/telnet-betterdefaultpasslist.txt",
-        "vnc_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt",
-        "mssql_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt",
-        "mysql_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt",
-        "postgresql_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt",
-        "concurrency": 3,
-        "rate_limit": 3,
-        "version": "1.1.1",
-    }
+    class Config(BaseModuleConfig):
+        ssh_wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt', description='Wordlist URL for SSH combined username:password wordlist, newline separated')
+        ftp_wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt', description='Wordlist URL for FTP combined username:password wordlist, newline separated')
+        telnet_wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/telnet-betterdefaultpasslist.txt', description='Wordlist URL for TELNET combined username:password wordlist, newline separated')
+        vnc_wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt', description='Wordlist URL for VNC password wordlist, newline separated')
+        mssql_wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt', description='Wordlist URL for MSSQL combined username:password wordlist, newline separated')
+        mysql_wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt', description='Wordlist URL for MySQL combined username:password wordlist, newline separated')
+        postgresql_wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt', description='Wordlist URL for PostgreSQL combined username:password wordlist, newline separated')
+        concurrency: int = Field(3, description='Number of concurrent workers, gets overridden for SSH')
+        rate_limit: int = Field(3, description='Limit the number of requests per second, gets overridden for SSH')
+        version: str = Field('1.1.1', description='legba version')
 
-    options_desc = {
-        "ssh_wordlist": "Wordlist URL for SSH combined username:password wordlist, newline separated",
-        "ftp_wordlist": "Wordlist URL for FTP combined username:password wordlist, newline separated",
-        "telnet_wordlist": "Wordlist URL for TELNET combined username:password wordlist, newline separated",
-        "vnc_wordlist": "Wordlist URL for VNC password wordlist, newline separated",
-        "mssql_wordlist": "Wordlist URL for MSSQL combined username:password wordlist, newline separated",
-        "mysql_wordlist": "Wordlist URL for MySQL combined username:password wordlist, newline separated",
-        "postgresql_wordlist": "Wordlist URL for PostgreSQL combined username:password wordlist, newline separated",
-        "concurrency": "Number of concurrent workers, gets overridden for SSH",
-        "rate_limit": "Limit the number of requests per second, gets overridden for SSH",
-        "version": "legba version",
-    }
 
     deps_ansible = [
         {

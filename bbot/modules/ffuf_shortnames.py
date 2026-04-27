@@ -4,6 +4,8 @@ import random
 import string
 
 from bbot.modules.ffuf import ffuf
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class ffuf_shortnames(ffuf):
@@ -16,31 +18,18 @@ class ffuf_shortnames(ffuf):
         "author": "@liquidsec",
     }
 
-    options = {
-        "wordlist_extensions": "",  # default is defined within setup function
-        "max_depth": 1,
-        "version": "2.0.0",
-        "extensions": "",
-        "ignore_redirects": True,
-        "find_common_prefixes": False,
-        "find_delimiters": True,
-        "find_subwords": False,
-        "max_predictions": 250,
-        "rate": 0,
-    }
+    class Config(BaseModuleConfig):
+        wordlist_extensions: str = Field('', description='Specify wordlist to use when making extension lists')
+        max_depth: int = Field(1, description='the maximum directory depth to attempt to solve')
+        version: str = Field('2.0.0', description='ffuf version')
+        extensions: str = Field('', description='Optionally include a list of extensions to extend the keyword with (comma separated)')
+        ignore_redirects: bool = Field(True, description='Explicitly ignore redirects (301,302)')
+        find_common_prefixes: bool = Field(False, description='Attempt to automatically detect common prefixes and make additional ffuf runs against them')
+        find_delimiters: bool = Field(True, description='Attempt to detect common delimiters and make additional ffuf runs against them')
+        find_subwords: bool = Field(False, description='Attempt to detect subwords and make additional ffuf runs against them')
+        max_predictions: int = Field(250, description='The maximum number of predictions to generate per shortname prefix')
+        rate: int = Field(0, description='Rate of requests per second (default: 0)')
 
-    options_desc = {
-        "wordlist_extensions": "Specify wordlist to use when making extension lists",
-        "max_depth": "the maximum directory depth to attempt to solve",
-        "version": "ffuf version",
-        "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "ignore_redirects": "Explicitly ignore redirects (301,302)",
-        "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional ffuf runs against them",
-        "find_delimiters": "Attempt to detect common delimiters and make additional ffuf runs against them",
-        "find_subwords": "Attempt to detect subwords and make additional ffuf runs against them",
-        "max_predictions": "The maximum number of predictions to generate per shortname prefix",
-        "rate": "Rate of requests per second (default: 0)",
-    }
 
     deps_pip = ["numpy"]
     deps_common = ["ffuf"]

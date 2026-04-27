@@ -4,6 +4,8 @@ from contextlib import suppress
 
 from .csv import CSV
 from bbot.core.helpers.misc import make_ip_type, is_ip, is_port, best_http_status
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 severity_map = {
     "INFO": 0,
@@ -37,13 +39,11 @@ class asset_inventory(CSV):
         "created_date": "2022-09-30",
         "author": "@liquidsec",
     }
-    options = {"output_file": "", "use_previous": False, "recheck": False, "summary_netmask": 16}
-    options_desc = {
-        "output_file": "Set a custom output file",
-        "use_previous": "Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)",
-        "recheck": "When use_previous=True, don't retain past details like open ports or findings. Instead, allow them to be rediscovered by the new scan",
-        "summary_netmask": "Subnet mask to use when summarizing IP addresses at end of scan",
-    }
+    class Config(BaseModuleConfig):
+        output_file: str = Field('', description='Set a custom output file')
+        use_previous: bool = Field(False, description='Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)')
+        recheck: bool = Field(False, description="When use_previous=True, don't retain past details like open ports or findings. Instead, allow them to be rediscovered by the new scan")
+        summary_netmask: int = Field(16, description='Subnet mask to use when summarizing IP addresses at end of scan')
 
     header_row = [
         "Host",

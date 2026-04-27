@@ -1,4 +1,6 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class securitytrails(subdomain_enum_apikey):
@@ -11,8 +13,8 @@ class securitytrails(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "SecurityTrails API key"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='SecurityTrails API key')
 
     base_url = "https://api.securitytrails.com/v1"
     ping_url = f"{base_url}/ping?apikey={{api_key}}"

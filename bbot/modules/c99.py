@@ -1,4 +1,6 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class c99(subdomain_enum_apikey):
@@ -11,8 +13,8 @@ class c99(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "c99.nl API key"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='c99.nl API key')
 
     base_url = "https://api.c99.nl"
     ping_url = f"{base_url}/randomnumber?key={{api_key}}&between=1,100&json"

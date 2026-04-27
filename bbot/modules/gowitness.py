@@ -9,6 +9,8 @@ from contextlib import suppress
 from shutil import copyfile, copymode
 
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class gowitness(BaseModule):
@@ -16,28 +18,16 @@ class gowitness(BaseModule):
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["safe", "active", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
-    options = {
-        "version": "3.1.1",
-        "threads": 0,
-        "timeout": 10,
-        "resolution_x": 1440,
-        "resolution_y": 900,
-        "output_path": "",
-        "social": False,
-        "idle_timeout": 1800,
-        "chrome_path": "",
-    }
-    options_desc = {
-        "version": "Gowitness version",
-        "threads": "How many gowitness threads to spawn (default is number of CPUs x 2)",
-        "timeout": "Preflight check timeout",
-        "resolution_x": "Screenshot resolution x",
-        "resolution_y": "Screenshot resolution y",
-        "output_path": "Where to save screenshots",
-        "social": "Whether to screenshot social media webpages",
-        "idle_timeout": "Skip the current gowitness batch if it stalls for longer than this many seconds",
-        "chrome_path": "Path to chrome executable",
-    }
+    class Config(BaseModuleConfig):
+        version: str = Field('3.1.1', description='Gowitness version')
+        threads: int = Field(0, description='How many gowitness threads to spawn (default is number of CPUs x 2)')
+        timeout: int = Field(10, description='Preflight check timeout')
+        resolution_x: int = Field(1440, description='Screenshot resolution x')
+        resolution_y: int = Field(900, description='Screenshot resolution y')
+        output_path: str = Field('', description='Where to save screenshots')
+        social: bool = Field(False, description='Whether to screenshot social media webpages')
+        idle_timeout: int = Field(1800, description='Skip the current gowitness batch if it stalls for longer than this many seconds')
+        chrome_path: str = Field('', description='Path to chrome executable')
     deps_common = ["chromium"]
     deps_pip = ["aiosqlite"]
     deps_ansible = [

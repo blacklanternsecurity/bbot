@@ -1,6 +1,8 @@
 from bbot.core.helpers.regexes import url_regexes
 
 from .base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class OAUTH(BaseModule):
@@ -12,8 +14,8 @@ class OAUTH(BaseModule):
         "created_date": "2023-07-12",
         "author": "@TheTechromancer",
     }
-    options = {"try_all": False}
-    options_desc = {"try_all": "Check for OAUTH/IODC on every subdomain and URL."}
+    class Config(BaseModuleConfig):
+        try_all: bool = Field(False, description='Check for OAUTH/IODC on every subdomain and URL.')
 
     in_scope_only = False
     scope_distance_modifier = 1

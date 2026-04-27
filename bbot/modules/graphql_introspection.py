@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class graphql_introspection(BaseModule):
@@ -12,14 +14,9 @@ class graphql_introspection(BaseModule):
         "created_date": "2025-07-01",
         "author": "@mukesh-dream11",
     }
-    options = {
-        "graphql_endpoint_urls": ["/", "/graphql", "/v1/graphql"],
-        "output_folder": "",
-    }
-    options_desc = {
-        "graphql_endpoint_urls": "List of GraphQL endpoint to suffix to the target URL",
-        "output_folder": "Folder to save the GraphQL schemas to",
-    }
+    class Config(BaseModuleConfig):
+        graphql_endpoint_urls: list[str] = Field(['/', '/graphql', '/v1/graphql'], description='List of GraphQL endpoint to suffix to the target URL')
+        output_folder: str = Field('', description='Folder to save the GraphQL schemas to')
 
     async def setup(self):
         output_folder = self.config.get("output_folder", "")

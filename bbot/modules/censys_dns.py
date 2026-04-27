@@ -1,4 +1,6 @@
 from bbot.modules.templates.censys import censys
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class censys_dns(censys):
@@ -16,11 +18,9 @@ class censys_dns(censys):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": "", "max_pages": 5}
-    options_desc = {
-        "api_key": "Censys.io API Key in the format of 'key:secret'",
-        "max_pages": "Maximum number of pages to fetch (100 results per page)",
-    }
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description="Censys.io API Key in the format of 'key:secret'")
+        max_pages: int = Field(5, description='Maximum number of pages to fetch (100 results per page)')
 
     async def setup(self):
         self.max_pages = self.config.get("max_pages", 5)

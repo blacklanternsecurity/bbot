@@ -10,6 +10,8 @@ import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, urldefrag
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 def find_subclasses(obj, base_class):
@@ -335,16 +337,10 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         "author": "@liquidsec",
     }
 
-    options = {
-        "yara_max_match_data": 2000,
-        "custom_yara_rules": "",
-        "speculate_params": False,
-    }
-    options_desc = {
-        "yara_max_match_data": "Sets the maximum amount of text that can extracted from a YARA regex",
-        "custom_yara_rules": "Include custom Yara rules",
-        "speculate_params": "Enable speculative parameter extraction from JSON and XML content",
-    }
+    class Config(BaseModuleConfig):
+        yara_max_match_data: int = Field(2000, description='Sets the maximum amount of text that can extracted from a YARA regex')
+        custom_yara_rules: str = Field('', description='Include custom Yara rules')
+        speculate_params: bool = Field(False, description='Enable speculative parameter extraction from JSON and XML content')
     scope_distance_modifier = None
     accept_dupes = False
 

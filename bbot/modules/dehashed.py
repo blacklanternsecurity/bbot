@@ -1,6 +1,8 @@
 from contextlib import suppress
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class dehashed(subdomain_enum):
@@ -13,8 +15,8 @@ class dehashed(subdomain_enum):
         "author": "@SpamFaux",
         "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "DeHashed API Key"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='DeHashed API Key')
     target_only = True
 
     base_url = "https://api.dehashed.com/v2/search"

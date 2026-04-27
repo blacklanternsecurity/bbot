@@ -3,6 +3,8 @@ from wafw00f import main as wafw00f_main
 
 # disable wafw00f logging
 import logging
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 wafw00f_logger = logging.getLogger("wafw00f")
 wafw00f_logger.setLevel(logging.CRITICAL + 100)
@@ -24,8 +26,8 @@ class wafw00f(BaseModule):
 
     deps_pip = ["wafw00f~=2.3.1"]
 
-    options = {"generic_detect": True}
-    options_desc = {"generic_detect": "When no specific WAF detections are made, try to perform a generic detect"}
+    class Config(BaseModuleConfig):
+        generic_detect: bool = Field(True, description='When no specific WAF detections are made, try to perform a generic detect')
 
     in_scope_only = True
     per_hostport_only = True

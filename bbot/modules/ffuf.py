@@ -4,6 +4,8 @@ import random
 import string
 import json
 import base64
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class ffuf(BaseModule):
@@ -12,23 +14,14 @@ class ffuf(BaseModule):
     flags = ["loud", "active"]
     meta = {"description": "A fast web fuzzer written in Go", "created_date": "2022-04-10", "author": "@liquidsec"}
 
-    options = {
-        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
-        "lines": 5000,
-        "max_depth": 0,
-        "extensions": "",
-        "ignore_case": False,
-        "rate": 0,
-    }
+    class Config(BaseModuleConfig):
+        wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt', description='Specify wordlist to use when finding directories')
+        lines: int = Field(5000, description='take only the first N lines from the wordlist when finding directories')
+        max_depth: int = Field(0, description='the maximum directory depth to attempt to solve')
+        extensions: str = Field('', description='Optionally include a list of extensions to extend the keyword with (comma separated)')
+        ignore_case: bool = Field(False, description='Only put lowercase words into the wordlist')
+        rate: int = Field(0, description='Rate of requests per second (default: 0)')
 
-    options_desc = {
-        "wordlist": "Specify wordlist to use when finding directories",
-        "lines": "take only the first N lines from the wordlist when finding directories",
-        "max_depth": "the maximum directory depth to attempt to solve",
-        "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "ignore_case": "Only put lowercase words into the wordlist",
-        "rate": "Rate of requests per second (default: 0)",
-    }
 
     deps_common = ["ffuf"]
 

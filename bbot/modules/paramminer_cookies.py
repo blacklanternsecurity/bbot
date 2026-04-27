@@ -1,4 +1,6 @@
 from .paramminer_headers import paramminer_headers
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class paramminer_cookies(paramminer_headers):
@@ -14,17 +16,14 @@ class paramminer_cookies(paramminer_headers):
         "created_date": "2022-06-27",
         "author": "@liquidsec",
     }
-    options = {
-        "wordlist": "",  # default is defined within setup function
-        "recycle_words": False,
-        "skip_boring_words": True,
-    }
-    options_desc = {
-        "wordlist": "Define the wordlist to be used to derive headers",
-        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
-        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
-    }
-    options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
+    class Config(BaseModuleConfig):
+        wordlist: str = Field("", description="Define the wordlist to be used to derive cookies")
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(
+            True, description="Remove commonly uninteresting words from the wordlist"
+        )
     scanned_hosts = []
     boring_words = set()
     _module_threads = 12

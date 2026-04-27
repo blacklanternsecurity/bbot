@@ -2,6 +2,8 @@ import json
 from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class JSON(BaseOutputModule):
@@ -11,10 +13,8 @@ class JSON(BaseOutputModule):
         "created_date": "2022-04-07",
         "author": "@TheTechromancer",
     }
-    options = {"output_file": ""}
-    options_desc = {
-        "output_file": "Output to file",
-    }
+    class Config(BaseModuleConfig):
+        output_file: str = Field('', description='Output to file')
     _preserve_graph = True
 
     async def setup(self):

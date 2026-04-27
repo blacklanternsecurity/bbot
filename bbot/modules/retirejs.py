@@ -1,6 +1,8 @@
 import json
 from enum import IntEnum
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class RetireJSSeverity(IntEnum):
@@ -27,16 +29,10 @@ class retirejs(BaseModule):
         "created_date": "2025-08-19",
         "author": "@liquidsec",
     }
-    options = {
-        "version": "5.3.0",
-        "node_version": "18.19.1",
-        "severity": "medium",
-    }
-    options_desc = {
-        "version": "retire.js version",
-        "node_version": "Node.js version to install locally",
-        "severity": "Minimum severity level to report (none, low, medium, high, critical)",
-    }
+    class Config(BaseModuleConfig):
+        version: str = Field('5.3.0', description='retire.js version')
+        node_version: str = Field('18.19.1', description='Node.js version to install locally')
+        severity: str = Field('medium', description='Minimum severity level to report (none, low, medium, high, critical)')
 
     deps_ansible = [
         # Download Node.js binary (Linux x64)

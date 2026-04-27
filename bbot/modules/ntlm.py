@@ -1,5 +1,7 @@
 from bbot.errors import NTLMError
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 ntlm_discovery_endpoints = [
     "",
@@ -74,8 +76,8 @@ class ntlm(BaseModule):
         "created_date": "2022-07-25",
         "author": "@liquidsec",
     }
-    options = {"try_all": False}
-    options_desc = {"try_all": "Try every NTLM endpoint"}
+    class Config(BaseModuleConfig):
+        try_all: bool = Field(False, description='Try every NTLM endpoint')
 
     in_scope_only = True
 

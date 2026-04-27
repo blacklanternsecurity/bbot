@@ -13,7 +13,7 @@ merged dict straight from YAML, and these models only ever validate shape.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -93,7 +93,7 @@ class DepsToolConfig(BaseModel):
 class DepsConfig(BaseModel):
     model_config = STRICT
 
-    behavior: Optional[str] = None
+    behavior: Optional[Literal["abort_on_failure", "retry_failed", "ignore_failed", "disable", "force_install"]] = None
     ffuf: Optional[DepsToolConfig] = None
 
 

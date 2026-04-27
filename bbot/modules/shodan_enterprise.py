@@ -1,4 +1,6 @@
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class shodan_enterprise(BaseModule):
@@ -11,11 +13,9 @@ class shodan_enterprise(BaseModule):
         "description": "Shodan Enterprise API integration module.",
         "auth_required": True,
     }
-    options = {"api_key": "", "in_scope_only": True}
-    options_desc = {
-        "api_key": "Shodan API Key",
-        "in_scope_only": "Only query in-scope IPs. If False, will query up to distance 1.",
-    }
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='Shodan API Key')
+        in_scope_only: bool = Field(True, description='Only query in-scope IPs. If False, will query up to distance 1.')
     in_scope_only = True
 
     base_url = "https://api.shodan.io"

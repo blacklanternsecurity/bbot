@@ -1,6 +1,8 @@
 from pathlib import Path
 from subprocess import CalledProcessError
 from bbot.modules.internal.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class jadx(BaseModule):
@@ -12,12 +14,8 @@ class jadx(BaseModule):
         "created_date": "2024-11-04",
         "author": "@domwhewell-sage",
     }
-    options = {
-        "threads": 4,
-    }
-    options_desc = {
-        "threads": "Maximum jadx threads for extracting apk's, default: 4",
-    }
+    class Config(BaseModuleConfig):
+        threads: int = Field(4, description="Maximum jadx threads for extracting apk's, default: 4")
     deps_common = ["java"]
     deps_ansible = [
         {

@@ -1,5 +1,7 @@
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class url_manipulation(BaseModule):
@@ -13,10 +15,8 @@ class url_manipulation(BaseModule):
     }
     in_scope_only = True
 
-    options = {"allow_redirects": True}
-    options_desc = {
-        "allow_redirects": "Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default."
-    }
+    class Config(BaseModuleConfig):
+        allow_redirects: bool = Field(True, description='Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default.')
 
     async def setup(self):
         # ([string]method,[string]path,[bool]strip trailing slash)

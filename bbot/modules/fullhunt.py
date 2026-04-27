@@ -1,4 +1,6 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class fullhunt(subdomain_enum_apikey):
@@ -11,8 +13,8 @@ class fullhunt(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "FullHunt API Key"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='FullHunt API Key')
 
     base_url = "https://fullhunt.io/api/v1"
 

@@ -3,6 +3,8 @@ import fnmatch
 from pathlib import Path
 
 from bbot.modules.templates.github import github
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class github_workflows(github):
@@ -15,12 +17,10 @@ class github_workflows(github):
         "author": "@domwhewell-sage",
         "auth_required": True,
     }
-    options = {"api_key": "", "num_logs": 1, "output_folder": ""}
-    options_desc = {
-        "api_key": "Github token",
-        "num_logs": "For each workflow fetch the last N successful runs logs (max 100)",
-        "output_folder": "Folder to download workflow logs and artifacts to",
-    }
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='Github token')
+        num_logs: int = Field(1, description='For each workflow fetch the last N successful runs logs (max 100)')
+        output_folder: str = Field('', description='Folder to download workflow logs and artifacts to')
 
     scope_distance_modifier = 2
 

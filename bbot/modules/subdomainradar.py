@@ -2,6 +2,8 @@ import time
 import asyncio
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class SubdomainRadar(subdomain_enum_apikey):
@@ -14,12 +16,10 @@ class SubdomainRadar(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": "", "group": "fast", "timeout": 120}
-    options_desc = {
-        "api_key": "SubDomainRadar.io API key",
-        "group": "The enumeration group to use. Choose from fast, medium, deep",
-        "timeout": "Timeout in seconds",
-    }
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='SubDomainRadar.io API key')
+        group: str = Field('fast', description='The enumeration group to use. Choose from fast, medium, deep')
+        timeout: int = Field(120, description='Timeout in seconds')
 
     base_url = "https://api.subdomainradar.io"
     ping_url = f"{base_url}/profile"

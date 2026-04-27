@@ -1,4 +1,6 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class dnsbrute(subdomain_enum):
@@ -10,14 +12,9 @@ class dnsbrute(subdomain_enum):
         "author": "@TheTechromancer",
         "created_date": "2024-04-24",
     }
-    options = {
-        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
-        "max_depth": 5,
-    }
-    options_desc = {
-        "wordlist": "Subdomain wordlist URL",
-        "max_depth": "How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com",
-    }
+    class Config(BaseModuleConfig):
+        wordlist: str = Field('https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt', description='Subdomain wordlist URL')
+        max_depth: int = Field(5, description='How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com')
     deps_common = ["massdns"]
     reject_wildcards = "strict"
     dedup_strategy = "lowest_parent"

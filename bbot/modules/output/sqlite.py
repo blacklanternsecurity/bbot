@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from bbot.modules.templates.sql import SQLTemplate
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class SQLite(SQLTemplate):
@@ -10,12 +12,8 @@ class SQLite(SQLTemplate):
         "created_date": "2024-11-07",
         "author": "@TheTechromancer",
     }
-    options = {
-        "database": "",
-    }
-    options_desc = {
-        "database": "The path to the sqlite database file",
-    }
+    class Config(BaseModuleConfig):
+        database: str = Field('', description='The path to the sqlite database file')
     deps_pip = ["sqlmodel", "aiosqlite"]
 
     async def setup(self):

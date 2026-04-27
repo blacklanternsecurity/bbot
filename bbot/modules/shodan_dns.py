@@ -1,4 +1,6 @@
 from bbot.modules.templates.shodan import shodan
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class shodan_dns(shodan):
@@ -11,8 +13,8 @@ class shodan_dns(shodan):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "Shodan API key"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='Shodan API key')
 
     base_url = "https://api.shodan.io"
 

@@ -1,4 +1,6 @@
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class IP2Location(BaseModule):
@@ -15,11 +17,9 @@ class IP2Location(BaseModule):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": "", "lang": ""}
-    options_desc = {
-        "api_key": "IP2location.io API Key",
-        "lang": "Translation information(ISO639-1). The translation is only applicable for continent, country, region and city name.",
-    }
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='IP2location.io API Key')
+        lang: str = Field('', description='Translation information(ISO639-1). The translation is only applicable for continent, country, region and city name.')
     scope_distance_modifier = 1
     _priority = 2
     suppress_dupes = False

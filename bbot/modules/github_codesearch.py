@@ -1,5 +1,7 @@
 from bbot.modules.templates.github import github
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class github_codesearch(github, subdomain_enum):
@@ -12,8 +14,9 @@ class github_codesearch(github, subdomain_enum):
         "author": "@domwhewell-sage",
         "auth_required": True,
     }
-    options = {"api_key": "", "limit": 100}
-    options_desc = {"api_key": "Github token", "limit": "Limit code search to this many results"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='Github token')
+        limit: int = Field(100, description='Limit code search to this many results')
 
     github_raw_url = "https://raw.githubusercontent.com/"
 

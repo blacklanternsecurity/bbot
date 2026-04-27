@@ -1,6 +1,8 @@
 import json
 from functools import partial
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class trufflehog(BaseModule):
@@ -13,20 +15,12 @@ class trufflehog(BaseModule):
         "author": "@domwhewell-sage",
     }
 
-    options = {
-        "version": "3.90.8",
-        "config": "",
-        "only_verified": True,
-        "concurrency": 8,
-        "deleted_forks": False,
-    }
-    options_desc = {
-        "version": "trufflehog version",
-        "config": "File path or URL to YAML trufflehog config",
-        "only_verified": "Only report credentials that have been verified",
-        "concurrency": "Number of concurrent workers",
-        "deleted_forks": "Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
-    }
+    class Config(BaseModuleConfig):
+        version: str = Field('3.90.8', description='trufflehog version')
+        config: str = Field('', description='File path or URL to YAML trufflehog config')
+        only_verified: bool = Field(True, description='Only report credentials that have been verified')
+        concurrency: int = Field(8, description='Number of concurrent workers')
+        deleted_forks: bool = Field(False, description='Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.')
     deps_ansible = [
         {
             "name": "Download trufflehog",

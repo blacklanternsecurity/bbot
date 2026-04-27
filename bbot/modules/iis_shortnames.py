@@ -1,6 +1,8 @@
 import re
 
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 valid_chars = "ETAONRISHDLFCMUGYPWBVKJXQZ0123456789_-$~()&!#%'@^`{}]]"
 
@@ -22,12 +24,10 @@ class iis_shortnames(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
-    options = {"detect_only": True, "max_node_count": 50, "speculate_magic_urls": True}
-    options_desc = {
-        "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
-        "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
-        "speculate_magic_urls": "Attempt to discover iis 'magic' special folders",
-    }
+    class Config(BaseModuleConfig):
+        detect_only: bool = Field(True, description='Only detect the vulnerability and do not run the shortname scanner')
+        max_node_count: int = Field(50, description='Limit how many nodes to attempt to resolve on any given recursion branch')
+        speculate_magic_urls: bool = Field(True, description="Attempt to discover iis 'magic' special folders")
     in_scope_only = True
 
     _module_threads = 8

@@ -4,6 +4,8 @@ from pymongo import AsyncMongoClient
 
 from bbot.models.pydantic import Event, Scan, Target
 from bbot.modules.output.base import BaseOutputModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class Mongo(BaseOutputModule):
@@ -17,20 +19,12 @@ class Mongo(BaseOutputModule):
         "created_date": "2024-11-17",
         "author": "@TheTechromancer",
     }
-    options = {
-        "uri": "mongodb://localhost:27017",
-        "database": "bbot",
-        "username": "",
-        "password": "",
-        "collection_prefix": "",
-    }
-    options_desc = {
-        "uri": "The URI of the MongoDB server",
-        "database": "The name of the database to use",
-        "username": "The username to use to connect to the database",
-        "password": "The password to use to connect to the database",
-        "collection_prefix": "Prefix the name of each collection with this string",
-    }
+    class Config(BaseModuleConfig):
+        uri: str = Field('mongodb://localhost:27017', description='The URI of the MongoDB server')
+        database: str = Field('bbot', description='The name of the database to use')
+        username: str = Field('', description='The username to use to connect to the database')
+        password: str = Field('', description='The password to use to connect to the database')
+        collection_prefix: str = Field('', description='Prefix the name of each collection with this string')
     deps_pip = ["pymongo~=4.15"]
 
     async def setup(self):

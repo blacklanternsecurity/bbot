@@ -1,4 +1,6 @@
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class Ipstack(BaseModule):
@@ -16,8 +18,8 @@ class Ipstack(BaseModule):
         "author": "@tycoonslive",
         "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "IPStack GeoIP API Key"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='IPStack GeoIP API Key')
     scope_distance_modifier = 1
     _priority = 2
     suppress_dupes = False

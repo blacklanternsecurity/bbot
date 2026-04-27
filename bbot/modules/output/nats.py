@@ -1,6 +1,8 @@
 import json
 import nats
 from bbot.modules.output.base import BaseOutputModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class NATS(BaseOutputModule):
@@ -10,14 +12,9 @@ class NATS(BaseOutputModule):
         "created_date": "2024-11-22",
         "author": "@TheTechromancer",
     }
-    options = {
-        "servers": [],
-        "subject": "bbot_events",
-    }
-    options_desc = {
-        "servers": "A list of NATS server addresses",
-        "subject": "The NATS subject to publish events to",
-    }
+    class Config(BaseModuleConfig):
+        servers: list = Field([], description='A list of NATS server addresses')
+        subject: str = Field('bbot_events', description='The NATS subject to publish events to')
     deps_pip = ["nats-py"]
 
     async def setup(self):

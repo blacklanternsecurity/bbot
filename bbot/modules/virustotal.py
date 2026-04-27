@@ -1,4 +1,6 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class virustotal(subdomain_enum_apikey):
@@ -11,8 +13,8 @@ class virustotal(subdomain_enum_apikey):
         "author": "@TheTechromancer",
         "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "VirusTotal API Key"}
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='VirusTotal API Key')
 
     base_url = "https://www.virustotal.com/api/v3"
     api_page_iter_kwargs = {"json": False, "next_key": lambda r: r.json().get("links", {}).get("next", "")}

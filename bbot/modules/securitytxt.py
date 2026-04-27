@@ -50,6 +50,8 @@ from bbot.modules.base import BaseModule
 import re
 
 from bbot.core.helpers.regexes import email_regex, url_regexes
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 _securitytxt_regex = r"^(?P<k>\w+): *(?P<v>.*)$"
 securitytxt_regex = re.compile(_securitytxt_regex, re.I | re.M)
@@ -64,14 +66,9 @@ class securitytxt(BaseModule):
         "author": "@colin-stubbs",
         "created_date": "2024-05-26",
     }
-    options = {
-        "emails": True,
-        "urls": True,
-    }
-    options_desc = {
-        "emails": "emit EMAIL_ADDRESS events",
-        "urls": "emit URL_UNVERIFIED events",
-    }
+    class Config(BaseModuleConfig):
+        emails: bool = Field(True, description='emit EMAIL_ADDRESS events')
+        urls: bool = Field(True, description='emit URL_UNVERIFIED events')
 
     async def setup(self):
         self._emails = self.config.get("emails", True)

@@ -1,6 +1,8 @@
 from sys import executable
 
 from bbot.modules.base import BaseModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class telerik(BaseModule):
@@ -153,11 +155,9 @@ class telerik(BaseModule):
 
     RAUConfirmed = []
 
-    options = {"exploit_RAU_crypto": False, "include_subdirs": False}
-    options_desc = {
-        "exploit_RAU_crypto": "Attempt to confirm any RAU AXD detections are vulnerable",
-        "include_subdirs": "Include subdirectories in the scan (off by default)",  # will create many finding events if used in conjunction with web spider or ffuf
-    }
+    class Config(BaseModuleConfig):
+        exploit_RAU_crypto: bool = Field(False, description='Attempt to confirm any RAU AXD detections are vulnerable')
+        include_subdirs: bool = Field(False, description='Include subdirectories in the scan (off by default)')
 
     in_scope_only = True
 

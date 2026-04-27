@@ -22,6 +22,8 @@
 from bbot.modules.base import BaseModule
 
 from bbot.core.helpers.regexes import dns_name_extraction_regex, email_regex, url_regexes
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class dnscaa(BaseModule):
@@ -29,18 +31,11 @@ class dnscaa(BaseModule):
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "URL_UNVERIFIED"]
     flags = ["safe", "subdomain-enum", "email-enum", "passive"]
     meta = {"description": "Check for CAA records", "author": "@colin-stubbs", "created_date": "2024-05-26"}
-    options = {
-        "in_scope_only": True,
-        "dns_names": True,
-        "emails": True,
-        "urls": True,
-    }
-    options_desc = {
-        "in_scope_only": "Only check in-scope domains",
-        "dns_names": "emit DNS_NAME events",
-        "emails": "emit EMAIL_ADDRESS events",
-        "urls": "emit URL_UNVERIFIED events",
-    }
+    class Config(BaseModuleConfig):
+        in_scope_only: bool = Field(True, description='Only check in-scope domains')
+        dns_names: bool = Field(True, description='emit DNS_NAME events')
+        emails: bool = Field(True, description='emit EMAIL_ADDRESS events')
+        urls: bool = Field(True, description='emit URL_UNVERIFIED events')
     # accept DNS_NAMEs out to 2 hops if in_scope_only is False
     scope_distance_modifier = 2
 

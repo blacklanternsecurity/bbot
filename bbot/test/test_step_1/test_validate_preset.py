@@ -9,14 +9,14 @@ def test_validate_preset_valid():
 
 
 def test_validate_preset_typo_top_level():
-    errs = validate_preset({"modlues": ["nuclei"]}, validate_modules=False)
+    errs = validate_preset({"modlues": ["nuclei"]})
     assert len(errs) == 1
     assert errs[0].where == "preset"
     assert "modlues" in errs[0].message
 
 
 def test_validate_preset_typo_in_config():
-    errs = validate_preset({"config": {"scope": {"strct": True}}}, validate_modules=False)
+    errs = validate_preset({"config": {"scope": {"strct": True}}})
     assert len(errs) == 1
     assert errs[0].where == "config"
     assert "strct" in errs[0].message
@@ -24,7 +24,7 @@ def test_validate_preset_typo_in_config():
 
 
 def test_validate_preset_wrong_type():
-    errs = validate_preset({"config": {"web": {"http_timeout": "not-a-number"}}}, validate_modules=False)
+    errs = validate_preset({"config": {"web": {"http_timeout": "not-a-number"}}})
     assert len(errs) == 1
     assert errs[0].where == "config"
     assert errs[0].path == "web.http_timeout"
@@ -33,6 +33,30 @@ def test_validate_preset_wrong_type():
 
 def test_validate_preset_unknown_module():
     errs = validate_preset({"modules": ["nucleii"]})
+    assert any('Unknown module: "nucleii"' in str(e) for e in errs)
+
+
+def test_validate_preset_unknown_module_option():
+    """Typo in a known module's option key gets tagged `module:<name>`."""
+    errs = validate_preset({"config": {"modules": {"nuclei": {"tgas": "apache"}}}})
+    assert len(errs) == 1
+    assert errs[0].where == "module:nuclei"
+    assert errs[0].path == "tgas"
+    assert "tgas" in errs[0].message
+
+
+def test_validate_preset_wrong_type_on_module_option():
+    """Known module option with wrong type (nuclei.ratelimit is int)."""
+    errs = validate_preset({"config": {"modules": {"nuclei": {"ratelimit": "not-a-number"}}}})
+    assert len(errs) == 1
+    assert errs[0].where == "module:nuclei"
+    assert errs[0].path == "ratelimit"
+    assert "integer" in errs[0].message
+
+
+def test_validate_preset_unknown_module_in_config():
+    """Unknown module name nested under config.modules gets a clean error."""
+    errs = validate_preset({"config": {"modules": {"nucleii": {"tgas": "x"}}}})
     assert any('Unknown module: "nucleii"' in str(e) for e in errs)
 
 
@@ -46,7 +70,6 @@ def test_validate_preset_multiple_errors():
                 "web": {"http_timeout": "bad"},  # wrong type
             },
         },
-        validate_modules=False,
     )
     assert len(errs) >= 3
     messages = " ".join(str(e) for e in errs)

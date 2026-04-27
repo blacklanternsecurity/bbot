@@ -1,4 +1,6 @@
 from bbot.modules.templates.sql import SQLTemplate
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class Postgres(SQLTemplate):
@@ -8,20 +10,12 @@ class Postgres(SQLTemplate):
         "created_date": "2024-11-08",
         "author": "@TheTechromancer",
     }
-    options = {
-        "username": "postgres",
-        "password": "bbotislife",
-        "host": "localhost",
-        "port": 5432,
-        "database": "bbot",
-    }
-    options_desc = {
-        "username": "The username to connect to Postgres",
-        "password": "The password to connect to Postgres",
-        "host": "The server running Postgres",
-        "port": "The port to connect to Postgres",
-        "database": "The database name to connect to",
-    }
+    class Config(BaseModuleConfig):
+        username: str = Field('postgres', description='The username to connect to Postgres')
+        password: str = Field('bbotislife', description='The password to connect to Postgres')
+        host: str = Field('localhost', description='The server running Postgres')
+        port: int = Field(5432, description='The port to connect to Postgres')
+        database: str = Field('bbot', description='The database name to connect to')
     deps_pip = ["sqlmodel", "asyncpg"]
     protocol = "postgresql+asyncpg"
 

@@ -1,4 +1,6 @@
 from bbot.modules.templates.github import github
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class github_org(github):
@@ -10,12 +12,10 @@ class github_org(github):
         "created_date": "2023-12-14",
         "author": "@domwhewell-sage",
     }
-    options = {"api_key": "", "include_members": True, "include_member_repos": False}
-    options_desc = {
-        "api_key": "Github token",
-        "include_members": "Enumerate organization members",
-        "include_member_repos": "Also enumerate organization members' repositories",
-    }
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='Github token')
+        include_members: bool = Field(True, description='Enumerate organization members')
+        include_member_repos: bool = Field(False, description="Also enumerate organization members' repositories")
 
     scope_distance_modifier = 2
 

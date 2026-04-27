@@ -2,19 +2,19 @@ import json
 
 from bbot.logger import log_to_stderr
 from bbot.modules.output.base import BaseOutputModule
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class Stdout(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Output to text", "created_date": "2024-04-03", "author": "@TheTechromancer"}
-    options = {"format": "text", "event_types": [], "event_fields": [], "in_scope_only": False, "accept_dupes": True}
-    options_desc = {
-        "format": "Which text format to display, choices: text,json",
-        "event_types": "Which events to display, default all event types",
-        "event_fields": "Which event fields to display",
-        "in_scope_only": "Whether to only show in-scope events",
-        "accept_dupes": "Whether to show duplicate events, default True",
-    }
+    class Config(BaseModuleConfig):
+        format: str = Field('text', description='Which text format to display, choices: text,json')
+        event_types: list = Field([], description='Which events to display, default all event types')
+        event_fields: list = Field([], description='Which event fields to display')
+        in_scope_only: bool = Field(False, description='Whether to only show in-scope events')
+        accept_dupes: bool = Field(True, description='Whether to show duplicate events, default True')
     vuln_severity_map = {
         "INFO": "HUGEINFO",
         "LOW": "HUGEWARNING",

@@ -1,6 +1,8 @@
 from pathlib import Path
 from subprocess import CalledProcessError
 from bbot.modules.templates.github import github
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 
 class git_clone(github):
@@ -12,11 +14,9 @@ class git_clone(github):
         "created_date": "2024-03-08",
         "author": "@domwhewell-sage",
     }
-    options = {"api_key": "", "output_folder": ""}
-    options_desc = {
-        "api_key": "Github token",
-        "output_folder": "Folder to clone repositories to. If not specified, cloned repositories will be deleted when the scan completes, to minimize disk usage.",
-    }
+    class Config(BaseModuleConfig):
+        api_key: str = Field('', description='Github token')
+        output_folder: str = Field('', description='Folder to clone repositories to. If not specified, cloned repositories will be deleted when the scan completes, to minimize disk usage.')
 
     deps_apt = ["git"]
 

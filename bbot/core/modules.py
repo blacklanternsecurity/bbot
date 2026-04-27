@@ -57,14 +57,119 @@ def _eval_ast_default(node):
         return _UNEVALUATED
 
 
+def _exec_config_class(source: str, module_name: str):
+    """
+    Execute a `class Config(BaseModuleConfig):` snippet in a controlled
+    namespace and return the resulting class. The namespace provides exactly
+    what a Config block is allowed to reference: the typing primitives, the
+    pydantic `Field` factory, and `BaseModuleConfig`.
+
+    This replaces parsing annotations as strings: pydantic handles every
+    valid type expression (`Optional[str]`, `Literal["a", "b"]`,
+    `list[Union[int, str]]`, …) without any hand-rolled resolver.
+    """
+    from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Union
+    from pydantic import Field
+    from bbot.core.config.models import BaseModuleConfig
+
+    namespace: dict = {
+        "Any": Any,
+        "Dict": Dict,
+        "List": List,
+        "Literal": Literal,
+        "Optional": Optional,
+        "Set": Set,
+        "Tuple": Tuple,
+        "Union": Union,
+        "Field": Field,
+        "BaseModuleConfig": BaseModuleConfig,
+    }
+    try:
+        exec(source, namespace)
+    except Exception as e:
+        raise BBOTError(
+            f'module "{module_name}" has an invalid Config class ({type(e).__name__}: {e}). '
+            "Config blocks may only reference: Optional, Union, Literal, Any, List, Dict, Tuple, Set, "
+            "Field, BaseModuleConfig, and Python builtins."
+        ) from e
+    cfg = namespace.get("Config")
+    if cfg is None:
+        raise BBOTError(f'module "{module_name}": Config snippet did not define a class named "Config"')
+    return cfg
+
+
+def _build_validation_schema(preloaded: dict):
+    """
+    Build the composite preset validation schema.
+
+    Structure:
+        FullPresetSchema
+          ├── (all PresetSchema fields — target, modules, flags, …)
+          └── config: FullBBOTConfig
+                      ├── (all BBOTConfig fields — scope, dns, web, …)
+                      └── modules: ModulesSchema
+                                   ├── nuclei:  NucleiModuleConfig
+                                   ├── httpx:   HttpxModuleConfig
+                                   ├── sslcert: SslcertModuleConfig
+                                   └── … one field per known module
+
+    A single `FullPresetSchema.model_validate(preset_dict)` call then catches
+    every class of error in one pass:
+      - top-level preset typos (extra='forbid' on PresetSchema)
+      - global config typos / wrong types (extra='forbid' on BBOTConfig)
+      - unknown module names (extra='forbid' on ModulesSchema)
+      - wrong module option names / wrong types (extra='forbid' per module)
+    """
+    import warnings
+    from typing import Optional
+    from pydantic import ConfigDict, Field, create_model
+    from bbot.core.config.models import BaseModuleConfig, BBOTConfig, PresetSchema
+
+    module_fields = {}
+    for name, data in preloaded.items():
+        source = data.get("config_source")
+        if source:
+            cfg_model = _exec_config_class(source, name)
+        else:
+            # Module declares no Config — only the universal options apply.
+            cfg_model = BaseModuleConfig
+        module_fields[name] = (Optional[cfg_model], Field(default=None))
+
+    # Some module names (e.g. `json`) shadow BaseModel's deprecated method
+    # names and trigger a UserWarning. The field still validates correctly;
+    # silence the noise.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r'Field name ".+" in ".+" shadows an attribute in parent "BaseModel"',
+            category=UserWarning,
+        )
+        ModulesSchema = create_model(
+            "ModulesSchema",
+            __config__=ConfigDict(extra="forbid"),
+            **module_fields,
+        )
+        FullBBOTConfig = create_model(
+            "FullBBOTConfig",
+            __base__=BBOTConfig,
+            modules=(Optional[ModulesSchema], Field(default=None)),
+        )
+        FullPresetSchema = create_model(
+            "FullPresetSchema",
+            __base__=PresetSchema,
+            config=(Optional[FullBBOTConfig], Field(default=None)),
+        )
+    return FullPresetSchema
+
+
 def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict]:
     """
     Walk a `class Config(BaseModuleConfig):` block and extract
-    `(field_defaults, field_descriptions)` dicts mirroring the legacy
-    `options`/`options_desc` shape.
+    `(defaults, descriptions)` dicts — cheap metadata used for `bbot -l` and
+    similar listing paths, without importing or exec-ing anything.
 
-    Used by the preloader so `bbot -l` and module listing work without
-    importing the module (deps may be missing on the host).
+    The actual typed pydantic class is built later via `_exec_config_class`
+    on the captured source text.
     """
     defaults: dict = {}
     descriptions: dict = {}
@@ -134,6 +239,9 @@ class ModuleLoader:
         self.internal_module_choices = set()
 
         self._preload_cache = None
+        # Composite preset-validation schema, built from preloaded modules.
+        # Invalidated whenever a new module is preloaded.
+        self._validation_schema = None
 
         self._module_dirs = set()
         self._module_dirs_preloaded = set()
@@ -273,6 +381,11 @@ class ModuleLoader:
         # update default config with module defaults
         self.core.merge_default({"modules": self.configs()})
 
+        # invalidate the composite validation schema; it'll rebuild lazily
+        # on next access now that the set of modules has changed
+        if new_modules:
+            self._validation_schema = None
+
         return new_modules
 
     @property
@@ -321,6 +434,18 @@ class ModuleLoader:
         if type is not None:
             return {k: dict(v) for k, v in self._configs.items() if self.check_type(k, type)}
         return {k: dict(v) for k, v in self._configs.items()}
+
+    @property
+    def validation_schema(self):
+        """
+        The composite pydantic schema for validating a full preset dict.
+
+        Built lazily from preloaded module metadata and cached. Rebuilt when
+        `preload()` discovers new modules (e.g. after `add_module_dir`).
+        """
+        if self._validation_schema is None:
+            self._validation_schema = _build_validation_schema(self._preloaded)
+        return self._validation_schema
 
     def find_and_replace(self, **kwargs):
         self.__preloaded = search_format_dict(self.__preloaded, **kwargs)
@@ -390,6 +515,7 @@ class ModuleLoader:
         ansible_tasks = []
         config = {}
         options_desc = {}
+        config_source: str | None = None
         disable_auto_module_deps = False
         with open(module_file) as f:
             python_code = f.read()
@@ -416,26 +542,21 @@ class ModuleLoader:
             # look for classes
             if type(root_element) == ast.ClassDef:
                 for class_attr in root_element.body:
-                    # nested `class Config(BaseModuleConfig): ...` — the new pydantic-based schema
+                    # nested `class Config(BaseModuleConfig): ...` — the module's config schema
                     if type(class_attr) == ast.ClassDef and class_attr.name == "Config":
                         config_fields, config_descs = _extract_pydantic_config(class_attr)
                         config.update(config_fields)
                         options_desc.update(config_descs)
+                        # capture the class source verbatim; schema build re-execs it
+                        config_source = ast.get_source_segment(python_code, class_attr)
                         continue
 
                     if not type(class_attr) == ast.Assign:
                         continue
 
-                    # class attributes that are dictionaries
+                    # module metadata
                     if type(class_attr.value) == ast.Dict:
-                        # module options (legacy — pre-pydantic shim)
-                        if any(target.id == "options" for target in class_attr.targets):
-                            config.update(ast.literal_eval(class_attr.value))
-                        # module options descriptions (legacy)
-                        elif any(target.id == "options_desc" for target in class_attr.targets):
-                            options_desc.update(ast.literal_eval(class_attr.value))
-                        # module metadata
-                        elif any(target.id == "meta" for target in class_attr.targets):
+                        if any(target.id == "meta" for target in class_attr.targets):
                             meta = ast.literal_eval(class_attr.value)
 
                     # class attributes that are lists
@@ -509,6 +630,7 @@ class ModuleLoader:
             "meta": meta,
             "config": config,
             "options_desc": options_desc,
+            "config_source": config_source,
             "hash": module_hash,
             "deps": {
                 "modules": sorted(deps_modules),

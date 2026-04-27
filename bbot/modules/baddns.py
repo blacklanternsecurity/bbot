@@ -1,8 +1,11 @@
+from typing import Literal
 from baddns.base import get_all_modules
 from baddns.lib.loader import load_signatures
 from .base import BaseModule
 
 import logging
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 
 SEVERITY_LEVELS = ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL")
 CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")
@@ -45,13 +48,20 @@ class baddns(BaseModule):
         "created_date": "2024-01-18",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MEDIUM", "enabled_submodules": []}
-    options_desc = {
-        "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
-        "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
-        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)",
-        "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
-    }
+    class Config(BaseModuleConfig):
+        custom_nameservers: list[str] = Field(
+            default_factory=list, description="Force BadDNS to use a list of custom nameservers"
+        )
+        min_severity: Literal["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"] = Field(
+            "LOW", description="Minimum severity to emit"
+        )
+        min_confidence: Literal["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED"] = Field(
+            "MEDIUM", description="Minimum confidence to emit"
+        )
+        enabled_submodules: list[str] = Field(
+            default_factory=list,
+            description="A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
+        )
     module_threads = 8
     deps_pip = ["baddns~=2.1.0"]
 

@@ -1,5 +1,8 @@
 from bbot.modules.base import BaseModule
 import time
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
+from typing import Optional
 
 
 class shodan_idb(BaseModule):
@@ -47,10 +50,8 @@ class shodan_idb(BaseModule):
         "created_date": "2023-12-22",
         "author": "@TheTechromancer",
     }
-    options = {"retries": None}
-    options_desc = {
-        "retries": "How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting."
-    }
+    class Config(BaseModuleConfig):
+        retries: Optional[str] = Field(None, description='How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting.')
 
     # we typically don't want to abort this module
     _api_failure_abort_threshold = 9999999999
