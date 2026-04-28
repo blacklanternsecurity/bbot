@@ -33,7 +33,8 @@ def test_validate_preset_wrong_type():
 
 def test_validate_preset_unknown_module():
     errs = validate_preset({"modules": ["nucleii"]})
-    assert any('Unknown module: "nucleii"' in str(e) for e in errs)
+    # closest-match suggestion: "Could not find module 'nucleii'. Did you mean 'nuclei'?"
+    assert any('"nucleii"' in str(e) and "nuclei" in str(e) for e in errs)
 
 
 def test_validate_preset_unknown_module_option():
@@ -57,7 +58,8 @@ def test_validate_preset_wrong_type_on_module_option():
 def test_validate_preset_unknown_module_in_config():
     """Unknown module name nested under config.modules gets a clean error."""
     errs = validate_preset({"config": {"modules": {"nucleii": {"tgas": "x"}}}})
-    assert any('Unknown module: "nucleii"' in str(e) for e in errs)
+    # closest-match: "Could not find module 'nucleii'. Did you mean 'nuclei'?"
+    assert any('"nucleii"' in str(e) and "nuclei" in str(e) for e in errs)
 
 
 def test_validate_preset_multiple_errors():
