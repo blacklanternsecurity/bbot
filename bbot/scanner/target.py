@@ -137,15 +137,26 @@ class BaseTarget:
             return
         self._rt.insert(str(host), data=data)
 
+    # RFC 2317 classless reverse delegation names contain "/" in their labels
+    # (e.g. "207.128/25.38.186.64.in-addr.arpa").  These are valid DNS wire
+    # names but fail hostname validation.  Hickory-DNS may also backslash-
+    # escape the slash in presentation format ("128\/25").
+    _rfc2317_re = re.compile(r"[/\\].*\.in-addr\.arpa$|[/\\].*\.ip6\.arpa$", re.IGNORECASE)
+
     def _make_event_seed(self, target, raise_error=False):
         try:
             return EventSeed(target)
         except ValidationError:
+            import traceback
+
             msg = f"Invalid target: '{target}'"
             if raise_error:
                 raise KeyError(msg)
+            elif self._rfc2317_re.search(str(target)):
+                log.verbose(f"Skipping RFC 2317 classless delegation name: '{target}'")
             else:
                 log.warning(msg)
+                log.trace("".join(traceback.format_stack()))
 
     def __contains__(self, other):
         if isinstance(other, BaseTarget):
@@ -272,8 +283,11 @@ class ScanBlacklist(ACLTarget):
         # first, check event's host against blacklist
         try:
             event_seed = self._make_event_seed(host, raise_error=raise_error)
-            host = event_seed.host
-            to_match = event_seed.data
+            if event_seed is not None:
+                host = event_seed.host
+                to_match = event_seed.data
+            else:
+                to_match = str(host)
         except ValidationError:
             to_match = str(host)
         event_result = super().get(host)
