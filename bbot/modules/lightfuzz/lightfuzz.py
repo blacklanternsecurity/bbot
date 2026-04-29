@@ -246,7 +246,7 @@ class lightfuzz(BaseModule):
         import importlib
 
         submodules = {}
-        for submodule_name in self.options.get("enabled_submodules", []):
+        for submodule_name in self.config.get("enabled_submodules", []):
             try:
                 submodule_module = importlib.import_module(f"bbot.modules.lightfuzz.submodules.{submodule_name}")
                 submodule_class = getattr(submodule_module, submodule_name)
