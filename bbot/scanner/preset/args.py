@@ -1,11 +1,10 @@
-import re
 import yaml
 import logging
 import argparse
 
 from bbot.errors import *
-from bbot.core.config.merge import dotted_get, dotted_set
-from bbot.core.helpers.misc import chain_lists, get_closest_match, get_keys_in_dot_syntax
+from bbot.core.config.merge import dotted_set
+from bbot.core.helpers.misc import chain_lists
 
 
 def _parse_cli_value(raw: str):
@@ -14,8 +13,12 @@ def _parse_cli_value(raw: str):
 
     YAML safe_load handles `true`/`false`/`null`/ints/floats and quoted strings
     the way users expect when they write `web.spider_distance=2` or
-    `modules.stdout.event_fields='[type, data]'`.
+    `modules.stdout.event_fields='[type, data]'`. An empty RHS (`-c key=`) is
+    treated as an empty string rather than None — matching the "clear this
+    value" intent users normally have.
     """
+    if raw == "":
+        return ""
     try:
         return yaml.safe_load(raw)
     except yaml.YAMLError:
@@ -47,19 +50,7 @@ def parse_dotted_cli(entries):
 log = logging.getLogger("bbot.presets.args")
 
 
-universal_module_options = {
-    "batch_size": "The number of events to process in a single batch (only applies to batch modules)",
-    "module_threads": "How many event handlers to run in parallel",
-    "module_timeout": "Max time in seconds to spend handling each event or batch of events",
-}
-
-
 class BBOTArgs:
-    # module config options to exclude from validation
-    exclude_from_validation = re.compile(
-        r".*modules\.[a-z0-9_]+\.(?:" + "|".join(universal_module_options.keys()) + ")$"
-    )
-
     scan_examples = [
         (
             "Subdomains",
@@ -491,16 +482,16 @@ class BBOTArgs:
             self.parsed.preset += ["fast"]
 
     def validate(self):
-        # validate config options
-        sentinel = object()
-        all_options = set(get_keys_in_dot_syntax(self.preset.core.default_config))
-        for c in self.parsed.config:
-            c = c.split("=")[0].strip()
-            v = dotted_get(self.preset.core.default_config, c, default=sentinel)
-            # if option isn't in the default config
-            if v is sentinel:
-                # skip if it's excluded from validation
-                if self.exclude_from_validation.match(c):
-                    continue
-                # otherwise, ensure it exists as a module option
-                raise ValidationError(get_closest_match(c, all_options, msg="config option"))
+        """
+        Validate the CLI `-c key=value` arguments against the composite
+        preset schema. Catches typos like `bbot -c modules.shoudn.api_key=x`
+        with a closest-match suggestion.
+        """
+        from .validate import validate_preset
+
+        if not self.parsed.config:
+            return
+        cli_dict = parse_dotted_cli(self.parsed.config)
+        errs = validate_preset({"config": cli_dict}, module_loader=self.preset.module_loader)
+        if errs:
+            raise ValidationError("\n".join(str(e) for e in errs))

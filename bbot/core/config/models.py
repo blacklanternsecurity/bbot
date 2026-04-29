@@ -108,9 +108,18 @@ class BaseModuleConfig(BaseModel):
 
     model_config = STRICT
 
-    batch_size: Optional[int] = None
-    module_threads: Optional[int] = None
-    module_timeout: Optional[int] = None
+    batch_size: Optional[int] = Field(
+        default=None,
+        description="The number of events to process in a single batch (only applies to batch modules)",
+    )
+    module_threads: Optional[int] = Field(
+        default=None,
+        description="How many event handlers to run in parallel",
+    )
+    module_timeout: Optional[int] = Field(
+        default=None,
+        description="Max time in seconds to spend handling each event or batch of events",
+    )
 
 
 class BBOTConfig(BaseSettings):

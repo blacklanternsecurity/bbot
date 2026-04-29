@@ -26,7 +26,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from bbot.core.helpers.misc import get_closest_match
+from bbot.core.helpers.misc import get_closest_match, get_keys_in_dot_syntax
 
 
 log = logging.getLogger("bbot.presets.validate")
@@ -72,7 +72,7 @@ def _classify_loc(loc: tuple) -> tuple[str, str]:
     return ("preset", ".".join(parts))
 
 
-def _format_msg(err: dict, known_modules: set | None = None) -> str:
+def _format_msg(err: dict, known_modules: set | None = None, known_paths: set | None = None) -> str:
     kind = err["type"]
     input_value = err.get("input")
     loc = err["loc"]
@@ -80,10 +80,17 @@ def _format_msg(err: dict, known_modules: set | None = None) -> str:
     path = ".".join(str(p) for p in loc)
 
     if kind == "extra_forbidden":
-        # Special-case unknown module name (config.modules.<bad>) so users get
-        # a suggestion rather than "Unknown option".
+        # Special-case unknown module name (config.modules.<bad>) — users get
+        # a suggestion drawn from the set of known module names.
         if len(loc) == 3 and loc[0] == "config" and loc[1] == "modules":
             return get_closest_match(field, known_modules or set(), msg="module")
+        # For everything else, suggest from the known dotted-path universe
+        # (`web.spier_distance` → `web.spider_distance`).
+        if known_paths:
+            # strip the leading "config." prefix when matching, since
+            # default_config dotted paths don't include it
+            lookup_path = ".".join(str(p) for p in loc[1:]) if loc and loc[0] == "config" else path
+            return get_closest_match(lookup_path, known_paths, msg="config option")
         msg = f"Unknown option: {field!r}"
         if isinstance(input_value, (str, int, bool, float)):
             msg += f" (value: {input_value!r})"
@@ -114,11 +121,19 @@ def _format_msg(err: dict, known_modules: set | None = None) -> str:
     return err["msg"] if err.get("msg") else f"validation error at {path}"
 
 
-def _format_errors(exc: ValidationError, known_modules: set | None = None) -> list[PresetValidationError]:
+def _format_errors(
+    exc: ValidationError,
+    known_modules: set | None = None,
+    known_paths: set | None = None,
+) -> list[PresetValidationError]:
     out: list[PresetValidationError] = []
     for err in exc.errors():
         where, path = _classify_loc(err["loc"])
-        out.append(PresetValidationError(where=where, path=path, message=_format_msg(err, known_modules)))
+        out.append(
+            PresetValidationError(
+                where=where, path=path, message=_format_msg(err, known_modules, known_paths)
+            )
+        )
     return out
 
 
@@ -168,14 +183,17 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
 
     errors: list[PresetValidationError] = []
     known_modules = set(module_loader.all_module_choices)
+    # Universe of valid dotted config paths, used for "did you mean ...?"
+    # suggestions on unknown global-config keys.
+    known_paths = set(get_keys_in_dot_syntax(module_loader.core.default_config))
 
     # Validate against the composite schema (rebuilt automatically if new
     # module_dirs were just preloaded above). Closest-match suggestions
-    # for unknown module names are produced inside the formatter.
+    # for unknown module names + config options are produced inside the formatter.
     try:
         module_loader.validation_schema.model_validate(preset_dict)
     except ValidationError as e:
-        errors.extend(_format_errors(e, known_modules=known_modules))
+        errors.extend(_format_errors(e, known_modules=known_modules, known_paths=known_paths))
 
     # Module names listed in top-level `modules`/`output_modules`/`exclude_modules`
     # aren't covered by the composite schema (they're a list of strings, not a

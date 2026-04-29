@@ -466,13 +466,15 @@ def test_cli_config_validation(monkeypatch, caplog):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
-    # incorrect module option
+    # incorrect module name nested under modules.* — surfaces as an unknown
+    # module with a closest-match suggestion (more useful than the legacy
+    # "Could not find config option ..." phrasing)
     caplog.clear()
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "modules.ipnegibhor.num_bits=4"])
     cli.main()
-    assert 'Could not find config option "modules.ipnegibhor.num_bits"' in caplog.text
-    assert 'Did you mean "modules.ipneighbor.num_bits"?' in caplog.text
+    assert 'Could not find module "ipnegibhor"' in caplog.text
+    assert 'Did you mean "ipneighbor"?' in caplog.text
 
     # incorrect global option
     caplog.clear()
