@@ -122,7 +122,7 @@ bbot -p ./mypreset.yml --current-preset
 
 ## Advanced Usage
 
-BBOT Presets support advanced features like file-based targets, environment variable substitution, and custom conditions.
+BBOT Presets support advanced features like file-based targets, custom modules, and custom conditions.
 
 ### Files as Targets
 
@@ -152,30 +152,6 @@ If you want to use a custom BBOT `.py` module, you can either move it into `bbot
 # load extra BBOT modules from this locaation
 module_dirs:
   - /home/user/custom_modules
-```
-
-### Environment Variables
-
-You can insert environment variables into your preset like this: `${env:<variable>}`:
-
-```yaml title="my_nuclei.yml"
-description: Do a nuclei scan
-
-target:
-  - evilcorp.com
-
-modules:
-  - nuclei
-
-config:
-  modules:
-    nuclei:
-      # allow the nuclei templates to be specified at runtime via an environment variable
-      tags: ${env:NUCLEI_TAGS}
-```
-
-```bash
-NUCLEI_TAGS=apache,nginx bbot -p ./my_nuclei.yml
 ```
 
 ### Conditions
