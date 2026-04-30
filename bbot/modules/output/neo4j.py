@@ -48,11 +48,8 @@ class neo4j(BaseOutputModule):
     async def setup(self):
         try:
             self.driver = AsyncGraphDatabase.driver(
-                uri=self.config.get("uri", self.options["uri"]),
-                auth=(
-                    self.config.get("username", self.options["username"]),
-                    self.config.get("password", self.options["password"]),
-                ),
+                uri=self.config.get("uri"),
+                auth=(self.config.get("username"), self.config.get("password")),
             )
             self.session = self.driver.session()
             await self.session.run("Match () Return 1 Limit 1")

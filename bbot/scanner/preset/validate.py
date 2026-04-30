@@ -129,11 +129,7 @@ def _format_errors(
     out: list[PresetValidationError] = []
     for err in exc.errors():
         where, path = _classify_loc(err["loc"])
-        out.append(
-            PresetValidationError(
-                where=where, path=path, message=_format_msg(err, known_modules, known_paths)
-            )
-        )
+        out.append(PresetValidationError(where=where, path=path, message=_format_msg(err, known_modules, known_paths)))
     return out
 
 
