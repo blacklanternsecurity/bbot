@@ -12,7 +12,7 @@ from werkzeug.wrappers import Request
 
 from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
-from bbot.core.config.merge import deep_update
+from bbot.core.config.merge import deep_merge
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir, rand_string
 
@@ -49,7 +49,7 @@ def tempapkfile():
 
 @pytest.fixture
 def clean_default_config(monkeypatch):
-    clean_config = deep_update(
+    clean_config = deep_merge(
         CORE.files_config.get_default_config(),
         {"modules": DEFAULT_PRESET.module_loader.configs()},
     )

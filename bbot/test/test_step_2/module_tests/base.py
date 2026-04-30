@@ -5,7 +5,7 @@ import pytest_asyncio
 
 from ...bbot_fixtures import *
 from bbot.scanner import Scanner
-from bbot.core.config.merge import deep_update
+from bbot.core.config.merge import deep_merge
 from bbot.core.helpers.misc import rand_string
 
 log = logging.getLogger("bbot.test.modules")
@@ -28,7 +28,7 @@ class ModuleTestBase:
             self, module_test_base, httpx_mock, httpserver, httpserver_ssl, monkeypatch, request, caplog, capsys
         ):
             self.name = module_test_base.name
-            self.config = deep_update(dict(CORE.config), dict(module_test_base.config_overrides))
+            self.config = deep_merge(dict(CORE.config), dict(module_test_base.config_overrides))
 
             self.caplog = caplog
             self.capsys = capsys
@@ -51,7 +51,7 @@ class ModuleTestBase:
                     if module_type == "output":
                         output_modules.append(module)
                     elif module_type == "internal" and not module == "dnsresolve":
-                        self.config = deep_update(self.config, {module: True})
+                        self.config = deep_merge(self.config, {module: True})
 
             seeds = module_test_base.seeds or None
 

@@ -4,7 +4,7 @@ from copy import copy, deepcopy
 from pathlib import Path
 
 from bbot.errors import BBOTError
-from .config.merge import deep_update
+from .config.merge import deep_merge
 from .multiprocess import SHARED_INTERPRETER_STATE
 
 
@@ -91,7 +91,7 @@ class BBOTCore:
         Any new values should be added to custom_config.
         """
         if self._config is None:
-            self._config = deep_update(self.default_config, self.custom_config)
+            self._config = deep_merge(self.default_config, self.custom_config)
         return self._config
 
     @property
@@ -158,11 +158,11 @@ class BBOTCore:
 
     def merge_custom(self, config):
         """Merge a config dict into the custom config."""
-        self.custom_config = deep_update(self.custom_config, dict(config) if config else {})
+        self.custom_config = deep_merge(self.custom_config, dict(config) if config else {})
 
     def merge_default(self, config):
         """Merge a config dict into the default config."""
-        self.default_config = deep_update(self.default_config, dict(config) if config else {})
+        self.default_config = deep_merge(self.default_config, dict(config) if config else {})
 
     def copy(self):
         """

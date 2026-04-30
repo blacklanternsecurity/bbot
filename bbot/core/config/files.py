@@ -2,7 +2,7 @@ import sys
 import yaml
 from pathlib import Path
 
-from .merge import deep_update
+from .merge import deep_merge
 from ...logger import log_to_stderr
 from ...errors import ConfigLoadError
 
@@ -41,7 +41,7 @@ class BBOTConfigFiles:
             raise ConfigLoadError(f"Error parsing config at {filename}:\n\n{e}")
 
     def get_custom_config(self) -> dict:
-        return deep_update(
+        return deep_merge(
             self._get_config(self.config_filename, name="config"),
             self._get_config(self.secrets_filename, name="secrets"),
         )
