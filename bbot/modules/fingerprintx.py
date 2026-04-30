@@ -78,7 +78,7 @@ class fingerprintx(BaseModule):
             if not host and port and protocol:
                 continue
             banner = j.get("metadata", {}).get("banner", "").strip()
-            port_data = f"{host}:{port}"
+            port_data = self.helpers.make_netloc(host, port)
             tags = set()
             parent_event = _input.get(port_data)
             protocol_data = {"host": host, "protocol": protocol}
@@ -94,11 +94,12 @@ class fingerprintx(BaseModule):
                 context=f"{{module}} probed {port_data} and detected {{event.type}}: {protocol}",
             )
             if protocol in ("HTTP", "HTTPS"):
-                netloc = f"{protocol.lower()}://{host}"
-                if port not in (80, 443):
-                    netloc += f":{port}"
+                port_int = int(port) if port else None
+                is_default_port = (protocol == "HTTP" and port_int == 80) or (protocol == "HTTPS" and port_int == 443)
+                netloc = self.helpers.make_netloc(host, None if is_default_port else port_int)
+                url = f"{protocol.lower()}://{netloc}"
                 await self.emit_event(
-                    netloc,
+                    url,
                     "URL_UNVERIFIED",
                     parent=parent_event,
                     tags=tags,
