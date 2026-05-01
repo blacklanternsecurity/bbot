@@ -4,7 +4,7 @@ from baddns.lib.loader import load_signatures
 from .base import BaseModule
 
 import logging
-from pydantic import Field
+from pydantic import Field, field_validator
 from bbot.core.config.models import BaseModuleConfig
 
 SEVERITY_LEVELS = ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL")
@@ -63,6 +63,11 @@ class baddns(BaseModule):
             default_factory=list,
             description="A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
         )
+
+        @field_validator("min_severity", "min_confidence", mode="before")
+        @classmethod
+        def _normalize_case(cls, v):
+            return v.upper() if isinstance(v, str) else v
 
     module_threads = 8
     deps_pip = ["baddns~=2.1.0"]
