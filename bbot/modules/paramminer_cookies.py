@@ -25,11 +25,10 @@ class paramminer_cookies(paramminer_headers):
         skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
 
     scanned_hosts = []
-    boring_words = set()
     _module_threads = 12
     in_scope_only = True
     compare_mode = "cookie"
-    default_wordlist = "paramminer_parameters.txt"
+    default_wordlist = "paramminer_cookies.txt"
 
     async def check_batch(self, compare_helper, url, cookie_list):
         cookies = {p: self.rand_string(14) for p in cookie_list}

@@ -49,7 +49,7 @@ bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 
 By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS engine (blastdns) spins up ten workers per resolver, so more resolvers = more parallelism = faster scans.
 
-For OSINT, it's critical that every resolver is **unfiltered** -- filtering resolvers silently hide domains, which defeats the purpose. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
+For OSINT, it's critical that every resolver is **unfiltered**. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
 
 ```conf
 --8<-- "docs/data/resolv-sample.conf"

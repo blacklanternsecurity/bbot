@@ -7,7 +7,7 @@ from bbot.core.config.models import BaseModuleConfig
 
 class fingerprintx(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
-    produced_events = ["PROTOCOL"]
+    produced_events = ["PROTOCOL", "URL_UNVERIFIED"]
     flags = ["safe", "active", "service-enum", "slow"]
     meta = {
         "description": "Fingerprint exposed services like RDP, SSH, MySQL, etc.",
@@ -79,7 +79,7 @@ class fingerprintx(BaseModule):
             if not host and port and protocol:
                 continue
             banner = j.get("metadata", {}).get("banner", "").strip()
-            port_data = f"{host}:{port}"
+            port_data = self.helpers.make_netloc(host, port)
             tags = set()
             parent_event = _input.get(port_data)
             protocol_data = {"host": host, "protocol": protocol}
@@ -94,3 +94,15 @@ class fingerprintx(BaseModule):
                 tags=tags,
                 context=f"{{module}} probed {port_data} and detected {{event.type}}: {protocol}",
             )
+            if protocol in ("HTTP", "HTTPS"):
+                port_int = int(port) if port else None
+                is_default_port = (protocol == "HTTP" and port_int == 80) or (protocol == "HTTPS" and port_int == 443)
+                netloc = self.helpers.make_netloc(host, None if is_default_port else port_int)
+                url = f"{protocol.lower()}://{netloc}"
+                await self.emit_event(
+                    url,
+                    "URL_UNVERIFIED",
+                    parent=parent_event,
+                    tags=tags,
+                    context=f"{{module}} probed {port_data} and detected a {protocol} web service",
+                )

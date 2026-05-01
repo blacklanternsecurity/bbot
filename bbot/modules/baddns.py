@@ -112,14 +112,8 @@ class baddns(BaseModule):
         self.custom_nameservers = self.config.get("custom_nameservers", []) or None
         if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
-        min_severity = self.config.get("min_severity", "LOW").upper()
-        min_confidence = self.config.get("min_confidence", "MEDIUM").upper()
-        if min_severity not in SEVERITY_LEVELS:
-            self.warning(f"Invalid min_severity: {min_severity}, defaulting to LOW")
-            min_severity = "LOW"
-        if min_confidence not in CONFIDENCE_LEVELS:
-            self.warning(f"Invalid min_confidence: {min_confidence}, defaulting to MEDIUM")
-            min_confidence = "MEDIUM"
+        min_severity = self.config.get("min_severity").upper()
+        min_confidence = self.config.get("min_confidence").upper()
         self._min_sev_idx = SEVERITY_LEVELS.index(min_severity)
         self._min_conf_idx = CONFIDENCE_LEVELS.index(min_confidence)
         self.signatures = load_signatures()

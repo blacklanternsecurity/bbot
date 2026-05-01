@@ -22,7 +22,7 @@ class ipneighbor(BaseModule):
 
     async def setup(self):
         self.processed = set()
-        self.num_bits = max(1, int(self.config.get("num_bits", 4)))
+        self.num_bits = max(1, self.config.get("num_bits", 4))
         return True
 
     async def filter_event(self, event):

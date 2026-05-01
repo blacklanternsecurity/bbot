@@ -1037,7 +1037,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         ]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
-        self.speculate_params = bool(self.config.get("speculate_params", False))
+        self.speculate_params = self.config.get("speculate_params", False)
         self.remove_querystring = self.scan.config.get("url_querystring_remove", True)
 
         for module in self.scan.modules.values():
@@ -1064,7 +1064,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
         )
 
-        self.custom_yara_rules = str(self.config.get("custom_yara_rules", ""))
+        self.custom_yara_rules = self.config.get("custom_yara_rules", "")
         if self.custom_yara_rules:
             custom_rules_count = 0
             if Path(self.custom_yara_rules).is_file():

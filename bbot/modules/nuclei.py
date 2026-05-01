@@ -74,11 +74,11 @@ class nuclei(BaseModule):
         else:
             self.warning("Error running nuclei template update command")
         self.proxy = self.scan.web_config.get("http_proxy", "")
-        self.mode = self.config.get("mode", "severe").lower()
-        self.ratelimit = int(self.config.get("ratelimit", 150))
-        self.concurrency = int(self.config.get("concurrency", 25))
-        self.budget = int(self.config.get("budget", 1))
-        self.silent = self.config.get("silent", False)
+        self.mode = self.config.get("mode")
+        self.ratelimit = self.config.get("ratelimit")
+        self.concurrency = self.config.get("concurrency")
+        self.budget = self.config.get("budget")
+        self.silent = self.config.get("silent")
         self.templates = self.config.get("templates")
         if self.templates:
             self.info(f"Using custom template(s) at: [{self.templates}]")
@@ -93,11 +93,7 @@ class nuclei(BaseModule):
             self.info(f"Limiting nuclei templates to the following severities: [{self.severity}]")
         self.iserver = self.scan.config.get("interactsh_server", None)
         self.itoken = self.scan.config.get("interactsh_token", None)
-        self.retries = int(self.config.get("retries", 0))
-
-        if self.mode not in ("technology", "severe", "manual", "budget"):
-            self.warning(f"Unable to initialize nuclei: invalid mode selected: [{self.mode}]")
-            return False
+        self.retries = self.config.get("retries")
 
         if self.mode == "technology":
             self.info(

@@ -47,7 +47,7 @@ class trufflehog(BaseModule):
 
     async def setup(self):
         self.verified = self.config.get("only_verified", True)
-        self.concurrency = int(self.config.get("concurrency", 8))
+        self.concurrency = self.config.get("concurrency", 8)
 
         self.deleted_forks = self.config.get("deleted_forks", False)
         self.github_token = ""

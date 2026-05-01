@@ -1,8 +1,9 @@
 import time
 import asyncio
+from typing import Literal
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
-from pydantic import Field
+from pydantic import Field, field_validator
 from bbot.core.config.models import BaseModuleConfig
 
 
@@ -19,12 +20,18 @@ class SubdomainRadar(subdomain_enum_apikey):
 
     class Config(BaseModuleConfig):
         api_key: str = Field("", description="SubDomainRadar.io API key")
-        group: str = Field("fast", description="The enumeration group to use. Choose from fast, medium, deep")
+        group: Literal["fast", "medium", "deep"] = Field(
+            "fast", description="The enumeration group to use. Choose from fast, medium, deep"
+        )
         timeout: int = Field(120, description="Timeout in seconds")
+
+        @field_validator("group", mode="before")
+        @classmethod
+        def _normalize_case(cls, v):
+            return v.strip().lower() if isinstance(v, str) else v
 
     base_url = "https://api.subdomainradar.io"
     ping_url = f"{base_url}/profile"
-    group_choices = ("fast", "medium", "deep")
 
     # set this really high so the poll loop finishes as soon as possible
     _qsize = 9999999
@@ -32,8 +39,6 @@ class SubdomainRadar(subdomain_enum_apikey):
     async def setup(self):
         self.group = self.config.get("group", "fast").strip().lower()
         self.timeout = self.config.get("timeout", 120)
-        if self.group not in self.group_choices:
-            return False, f'Invalid group: "{self.group}", please choose from {",".join(self.group_choices)}'
         success, reason = await self.require_api_key()
         if not success:
             return success, reason

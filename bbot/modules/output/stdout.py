@@ -1,8 +1,9 @@
 import json
+from typing import Literal
 
 from bbot.logger import log_to_stderr
 from bbot.modules.output.base import BaseOutputModule
-from pydantic import Field
+from pydantic import Field, field_validator
 from bbot.core.config.models import BaseModuleConfig
 
 
@@ -11,11 +12,16 @@ class Stdout(BaseOutputModule):
     meta = {"description": "Output to text", "created_date": "2024-04-03", "author": "@TheTechromancer"}
 
     class Config(BaseModuleConfig):
-        format: str = Field("text", description="Which text format to display, choices: text,json")
+        format: Literal["text", "json"] = Field("text", description="Which text format to display, choices: text,json")
         event_types: list = Field([], description="Which events to display, default all event types")
         event_fields: list = Field([], description="Which event fields to display")
         in_scope_only: bool = Field(False, description="Whether to only show in-scope events")
         accept_dupes: bool = Field(True, description="Whether to show duplicate events, default True")
+
+        @field_validator("format", mode="before")
+        @classmethod
+        def _normalize_case(cls, v):
+            return v.strip().lower() if isinstance(v, str) else v
 
     vuln_severity_map = {
         "INFO": "HUGEINFO",
@@ -24,15 +30,9 @@ class Stdout(BaseOutputModule):
         "HIGH": "CRITICAL",
         "CRITICAL": "CRITICAL",
     }
-    format_choices = ["text", "json"]
 
     async def setup(self):
         self.text_format = self.config.get("format", "text").strip().lower()
-        if self.text_format not in self.format_choices:
-            return (
-                False,
-                f'Invalid text format choice, "{self.text_format}" (choices: {",".join(self.format_choices)})',
-            )
         self.accept_event_types = [str(s).upper() for s in self.config.get("event_types", [])]
         self.show_event_fields = [str(s) for s in self.config.get("event_fields", [])]
         self.in_scope_only = self.config.get("in_scope_only", False)
