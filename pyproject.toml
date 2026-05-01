@@ -125,6 +125,9 @@ skip = "./docs/javascripts/vega*.js,./bbot/wordlists/*"
 
 [tool.ruff]
 line-length = 119
+# force-exclude makes the format.exclude below apply even when the file is passed explicitly to ruff.
+# Without this, `ruff format path/to/test_manager_*.py` will reformat anyway and re-expand the file.
+force-exclude = true
 format.exclude = ["bbot/test/test_step_1/test_manager_*"]
 lint.select = ["E", "F"]
 lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
