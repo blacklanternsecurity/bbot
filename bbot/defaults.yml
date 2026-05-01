@@ -263,8 +263,25 @@ parameter_blacklist:
   - ASP.NET_SessionId
   - .AspNetCore.Session
   - PHPSESSID
+  - sessionid
+  - csrftoken
   - __cf_bm
+  - cf_clearance
+  - _abck
+  - bm_sz
+  - ak_bmsc
   - f5_cspm
+  - _ga
+  - _gid
+  - _gat
+  - _gcl_au
+  - _fbp
+  - _fbc
+  - __utma
+  - __utmb
+  - __utmc
+  - __utmz
+  - _hjid
 
 parameter_blacklist_prefixes:
   - TS01
@@ -277,6 +294,9 @@ parameter_blacklist_prefixes:
   - ApplicationGatewayAffinity
   - JSESSIONID
   - ARRAffinity
+  - _hjSession
+  - _gat_
+  - intercom-
 
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:

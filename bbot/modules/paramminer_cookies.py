@@ -20,17 +20,15 @@ class paramminer_cookies(paramminer_headers):
         "skip_boring_words": True,
     }
     options_desc = {
-        "wordlist": "Define the wordlist to be used to derive headers",
+        "wordlist": "Define the wordlist to be used to derive cookies",
         "recycle_words": "Attempt to use words found during the scan on all other endpoints",
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
     }
-    options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
     scanned_hosts = []
-    boring_words = set()
     _module_threads = 12
     in_scope_only = True
     compare_mode = "cookie"
-    default_wordlist = "paramminer_parameters.txt"
+    default_wordlist = "paramminer_cookies.txt"
 
     async def check_batch(self, compare_helper, url, cookie_list):
         cookies = {p: self.rand_string(14) for p in cookie_list}

@@ -3,6 +3,28 @@ import re
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
 
+_case_split = re.compile(r"[-_]+")
+
+
+def _mutate_case(word):
+    """
+    Multi-word (snake_case/kebab-case) → camelCase: ``user_id`` → ``userId``.
+    Single word → Title case: ``admin`` → ``Admin``.
+    Returns None if no useful mutation exists.
+    """
+    parts = _case_split.split(word)
+    if len(parts) >= 2:
+        head = parts[0]
+        tail = "".join(p[:1].upper() + p[1:] for p in parts[1:] if p)
+        if not tail:
+            return None
+        result = head + tail
+    else:
+        if not word or not word[0].islower():
+            return None
+        result = word[:1].upper() + word[1:]
+    return result if result != word else None
+
 
 class paramminer_headers(BaseModule):
     """
@@ -26,6 +48,21 @@ class paramminer_headers(BaseModule):
         "wordlist": "Define the wordlist to be used to derive headers",
         "recycle_words": "Attempt to use words found during the scan on all other endpoints",
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
+    }
+    # URLs ending with these extensions are known to be case-insensitive — skip case mutation.
+    # (Used by paramminer_getparams and paramminer_cookies; HTTP headers are inherently
+    # case-insensitive per RFC 7230 so this isn't relevant to paramminer_headers itself.)
+    case_insensitive_extensions = {
+        ".aspx",
+        ".ashx",
+        ".ascx",
+        ".asmx",
+        ".axd",
+        ".cshtml",
+        ".vbhtml",
+        ".razor",
+        ".cfm",
+        ".cfc",
     }
     scanned_hosts = []
     boring_words = {
@@ -95,6 +132,12 @@ class paramminer_headers(BaseModule):
         self.event_dict = {}
         self.already_checked = set()
 
+        # global parameter blacklist (shared with excavate) — known framework/CDN/tracker names
+        self.global_blacklist = {p.lower() for p in self.scan.config.get("parameter_blacklist", [])}
+        self.global_blacklist_prefixes = tuple(
+            p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
+        )
+
         self.wl = {
             h.strip().lower() for h in self.helpers.read_file(self.wordlist_file) if len(h) > 0 and "%" not in h
         }
@@ -102,9 +145,18 @@ class paramminer_headers(BaseModule):
         # check against the boring list (if the option is set)
         if self.config.get("skip_boring_words", True):
             self.wl -= self.boring_words
+            self.wl -= self.global_blacklist
+            if self.global_blacklist_prefixes:
+                self.wl = {w for w in self.wl if not w.startswith(self.global_blacklist_prefixes)}
+
         self.extracted_words_master = set()
 
         return True
+
+    def _mutate_for_url(self, url, words):
+        """Hook for subclasses to expand a word set with URL-aware mutations
+        (e.g. paramminer_getparams adds case mutations on case-sensitive backends)."""
+        return words
 
     def rand_string(self, *args, **kwargs):
         return self.helpers.rand_string(*args, **kwargs)
@@ -166,8 +218,14 @@ class paramminer_headers(BaseModule):
         if event.type == "WEB_PARAMETER":
             parameter_name = event.data.get("name")
             if self.recycle_words or (event.data.get("type") == "SPECULATIVE"):
-                if self.config.get("skip_boring_words", True) and parameter_name in self.boring_words:
-                    return
+                if self.config.get("skip_boring_words", True):
+                    if parameter_name in self.boring_words:
+                        return
+                    lower_name = parameter_name.lower()
+                    if lower_name in self.global_blacklist:
+                        return
+                    if self.global_blacklist_prefixes and lower_name.startswith(self.global_blacklist_prefixes):
+                        return
                 if parameter_name not in self.wl:  # Ensure it's not already in the wordlist
                     self.debug(f"Adding {parameter_name} to wordlist")
                     self.extracted_words_master.add(parameter_name)
@@ -194,7 +252,7 @@ class paramminer_headers(BaseModule):
                 return
 
             try:
-                results = await self.do_mining(self.wl, url, batch_size, compare_helper)
+                results = await self.do_mining(self._mutate_for_url(url, self.wl), url, batch_size, compare_helper)
             except HttpCompareError as e:
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.url}]")
             await self.process_results(event, results)
@@ -253,7 +311,9 @@ class paramminer_headers(BaseModule):
                 self.debug(f"Error initializing compare helper: {e}")
                 continue
             words_to_process = {
-                i for i in self.extracted_words_master.copy() if hash(i + url) not in self.already_checked
+                i
+                for i in self._mutate_for_url(url, self.extracted_words_master)
+                if hash(i + url) not in self.already_checked
             }
             try:
                 results = await self.do_mining(words_to_process, url, batch_size, compare_helper)
