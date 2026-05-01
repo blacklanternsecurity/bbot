@@ -16,7 +16,13 @@ def _extract_finding_values(module_cls):
 
     Returns (set of severity strings, set of confidence strings).
     """
-    source = inspect.getsource(module_cls)
+    # Parse the whole source file rather than inspect.getsource(cls): the
+    # latter relies on linecache heuristics that can mis-anchor on Python
+    # 3.13+ and return a partial/indented fragment that fails to parse.
+    # Each baddns submodule is one class per file, so this is equivalent.
+    source_file = inspect.getsourcefile(module_cls)
+    with open(source_file) as f:
+        source = f.read()
     tree = ast.parse(source)
 
     severities = set()
