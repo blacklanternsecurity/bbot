@@ -241,7 +241,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Install dependencies
-        run: uv sync --only-group docs
+        run: uv sync --frozen --group docs
       - name: Configure Git
         run: |
           git config user.name github-actions
@@ -255,11 +255,11 @@ jobs:
       - name: Generate docs (stable branch)
         if: github.ref == 'refs/heads/stable'
         run: |
-          uv run mike deploy Stable
+          uv run --no-sync mike deploy Stable
       - name: Generate docs (dev branch)
         if: github.ref == 'refs/heads/dev'
         run: |
-          uv run mike deploy Dev
+          uv run --no-sync mike deploy Dev
       - name: Publish docs
         run: |
           git switch gh-pages
