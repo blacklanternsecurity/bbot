@@ -61,15 +61,15 @@ def _exec_config_class(source: str, module_name: str):
     """
     Execute a `class Config(BaseModuleConfig):` snippet in a controlled
     namespace and return the resulting class. The namespace provides exactly
-    what a Config block is allowed to reference: the typing primitives, the
-    pydantic `Field` factory, and `BaseModuleConfig`.
+    what a Config block is allowed to reference: the typing primitives,
+    pydantic's `Field` factory and validator decorators, and `BaseModuleConfig`.
 
     This replaces parsing annotations as strings: pydantic handles every
     valid type expression (`Optional[str]`, `Literal["a", "b"]`,
     `list[Union[int, str]]`, …) without any hand-rolled resolver.
     """
     from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Union
-    from pydantic import Field
+    from pydantic import AfterValidator, BeforeValidator, Field, field_validator, model_validator
     from bbot.core.config.models import BaseModuleConfig
 
     namespace: dict = {
@@ -82,6 +82,10 @@ def _exec_config_class(source: str, module_name: str):
         "Tuple": Tuple,
         "Union": Union,
         "Field": Field,
+        "field_validator": field_validator,
+        "model_validator": model_validator,
+        "BeforeValidator": BeforeValidator,
+        "AfterValidator": AfterValidator,
         "BaseModuleConfig": BaseModuleConfig,
     }
     try:
@@ -90,7 +94,8 @@ def _exec_config_class(source: str, module_name: str):
         raise BBOTError(
             f'module "{module_name}" has an invalid Config class ({type(e).__name__}: {e}). '
             "Config blocks may only reference: Optional, Union, Literal, Any, List, Dict, Tuple, Set, "
-            "Field, BaseModuleConfig, and Python builtins."
+            "Field, field_validator, model_validator, BeforeValidator, AfterValidator, BaseModuleConfig, "
+            "and Python builtins."
         ) from e
     cfg = namespace.get("Config")
     if cfg is None:
