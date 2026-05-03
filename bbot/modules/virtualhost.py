@@ -66,6 +66,20 @@ class virtualhost(BaseModule):
 
         return True
 
+    async def _response_similarity(self, text_a, text_b, normalization_filter=None):
+        """
+        Compute simhash similarity between two response bodies.
+        Runs in the CPU thread pool: simhash work is short and the input is
+        truncated to ~3KB inside compute_simhash, so the process-pool overhead
+        (pickle + IPC + worker lifecycle) costs more than the work itself.
+        """
+        kwargs = {}
+        if normalization_filter is not None:
+            kwargs["normalization_filter"] = normalization_filter
+        hash_a = await self.helpers.run_in_executor_cpu(compute_simhash, text_a, **kwargs)
+        hash_b = await self.helpers.run_in_executor_cpu(compute_simhash, text_b, **kwargs)
+        return self.helpers.simhash.similarity(hash_a, hash_b)
+
     def _get_basehost(self, event):
         """Get the basehost and subdomain from the event"""
         basehost = self.helpers.parent_domain(event.parsed_url.hostname)
@@ -421,9 +435,7 @@ class virtualhost(BaseModule):
                 )
             return True
 
-        probe_simhash = await self.helpers.run_in_executor_mp(compute_simhash, probe_response.text or "")
-        wildcard_simhash = await self.helpers.run_in_executor_mp(compute_simhash, wildcard_canary_response.text or "")
-        similarity = self.helpers.simhash.similarity(probe_simhash, wildcard_simhash)
+        similarity = await self._response_similarity(probe_response.text or "", wildcard_canary_response.text or "")
 
         # Compare original probe response with modified response
 
@@ -617,9 +629,9 @@ class virtualhost(BaseModule):
                     result = await completed
                 except Exception as e:
                     if getattr(self.scan, "stopping", False) or getattr(self.scan, "aborting", False):
-                        self.debug(f"CurlError during shutdown (suppressed): {e}")
+                        self.debug(f"Exception during shutdown (suppressed): {e}")
                         break
-                    self.debug(f"CurlError in virtualhost test (skipping this test): {e}")
+                    self.debug(f"Exception in virtualhost test (skipping this test): {e}")
                     continue
                 if result:  # Only append non-None results
                     virtual_host_results.append(result)
@@ -636,9 +648,9 @@ class virtualhost(BaseModule):
 
         except Exception as e:
             if getattr(self.scan, "stopping", False) or getattr(self.scan, "aborting", False):
-                self.debug(f"CurlError in as_completed during shutdown (suppressed): {e}")
+                self.debug(f"Exception in as_completed during shutdown (suppressed): {e}")
                 return []
-            self.warning(f"CurlError in as_completed, stopping all tests: {e}")
+            self.warning(f"Exception in as_completed, stopping all tests: {e}")
             return []
 
         # Return results for emission at _run_virtualhost_phase level
@@ -800,14 +812,11 @@ class virtualhost(BaseModule):
         # Calculate content similarity to canary (junk response)
         # Use probe hostname for normalization to remove hostname reflection differences
 
-        probe_simhash = await self.helpers.run_in_executor_mp(
-            compute_simhash, probe_response.text or "", normalization_filter=probe_host
+        similarity = await self._response_similarity(
+            probe_response.text or "",
+            canary_response.text or "",
+            normalization_filter=probe_host,
         )
-        canary_simhash = await self.helpers.run_in_executor_mp(
-            compute_simhash, canary_response.text or "", normalization_filter=probe_host
-        )
-
-        similarity = self.helpers.simhash.similarity(probe_simhash, canary_simhash)
 
         if similarity <= self.SIMILARITY_THRESHOLD:
             self.verbose(
@@ -824,7 +833,7 @@ class virtualhost(BaseModule):
                 probe_url, basehost, host_ip, is_https, mode="random_append"
             )
         except Exception as e:
-            self.warning(f"Canary verification failed due to curl error: {e}")
+            self.warning(f"Canary verification failed: {e}")
             return False
 
         if not keyword_canary_response:
@@ -837,9 +846,7 @@ class virtualhost(BaseModule):
             )
             return False
 
-        original_simhash = await self.helpers.run_in_executor_mp(compute_simhash, original_response.text or "")
-        keyword_simhash = await self.helpers.run_in_executor_mp(compute_simhash, keyword_canary_response.text or "")
-        similarity = self.helpers.simhash.similarity(original_simhash, keyword_simhash)
+        similarity = await self._response_similarity(original_response.text or "", keyword_canary_response.text or "")
 
         if similarity >= self.SIMILARITY_THRESHOLD:
             self.verbose(
@@ -859,7 +866,7 @@ class virtualhost(BaseModule):
                 normalized_url, basehost, host_ip, is_https, mode=canary_mode
             )
         except Exception as e:
-            self.warning(f"Canary verification failed due to curl error: {e}")
+            self.warning(f"Canary verification failed: {e}")
             return False
 
         if not consistency_canary_response:
@@ -877,11 +884,9 @@ class virtualhost(BaseModule):
             return True
 
         # Fallback - use similarity comparison for response data (allows slight differences)
-        original_simhash = await self.helpers.run_in_executor_mp(compute_simhash, original_canary_response.text or "")
-        consistency_simhash = await self.helpers.run_in_executor_mp(
-            compute_simhash, consistency_canary_response.text or ""
+        similarity = await self._response_similarity(
+            original_canary_response.text or "", consistency_canary_response.text or ""
         )
-        similarity = self.helpers.simhash.similarity(original_simhash, consistency_simhash)
         if similarity < self.SIMILARITY_THRESHOLD:
             self.verbose(
                 f"CANARY SIMILARITY CHANGED for {normalized_url} - similarity: {similarity:.3f} below threshold {self.SIMILARITY_THRESHOLD} - Original: {original_canary_response.status_code} ({len(original_canary_response.text or '')} bytes), Current: {consistency_canary_response.status_code} ({len(consistency_canary_response.text or '')} bytes)"
