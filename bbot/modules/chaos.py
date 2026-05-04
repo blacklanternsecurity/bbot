@@ -34,6 +34,10 @@ class chaos(subdomain_enum_apikey):
             domain = j.get("domain", "")
             if domain:
                 subdomains = j.get("subdomains", [])
+                if len(subdomains) > 10000:
+                    # In extremely rare cases, Chaos API returns a gigaton of subdomains.
+                    # If that happens, we simply treat the domain as a wildcard.
+                    subdomains = ["*"]
                 for s in subdomains:
                     s = s.lower().strip(".*")
                     subdomains_set.add(s)
