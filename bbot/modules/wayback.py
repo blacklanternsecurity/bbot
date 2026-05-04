@@ -289,10 +289,10 @@ class wayback(subdomain_enum):
         if r is None:
             self.warning(f'Error connecting to archive.org for query "{query}": {last_error}')
             return None
-        # parse JSON + extract URLs in a separate process to avoid blocking the event loop
+        # parse JSON + extract URLs off the event loop
         # (CDX responses can contain 100k+ entries)
         try:
-            urls = await self.helpers.run_in_executor_mp(_parse_cdx_response, r.text)
+            urls = await self.helpers.run_in_executor_cpu(_parse_cdx_response, r.text)
         except Exception:
             urls = None
         if urls is None:
@@ -371,8 +371,8 @@ class wayback(subdomain_enum):
         dns_names = set()
         collapsed_urls = 0
         start_time = datetime.now()
-        # consolidate URLs to cut down on garbage data (CPU-intensive, runs in separate process)
-        parsed_urls = await self.helpers.run_in_executor_mp(
+        # consolidate URLs to cut down on garbage data (CPU-intensive, runs off the event loop)
+        parsed_urls = await self.helpers.run_in_executor_cpu(
             self.helpers.validators.collapse_urls,
             urls,
             threshold=self.garbage_threshold,
