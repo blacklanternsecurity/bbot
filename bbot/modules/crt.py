@@ -23,6 +23,10 @@ class crt(subdomain_enum):
         url = self.helpers.add_get_params(self.base_url, params).geturl()
         return await self.api_request(url, timeout=self.http_timeout + 30)
 
+    def _api_response_is_success(self, r):
+        # handle crt.sh weird status errors
+        return getattr(r, "is_success", False) or getattr(r, "status_code", 0) not in {404, 503}
+
     async def parse_results(self, r, query):
         results = set()
         j = r.json()
