@@ -1,6 +1,6 @@
+import sys
 import json
 
-from bbot.logger import log_to_stderr
 from bbot.modules.output.base import BaseOutputModule
 
 
@@ -15,12 +15,21 @@ class Stdout(BaseOutputModule):
         "in_scope_only": "Whether to only show in-scope events",
         "accept_dupes": "Whether to show duplicate events, default True",
     }
-    vuln_severity_map = {
-        "INFO": "HUGEINFO",
-        "LOW": "HUGEWARNING",
-        "MEDIUM": "HUGEWARNING",
-        "HIGH": "CRITICAL",
-        "CRITICAL": "CRITICAL",
+    # base RGB hue per severity (matches the bbot logger palette)
+    finding_severity_rgb = {
+        "INFO": (95, 135, 215),  # blue (256-color 69)
+        "LOW": (255, 135, 0),  # orange (256-color 208)
+        "MEDIUM": (255, 135, 0),  # orange
+        "HIGH": (255, 0, 0),  # red (256-color 196)
+        "CRITICAL": (255, 0, 0),  # red
+    }
+    # brightness multiplier per confidence — CONFIRMED also adds bold
+    finding_confidence_brightness = {
+        "CONFIRMED": 1.00,
+        "HIGH": 0.80,
+        "MEDIUM": 0.60,
+        "LOW": 0.40,
+        "UNKNOWN": 0.30,
     }
     format_choices = ["text", "json"]
 
@@ -61,16 +70,20 @@ class Stdout(BaseOutputModule):
         else:
             event_str = self.human_event_str(event)
 
-        # log findings in vivid colors based on severity
-        if event.type == "FINDING":
-            severity = event.data.get("severity", "INFO")
-            if severity in self.vuln_severity_map:
-                loglevel = self.vuln_severity_map[severity]
-                log_to_stderr(event_str, level=loglevel, logname=False)
-            else:
-                log_to_stderr(event_str, level="HUGEINFO", logname=False)
+        # color findings: severity picks the hue, confidence dims the brightness
+        if event.type == "FINDING" and isinstance(event.data, dict) and sys.stdout.isatty():
+            event_str = self._colorize_finding(event_str, event.data)
 
         print(event_str)
+
+    def _colorize_finding(self, event_str, data):
+        severity = str(data.get("severity", "INFO")).upper()
+        confidence = str(data.get("confidence", "UNKNOWN")).upper()
+        r, g, b = self.finding_severity_rgb.get(severity, self.finding_severity_rgb["INFO"])
+        mult = self.finding_confidence_brightness.get(confidence, 0.60)
+        r, g, b = int(r * mult), int(g * mult), int(b * mult)
+        bold = "1;" if confidence == "CONFIRMED" else ""
+        return f"\033[{bold}38;2;{r};{g};{b}m{event_str}\033[0m"
 
     async def handle_json(self, event, event_json):
         print(json.dumps(event_json))
