@@ -19,6 +19,7 @@ class ffuf(BaseModule):
         "extensions": "",
         "ignore_case": False,
         "rate": 0,
+        "delay": 0,
     }
 
     options_desc = {
@@ -28,6 +29,7 @@ class ffuf(BaseModule):
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
         "ignore_case": "Only put lowercase words into the wordlist",
         "rate": "Rate of requests per second (default: 0)",
+        "delay": "Seconds of delay between requests or a range of random delay, e.g. 0.1 or 0.1-2.0 (default: None)",
     }
 
     deps_common = ["ffuf"]
@@ -49,6 +51,7 @@ class ffuf(BaseModule):
         self.wordlist_lines = self.generate_wordlist(self.wordlist)
         self.tempfile, tempfile_len = self.generate_templist()
         self.rate = self.config.get("rate", 0)
+        self.delay = self.config.get("delay", 0)
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         try:
             self.extensions = self.helpers.chain_lists(self.config.get("extensions", ""), validate=True)
@@ -253,6 +256,9 @@ class ffuf(BaseModule):
 
             if self.rate > 0:
                 command += ["-rate", f"{self.rate}"]
+
+            if self.delay > 0:
+                command += ["-delay", f"{self.delay}"]
 
             if self.proxy:
                 command += ["-x", self.proxy]
