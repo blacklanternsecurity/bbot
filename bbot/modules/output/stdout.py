@@ -16,20 +16,22 @@ class Stdout(BaseOutputModule):
         "accept_dupes": "Whether to show duplicate events, default True",
     }
     # base RGB hue per severity (matches the 🟦🟨🟧🟥🟪 convention from FINDING.severity_colors)
+    # all hues normalized so the brightest channel is 255 — gives a uniform brightness range per row
     finding_severity_rgb = {
-        "INFO": (95, 135, 215),  # blue
+        "INFO": (113, 161, 255),  # blue
         "LOW": (255, 215, 0),  # yellow
         "MEDIUM": (255, 135, 0),  # orange
         "HIGH": (255, 0, 0),  # red
-        "CRITICAL": (175, 0, 215),  # purple
+        "CRITICAL": (207, 0, 255),  # purple
     }
     # brightness multiplier per confidence — CONFIRMED also adds bold
+    # tuned so even UNKNOWN stays legible on dark terminals (brightest channel ~115)
     finding_confidence_brightness = {
         "CONFIRMED": 1.00,
-        "HIGH": 0.80,
-        "MEDIUM": 0.60,
-        "LOW": 0.40,
-        "UNKNOWN": 0.30,
+        "HIGH": 0.82,
+        "MEDIUM": 0.65,
+        "LOW": 0.55,
+        "UNKNOWN": 0.45,
     }
     format_choices = ["text", "json"]
 
@@ -80,7 +82,7 @@ class Stdout(BaseOutputModule):
         severity = str(data.get("severity", "INFO")).upper()
         confidence = str(data.get("confidence", "UNKNOWN")).upper()
         r, g, b = self.finding_severity_rgb.get(severity, self.finding_severity_rgb["INFO"])
-        mult = self.finding_confidence_brightness.get(confidence, 0.60)
+        mult = self.finding_confidence_brightness.get(confidence, 0.65)
         r, g, b = int(r * mult), int(g * mult), int(b * mult)
         bold = "1;" if confidence == "CONFIRMED" else ""
         return f"\033[{bold}38;2;{r};{g};{b}m{event_str}\033[0m"
