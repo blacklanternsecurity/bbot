@@ -122,8 +122,7 @@ class Generic_SSRF_POST(BaseSubmodule):
         post_data_list = [(subdomain_tag, post_data), (subdomain_tag_lower, post_data_lower)]
 
         for tag, pd in post_data_list:
-            # Send raw body (not URL-encoded) so payload URLs like http://... reach the
-            # server literally — matching old curl -d behavior.
+            # Send raw body (not URL-encoded) so payload URLs like http://... reach the server literally.
             raw_body = "&".join(f"{k}={v}" for k, v in pd.items())
             r = await self.generic_ssrf.helpers.request(url=test_url, method="POST", body=raw_body)
             if r:
