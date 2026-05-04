@@ -92,6 +92,15 @@ class portscan(BaseModule):
             self.ipv6_support = False
         return True
 
+    async def filter_event(self, event):
+        if event.tags and any('cloudflare' in t for t in event.tags):
+            self.info(f"Skipping portscan due to Cloudflare asset {event} with tags {event.tags} and resolved hosts {event.resolved_hosts}")
+            host = event.resolved_hosts[0] if event.resolved_hosts else event.host
+            self.emit_open_port(host, 80, event) # emit HTTP
+            self.emit_open_port(host, 443, event) # emit HTTPS
+            return False, f"Skipping portscan due to Cloudflare asset: {event}"
+        return True
+
     async def handle_batch(self, *events):
         # ping scan
         if self.ping_scan:
