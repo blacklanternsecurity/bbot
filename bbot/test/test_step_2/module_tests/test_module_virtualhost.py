@@ -890,3 +890,76 @@ class TestVirtualhostHTTPResponse(VirtualhostTestBase):
         print(
             f"Test results: virtual_host_found={virtual_host_found}, http_response_found={http_response_found}, jwt_cookie_vuln_found={jwt_cookie_vuln_found}, jwt_body_vuln_found={jwt_body_vuln_found}"
         )
+
+
+class TestVirtualhostCertificateSANs(VirtualhostTestBase):
+    """Exercise the certificate-SAN code path on HTTPS URL events."""
+
+    targets = ["https://localhost:9999"]
+    modules_overrides = ["virtualhost"]
+    config_overrides = {
+        "modules": {
+            "virtualhost": {
+                "subdomain_brute": False,
+                "mutation_check": False,
+                "special_hosts": False,
+                "certificate_sans": True,
+                "wordcloud_check": False,
+                "require_inaccessible": False,
+            }
+        }
+    }
+
+    async def setup_after_prep(self, module_test):
+        self.captured_san_arg = []
+
+        vh_module = module_test.scan.modules["virtualhost"]
+        captured = self.captured_san_arg
+
+        async def fake_analyze(arg):
+            captured.append(arg)
+            return []
+
+        async def fake_baseline(event, normalized_url, host_ip):
+            return {"http_code": 200, "response_data": "baseline", "url": normalized_url}
+
+        async def fake_wildcard_check(scheme, host, event, host_ip, baseline):
+            return True
+
+        module_test.monkeypatch.setattr(vh_module, "_analyze_subject_alternate_names", fake_analyze)
+        module_test.monkeypatch.setattr(vh_module, "_get_baseline_response", fake_baseline)
+        module_test.monkeypatch.setattr(vh_module, "_wildcard_canary_check", fake_wildcard_check)
+
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module_sans"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    url_event = self.scan.make_event(
+                        "https://localhost:9999/",
+                        "URL",
+                        parent=event,
+                        tags=["status-200", "ip-127.0.0.1"],
+                    )
+                    await self.emit_event(url_event)
+
+        module_test.scan.modules["dummy_module_sans"] = DummyModule(module_test.scan)
+
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
+    def check(self, module_test, events):
+        assert self.captured_san_arg, "SAN analyzer was never invoked on the HTTPS URL event"
+        san_arg = self.captured_san_arg[0]
+        assert isinstance(san_arg, str), (
+            f"SAN analyzer received {type(san_arg).__name__}, expected str. Value: {san_arg!r}"
+        )
+        assert san_arg.startswith("https://"), f"Expected HTTPS URL, got {san_arg!r}"
