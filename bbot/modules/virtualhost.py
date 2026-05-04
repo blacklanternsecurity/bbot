@@ -195,7 +195,7 @@ class virtualhost(BaseModule):
             if self.config.get("certificate_sans", True):
                 self.verbose(f"=== Starting certificate SAN analysis on {normalized_url} ===")
                 if is_https:
-                    subject_alternate_names = await self._analyze_subject_alternate_names(event.data)
+                    subject_alternate_names = await self._analyze_subject_alternate_names(normalized_url)
                     if subject_alternate_names:
                         self.debug(
                             f"Found {len(subject_alternate_names)} Subject Alternative Names from certificate: {subject_alternate_names}"
