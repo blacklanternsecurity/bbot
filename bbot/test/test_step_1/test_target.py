@@ -703,36 +703,6 @@ def test_no_double_parsing():
     )
 
 
-def test_target_pickle():
-    """BBOTTarget must survive pickle round-trips (used by HTTP engine subprocess)."""
-    import pickle
-
-    from bbot.scanner.target import BBOTTarget
-
-    target = BBOTTarget(
-        target=["evilcorp.com", "1.2.3.0/24"],
-        blacklist=["bad.evilcorp.com"],
-        strict_scope=False,
-    )
-
-    data = pickle.dumps(target)
-    restored = pickle.loads(data)
-
-    # scope checks work after unpickling
-    assert restored.in_target("evilcorp.com")
-    assert restored.in_target("www.evilcorp.com")
-    assert restored.in_target("1.2.3.4")
-    assert not restored.in_target("9.9.9.9")
-
-    # blacklist works after unpickling
-    assert restored.blacklisted("bad.evilcorp.com")
-    assert not restored.in_scope("bad.evilcorp.com")
-    assert restored.in_scope("good.evilcorp.com")
-
-    # hashes match
-    assert target.hash == restored.hash
-
-
 def test_target_comments():
     """Target strings support # comments — both full-line and inline."""
     from bbot.scanner.target import BBOTTarget

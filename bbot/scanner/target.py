@@ -178,18 +178,6 @@ class BaseTarget:
     def __bool__(self):
         return bool(len(self._rt)) or bool(self.event_seeds)
 
-    def __getstate__(self):
-        """Serialize for pickling — RadixTarget (PyO3) can't be pickled directly."""
-        return {
-            "inputs": [str(e.input) for e in self.event_seeds],
-            "strict_scope": self.strict_scope,
-            "acl_mode": getattr(self._rt, "_acl_mode", False),
-        }
-
-    def __setstate__(self, state):
-        """Reconstruct from pickled state."""
-        self.__init__(*state["inputs"], strict_scope=state["strict_scope"], acl_mode=state.get("acl_mode", False))
-
     def __eq__(self, other):
         return self.hash == getattr(other, "hash", None)
 
@@ -265,10 +253,6 @@ class ScanBlacklist(ACLTarget):
     def __init__(self, *args, **kwargs):
         self.blacklist_regexes = set()
         super().__init__(*args, **kwargs)
-
-    def __setstate__(self, state):
-        self.blacklist_regexes = set()
-        super().__setstate__(state)
 
     def get(self, host, **kwargs):
         """

@@ -17,7 +17,7 @@ Check for subdomain takeovers and other DNS issues.
         baddns:
           enabled_submodules: [CNAME, MX, TXT]
           min_severity: LOW
-          min_confidence: MODERATE
+          min_confidence: MEDIUM
     ```
 
 
@@ -43,13 +43,13 @@ Run all baddns modules and submodules.
       modules:
         baddns:
           enabled_submodules: [CNAME, NS, MX, TXT, references, DMARC, SPF, MTA-STS, WILDCARD]
-          min_severity: INFORMATIONAL
+          min_severity: INFO
           min_confidence: UNKNOWN
         baddns_zone:
-          min_severity: INFORMATIONAL
+          min_severity: INFO
           min_confidence: UNKNOWN
         baddns_direct:
-          min_severity: INFORMATIONAL
+          min_severity: INFO
           min_confidence: UNKNOWN
     ```
 
