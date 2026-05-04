@@ -15,13 +15,13 @@ class Stdout(BaseOutputModule):
         "in_scope_only": "Whether to only show in-scope events",
         "accept_dupes": "Whether to show duplicate events, default True",
     }
-    # base RGB hue per severity (matches the bbot logger palette)
+    # base RGB hue per severity (matches the 🟦🟨🟧🟥🟪 convention from FINDING.severity_colors)
     finding_severity_rgb = {
-        "INFO": (95, 135, 215),  # blue (256-color 69)
-        "LOW": (255, 135, 0),  # orange (256-color 208)
+        "INFO": (95, 135, 215),  # blue
+        "LOW": (255, 215, 0),  # yellow
         "MEDIUM": (255, 135, 0),  # orange
-        "HIGH": (255, 0, 0),  # red (256-color 196)
-        "CRITICAL": (255, 0, 0),  # red
+        "HIGH": (255, 0, 0),  # red
+        "CRITICAL": (175, 0, 215),  # purple
     }
     # brightness multiplier per confidence — CONFIRMED also adds bold
     finding_confidence_brightness = {
