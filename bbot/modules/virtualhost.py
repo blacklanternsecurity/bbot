@@ -262,7 +262,7 @@ class virtualhost(BaseModule):
             "VIRTUAL_HOST",
             parent=event,
             tags=["virtual-host"],
-            context=f"{{module}} discovered virtual host via {discovery_method} for {event.data} and found {{event.type}}: {canary_host}",
+            context=f"{{module}} discovered virtual host via {discovery_method} for {event.url} and found {{event.type}}: {canary_host}",
         )
 
         # Emit HTTP_RESPONSE event with the canary response data
@@ -295,7 +295,7 @@ class virtualhost(BaseModule):
             "HTTP_RESPONSE",
             parent=event,
             tags=["virtual-host"],
-            context=f"{{module}} discovered virtual host via {discovery_method} for {event.data} and found {{event.type}}: {canary_host}",
+            context=f"{{module}} discovered virtual host via {discovery_method} for {event.url} and found {{event.type}}: {canary_host}",
         )
         # Set scope distance to match parent's scope distance for HTTP_RESPONSE events
         if http_response_event:
@@ -485,7 +485,7 @@ class virtualhost(BaseModule):
             self.debug(f"Failed to get canary response for {normalized_url}, skipping virtual host detection")
             return []
 
-        results = await self.curl_virtualhost(
+        results = await self._test_virtualhost_candidates(
             discovery_method,
             normalized_url,
             basehost,
@@ -504,7 +504,7 @@ class virtualhost(BaseModule):
                 "VIRTUAL_HOST",
                 parent=event,
                 tags=["virtual-host"],
-                context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.data} and found {{event.type}}: {virtual_host_data['probe_host']} (similarity: {virtual_host_data['similarity']:.2%})",
+                context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.url} and found {{event.type}}: {virtual_host_data['probe_host']} (similarity: {virtual_host_data['similarity']:.2%})",
             )
 
             # Emit HTTP_RESPONSE event with the probe response data
@@ -538,7 +538,7 @@ class virtualhost(BaseModule):
                 "HTTP_RESPONSE",
                 parent=event,
                 tags=["virtual-host"],
-                context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.data} and found {{event.type}}: {virtual_host_data['probe_host']}",
+                context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.url} and found {{event.type}}: {virtual_host_data['probe_host']}",
             )
             # Set scope distance to match parent's scope distance for HTTP_RESPONSE events
             if http_response_event:
@@ -551,10 +551,10 @@ class virtualhost(BaseModule):
                     "DNS_NAME_UNVERIFIED",
                     parent=event,
                     tags=["virtual-host"],
-                    context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.data} and found {{event.type}}: {{event.data}}",
+                    context=f"{{module}} discovered virtual host via {virtual_host_data['discovery_method']} for {event.url} and found {{event.type}}: {{event.data}}",
                 )
 
-    async def curl_virtualhost(
+    async def _test_virtualhost_candidates(
         self,
         discovery_method,
         normalized_url,
@@ -1013,6 +1013,6 @@ class virtualhost(BaseModule):
             or "cdn-akamai" in event.tags
             or "cdn-cloudfront" in event.tags
         ):
-            self.debug(f"Not processing URL {event.data} because it's behind a WAF or CDN, and that's pointless")
+            self.debug(f"Not processing URL {event.url} because it's behind a WAF or CDN, and that's pointless")
             return False
         return True
