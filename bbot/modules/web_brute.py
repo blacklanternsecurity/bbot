@@ -316,22 +316,18 @@ class web_brute(BaseModule):
             self.debug(f"Fuzzing {len(configs)} URLs for ext [{ext}]")
 
             # Fire all requests via native blasthttp batch (Rust concurrency).
-            # Stream results into a URL-keyed dict so we can re-process them in
-            # wordlist order (canary appended last) below.
-            results_by_url = {}
+            # Stream results in completion order — canary detection and hit
+            # collection are order-independent (we only check `canary_found and
+            # hits` after the stream completes), so per-result work overlaps with
+            # in-flight HTTP I/O.
+            canary_found = False
+            hits = []
             async for result in iter_batch_results(
                 self.blast_client.request_batch_stream(configs, self.concurrency, rate_limit=self.rate)
             ):
-                results_by_url[result.url] = result
-
-            # Process in wordlist order so canary (appended last) is checked last
-            canary_found = False
-            hits = []
-            for config in configs:
                 if self.scan.stopping:
                     return
-                result = results_by_url.get(config.url)
-                if result is None or not result.success:
+                if not result.success:
                     continue
 
                 response = result.response
