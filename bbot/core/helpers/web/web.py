@@ -20,6 +20,23 @@ warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 log = logging.getLogger("bbot.core.helpers.web")
 
 
+async def iter_batch_results(stream):
+    """
+    Yield individual ``BatchResult`` objects from a ``request_batch_stream`` iterator.
+
+    The native blasthttp 0.4.0 iterator yields lists of ``BatchResult`` (drained in
+    chunks of 1000 / 200ms to amortize the Python↔Rust boundary). A future Python
+    wrapper is expected to unwrap these into individual items. This helper handles
+    both shapes so callers can write a single ``async for`` loop.
+    """
+    async for item in stream:
+        if isinstance(item, list):
+            for r in item:
+                yield r
+        else:
+            yield item
+
+
 class WebHelper:
     """
     Main utility class for managing HTTP operations in BBOT. Uses blasthttp (Rust) as the
@@ -297,23 +314,26 @@ class WebHelper:
                 log.trace(traceback.format_exc())
             raise
 
-    async def request_batch(self, urls, threads=10, **kwargs):
+    async def request_batch_stream(self, urls, threads=10, **kwargs):
         """
-        Request multiple URLs in parallel via blasthttp's native Rust batch engine.
+        Request multiple URLs in parallel via blasthttp's native Rust batch engine,
+        yielding each response as soon as it completes (completion order, not input
+        order).
 
         Applies the same header/cookie/proxy/timeout logic as ``request()`` — each
-        entry is translated into a ``blasthttp.BatchConfig`` and sent to Rust in one
-        shot.  Results are returned as a list (not streamed).
+        entry is translated into a ``blasthttp.BatchConfig`` and dispatched through
+        ``blasthttp.request_batch_stream``. A slow request no longer blocks faster
+        peers behind it, and Python work overlaps with in-flight HTTP I/O.
 
         Each entry in ``urls`` can be:
             - A plain URL string (uses shared ``**kwargs`` for all requests)
             - A ``(url, per_request_kwargs)`` tuple for per-request options
             - A ``(url, per_request_kwargs, tracker)`` tuple to attach arbitrary
-              tracking data that is returned alongside the response
+              tracking data that is yielded alongside the response
 
-        Returns:
-            When entries are plain strings: ``list[(url, response)]``
-            When any entry includes a tracker: ``list[(url, response, tracker)]``
+        Yields:
+            When entries are plain strings: ``(url, response)``
+            When any entry includes a tracker: ``(url, response, tracker)``
 
         Args:
             urls: URLs to visit — strings or ``(url, kwargs[, tracker])`` tuples.
@@ -324,15 +344,13 @@ class WebHelper:
         Examples:
             Simple (shared kwargs)::
 
-                results = await self.helpers.request_batch(urls, headers={"X-Test": "Test"})
-                for url, response in results:
+                async for url, response in self.helpers.request_batch_stream(urls, headers={"X-Test": "Test"}):
                     ...
 
             Per-request kwargs with tracker::
 
                 reqs = [("http://example.com", {"method": "POST"}, "my-tracker")]
-                results = await self.helpers.request_batch(reqs)
-                for url, response, tracker in results:
+                async for url, response, tracker in self.helpers.request_batch_stream(reqs):
                     ...
         """
         import blasthttp
@@ -354,33 +372,33 @@ class WebHelper:
                 entries.append((str(entry), kwargs, None))
 
         if not entries:
-            return []
+            return
 
-        # Build BatchConfig objects using the same logic as request()
+        # Build BatchConfig objects using the same logic as request().
+        # Map each config URL back to a queue of trackers so we can correlate
+        # completion-order results to original entries even when multiple entries
+        # share a URL.
+        from collections import deque
+
         configs = []
-        trackers = []
+        trackers_by_url = {}
         for url, req_kwargs, tracker in entries:
             url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
             config = blasthttp.BatchConfig(url, **blast_kwargs)
             configs.append(config)
-            trackers.append(tracker)
+            trackers_by_url.setdefault(config.url, deque()).append(tracker)
 
-        # Send to Rust — all I/O happens here
-        batch_results = await self.client.request_batch(configs, concurrency=threads)
-
-        # Convert to (url, response[, tracker]) tuples
-        # Results are returned in the same order as configs
-        results = []
-        for i, br in enumerate(batch_results):
+        async for br in iter_batch_results(self.client.request_batch_stream(configs, concurrency=threads)):
             if br.response is not None:
                 response = BlasthttpResponse(br.response, request_url=br.url, method="GET")
             else:
                 response = None
             if has_tracker:
-                results.append((br.url, response, trackers[i]))
+                queue = trackers_by_url.get(br.url)
+                tracker = queue.popleft() if queue else None
+                yield br.url, response, tracker
             else:
-                results.append((br.url, response))
-        return results
+                yield br.url, response
 
     async def download(self, url, **kwargs):
         """

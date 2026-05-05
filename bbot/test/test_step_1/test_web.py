@@ -26,20 +26,22 @@ async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
 
     num_urls = 100
 
-    # request_batch
+    # request_batch_stream
     urls = [f"{base_url}{i}" for i in range(num_urls)]
-    responses = await scan.helpers.request_batch(urls)
+    responses = []
+    async for url, response in scan.helpers.request_batch_stream(urls):
+        responses.append((url, response))
     assert len(responses) == 100
     assert all(r[1].status_code == 200 and r[1].text.startswith(f"{r[0]}: ") for r in responses)
 
-    # request_batch with tracker
+    # request_batch_stream with tracker
     urls_and_kwargs = [(urls[i], {"headers": {f"h{i}": f"v{i}"}}, i) for i in range(num_urls)]
-    results = await scan.helpers.request_batch(urls_and_kwargs)
-    assert len(results) == 100
-    for result in results:
-        url, response, custom_tracker = result
+    seen_trackers = set()
+    async for url, response, custom_tracker in scan.helpers.request_batch_stream(urls_and_kwargs):
         assert response.status_code == 200
         assert response.text.startswith(f"{url}: ")
+        seen_trackers.add(custom_tracker)
+    assert seen_trackers == set(range(num_urls))
 
     # request with raise_error=True
     with pytest.raises(WebError):
