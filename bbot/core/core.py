@@ -25,11 +25,6 @@ class BBOTCore:
     - load quickly
     """
 
-    # used for filtering out sensitive config values
-    secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
-    # don't filter/remove entries under this key
-    secrets_exclude_keys = ["modules"]
-
     def __init__(self):
         self._logger = None
         self._files_config = None
@@ -131,30 +126,38 @@ class BBOTCore:
         self._custom_config = dict(value) if value else {}
 
     def no_secrets_config(self, config):
-        """Return a copy of the config with secret-looking keys removed."""
-        from .helpers.misc import clean_dict
+        """Return a copy of `config` with every `sensitive=True` field removed.
 
-        if not isinstance(config, dict):
-            config = deepcopy(config)
-        return clean_dict(
-            config,
-            *self.secrets_strings,
-            fuzzy=True,
-            exclude_keys=self.secrets_exclude_keys,
-        )
+        Sensitivity is read from the per-field `json_schema_extra["sensitive"]`
+        flag declared on `BBOTConfig` (and each module's `class Config`).
+        Module-level redaction uses the composite schema built lazily by
+        `MODULE_LOADER.config_schema`; if a key isn't covered by any schema
+        (e.g. an unknown module), it passes through unchanged.
+        """
+        from .config.models import partition_sensitive_config
+
+        return partition_sensitive_config(config, self._config_schema(), keep_sensitive=False)
 
     def secrets_only_config(self, config):
-        """Return a copy of the config containing only secret-looking keys."""
-        from .helpers.misc import filter_dict
+        """Return a copy of `config` containing only `sensitive=True` fields.
 
-        if not isinstance(config, dict):
-            config = deepcopy(config)
-        return filter_dict(
-            config,
-            *self.secrets_strings,
-            fuzzy=True,
-            exclude_keys=self.secrets_exclude_keys,
-        )
+        Inverse of `no_secrets_config()`. Useful for splitting a merged config
+        into a public `bbot.yml` and a private `secrets.yml`.
+        """
+        from .config.models import partition_sensitive_config
+
+        return partition_sensitive_config(config, self._config_schema(), keep_sensitive=True)
+
+    def _config_schema(self):
+        """Resolve the runtime BBOTConfig schema (with per-module configs)."""
+        try:
+            from bbot.core.modules import MODULE_LOADER
+
+            return MODULE_LOADER.config_schema
+        except Exception:
+            from .config.models import BBOTConfig
+
+            return BBOTConfig
 
     def merge_custom(self, config):
         """Merge a config dict into the custom config."""

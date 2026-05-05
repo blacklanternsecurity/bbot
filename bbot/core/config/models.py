@@ -15,11 +15,140 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
+from pydantic import Field as _PydanticField
+from pydantic_core import PydanticUndefined
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 STRICT = ConfigDict(extra="forbid")
+
+
+def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool = False, **kwargs):
+    """
+    Drop-in replacement for `pydantic.Field` that records two BBOT-specific
+    flags as field metadata:
+
+    - `sensitive=True`: value should be redacted when serializing configs
+      (api keys, passwords, http cookies, …).
+    - `mandatory=True`: option must be supplied for the module to function;
+      drives the "Needs API Key" column in `bbot -l` and the
+      `BaseModule.auth_required` property.
+
+    Both flags are stashed under `json_schema_extra` so pydantic preserves
+    them on `FieldInfo.json_schema_extra` (and in any generated JSON schema)
+    without affecting validation. All other arguments pass through unchanged.
+    """
+    extra = dict(kwargs.pop("json_schema_extra", None) or {})
+    if sensitive:
+        extra["sensitive"] = True
+    if mandatory:
+        extra["mandatory"] = True
+    if extra:
+        kwargs["json_schema_extra"] = extra
+    return _PydanticField(default, **kwargs)
+
+
+def field_flags(field) -> dict:
+    """Return the BBOT flags dict for a pydantic FieldInfo (empty if none)."""
+    extra = getattr(field, "json_schema_extra", None)
+    return dict(extra) if isinstance(extra, dict) else {}
+
+
+def is_sensitive(field) -> bool:
+    return bool(field_flags(field).get("sensitive"))
+
+
+def is_mandatory(field) -> bool:
+    return bool(field_flags(field).get("mandatory"))
+
+
+def _unwrap_optional(annotation):
+    """Strip a single `Optional[X]` / `Union[X, None]` wrapper, return X. Pass-through otherwise."""
+    import typing
+
+    origin = typing.get_origin(annotation)
+    if origin is typing.Union:
+        args = [a for a in typing.get_args(annotation) if a is not type(None)]
+        if len(args) == 1:
+            return args[0]
+    return annotation
+
+
+def _resolve_field(model, key):
+    """Resolve `key` against `model.model_fields`, honoring `Field(alias=...)`."""
+    fields = getattr(model, "model_fields", None)
+    if not fields:
+        return None
+    if key in fields:
+        return fields[key]
+    for f in fields.values():
+        if getattr(f, "alias", None) == key:
+            return f
+    return None
+
+
+def _field_submodel(field):
+    """If `field`'s annotation is a `BaseModel` subclass, return it; else None."""
+    if field is None:
+        return None
+    ann = _unwrap_optional(field.annotation)
+    if isinstance(ann, type) and issubclass(ann, BaseModel):
+        return ann
+    return None
+
+
+def partition_sensitive_config(config, model, *, keep_sensitive: bool):
+    """
+    Walk `config` (a dict) alongside the pydantic `model`, returning a copy
+    that either drops or extracts every `sensitive=True` field.
+
+    - `keep_sensitive=False` -> caller wants the public, non-secret view (used
+      by `BBOTCore.no_secrets_config`).
+    - `keep_sensitive=True` -> caller wants only the secrets (used by
+      `BBOTCore.secrets_only_config` to materialize `~/.config/bbot/secrets.yml`).
+
+    Unknown keys (no matching field in the schema) pass through unchanged when
+    redacting and are dropped when extracting secrets-only.
+    """
+    import copy as _copy
+
+    if not isinstance(config, dict) or model is None:
+        return _copy.deepcopy(config) if keep_sensitive is False else {}
+
+    out: dict = {}
+    for key, val in config.items():
+        field = _resolve_field(model, key)
+        sub_model = _field_submodel(field)
+
+        if sub_model is not None and isinstance(val, dict):
+            child = partition_sensitive_config(val, sub_model, keep_sensitive=keep_sensitive)
+            # When redacting, preserve the parent key even if its body was
+            # entirely sensitive — matches the prior `clean_dict` behavior.
+            # When extracting secrets-only, drop empty branches so the result
+            # is just the secrets that exist.
+            if keep_sensitive:
+                if child:
+                    out[key] = child
+            else:
+                out[key] = child
+            continue
+
+        if field is None:
+            # No matching schema field — pass through unchanged when redacting,
+            # drop when extracting secrets-only.
+            if not keep_sensitive:
+                out[key] = _copy.deepcopy(val)
+            continue
+
+        sensitive = is_sensitive(field)
+        if keep_sensitive:
+            if sensitive:
+                out[key] = _copy.deepcopy(val)
+        else:
+            if not sensitive:
+                out[key] = _copy.deepcopy(val)
+    return out
 
 
 class ScopeConfig(BaseModel):
@@ -64,7 +193,7 @@ class WebConfig(BaseModel):
     http_timeout: Optional[int] = None
     httpx_timeout: Optional[int] = None
     http_headers: Optional[dict[str, str]] = None
-    http_cookies: Optional[dict[str, str]] = None
+    http_cookies: Optional[dict[str, str]] = Field(default=None, sensitive=True)
     api_retries: Optional[int] = None
     http_retries: Optional[int] = None
     httpx_retries: Optional[int] = None
@@ -184,7 +313,7 @@ class BBOTConfig(BaseSettings):
 
     # Interactsh
     interactsh_server: Optional[str] = None
-    interactsh_token: Optional[str] = None
+    interactsh_token: Optional[str] = Field(default=None, sensitive=True)
     interactsh_disable: Optional[bool] = None
 
     # Per-module configs — validated separately, per-module, against each
@@ -243,7 +372,12 @@ __all__ = [
     "DepsToolConfig",
     "DnsConfig",
     "EngineConfig",
+    "Field",
     "PresetSchema",
     "ScopeConfig",
     "WebConfig",
+    "field_flags",
+    "is_mandatory",
+    "is_sensitive",
+    "partition_sensitive_config",
 ]

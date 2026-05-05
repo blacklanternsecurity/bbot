@@ -1,7 +1,6 @@
 from bbot.modules.base import BaseModule
 import time
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 from typing import Optional
 
 

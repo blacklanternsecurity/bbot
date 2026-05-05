@@ -22,8 +22,7 @@
 from bbot.modules.base import BaseModule
 
 from bbot.core.helpers.regexes import dns_name_extraction_regex, email_regex, url_regexes
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dnscaa(BaseModule):

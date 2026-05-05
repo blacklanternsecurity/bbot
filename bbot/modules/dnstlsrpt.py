@@ -20,8 +20,7 @@ from bbot.core.helpers.dns.helpers import record_to_text, service_record
 import re
 
 from bbot.core.helpers.regexes import email_regex, url_regexes
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 _tlsrpt_regex = r"^v=(?P<v>TLSRPTv[0-9]+); *(?P<kvps>.*)$"
 tlsrpt_regex = re.compile(_tlsrpt_regex, re.I)

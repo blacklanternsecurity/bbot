@@ -69,8 +69,8 @@ def _exec_config_class(source: str, module_name: str):
     `list[Union[int, str]]`, …) without any hand-rolled resolver.
     """
     from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Union
-    from pydantic import AfterValidator, BeforeValidator, Field, field_validator, model_validator
-    from bbot.core.config.models import BaseModuleConfig
+    from pydantic import AfterValidator, BeforeValidator, field_validator, model_validator
+    from bbot.core.config.models import BaseModuleConfig, Field
 
     namespace: dict = {
         "Any": Any,
@@ -167,17 +167,20 @@ def _build_validation_schema(preloaded: dict):
     return FullPresetSchema
 
 
-def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict]:
+def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict, set, set]:
     """
     Walk a `class Config(BaseModuleConfig):` block and extract
-    `(defaults, descriptions)` dicts — cheap metadata used for `bbot -l` and
-    similar listing paths, without importing or exec-ing anything.
+    `(defaults, descriptions, sensitive, mandatory)` — cheap metadata used
+    for `bbot -l` and similar listing paths, without importing or exec-ing
+    anything.
 
     The actual typed pydantic class is built later via `_exec_config_class`
     on the captured source text.
     """
     defaults: dict = {}
     descriptions: dict = {}
+    sensitive: set = set()
+    mandatory: set = set()
     for node in config_class.body:
         # `model_config = ConfigDict(...)` etc. are plain assigns, not typed — skip.
         if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
@@ -188,10 +191,12 @@ def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict]:
 
         default = _UNEVALUATED
         description = ""
+        is_sensitive = False
+        is_mandatory = False
 
         value = node.value
         if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "Field":
-            # Field(default, description="...", default_factory=..., ...)
+            # Field(default, description="...", default_factory=..., sensitive=..., mandatory=..., ...)
             # - first positional arg is the default, if given
             if value.args:
                 default = _eval_ast_default(value.args[0])
@@ -203,6 +208,18 @@ def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict]:
                 elif kw.arg == "description":
                     with suppress(ValueError, TypeError, SyntaxError):
                         description = ast.literal_eval(kw.value)
+                elif kw.arg == "sensitive":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        is_sensitive = bool(ast.literal_eval(kw.value))
+                elif kw.arg == "mandatory":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        is_mandatory = bool(ast.literal_eval(kw.value))
+                elif kw.arg == "json_schema_extra":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        extra = ast.literal_eval(kw.value)
+                        if isinstance(extra, dict):
+                            is_sensitive = is_sensitive or bool(extra.get("sensitive"))
+                            is_mandatory = is_mandatory or bool(extra.get("mandatory"))
         elif value is not None:
             default = _eval_ast_default(value)
 
@@ -211,7 +228,11 @@ def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict]:
             default = None
         defaults[name] = default
         descriptions[name] = description
-    return defaults, descriptions
+        if is_sensitive:
+            sensitive.add(name)
+        if is_mandatory:
+            mandatory.add(name)
+    return defaults, descriptions, sensitive, mandatory
 
 
 class ModuleLoader:
@@ -452,6 +473,25 @@ class ModuleLoader:
             self._validation_schema = _build_validation_schema(self._preloaded)
         return self._validation_schema
 
+    @property
+    def config_schema(self):
+        """
+        The runtime `BBOTConfig` schema with per-module configs grafted in.
+
+        This is `validation_schema.config` (i.e. `FullBBOTConfig`) and is the
+        right model to walk a config dict against — used by
+        `BBOTCore.no_secrets_config()` and `BBOTCore.secrets_only_config()` to
+        partition sensitive fields.
+        """
+        from bbot.core.config.models import _unwrap_optional
+
+        field = self.validation_schema.model_fields.get("config")
+        if field is None:
+            from bbot.core.config.models import BBOTConfig
+
+            return BBOTConfig
+        return _unwrap_optional(field.annotation)
+
     def find_and_replace(self, **kwargs):
         self.__preloaded = search_format_dict(self.__preloaded, **kwargs)
         self._shared_deps = search_format_dict(self._shared_deps, **kwargs)
@@ -520,6 +560,8 @@ class ModuleLoader:
         ansible_tasks = []
         config = {}
         options_desc = {}
+        options_sensitive: set = set()
+        options_mandatory: set = set()
         config_source: str | None = None
         disable_auto_module_deps = False
         with open(module_file) as f:
@@ -549,9 +591,11 @@ class ModuleLoader:
                 for class_attr in root_element.body:
                     # nested `class Config(BaseModuleConfig): ...` — the module's config schema
                     if type(class_attr) == ast.ClassDef and class_attr.name == "Config":
-                        config_fields, config_descs = _extract_pydantic_config(class_attr)
+                        config_fields, config_descs, config_sens, config_mand = _extract_pydantic_config(class_attr)
                         config.update(config_fields)
                         options_desc.update(config_descs)
+                        options_sensitive.update(config_sens)
+                        options_mandatory.update(config_mand)
                         # capture the class source verbatim; schema build re-execs it
                         config_source = ast.get_source_segment(python_code, class_attr)
                         continue
@@ -635,6 +679,8 @@ class ModuleLoader:
             "meta": meta,
             "config": config,
             "options_desc": options_desc,
+            "options_sensitive": sorted(options_sensitive),
+            "options_mandatory": sorted(options_mandatory),
             "config_source": config_source,
             "hash": module_hash,
             "deps": {
@@ -770,9 +816,8 @@ class ModuleLoader:
             consumed_events = sorted(preloaded.get("watched_events", []))
             produced_events = sorted(preloaded.get("produced_events", []))
             flags = sorted(preloaded.get("flags", []))
-            api_key_required = ""
             meta = preloaded.get("meta", {})
-            api_key_required = "Yes" if meta.get("auth_required", False) else "No"
+            api_key_required = "Yes" if preloaded.get("options_mandatory") else "No"
             description = meta.get("description", "")
             row = [
                 module_name,

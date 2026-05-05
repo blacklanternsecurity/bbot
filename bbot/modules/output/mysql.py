@@ -1,6 +1,5 @@
 from bbot.modules.templates.sql import SQLTemplate
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class MySQL(SQLTemplate):
@@ -12,8 +11,8 @@ class MySQL(SQLTemplate):
     }
 
     class Config(BaseModuleConfig):
-        username: str = Field("root", description="The username to connect to MySQL")
-        password: str = Field("bbotislife", description="The password to connect to MySQL")
+        username: str = Field("root", description="The username to connect to MySQL", sensitive=True)
+        password: str = Field("bbotislife", description="The password to connect to MySQL", sensitive=True)
         host: str = Field("localhost", description="The server running MySQL")
         port: int = Field(3306, description="The port to connect to MySQL")
         database: str = Field("bbot", description="The database name to connect to")

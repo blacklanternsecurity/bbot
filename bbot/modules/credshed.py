@@ -1,8 +1,7 @@
 from contextlib import suppress
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class credshed(subdomain_enum):
@@ -13,13 +12,12 @@ class credshed(subdomain_enum):
         "description": "Send queries to your own credshed server to check for known credentials of your targets",
         "created_date": "2023-10-12",
         "author": "@SpamFaux",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        username: str = Field("", description="Credshed username")
-        password: str = Field("", description="Credshed password")
-        credshed_url: str = Field("", description="URL of credshed server")
+        username: str = Field("", description="Credshed username", sensitive=True, mandatory=True)
+        password: str = Field("", description="Credshed password", sensitive=True, mandatory=True)
+        credshed_url: str = Field("", description="URL of credshed server", mandatory=True)
 
     target_only = True
 

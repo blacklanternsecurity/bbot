@@ -1,6 +1,5 @@
 from bbot.modules.templates.sql import SQLTemplate
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Postgres(SQLTemplate):
@@ -12,8 +11,8 @@ class Postgres(SQLTemplate):
     }
 
     class Config(BaseModuleConfig):
-        username: str = Field("postgres", description="The username to connect to Postgres")
-        password: str = Field("bbotislife", description="The password to connect to Postgres")
+        username: str = Field("postgres", description="The username to connect to Postgres", sensitive=True)
+        password: str = Field("bbotislife", description="The password to connect to Postgres", sensitive=True)
         host: str = Field("localhost", description="The server running Postgres")
         port: int = Field(5432, description="The port to connect to Postgres")
         database: str = Field("bbot", description="The database name to connect to")

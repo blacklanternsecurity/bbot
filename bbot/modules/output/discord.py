@@ -1,6 +1,5 @@
 from bbot.modules.templates.webhook import WebhookOutputModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Discord(WebhookOutputModule):
@@ -12,7 +11,7 @@ class Discord(WebhookOutputModule):
     }
 
     class Config(BaseModuleConfig):
-        webhook_url: str = Field("", description="Discord webhook URL")
+        webhook_url: str = Field("", description="Discord webhook URL", sensitive=True)
         event_types: list[str] = Field(["FINDING"], description="Types of events to send")
         min_severity: str = Field("LOW", description="Only allow FINDING events of this severity or higher")
         retries: int = Field(10, description="Number of times to retry sending the message before skipping the event")

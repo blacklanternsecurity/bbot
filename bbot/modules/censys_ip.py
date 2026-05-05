@@ -1,6 +1,5 @@
 from bbot.modules.templates.censys import censys
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class censys_ip(censys):
@@ -23,11 +22,12 @@ class censys_ip(censys):
         "description": "Query the Censys API for hosts by IP address",
         "created_date": "2026-01-26",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Censys.io API Key in the format of 'key:secret'")
+        api_key: str = Field(
+            "", description="Censys.io API Key in the format of 'key:secret'", sensitive=True, mandatory=True
+        )
         dns_names_limit: int = Field(
             100, description="Maximum number of DNS names to extract from dns.names (default 100)"
         )

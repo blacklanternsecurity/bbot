@@ -6,8 +6,7 @@ from bbot.errors import ValidationError
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.helpers.web.ssl_context import ssl_context_noverify
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class sslcert(BaseModule):

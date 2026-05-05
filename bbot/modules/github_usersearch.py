@@ -1,7 +1,6 @@
 from bbot.modules.templates.github import github
 from bbot.modules.templates.subdomain_enum import subdomain_enum
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_usersearch(github, subdomain_enum):
@@ -12,11 +11,10 @@ class github_usersearch(github, subdomain_enum):
         "description": "Query Github's API for users with emails matching in scope domains that may not be discoverable by listing members of the organization.",
         "created_date": "2025-05-10",
         "author": "@domwhewell-sage",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Github token")
+        api_key: str = Field("", description="Github token", sensitive=True, mandatory=True)
 
     async def handle_event(self, event):
         self.verbose("Searching for users with emails matching in scope domains")

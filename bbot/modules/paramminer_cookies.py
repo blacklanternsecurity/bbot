@@ -1,6 +1,5 @@
 from .paramminer_headers import paramminer_headers
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class paramminer_cookies(paramminer_headers):

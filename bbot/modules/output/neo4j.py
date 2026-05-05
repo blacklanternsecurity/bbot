@@ -4,8 +4,7 @@ from contextlib import suppress
 from neo4j import AsyncGraphDatabase
 
 from bbot.modules.output.base import BaseOutputModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 # silence annoying neo4j logger
@@ -38,8 +37,8 @@ class neo4j(BaseOutputModule):
 
     class Config(BaseModuleConfig):
         uri: str = Field("bolt://localhost:7687", description="Neo4j server + port")
-        username: str = Field("neo4j", description="Neo4j username")
-        password: str = Field("bbotislife", description="Neo4j password")
+        username: str = Field("neo4j", description="Neo4j username", sensitive=True)
+        password: str = Field("bbotislife", description="Neo4j password", sensitive=True)
 
     deps_pip = ["neo4j"]
     _batch_size = 500

@@ -2,8 +2,7 @@ import zipfile
 import json
 from pathlib import Path
 from bbot.modules.templates.postman import postman
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class postman_download(postman):
@@ -21,7 +20,7 @@ class postman_download(postman):
             "",
             description="Folder to download postman workspaces to. If not specified, downloaded workspaces will be deleted when the scan completes, to minimize disk usage.",
         )
-        api_key: str = Field("", description="Postman API Key")
+        api_key: str = Field("", description="Postman API Key", sensitive=True, mandatory=True)
 
     scope_distance_modifier = 2
 

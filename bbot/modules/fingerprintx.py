@@ -1,8 +1,7 @@
 import json
 import subprocess
 from bbot.modules.base import BaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class fingerprintx(BaseModule):

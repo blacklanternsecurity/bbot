@@ -1,7 +1,6 @@
 import json
 from bbot.modules.base import BaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class wpscan(BaseModule):
@@ -15,7 +14,7 @@ class wpscan(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="WPScan API Key")
+        api_key: str = Field("", description="WPScan API Key", sensitive=True)
         enumerate: str = Field(
             "vp,vt,cb,dbe", description="Enumeration Process see wpscan help documentation (default: vp,vt,cb,dbe)"
         )

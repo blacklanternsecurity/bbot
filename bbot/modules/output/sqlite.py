@@ -1,8 +1,7 @@
 from pathlib import Path
 
 from bbot.modules.templates.sql import SQLTemplate
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class SQLite(SQLTemplate):

@@ -2,8 +2,7 @@ import multiprocessing
 from pathlib import Path
 from .base import BaseModule
 from badsecrets.base import carve_all_modules
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 from typing import Optional
 
 

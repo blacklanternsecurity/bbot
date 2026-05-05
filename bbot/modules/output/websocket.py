@@ -4,8 +4,7 @@ import ssl
 import websockets
 
 from bbot.modules.output.base import BaseOutputModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Websocket(BaseOutputModule):
@@ -14,7 +13,7 @@ class Websocket(BaseOutputModule):
 
     class Config(BaseModuleConfig):
         url: str = Field("", description="Web URL")
-        token: str = Field("", description="Authorization Bearer token")
+        token: str = Field("", description="Authorization Bearer token", sensitive=True)
         preserve_graph: bool = Field(
             True, description="Preserve full chains of events in the graph (prevents orphans)"
         )

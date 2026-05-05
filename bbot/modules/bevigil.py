@@ -1,6 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bevigil(subdomain_enum_apikey):
@@ -15,11 +14,10 @@ class bevigil(subdomain_enum_apikey):
         "description": "Retrieve OSINT data from mobile applications using BeVigil",
         "created_date": "2022-10-26",
         "author": "@alt-glitch",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="BeVigil OSINT API Key")
+        api_key: str = Field("", description="BeVigil OSINT API Key", sensitive=True, mandatory=True)
         urls: bool = Field(False, description="Emit URLs in addition to DNS_NAMEs")
 
     base_url = "https://osint.bevigil.com/api"

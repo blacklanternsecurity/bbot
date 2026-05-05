@@ -1,6 +1,5 @@
 from bbot.modules.templates.bucket import bucket_template
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bucket_digitalocean(bucket_template):

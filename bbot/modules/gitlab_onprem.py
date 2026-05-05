@@ -1,6 +1,5 @@
 from bbot.modules.templates.gitlab import GitLabBaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class gitlab_onprem(GitLabBaseModule):
@@ -21,7 +20,7 @@ class gitlab_onprem(GitLabBaseModule):
     # Optional GitLab access token (only required for gitlab.com, but still
     # supported for on-prem installations that expose private projects).
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="GitLab access token (for self-hosted instances only)")
+        api_key: str = Field("", description="GitLab access token (for self-hosted instances only)", sensitive=True)
 
     # Allow accepting events slightly beyond configured max distance so we can
     # discover repos on neighbouring infrastructure.

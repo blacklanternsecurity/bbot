@@ -3,8 +3,7 @@ from wafw00f import main as wafw00f_main
 
 # disable wafw00f logging
 import logging
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 wafw00f_logger = logging.getLogger("wafw00f")
 wafw00f_logger.setLevel(logging.CRITICAL + 100)

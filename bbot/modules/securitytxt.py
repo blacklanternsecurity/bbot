@@ -50,8 +50,7 @@ from bbot.modules.base import BaseModule
 import re
 
 from bbot.core.helpers.regexes import email_regex, url_regexes
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 _securitytxt_regex = r"^(?P<k>\w+): *(?P<v>.*)$"
 securitytxt_regex = re.compile(_securitytxt_regex, re.I | re.M)

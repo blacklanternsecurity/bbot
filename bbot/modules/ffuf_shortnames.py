@@ -4,8 +4,7 @@ import random
 import string
 
 from bbot.modules.ffuf import ffuf
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class ffuf_shortnames(ffuf):

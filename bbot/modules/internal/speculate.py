@@ -3,8 +3,7 @@ import ipaddress
 
 from bbot.core.helpers import validators
 from bbot.modules.internal.base import BaseInternalModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class speculate(BaseInternalModule):

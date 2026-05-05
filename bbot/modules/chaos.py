@@ -1,6 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class chaos(subdomain_enum_apikey):
@@ -11,11 +10,10 @@ class chaos(subdomain_enum_apikey):
         "description": "Query ProjectDiscovery's Chaos API for subdomains",
         "created_date": "2022-08-14",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Chaos API key")
+        api_key: str = Field("", description="Chaos API key", sensitive=True, mandatory=True)
 
     base_url = "https://dns.projectdiscovery.io/dns"
     ping_url = f"{base_url}/example.com"

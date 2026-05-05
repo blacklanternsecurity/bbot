@@ -1,8 +1,7 @@
 from bbot.core.helpers.regexes import url_regexes
 
 from .base import BaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class OAUTH(BaseModule):

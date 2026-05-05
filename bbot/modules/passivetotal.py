@@ -1,6 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class passivetotal(subdomain_enum_apikey):
@@ -11,11 +10,12 @@ class passivetotal(subdomain_enum_apikey):
         "description": "Query the PassiveTotal API for subdomains",
         "created_date": "2022-08-08",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="PassiveTotal API Key in the format of 'username:api_key'")
+        api_key: str = Field(
+            "", description="PassiveTotal API Key in the format of 'username:api_key'", sensitive=True, mandatory=True
+        )
 
     base_url = "https://api.passivetotal.org/v2"
 

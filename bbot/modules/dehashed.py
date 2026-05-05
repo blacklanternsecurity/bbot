@@ -1,8 +1,7 @@
 from contextlib import suppress
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dehashed(subdomain_enum):
@@ -13,11 +12,10 @@ class dehashed(subdomain_enum):
         "description": "Execute queries against dehashed.com for exposed credentials",
         "created_date": "2023-10-12",
         "author": "@SpamFaux",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="DeHashed API Key")
+        api_key: str = Field("", description="DeHashed API Key", sensitive=True, mandatory=True)
 
     target_only = True
 

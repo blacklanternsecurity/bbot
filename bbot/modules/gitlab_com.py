@@ -1,6 +1,5 @@
 from bbot.modules.templates.gitlab import GitLabBaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class gitlab_com(GitLabBaseModule):
@@ -16,7 +15,7 @@ class gitlab_com(GitLabBaseModule):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="GitLab access token (for gitlab.com/org only)")
+        api_key: str = Field("", description="GitLab access token (for gitlab.com/org only)", sensitive=True)
 
     # This is needed because we are consuming SOCIAL events, which aren't in scope
     scope_distance_modifier = 2

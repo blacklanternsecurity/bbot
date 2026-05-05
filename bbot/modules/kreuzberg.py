@@ -2,8 +2,7 @@ import pypdfium2
 from kreuzberg import extract_file
 
 from bbot.modules.base import BaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class kreuzberg(BaseModule):

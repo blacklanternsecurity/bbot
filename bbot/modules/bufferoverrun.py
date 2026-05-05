@@ -1,6 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class BufferOverrun(subdomain_enum_apikey):
@@ -11,11 +10,10 @@ class BufferOverrun(subdomain_enum_apikey):
         "description": "Query BufferOverrun's TLS API for subdomains",
         "created_date": "2024-10-23",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="BufferOverrun API key")
+        api_key: str = Field("", description="BufferOverrun API key", sensitive=True, mandatory=True)
         commercial: bool = Field(False, description="Use commercial API")
 
     base_url = "https://tls.bufferover.run/dns"

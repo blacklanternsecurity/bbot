@@ -1,6 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class c99(subdomain_enum_apikey):
@@ -11,11 +10,10 @@ class c99(subdomain_enum_apikey):
         "description": "Query the C99 API for subdomains",
         "created_date": "2022-07-08",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="c99.nl API key")
+        api_key: str = Field("", description="c99.nl API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.c99.nl"
     ping_url = f"{base_url}/randomnumber?key={{api_key}}&between=1,100&json"

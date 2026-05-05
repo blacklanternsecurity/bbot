@@ -256,7 +256,7 @@ async def test_preset_scope(clean_default_config):
         name="with_target_scope",
         seeds=["evilcorp.org"],
         blacklist=["evilcorp.co.uk:443", "bob@evilcorp.co.uk"],
-        config={"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
+        config={"modules": {"github_workflows": {"api_key": "deadbeef", "output_folder": "asdf"}}},
     )
 
     preset_domain_with_seed_baked = preset_domain_with_seed.bake()
@@ -271,16 +271,16 @@ async def test_preset_scope(clean_default_config):
     scope_dict = preset_with_target_scope_baked.to_dict(include_target=True)
     assert set(scope_dict["target"]) == {"1.2.3.0/24", "http://evilcorp.net/"}
     assert set(scope_dict["blacklist"]) == {"bob@evilcorp.co.uk", "evilcorp.co.uk:443"}
-    # secretsdb config should be preserved (other module config may also be present)
-    assert scope_dict["config"]["modules"]["secretsdb"] == {
+    # github_workflows config should be preserved (other module config may also be present)
+    assert scope_dict["config"]["modules"]["github_workflows"] == {
         "api_key": "deadbeef",
-        "otherthing": "asdf",
+        "output_folder": "asdf",
     }
 
     redacted_dict = preset_with_target_scope_baked.to_dict(include_target=True, redact_secrets=True)
     assert set(redacted_dict["target"]) == {"1.2.3.0/24", "http://evilcorp.net/"}
     assert set(redacted_dict["blacklist"]) == {"bob@evilcorp.co.uk", "evilcorp.co.uk:443"}
-    assert redacted_dict["config"]["modules"]["secretsdb"] == {"otherthing": "asdf"}
+    assert redacted_dict["config"]["modules"]["github_workflows"] == {"output_folder": "asdf"}
 
     assert preset_domain_with_seed_baked.in_scope("www.evilcorp.com")
     assert not preset_domain_with_seed_baked.in_scope("www.evilcorp.de")

@@ -2,8 +2,7 @@ import json
 import aio_pika
 
 from bbot.modules.output.base import BaseOutputModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class RabbitMQ(BaseOutputModule):
@@ -15,7 +14,7 @@ class RabbitMQ(BaseOutputModule):
     }
 
     class Config(BaseModuleConfig):
-        url: str = Field("amqp://guest:guest@localhost/", description="The RabbitMQ connection URL")
+        url: str = Field("amqp://guest:guest@localhost/", description="The RabbitMQ connection URL", sensitive=True)
         queue: str = Field("bbot_events", description="The RabbitMQ queue to publish events to")
 
     deps_pip = ["aio_pika~=9.5.0"]

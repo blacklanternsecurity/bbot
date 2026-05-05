@@ -1,8 +1,7 @@
 from bbot.modules.output.base import BaseOutputModule
 import markdown
 import html
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class web_report(BaseOutputModule):

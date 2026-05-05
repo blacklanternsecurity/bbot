@@ -2,8 +2,7 @@ import importlib
 from bbot.modules.base import BaseModule
 
 from bbot.errors import InteractshError
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class lightfuzz(BaseModule):

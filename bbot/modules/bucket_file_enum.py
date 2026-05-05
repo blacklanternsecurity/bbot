@@ -1,7 +1,6 @@
 from bbot.modules.base import BaseModule
 import xml.etree.ElementTree as ET
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bucket_file_enum(BaseModule):

@@ -43,6 +43,7 @@ nav:
   - Setting Up a Dev Environment: dev/dev_environment.md
   - BBOT Internal Architecture: dev/architecture.md
   - How to Write a BBOT Module: dev/module_howto.md
+  - Validating & Inspecting Presets: dev/preset_validation.md
   - Unit Tests: dev/tests.md
   - Discord Bot Example: dev/discord_bot.md
   - Code Reference:

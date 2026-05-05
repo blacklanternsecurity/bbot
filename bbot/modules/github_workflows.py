@@ -3,8 +3,7 @@ import fnmatch
 from pathlib import Path
 
 from bbot.modules.templates.github import github
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_workflows(github):
@@ -15,11 +14,10 @@ class github_workflows(github):
         "description": "Download a github repositories workflow logs and workflow artifacts",
         "created_date": "2024-04-29",
         "author": "@domwhewell-sage",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Github token")
+        api_key: str = Field("", description="Github token", sensitive=True, mandatory=True)
         num_logs: int = Field(1, description="For each workflow fetch the last N successful runs logs (max 100)")
         output_folder: str = Field("", description="Folder to download workflow logs and artifacts to")
 

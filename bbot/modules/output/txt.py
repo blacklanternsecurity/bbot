@@ -1,8 +1,7 @@
 from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class TXT(BaseOutputModule):

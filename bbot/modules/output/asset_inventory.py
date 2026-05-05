@@ -4,8 +4,7 @@ from contextlib import suppress
 
 from .csv import CSV
 from bbot.core.helpers.misc import make_ip_type, is_ip, is_port, best_http_status
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 severity_map = {
     "INFO": 0,

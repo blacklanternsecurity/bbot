@@ -1,6 +1,5 @@
 from bbot.modules.base import BaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class shodan_enterprise(BaseModule):
@@ -11,11 +10,10 @@ class shodan_enterprise(BaseModule):
         "created_date": "2026-01-27",
         "author": "@Control-Punk-Delete",
         "description": "Shodan Enterprise API integration module.",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Shodan API Key")
+        api_key: str = Field("", description="Shodan API Key", sensitive=True, mandatory=True)
         in_scope_only: bool = Field(
             True, description="Only query in-scope IPs. If False, will query up to distance 1."
         )

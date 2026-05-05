@@ -1,6 +1,5 @@
 from bbot.modules.base import BaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Ipstack(BaseModule):
@@ -12,15 +11,10 @@ class Ipstack(BaseModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
     flags = ["safe", "passive"]
-    meta = {
-        "description": "Query IPStack's GeoIP API",
-        "created_date": "2022-11-26",
-        "author": "@tycoonslive",
-        "auth_required": True,
-    }
+    meta = {"description": "Query IPStack's GeoIP API", "created_date": "2022-11-26", "author": "@tycoonslive"}
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="IPStack GeoIP API Key")
+        api_key: str = Field("", description="IPStack GeoIP API Key", sensitive=True, mandatory=True)
 
     scope_distance_modifier = 1
     _priority = 2

@@ -1,6 +1,5 @@
 from .baddns import baddns as baddns_module
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class baddns_zone(baddns_module):

@@ -1,6 +1,5 @@
 from bbot.modules.base import BaseInterceptModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class portfilter(BaseInterceptModule):

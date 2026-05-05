@@ -1,6 +1,5 @@
 from bbot.modules.templates.postman import postman
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class postman(postman):
@@ -14,7 +13,7 @@ class postman(postman):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Postman API Key")
+        api_key: str = Field("", description="Postman API Key", sensitive=True, mandatory=True)
 
     reject_wildcards = False
 

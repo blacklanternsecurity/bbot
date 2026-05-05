@@ -28,8 +28,7 @@ from bbot.modules.base import BaseModule
 from bbot.core.helpers.dns.helpers import record_to_text, service_record
 
 import re
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 # Handle "v=BIMI1; l=; a=;" == RFC conformant explicit declination to publish, e.g. useful on a sub-domain if you don't want the sub-domain to have a BIMI logo, yet your registered domain does?
 # Handle "v=BIMI1; l=; a=" == RFC non-conformant explicit declination to publish

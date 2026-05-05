@@ -1,7 +1,6 @@
 from bbot.models.pydantic import Event
 from bbot.modules.output.base import BaseOutputModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class HTTP(BaseOutputModule):
@@ -15,10 +14,10 @@ class HTTP(BaseOutputModule):
     class Config(BaseModuleConfig):
         url: str = Field("", description="Web URL")
         method: str = Field("POST", description="HTTP method")
-        bearer: str = Field("", description="Authorization Bearer token")
+        bearer: str = Field("", description="Authorization Bearer token", sensitive=True)
         username: str = Field("", description="Username (basic auth)")
-        password: str = Field("", description="Password (basic auth)")
-        headers: dict = Field({}, description="Additional headers to send with the request")
+        password: str = Field("", description="Password (basic auth)", sensitive=True)
+        headers: dict = Field({}, description="Additional headers to send with the request", sensitive=True)
         timeout: int = Field(10, description="HTTP timeout")
 
     async def setup(self):

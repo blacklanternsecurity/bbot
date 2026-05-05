@@ -4,8 +4,7 @@ from contextlib import suppress
 from radixtarget import RadixTarget, host_size_key
 
 from bbot.modules.base import BaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 # TODO: this module is getting big. It should probably be two modules: one for ping and one for SYN.

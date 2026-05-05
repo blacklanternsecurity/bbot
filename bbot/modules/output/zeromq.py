@@ -2,8 +2,7 @@ import zmq
 import json
 
 from bbot.modules.output.base import BaseOutputModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class ZeroMQ(BaseOutputModule):

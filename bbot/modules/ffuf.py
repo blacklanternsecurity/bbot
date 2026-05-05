@@ -4,8 +4,7 @@ import random
 import string
 import json
 import base64
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class ffuf(BaseModule):

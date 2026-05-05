@@ -2,8 +2,7 @@ import json
 from urllib.parse import urlparse
 
 from bbot.modules.base import BaseModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class trajan(BaseModule):
@@ -19,13 +18,15 @@ class trajan(BaseModule):
     # Configuration options
     class Config(BaseModuleConfig):
         version: str = Field("1.0.0", description="Trajan version to download and use")
-        github_token: str = Field("", description="GitHub API token for rate-limiting and private repo access")
-        gitlab_token: str = Field("", description="GitLab API token for private repo access")
-        ado_token: str = Field("", description="Azure DevOps Personal Access Token (PAT)")
-        jfrog_token: str = Field("", description="JFrog API token")
+        github_token: str = Field(
+            "", description="GitHub API token for rate-limiting and private repo access", sensitive=True
+        )
+        gitlab_token: str = Field("", description="GitLab API token for private repo access", sensitive=True)
+        ado_token: str = Field("", description="Azure DevOps Personal Access Token (PAT)", sensitive=True)
+        jfrog_token: str = Field("", description="JFrog API token", sensitive=True)
         jenkins_username: str = Field("", description="Jenkins username for basic auth")
-        jenkins_password: str = Field("", description="Jenkins password for basic auth")
-        jenkins_token: str = Field("", description="Jenkins API token")
+        jenkins_password: str = Field("", description="Jenkins password for basic auth", sensitive=True)
+        jenkins_token: str = Field("", description="Jenkins API token", sensitive=True)
 
     deps_ansible = [
         {

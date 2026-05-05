@@ -1,7 +1,6 @@
 from bbot.errors import WebError
 from bbot.modules.output.base import BaseOutputModule
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Splunk(BaseOutputModule):
@@ -14,7 +13,7 @@ class Splunk(BaseOutputModule):
 
     class Config(BaseModuleConfig):
         url: str = Field("", description="Web URL")
-        hectoken: str = Field("", description="HEC Token")
+        hectoken: str = Field("", description="HEC Token", sensitive=True)
         index: str = Field("", description="Index to send data to")
         source: str = Field("", description="Source path to be added to the metadata")
         timeout: int = Field(10, description="HTTP timeout")

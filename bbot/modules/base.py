@@ -18,7 +18,7 @@ class BaseModule:
 
         produced_events (List): Event types to produce.
 
-        meta (Dict): Metadata about the module, such as whether authentication is required and a description.
+        meta (Dict): Metadata about the module — description, author, created_date, etc.
 
         flags (List): Flags indicating the type of module (must have at least "passive" or "active").
 
@@ -86,7 +86,7 @@ class BaseModule:
 
     watched_events = []
     produced_events = []
-    meta = {"auth_required": False, "description": "Base module"}
+    meta = {"description": "Base module"}
     flags = []
     options = {}
     options_desc = {}
@@ -1503,7 +1503,13 @@ class BaseModule:
 
     @property
     def auth_required(self):
-        return self.meta.get("auth_required", False)
+        """True iff this module's `class Config` declares any `mandatory=True` field."""
+        cfg = getattr(type(self), "Config", None)
+        if cfg is None:
+            return False
+        from bbot.core.config.models import is_mandatory
+
+        return any(is_mandatory(f) for f in getattr(cfg, "model_fields", {}).values())
 
     @property
     def http_timeout(self):

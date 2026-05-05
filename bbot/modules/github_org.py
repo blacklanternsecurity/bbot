@@ -1,6 +1,5 @@
 from bbot.modules.templates.github import github
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_org(github):
@@ -14,7 +13,7 @@ class github_org(github):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Github token")
+        api_key: str = Field("", description="Github token", sensitive=True)
         include_members: bool = Field(True, description="Enumerate organization members")
         include_member_repos: bool = Field(False, description="Also enumerate organization members' repositories")
 

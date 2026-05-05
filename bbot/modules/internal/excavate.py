@@ -10,8 +10,7 @@ import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, urldefrag
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 def find_subclasses(obj, base_class):

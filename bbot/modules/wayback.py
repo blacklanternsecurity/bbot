@@ -1,8 +1,7 @@
 from datetime import datetime
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class wayback(subdomain_enum):

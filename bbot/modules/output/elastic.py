@@ -1,6 +1,5 @@
 from .http import HTTP
-from pydantic import Field
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Elastic(HTTP):
@@ -20,8 +19,8 @@ class Elastic(HTTP):
             "https://localhost:9200/bbot_events/_doc",
             description="Elastic URL (e.g. https://localhost:9200/<your_index>/_doc)",
         )
-        username: str = Field("elastic", description="Elastic username")
-        password: str = Field("bbotislife", description="Elastic password")
+        username: str = Field("elastic", description="Elastic username", sensitive=True)
+        password: str = Field("bbotislife", description="Elastic password", sensitive=True)
         timeout: int = Field(10, description="HTTP timeout")
 
     async def cleanup(self):

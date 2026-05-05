@@ -2,10 +2,9 @@ import itertools
 import string
 from urllib.parse import urlparse
 
-from pydantic import Field
 
 from .paramminer_headers import paramminer_headers, _mutate_case
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class paramminer_getparams(paramminer_headers):
