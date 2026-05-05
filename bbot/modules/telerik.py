@@ -299,9 +299,8 @@ class telerik(BaseModule):
                 url = self.create_url(base_url, f"{dh}?dp=1")
                 urls[url] = dh
 
-            results = await self.helpers.request_batch(list(urls))
             fail_count = 0
-            for url, response in results:
+            async for url, response in self.helpers.request_batch_stream(list(urls)):
                 # cancel if we run into timeouts etc.
                 if response is None:
                     fail_count += 1

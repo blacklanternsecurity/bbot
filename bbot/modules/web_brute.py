@@ -3,6 +3,7 @@ import string
 
 import blasthttp
 
+from bbot.core.helpers.web.web import iter_batch_results
 from bbot.modules.base import BaseModule
 
 
@@ -182,8 +183,9 @@ class web_brute(BaseModule):
 
             canary_results = []
             canary_waf_count = 0
-            results = await self.blast_client.request_batch(canary_configs, 4, rate_limit=self.rate)
-            for result in results:
+            async for result in iter_batch_results(
+                self.blast_client.request_batch_stream(canary_configs, 4, rate_limit=self.rate)
+            ):
                 if result.success:
                     canary_results.append(self._batch_response_metrics(result.response))
                     if await self.helpers.yara.match(self.waf_yara_rules, result.response.body):
@@ -313,12 +315,13 @@ class web_brute(BaseModule):
 
             self.debug(f"Fuzzing {len(configs)} URLs for ext [{ext}]")
 
-            # Fire all requests via native blasthttp batch (Rust concurrency)
-            results = await self.blast_client.request_batch(configs, self.concurrency, rate_limit=self.rate)
-
-            # Index results by URL for ordered processing
+            # Fire all requests via native blasthttp batch (Rust concurrency).
+            # Stream results into a URL-keyed dict so we can re-process them in
+            # wordlist order (canary appended last) below.
             results_by_url = {}
-            for result in results:
+            async for result in iter_batch_results(
+                self.blast_client.request_batch_stream(configs, self.concurrency, rate_limit=self.rate)
+            ):
                 results_by_url[result.url] = result
 
             # Process in wordlist order so canary (appended last) is checked last
@@ -389,9 +392,13 @@ class web_brute(BaseModule):
                         proxy=proxy,
                     )
                 ]
-                canary_batch = await self.blast_client.request_batch(canary_configs, 1, rate_limit=self.rate)
-                if canary_batch and canary_batch[0].success:
-                    canary_metrics = self._batch_response_metrics(canary_batch[0].response)
+                canary_result = None
+                async for r in iter_batch_results(
+                    self.blast_client.request_batch_stream(canary_configs, 1, rate_limit=self.rate)
+                ):
+                    canary_result = r
+                if canary_result is not None and canary_result.success:
+                    canary_metrics = self._batch_response_metrics(canary_result.response)
                     if not self._is_baseline_match(canary_metrics, ext_filter):
                         self.verbose(
                             f"Would have reported {len(hits)} hit(s), but mid-scan baseline check failed. "

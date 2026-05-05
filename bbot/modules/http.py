@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import blasthttp
 
+from bbot.core.helpers.web.web import iter_batch_results
 from bbot.modules.base import BaseModule
 
 
@@ -212,8 +213,12 @@ class http(BaseModule):
             )
             configs.append(config)
 
-        # blasthttp batch returns a native coroutine via pyo3-async-runtimes
-        results = await self.client.request_batch(configs, self.threads)
+        # Drain the streaming batch into a list — we need every result in hand
+        # before we can decide http/https suppression for paired OPEN_TCP_PORT probes.
+        # Python conversion still overlaps with in-flight HTTP I/O via the stream.
+        results = []
+        async for r in iter_batch_results(self.client.request_batch_stream(configs, concurrency=self.threads)):
+            results.append(r)
 
         # For OPEN_TCP_PORT probes, suppress redundant https when http already succeeded.
         # When probing an unknown port, we try both http:// and https://. If http works,

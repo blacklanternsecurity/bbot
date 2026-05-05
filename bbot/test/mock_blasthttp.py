@@ -366,38 +366,28 @@ class BlasthttpMock:
                 return {"_request_error": error_msg, "_response": None}
             return None
 
-    async def handle_batch(self, real_client, configs, concurrency, rate_limit=None):
+    async def handle_batch_stream(self, real_client, configs, concurrency, rate_limit=None):
         """
-        Process a list of BatchConfig objects through the mock.
+        Process a list of BatchConfig objects through the mock as an async stream.
 
         For each config, if the URL should be intercepted, route it through the
-        mock handlers. Otherwise pass it through to the real Rust client.
-        The return value mimics blasthttp's request_batch: a list of BatchResult-like
-        objects with .url, .response, and .error attributes.
+        mock handlers. Otherwise pass it through to the real Rust client's
+        ``request_batch_stream``. Yields BatchResult-like objects with .url,
+        .response, and .error attributes in mock-first, then passthrough-completion
+        order.
         """
         mock_configs = []
         passthrough_configs = []
-        passthrough_indices = []
 
-        for i, config in enumerate(configs):
+        for config in configs:
             url = config.url if hasattr(config, "url") else str(config)
             if self.should_intercept(url):
-                mock_configs.append((i, config))
+                mock_configs.append(config)
             else:
                 passthrough_configs.append(config)
-                passthrough_indices.append(i)
 
-        # Get real results for passthrough (localhost) URLs
-        passthrough_results = {}
-        if passthrough_configs:
-            real_results = await real_client.request_batch(passthrough_configs, concurrency=concurrency)
-            for idx, result in zip(passthrough_indices, real_results):
-                passthrough_results[idx] = result
-
-        # Build results in original order
-        results = [None] * len(configs)
-
-        for idx, config in mock_configs:
+        # Yield mock results first — they complete synchronously, no point queuing them
+        for config in mock_configs:
             url = config.url if hasattr(config, "url") else str(config)
             method = getattr(config, "method", "GET") or "GET"
             headers_raw = getattr(config, "headers", None) or []
@@ -407,20 +397,25 @@ class BlasthttpMock:
             try:
                 response = await self._find_and_execute(url, method, headers, body_str)
                 if response is not None:
-                    # response is a BlasthttpResponse — extract the raw response for BatchResult
                     raw = _MockRawResponse(
                         status=response.status_code,
                         url=url,
                         body=response.text,
                         headers=[(k, v) for k, v in response.headers.items()],
                     )
-                    results[idx] = _MockBatchResult(url=url, response=raw)
+                    yield _MockBatchResult(url=url, response=raw)
                 else:
-                    results[idx] = _MockBatchResult(url=url, error="mock returned None")
+                    yield _MockBatchResult(url=url, error="mock returned None")
             except Exception as e:
-                results[idx] = _MockBatchResult(url=url, error=str(e))
+                yield _MockBatchResult(url=url, error=str(e))
 
-        for idx, result in passthrough_results.items():
-            results[idx] = result
-
-        return results
+        # Stream passthrough (localhost) URLs through the real Rust client.
+        # The native iterator yields lists; normalize to individual items so the
+        # mock's contract is "one BatchResult per yield" regardless of source.
+        if passthrough_configs:
+            async for item in real_client.request_batch_stream(passthrough_configs, concurrency=concurrency):
+                if isinstance(item, list):
+                    for result in item:
+                        yield result
+                else:
+                    yield item
