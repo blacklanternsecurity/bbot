@@ -1,6 +1,6 @@
 import re
 
-from bbot.core.helpers.web.blast_response import BlasthttpHTTPError
+from blasthttp import HTTPStatusError
 
 from ..bbot_fixtures import *
 
@@ -51,13 +51,13 @@ async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
     except WebError as e:
         assert hasattr(e, "response")
         assert e.response is None
-    with pytest.raises(BlasthttpHTTPError):
+    with pytest.raises(HTTPStatusError):
         response = await scan.helpers.request(bbot_httpserver.url_for("/nope"), raise_error=True)
         response.raise_for_status()
     try:
         response = await scan.helpers.request(bbot_httpserver.url_for("/nope"), raise_error=True)
         response.raise_for_status()
-    except BlasthttpHTTPError as e:
+    except HTTPStatusError as e:
         assert hasattr(e, "response")
         assert e.response.status_code == 500
 

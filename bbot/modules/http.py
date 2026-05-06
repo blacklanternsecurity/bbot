@@ -109,14 +109,15 @@ class http(BaseModule):
         parsed = urlparse(response.url)
         path = parsed.path or "/"
 
-        # Build raw_header string (required by HTTP_RESPONSE validation)
+        # Build raw_header string (required by HTTP_RESPONSE validation).
+        # blasthttp already builds the canonical "Name: Value\r\n..." form
+        # — reuse it instead of rebuilding.
         status_line = f"HTTP/1.1 {response.status} \r\n"
-        header_lines = "\r\n".join(f"{k}: {v}" for k, v in response.headers)
-        raw_header = f"{status_line}{header_lines}\r\n\r\n"
+        raw_header = f"{status_line}{response.raw_headers}\r\n\r\n"
 
         # Build header dict (lowercase keys, comma-joined for dupes)
         header_dict = {}
-        for k, v in response.headers:
+        for k, v in response.headers.items():
             key = k.lower().replace("-", "_")
             if key in header_dict:
                 header_dict[key] += f", {v}"

@@ -10,9 +10,10 @@ from bs4 import BeautifulSoup
 from bs4 import MarkupResemblesLocatorWarning
 from bs4.builder import XMLParsedAsHTMLWarning
 
+from blasthttp import HTTPStatusError
+
 from bbot.core.helpers.misc import truncate_filename, bytes_to_human, get_exception_chain
 from bbot.errors import WordlistError, WebError
-from .blast_response import BlasthttpResponse, BlasthttpHTTPError
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
@@ -284,9 +285,7 @@ class WebHelper:
                 log.trace(f"blasthttp request: {method} {url}")
 
             # blasthttp returns a native coroutine via pyo3-async-runtimes
-            blast_response = await self.client.request(url, **blast_kwargs)
-
-            response = BlasthttpResponse(blast_response, request_url=url, method=method)
+            response = await self.client.request(url, **blast_kwargs)
 
             if self.http_debug:
                 log.trace(
@@ -389,10 +388,7 @@ class WebHelper:
             trackers_by_url.setdefault(config.url, deque()).append(tracker)
 
         async for br in iter_batch_results(self.client.request_batch_stream(configs, concurrency=threads)):
-            if br.response is not None:
-                response = BlasthttpResponse(br.response, request_url=br.url, method="GET")
-            else:
-                response = None
+            response = br.response  # blasthttp.Response or None
             if has_tracker:
                 queue = trackers_by_url.get(br.url)
                 tracker = queue.popleft() if queue else None
@@ -455,7 +451,7 @@ class WebHelper:
                 response = await self.request(url, **kwargs)
 
                 if response is None:
-                    raise BlasthttpHTTPError(f"No response from {url}")
+                    raise HTTPStatusError(f"No response from {url}")
 
                 log.debug(f"Download result: HTTP {response.status_code}")
                 response.raise_for_status()
@@ -473,7 +469,7 @@ class WebHelper:
                     f.write(content)
                 success = True
 
-            except (BlasthttpHTTPError, WebError, RuntimeError) as e:
+            except (HTTPStatusError, WebError, RuntimeError) as e:
                 log_fn = log.verbose
                 if warn:
                     log_fn = log.warning

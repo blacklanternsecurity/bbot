@@ -353,7 +353,7 @@ class web_brute(BaseModule):
                 # not real findings (e.g. mod_userdir sending ~user to /)
                 if 300 <= response.status < 400:
                     location = ""
-                    for hdr_name, hdr_val in response.headers:
+                    for hdr_name, hdr_val in response.headers.items():
                         if hdr_name.lower() == "location":
                             location = hdr_val
                             break
