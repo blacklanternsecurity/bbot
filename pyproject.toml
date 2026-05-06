@@ -48,7 +48,7 @@ dependencies = [
     "orjson>=3.10.12,<4",
     "ansible-core>=2.17,<3",
     "tldextract>=5.3.0,<6",
-    "cloudcheck>=9.2.0,<10",
+    "cloudcheck>=10.0.0,<11",
     "blastdns>=1.9.0,<2",
 ]
 
@@ -78,7 +78,7 @@ dev = [
     "fastapi>=0.115.5,<0.137.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
-    "baddns~=2.1.0",
+    "baddns~=2.3.0",
     "ruff==0.15.12",
 ]
 docs = [
