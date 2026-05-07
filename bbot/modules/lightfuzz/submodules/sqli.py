@@ -248,6 +248,19 @@ class sqli(BaseLightfuzz):
             baseline_2_delay = baseline_2.elapsed.total_seconds()
             mean_baseline = statistics.mean([baseline_1_delay, baseline_2_delay])
 
+            # CDN cache-miss control: junk value misses the edge cache like our SQL payloads
+            # would. If its delay lands in the SLEEP() window, the latency is cache-miss, not
+            # SQL execution — bail to avoid false positives.
+            junk_value = f"{probe_value}{self.lightfuzz.helpers.rand_string(20, numeric_only=True)}"
+            junk_response = await self.standard_probe(
+                self.event.data["type"], cookies, junk_value, additional_params_populate_empty=True
+            )
+            if junk_response and self.evaluate_delay(mean_baseline, junk_response.elapsed.total_seconds()):
+                self.debug(
+                    "Junk control probe matched delay window — CDN cache-miss pattern, aborting time-based tests"
+                )
+                return
+
             for p in standard_probe_strings:
                 confirmations = 0
                 for i in range(0, 3):
