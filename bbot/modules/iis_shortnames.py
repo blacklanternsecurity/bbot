@@ -32,6 +32,9 @@ class iis_shortnames(BaseModule):
 
     _module_threads = 4
 
+    # Gateway error codes from reverse proxies / CDNs — not IIS shortname signals
+    gateway_error_codes = {502, 503, 504}
+
     async def detect(self, target):
         technique = None
         detections = []
@@ -47,6 +50,13 @@ class iis_shortnames(BaseModule):
                 control_result = await self.helpers.request(control_url, **kwargs)
                 test_result = await self.helpers.request(test_url, **kwargs)
                 if control_result and test_result:
+                    # Skip gateway errors (502/503/504) — these come from CDNs/reverse proxies, not IIS
+                    if {control_result.status_code, test_result.status_code} & self.gateway_error_codes:
+                        self.debug(
+                            f"Skipping {method} detection on {target}: gateway error code "
+                            f"({control_result.status_code}/{test_result.status_code})"
+                        )
+                        break
                     if control_result.status_code != test_result.status_code:
                         confirmations += 1
                         self.debug(f"New detection on {target}, number of confirmations: [{str(confirmations)}]")
@@ -132,7 +142,7 @@ class iis_shortnames(BaseModule):
                 url = f"{target}{payload}{suffix}"
                 urls_and_kwargs.append((url, kwargs, (c, file_part)))
 
-        for url, response, (c, file_part) in await self.helpers.request_batch(urls_and_kwargs):
+        async for url, response, (c, file_part) in self.helpers.request_batch_stream(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     if file_part == "stem":
@@ -173,7 +183,7 @@ class iis_shortnames(BaseModule):
             kwargs = {"method": method}
             urls_and_kwargs.append((url, kwargs, c))
 
-        for url, response, c in await self.helpers.request_batch(urls_and_kwargs):
+        async for url, response, c in self.helpers.request_batch_stream(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     found_results = True

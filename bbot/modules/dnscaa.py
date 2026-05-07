@@ -21,21 +21,7 @@
 
 from bbot.modules.base import BaseModule
 
-import re
-
 from bbot.core.helpers.regexes import dns_name_extraction_regex, email_regex, url_regexes
-
-# Handle '0 iodef "mailto:support@hcaptcha.com"'
-# Handle '1 iodef "https://some.host.tld/caa;"'
-# Handle '0 issue "pki.goog; cansignhttpexchanges=yes; somethingelse=1"'
-# Handle '1 issue ";"' == explicit denial for any wildcard issuance.
-# Handle '128 issuewild "comodoca.com"'
-# Handle '128 issuewild ";"' == explicit denial for any wildcard issuance.
-_caa_regex = r"^(?P<flags>[0-9]+) +(?P<property>\w+) +\"(?P<text>[^;\"]*);* *(?P<extensions>[^\"]*)\"$"
-caa_regex = re.compile(_caa_regex)
-
-_caa_extensions_kvp_regex = r"(?P<k>\w+)=(?P<v>[^;]+)"
-caa_extensions_kvp_regex = re.compile(_caa_extensions_kvp_regex)
 
 
 class dnscaa(BaseModule):
@@ -78,42 +64,49 @@ class dnscaa(BaseModule):
     async def handle_event(self, event):
         tags = ["caa-record"]
 
-        r = await self.helpers.resolve_raw(event.host, type="caa")
+        response = await self.helpers.dns.resolve_full(event.host, "CAA")
 
-        if r:
-            raw_results, errors = r
+        for answer in response.response.answers:
+            caa = answer.rdata.get("CAA")
+            if not isinstance(caa, dict):
+                continue
 
-            for answer in raw_results:
-                s = answer.to_text().strip().replace('" "', "")
+            tag = (caa.get("tag") or "").lower()
+            value = caa.get("value") or {}
 
-                # validate CAA record vi regex so that we can determine what to do with it.
-                caa_match = caa_regex.search(s)
+            # iodef -> "Url" containing mailto: or https:// for incident reporting
+            if tag == "iodef":
+                target = value.get("Url") if isinstance(value, dict) else None
+                if not target:
+                    continue
+                if self._emails:
+                    for match in email_regex.finditer(target):
+                        await self.emit_event(
+                            target[match.start() : match.end()], "EMAIL_ADDRESS", tags=tags, parent=event
+                        )
+                if self._urls:
+                    for url_regex in url_regexes:
+                        for match in url_regex.finditer(target):
+                            await self.emit_event(
+                                target[match.start() : match.end()].strip('"').strip(),
+                                "URL_UNVERIFIED",
+                                tags=tags,
+                                parent=event,
+                            )
 
-                if caa_match and caa_match.group("flags") and caa_match.group("property") and caa_match.group("text"):
-                    # it's legit.
-                    if caa_match.group("property").lower() == "iodef":
-                        if self._emails:
-                            for match in email_regex.finditer(caa_match.group("text")):
-                                start, end = match.span()
-                                email = caa_match.group("text")[start:end]
-
-                                await self.emit_event(email, "EMAIL_ADDRESS", tags=tags, parent=event)
-
-                        if self._urls:
-                            for url_regex in url_regexes:
-                                for match in url_regex.finditer(caa_match.group("text")):
-                                    start, end = match.span()
-                                    url = caa_match.group("text")[start:end].strip('"').strip()
-
-                                    await self.emit_event(url, "URL_UNVERIFIED", tags=tags, parent=event)
-
-                    elif caa_match.group("property").lower().startswith("issue"):
-                        if self._dns_names:
-                            for match in dns_name_extraction_regex.finditer(caa_match.group("text")):
-                                start, end = match.span()
-                                name = caa_match.group("text")[start:end]
-
-                                await self.emit_event(name, "DNS_NAME", tags=tags, parent=event)
+            # issue / issuewild -> "Issuer" containing the CA's domain
+            elif tag.startswith("issue"):
+                if not self._dns_names:
+                    continue
+                issuer = value.get("Issuer") if isinstance(value, dict) else None
+                # blastdns models this as ["domain", [extensions]]; an empty issuer
+                # ("explicit denial") resolves to None or [None, []]
+                if isinstance(issuer, (list, tuple)) and issuer and issuer[0]:
+                    name_text = str(issuer[0])
+                    for match in dns_name_extraction_regex.finditer(name_text):
+                        await self.emit_event(
+                            name_text[match.start() : match.end()], "DNS_NAME", tags=tags, parent=event
+                        )
 
 
 # EOF

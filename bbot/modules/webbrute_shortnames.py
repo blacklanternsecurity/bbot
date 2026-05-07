@@ -3,10 +3,10 @@ import re
 import random
 import string
 
-from bbot.modules.web_brute import web_brute
+from bbot.modules.webbrute import webbrute
 
 
-class web_brute_shortnames(web_brute):
+class webbrute_shortnames(webbrute):
     watched_events = ["URL_HINT"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["loud", "active", "iis-shortnames", "web-heavy"]
@@ -93,6 +93,7 @@ class web_brute_shortnames(web_brute):
     async def setup(self):
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         self.blast_client = self.helpers.blasthttp
+        self.waf_yara_rules = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
         self.max_predictions = self.config.get("max_predictions")
         self.find_subwords = self.config.get("find_subwords")
         self.rate = self.config.get("rate", 0) or None
@@ -182,7 +183,7 @@ class web_brute_shortnames(web_brute):
 
     async def filter_event(self, event):
         if "iis-magic-url" in event.tags:
-            return False, "iis-magic-url URL_HINTs are not solvable by web_brute_shortnames"
+            return False, "iis-magic-url URL_HINTs are not solvable by webbrute_shortnames"
         if event.parent.type != "URL":
             return False, "its parent event is not of type URL"
         return True
@@ -203,7 +204,7 @@ class web_brute_shortnames(web_brute):
         elif "shortname-directory" in event.tags:
             shortname_type = "directory"
         else:
-            self.error("web_brute_shortnames received URL_HINT without proper 'shortname-' tag")
+            self.error("webbrute_shortnames received URL_HINT without proper 'shortname-' tag")
             return
 
         host = f"{event.parent.parsed_url.scheme}://{event.parent.parsed_url.netloc}/"
@@ -328,7 +329,7 @@ class web_brute_shortnames(web_brute):
                             elif "shortname-directory" in self.shortname_to_event[hint].tags:
                                 shortname_type = "directory"
                             else:
-                                self.error("web_brute_shortnames received URL_HINT without proper 'shortname-' tag")
+                                self.error("webbrute_shortnames received URL_HINT without proper 'shortname-' tag")
                                 continue
 
                             partial_hint = hint[len(prefix) :]

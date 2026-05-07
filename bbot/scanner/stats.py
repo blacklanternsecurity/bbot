@@ -16,6 +16,19 @@ def _increment(d, k):
         d[k] = 1
 
 
+class EventTypeStats:
+    """Tracks count for an event type and formats it for the status line."""
+
+    def __init__(self):
+        self.count = 0
+
+    def increment(self, event):
+        self.count += 1
+
+    def format(self, event_type):
+        return f"{event_type}: {self.count}"
+
+
 class SpeedCounter:
     """
     A simple class for keeping a rolling tally of the number of events inside a specific time window
@@ -45,7 +58,22 @@ class ScanStats:
         self.scan = scan
         self.module_stats = {}
         self.events_emitted_by_type = {}
+        self._type_stats = {}
         self.speedometer = SpeedCounter(scan.status_frequency)
+
+    def _get_type_stats(self, event):
+        event_type = event.type
+        try:
+            return self._type_stats[event_type]
+        except KeyError:
+            stats_class = getattr(event, "_stats_class", None) or EventTypeStats
+            self._type_stats[event_type] = stats_class()
+            return self._type_stats[event_type]
+
+    def event_type_summary(self):
+        """Return a formatted list of event type counts, sorted by count descending."""
+        entries = sorted(self._type_stats.items(), key=lambda x: x[1].count, reverse=True)
+        return [stats.format(event_type) for event_type, stats in entries if stats.count > 0]
 
     def _get_attribution_module(self, event):
         """Return the module that should get credit for producing this event.
@@ -65,6 +93,7 @@ class ScanStats:
 
     def event_produced(self, event):
         _increment(self.events_emitted_by_type, event.type)
+        self._get_type_stats(event).increment(event)
         module = self._get_attribution_module(event)
         module_stat = self.get(module)
         if module_stat is not None:

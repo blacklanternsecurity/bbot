@@ -7,8 +7,8 @@ include:
 modules:
   - http
   - badsecrets
-  - web_brute_shortnames
-  - web_brute
+  - webbrute_shortnames
+  - webbrute
   - telerik
   - ajaxpro
   - dotnetnuke
@@ -16,10 +16,10 @@ modules:
 
 config:
   modules:
-    web_brute:
+    webbrute:
       extensions: asp,aspx,ashx,asmx,ascx
       ignore_case: True
-    web_brute_shortnames:
+    webbrute_shortnames:
       find_subwords: True
     telerik:
       exploit_RAU_crypto: True

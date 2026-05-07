@@ -588,33 +588,10 @@ class Preset(metaclass=BasePreset):
     @property
     def helpers(self):
         if self._helpers is None:
-            # Ensure we have at least a minimal target object before any helper (especially web helpers) is constructed.
-
-            self._ensure_minimal_target()
             from bbot.core.helpers.helper import ConfigAwareHelper
 
             self._helpers = ConfigAwareHelper(preset=self)
         return self._helpers
-
-    def _ensure_minimal_target(self):
-        """
-        Lazily construct a minimal BBOTTarget from the current seeds / whitelist / blacklist if one does not already exist.
-
-        This is intentionally lighter-weight than the full async target
-        preparation performed in `bake()` (which also calls
-        `target.generate_children()`).
-        """
-        if self._target is not None:
-            return
-
-        from bbot.scanner.target import BBOTTarget
-
-        self._target = BBOTTarget(
-            *list(self._seeds),
-            whitelist=self._whitelist,  # modify this after scope rework branch is merged into dev
-            blacklist=self._blacklist,
-            strict_scope=self.strict_scope,
-        )
 
     @property
     def module_loader(self):
@@ -696,6 +673,7 @@ class Preset(metaclass=BasePreset):
             cls._resolve_file_entries(target_vals),
             try_files=True,
             msg="Reading targets from preset file: {filename}",
+            _strip_comments=True,
         )
         seeds = preset_dict.get("seeds")
         if seeds is not None:
@@ -703,6 +681,7 @@ class Preset(metaclass=BasePreset):
                 cls._resolve_file_entries(seeds),
                 try_files=True,
                 msg="Reading seeds from preset file: {filename}",
+                _strip_comments=True,
             )
         blacklist = preset_dict.get("blacklist")
         if blacklist is not None:
@@ -710,6 +689,7 @@ class Preset(metaclass=BasePreset):
                 cls._resolve_file_entries(blacklist),
                 try_files=True,
                 msg="Reading blacklist from preset file: {filename}",
+                _strip_comments=True,
             )
         new_preset = cls(
             *targets,

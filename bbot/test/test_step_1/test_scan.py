@@ -227,8 +227,8 @@ async def test_stats_attribution():
 
     http_mod = mock_module("http", ["URL", "HTTP_RESPONSE"])
     excavate_mod = mock_module("excavate", ["URL_UNVERIFIED", "WEB_PARAMETER"])
-    web_brute_shortnames_mod = mock_module("web_brute_shortnames", ["URL_UNVERIFIED"])
-    web_brute_mod = mock_module("web_brute", ["URL_UNVERIFIED"])
+    webbrute_shortnames_mod = mock_module("webbrute_shortnames", ["URL_UNVERIFIED"])
+    webbrute_mod = mock_module("webbrute", ["URL_UNVERIFIED"])
     speculate_mod = mock_module("speculate", ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"])
     robots_mod = mock_module("robots", ["URL_UNVERIFIED"])
 
@@ -237,13 +237,13 @@ async def test_stats_attribution():
         parent = mock_event("URL_UNVERIFIED", excavate_mod)
         stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 2) web_brute_shortnames discovers URL_UNVERIFIED, http verifies → web_brute_shortnames gets credit
+    # 2) webbrute_shortnames discovers URL_UNVERIFIED, http verifies → webbrute_shortnames gets credit
     for _ in range(3):
-        parent = mock_event("URL_UNVERIFIED", web_brute_shortnames_mod)
+        parent = mock_event("URL_UNVERIFIED", webbrute_shortnames_mod)
         stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 3) web_brute discovers URL_UNVERIFIED, http verifies → web_brute gets credit
-    parent = mock_event("URL_UNVERIFIED", web_brute_mod)
+    # 3) webbrute discovers URL_UNVERIFIED, http verifies → webbrute gets credit
+    parent = mock_event("URL_UNVERIFIED", webbrute_mod)
     stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
     # 4) speculate (internal module) creates URL_UNVERIFIED, http verifies → http keeps credit
@@ -267,8 +267,8 @@ async def test_stats_attribution():
 
     # verify per-module produced counts
     assert stats.module_stats["excavate"].produced == {"URL": 5}
-    assert stats.module_stats["web_brute_shortnames"].produced == {"URL": 3}
-    assert stats.module_stats["web_brute"].produced == {"URL": 1}
+    assert stats.module_stats["webbrute_shortnames"].produced == {"URL": 3}
+    assert stats.module_stats["webbrute"].produced == {"URL": 1}
     assert stats.module_stats["robots"].produced == {"URL": 2}
     # http gets credit for speculate's 4 URLs + 2 from OPEN_TCP_PORT = 6
     assert stats.module_stats["http"].produced == {"URL": 6}
@@ -286,9 +286,9 @@ async def test_stats_attribution():
     table_dict = {row[0]: row[1] for row in rows}
     assert table_dict["http"] == "6 (6 URL)"
     assert table_dict["excavate"] == "5 (5 URL)"
-    assert table_dict["web_brute_shortnames"] == "3 (3 URL)"
+    assert table_dict["webbrute_shortnames"] == "3 (3 URL)"
     assert table_dict["robots"] == "2 (2 URL)"
-    assert table_dict["web_brute"] == "1 (1 URL)"
+    assert table_dict["webbrute"] == "1 (1 URL)"
     assert table_dict["CNAME"] == "1 (1 DNS_NAME)"
     assert table_dict["cloudcheck"] == "1 (1 STORAGE_BUCKET)"
     assert "speculate" not in table_dict
@@ -405,6 +405,25 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
         "www.evilcorp.com:80",
         "www.evilcorp.com:443",
     }
+
+
+@pytest.mark.asyncio
+async def test_scan_event_started_at_type(bbot_scanner):
+    """Regression test: started_at must be a float on both RUNNING and FINISHED SCAN events."""
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    scan_events = []
+    async for event in scan.async_start():
+        if event.type == "SCAN":
+            scan_events.append(event)
+
+    assert len(scan_events) == 2, f"Expected 2 SCAN events, got {len(scan_events)}"
+    for e in scan_events:
+        started_at = e.data.get("started_at")
+        status = e.data.get("status")
+        assert isinstance(started_at, float), (
+            f"SCAN event (status={status}) started_at should be float, got {type(started_at).__name__}: {started_at!r}"
+        )
 
 
 async def test_scan_name(bbot_scanner):

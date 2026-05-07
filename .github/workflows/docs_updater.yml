@@ -20,10 +20,10 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --frozen --group dev
       - name: Generate docs
         run: |
-          uv run bbot/scripts/docs.py
+          uv run --no-sync bbot/scripts/docs.py
       - name: Create or Update Pull Request
         uses: peter-evans/create-pull-request@v8
         with:

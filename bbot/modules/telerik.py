@@ -156,7 +156,7 @@ class telerik(BaseModule):
     options = {"exploit_RAU_crypto": False, "include_subdirs": False}
     options_desc = {
         "exploit_RAU_crypto": "Attempt to confirm any RAU AXD detections are vulnerable",
-        "include_subdirs": "Include subdirectories in the scan (off by default)",  # will create many finding events if used in conjunction with web spider or web_brute
+        "include_subdirs": "Include subdirectories in the scan (off by default)",  # will create many finding events if used in conjunction with web spider or webbrute
     }
 
     in_scope_only = True
@@ -299,9 +299,8 @@ class telerik(BaseModule):
                 url = self.create_url(base_url, f"{dh}?dp=1")
                 urls[url] = dh
 
-            results = await self.helpers.request_batch(list(urls))
             fail_count = 0
-            for url, response in results:
+            async for url, response in self.helpers.request_batch_stream(list(urls)):
                 # cancel if we run into timeouts etc.
                 if response is None:
                     fail_count += 1
