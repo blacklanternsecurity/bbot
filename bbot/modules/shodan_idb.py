@@ -60,10 +60,20 @@ class shodan_idb(BaseModule):
     _qsize = 100
 
     base_url = "https://internetdb.shodan.io"
+    cvedb_url = "https://cvedb.shodan.io/cve"
+
+    # CVSS v3 score thresholds per FIRST.org / NVD
+    _cvss_severity_thresholds = (
+        (9.0, "CRITICAL"),
+        (7.0, "HIGH"),
+        (4.0, "MEDIUM"),
+        (0.1, "LOW"),
+    )
 
     async def setup(self):
         await super().setup()
         self.last_request_time = 0
+        self._cve_cache = {}
         return True
 
     def _incoming_dedup_hash(self, event):
@@ -141,20 +151,76 @@ class shodan_idb(BaseModule):
             )
         vulns = data.get("vulns", [])
         if vulns:
+            cve_entries = []
+            for cve_id in vulns:
+                details = await self._get_cve_details(cve_id)
+                cvss = None
+                if details:
+                    cvss = details.get("cvss_v3") or details.get("cvss") or details.get("cvss_v2")
+                cve_entries.append({"cve": cve_id, "cvss": cvss, "severity": self._cvss_to_severity(cvss)})
+            # sort highest CVSS first so the worst shows up first
+            cve_entries.sort(key=lambda e: (e["cvss"] is None, -(e["cvss"] or 0), e["cve"]))
+
+            cve_parts = []
+            for entry in cve_entries:
+                sev = entry["severity"] or "UNKNOWN"
+                cvss_str = f"{entry['cvss']}" if entry["cvss"] is not None else "no CVSS"
+                cve_parts.append(f"{entry['cve']} [{sev}, {cvss_str}]")
+            description = f"Shodan reported possible vulnerabilities for {query_host}: {', '.join(cve_parts)}"
+
             vulns_str = ", ".join([str(v) for v in vulns])
             await self.emit_event(
                 {
-                    "description": f"Shodan reported possible vulnerabilities: {vulns_str}",
+                    "description": description,
                     "host": str(event.host),
                     "cves": vulns,
                     "name": "Shodan - Possible Vulnerabilities",
-                    "severity": "MEDIUM",
+                    # always INFO: shodan_idb only matches banners — there is no exploitation
+                    # or in-product confirmation that any of these CVEs are actually present
+                    "severity": "INFO",
                     "confidence": "LOW",
                 },
                 "FINDING",
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found potential {{event.type}}: {vulns_str}',
             )
+
+    async def _get_cve_details(self, cve_id):
+        """Look up a CVE in Shodan's CVEDB, caching results for the lifetime of the scan."""
+        if cve_id in self._cve_cache:
+            return self._cve_cache[cve_id]
+        url = f"{self.cvedb_url}/{cve_id}"
+
+        # respect the same 1-req-per-second rate limit as the InternetDB endpoint
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        if time_since_last < 1:
+            await self.helpers.sleep(1 - time_since_last)
+        self.last_request_time = time.time()
+
+        details = None
+        r = await self.api_request(url)
+        if r is not None and r.status_code == 200:
+            try:
+                details = r.json()
+            except Exception as e:
+                self.verbose(f"Error parsing JSON response from {url}: {e}")
+                self.trace()
+        self._cve_cache[cve_id] = details
+        return details
+
+    @classmethod
+    def _cvss_to_severity(cls, score):
+        if score is None:
+            return None
+        try:
+            score = float(score)
+        except (TypeError, ValueError):
+            return None
+        for threshold, label in cls._cvss_severity_thresholds:
+            if score >= threshold:
+                return label
+        return None
 
     def get_ip(self, event):
         """
