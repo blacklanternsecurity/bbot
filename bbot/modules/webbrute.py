@@ -7,7 +7,7 @@ from bbot.core.helpers.web.web import iter_batch_results
 from bbot.modules.base import BaseModule
 
 
-class web_brute(BaseModule):
+class webbrute(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["active", "loud"]
@@ -124,16 +124,6 @@ class web_brute(BaseModule):
             "lines": text.count("\n") + 1,
         }
 
-    def _batch_response_metrics(self, response):
-        """Extract metrics from a raw blasthttp batch response."""
-        body = response.body or ""
-        return {
-            "status": response.status,
-            "length": len(response.body_bytes),
-            "words": len(body.split()),
-            "lines": body.count("\n") + 1,
-        }
-
     def _is_baseline_match(self, metrics, baseline_filter):
         """Return True if the response matches the baseline (i.e. should be filtered OUT)."""
         if baseline_filter.get("abort"):
@@ -187,7 +177,7 @@ class web_brute(BaseModule):
                 self.blast_client.request_batch_stream(canary_configs, 4, rate_limit=self.rate)
             ):
                 if result.success:
-                    canary_results.append(self._batch_response_metrics(result.response))
+                    canary_results.append(self._response_metrics(result.response))
                     if await self.helpers.yara.match(self.waf_yara_rules, result.response.body):
                         canary_waf_count += 1
 
@@ -331,7 +321,7 @@ class web_brute(BaseModule):
                     continue
 
                 response = result.response
-                metrics = self._batch_response_metrics(response)
+                metrics = self._response_metrics(response)
 
                 # Check if this matches the baseline (should be filtered out)
                 if ext_filter and self._is_baseline_match(metrics, ext_filter):
@@ -373,12 +363,15 @@ class web_brute(BaseModule):
                 self.debug("Found canary in results, all hits are likely false positives — aborting")
                 return
 
-            # Mid-scan validation: one canary check per extension
+            # Mid-scan validation: one canary check per extension.
+            # Single request — use client.request() directly instead of a
+            # 1-config request_batch_stream loop (the streaming API only
+            # earns its keep with multiple in-flight requests).
             if hits and not baseline and ext_filter:
                 canary_word = "".join(random.choice(string.ascii_lowercase) for _ in range(4))
                 canary_url = f"{url}{prefix}{canary_word}{suffix}{ext}"
-                canary_configs = [
-                    blasthttp.BatchConfig(
+                try:
+                    canary_response = await self.blast_client.request(
                         canary_url,
                         headers=headers,
                         timeout=self.scan.http_timeout,
@@ -387,14 +380,11 @@ class web_brute(BaseModule):
                         follow_redirects=False,
                         proxy=proxy,
                     )
-                ]
-                canary_result = None
-                async for r in iter_batch_results(
-                    self.blast_client.request_batch_stream(canary_configs, 1, rate_limit=self.rate)
-                ):
-                    canary_result = r
-                if canary_result is not None and canary_result.success:
-                    canary_metrics = self._batch_response_metrics(canary_result.response)
+                except Exception as e:
+                    self.debug(f"Mid-scan canary request failed: {e}")
+                    canary_response = None
+                if canary_response is not None:
+                    canary_metrics = self._response_metrics(canary_response)
                     if not self._is_baseline_match(canary_metrics, ext_filter):
                         self.verbose(
                             f"Would have reported {len(hits)} hit(s), but mid-scan baseline check failed. "

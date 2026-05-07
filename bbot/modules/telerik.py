@@ -156,7 +156,7 @@ class telerik(BaseModule):
     options = {"exploit_RAU_crypto": False, "include_subdirs": False}
     options_desc = {
         "exploit_RAU_crypto": "Attempt to confirm any RAU AXD detections are vulnerable",
-        "include_subdirs": "Include subdirectories in the scan (off by default)",  # will create many finding events if used in conjunction with web spider or web_brute
+        "include_subdirs": "Include subdirectories in the scan (off by default)",  # will create many finding events if used in conjunction with web spider or webbrute
     }
 
     in_scope_only = True
