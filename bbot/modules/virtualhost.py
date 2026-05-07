@@ -132,7 +132,15 @@ class virtualhost(BaseModule):
                 self.debug(f"HANDLE EVENT METHOD: No resolved hosts for {normalized_url}, skipping virtual host check")
                 return None
 
-            host_ip = str(next(iter(event.resolved_hosts)))
+            # resolved_hosts can contain CNAME targets (hostnames) alongside A/AAAA records;
+            # we need a real IP to pin the TCP connection via blasthttp's resolve_ip.
+            ip_candidates = [str(h) for h in event.resolved_hosts if self.helpers.is_ip(h)]
+            if not ip_candidates:
+                self.debug(
+                    f"HANDLE EVENT METHOD: resolved_hosts for {normalized_url} contains no IPs (only CNAMEs?), skipping virtual host check"
+                )
+                return None
+            host_ip = ip_candidates[0]
 
             baseline_response = await self._get_baseline_response(event, normalized_url, host_ip)
             if not baseline_response:
@@ -249,12 +257,15 @@ class virtualhost(BaseModule):
         )
         # Use the explicit canary hostname used in the wildcard request (works for HTTP Host and HTTPS SNI)
         canary_host = (canary_hostname or "").split(":")[0]
+        # peer_ip is the actual TCP peer the response came from — ground truth, not a
+        # guess from resolved_hosts. Falls back to the pinned host_ip if peer_ip is empty.
+        response_ip = getattr(canary_response, "peer_ip", None) or host_ip
         virtualhost_dict = {
             "host": str(event.host),
             "url": f"{event.parsed_url.scheme}://{authority}/",
             "virtual_host": canary_host,
-            "description": self._build_description(discovery_method, canary_response, True, host_ip),
-            "ip": host_ip,
+            "description": self._build_description(discovery_method, canary_response, True, response_ip),
+            "ip": response_ip,
         }
 
         await self.emit_event(
@@ -595,7 +606,8 @@ class virtualhost(BaseModule):
 
         self.debug(f"Loaded {len(candidates_to_check)} candidates from wordlist for {discovery_method}")
 
-        host_ips = [str(ip) for ip in event.resolved_hosts]
+        # filter out non-IP entries (e.g. CNAME targets) — we can't connect-pin via hostname
+        host_ips = [str(h) for h in event.resolved_hosts if self.helpers.is_ip(h)]
         total_tests = len(candidates_to_check) * len(host_ips)
 
         self.verbose(
@@ -737,14 +749,17 @@ class virtualhost(BaseModule):
 
         is_externally_accessible = await self._is_host_accessible(probe_url)
 
+        # peer_ip is the actual TCP peer the response came from — ground truth, not a
+        # guess from resolved_hosts. Falls back to the pinned host_ip if peer_ip is empty.
+        response_ip = getattr(probe_response, "peer_ip", None) or host_ip
         virtualhost_dict = {
             "host": str(event.host),
             "url": normalized_url,
             "virtual_host": probe_host,
             "description": self._build_description(
-                discovery_method, probe_response, is_externally_accessible, host_ip
+                discovery_method, probe_response, is_externally_accessible, response_ip
             ),
-            "ip": host_ip,
+            "ip": response_ip,
         }
 
         # Skip if we require inaccessible hosts and this one is accessible
