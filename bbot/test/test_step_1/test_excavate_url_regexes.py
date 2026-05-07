@@ -51,27 +51,19 @@ def test_full_url_regex_still_matches_existing_patterns():
 
 def test_full_url_regex_strict_matches_ipv6():
     for url in IPV6_URLS:
-        assert full_url_regex_strict.match(url) is not None, (
-            f"full_url_regex_strict should match IPv6 URL {url!r}"
-        )
+        assert full_url_regex_strict.match(url) is not None, f"full_url_regex_strict should match IPv6 URL {url!r}"
 
 
 def test_full_url_regex_strict_still_matches_existing_patterns():
     for url in NON_IPV6_URLS:
-        assert full_url_regex_strict.match(url) is not None, (
-            f"regression: full_url_regex_strict broke for {url!r}"
-        )
+        assert full_url_regex_strict.match(url) is not None, f"regression: full_url_regex_strict broke for {url!r}"
 
 
 def test_yara_url_rule_matches_ipv6():
     for url in IPV6_URLS:
-        assert yara_url_rule.match(data=url.encode()), (
-            f"YARA url_full rule should match IPv6 URL {url!r}"
-        )
+        assert yara_url_rule.match(data=url.encode()), f"YARA url_full rule should match IPv6 URL {url!r}"
 
 
 def test_yara_url_rule_still_matches_existing_patterns():
     for url in NON_IPV6_URLS:
-        assert yara_url_rule.match(data=url.encode()), (
-            f"regression: YARA url_full rule broke for {url!r}"
-        )
+        assert yara_url_rule.match(data=url.encode()), f"regression: YARA url_full rule broke for {url!r}"
