@@ -165,13 +165,8 @@ def blasthttp_mock():
             configs.append(config)
             trackers_by_url.setdefault(config.url, deque()).append(tracker)
 
-        from bbot.core.helpers.web.blast_response import BlasthttpResponse
-
         async for br in mock.handle_batch_stream(self.client, configs, concurrency=threads):
-            if br.response is not None:
-                response = BlasthttpResponse(br.response, request_url=br.url, method="GET")
-            else:
-                response = None
+            response = br.response  # blasthttp.Response or None
             if has_tracker:
                 queue = trackers_by_url.get(br.url)
                 tracker = queue.popleft() if queue else None

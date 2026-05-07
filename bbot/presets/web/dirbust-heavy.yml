@@ -7,15 +7,15 @@ flags:
   - iis-shortnames
 
 modules:
-  - web_brute
+  - webbrute
   - wayback
 
 config:
   modules:
     iis_shortnames:
-      # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by web_brute_shortnames
+      # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by webbrute_shortnames
       detect_only: False
-    web_brute:
+    webbrute:
       max_depth: 3
       lines: 5000
       extensions:
