@@ -250,6 +250,15 @@ class Scanner:
                 "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by blasthttp."
             )
 
+        # HTTP_RESPONSE body disk-spill — keeps body bytes off the Python heap.
+        # See bbot/core/event/spill.py for design notes. Created in _prep()
+        # once temp_dir exists.
+        body_spill_config = web_config.get("body_spill", {})
+        self.body_spill_enabled = bool(body_spill_config.get("enabled", True))
+        self.body_spill_cache_mb = int(body_spill_config.get("cache_mb", 512))
+        self.body_spill_compress = bool(body_spill_config.get("compress", True))
+        self.body_spill_store = None
+
         # url file extensions
         self.url_extension_special = {e.lower() for e in self.config.get("url_extension_special", [])}
         self.url_extension_blacklist = {e.lower() for e in self.config.get("url_extension_blacklist", [])}
@@ -305,6 +314,15 @@ class Scanner:
 
         self.helpers.mkdir(self.home)
         self.helpers.mkdir(self.temp_dir)
+
+        if self.body_spill_enabled and self.body_spill_store is None:
+            from bbot.core.event.spill import BodySpillStore
+
+            self.body_spill_store = BodySpillStore(
+                self.temp_dir / "bodies",
+                cache_bytes=self.body_spill_cache_mb * 1024 * 1024,
+                compress=self.body_spill_compress,
+            )
 
         if not self._modules_loaded:
             self.modules = OrderedDict({})

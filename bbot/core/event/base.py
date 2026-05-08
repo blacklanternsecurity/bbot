@@ -1613,6 +1613,45 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         if str(self.http_status).startswith("3"):
             self.num_redirects += 1
 
+        # Spill body to disk if a per-scan store is available. The body
+        # is removed from `_data` so JSON / human renderers don't see it;
+        # readers use the `.body` property which lazy-loads from the store.
+        # When spill is disabled (no store on the scan), body stays in
+        # `_data` and `.body` falls back to reading it from there.
+        store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+        if store is not None and isinstance(self._data, dict) and "body" in self._data:
+            body = self._data.pop("body")
+            if isinstance(body, str):
+                body_bytes = body.encode("utf-8", errors="replace")
+            elif isinstance(body, (bytes, bytearray, memoryview)):
+                body_bytes = bytes(body)
+            else:
+                body_bytes = str(body).encode("utf-8", errors="replace")
+            if body_bytes:
+                store.write(str(self._uuid), body_bytes)
+
+    @property
+    def body(self):
+        """
+        The HTTP response body as a string.
+
+        With spill enabled, the body lives in the per-scan ``BodySpillStore``
+        (LRU cache + disk file). Cache hits are instant; misses re-read
+        from disk. After ``_minimize()`` fires the body is gone and this
+        property returns ``""``.
+
+        With spill disabled, falls back to ``self._data["body"]``.
+        """
+        store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+        if store is None:
+            if isinstance(self._data, dict):
+                return self._data.get("body", "") or ""
+            return ""
+        body_bytes = store.read(str(self._uuid))
+        if not body_bytes:
+            return ""
+        return body_bytes.decode("utf-8", errors="replace")
+
     def _data_id(self):
         return self.data["method"] + "|" + self.data["url"]
 
@@ -1675,6 +1714,10 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
     def _minimize(self):
         super()._minimize()
         if self._module_consumers <= 0:
+            store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+            if store is not None:
+                store.evict_and_delete(str(self._uuid))
+            # `body` may still be in _data if spill was disabled at creation
             self._data.pop("body", None)
             self._data.pop("raw_header", None)
             self._data.pop("header", None)
@@ -1687,8 +1730,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         Formats the status code, headers, and body into a single string formatted as an HTTP/1.1 response.
         """
         raw_header = self.data.get("raw_header", "")
-        body = self.data.get("body", "")
-        return f"{raw_header}{body}"
+        return f"{raw_header}{self.body}"
 
     @property
     def http_status(self):

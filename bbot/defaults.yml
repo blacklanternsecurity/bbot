@@ -128,6 +128,16 @@ web:
   # Maximum HTTP requests per second (0 = unlimited)
   # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
   http_rate_limit: 0
+  # HTTP_RESPONSE body disk-spill — keeps body bytes off the Python heap.
+  # Bodies are written to ${scan_home}/temp/bodies/{uuid}.body.zst and served
+  # from a bounded LRU cache; only cache misses touch disk.
+  body_spill:
+    # Master switch
+    enabled: true
+    # In-memory LRU cache budget for hot bodies, in MB
+    cache_mb: 512
+    # zstd level-1 compression on the way to disk
+    compress: true
 
 ### ENGINE ###
 

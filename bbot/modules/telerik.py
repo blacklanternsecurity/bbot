@@ -378,7 +378,7 @@ class telerik(BaseModule):
                     )
 
         elif event.type == "HTTP_RESPONSE":
-            resp_body = event.data.get("body", None)
+            resp_body = event.body
             url = event.url
             if resp_body:
                 if '":{"SerializedParameters":"' in resp_body:

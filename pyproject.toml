@@ -50,6 +50,7 @@ dependencies = [
     "cloudcheck>=9.2.0,<10",
     "blasthttp>=0.5.1",
     "blastdns>=1.9.0,<2",
+    "zstandard>=0.22,<1",
 ]
 
 [project.urls]
