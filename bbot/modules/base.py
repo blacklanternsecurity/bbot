@@ -1030,13 +1030,24 @@ class BaseModule:
                 self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
-                event._module_consumers += 1
+                self._increment_consumer_count(event)
                 async with self.event_received:
                     self.event_received.notify()
                 if event.type != "FINISHED":
                     self.scan._new_activity = True
             except AttributeError:
                 self.debug("Not in an acceptable state to queue incoming event")
+
+    def _increment_consumer_count(self, event):
+        """Increment the event's consumer count when it lands in this module's queue.
+
+        Paired with the matching ``_minimize()`` call when the worker
+        finishes processing. Modules that have no real worker (e.g. the
+        ``python`` output module backing ``Scanner.async_start``)
+        override this to skip the increment — otherwise the count
+        leaks +1 forever and ``_minimize()``'s strip block never fires.
+        """
+        event._module_consumers += 1
 
     async def queue_outgoing_event(self, event, **kwargs):
         """
