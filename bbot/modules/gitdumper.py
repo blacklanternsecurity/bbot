@@ -201,27 +201,38 @@ class gitdumper(BaseModule):
         if url_list:
             await self.download_files(url_list, folder)
 
-    async def regex_files(self, regex, folder=Path(), file=Path(), files=[]):
+    # Skip regex scan for files larger than this — real git ref/object/info
+    # files are small; oversized is almost always a webserver returning HTML.
+    _regex_file_max_bytes = 10 * 1024 * 1024
+
+    async def regex_files(self, regex, folder=None, file=None, files=()):
         results = []
-        if folder:
-            if folder.is_dir():
-                for file_path in folder.rglob("*"):
-                    if file_path.is_file():
-                        results.extend(await self.regex_file(regex, file_path))
+        if folder is not None and folder.is_dir():
+            for file_path in folder.rglob("*"):
+                if file_path.is_file():
+                    results.extend(await self.regex_file(regex, file_path))
         if files:
-            for file in files:
-                results.extend(await self.regex_file(regex, file))
-        if file:
+            for f in files:
+                results.extend(await self.regex_file(regex, f))
+        if file is not None:
             results.extend(await self.regex_file(regex, file))
         return results
 
-    async def regex_file(self, regex, file=Path()):
-        if file.exists() and file.is_file():
-            with file.open("r", encoding="utf-8", errors="ignore") as file:
-                content = file.read()
-                matches = await self.helpers.re.findall(regex, content)
-                if matches:
-                    return matches
+    async def regex_file(self, regex, file=None):
+        if file is None or not (file.exists() and file.is_file()):
+            return []
+        try:
+            size = file.stat().st_size
+        except OSError:
+            return []
+        if size > self._regex_file_max_bytes:
+            self.debug(f"Skipping regex scan of {file} ({size} bytes)")
+            return []
+        with file.open("r", encoding="utf-8", errors="ignore") as fh:
+            content = fh.read()
+            matches = await self.helpers.re.findall(regex, content)
+            if matches:
+                return matches
         return []
 
     async def download_object(self, object, repo_url, repo_folder):
