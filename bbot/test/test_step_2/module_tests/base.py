@@ -125,24 +125,7 @@ class ModuleTestBase:
             await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _execute_scan(self, module_test):
-        """Execute the scan and collect events. Can be overridden by benchmark classes.
-
-        Models ``check()`` as a downstream event consumer: tests routinely
-        assert on heavy fields (body, raw_header, original_value, etc.)
-        in ``check()`` after iteration completes. To prevent
-        ``_minimize()`` from stripping those fields before the test sees
-        them, we restore the standard ``_increment_consumer_count``
-        behavior on the ``python`` output module (which normally no-ops
-        the bump because it has no real worker — see
-        ``bbot/modules/output/python.py``). The extra +1 keeps each
-        event's consumer count above zero through scan completion, so
-        the strip block never fires. Events GC at test teardown.
-        """
-        py_mod = module_test.scan.modules.get("python")
-        if py_mod is not None:
-            from bbot.modules.base import BaseModule
-
-            py_mod._increment_consumer_count = BaseModule._increment_consumer_count.__get__(py_mod)
+        """Execute the scan and collect events. Can be overridden by benchmark classes."""
         module_test.events = [e async for e in module_test.scan.async_start()]
 
     @pytest.mark.asyncio
