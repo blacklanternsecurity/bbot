@@ -6,7 +6,7 @@
 
 ### What is Lightfuzz?
 
-Lightfuzz is a lightweight web fuzzer built into BBOT. It is designed to find "low-hanging fruit" type vulnerabilities without much overhead and at massive scale.
+Lightfuzz is BBOT's **DAST (Dynamic Application Security Testing) module** — a lightweight web fuzzer built directly into BBOT's recursive scan pipeline. It is designed to find "low-hanging fruit" type vulnerabilities without much overhead and at massive scale. Whenever BBOT's recon stage discovers a fuzzable parameter (`WEB_PARAMETER` event), lightfuzz takes over and runs its DAST checks against that parameter.
 
 ### What is Lightfuzz NOT?
 
