@@ -17,7 +17,7 @@ class baddns_direct(baddns_module):
         "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)",
     }
     module_threads = 8
-    deps_pip = ["baddns~=2.2.0"]
+    deps_pip = ["baddns~=2.3.0"]
 
     scope_distance_modifier = 1
 
