@@ -4465,3 +4465,107 @@ class Test_Lightfuzz_none_in_additional_params(ModuleTestBase):
             "URL_UNVERIFIED for /none-bug-secret not emitted — lightfuzz POST likely "
             "sent the literal text 'None' instead of '' for the no-value-attr field."
         )
+
+
+# Verifies baseline_probe fires its "Probe B" — a substituted value=`a` request —
+# when the fuzzed field's original_value is empty. Search-style forms whose
+# useful content only renders for a non-empty query are invisible to Probe A
+# (which submits the field as empty) but mineable from Probe B's response.
+class Test_Lightfuzz_baseline_probe_dual_search_form(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"lightfuzz": {"enabled_submodules": ["crypto"]}},
+    }
+
+    landing_page = """
+    <html><body>
+        <form action="/search" method="post">
+            <input type="text" name="q">
+        </form>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            if request.method == "GET":
+                return Response(self.landing_page, status=200, content_type="text/html")
+            q = request.form.get("q", "")
+            if q == "a":
+                body = '<html><body><a href="/dual-probe-secret">match</a></body></html>'
+            else:
+                body = "<html><body>no results</body></html>"
+            return Response(body, status=200, content_type="text/html")
+
+        module_test.set_expect_requests_handler(
+            expect_args=re.compile(".*"),
+            request_handler=handler,
+        )
+
+    def check(self, module_test, events):
+        secret_url = "http://127.0.0.1:8888/dual-probe-secret"
+        secret_seen = any(
+            e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
+            for e in events
+        )
+        assert secret_seen, (
+            "URL_UNVERIFIED for /dual-probe-secret not emitted — baseline_probe's "
+            "Probe B (substituted value='a') likely didn't fire for the empty <input>."
+        )
+
+
+# When the fuzzed field has a real captured default (e.g., <select> with a
+# `selected` option), Probe B should be skipped — there's no point overwriting
+# a meaningful default with an arbitrary value. Verify that the form-action
+# endpoint receives exactly one POST per scan (Probe A only).
+class Test_Lightfuzz_baseline_probe_no_dual_for_selected(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"lightfuzz": {"enabled_submodules": ["crypto"]}},
+    }
+
+    # Class-level counter so the handler can record POST bodies it sees.
+    _request_log = {"posts": []}
+
+    landing_page = """
+    <html><body>
+        <form action="/sel-form" method="post">
+            <select name="role">
+                <option value="admin" selected>Admin</option>
+                <option value="guest">Guest</option>
+            </select>
+        </form>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        # Reset class state for this run (in case of repeated runs in one process).
+        self._request_log["posts"] = []
+
+        def handler(request):
+            if request.method == "GET":
+                return Response(self.landing_page, status=200, content_type="text/html")
+            self._request_log["posts"].append(dict(request.form))
+            return Response("<html><body>ok</body></html>", status=200, content_type="text/html")
+
+        module_test.set_expect_requests_handler(
+            expect_args=re.compile(".*"),
+            request_handler=handler,
+        )
+
+    def check(self, module_test, events):
+        posts = self._request_log["posts"]
+        # All POSTs should carry role=admin (the captured selected value). If
+        # Probe B fired for this field, we'd see at least one POST with role="a".
+        assert all(p.get("role") == "admin" for p in posts), (
+            f"Probe B fired for a field with a captured default; posts: {posts}"
+        )
+        # And we expect just one unique POST body (Probe A) — caching collapses
+        # any duplicate Probe A fires across siblings.
+        unique_bodies = {tuple(sorted(p.items())) for p in posts}
+        assert len(unique_bodies) == 1, (
+            f"Expected one unique POST body for the selected-option form, got {len(unique_bodies)}: {unique_bodies}"
+        )

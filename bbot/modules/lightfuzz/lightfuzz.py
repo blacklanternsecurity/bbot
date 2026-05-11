@@ -61,6 +61,15 @@ class lightfuzz(BaseModule):
         # baseline pair and one HTTP_RESPONSE emission. Cleared at end of handle_event.
         self._baseline_cache = {}
 
+        # Cross-event cache for baseline_probe responses keyed on request signature.
+        # Each WEB_PARAMETER triggers its own baseline_probe; sibling fields of the
+        # same form produce identical request bodies (the data dict has the same
+        # keys+values regardless of which one is the "primary"), so without sharing
+        # we'd fire N identical requests per N-field form. Bounded LRU-by-insertion
+        # to keep long scans from accumulating responses.
+        self._baseline_probe_response_cache = {}
+        self._baseline_probe_response_cache_max = 200
+
         if not self.enabled_submodules:
             return False, "Lightfuzz enabled without any submodules. Must enable at least one submodule."
 
@@ -271,6 +280,21 @@ class lightfuzz(BaseModule):
 
                 try:
                     original_type = event.data["type"]
+
+                    # Fire the canonical baseline form submission once per WEB_PARAMETER,
+                    # at the module level, independent of which submodules are enabled.
+                    # Excavate mines whichever response(s) carry useful page content
+                    # (filter-style vs search-style forms differ in which probe produces
+                    # content). The response cache means any later submodule baseline_probe
+                    # call (e.g. from crypto) is a no-op for the same signature.
+                    if self.emit_baseline_responses:
+                        from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
+
+                        prober = BaseLightfuzz(self, event)
+                        try:
+                            await prober.baseline_probe(cookies=event.data.get("assigned_cookies", {}) or {})
+                        except Exception as e:
+                            self.debug(f"module-level baseline_probe raised: {e}")
 
                     # Normal fuzzing pass (skipped for POSTPARAM if disable_post is True)
                     if not (self.disable_post and original_type == "POSTPARAM"):

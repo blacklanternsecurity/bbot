@@ -229,18 +229,45 @@ class BaseLightfuzz:
 
     async def baseline_probe(self, cookies, emit_http_response=True):
         """
-        Executes a baseline probe by submitting the form the way a browser
-        would: POSTs carry the parameter's original_value plus every sibling
-        field from ``additional_params``; GETs carry them in the querystring;
-        headers/cookies inject them on the wire. Uses ``prepare_request()`` so
-        the request shape matches what ``compare_baseline`` would build.
+        Executes the canonical baseline probe(s) by submitting the form the
+        way a browser would: POSTs carry the parameter's ``original_value``
+        plus every sibling field from ``additional_params``; GETs carry them
+        in the querystring; headers/cookies inject them on the wire. Uses
+        ``prepare_request()`` so the request shape matches what
+        ``compare_baseline`` would build.
 
-        When ``emit_http_response`` is true and the lightfuzz config allows it,
-        the response is also emitted as an HTTP_RESPONSE event so excavate can
-        re-mine the canonical page rendering for new params/URLs.
+        Fires up to two requests per call:
+
+        * **Probe A — form as captured.** Filter-style forms whose "show
+          all results" state is the no-narrowing default produce content
+          here. This is the only baseline returned to the caller.
+
+        * **Probe B — this field populated with ``"a"``.** Fired only when
+          the fuzzed parameter's ``original_value`` is ``None`` or ``""``
+          (i.e. the field had no captured default — typically a free-text
+          search input). Catches search-style forms whose useful content
+          appears only when the primary text input is non-empty. Skipped
+          entirely when the field already has a meaningful default.
+
+        Both probes go through ``emit_baseline_response`` so excavate can
+        re-mine either populated page. Whichever probe got content wins via
+        the response itself — no classifier picks between them.
+
+        Responses are cached on the parent ``lightfuzz`` module by request
+        signature: identical Probe A bodies across siblings of the same form
+        (data dict identical regardless of which field is the "primary")
+        collapse to one network request and one emission.
         """
-        probe_value = self.incoming_probe_value(populate_empty=False)
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
+        probe_value_a = self.incoming_probe_value(populate_empty=False)
+        response_a = await self._baseline_probe_once(probe_value_a, cookies, additional_params, emit_http_response)
+        if probe_value_a in (None, ""):
+            await self._baseline_probe_once("a", cookies, additional_params, emit_http_response)
+        return response_a
+
+    async def _baseline_probe_once(self, probe_value, cookies, additional_params, emit_http_response):
+        """Fire one baseline request with ``probe_value`` for the fuzzed parameter and
+        the captured sibling values, emit the response (subject to caching)."""
         request_params = self.prepare_request(
             self.event.data.get("type", "GETPARAM"),
             probe_value,
@@ -248,10 +275,21 @@ class BaseLightfuzz:
             additional_params,
         )
         request_params.update({"allow_redirects": False, "retries": 1, "timeout": 10})
+
+        signature = self.lightfuzz._baseline_request_signature(request_params)
+        cache = self.lightfuzz._baseline_probe_response_cache
+        cached = cache.get(signature)
+        if cached is not None:
+            return cached
+
         response = await self.lightfuzz.helpers.request(**request_params)
-        if emit_http_response and response is not None:
-            method = request_params.get("method", "GET")
-            await self.lightfuzz.emit_baseline_response(response, self.event, method=method)
+        if response is not None:
+            if len(cache) >= self.lightfuzz._baseline_probe_response_cache_max:
+                cache.pop(next(iter(cache)))
+            cache[signature] = response
+            if emit_http_response:
+                method = request_params.get("method", "GET")
+                await self.lightfuzz.emit_baseline_response(response, self.event, method=method)
         return response
 
     async def compare_probe(
