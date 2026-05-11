@@ -15,6 +15,10 @@ home: ~/.bbot
 keep_scans: 20
 # Interval for displaying status messages
 status_frequency: 15
+# When system memory exceeds this percentage, ingress is throttled with a per-event sleep
+# that scales linearly from 0s at the threshold up to 5s at threshold+5 (capped at 95%).
+# Last-ditch effort to give the pipeline a chance to drain before OOM.
+max_mem_percent: 90
 # Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
 file_blobs: false
 # Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
