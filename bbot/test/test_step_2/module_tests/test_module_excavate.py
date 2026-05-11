@@ -662,9 +662,12 @@ class TestExcavateSelectTagSelection(ModuleTestBase):
     """Verify <select> option-value selection logic.
 
     1. selected_nonfirst -- a non-first option carries `selected` -> we pick it (not the first option)
-    2. first_empty -- first option is empty, no selected -> we fall through to the first non-empty option
+    2. first_empty -- first option is empty, no selected -> we keep the empty first value
+       (filter-style forms often use a blank default that matches all results; substituting
+       a specific choice could narrow output to nothing)
     3. selected_with_empty_first -- first option empty, non-first option carries `selected` -> we pick selected
-    4. selected_empty -- the option with `selected` has an empty value -> fall back to the first non-empty option
+    4. selected_empty -- the option with `selected` has an empty value -> we keep the empty
+       selected value (the form's author chose blank as the default; preserve that intent)
     """
 
     targets = ["http://127.0.0.1:8888/"]
@@ -732,8 +735,8 @@ class TestExcavateSelectTagSelection(ModuleTestBase):
         )
 
         assert "first_empty" in picked, "Did not extract WEB_PARAMETER for first_empty"
-        assert picked["first_empty"] == "staging", (
-            f"first_empty: expected the first non-empty option to be picked when no option is selected, got {picked['first_empty']!r}"
+        assert picked["first_empty"] == "", (
+            f"first_empty: expected the first option's empty value to be preserved when no option is selected, got {picked['first_empty']!r}"
         )
 
         assert "selected_with_empty_first" in picked, "Did not extract WEB_PARAMETER for selected_with_empty_first"
@@ -742,8 +745,8 @@ class TestExcavateSelectTagSelection(ModuleTestBase):
         )
 
         assert "selected_empty" in picked, "Did not extract WEB_PARAMETER for selected_empty"
-        assert picked["selected_empty"] == "fallback", (
-            f"selected_empty: expected fallback to the first non-empty option when `selected` is empty, got {picked['selected_empty']!r}"
+        assert picked["selected_empty"] == "", (
+            f"selected_empty: expected the selected option's empty value to be preserved, got {picked['selected_empty']!r}"
         )
 
 

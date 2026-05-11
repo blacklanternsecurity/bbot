@@ -44,27 +44,33 @@ def _pick_select_value(options_html):
     """Choose the best <option> value from a <select>'s inner HTML.
 
     Preference order:
-      1. The option carrying a `selected` attribute, if its value is non-empty.
-      2. The first option with a non-empty value.
-      3. None, if no option has a non-empty value.
+      1. The option carrying a `selected` attribute (its value, blank or not).
+      2. The first option's value (blank or not) — filter-style forms often use
+         an empty default that "matches all", so substituting a specific choice
+         could narrow results to nothing.
+      3. None, if there are no options at all.
     """
     if not options_html:
         return None
     selected_value = None
-    first_nonempty_value = None
+    selected_found = False
+    first_value = None
+    first_set = False
     for attrs in bbot_regexes.option_tag_regex.findall(options_html):
         value_match = bbot_regexes.option_value_regex.search(attrs)
         if value_match:
             value = next((g for g in value_match.groups() if g is not None), "")
         else:
             value = ""
-        if not value:
-            continue
-        if selected_value is None and bbot_regexes.option_selected_regex.search(attrs):
+        if not first_set:
+            first_value = value
+            first_set = True
+        if not selected_found and bbot_regexes.option_selected_regex.search(attrs):
             selected_value = value
-        if first_nonempty_value is None:
-            first_nonempty_value = value
-    return selected_value if selected_value is not None else first_nonempty_value
+            selected_found = True
+    if selected_found:
+        return selected_value
+    return first_value if first_set else None
 
 
 def _exclude_key(original_dict, key_to_exclude):
@@ -583,14 +589,20 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 # Swap elements if needed
                                 input_tags = [(b, a) for a, b in input_tags]
                             if form_content_regex_name == "select_tag_regex":
-                                # Prefer the option marked `selected`, falling back to the first non-empty option
+                                # Prefer the option marked `selected`, falling back to the first
+                                # option (blank or not — filter forms often use a blank default
+                                # that matches all results)
                                 input_tags = [
                                     (name, _pick_select_value(options_html)) for name, options_html in input_tags
                                 ]
                             for parameter_name, original_value in input_tags:
-                                form_parameters.setdefault(
-                                    parameter_name, original_value.strip() if original_value else None
-                                )
+                                # Preserve empty strings (selects can legitimately have ""
+                                # as their preferred value); only None means "no value seen".
+                                if original_value is None:
+                                    normalized = None
+                                else:
+                                    normalized = original_value.strip()
+                                form_parameters.setdefault(parameter_name, normalized)
 
                     for parameter_name, original_value in form_parameters.items():
                         yield (
@@ -640,15 +652,25 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             )
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            # Two-pass: collect every yielded tuple across all YARA results for an
+            # identifier (YARA matches each <a> tag separately, so values for the
+            # same param-name arrive one match at a time), then group by
+            # (parameter_type, parameter_name, url) and emit one WEB_PARAMETER per
+            # group. The first observed value becomes original_value; any additional
+            # distinct values for the same param are attached as same_param_values,
+            # surviving the WEB_PARAMETER dedup that would otherwise discard them.
+            # Cross-value detectors (e.g. lightfuzz crypto's keystream-reuse check)
+            # read same_param_values.
             for identifier, results in yara_results.items():
+                if identifier not in self.parameterExtractorCallbackDict.keys():
+                    raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
+                grouped = {}
+                submodule_name = None
                 for result in results:
-                    if identifier not in self.parameterExtractorCallbackDict.keys():
-                        raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
                     parameterExtractorSubModule = self.parameterExtractorCallbackDict[identifier](
                         self.excavate, result
                     )
-
-                    # Use async for to iterate over the async generator
+                    submodule_name = parameterExtractorSubModule.name
                     async for (
                         parameter_type,
                         parameter_name,
@@ -657,7 +679,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         additional_params,
                     ) in parameterExtractorSubModule.extract():
                         self.excavate.debug(
-                            f"Found Parameter [{parameter_name}] in [{parameterExtractorSubModule.name}] ParameterExtractor Submodule"
+                            f"Found Parameter [{parameter_name}] in [{submodule_name}] ParameterExtractor Submodule"
                         )
 
                         # account for the case where the action is html encoded
@@ -686,26 +708,43 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.excavate.debug(f"Invalid URL [{url}]: {e}")
                             continue
 
-                        if self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
-                            if self.excavate.in_bl(parameter_name) is False:
-                                description = f"HTTP Extracted Parameter [{parameter_name}] ({parameterExtractorSubModule.name} Submodule)"
-                                data = {
-                                    "host": parsed_url.hostname,
-                                    "type": parameter_type,
-                                    "name": parameter_name,
-                                    "original_value": original_value,
-                                    "url": self.excavate.url_unparse(parameter_type, parsed_url),
-                                    "additional_params": additional_params,
-                                    "assigned_cookies": self.excavate.assigned_cookies,
-                                    "description": description,
-                                }
-                                await self.report(
-                                    data, event, yara_rule_settings, discovery_context, event_type="WEB_PARAMETER"
-                                )
-                            else:
-                                self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
-                        else:
+                        if not self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
                             self.excavate.debug(f"blocked parameter [{parameter_name}] due to validation failure")
+                            continue
+                        if self.excavate.in_bl(parameter_name) is not False:
+                            self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
+                            continue
+
+                        emit_url = self.excavate.url_unparse(parameter_type, parsed_url)
+                        group_key = (parameter_type, parameter_name, emit_url)
+                        if group_key not in grouped:
+                            grouped[group_key] = {
+                                "parsed_url": parsed_url,
+                                "values": [],
+                                "additional_params": additional_params,
+                            }
+                        group_values = grouped[group_key]["values"]
+                        if original_value not in group_values:
+                            group_values.append(original_value)
+
+                for (parameter_type, parameter_name, emit_url), group in grouped.items():
+                    values = group["values"]
+                    primary_value = values[0]
+                    same_param_values = values[1:]
+                    description = f"HTTP Extracted Parameter [{parameter_name}] ({submodule_name} Submodule)"
+                    data = {
+                        "host": group["parsed_url"].hostname,
+                        "type": parameter_type,
+                        "name": parameter_name,
+                        "original_value": primary_value,
+                        "url": emit_url,
+                        "additional_params": group["additional_params"],
+                        "assigned_cookies": self.excavate.assigned_cookies,
+                        "description": description,
+                    }
+                    if same_param_values:
+                        data["same_param_values"] = same_param_values
+                    await self.report(data, event, yara_rule_settings, discovery_context, event_type="WEB_PARAMETER")
 
     class CSPExtractor(ExcavateRule):
         description = "Extracts domains from CSP headers."
