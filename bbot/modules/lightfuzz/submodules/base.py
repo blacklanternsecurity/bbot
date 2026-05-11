@@ -122,6 +122,17 @@ class BaseLightfuzz:
             parameter_name = self.parameter_name
         additional_params = self.additional_params_process(additional_params, additional_params_populate_empty)
 
+        # Normalize None values to "" at the wire boundary. Excavate intentionally
+        # distinguishes `original_value=None` ("<input> had no value attribute") from
+        # `original_value=""` ("<input value=''>") in the event metadata, but the
+        # wire serialization is identical for both — browsers submit them as `name=`.
+        # Python's urlencode renders None as the literal text "None", which targets
+        # then reject as malformed input.
+        if additional_params:
+            additional_params = {k: ("" if v is None else v) for k, v in additional_params.items()}
+        if probe is None:
+            probe = ""
+
         # Transparently pack the probe value into the envelopes, if present
         probe = self.outgoing_probe_value(probe)
 

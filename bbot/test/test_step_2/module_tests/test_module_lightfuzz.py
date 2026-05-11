@@ -4394,3 +4394,74 @@ class Test_Lightfuzz_baseline_probe_form_submission(ModuleTestBase):
             "URL_UNVERIFIED for /crypto-baseline-secret not emitted — baseline_probe "
             "did not submit the form properly (request body missing the token field)."
         )
+
+
+# Regression test for the None-as-additional-params bug.
+#
+# Excavate stores original_value=None for <input> elements without a `value=`
+# attribute (it distinguishes "no value attribute" from "empty value attribute"
+# in event metadata). When lightfuzz fuzzes a sibling field, the None comes
+# through in additional_params and Python's urlencode renders None as the
+# literal text "None" — the target server then sees `name=None` instead of
+# `name=` (the empty value a browser would actually submit), and typically
+# rejects the request as malformed.
+#
+# Fix: coerce None → "" at the prepare_request wire boundary. This test stands
+# up a server that only reveals /none-bug-secret when the no-value-attr field
+# arrives as "" (browser-equivalent), and rejects literal "None".
+class Test_Lightfuzz_none_in_additional_params(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            # crypto is the submodule that calls baseline_probe() with the default
+            # additional_params_populate_empty=False, so None survives through to
+            # prepare_request and exercises the wire-boundary coercion.
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    # The `search_term` input has NO value= attribute → excavate sets
+    # original_value=None → without the wire-boundary normalization, the
+    # baseline POST would send `search_term=None` (literal).
+    landing_page = """
+    <html><body>
+        <form action="/none-bug" method="post">
+            <input type="hidden" name="csrf" value="abc">
+            <input type="text" name="search_term">
+            <input type="submit" value="go">
+        </form>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            if request.method == "GET":
+                return Response(self.landing_page, status=200, content_type="text/html")
+            # Reject the literal text "None" — that's the smoking gun for the
+            # urlencode-of-None bug. An empty string (the browser-equivalent
+            # submission) reveals the secret.
+            search_term = request.form.get("search_term", "<missing>")
+            csrf = request.form.get("csrf", "")
+            if csrf == "abc" and search_term == "":
+                body = '<html><body><a href="/none-bug-secret">ok</a></body></html>'
+            else:
+                body = f"<html><body>got search_term={search_term!r}</body></html>"
+            return Response(body, status=200, content_type="text/html")
+
+        module_test.set_expect_requests_handler(
+            expect_args=re.compile(".*"),
+            request_handler=handler,
+        )
+
+    def check(self, module_test, events):
+        secret_url = "http://127.0.0.1:8888/none-bug-secret"
+        secret_seen = any(
+            e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
+            for e in events
+        )
+        assert secret_seen, (
+            "URL_UNVERIFIED for /none-bug-secret not emitted — lightfuzz POST likely "
+            "sent the literal text 'None' instead of '' for the no-value-attr field."
+        )
