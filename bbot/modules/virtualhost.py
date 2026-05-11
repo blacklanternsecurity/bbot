@@ -730,7 +730,7 @@ class virtualhost(BaseModule):
             self.verbose(
                 f"CANARY CHANGED: Rejecting {probe_host}. Original canary had code {canary_response.status_code} and response data of length {len(canary_response.text or '')}"
             )
-            raise RuntimeError(f"Canary changed since initial test, rejecting {probe_host}")
+            return None
         # Canary is consistent, proceed
 
         probe_url = f"{event.parsed_url.scheme}://{probe_host}:{port}/"
