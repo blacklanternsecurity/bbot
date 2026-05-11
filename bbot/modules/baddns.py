@@ -5,7 +5,7 @@ from .base import BaseModule
 import logging
 
 SEVERITY_LEVELS = ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL")
-CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MODERATE", "HIGH", "CONFIRMED")
+CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")
 
 SUBMODULE_MAX_SEVERITY = {
     "CNAME": "MEDIUM",
@@ -45,15 +45,15 @@ class baddns(BaseModule):
         "created_date": "2024-01-18",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MODERATE", "enabled_submodules": []}
+    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MEDIUM", "enabled_submodules": []}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
-        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)",
+        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)",
         "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
     }
     module_threads = 8
-    deps_pip = ["baddns~=2.0.0"]
+    deps_pip = ["baddns~=2.3.0"]
 
     def select_modules(self):
         selected_submodules = []
@@ -96,13 +96,13 @@ class baddns(BaseModule):
         if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
         min_severity = self.config.get("min_severity", "LOW").upper()
-        min_confidence = self.config.get("min_confidence", "MODERATE").upper()
+        min_confidence = self.config.get("min_confidence", "MEDIUM").upper()
         if min_severity not in SEVERITY_LEVELS:
             self.warning(f"Invalid min_severity: {min_severity}, defaulting to LOW")
             min_severity = "LOW"
         if min_confidence not in CONFIDENCE_LEVELS:
-            self.warning(f"Invalid min_confidence: {min_confidence}, defaulting to MODERATE")
-            min_confidence = "MODERATE"
+            self.warning(f"Invalid min_confidence: {min_confidence}, defaulting to MEDIUM")
+            min_confidence = "MEDIUM"
         self._min_sev_idx = SEVERITY_LEVELS.index(min_severity)
         self._min_conf_idx = CONFIDENCE_LEVELS.index(min_confidence)
         self.signatures = load_signatures()
@@ -134,7 +134,8 @@ class baddns(BaseModule):
         coroutines = []
         for ModuleClass in self.select_modules():
             kwargs = {
-                "dns_client": self.scan.helpers.dns.resolver,
+                "http_client": self.helpers.blasthttp,
+                "dns_client": self.scan.helpers.dns.blastdns,
                 "custom_nameservers": self.custom_nameservers,
                 "signatures": self.signatures,
             }

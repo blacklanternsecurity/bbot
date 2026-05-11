@@ -662,7 +662,8 @@ class BaseModule:
             try:
                 event = self.incoming_event_queue.get_nowait()
                 self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                acceptable, reason = await self._event_postcheck(event)
+                async with self._task_counter.count(f"event_postcheck({event})"):
+                    acceptable, reason = await self._event_postcheck(event)
                 if acceptable:
                     if event.type == "FINISHED":
                         finish = True
@@ -1857,12 +1858,16 @@ class BaseInterceptModule(BaseModule):
                         continue
 
                     acceptable = True
-                    precheck_pass, reason = self._event_precheck(event)
+                    # precheck/postcheck must be counted so the module isn't marked finished
+                    # while events are mid-check (is_finished reads _task_counter.value)
+                    async with self._task_counter.count(f"event_precheck({event})"):
+                        precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
                         self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
                     else:
-                        postcheck_pass, reason = await self._event_postcheck(event)
+                        async with self._task_counter.count(f"event_postcheck({event})"):
+                            postcheck_pass, reason = await self._event_postcheck(event)
                         if not postcheck_pass:
                             self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
                             acceptable = False
@@ -1873,7 +1878,7 @@ class BaseInterceptModule(BaseModule):
                     forward_event_reason = ""
 
                     if acceptable:
-                        context = f"{self.name}.handle_event({event, kwargs})"
+                        context = f"{self.name}.handle_event({event})"
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Intercepting {event}")
                         try:

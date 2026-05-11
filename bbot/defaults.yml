@@ -41,8 +41,10 @@ dns:
   disable: false
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
-  # How many instances of the dns module to run concurrently
-  threads: 25
+  # How many threads to use per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
+  threads: 10
+  # How many DNS records to cache
+  cache_size: 100000
   # How many concurrent DNS resolvers to use when brute-forcing
   # (under the hood this is passed through directly to massdns -s)
   brute_threads: 1000
@@ -67,7 +69,7 @@ dns:
   wildcard_tests: 10
   # Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
   # This helps prevent faulty DNS servers from hanging up the scan
-  abort_threshold: 50
+  abort_threshold: 10
   # Treat hostnames discovered via PTR records as affiliates instead of in-scope
   # This prevents rDNS results (e.g. 1-2-3-4.ptr.example.com) from triggering
   # subdomain enumeration against unrelated domains when scanning IP ranges
@@ -262,8 +264,25 @@ parameter_blacklist:
   - ASP.NET_SessionId
   - .AspNetCore.Session
   - PHPSESSID
+  - sessionid
+  - csrftoken
   - __cf_bm
+  - cf_clearance
+  - _abck
+  - bm_sz
+  - ak_bmsc
   - f5_cspm
+  - _ga
+  - _gid
+  - _gat
+  - _gcl_au
+  - _fbp
+  - _fbc
+  - __utma
+  - __utmb
+  - __utmc
+  - __utmz
+  - _hjid
 
 parameter_blacklist_prefixes:
   - TS01
@@ -276,6 +295,9 @@ parameter_blacklist_prefixes:
   - ApplicationGatewayAffinity
   - JSESSIONID
   - ARRAffinity
+  - _hjSession
+  - _gat_
+  - intercom-
 
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:

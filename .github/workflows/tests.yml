@@ -76,24 +76,30 @@ jobs:
       - name: Calculate version
         id: calc_version
         run: |
-          # Get base version from latest stable tag (exclude rc tags, strip 'v' prefix)
-          LATEST_STABLE_TAG=$(git describe --tags --abbrev=0 --exclude="*rc*")
-          BASE_VERSION=$(echo "$LATEST_STABLE_TAG" | sed 's/^v//')
+          # Source of truth for base version is pyproject.toml
+          BASE_VERSION=$(python3 -c "
+          import re
+          text = open('pyproject.toml').read()
+          print(re.search(r'^version\s*=\s*\"([^\"]+)\"', text, re.MULTILINE).group(1))
+          ")
 
           if [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
-            # Stable: clean version from tag
             VERSION="$BASE_VERSION"
           elif [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            # Dev: version.distancerc (e.g., 3.0.0.123rc)
-            DISTANCE=$(git rev-list ${LATEST_STABLE_TAG}..HEAD --count)
+            # Dev: base version + commit distance from stable as rc (e.g., 3.0.0.123rc)
+            STABLE_HEAD=$(git rev-parse origin/stable 2>/dev/null || git rev-list --max-parents=0 HEAD)
+            DISTANCE=$(git rev-list ${STABLE_HEAD}..HEAD --count)
             VERSION="${BASE_VERSION}.${DISTANCE}rc"
           fi
 
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Calculated version: $VERSION"
 
-          # Write version to file for hatchling to pick up
-          echo "__version__ = \"$VERSION\"" > bbot/_version.py
+          # For dev builds, write the rc version to pyproject.toml for hatchling
+          # Stable builds use pyproject.toml as-is
+          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
+          fi
       - name: Build Pypi package
         if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
         run: uv build
@@ -122,8 +128,6 @@ jobs:
           tags: |
             blacklanternsecurity/bbot:dev
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR }}
       - name: Publish to Docker Hub (stable)
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
         uses: docker/build-push-action@v6
@@ -146,8 +150,6 @@ jobs:
           tags: |
             blacklanternsecurity/bbot:dev-full
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}-full
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}-full
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR }}-full
       - name: Publish Full Docker Image to Docker Hub (stable)
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
         uses: docker/build-push-action@v6
@@ -239,7 +241,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Install dependencies
-        run: uv sync --only-group docs
+        run: uv sync --frozen --group docs
       - name: Configure Git
         run: |
           git config user.name github-actions
@@ -253,11 +255,11 @@ jobs:
       - name: Generate docs (stable branch)
         if: github.ref == 'refs/heads/stable'
         run: |
-          uv run mike deploy Stable
+          uv run --no-sync mike deploy Stable
       - name: Generate docs (dev branch)
         if: github.ref == 'refs/heads/dev'
         run: |
-          uv run mike deploy Dev
+          uv run --no-sync mike deploy Dev
       - name: Publish docs
         run: |
           git switch gh-pages

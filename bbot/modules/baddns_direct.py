@@ -10,14 +10,14 @@ class baddns_direct(baddns_module):
         "created_date": "2024-01-29",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MODERATE"}
+    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MEDIUM"}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
-        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)",
+        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)",
     }
     module_threads = 8
-    deps_pip = ["baddns~=2.0.0"]
+    deps_pip = ["baddns~=2.3.0"]
 
     scope_distance_modifier = 1
 
@@ -27,7 +27,8 @@ class baddns_direct(baddns_module):
     async def handle_event(self, event):
         CNAME_direct_module = self.select_modules()[0]
         kwargs = {
-            "dns_client": self.scan.helpers.dns.resolver,
+            "http_client": self.helpers.blasthttp,
+            "dns_client": self.scan.helpers.dns.blastdns,
             "custom_nameservers": self.custom_nameservers,
             "signatures": self.signatures,
             "direct_mode": True,
