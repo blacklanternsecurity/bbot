@@ -40,6 +40,33 @@ def find_subclasses(obj, base_class):
     return subclasses
 
 
+def _pick_select_value(options_html):
+    """Choose the best <option> value from a <select>'s inner HTML.
+
+    Preference order:
+      1. The option carrying a `selected` attribute, if its value is non-empty.
+      2. The first option with a non-empty value.
+      3. None, if no option has a non-empty value.
+    """
+    if not options_html:
+        return None
+    selected_value = None
+    first_nonempty_value = None
+    for attrs in bbot_regexes.option_tag_regex.findall(options_html):
+        value_match = bbot_regexes.option_value_regex.search(attrs)
+        if value_match:
+            value = next((g for g in value_match.groups() if g is not None), "")
+        else:
+            value = ""
+        if not value:
+            continue
+        if selected_value is None and bbot_regexes.option_selected_regex.search(attrs):
+            selected_value = value
+        if first_nonempty_value is None:
+            first_nonempty_value = value
+    return selected_value if selected_value is not None else first_nonempty_value
+
+
 def _exclude_key(original_dict, key_to_exclude):
     """
     Returns a new dictionary excluding the specified key from the original dictionary.
@@ -555,6 +582,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             ]:
                                 # Swap elements if needed
                                 input_tags = [(b, a) for a, b in input_tags]
+                            if form_content_regex_name == "select_tag_regex":
+                                # Prefer the option marked `selected`, falling back to the first non-empty option
+                                input_tags = [
+                                    (name, _pick_select_value(options_html)) for name, options_html in input_tags
+                                ]
                             for parameter_name, original_value in input_tags:
                                 form_parameters.setdefault(
                                     parameter_name, original_value.strip() if original_value else None

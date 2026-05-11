@@ -166,9 +166,15 @@ generic_form_regex = re.compile(
 )
 
 select_tag_regex = re.compile(
-    r"<select[^>]+?name=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\']?([_\.\-\w]*)[\"\']?[^>]*>)?",
+    r"<select[^>]+?\bname=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>((?:\s*<option\b[^>]*>(?:[^<]*(?:</option>)?)?\s*)*)",
     re.IGNORECASE | re.DOTALL,
 )
+option_tag_regex = re.compile(r"<option\b([^>]*)>", re.IGNORECASE)
+option_value_regex = re.compile(
+    r"""\bvalue\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>'"]+))""",
+    re.IGNORECASE,
+)
+option_selected_regex = re.compile(r"(?<![\-\w])selected(?![\-\w])", re.IGNORECASE)
 
 textarea_tag_regex = re.compile(
     r"<textarea[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?\svalue=[\"\']?([:%\-\._=+\/\w]*)[\"\']?[^>]*?>"

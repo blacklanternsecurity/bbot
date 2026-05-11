@@ -658,6 +658,95 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_form_post_additional_params, "Did not extract additional parameters from POST form"
 
 
+class TestExcavateSelectTagSelection(ModuleTestBase):
+    """Verify <select> option-value selection logic.
+
+    1. selected_nonfirst -- a non-first option carries `selected` -> we pick it (not the first option)
+    2. first_empty -- first option is empty, no selected -> we fall through to the first non-empty option
+    3. selected_with_empty_first -- first option empty, non-first option carries `selected` -> we pick selected
+    4. selected_empty -- the option with `selected` has an empty value -> fall back to the first non-empty option
+    """
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+    select_extract_html = """
+    <html>
+    <body>
+        <form action="/sel1" method="post">
+            <select name="selected_nonfirst">
+                <option value="user">User</option>
+                <option value="admin" selected>Admin</option>
+                <option value="guest">Guest</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel2" method="post">
+            <select name="first_empty">
+                <option value="">-- choose --</option>
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel3" method="post">
+            <select name="selected_with_empty_first">
+                <option value="">-- choose --</option>
+                <option value="us-east" selected>US East</option>
+                <option value="eu-west">EU West</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel4" method="post">
+            <select name="selected_empty">
+                <option value="" selected>None</option>
+                <option value="">blank too</option>
+                <option value="fallback">Fallback</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+    </body>
+    </html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.select_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        picked = {}
+        for e in events:
+            if e.type != "WEB_PARAMETER":
+                continue
+            name = e.data.get("name")
+            if name in (
+                "selected_nonfirst",
+                "first_empty",
+                "selected_with_empty_first",
+                "selected_empty",
+            ):
+                picked[name] = e.data.get("original_value")
+
+        assert "selected_nonfirst" in picked, "Did not extract WEB_PARAMETER for selected_nonfirst"
+        assert picked["selected_nonfirst"] == "admin", (
+            f"selected_nonfirst: expected the option with `selected` to win, got {picked['selected_nonfirst']!r}"
+        )
+
+        assert "first_empty" in picked, "Did not extract WEB_PARAMETER for first_empty"
+        assert picked["first_empty"] == "staging", (
+            f"first_empty: expected the first non-empty option to be picked when no option is selected, got {picked['first_empty']!r}"
+        )
+
+        assert "selected_with_empty_first" in picked, "Did not extract WEB_PARAMETER for selected_with_empty_first"
+        assert picked["selected_with_empty_first"] == "us-east", (
+            f"selected_with_empty_first: expected `selected` to win over the empty first option, got {picked['selected_with_empty_first']!r}"
+        )
+
+        assert "selected_empty" in picked, "Did not extract WEB_PARAMETER for selected_empty"
+        assert picked["selected_empty"] == "fallback", (
+            f"selected_empty: expected fallback to the first non-empty option when `selected` is empty, got {picked['selected_empty']!r}"
+        )
+
+
 class TestExcavateParameterExtraction_postform_noaction(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
