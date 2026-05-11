@@ -73,24 +73,21 @@ class CloudCheck(BaseInterceptModule):
         for regex_name, regex in regexes.items():
             for host in hosts_to_check:
                 if match := regex.match(host):
-                    try:
-                        bucket_name, bucket_domain = match.groups()
-                    except Exception as e:
-                        self.error(
-                            f"Bucket regex {regex_name} ({regex}) is not formatted correctly to extract bucket name and domain: {e}"
-                        )
+                    groups = match.groupdict()
+                    bucket_name = groups.get("name")
+                    if not bucket_name:
+                        self.error(f"Bucket regex {regex_name} ({regex.pattern}) did not yield a 'name' group")
                         continue
-                    bucket_name, bucket_domain = match.groups()
-                    bucket_url = f"https://{bucket_name}.{bucket_domain}"
-                    await self.emit_event(
-                        {
-                            "name": bucket_name,
-                            "url": bucket_url,
-                            "context": f"{{module}} analyzed {event.type} and found {{event.type}}: {bucket_url}",
-                        },
-                        "STORAGE_BUCKET",
-                        parent=event,
-                    )
+                    region = groups.get("region")
+                    bucket_url = f"https://{host}"
+                    bucket_data = {
+                        "name": bucket_name,
+                        "url": bucket_url,
+                        "context": f"{{module}} analyzed {event.type} and found {{event.type}}: {bucket_url}",
+                    }
+                    if region:
+                        bucket_data["region"] = region
+                    await self.emit_event(bucket_data, "STORAGE_BUCKET", parent=event)
 
     async def cloud_hostname_regexes(self):
         async with self._cloud_hostname_regexes_lock:
